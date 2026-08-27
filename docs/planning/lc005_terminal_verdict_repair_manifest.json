@@ -1,0 +1,684 @@
+{
+  "authority": "LC005_TERMINAL_VERDICT_CORPUS_REMEDIATION_CENSUS_001",
+  "canonical_corpus_source": {
+    "production_record_count": 41591,
+    "source_commit_or_snapshot_id": "890f9b1d9f6eb3a4e38e5b74a9062f1d66d59a07:88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "source_kind": "IMMUTABLE_SNAPSHOT (byte-verified; not present in this worktree)",
+    "source_path": "canonical/current/questions.json  (runtime: /app/data/questions.json)",
+    "source_record_count": 42804,
+    "source_repo_id": "beatleswu/beatleswu.github.io",
+    "source_scope": "SNAPSHOT",
+    "source_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "source_size_bytes": 75675637
+  },
+  "canonicality": "DRY_RUN__NO_MUTATION__NOT_APPLIED",
+  "census_tool_version": "lc005-terminal-verdict-census-v1",
+  "classes": [
+    "ALREADY_EXPLICIT",
+    "SAFE_AUTO_CANDIDATE",
+    "MANUAL_SEMANTIC_REVIEW",
+    "AMBIGUOUS_AUTOREPLY",
+    "MALFORMED_SOURCE",
+    "EMPTY_OR_UNANSWERABLE",
+    "DUPLICATE_IDENTITY_BLOCKED",
+    "COLOR_AUTHORITY_INCOMPLETE",
+    "OTHER_BLOCKED"
+  ],
+  "corpus_status": "LIVE_CORPUS_ABSENT_FROM_WORKTREE__SCHEMA_RULE_AND_SAMPLES_ONLY",
+  "live_corpus_run_command": "python -m tools.lc005_terminal_verdict_census --snapshot <questions.json> --snapshot-sha256 88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff --out-manifest docs/planning/lc005_terminal_verdict_repair_manifest.LIVE.json",
+  "safe_auto_rule": {
+    "evidence_required": "game-info-root RE[...] whose value contains no failure token",
+    "mechanically_testable_by": "tools/lc005_terminal_verdict_census.classify_record + tests/test_lc005_terminal_verdict_census.py",
+    "name": "ROOT_RE_PROPAGATION",
+    "never": "bare leaf alone is NEVER SAFE_AUTO; no marker value is invented; nothing is written",
+    "preconditions": [
+      "strict_parses",
+      "non_empty",
+      "reachable_player_move_terminal",
+      "deterministic_line (no ambiguous opponent reply)",
+      "server_resolvable_player_colour",
+      "unique_legacy_id (not in a duplicate group)",
+      "no reachable terminal already carries a judge-honoured marker",
+      "no authored failure annotation anywhere"
+    ],
+    "proposed_action": "PROPAGATE_ROOT_RE_TO_TERMINAL: copy the record own root RE[<value>] verbatim onto every reachable bare terminal move node"
+  },
+  "sample_census": {
+    "census_tool_version": "lc005-terminal-verdict-census-v1",
+    "classification_accounting_pass": true,
+    "classification_total": 24,
+    "counts": {
+      "ALREADY_EXPLICIT": 2,
+      "AMBIGUOUS_AUTOREPLY": 3,
+      "COLOR_AUTHORITY_INCOMPLETE": 1,
+      "DUPLICATE_IDENTITY_BLOCKED": 2,
+      "EMPTY_OR_UNANSWERABLE": 1,
+      "MALFORMED_SOURCE": 3,
+      "MANUAL_SEMANTIC_REVIEW": 7,
+      "OTHER_BLOCKED": 0,
+      "SAFE_AUTO_CANDIDATE": 5
+    },
+    "current_explicit_success_records": 1,
+    "current_explicit_verdict_coverage_pct": 5.0,
+    "duplicate_legacy_id_count": 1,
+    "duplicate_record_count": 2,
+    "entries": [
+      {
+        "blockers": [],
+        "classification": "SAFE_AUTO_CANDIDATE",
+        "confidence_class": "medium",
+        "content_sha256": "52b6ffa1682d009d6848d6053fc1c0535703f21a6a87a55f988c6ad02cb71a01",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "existing_root_RE_non_failure + deterministic_line",
+        "legacy_question_id": 7998,
+        "locator": {
+          "content_sha256": "52b6ffa1682d009d6848d6053fc1c0535703f21a6a87a55f988c6ad02cb71a01",
+          "legacy_question_id": 7998,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 16950,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": false,
+        "proposed_marker_action": {
+          "action": "PROPAGATE_ROOT_RE_TO_TERMINAL",
+          "applied": false,
+          "marker_property": "RE",
+          "marker_value": "B+",
+          "targets": "every_reachable_bare_terminal_move_node"
+        },
+        "reason_code": "root_re_propagation_candidate",
+        "record_index": 16950,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "SAFE_AUTO_CANDIDATE",
+        "confidence_class": "medium",
+        "content_sha256": "ff78727f4b118ff2e3cac45f7c1562b9b5b4b6911796c55316ea7b44d0722844",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "existing_root_RE_non_failure + deterministic_line",
+        "legacy_question_id": 8057,
+        "locator": {
+          "content_sha256": "ff78727f4b118ff2e3cac45f7c1562b9b5b4b6911796c55316ea7b44d0722844",
+          "legacy_question_id": 8057,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 17156,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": false,
+        "proposed_marker_action": {
+          "action": "PROPAGATE_ROOT_RE_TO_TERMINAL",
+          "applied": false,
+          "marker_property": "RE",
+          "marker_value": "B+",
+          "targets": "every_reachable_bare_terminal_move_node"
+        },
+        "reason_code": "root_re_propagation_candidate",
+        "record_index": 17156,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "SAFE_AUTO_CANDIDATE",
+        "confidence_class": "medium",
+        "content_sha256": "5885657a363cd1c8a18aecdc523a9e701dd07c29f4674be0dd24f94d3066c3cf",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "existing_root_RE_non_failure + deterministic_line",
+        "legacy_question_id": 40001,
+        "locator": {
+          "content_sha256": "5885657a363cd1c8a18aecdc523a9e701dd07c29f4674be0dd24f94d3066c3cf",
+          "legacy_question_id": 40001,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 40001,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": false,
+        "proposed_marker_action": {
+          "action": "PROPAGATE_ROOT_RE_TO_TERMINAL",
+          "applied": false,
+          "marker_property": "RE",
+          "marker_value": "W+",
+          "targets": "every_reachable_bare_terminal_move_node"
+        },
+        "reason_code": "root_re_propagation_candidate",
+        "record_index": 40001,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "SAFE_AUTO_CANDIDATE",
+        "confidence_class": "medium",
+        "content_sha256": "7a3d1af304801ea3b7fe43f39897119bf6ed96049fbc67bd05caf61169b9b2ed",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "existing_root_RE_non_failure + deterministic_line",
+        "legacy_question_id": 41010,
+        "locator": {
+          "content_sha256": "7a3d1af304801ea3b7fe43f39897119bf6ed96049fbc67bd05caf61169b9b2ed",
+          "legacy_question_id": 41010,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 41010,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": false,
+        "proposed_marker_action": {
+          "action": "PROPAGATE_ROOT_RE_TO_TERMINAL",
+          "applied": false,
+          "marker_property": "RE",
+          "marker_value": "B+T",
+          "targets": "every_reachable_bare_terminal_move_node"
+        },
+        "reason_code": "root_re_propagation_candidate",
+        "record_index": 41010,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "SAFE_AUTO_CANDIDATE",
+        "confidence_class": "medium",
+        "content_sha256": "5fcaaed715c176a8997edb6ea1defc35f370616f57b5ba890c110ac93bcbec98",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "existing_root_RE_non_failure + deterministic_line",
+        "legacy_question_id": 41011,
+        "locator": {
+          "content_sha256": "5fcaaed715c176a8997edb6ea1defc35f370616f57b5ba890c110ac93bcbec98",
+          "legacy_question_id": 41011,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 41011,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": false,
+        "proposed_marker_action": {
+          "action": "PROPAGATE_ROOT_RE_TO_TERMINAL",
+          "applied": false,
+          "marker_property": "RE",
+          "marker_value": "Black",
+          "targets": "every_reachable_bare_terminal_move_node"
+        },
+        "reason_code": "root_re_propagation_candidate",
+        "record_index": 41011,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "MANUAL_SEMANTIC_REVIEW",
+        "confidence_class": "n/a",
+        "content_sha256": "4ef2c38c07773fee193878c691020b5126dfb87c25348bff06a12dd224f3406f",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "bare_terminal_no_existing_success_annotation",
+        "legacy_question_id": 8092,
+        "locator": {
+          "content_sha256": "4ef2c38c07773fee193878c691020b5126dfb87c25348bff06a12dd224f3406f",
+          "legacy_question_id": 8092,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 17201,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "needs_human_semantic_decision",
+        "record_index": 17201,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "MANUAL_SEMANTIC_REVIEW",
+        "confidence_class": "n/a",
+        "content_sha256": "88bdf5a3b0d433a7c9349bbe2f68898f61cff4fea9314f182cc2fae3de1eda98",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "bare_terminal_no_existing_success_annotation",
+        "legacy_question_id": 50077,
+        "locator": {
+          "content_sha256": "88bdf5a3b0d433a7c9349bbe2f68898f61cff4fea9314f182cc2fae3de1eda98",
+          "legacy_question_id": 50077,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 50077,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "needs_human_semantic_decision",
+        "record_index": 50077,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "MANUAL_SEMANTIC_REVIEW",
+        "confidence_class": "n/a",
+        "content_sha256": "935f40279eb75e5cef4325e84ade1ed199946ef05d3755eb9402a609dbf2db63",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "bare_terminal_no_existing_success_annotation",
+        "legacy_question_id": 50078,
+        "locator": {
+          "content_sha256": "935f40279eb75e5cef4325e84ade1ed199946ef05d3755eb9402a609dbf2db63",
+          "legacy_question_id": 50078,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 50078,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "needs_human_semantic_decision",
+        "record_index": 50078,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "MANUAL_SEMANTIC_REVIEW",
+        "confidence_class": "n/a",
+        "content_sha256": "e2954879941182909dbc8d7fa03016813f01a1f4866b4358abe2e9a88bc4bad1",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "bare_terminal_no_existing_success_annotation",
+        "legacy_question_id": 50079,
+        "locator": {
+          "content_sha256": "e2954879941182909dbc8d7fa03016813f01a1f4866b4358abe2e9a88bc4bad1",
+          "legacy_question_id": 50079,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 50079,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "needs_human_semantic_decision",
+        "record_index": 50079,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "MANUAL_SEMANTIC_REVIEW",
+        "confidence_class": "n/a",
+        "content_sha256": "255914749b38bb325e7075a5d25771251b840bb8881e939f7ed5ddabc3df140a",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "bare_terminal_no_existing_success_annotation",
+        "legacy_question_id": 50080,
+        "locator": {
+          "content_sha256": "255914749b38bb325e7075a5d25771251b840bb8881e939f7ed5ddabc3df140a",
+          "legacy_question_id": 50080,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 50080,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "needs_human_semantic_decision",
+        "record_index": 50080,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "AMBIGUOUS_AUTOREPLY",
+        "confidence_class": "n/a",
+        "content_sha256": "2969c52c5631d2cf4faf6a354e810faf0ebfe2bc97155ec3f3f40158b86e0e08",
+        "current_terminal_semantics": "ambiguous",
+        "evidence_basis": "multiple_or_non_unique_opponent_reply",
+        "legacy_question_id": 15436,
+        "locator": {
+          "content_sha256": "2969c52c5631d2cf4faf6a354e810faf0ebfe2bc97155ec3f3f40158b86e0e08",
+          "legacy_question_id": 15436,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 30111,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "ambiguous_autoreply",
+        "record_index": 30111,
+        "source_record_uuid": null,
+        "subtag": "TRUE_AMBIGUOUS_REPLY"
+      },
+      {
+        "blockers": [],
+        "classification": "AMBIGUOUS_AUTOREPLY",
+        "confidence_class": "n/a",
+        "content_sha256": "58f0ceff5af43d3bbc8ddd22f8114e99d50aead0e49fe047d580997cfbc80ea4",
+        "current_terminal_semantics": "ambiguous",
+        "evidence_basis": "multiple_or_non_unique_opponent_reply",
+        "legacy_question_id": 30112,
+        "locator": {
+          "content_sha256": "58f0ceff5af43d3bbc8ddd22f8114e99d50aead0e49fe047d580997cfbc80ea4",
+          "legacy_question_id": 30112,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 30112,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "ambiguous_autoreply",
+        "record_index": 30112,
+        "source_record_uuid": null,
+        "subtag": "TRUE_AMBIGUOUS_REPLY"
+      },
+      {
+        "blockers": [],
+        "classification": "AMBIGUOUS_AUTOREPLY",
+        "confidence_class": "n/a",
+        "content_sha256": "1e6d988717e8e97d4b5b03d6a78526fa27ad3652bf44df36607e1e07b76cb2d6",
+        "current_terminal_semantics": "ambiguous",
+        "evidence_basis": "multiple_or_non_unique_opponent_reply",
+        "legacy_question_id": 30113,
+        "locator": {
+          "content_sha256": "1e6d988717e8e97d4b5b03d6a78526fa27ad3652bf44df36607e1e07b76cb2d6",
+          "legacy_question_id": 30113,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 30113,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "ambiguous_autoreply",
+        "record_index": 30113,
+        "source_record_uuid": null,
+        "subtag": "OTHER_BRANCHING_SHAPE"
+      },
+      {
+        "blockers": [],
+        "classification": "ALREADY_EXPLICIT",
+        "confidence_class": "high",
+        "content_sha256": "6b56f6042fda6d3a65c7470b0a3c7f69808ffe99321b59581a69c7d98a3faf8f",
+        "current_terminal_semantics": "explicit_success",
+        "evidence_basis": "honoured_success_marker_on_terminal",
+        "legacy_question_id": 30114,
+        "locator": {
+          "content_sha256": "6b56f6042fda6d3a65c7470b0a3c7f69808ffe99321b59581a69c7d98a3faf8f",
+          "legacy_question_id": 30114,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 30114,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": false,
+        "proposed_marker_action": null,
+        "reason_code": "terminal_success_marker",
+        "record_index": 30114,
+        "source_record_uuid": null,
+        "subtag": "TERMINAL_SUCCESS_MARKER"
+      },
+      {
+        "blockers": [],
+        "classification": "MALFORMED_SOURCE",
+        "confidence_class": "n/a",
+        "content_sha256": "2f990ce2d90019a58573ff498a7fe16e7265c1048d75caad21fc194469da1319",
+        "current_terminal_semantics": "unparseable",
+        "evidence_basis": "strict_parse_raised",
+        "legacy_question_id": 15388,
+        "locator": {
+          "content_sha256": "2f990ce2d90019a58573ff498a7fe16e7265c1048d75caad21fc194469da1319",
+          "legacy_question_id": 15388,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 30140,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "strict_parse_valueerror",
+        "record_index": 30140,
+        "source_record_uuid": null,
+        "subtag": "TRUNCATED_SGF"
+      },
+      {
+        "blockers": [],
+        "classification": "MALFORMED_SOURCE",
+        "confidence_class": "n/a",
+        "content_sha256": "315aafd16b39b51e76afa83621b2ec552fe290ecddbcfc6976c9d8349a68f8a0",
+        "current_terminal_semantics": "unparseable",
+        "evidence_basis": "strict_parse_raised",
+        "legacy_question_id": 30141,
+        "locator": {
+          "content_sha256": "315aafd16b39b51e76afa83621b2ec552fe290ecddbcfc6976c9d8349a68f8a0",
+          "legacy_question_id": 30141,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 30141,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "strict_parse_valueerror",
+        "record_index": 30141,
+        "source_record_uuid": null,
+        "subtag": "MALFORMED_SGF"
+      },
+      {
+        "blockers": [],
+        "classification": "MALFORMED_SOURCE",
+        "confidence_class": "n/a",
+        "content_sha256": "b18c8e8ae91db278cfd1cdc604c3d8d24392a9c536b55a8c4de1dec0436218bd",
+        "current_terminal_semantics": "unparseable",
+        "evidence_basis": "strict_parse_raised",
+        "legacy_question_id": 30142,
+        "locator": {
+          "content_sha256": "b18c8e8ae91db278cfd1cdc604c3d8d24392a9c536b55a8c4de1dec0436218bd",
+          "legacy_question_id": 30142,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 30142,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "strict_parse_valueerror",
+        "record_index": 30142,
+        "source_record_uuid": null,
+        "subtag": "OTHER_PARSE_FAILURE"
+      },
+      {
+        "blockers": [],
+        "classification": "EMPTY_OR_UNANSWERABLE",
+        "confidence_class": "n/a",
+        "content_sha256": "95c110b9632e58a10c67934a8c2f251f07035e667e9a97608e5fc6593b6545ec",
+        "current_terminal_semantics": "no_terminal",
+        "evidence_basis": "root_has_no_children",
+        "legacy_question_id": 69816,
+        "locator": {
+          "content_sha256": "95c110b9632e58a10c67934a8c2f251f07035e667e9a97608e5fc6593b6545ec",
+          "legacy_question_id": 69816,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 40299,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "empty_answer_tree",
+        "record_index": 40299,
+        "source_record_uuid": null,
+        "subtag": "EMPTY_TREE"
+      },
+      {
+        "blockers": [],
+        "classification": "MANUAL_SEMANTIC_REVIEW",
+        "confidence_class": "n/a",
+        "content_sha256": "f28acdee81b623809cb9650d667c816f8adcd931fe94d4ea002942dfc9a36770",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "bare_terminal_no_existing_success_annotation",
+        "legacy_question_id": 40300,
+        "locator": {
+          "content_sha256": "f28acdee81b623809cb9650d667c816f8adcd931fe94d4ea002942dfc9a36770",
+          "legacy_question_id": 40300,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 40300,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "needs_human_semantic_decision",
+        "record_index": 40300,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "ALREADY_EXPLICIT",
+        "confidence_class": "high",
+        "content_sha256": "c1f6a4fc668269aa8938226db048912b4b3f5b04f97b67e740ef7e0f110aeddd",
+        "current_terminal_semantics": "explicit_failure",
+        "evidence_basis": "honoured_failure_marker_on_terminal",
+        "legacy_question_id": 65095,
+        "locator": {
+          "content_sha256": "c1f6a4fc668269aa8938226db048912b4b3f5b04f97b67e740ef7e0f110aeddd",
+          "legacy_question_id": 65095,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 40010,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": false,
+        "proposed_marker_action": null,
+        "reason_code": "terminal_failure_marker_only",
+        "record_index": 40010,
+        "source_record_uuid": null,
+        "subtag": "TERMINAL_FAILURE_MARKER"
+      },
+      {
+        "blockers": [],
+        "classification": "COLOR_AUTHORITY_INCOMPLETE",
+        "confidence_class": "n/a",
+        "content_sha256": "839ac54ce54a70983d99a1ba5cbdb86c5e6a9cb8a93715f1fc5cb02b65da0ce3",
+        "current_terminal_semantics": "unknown_side_to_move",
+        "evidence_basis": "no_PL_and_no_first_move_colour",
+        "legacy_question_id": 40002,
+        "locator": {
+          "content_sha256": "839ac54ce54a70983d99a1ba5cbdb86c5e6a9cb8a93715f1fc5cb02b65da0ce3",
+          "legacy_question_id": 40002,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 40002,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "color_silent",
+        "record_index": 40002,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [],
+        "classification": "MANUAL_SEMANTIC_REVIEW",
+        "confidence_class": "n/a",
+        "content_sha256": "48614e8298231f1c52862d45de290d7395070aa51dc3246cd45a696fce23fed4",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "bare_terminal_no_existing_success_annotation",
+        "legacy_question_id": 40003,
+        "locator": {
+          "content_sha256": "48614e8298231f1c52862d45de290d7395070aa51dc3246cd45a696fce23fed4",
+          "legacy_question_id": 40003,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 40003,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "needs_human_semantic_decision",
+        "record_index": 40003,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [
+          "duplicate_legacy_id"
+        ],
+        "classification": "DUPLICATE_IDENTITY_BLOCKED",
+        "confidence_class": "n/a",
+        "content_sha256": "88bdf5a3b0d433a7c9349bbe2f68898f61cff4fea9314f182cc2fae3de1eda98",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "record_in_duplicate_legacy_id_group",
+        "legacy_question_id": 77,
+        "locator": {
+          "content_sha256": "88bdf5a3b0d433a7c9349bbe2f68898f61cff4fea9314f182cc2fae3de1eda98",
+          "legacy_question_id": 77,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 50001,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "duplicate_identity_blocks_auto_repair",
+        "record_index": 50001,
+        "source_record_uuid": null,
+        "subtag": null
+      },
+      {
+        "blockers": [
+          "duplicate_legacy_id"
+        ],
+        "classification": "DUPLICATE_IDENTITY_BLOCKED",
+        "confidence_class": "n/a",
+        "content_sha256": "f6cf1d00bfc3b635ace0d143e41cc9a25f4eae041b8cfe73f32d2c9581288165",
+        "current_terminal_semantics": "bare_terminal",
+        "evidence_basis": "record_in_duplicate_legacy_id_group",
+        "legacy_question_id": 77,
+        "locator": {
+          "content_sha256": "f6cf1d00bfc3b635ace0d143e41cc9a25f4eae041b8cfe73f32d2c9581288165",
+          "legacy_question_id": 77,
+          "locator_type": "AUDIT_LOCATOR_ONLY",
+          "record_index": 50002,
+          "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+          "source_path": null
+        },
+        "manual_review_required": true,
+        "proposed_marker_action": null,
+        "reason_code": "duplicate_identity_blocks_auto_repair",
+        "record_index": 50002,
+        "source_record_uuid": null,
+        "subtag": null
+      }
+    ],
+    "input_record_total": 24,
+    "projected_after_manual_review_best_case_pct": 70.0,
+    "projected_after_safe_auto_pct": 30.0,
+    "remaining_blocked_records": 10,
+    "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "subtags": {
+      "ALREADY_EXPLICIT": {
+        "TERMINAL_FAILURE_MARKER": 1,
+        "TERMINAL_SUCCESS_MARKER": 1
+      },
+      "AMBIGUOUS_AUTOREPLY": {
+        "OTHER_BRANCHING_SHAPE": 1,
+        "TRUE_AMBIGUOUS_REPLY": 2
+      },
+      "COLOR_AUTHORITY_INCOMPLETE": {},
+      "DUPLICATE_IDENTITY_BLOCKED": {},
+      "EMPTY_OR_UNANSWERABLE": {
+        "EMPTY_TREE": 1
+      },
+      "MALFORMED_SOURCE": {
+        "MALFORMED_SGF": 1,
+        "OTHER_PARSE_FAILURE": 1,
+        "TRUNCATED_SGF": 1
+      },
+      "MANUAL_SEMANTIC_REVIEW": {},
+      "OTHER_BLOCKED": {},
+      "SAFE_AUTO_CANDIDATE": {}
+    },
+    "terminal_answer_records": 20
+  },
+  "schema_version": "1.0"
+}
