@@ -103,22 +103,34 @@ def _leaf(sgf: str):
 
 
 # --------------------------------------------------------------------------- #
-# Policy A faithfully reproduces the live judge primitive
+# the live judge implements the RECOMMENDED model (LC009); Policy A is the
+# frozen pre-LC009 substring reference and now deliberately diverges on prose
 # --------------------------------------------------------------------------- #
 
-class TestPolicyAIsFaithful:
+class TestLiveJudgeMatchesRecommendedModel:
     @pytest.mark.parametrize("sgf", [
-        "(;GM[1]SZ[19];B[qq];W[pp];B[cc])",                       # bare
-        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]RE[B+R])",                # move-node RE
-        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]TE[1])",                  # TE
-        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[正解])",                # success token
-        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[失敗])",                # failure token
-        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[黑地和正解一样，白多4目])",  # 8023-style prose
-        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[不正解])",              # negation prose
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc])",                       # bare -> None
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]RE[B+R])",                # decisive RE -> True
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]RE[Void])",               # non-decisive RE -> None
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]RE[wrong])",              # failure RE -> False
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]TE[1])",                  # TE -> True
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[正解])",                # exact comment -> True
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[失敗])",                # exact failure -> False
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[黑地和正解一样，白多4目])",  # prose -> None
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[不正解])",              # exact 不正解 -> False
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]N[正解])",                # exact N -> True
+        "(;GM[1]SZ[19];B[qq];W[pp];B[cc]N[参考])",                # N reference -> None
     ])
-    def test_matches_explicit_terminal_is_correct(self, sgf):
+    def test_live_judge_equals_sim_recommended(self, sgf):
         leaf = _leaf(sgf)
-        assert sim.verdict_policy_a(leaf) is _explicit_terminal_is_correct(leaf)
+        assert sim.verdict_recommended(leaf) is _explicit_terminal_is_correct(leaf)
+
+    def test_policy_a_is_frozen_presubstring_reference(self):
+        # Policy A still exhibits the OLD unanchored-substring behaviour the live
+        # judge has now moved away from -- kept only as the impact baseline.
+        prose = _leaf("(;GM[1]SZ[19];B[qq];W[pp];B[cc]C[黑地和正解一样，白多4目])")
+        assert sim.verdict_policy_a(prose) is True
+        assert _explicit_terminal_is_correct(prose) is None
 
 
 # --------------------------------------------------------------------------- #

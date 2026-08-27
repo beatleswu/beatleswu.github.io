@@ -44,6 +44,7 @@ if str(_REPO) not in sys.path:
 from canonical_learning_judge import (  # noqa: E402
     _FAILURE_RESULT_TOKENS,
     _SUCCESS_COMMENT_TOKENS,
+    _re_is_decisive,
     _server_expected_player_color,
 )
 from sgf_engine.core.tree import SGFNode  # noqa: E402
@@ -115,10 +116,13 @@ def _node_names(node: SGFNode) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def _re_or_te(node: SGFNode) -> bool | None:
-    """Shared structured layer: a move-node RE, then a terminal TE."""
-    gr = _node_game_result(node)
-    if gr:
-        return not _has_any(gr, _FAILURE_RESULT_TOKENS)
+    """Shared structured layer for policies B/C/D/RECOMMENDED: a move-node RE
+    (decisive winning-side shape only -- LC009 wired _re_is_decisive into the
+    live judge), then a terminal TE. Policy A keeps its own looser inline RE
+    check as the frozen pre-LC009 reference."""
+    re_verdict = _re_is_decisive((node.metadata or {}).get("game_result"))
+    if re_verdict is not None:
+        return re_verdict
     if "TE" in _node_props(node):
         return True
     return None

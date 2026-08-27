@@ -57,13 +57,97 @@ from map_battle_runtime import (
     _transform_sgf as _mb_transform_sgf,
 )
 
-CANONICAL_JUDGE_VERSION = "canonical-learning-judge-v1"
+# v2 == LC009: owner-approved explicit terminal-verdict marker contract
+# (LC007 RECOMMENDED). See docs/planning/lc009_approved_terminal_verdict_semantics.md.
+CANONICAL_JUDGE_VERSION = "canonical-learning-judge-v2"
 
 # Node-level markers that count as an explicit authoritative "this terminal
-# is a correct solution". Extensible. A bare leaf without one of these is
-# UNVERIFIABLE, never CORRECT.
+# is a correct solution". A bare leaf without one of these is UNVERIFIABLE,
+# never CORRECT.
 _SUCCESS_COMMENT_TOKENS = ("正解", "正確", "成功", "correct", "success", "✓", "✔")
 _FAILURE_RESULT_TOKENS = ("fail", "wrong", "incorrect", "失敗", "錯誤", "×")
+
+# LC009 / owner-approved (LC007 RECOMMENDED) explicit terminal-verdict contract.
+# A reached terminal node is CORRECT / INCORRECT only from an approved marker
+# ON THAT NODE, in this order:
+#   1. a move-node RE whose value is a DECISIVE winning-side result
+#      (``B+`` / ``W+`` optionally with a standard score or reason) -- a
+#      non-decisive / unknown RE (``0`` ``Draw`` ``Void`` ``?`` ``right`` ...)
+#      is NOT a verdict; a failure token in the RE is INCORRECT;
+#   2. a ``TE`` property on the node;
+#   3. a comment (``C[...]``) that, after decoration + trailing-punctuation
+#      normalisation, is EXACTLY a success / failure marker token -- never an
+#      unanchored substring, so 正解 inside explanatory prose is not a verdict;
+#   4. a node name (``N[...]``) that is EXACTLY a success / failure marker token.
+# Anything else -> None -> the caller fails closed (UNVERIFIABLE).
+_EXTRA_FAILURE_TOKENS = ("不正解", "不正確", "不正确", "错误", "错", "失败")
+_SUCCESS_MARKER_SET = frozenset(t.strip().lower() for t in _SUCCESS_COMMENT_TOKENS)
+_FAILURE_MARKER_SET = frozenset(
+    t.strip().lower() for t in (_FAILURE_RESULT_TOKENS + _EXTRA_FAILURE_TOKENS)
+)
+# Trimmed from both ends of a comment / node name before the exact-token match.
+# '?' / '？' are deliberately absent: an interrogative ("正解？" = "correct?")
+# is a question, not an assertion, and must stay fail-closed.
+_MARKER_WRAP_CHARS = "　 \t\r\n【】〔〕［］[]（）()「」『』〈〉《》\"'“”‘’*_#-—―·・"
+_MARKER_TRAIL_PUNCT = "。．.!！:：;；、,，…~〜　 \t\r\n"
+
+# SGF FF[4] Result grammar, restricted to a DECISIVE outcome (a side won):
+# ``B+`` / ``W+`` then optionally { resign | time | forfeit | a positive score }.
+# Rejects ``0`` ``Draw`` ``Void`` ``?`` ``B`` ``+R`` ``B+0`` ``B+-3`` ``B+?``
+# ``B+Q`` ``B+ R`` ``B++R`` ``3.5`` ``correct`` and any trailing junk.
+_RE_DECISIVE_SHAPE = re.compile(
+    r"[bw]\+(?:r|resign|t|time|f|forfeit|(?!0+(?:\.0+)?\Z)\d+(?:\.\d+)?)?",
+    re.IGNORECASE | re.ASCII,
+)
+
+
+def _re_is_decisive(value: Any) -> bool | None:
+    """True  -> a decisive winning-side RE result (an explicit solve);
+    False -> the RE value carries an explicit failure token;
+    None  -> not an authoritative decisive result (caller fails closed)."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if any(tok in text.lower() for tok in _FAILURE_RESULT_TOKENS):
+        return False
+    if _RE_DECISIVE_SHAPE.fullmatch(text):
+        return True
+    return None
+
+
+def _strip_marker_decoration(text: str) -> str:
+    return (
+        text.strip(_MARKER_WRAP_CHARS)
+        .strip(_MARKER_TRAIL_PUNCT)
+        .strip(_MARKER_WRAP_CHARS)
+    )
+
+
+def _exact_marker_verdict(raw: Any) -> bool | None:
+    """True / False iff ``raw``, lower-cased and stripped of wrapping decoration
+    and trailing punctuation, is EXACTLY a success / failure marker token.
+    Never a substring match -> explanatory prose that merely mentions 正解
+    returns None."""
+    core = _strip_marker_decoration(str(raw or "").strip().lower())
+    if not core:
+        return None
+    if core in _FAILURE_MARKER_SET:
+        return False
+    if core in _SUCCESS_MARKER_SET:
+        return True
+    return None
+
+
+def _terminal_name_verdict(n_values: Any) -> bool | None:
+    """First exact success / failure marker among a node's ``N[...]`` values."""
+    if n_values is None:
+        return None
+    values = n_values if isinstance(n_values, (list, tuple)) else [n_values]
+    for raw in values:
+        verdict = _exact_marker_verdict(raw)
+        if verdict is not None:
+            return verdict
+    return None
 
 
 class JudgeStatus(str, Enum):
@@ -211,33 +295,39 @@ def _is_leaf(node: SGFNode) -> bool:
 
 
 def _explicit_terminal_is_correct(node: SGFNode) -> bool | None:
-    """Return True if the node carries an explicit 'correct solution' marker,
-    False if it carries an explicit failure marker, None if it carries no
-    authoritative terminal signal at all (-> caller fails closed)."""
+    """Owner-approved (LC009 / LC007 RECOMMENDED) explicit terminal-verdict for
+    the reached terminal node. Returns True (an approved SUCCESS marker sits ON
+    this node), False (an approved FAILURE marker sits ON this node), or None
+    (no approved marker -> the caller fails closed to UNVERIFIABLE).
+
+    Approved channels, in order (see the _SUCCESS_MARKER_SET / _re_is_decisive
+    contract block near the top of this module):
+      1. move-node RE / game_result -- only a DECISIVE winning-side result;
+      2. a TE property on this node;
+      3. a comment that is EXACTLY a marker token (never a substring);
+      4. a node name N[...] that is EXACTLY a marker token.
+
+    Callers only ever pass the terminal of the walked line, so an earlier
+    move-node N[正解] is never seen here."""
     meta = node.metadata or {}
     props = meta.get("properties") or {}
 
-    # RE / game_result
-    game_result = str(meta.get("game_result") or "").strip()
-    if game_result:
-        low = game_result.lower()
-        if any(tok in low for tok in _FAILURE_RESULT_TOKENS):
-            return False
-        return True  # a non-failure RE annotation on a terminal is a solve
+    # 1. structured move-node RE -- decisive winning-side shape only
+    re_verdict = _re_is_decisive(meta.get("game_result"))
+    if re_verdict is not None:
+        return re_verdict
 
-    # TE (tesuji / "good move") property on the terminal
+    # 2. TE (tesuji / "good move") property on the terminal
     if "TE" in props:
         return True
 
-    # explicit success token in the node comment
-    comment = str(meta.get("comment") or "").strip().lower()
-    if comment:
-        if any(tok in comment for tok in _FAILURE_RESULT_TOKENS):
-            return False
-        if any(tok.lower() in comment for tok in _SUCCESS_COMMENT_TOKENS):
-            return True
+    # 3. terminal comment -- an EXACT marker token, never a prose substring
+    comment_verdict = _exact_marker_verdict(meta.get("comment"))
+    if comment_verdict is not None:
+        return comment_verdict
 
-    return None
+    # 4. terminal node name N[...] -- an EXACT marker token
+    return _terminal_name_verdict(props.get("N"))
 
 
 def _accepted_display_points(

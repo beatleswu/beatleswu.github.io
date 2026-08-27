@@ -1,0 +1,51 @@
+{
+  "approved_buckets": {
+    "AMBIGUOUS": 731,
+    "EXPLICIT_FAILURE": 0,
+    "EXPLICIT_SUCCESS": 0,
+    "MALFORMED": 163,
+    "UNVERIFIABLE": 41910
+  },
+  "buckets_match_approved": true,
+  "changed_record_count": 1,
+  "changed_record_indexes": [
+    17147
+  ],
+  "changed_record_indexes_match_approved": true,
+  "changed_records": [
+    {
+      "content_sha256": "2037f3a163e8eb55994b6e4aa3e719b3719cedaa54d465eb9469c87775973490",
+      "from_bucket": "EXPLICIT_SUCCESS",
+      "legacy_question_id": 8023,
+      "record_index": 17147,
+      "to_bucket": "UNVERIFIABLE"
+    }
+  ],
+  "corpus_mutation": false,
+  "judge_version": "canonical-learning-judge-v2",
+  "lc009_tool_version": "lc009-live-judge-snapshot-recount-v1",
+  "live_buckets": {
+    "AMBIGUOUS": 731,
+    "EXPLICIT_FAILURE": 0,
+    "EXPLICIT_SUCCESS": 0,
+    "MALFORMED": 163,
+    "UNVERIFIABLE": 41910
+  },
+  "newly_accepted": [],
+  "newly_accepted_count": 0,
+  "newly_rejected": [
+    17147
+  ],
+  "newly_rejected_count": 1,
+  "pre_lc009_buckets": {
+    "AMBIGUOUS": 731,
+    "EXPLICIT_FAILURE": 0,
+    "EXPLICIT_SUCCESS": 1,
+    "MALFORMED": 163,
+    "UNVERIFIABLE": 41909
+  },
+  "record_count": 42804,
+  "record_count_match": true,
+  "snapshot_hash_match": true,
+  "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff"
+}

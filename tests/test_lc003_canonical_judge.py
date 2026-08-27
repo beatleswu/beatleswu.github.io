@@ -48,16 +48,16 @@ def mk(moves, colour="B", transform="identity", board_size=None) -> Attempt:
 
 # hand-authored fixtures
 SGF_LEAF_BARE = "(;SZ[19];B[pd])"                          # childless, no marker
-SGF_LEAF_RE_OK = "(;SZ[19];B[pd]RE[Correct])"             # explicit correct
+SGF_LEAF_RE_OK = "(;SZ[19];B[pd]RE[B+])"             # explicit correct
 SGF_LEAF_RE_FAIL = "(;SZ[19];B[pd]RE[wrong])"            # explicit failure
 SGF_LEAF_TE = "(;SZ[19];B[pd]TE[1])"                     # tesuji marker
 SGF_LEAF_COMMENT_OK = "(;SZ[19];B[pd]C[正解])"            # success comment token
-SGF_UNIQUE_REPLY = "(;SZ[19];B[pd];W[dd];B[qf]RE[Correct])"
-SGF_AMBIGUOUS = "(;SZ[19];B[pd](;W[dd];B[qf]RE[Correct])(;W[dp];B[cf]RE[Correct]))"
-SGF_TWO_ROOT_BRANCHES = "(;SZ[19](;B[pd]RE[Correct])(;B[dp]RE[Correct]))"
+SGF_UNIQUE_REPLY = "(;SZ[19];B[pd];W[dd];B[qf]RE[B+])"
+SGF_AMBIGUOUS = "(;SZ[19];B[pd](;W[dd];B[qf]RE[B+])(;W[dp];B[cf]RE[B+]))"
+SGF_TWO_ROOT_BRANCHES = "(;SZ[19](;B[pd]RE[B+])(;B[dp]RE[B+]))"
 SGF_MALFORMED = "(;SZ[19];B[pd]"
 SGF_GARBAGE = "not an sgf"
-SGF_WHITE_TO_PLAY = "(;SZ[19];W[dd]RE[Correct])"
+SGF_WHITE_TO_PLAY = "(;SZ[19];W[dd]RE[W+])"
 
 
 # ---------------------------------------------------------------------------
@@ -93,7 +93,7 @@ class TestResultContract:
         assert r.transform_index == 0
         assert r.matched_path == ("pd", "dd", "qf")
         assert r.player_color == "B"
-        assert r.judge_version == "canonical-learning-judge-v1"
+        assert r.judge_version == "canonical-learning-judge-v2"
 
     def test_status_ambiguous_unverifiable_malformed_are_not_collapsed(self):
         amb = judge_answer(question_content=SGF_AMBIGUOUS, attempt=mk([xy("pd"), xy("qf")]))
@@ -170,7 +170,7 @@ class TestAmbiguousAutoreplyFailClosed:
     def test_single_non_opponent_child_is_not_a_valid_autoreply(self):
         # after B[pd] the only child is another Black move -> no unique
         # opponent reply -> ambiguous / unverifiable, never advance.
-        sgf = "(;SZ[19];B[pd];B[qf]RE[Correct])"
+        sgf = "(;SZ[19];B[pd];B[qf]RE[B+])"
         r = judge_answer(question_content=sgf, attempt=mk([xy("pd"), xy("qf")]))
         assert r.status in (JudgeStatus.AMBIGUOUS,)
         assert r.reason_code in ("ambiguous_autoreply", "no_unique_autoreply")
@@ -194,7 +194,7 @@ class TestLeafFailClosed:
 
     def test_bare_leaf_stays_unverifiable_even_if_client_would_say_correct(self):
         # the judge has no client input at all; documented here for intent
-        r = judge_answer(question_content=SGF_TWO_ROOT_BRANCHES.replace("RE[Correct]", ""),
+        r = judge_answer(question_content=SGF_TWO_ROOT_BRANCHES.replace("RE[B+]", ""),
                          attempt=mk([xy("pd")]))
         assert r.status is JudgeStatus.UNVERIFIABLE
 
@@ -259,8 +259,8 @@ class TestPlayerColour:
 # ---------------------------------------------------------------------------
 
 class TestAllEightTransforms:
-    CANONICAL = "(;SZ[19];B[pd]RE[Correct])"       # canonical answer = pd
-    CANONICAL_MULTI = "(;SZ[19];B[pd];W[dd];B[qf]RE[Correct])"
+    CANONICAL = "(;SZ[19];B[pd]RE[B+])"       # canonical answer = pd
+    CANONICAL_MULTI = "(;SZ[19];B[pd];W[dd];B[qf]RE[B+])"
 
     @pytest.mark.parametrize("t", list(range(8)))
     def test_transformed_correct_move_is_correct_for_every_transform(self, t):
@@ -327,7 +327,7 @@ class TestAllEightTransforms:
 # ---------------------------------------------------------------------------
 
 class TestAcceptedAlternatives:
-    CANONICAL = "(;SZ[19];B[pd]RE[Correct])"
+    CANONICAL = "(;SZ[19];B[pd]RE[B+])"
 
     def test_client_cannot_declare_its_own_accepted_move(self):
         # the attempt payload has no channel for "accepted"; a move not in the
@@ -372,11 +372,11 @@ class TestAcceptedAlternatives:
 # ---------------------------------------------------------------------------
 
 QUESTIONS = [
-    {"id": 1, "content": "(;SZ[19];B[pd]RE[Correct])"},
+    {"id": 1, "content": "(;SZ[19];B[pd]RE[B+])"},
     {"id": 2, "content": "(;SZ[19];B[pd])"},                # bare leaf -> UNVERIFIABLE
     {"id": 3, "content": "(;SZ[19];B[pd]"},                 # malformed
-    {"id": 7, "content": "(;SZ[19];B[pd]RE[Correct])"},
-    {"id": 7, "content": "(;SZ[19];B[dp]RE[Correct])"},     # duplicate legacy id
+    {"id": 7, "content": "(;SZ[19];B[pd]RE[B+])"},
+    {"id": 7, "content": "(;SZ[19];B[dp]RE[B+])"},     # duplicate legacy id
 ]
 
 
@@ -471,7 +471,7 @@ class TestResolveAuthorityAttemptPath:
             {"question_id": 4, "grade": 5,
              "attempt": self._attempt([xy("pd")])},          # partial of the 3-ply line
             load_questions=lambda: [
-                {"id": 4, "content": "(;SZ[19];B[pd];W[dd];B[qf]RE[Correct])"}
+                {"id": 4, "content": "(;SZ[19];B[pd];W[dd];B[qf]RE[B+])"}
             ],
         )
         assert res.server_authoritative is True

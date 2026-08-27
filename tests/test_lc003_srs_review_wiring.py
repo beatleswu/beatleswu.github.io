@@ -72,11 +72,11 @@ def xy(coord: str) -> tuple[int, int]:
 
 
 QUESTIONS = [
-    {"id": 1, "content": "(;SZ[19];B[pd]RE[Correct])"},          # solvable, answer = pd
+    {"id": 1, "content": "(;SZ[19];B[pd]RE[B+])"},          # solvable, answer = pd
     {"id": 2, "content": "(;SZ[19];B[pd])"},                     # bare leaf -> UNVERIFIABLE
     {"id": 3, "content": "(;SZ[19];B[pd]"},                      # malformed
     {"id": 4, "content": "(;SZ[19];B[pd]"
-                          "(;W[dd];B[qf]RE[Correct])(;W[dp];B[cf]RE[Correct]))"},  # ambiguous
+                          "(;W[dd];B[qf]RE[B+])(;W[dp];B[cf]RE[B+]))"},  # ambiguous
 ]
 
 
@@ -243,7 +243,7 @@ class TestServerGradeDerivation:
     def test_continue_maps_to_0(self, spy_client, monkeypatch, app_module):
         monkeypatch.setattr(
             app_module, "_load_questions",
-            lambda: [{"id": 9, "content": "(;SZ[19];B[pd];W[dd];B[qf]RE[Correct])"}],
+            lambda: [{"id": 9, "content": "(;SZ[19];B[pd];W[dd];B[qf]RE[B+])"}],
         )
         client, spy = spy_client
         _post(client, {"question_id": 9, "grade": 5, "attempt": _attempt([xy("pd")])})

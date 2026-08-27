@@ -99,17 +99,17 @@ class TestFrontendCallerSourceContract:
 class TestServerAuthoredPlayerColour:
     def test_expected_colour_from_pl_property(self):
         from sgf_engine.parser.sgf_parser import parse_sgf
-        root = parse_sgf("(;SZ[19]PL[W];W[dd]RE[Correct])", strict=True)
+        root = parse_sgf("(;SZ[19]PL[W];W[dd]RE[W+])", strict=True)
         assert _server_expected_player_color(root) == "W"
 
     def test_expected_colour_from_first_move_when_no_pl(self):
         from sgf_engine.parser.sgf_parser import parse_sgf
-        root = parse_sgf("(;SZ[19];B[pd]RE[Correct])", strict=True)
+        root = parse_sgf("(;SZ[19];B[pd]RE[B+])", strict=True)
         assert _server_expected_player_color(root) == "B"
 
     def test_client_colour_contradicting_server_is_incorrect_not_a_pass(self):
         r = judge_answer(
-            question_content="(;SZ[19];B[pd]RE[Correct])",
+            question_content="(;SZ[19];B[pd]RE[B+])",
             attempt=mk([xy("pd")], colour="W"),   # client lies about colour
         )
         assert r.status is JudgeStatus.INCORRECT
@@ -118,7 +118,7 @@ class TestServerAuthoredPlayerColour:
 
     def test_client_colour_matching_server_proceeds(self):
         r = judge_answer(
-            question_content="(;SZ[19]PL[W];W[dd]RE[Correct])",
+            question_content="(;SZ[19]PL[W];W[dd]RE[W+])",
             attempt=mk([xy("dd")], colour="W"),
         )
         assert r.status is JudgeStatus.CORRECT
@@ -126,7 +126,7 @@ class TestServerAuthoredPlayerColour:
     def test_judge_uses_server_colour_for_the_walk(self):
         # white-to-play question, client (wrongly) says black at the vital point
         r = judge_answer(
-            question_content="(;SZ[19]PL[W];W[dd]RE[Correct])",
+            question_content="(;SZ[19]PL[W];W[dd]RE[W+])",
             attempt=mk([xy("dd")], colour="B"),
         )
         assert r.status is JudgeStatus.INCORRECT
@@ -138,7 +138,7 @@ class TestServerAuthoredPlayerColour:
 
 class TestNoAttemptPolicy:
     def _loader(self):
-        return [{"id": 1, "content": "(;SZ[19];B[pd]RE[Correct])"}]
+        return [{"id": 1, "content": "(;SZ[19];B[pd]RE[B+])"}]
 
     def test_default_policy_is_legacy(self, monkeypatch):
         monkeypatch.delenv("SRS_REVIEW_NO_ATTEMPT_POLICY", raising=False)
@@ -229,12 +229,12 @@ def app_module():
 
 
 QUESTIONS = [
-    {"id": 1, "content": "(;SZ[19];B[pd]RE[Correct])"},           # solvable, answer pd
+    {"id": 1, "content": "(;SZ[19];B[pd]RE[B+])"},           # solvable, answer pd
     {"id": 2, "content": "(;SZ[19];B[pd])"},                      # bare leaf -> UNVERIFIABLE
     {"id": 3, "content": "(;SZ[19];B[pd]"},                       # malformed
-    {"id": 4, "content": "(;SZ[19];B[pd](;W[dd];B[qf]RE[Correct])(;W[dp];B[cf]RE[Correct]))"},
-    {"id": 7, "content": "(;SZ[19];B[pd]RE[Correct])"},
-    {"id": 7, "content": "(;SZ[19];B[dp]RE[Correct])"},           # duplicate legacy id
+    {"id": 4, "content": "(;SZ[19];B[pd](;W[dd];B[qf]RE[B+])(;W[dp];B[cf]RE[B+]))"},
+    {"id": 7, "content": "(;SZ[19];B[pd]RE[B+])"},
+    {"id": 7, "content": "(;SZ[19];B[dp]RE[B+])"},           # duplicate legacy id
 ]
 
 
@@ -356,7 +356,7 @@ class TestAdversarialRouteFlow:
     def test_accepted_alternative_via_server_set(self, client, monkeypatch, app_module):
         c, spy = client
         monkeypatch.setattr(app_module, "_load_questions",
-                            lambda: [{"id": 11, "content": "(;SZ[19];B[pd]RE[Correct])",
+                            lambda: [{"id": 11, "content": "(;SZ[19];B[pd]RE[B+])",
                                       "accepted_moves": [{"x": xy("dd")[0], "y": xy("dd")[1]}]}])
         monkeypatch.setattr(app_module, "_question_accepted_moves",
                             lambda q: q.get("accepted_moves") or [])
@@ -367,7 +367,7 @@ class TestAdversarialRouteFlow:
     def test_all_8_transforms_through_the_route(self, client, monkeypatch, app_module, t):
         c, spy = client
         monkeypatch.setattr(app_module, "_load_questions",
-                            lambda: [{"id": 20, "content": "(;SZ[19];B[pd]RE[Correct])"}])
+                            lambda: [{"id": 20, "content": "(;SZ[19];B[pd]RE[B+])"}])
         disp = _mb_transform_point(*xy("pd"), 19, t)
         _post(c, {"question_id": 20, "grade": 0,
                   "attempt": {"moves": [{"x": disp[0], "y": disp[1]}],

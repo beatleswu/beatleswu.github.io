@@ -47,9 +47,9 @@ if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
 from canonical_learning_judge import (  # noqa: E402
-    _FAILURE_RESULT_TOKENS,
     _explicit_terminal_is_correct,
     _is_leaf,
+    _re_is_decisive,
     _server_expected_player_color,
 )
 from sgf_engine.core.tree import SGFNode  # noqa: E402
@@ -151,8 +151,11 @@ def _root_re_value(root: SGFNode) -> str | None:
 
 
 def _re_is_non_failure_success(value: str) -> bool:
-    low = value.lower()
-    return bool(value) and not any(tok in low for tok in _FAILURE_RESULT_TOKENS)
+    """LC009: a game-info-root RE only feeds the SAFE_AUTO propagation proposal
+    if it is a DECISIVE winning-side result -- i.e. exactly what the judge's
+    _re_is_decisive would honour once copied onto a terminal. A non-decisive or
+    failure RE is never a SAFE_AUTO source."""
+    return _re_is_decisive(value) is True
 
 
 def _malformed_subtag(err: Exception) -> str:
