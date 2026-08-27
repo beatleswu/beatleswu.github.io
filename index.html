@@ -7138,6 +7138,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <link rel="stylesheet" href="/css/e9/immersive_rpg.css?v=20260801e10art1">
     <link rel="stylesheet" href="/css/e9/reference_world_map.css?v=20260801e10art1">
     <link rel="stylesheet" href="/css/e9/art_directed_runtime.css?v=20260801e10art1">
+    <link rel="stylesheet" href="/css/e9/adventure_spirit_unlock.css?v=20260827d031">
 </head>
 <body data-sgf-report-surface="main_practice">
 <div id="world-presentation-pending" role="status" aria-live="polite">
@@ -18666,6 +18667,15 @@ async function _finishBossBattle() {
             renderAdventureMap();
             _renderBossChallengeCard();
             invalidateE9AdventureStateCache();
+            // D031 consumes only the optional server-authored D030 result.
+            // An absent field is intentionally silent; no client-side state
+            // or Adventure/Monster/Quest outcome is used to infer an unlock.
+            if (window.AdventureSpiritUnlockPresentation &&
+                Array.isArray(data.adventure_spirit_unlock_results)) {
+                window.AdventureSpiritUnlockPresentation.present(
+                    data.adventure_spirit_unlock_results
+                );
+            }
             // Zone 1's own result card (star VFX / retry-training copy),
             // instead of the generic win/lose modal. Every other zone is
             // unchanged. This is also where the real boss-win authoritative
@@ -21595,6 +21605,7 @@ window.addEventListener('appinstalled', () => {
 })();
 </script>
 <script src="/sound.js?v=20260707a"></script>
+<script src="/js/e9/adventure_spirit_unlock_presentation.js?v=20260827d031"></script>
 
 <!-- E9 Adventure Shell (feature-flagged, default OFF). Order matters:
      feature_flags -> component_loader -> per-component inits -> shell (shell
