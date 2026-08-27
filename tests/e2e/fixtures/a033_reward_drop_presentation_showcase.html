@@ -4,47 +4,48 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>A033 Reward Drop Presentation Showcase</title>
-  <link rel="stylesheet" href="/css/e10/reward_drop_presentation_v1.css?v=a033r1">
+  <link rel="stylesheet" href="/css/e10/reward_drop_presentation_v1.css?v=a033r2">
   <style>
-    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
     * { box-sizing: border-box; }
     html, body { min-height: 100%; margin: 0; }
     body {
       display: grid;
       place-items: center;
       padding: 28px;
-      color: #173653;
+      color: #f6e7c4;
       background:
-        linear-gradient(rgba(23,54,83,.12), rgba(23,54,83,.12)),
+        linear-gradient(rgba(3,10,20,.56), rgba(3,10,20,.56)),
         url('/assets/main_adventure_map_clean_new.webp') center / cover fixed;
     }
     .showcase {
       width: min(760px, 100%);
       min-height: 420px;
       padding: 32px;
-      border: 10px solid rgba(23,54,83,.88);
-      border-radius: 24px;
-      background: rgba(255,244,216,.9);
-      box-shadow: 0 24px 80px rgba(23,54,83,.34);
+      border: 1px solid rgba(215,173,92,.72);
+      border-radius: 8px;
+      background: rgba(7,19,34,.94);
+      box-shadow: 0 24px 80px rgba(0,0,0,.54);
     }
     h1 { margin: 0 0 8px; font: 700 34px/1.05 Georgia, serif; }
-    p { margin: 0; color: #35556b; line-height: 1.5; }
-    .note { margin-top: 22px; padding: 14px; border-radius: 12px; background: rgba(221,242,255,.8); }
+    p { margin: 0; color: #d2dbe3; line-height: 1.5; }
+    .note { margin-top: 22px; padding: 14px; border: 1px solid rgba(215,173,92,.3); border-radius: 4px; background: rgba(18,37,57,.8); }
   </style>
   <script>
     const params = new URLSearchParams(location.search);
     window.I18n = { getLang: () => params.get('lang') === 'en' ? 'en' : 'zh' };
   </script>
-  <script src="/js/game/reward_drop_presentation_v1.js?v=a033r1"></script>
+  <script src="/js/game/reward_drop_presentation_v1.js?v=a033r2"></script>
 </head>
 <body>
-  <main class="showcase">
+  <main class="showcase" id="fixture-debug" hidden>
     <h1>Go Odyssey · Reward Result</h1>
     <p>Controlled local presentation fixture. Reward truth is supplied by the test-shaped committed result below.</p>
     <p class="note">Generic Monster V1 · server result in / presentation only</p>
   </main>
   <section id="reward-drop-v1" hidden aria-live="polite" aria-atomic="true">
     <div class="reward-drop-v1__card" role="status">
+      <div class="reward-drop-v1__brand" id="reward-drop-v1-brand" aria-hidden="true"></div>
       <div class="reward-drop-v1__art-wrap"><div id="reward-drop-v1-art"></div></div>
       <div class="reward-drop-v1__body">
         <div class="reward-drop-v1__eyebrow" id="reward-drop-v1-title"></div>
@@ -59,6 +60,8 @@
     </div>
   </section>
   <script>
+    const debugPanel = document.getElementById('fixture-debug');
+    if (debugPanel) debugPanel.hidden = params.get('debug') !== '1';
     const state = params.get('state') || 'functional';
     const payloads = {
       functional: {

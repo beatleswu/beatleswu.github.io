@@ -121,7 +121,6 @@
             name_en: nameEn,
             category: firstString(item.slot, item.category),
             image: iconValue(item),
-            fallback_emoji: kind === PURE_COSMETIC ? firstString(item.emoji) : '',
             inventory_id: kind === FUNCTIONAL_EQUIPMENT
                 ? (item.inv_id ?? item.inventory_id ?? null)
                 : null,
@@ -143,7 +142,6 @@
             name_en: '',
             category: '',
             image: '',
-            fallback_emoji: '',
             inventory_id: null,
             action: 'NONE',
             pure_cosmetic_no_power: false,
@@ -160,7 +158,6 @@
             name_en: '',
             category: '',
             image: '',
-            fallback_emoji: '',
             inventory_id: null,
             action: 'NONE',
             pure_cosmetic_no_power: false,
@@ -177,7 +174,6 @@
             name_en: '',
             category: '',
             image: '',
-            fallback_emoji: '',
             inventory_id: null,
             action: 'NONE',
             pure_cosmetic_no_power: false,
@@ -267,27 +263,18 @@
             host.setAttribute('data-art-state', 'asset');
             return;
         }
-        if (model.fallback_emoji) {
-            const fallback = document.createElement('span');
-            fallback.setAttribute('aria-hidden', 'true');
-            fallback.textContent = model.fallback_emoji;
-            host.appendChild(fallback);
-            host.setAttribute('data-art-state', 'legacy-fallback');
-            return;
-        }
         if (model.status === NO_DROP) {
             const empty = document.createElement('span');
             empty.className = 'reward-drop-v1__no-drop-mark';
             empty.setAttribute('aria-hidden', 'true');
-            empty.textContent = '—';
             host.appendChild(empty);
             host.setAttribute('data-art-state', 'none');
             return;
         }
-        const unavailableLabel = document.createElement('span');
-        unavailableLabel.className = 'reward-drop-v1__art-unavailable';
-        unavailableLabel.textContent = textFor('物品圖像暫不可用', 'Item art unavailable');
-        host.appendChild(unavailableLabel);
+        const unavailableArt = document.createElement('span');
+        unavailableArt.className = 'reward-drop-v1__neutral-art';
+        unavailableArt.setAttribute('aria-hidden', 'true');
+        host.appendChild(unavailableArt);
         host.setAttribute('data-art-state', 'unavailable');
     }
 
@@ -309,34 +296,42 @@
         root.classList.add('is-visible');
         renderImage(model);
 
+        setText('reward-drop-v1-brand', textFor('弈境奇兵 · 冒險結果', 'GO ODYSSEY · ADVENTURE RESULT'));
         const title = model.status === FUNCTIONAL_EQUIPMENT
-            ? textFor('怪物獎勵', 'Monster Reward')
+            ? textFor('獲得戰利品', 'Reward Acquired')
             : model.status === PURE_COSMETIC
                 ? textFor('獲得外觀', 'Cosmetic Acquired')
                 : model.status === NO_DROP
-                    ? textFor('戰鬥結果', 'Battle Result')
+                    ? textFor('本次沒有掉落', 'No Drop This Time')
                     : textFor('獎勵資訊暫不可用', 'Reward Unavailable');
         const name = model.status === FUNCTIONAL_EQUIPMENT
             ? textFor(model.name, model.name_en)
             : model.status === PURE_COSMETIC
                 ? textFor(model.name, model.name_en)
                 : model.status === NO_DROP
-                    ? textFor('本次沒有掉落', 'No drop this time')
+                    ? ''
                     : textFor('未提供可顯示的物品。', 'No item was provided.');
         const meta = model.status === FUNCTIONAL_EQUIPMENT
             ? textFor('功能型裝備 · 已取得', 'Functional Equipment · Acquired')
             : model.status === PURE_COSMETIC
-                ? textFor('純外觀 · 不提供戰鬥力量', 'Pure Cosmetic · No combat power')
+                ? textFor('純外觀 · 不提供戰鬥力', 'Pure Cosmetic · No combat power')
                 : model.status === NO_DROP
                     ? textFor('沒有伺服器授權的獎勵', 'No server-authored reward')
                     : textFor('已安全關閉顯示', 'Presentation closed safely');
+        const stateCopy = model.status === FUNCTIONAL_EQUIPMENT
+            ? textFor('獎勵結果已確認，可在背包查看。', 'Reward confirmed. View it in your Backpack.')
+            : model.status === PURE_COSMETIC
+                ? textFor('此獎勵僅供外觀展示。', 'This reward is cosmetic only.')
+                : model.status === NO_DROP
+                    ? textFor('本次不補發其他物品。', 'No replacement item is granted.')
+                    : textFor('未提供可安全顯示的內容。', 'No safe presentation content was provided.');
         setText('reward-drop-v1-title', title);
         setText('reward-drop-v1-name', name);
         setText('reward-drop-v1-meta', meta);
         const state = document.getElementById('reward-drop-v1-state');
         if (state) {
-            state.textContent = '';
-            state.hidden = true;
+            state.textContent = stateCopy;
+            state.hidden = false;
         }
 
         const backpack = document.getElementById('reward-drop-v1-backpack');

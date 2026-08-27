@@ -58,6 +58,8 @@ function main() {
   assert.equal(cosmetic.pure_cosmetic_no_power, true);
   assert.equal(cosmetic.action, 'NONE');
   assert.equal('combat_power' in cosmetic, false);
+  assert.equal('fallback_emoji' in cosmetic, false, 'emoji is not final reward art');
+  assert.equal(cosmetic.image, '', 'missing cosmetic art must fail safe, not use emoji');
   assert.equal('rarity' in cosmetic, false, 'item-definition rarity is not reward authority');
 
   const noDrop = api.normalize({
@@ -72,6 +74,7 @@ function main() {
   });
   assert.equal(noDrop.status, api.NO_DROP);
   assert.equal(noDrop.item_id, null);
+  assert.equal(noDrop.name, '', 'no-drop state has no fabricated item name');
 
   assert.equal(
     api.normalize({ ok: true, reward_type: 'COINS', coins: 2 }).status,
