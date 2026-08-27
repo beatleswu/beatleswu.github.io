@@ -16,7 +16,6 @@
     const NO_DROP = 'NO_DROP';
     const UNAVAILABLE = 'UNAVAILABLE';
     const SKIPPED = 'SKIPPED';
-    const RARITIES = new Set(['common', 'uncommon', 'rare', 'epic', 'legendary']);
     const COMMITTED_STATUSES = new Set(['COMMITTED', 'SETTLED', 'SUCCESS', 'APPLIED']);
     let hideTimer = null;
 
@@ -114,7 +113,6 @@
         const nameEn = firstString(item.display_name_en, item.name_en, name);
         if (!itemId || !name || !nameEn) return null;
 
-        const rarity = cleanString(item.rarity).toLowerCase();
         const model = {
             contract_version: CONTRACT_VERSION,
             status: kind,
@@ -124,7 +122,6 @@
             category: firstString(item.slot, item.category),
             image: iconValue(item),
             fallback_emoji: kind === PURE_COSMETIC ? firstString(item.emoji) : '',
-            rarity: RARITIES.has(rarity) ? rarity : null,
             inventory_id: kind === FUNCTIONAL_EQUIPMENT
                 ? (item.inv_id ?? item.inventory_id ?? null)
                 : null,
@@ -147,7 +144,6 @@
             category: '',
             image: '',
             fallback_emoji: '',
-            rarity: null,
             inventory_id: null,
             action: 'NONE',
             pure_cosmetic_no_power: false,
@@ -165,7 +161,6 @@
             category: '',
             image: '',
             fallback_emoji: '',
-            rarity: null,
             inventory_id: null,
             action: 'NONE',
             pure_cosmetic_no_power: false,
@@ -183,7 +178,6 @@
             category: '',
             image: '',
             fallback_emoji: '',
-            rarity: null,
             inventory_id: null,
             action: 'NONE',
             pure_cosmetic_no_power: false,
@@ -341,10 +335,8 @@
         setText('reward-drop-v1-meta', meta);
         const state = document.getElementById('reward-drop-v1-state');
         if (state) {
-            state.textContent = model.rarity
-                ? model.rarity.toUpperCase()
-                : '';
-            state.className = `reward-drop-v1__state ${model.rarity || ''}`;
+            state.textContent = '';
+            state.hidden = true;
         }
 
         const backpack = document.getElementById('reward-drop-v1-backpack');

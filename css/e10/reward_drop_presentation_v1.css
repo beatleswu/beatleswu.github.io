@@ -115,18 +115,8 @@
 }
 
 .reward-drop-v1__state {
-    display: inline-block;
-    min-height: 1em;
-    margin-top: 4px;
-    font: 800 10px/1.2 'DM Mono', monospace;
-    letter-spacing: .08em;
+    display: none;
 }
-
-.reward-drop-v1__state.common { color: #5b7182; }
-.reward-drop-v1__state.uncommon { color: #438f58; }
-.reward-drop-v1__state.rare { color: #1e6fc7; }
-.reward-drop-v1__state.epic { color: #8968d8; }
-.reward-drop-v1__state.legendary { color: #a66d15; }
 
 .reward-drop-v1__actions {
     display: flex;

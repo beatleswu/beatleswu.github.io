@@ -42,6 +42,7 @@ function main() {
   assert.equal(functional.action, 'VIEW_BACKPACK');
   assert.equal('equip' in functional, false, 'acquisition must not become equip');
   assert.equal('coins' in functional, false, 'Coins are not in the public reward model');
+  assert.equal('rarity' in functional, false, 'item-definition rarity is not reward authority');
 
   const cosmetic = api.normalize({
     ok: true,
@@ -57,6 +58,7 @@ function main() {
   assert.equal(cosmetic.pure_cosmetic_no_power, true);
   assert.equal(cosmetic.action, 'NONE');
   assert.equal('combat_power' in cosmetic, false);
+  assert.equal('rarity' in cosmetic, false, 'item-definition rarity is not reward authority');
 
   const noDrop = api.normalize({
     ok: true,

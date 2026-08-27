@@ -84,8 +84,8 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <link rel="stylesheet" href="/wgo/wgo.player.css">
     <link rel="stylesheet" href="/css/e10/encounter_presentation_framework_v1.css?v=a023v1">
     <link rel="stylesheet" href="/css/e10/go_combat_owner_reference_v1.css?v=a032r1">
-    <link rel="stylesheet" href="/css/e10/reward_drop_presentation_v1.css?v=a033v2">
-    <script src="/js/game/reward_drop_presentation_v1.js?v=a033v2"></script>
+    <link rel="stylesheet" href="/css/e10/reward_drop_presentation_v1.css?v=a033r1">
+    <script src="/js/game/reward_drop_presentation_v1.js?v=a033r1"></script>
     <script src="/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"></script>
     <script src="/js/game/review_transport.js?v=20260817e10v1bb3"></script>
@@ -8334,13 +8334,20 @@ function showItemToast(toastId, icon, name, rarity) {
     _toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 4500);
 }
 
+function showMonsterRewardLegacyToast(toastId, icon, name) {
+    // Generic Monster V1 has no approved public rarity result field. The
+    // dedicated adapter is preferred; this fallback intentionally supplies
+    // no rarity while preserving the unrelated legacy toast contract.
+    showItemToast(toastId, icon, name, '');
+}
+
 function showLootToast(loot) {
     if (!loot) return;
     if (window.RewardDropPresentationV1
         && typeof window.RewardDropPresentationV1.showFunctional === 'function') {
         window.RewardDropPresentationV1.showFunctional(loot);
     } else {
-        showItemToast('loot-toast', loot.icon, loot.name, loot.rarity);
+        showMonsterRewardLegacyToast('loot-toast', loot.icon, loot.name);
     }
     const backpackLink = document.getElementById('loot-toast-backpack');
     if (backpackLink && loot.inv_id != null) {
@@ -8360,7 +8367,7 @@ function showMonsterAppearanceToast(item) {
         && typeof window.RewardDropPresentationV1.showCosmetic === 'function') {
         window.RewardDropPresentationV1.showCosmetic(item);
     } else {
-        showItemToast('appear-toast', item.emoji, item.name, item.rarity);
+        showMonsterRewardLegacyToast('appear-toast', item.emoji, item.name);
     }
 }
 
