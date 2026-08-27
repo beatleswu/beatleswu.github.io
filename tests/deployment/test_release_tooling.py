@@ -78,23 +78,29 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
         "nginx_container_snapshot": {
             "stdout": "cid-nginx|sha256:nginx-current|nginx:alpine|running||0|false|go-odyssey|nginx"
         },
-        "app_env": {
-            "stdout": json.dumps(
-                [
-                    "DATABASE_URL=postgresql://godokoro:super-secret@db.internal:5432/go_odyssey",
-                    "QUESTIONS_JSON_PATH=/app/data/questions.json",
-                    "GO_ODYSSEY_LIVE_STATIC_ROOT=/opt/go-odyssey-static/current",
-                    "SHADOW_EVENTS_PATH=/app/data/shadow_events.jsonl",
-                ]
-            )
+        "app_DATABASE_URL": {
+            "stdout": "DATABASE_URL=postgresql://godokoro:super-secret@db.internal:5432/go_odyssey\n"
         },
-        "scheduler_env": {
-            "stdout": json.dumps(
-                [
-                    "DATABASE_URL=postgresql://godokoro:super-secret@db.internal:5432/go_odyssey",
-                    "QUESTIONS_JSON_PATH=/app/data/questions.json",
-                ]
-            )
+        "app_QUESTIONS_JSON_PATH": {
+            "stdout": "QUESTIONS_JSON_PATH=/app/data/questions.json\n"
+        },
+        "app_GO_ODYSSEY_LIVE_STATIC_ROOT": {
+            "stdout": "GO_ODYSSEY_LIVE_STATIC_ROOT=/opt/go-odyssey-static/current\n"
+        },
+        "app_SHADOW_EVENTS_PATH": {
+            "stdout": "SHADOW_EVENTS_PATH=/app/data/shadow_events.jsonl\n"
+        },
+        "scheduler_DATABASE_URL": {
+            "stdout": "DATABASE_URL=postgresql://godokoro:super-secret@db.internal:5432/go_odyssey\n"
+        },
+        "scheduler_QUESTIONS_JSON_PATH": {
+            "stdout": "QUESTIONS_JSON_PATH=/app/data/questions.json\n"
+        },
+        "scheduler_GO_ODYSSEY_LIVE_STATIC_ROOT": {
+            "stdout": "GO_ODYSSEY_LIVE_STATIC_ROOT=/opt/go-odyssey-static/current\n"
+        },
+        "scheduler_SHADOW_EVENTS_PATH": {
+            "stdout": "SHADOW_EVENTS_PATH=/app/data/shadow_events.jsonl\n"
         },
         "docker_version": {"stdout": "29.5.3"},
         "compose_version": {"stdout": "2.39.1"},
@@ -133,35 +139,65 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
         },
     }
     if helper_mode == "helper":
+        helper_payload = {
+            "ok": True,
+            "app": {"git_sha": "a" * 40, "image_revision": "a" * 40},
+            "questions": {
+                "path": "/app/data/questions.json",
+                "exists": True,
+                "readable": True,
+                "parseable": True,
+                "record_count": 321,
+                "record_count_ok": True,
+                "structural_record_check": True,
+                "failures": [],
+            },
+            "database": {
+                "reachable": True,
+                "identity": {
+                    "configured": True,
+                    "host": "db.internal",
+                    "port": 5432,
+                    "database": "go_odyssey",
+                    "user": "godokoro",
+                    "password_present": True,
+                },
+                "tables": {},
+            },
+            "static_root": {
+                "path": "/opt/go-odyssey-static/current",
+                "exists": True,
+                "readable": True,
+            },
+            "shadow_events": {
+                "path": "/app/data/shadow_events.jsonl",
+                "exists": True,
+                "readable": True,
+                "writable_or_valid": True,
+            },
+            "failures": [],
+        }
         responses["app_helper_readiness"] = {
-            "stdout": framed_json(
-                {
-                    "ok": True,
-                    "app": {"git_sha": "a" * 40, "image_revision": "a" * 40},
-                    "questions": {
-                        "path": "/app/data/questions.json",
-                        "exists": True,
-                        "readable": True,
-                        "parseable": True,
-                        "record_count": 321,
-                        "record_count_ok": True,
-                        "structural_record_check": True,
-                        "failures": [],
-                    },
-                    "database": {"reachable": True, "tables": {}},
-                    "static_root": {"exists": True, "readable": True},
-                    "shadow_events": {"exists": True, "readable": True, "writable_or_valid": True},
-                    "failures": [],
-                }
-            )
+            "stdout": framed_json(helper_payload)
+        }
+        responses["scheduler_helper_readiness"] = {
+            "stdout": framed_json(helper_payload)
         }
     elif helper_mode == "legacy":
         responses["app_helper_readiness"] = {
             "stdout": "AttributeError: module 'app' has no attribute '_read_runtime_deployment_readiness'",
             "exit_code": 1,
         }
+        responses["scheduler_helper_readiness"] = {
+            "stdout": "AttributeError: module 'app' has no attribute '_read_runtime_deployment_readiness'",
+            "exit_code": 1,
+        }
     elif helper_mode == "error":
         responses["app_helper_readiness"] = {
+            "stdout": "Traceback (most recent call last): RuntimeError: helper crashed unexpectedly",
+            "exit_code": 1,
+        }
+        responses["scheduler_helper_readiness"] = {
             "stdout": "Traceback (most recent call last): RuntimeError: helper crashed unexpectedly",
             "exit_code": 1,
         }
@@ -772,11 +808,8 @@ def test_preflight_requires_non_empty_daily_challenge(tmp_path):
 
 def test_preflight_requires_matching_sanitized_database_identity(tmp_path):
     payload = make_fake_preflight_responses(helper_mode="legacy")
-    payload["responses"]["scheduler_env"]["stdout"] = json.dumps(
-        [
-            "DATABASE_URL=postgresql://godokoro:other-secret@db.internal:5432/other_db",
-            "QUESTIONS_JSON_PATH=/app/data/questions.json",
-        ]
+    payload["responses"]["scheduler_DATABASE_URL"]["stdout"] = (
+        "DATABASE_URL=postgresql://godokoro:other-secret@db.internal:5432/other_db\n"
     )
     result = run_preflight_with_fake_remote(tmp_path, payload)
     assert result.returncode != 0

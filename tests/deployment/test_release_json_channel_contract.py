@@ -136,6 +136,11 @@ def test_real_release_readiness_consumers_accept_diagnostics_on_separate_channel
     stdout = base64.b64encode(("diagnostic before\n" + payload + "\ndiagnostic after").encode()).decode()
     stderr = base64.b64encode(b"startup-diagnostic stderr").decode()
     block = readiness_function_block(ROOT / "scripts/release" / script_name)
+    readiness_call = (
+        "Try-Get-RemoteReadinessReport -ContainerName 'app-current' -ResponseName 'app_helper_readiness'"
+        if script_name == "preflight-production.ps1"
+        else "Try-Get-RemoteReadinessReport -ContainerName 'app-current'"
+    )
     body = (
         "$layout=[pscustomobject]@{ssh_alias='test-host'}\n"
         "$env:GO_ODYSSEY_PREFLIGHT_FAKE_REMOTE_RESPONSES=$null\n"
@@ -143,7 +148,7 @@ def test_real_release_readiness_consumers_accept_diagnostics_on_separate_channel
         f"$fakeErr=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{stderr}'))\n"
         "function Invoke-BoundedSshCommand { [ordered]@{stdout=$fakeOut;stderr=$fakeErr;output=($fakeOut+$fakeErr);exit_code=0;elapsed_seconds=1.25;timed_out=$false} }\n"
         + block
-        + "\n$result=Try-Get-RemoteReadinessReport -ContainerName 'app-current'\n"
+        + f"\n$result={readiness_call}\n"
         + "$result|ConvertTo-Json -Depth 10 -Compress\n"
     )
     result = run_ps(tmp_path, body)
