@@ -110,7 +110,7 @@ class BattlefieldBossRewardResultTransport:
     def __post_init__(self) -> None:
         if self.contract_version != F024_RESULT_TRANSPORT_CONTRACT_VERSION:
             _fail("unsupported_contract", "contract_version is not the F024 V1 contract")
-        if self.status not in _STATUSES:
+        if not isinstance(self.status, str) or self.status not in _STATUSES:
             _fail("unsupported_status", f"unsupported reward status: {self.status}")
         object.__setattr__(self, "zone_key", _text(self.zone_key, "zone_key"))
         object.__setattr__(
@@ -144,6 +144,11 @@ class BattlefieldBossRewardResultTransport:
         )
         if actual != expected:
             _fail("status_flags_mismatch", "transport status flags are inconsistent")
+        if self.status != NOT_FIRST_CLEAR and self.entitlement_replayed:
+            _fail(
+                "replay_flag_mismatch",
+                "only NOT_FIRST_CLEAR may carry entitlement_replayed=True",
+            )
 
     def to_dict(self) -> dict[str, Any]:
         """Return only the approved presentation fields."""

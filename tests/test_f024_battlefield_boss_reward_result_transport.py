@@ -16,6 +16,9 @@ from world_battlefield_boss_reward_runtime import (
     NOT_FIRST_CLEAR,
     BattlefieldBossFirstClearRewardResult,
 )
+from world_battlefield_boss_reward_result import (
+    build_battlefield_boss_reward_transport as build_f018_reward_transport,
+)
 from world_battlefield_boss_reward_transport import (
     F024_RESULT_TRANSPORT_CONTRACT_VERSION,
     BattlefieldBossRewardResultTransport,
@@ -131,6 +134,14 @@ def test_conflict_is_preserved_without_reward_mutation_facts() -> None:
     assert transport.already_owned_no_op is False
 
 
+def test_f018_exposes_the_f024_transport_seam_without_owning_reward_policy() -> None:
+    result = _f023_result(FIRST_CLEAR_NEW_COSMETIC)
+    direct = build_battlefield_boss_reward_transport(result)
+    through_f018 = build_f018_reward_transport(result)
+    assert through_f018.to_dict() == direct.to_dict()
+    assert through_f018.status == FIRST_CLEAR_NEW_COSMETIC
+
+
 def test_unknown_payload_fails_closed() -> None:
     payload = build_battlefield_boss_reward_transport(
         _f023_result(FIRST_CLEAR_NEW_COSMETIC)
@@ -173,6 +184,21 @@ def test_transport_is_immutable_and_round_trips_deterministically() -> None:
     assert BattlefieldBossRewardResultTransport.from_json(first).to_dict() == (
         transport.to_dict()
     )
+
+
+@pytest.mark.parametrize(
+    "status",
+    [FIRST_CLEAR_NEW_COSMETIC, FIRST_CLEAR_ALREADY_OWNED_NO_OP, CONFLICT],
+)
+def test_replay_flag_is_false_for_non_replay_statuses(status: str) -> None:
+    result = _f023_result(status)
+    payload = build_battlefield_boss_reward_transport(result).to_dict()
+    payload["entitlement_replayed"] = True
+    with pytest.raises(
+        BattlefieldBossRewardTransportError,
+        match="replay_flag_mismatch",
+    ):
+        BattlefieldBossRewardResultTransport.from_mapping(payload)
 
 
 def test_raw_mapping_cannot_cross_typed_f023_authority_boundary() -> None:

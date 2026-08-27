@@ -23,6 +23,10 @@ from world_battlefield_boss_orchestrator import (
     REPLAYED,
     BattlefieldBossMilestoneOrchestrationResult,
 )
+from world_battlefield_boss_reward_transport import (
+    BattlefieldBossRewardResultTransport,
+    build_battlefield_boss_reward_transport as _build_f024_reward_transport,
+)
 
 
 F018_RESULT_CONTRACT_VERSION: Final[str] = (
@@ -149,11 +153,25 @@ def build_battlefield_boss_milestone_reward_result(
     )
 
 
+def build_battlefield_boss_reward_transport(
+    result: Any,
+) -> BattlefieldBossRewardResultTransport:
+    """Expose the F024 transport seam to F018 presentation callers.
+
+    F018 remains a presentation/result boundary.  Reward entitlement,
+    wardrobe ownership, and D5A lineage remain owned by F023 and are never
+    recomputed here.
+    """
+
+    return _build_f024_reward_transport(result)
+
+
 __all__ = [
     "BattlefieldBossMilestoneRewardResult",
     "F018_REWARD_CONTENT_AUTHORITY_MISSING",
     "F018_RESULT_CONTRACT_VERSION",
     "REWARD_CONTENT_AUTHORITY_MISSING",
     "REWARD_CONTENT_AUTHORITY_MISSING_STATUS",
+    "build_battlefield_boss_reward_transport",
     "build_battlefield_boss_milestone_reward_result",
 ]
