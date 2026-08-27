@@ -149,24 +149,53 @@ docker inspect $ContainerName --format '{{.Id}}|{{.Image}}|{{.Config.Image}}|{{.
     }
 }
 
-function Get-RemoteContainerEnvMap {
+$script:ExactRemoteEnvKeys = @(
+    'DATABASE_URL',
+    'QUESTIONS_JSON_PATH',
+    'GO_ODYSSEY_LIVE_STATIC_ROOT',
+    'SHADOW_EVENTS_PATH'
+)
+
+function Get-RemoteExactEnvValue {
+    <#
+    Read one allow-listed container environment key without returning the
+    container's full environment. Docker's template ranges the environment
+    internally but emits only the exact requested entry. A missing entry is
+    the only non-error empty result; malformed, duplicate, ambiguous, or
+    present-but-empty results fail closed.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$Key,
         [Parameter(Mandatory = $true)][string]$ResponseName
     )
-    $raw = Invoke-RemoteText -Name $ResponseName -Command "docker inspect $ContainerName --format '{{json .Config.Env}}'"
-    if ([string]::IsNullOrWhiteSpace($raw) -or $raw -eq 'null') {
-        return @{}
+    if ($script:ExactRemoteEnvKeys -notcontains $Key) {
+        throw "Remote environment key is not allow-listed: $Key"
     }
-    $env = $raw | ConvertFrom-Json
-    $map = @{}
-    foreach ($entry in $env) {
-        $pair = $entry -split '=', 2
-        if ($pair.Count -ge 1 -and -not [string]::IsNullOrWhiteSpace($pair[0])) {
-            $map[$pair[0]] = if ($pair.Count -gt 1) { $pair[1] } else { '' }
-        }
+    $template = '{{range .Config.Env}}{{if or (eq . "__KEY__") (hasPrefix . "__KEY__=")}}{{println .}}{{end}}{{end}}'.Replace('__KEY__', $Key)
+    $raw = Invoke-RemoteText -Name $ResponseName -Command "docker inspect $(Quote-PosixShellArgument $ContainerName) --format '$template'"
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return $null
     }
-    return $map
+
+    $entries = @(
+        $raw -split "`r?`n" |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    if ($entries.Count -ne 1) {
+        throw "$Key exact-key probe was duplicated or ambiguous."
+    }
+
+    $entry = [string]$entries[0]
+    $prefix = "$Key="
+    if (-not $entry.StartsWith($prefix, [System.StringComparison]::Ordinal)) {
+        throw "$Key exact-key probe returned a malformed entry."
+    }
+    $value = $entry.Substring($prefix.Length)
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        throw "$Key exact-key probe returned an empty value."
+    }
+    return $value
 }
 
 function Get-Sha256Hex {
@@ -198,7 +227,12 @@ function Get-DatabaseIdentitySummary {
             password_present = $false
         }
     }
-    $uri = [Uri]$value
+    try {
+        $uri = [Uri]$value
+    }
+    catch {
+        throw 'DATABASE_URL is malformed.'
+    }
     $userInfo = $uri.UserInfo
     $user = ''
     $passwordPresent = $false
@@ -241,10 +275,13 @@ function Test-HelperUnavailableOutput {
 }
 
 function Try-Get-RemoteReadinessReport {
-    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$ResponseName
+    )
     $command = "docker exec $(Quote-PosixShellArgument $ContainerName) python -X utf8 -c 'import base64, json, app; payload=json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False).encode(`"utf-8`"); print(`"__GO_ODYSSEY_READINESS_V1__:`" + base64.b64encode(payload).decode(`"ascii`"))'"
     $result = if ($env:GO_ODYSSEY_PREFLIGHT_FAKE_REMOTE_RESPONSES) {
-        $fake = Invoke-RemoteCommandResult -Name 'app_helper_readiness' -Command $command
+        $fake = Invoke-RemoteCommandResult -Name $ResponseName -Command $command
         [ordered]@{ stdout = [string]$fake.output; stderr = ''; output = [string]$fake.output; exit_code = $fake.exit_code; elapsed_seconds = 0; timed_out = $false }
     }
     else {
@@ -275,6 +312,77 @@ function Try-Get-RemoteReadinessReport {
         }
     }
     throw "Runtime readiness helper failed unexpectedly with exit code $($result.exit_code)."
+}
+
+function Resolve-RemoteRuntimeConfig {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$ContainerLabel,
+        [Parameter(Mandatory = $true)][string]$ResponsePrefix,
+        [Parameter(Mandatory = $true)]$ReadinessMode,
+        [Parameter(Mandatory = $true)][string]$ExpectedQuestionsPath
+    )
+    if ($ReadinessMode.mode -eq 'helper') {
+        $readiness = $ReadinessMode.report
+        $identity = $readiness.database.identity
+        if (-not $identity) {
+            throw "$ContainerLabel runtime readiness omitted database identity."
+        }
+        $questionsPath = [string]$readiness.questions.path
+        if ([string]::IsNullOrWhiteSpace($questionsPath)) {
+            $questionsPath = [string]$readiness.questions.configured_path
+        }
+        if ([string]::IsNullOrWhiteSpace($questionsPath)) {
+            $questionsPath = $ExpectedQuestionsPath
+        }
+        return [ordered]@{
+            database_identity = [ordered]@{
+                configured = [bool]$identity.configured
+                host = [string]$identity.host
+                port = $identity.port
+                database = [string]$identity.database
+                user = [string]$identity.user
+                password_present = [bool]$identity.password_present
+            }
+            questions_path = $questionsPath
+            questions_path_source = 'helper'
+            live_static_root = [string]$readiness.static_root.path
+            shadow_events_path = [string]$readiness.shadow_events.path
+        }
+    }
+
+    $databaseUrl = Get-RemoteExactEnvValue `
+        -ContainerName $ContainerName `
+        -Key 'DATABASE_URL' `
+        -ResponseName ("{0}_DATABASE_URL" -f $ResponsePrefix)
+    if ([string]::IsNullOrWhiteSpace($databaseUrl)) {
+        throw "$ContainerLabel DATABASE_URL is unavailable."
+    }
+    $configuredQuestionsPath = Get-RemoteExactEnvValue `
+        -ContainerName $ContainerName `
+        -Key 'QUESTIONS_JSON_PATH' `
+        -ResponseName ("{0}_QUESTIONS_JSON_PATH" -f $ResponsePrefix)
+    $questionsPath = if (-not [string]::IsNullOrWhiteSpace($configuredQuestionsPath)) {
+        $configuredQuestionsPath
+    }
+    else {
+        $ExpectedQuestionsPath
+    }
+    $liveStaticRoot = Get-RemoteExactEnvValue `
+        -ContainerName $ContainerName `
+        -Key 'GO_ODYSSEY_LIVE_STATIC_ROOT' `
+        -ResponseName ("{0}_GO_ODYSSEY_LIVE_STATIC_ROOT" -f $ResponsePrefix)
+    $shadowEventsPath = Get-RemoteExactEnvValue `
+        -ContainerName $ContainerName `
+        -Key 'SHADOW_EVENTS_PATH' `
+        -ResponseName ("{0}_SHADOW_EVENTS_PATH" -f $ResponsePrefix)
+    return [ordered]@{
+        database_identity = Get-DatabaseIdentitySummary -DatabaseUrl $databaseUrl
+        questions_path = $questionsPath
+        questions_path_source = $(if ($configuredQuestionsPath) { 'env_exact_key' } else { 'derived_from_layout' })
+        live_static_root = [string]$liveStaticRoot
+        shadow_events_path = [string]$shadowEventsPath
+    }
 }
 
 function Get-RemoteQuestionsReport {
@@ -553,13 +661,14 @@ Assert-ContainerSnapshotValid -Snapshot $appSnapshot -Name 'App'
 Assert-ContainerSnapshotValid -Snapshot $schedulerSnapshot -Name 'Scheduler'
 Assert-ContainerSnapshotValid -Snapshot $nginxSnapshot -Name 'Nginx'
 
-$appEnv = Get-RemoteContainerEnvMap -ContainerName $layout.app_service_name -ResponseName 'app_env'
-$schedulerEnv = Get-RemoteContainerEnvMap -ContainerName $layout.scheduler_service_name -ResponseName 'scheduler_env'
-$appDb = Get-DatabaseIdentitySummary -DatabaseUrl $appEnv['DATABASE_URL']
-$schedulerDb = Get-DatabaseIdentitySummary -DatabaseUrl $schedulerEnv['DATABASE_URL']
-$readinessMode = Try-Get-RemoteReadinessReport -ContainerName $layout.app_service_name
 $expectedQuestionsPath = ($layout.questions_content_mount_destination.TrimEnd('/','\') + '/questions.json')
-$questionsPath = if (-not [string]::IsNullOrWhiteSpace($appEnv['QUESTIONS_JSON_PATH'])) { $appEnv['QUESTIONS_JSON_PATH'] } else { $expectedQuestionsPath }
+$readinessMode = Try-Get-RemoteReadinessReport -ContainerName $layout.app_service_name -ResponseName 'app_helper_readiness'
+$schedulerReadinessMode = Try-Get-RemoteReadinessReport -ContainerName $layout.scheduler_service_name -ResponseName 'scheduler_helper_readiness'
+$appRuntimeConfig = Resolve-RemoteRuntimeConfig -ContainerName $layout.app_service_name -ContainerLabel 'App' -ResponsePrefix 'app' -ReadinessMode $readinessMode -ExpectedQuestionsPath $expectedQuestionsPath
+$schedulerRuntimeConfig = Resolve-RemoteRuntimeConfig -ContainerName $layout.scheduler_service_name -ContainerLabel 'Scheduler' -ResponsePrefix 'scheduler' -ReadinessMode $schedulerReadinessMode -ExpectedQuestionsPath $expectedQuestionsPath
+$appDb = $appRuntimeConfig.database_identity
+$schedulerDb = $schedulerRuntimeConfig.database_identity
+$questionsPath = $appRuntimeConfig.questions_path
 $dailyChallengeUrl = Get-DailyChallengeUrl -BaseUrl $layout.homepage_url
 $diskReport = Get-RemoteDiskReport
 $remoteStagingStatus = Get-RemoteStagingPathStatus -RemotePath $layout.remote_release_staging_directory
@@ -615,10 +724,10 @@ $report = [ordered]@{
     helper_available = $readinessMode.helper_available
     readiness_mode = $readinessMode.mode
     questions_json_path = $questionsPath
-    questions_json_path_source = $(if (-not [string]::IsNullOrWhiteSpace($appEnv['QUESTIONS_JSON_PATH'])) { 'env' } else { 'derived_from_layout' })
+    questions_json_path_source = $appRuntimeConfig.questions_path_source
     questions_json_path_matches_mount = $questionsPath -eq $expectedQuestionsPath
-    live_static_root = $appEnv['GO_ODYSSEY_LIVE_STATIC_ROOT']
-    shadow_events_path = $appEnv['SHADOW_EVENTS_PATH']
+    live_static_root = $appRuntimeConfig.live_static_root
+    shadow_events_path = $appRuntimeConfig.shadow_events_path
     app_health = $appSnapshot.health
     scheduler_health = $schedulerSnapshot.health
     nginx_health = $nginxSnapshot.health
@@ -626,6 +735,9 @@ $report = [ordered]@{
     candidate_release_archive_exists = $candidateArchiveExists
     readiness = $readinessMode.report
     questions = $questionsReport
+    scheduler_readiness = $schedulerReadinessMode.report
+    scheduler_readiness_mode = $schedulerReadinessMode.mode
+    scheduler_helper_available = $schedulerReadinessMode.helper_available
     healthz_status = $healthzStatus
     healthz_payload = $healthzBody
     login_status = $loginStatus
