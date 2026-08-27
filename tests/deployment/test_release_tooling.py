@@ -138,6 +138,52 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
             )
         },
     }
+    scheduler_database = {
+        "reachable": True,
+        "identity": {
+            "configured": True,
+            "host": "db.internal",
+            "port": 5432,
+            "database": "go_odyssey",
+            "user": "godokoro",
+            "password_present": True,
+        },
+        "tables": {},
+    }
+    scheduler_payload = {
+        "ok": True,
+        "role": "scheduler",
+        "app": {"git_sha": "a" * 40, "image_revision": "a" * 40},
+        "database": scheduler_database,
+        "scheduler": {
+            "entrypoint": {
+                "path": "/app/scheduler.py",
+                "present": True,
+                "importable": True,
+                "required": True,
+            },
+            "community_job": {
+                "enabled": False,
+                "module_present": False,
+                "module_importable": False,
+                "required": False,
+                "operations_root": {
+                    "required": False,
+                    "path": "",
+                    "ready": True,
+                },
+            },
+            "premium_job": {
+                "enabled": False,
+                "supported": True,
+                "required": True,
+            },
+        },
+        "questions": {"required": False, "status": "not_required"},
+        "static_root": {"required": False, "status": "not_required"},
+        "shadow_events": {"required": False, "status": "not_required"},
+        "failures": [],
+    }
     if helper_mode == "helper":
         helper_payload = {
             "ok": True,
@@ -152,18 +198,7 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
                 "structural_record_check": True,
                 "failures": [],
             },
-            "database": {
-                "reachable": True,
-                "identity": {
-                    "configured": True,
-                    "host": "db.internal",
-                    "port": 5432,
-                    "database": "go_odyssey",
-                    "user": "godokoro",
-                    "password_present": True,
-                },
-                "tables": {},
-            },
+            "database": scheduler_database,
             "static_root": {
                 "path": "/opt/go-odyssey-static/current",
                 "exists": True,
@@ -181,7 +216,10 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
             "stdout": framed_json(helper_payload)
         }
         responses["scheduler_helper_readiness"] = {
-            "stdout": framed_json(helper_payload)
+            "stdout": framed_json(
+                scheduler_payload,
+                prefix="__GO_ODYSSEY_SCHEDULER_READINESS_V1__:",
+            )
         }
     elif helper_mode == "legacy":
         responses["app_helper_readiness"] = {
@@ -189,8 +227,11 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
             "exit_code": 1,
         }
         responses["scheduler_helper_readiness"] = {
-            "stdout": "AttributeError: module 'app' has no attribute '_read_runtime_deployment_readiness'",
-            "exit_code": 1,
+            "stdout": framed_json(
+                scheduler_payload,
+                prefix="__GO_ODYSSEY_SCHEDULER_READINESS_V1__:",
+            ),
+            "exit_code": 0,
         }
     elif helper_mode == "error":
         responses["app_helper_readiness"] = {
@@ -808,8 +849,14 @@ def test_preflight_requires_non_empty_daily_challenge(tmp_path):
 
 def test_preflight_requires_matching_sanitized_database_identity(tmp_path):
     payload = make_fake_preflight_responses(helper_mode="legacy")
-    payload["responses"]["scheduler_DATABASE_URL"]["stdout"] = (
-        "DATABASE_URL=postgresql://godokoro:other-secret@db.internal:5432/other_db\n"
+    scheduler_response = payload["responses"]["scheduler_helper_readiness"]["stdout"]
+    scheduler_payload = json.loads(
+        base64.b64decode(scheduler_response.split(":", 1)[1]).decode("utf-8")
+    )
+    scheduler_payload["database"]["identity"]["database"] = "other_db"
+    payload["responses"]["scheduler_helper_readiness"]["stdout"] = framed_json(
+        scheduler_payload,
+        prefix="__GO_ODYSSEY_SCHEDULER_READINESS_V1__:",
     )
     result = run_preflight_with_fake_remote(tmp_path, payload)
     assert result.returncode != 0

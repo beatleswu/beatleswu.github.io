@@ -277,8 +277,12 @@ function Test-HelperUnavailableOutput {
 function Try-Get-RemoteReadinessReport {
     param(
         [Parameter(Mandatory = $true)][string]$ContainerName,
-        [Parameter(Mandatory = $true)][string]$ResponseName
+        [Parameter(Mandatory = $true)][string]$ResponseName,
+        [ValidateSet('app', 'scheduler')][string]$Role = 'app'
     )
+    if ($Role -eq 'scheduler') {
+        return Get-RemoteSchedulerReadinessReport -ContainerName $ContainerName -ResponseName $ResponseName
+    }
     $command = "docker exec $(Quote-PosixShellArgument $ContainerName) python -X utf8 -c 'import base64, json, app; payload=json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False).encode(`"utf-8`"); print(`"__GO_ODYSSEY_READINESS_V1__:`" + base64.b64encode(payload).decode(`"ascii`"))'"
     $result = if ($env:GO_ODYSSEY_PREFLIGHT_FAKE_REMOTE_RESPONSES) {
         $fake = Invoke-RemoteCommandResult -Name $ResponseName -Command $command
@@ -312,6 +316,217 @@ function Try-Get-RemoteReadinessReport {
         }
     }
     throw "Runtime readiness helper failed unexpectedly with exit code $($result.exit_code)."
+}
+
+function Get-RemoteSchedulerReadinessReport {
+    <#
+    Scheduler readiness is deliberately a different contract from the web
+    application's deployment-readiness helper.  The standalone scheduler
+    imports app.py, but its entrypoint does not load the question dataset,
+    serve live static assets, or write shadow events.  Calling the app helper
+    for this role would therefore turn app-only paths into a false scheduler
+    gate.
+
+    This probe remains read-only.  It checks the scheduler entrypoint/module,
+    the database connection and tables used by the scheduler's current jobs,
+    and the conditional reward-operation path.  It never calls init_db() or a
+    reward cycle, and it emits no environment values.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$ResponseName
+    )
+    $script = @'
+import base64
+import importlib.util
+import json
+import os
+import stat
+from pathlib import Path
+
+from db import describe_database_url
+import app
+
+
+def _env_flag(name):
+    return (os.environ.get(name) or '').strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _exact_true(name):
+    return (os.environ.get(name) or '').strip().lower() == 'true'
+
+
+def _module_report(name, required):
+    report = {
+        'required': bool(required),
+        'present': False,
+        'importable': False,
+        'path': '',
+    }
+    try:
+        spec = importlib.util.find_spec(name)
+        origin = str(getattr(spec, 'origin', '') or '') if spec else ''
+        report['path'] = origin
+        report['present'] = bool(origin) and Path(origin).is_file()
+        if required:
+            importlib.import_module(name)
+            report['importable'] = spec is not None and origin not in ('', 'built-in', 'frozen')
+    except Exception:
+        report['path'] = ''
+    return report
+
+
+community_enabled = _exact_true('COMMUNITY_LEADERBOARD_REWARDS_ENABLED')
+premium_enabled = _env_flag('PREMIUM_WEEKLY_SCHEDULER_ENABLED')
+failures = []
+
+app_git_sha = ''
+for env_name in ('APP_GIT_SHA', 'SOURCE_VERSION', 'GIT_COMMIT'):
+    value = str(os.environ.get(env_name) or '').strip()
+    if value:
+        app_git_sha = value
+        break
+
+database = {
+    'identity': describe_database_url(os.environ.get('DATABASE_URL')),
+    'reachable': False,
+    'tables': {},
+    'failures': [],
+}
+required_tables = ['users', 'review_log', 'user_stats']
+if community_enabled:
+    required_tables.extend([
+        'player_appearance',
+        'leaderboard_snapshots',
+        'leaderboard_reward_claims',
+        'leaderboard_reward_component_log',
+    ])
+try:
+    with app.get_db() as conn:
+        conn.execute('SELECT 1')
+        database['reachable'] = True
+        for table in required_tables:
+            try:
+                conn.execute('SELECT 1 FROM ' + table + ' LIMIT 1')
+                database['tables'][table] = {'ok': True}
+            except Exception as exc:
+                database['tables'][table] = {'ok': False, 'error': exc.__class__.__name__}
+                database['failures'].append(table + ' unavailable')
+except Exception as exc:
+    database['failures'].append('database connection failed: ' + exc.__class__.__name__)
+
+scheduler_module = _module_report('scheduler', True)
+community_module = _module_report('community_leaderboard_rewards_scheduler', community_enabled)
+scheduler = {
+    'entrypoint': {
+        'path': scheduler_module['path'],
+        'present': scheduler_module['present'],
+        'importable': scheduler_module['importable'],
+        'required': True,
+    },
+    'community_job': {
+        'enabled': community_enabled,
+        'module_present': community_module['present'],
+        'module_importable': community_module['importable'],
+        'required': community_enabled,
+    },
+    'premium_job': {
+        'enabled': premium_enabled,
+        'supported': not premium_enabled,
+        'required': True,
+    },
+}
+
+if not scheduler['entrypoint']['present'] or not scheduler['entrypoint']['importable']:
+    failures.append('scheduler entrypoint is unavailable')
+if premium_enabled:
+    failures.append('unsupported premium scheduler is enabled')
+if community_enabled and (
+    not community_module['present'] or not community_module['importable']
+):
+    failures.append('community scheduler module is unavailable')
+
+if community_enabled:
+    try:
+        from community_leaderboard_rewards_scheduler import DEFAULT_OPERATIONS_ROOT
+        operations_root = Path(DEFAULT_OPERATIONS_ROOT)
+        parent = operations_root.parent
+        if operations_root.exists():
+            mode = operations_root.stat().st_mode
+            operations_ready = (
+                operations_root.is_dir()
+                and not operations_root.is_symlink()
+                and not bool(mode & stat.S_IWOTH)
+                and os.access(operations_root, os.W_OK)
+            )
+        else:
+            operations_ready = (
+                parent.is_dir()
+                and not parent.is_symlink()
+                and os.access(parent, os.W_OK)
+            )
+        scheduler['community_job']['operations_root'] = {
+            'required': True,
+            'path': str(operations_root),
+            'ready': operations_ready,
+        }
+        if not operations_ready:
+            failures.append('community reward operations path is unavailable')
+    except Exception:
+        scheduler['community_job']['operations_root'] = {
+            'required': True,
+            'path': '',
+            'ready': False,
+        }
+        failures.append('community reward operations path is unavailable')
+else:
+    scheduler['community_job']['operations_root'] = {
+        'required': False,
+        'path': '',
+        'ready': True,
+    }
+
+report = {
+    'ok': False,
+    'role': 'scheduler',
+    'app': {
+        'git_sha': app_git_sha,
+        'image_revision': app_git_sha,
+    },
+    'database': database,
+    'scheduler': scheduler,
+    'questions': {'required': False, 'status': 'not_required'},
+    'static_root': {'required': False, 'status': 'not_required'},
+    'shadow_events': {'required': False, 'status': 'not_required'},
+    'failures': failures + database['failures'],
+}
+if not app_git_sha:
+    report['failures'].append('scheduler app git sha is missing')
+if not database['reachable'] and not database['failures']:
+    report['failures'].append('scheduler database is not reachable')
+report['ok'] = len(report['failures']) == 0
+payload = json.dumps(report, ensure_ascii=False).encode('utf-8')
+print('__GO_ODYSSEY_SCHEDULER_READINESS_V1__:' + base64.b64encode(payload).decode('ascii'))
+'@
+    $result = Invoke-RemoteCommandResult `
+        -Name $ResponseName `
+        -Command "docker exec -i $(Quote-PosixShellArgument $ContainerName) python -X utf8 -" `
+        -StdinText $script
+    $combined = (@([string]$result.stdout, [string]$result.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
+    if ($result.exit_code -ne 0) {
+        throw "Scheduler readiness probe failed with exit code $($result.exit_code)."
+    }
+    $report = ConvertFrom-FramedJsonRecord `
+        -Output $combined `
+        -Prefix '__GO_ODYSSEY_SCHEDULER_READINESS_V1__:' `
+        -Context 'Scheduler runtime readiness' `
+        -RequiredProperties @('ok', 'role', 'app', 'database', 'scheduler', 'questions', 'static_root', 'shadow_events', 'failures')
+    return [ordered]@{
+        mode = 'scheduler_probe'
+        report = $report
+        helper_available = $true
+        helper_output = '__GO_ODYSSEY_SCHEDULER_READINESS_V1__:<validated>'
+    }
 }
 
 function Resolve-RemoteRuntimeConfig {
@@ -382,6 +597,51 @@ function Resolve-RemoteRuntimeConfig {
         questions_path_source = $(if ($configuredQuestionsPath) { 'env_exact_key' } else { 'derived_from_layout' })
         live_static_root = [string]$liveStaticRoot
         shadow_events_path = [string]$shadowEventsPath
+    }
+}
+
+function Resolve-RemoteSchedulerRuntimeConfig {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$ContainerLabel,
+        [Parameter(Mandatory = $true)][string]$ResponsePrefix,
+        [Parameter(Mandatory = $true)]$ReadinessMode
+    )
+    if ($ReadinessMode.mode -eq 'scheduler_probe') {
+        $readiness = $ReadinessMode.report
+        $identity = $readiness.database.identity
+        if (-not $identity) {
+            throw "$ContainerLabel scheduler readiness omitted database identity."
+        }
+        return [ordered]@{
+            database_identity = [ordered]@{
+                configured = [bool]$identity.configured
+                host = [string]$identity.host
+                port = $identity.port
+                database = [string]$identity.database
+                user = [string]$identity.user
+                password_present = [bool]$identity.password_present
+            }
+            questions_path = $null
+            questions_path_source = 'not_required'
+            live_static_root = $null
+            shadow_events_path = $null
+        }
+    }
+
+    $databaseUrl = Get-RemoteExactEnvValue `
+        -ContainerName $ContainerName `
+        -Key 'DATABASE_URL' `
+        -ResponseName ("{0}_DATABASE_URL" -f $ResponsePrefix)
+    if ([string]::IsNullOrWhiteSpace($databaseUrl)) {
+        throw "$ContainerLabel DATABASE_URL is unavailable."
+    }
+    return [ordered]@{
+        database_identity = Get-DatabaseIdentitySummary -DatabaseUrl $databaseUrl
+        questions_path = $null
+        questions_path_source = 'not_required'
+        live_static_root = $null
+        shadow_events_path = $null
     }
 }
 
@@ -663,9 +923,9 @@ Assert-ContainerSnapshotValid -Snapshot $nginxSnapshot -Name 'Nginx'
 
 $expectedQuestionsPath = ($layout.questions_content_mount_destination.TrimEnd('/','\') + '/questions.json')
 $readinessMode = Try-Get-RemoteReadinessReport -ContainerName $layout.app_service_name -ResponseName 'app_helper_readiness'
-$schedulerReadinessMode = Try-Get-RemoteReadinessReport -ContainerName $layout.scheduler_service_name -ResponseName 'scheduler_helper_readiness'
+$schedulerReadinessMode = Try-Get-RemoteReadinessReport -ContainerName $layout.scheduler_service_name -ResponseName 'scheduler_helper_readiness' -Role 'scheduler'
 $appRuntimeConfig = Resolve-RemoteRuntimeConfig -ContainerName $layout.app_service_name -ContainerLabel 'App' -ResponsePrefix 'app' -ReadinessMode $readinessMode -ExpectedQuestionsPath $expectedQuestionsPath
-$schedulerRuntimeConfig = Resolve-RemoteRuntimeConfig -ContainerName $layout.scheduler_service_name -ContainerLabel 'Scheduler' -ResponsePrefix 'scheduler' -ReadinessMode $schedulerReadinessMode -ExpectedQuestionsPath $expectedQuestionsPath
+$schedulerRuntimeConfig = Resolve-RemoteSchedulerRuntimeConfig -ContainerName $layout.scheduler_service_name -ContainerLabel 'Scheduler' -ResponsePrefix 'scheduler' -ReadinessMode $schedulerReadinessMode
 $appDb = $appRuntimeConfig.database_identity
 $schedulerDb = $schedulerRuntimeConfig.database_identity
 $questionsPath = $appRuntimeConfig.questions_path
@@ -813,6 +1073,9 @@ if (-not $report.rollback_identity_available) {
 }
 if ($report.readiness_mode -eq 'helper' -and $report.readiness.ok -ne $true) {
     throw "Runtime readiness helper reported a failing state."
+}
+if ($report.scheduler_readiness_mode -eq 'scheduler_probe' -and $report.scheduler_readiness.ok -ne $true) {
+    throw "Scheduler runtime readiness probe reported a failing state."
 }
 if ($report.static_generation -and $report.static_generation.drift_checked -and $report.static_generation.drift -eq $true) {
     throw "STATIC GENERATION DRIFT: production's live-static current ($($report.static_generation.current_target)) does not match the declared static release manifest ($($staticExpectedManifest.static_generation_id)). This is exactly the RELEASE-FIX-A class of defect -- do not proceed without deploying the matching static release first."
