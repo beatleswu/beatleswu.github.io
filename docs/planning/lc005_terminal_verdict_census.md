@@ -224,3 +224,41 @@ The judge was **not** modified. LC005 changes no runtime code.
 4. MANUAL_SEMANTIC_REVIEW: board-first review queue over the ~40k population, batched into governed content releases.
 5. Source-level fixes for MALFORMED (163), EMPTY (61), COLOR_SILENT (212), duplicate-id (22), TRUE_AMBIGUOUS_REPLY (489).
 6. Only when coverage clears an owner threshold: enable `SRS_REVIEW_NO_ATTEMPT_POLICY=fail_closed` and `window.__LC004_ATTEMPT_TRANSPORT` (LC004 cutover).
+
+---
+
+## 16. Evidence precision (LC5-B+C doc-mining refinement)
+
+Independent doc-mining (LC5-B+C) confirmed §1–§14 and tightened which figures are **exact**, **estimated**, or **UNKNOWN**. Correction to §3/§4/§12: the per-marker counts below are not derivable from committed evidence — only ceilings exist. The point estimates in §4 (ALREADY_EXPLICIT ≈ 450, SAFE_AUTO_CANDIDATE ≈ 800) are **projections bounded by these UNKNOWNs**, not measurements; only `python -m tools.lc005_terminal_verdict_census --snapshot <questions.json>` against the pinned snapshot resolves them.
+
+### Exact full-corpus figures (committed evidence)
+42,804 total · 42,641 strict-parse OK · 163 strict-parse fail · 60 empty tree / 61 no-valid-root · 8 non-move root · 1 root pass · 2,425 raw &gt;1 root child · 1,535 native multi-root (deduped) · 1,286 duplicate-coordinate root branch · 489 ambiguous opponent-reply · 1,470 records with RE∪GB∪GW∪BM∪TE∪DO∪N anywhere in tree · 41 records containing an SGF `C[]` comment anywhere · 19,502 `katago_best_move` · 0 `accepted_moves` · 0 `solution_state` · 11 duplicate-legacy-id groups (11 extra records) · 404 duplicate-content groups (536 extra records) · colour B/W/Unknown = 39,575 / 3,017 / 212 (sums to 42,804).
+
+### UNKNOWN from committed evidence (require a read-only live-snapshot pass)
+| Field | Ceiling | Why unknown |
+|---|---|---|
+| RE_SUCCESS_COUNT (non-failure `RE` on a **reachable terminal move node**) | ≤ 1,470 (metadata union); realistically far lower — most `RE` is game-info-root and not judge-honoured | the 1,470 unions 7 properties, counts *anywhere in tree*, no per-property or on-node-vs-root split published (RA §7.3 L211) |
+| — game-info-root-only `RE` (the SAFE_AUTO population) | ≤ (1,470 − terminal-node RE) | same |
+| TE_SUCCESS_COUNT (`TE` on a reachable leaf) | ≤ 1,470 (in the union) | no standalone count |
+| COMMENT_SUCCESS_COUNT (success token in a **terminal** `C[...]`) | ≤ 41 | 41 = records with any `C[]` comment anywhere; success-token-on-terminal subset not measured |
+| EXPLICIT_FAILURE_COUNT (authored failure `RE`/comment token) | ≤ 41 + failure-RE subset | no inventory exists |
+| 163-failure sub-splits (MALFORMED_SGF / TRUNCATED_SGF / INVALID_COORDINATE / OTHER_PARSE_FAILURE) | sum = 163 | only "invalid property identifiers at recorded offsets" cited as representative (RA §7.3 L229); the classifier emits the sub-tag per record at runtime |
+| MULTI_ROOT_BUT_RESOLVABLE (the 489∩multi-root intersection) | 1,936–2,425 | intersection not published; ~889 raw multi-root collapse to one native answer after move-dedup |
+| 212 colour-Unknown split (unparseable vs parsed-but-colour-silent) | 163 + 49 (inferred: 42,641 − 39,575 − 3,017 = 49) | only the total 212 is stated (SD §10) |
+| Which specific records are in the 11 duplicate-legacy-id groups / 404 content groups | — | never enumerated in committed docs |
+
+### The existing repair pipeline does not advance terminal-verdict coverage
+The dry-run (`sgf_answer_repair_batch_001_dry_run.md`, 107 review groups / 118 records), phase-2A (65 records), and the staged `sgf_answer_current_canonical_contract_v2` batch (54 changed records, `mutation_performed: false`) perform only `CLEAR_PRECOMPUTED_KATAGO_FALLBACK` (×50, a Rating-Test-only concern) and `REWRITE_NATIVE_ROOT_ANSWER_SET` (×4 — adds root move *branches*, `root_metadata_raw_preserved: true`, `desired_results` all `"branch"`). Grep of every batch JSON for `RE[` / `TE[` → 0. LC005's terminal-marker remediation class is net-new; no existing repair-class covers the ~42,050 bare-leaf population.
+
+### Prior manifest schema (for the follow-on live run)
+`sgf_answer_repair_batch_001_manifest.json` per-record: `audit_locator{type:"AUDIT_LOCATOR_ONLY", snapshot_sha256, record_index, legacy_question_id, content_sha256}`, plus `planned_operations[{type, before, after, added, removed}]`, `current_effective_verdict{accepted_first_moves_by_surface{6}, final_effective_player_verdict}`, `owner_desired_verdict`, `match`, `state_revision`, `state_updated_at`. LC005's manifest reuses the `audit_locator` shape and the tiered classification+disposition scheme; it omits the 6-surface verdict simulation because a terminal-verdict marker does not change *which* move is the answer.
+
+### Representative real locators (all bound to snapshot 88da3e43…; from the repair-batch JSONs)
+| qid | record_index | content_sha256 (prefix) | source_path (tail) | note |
+|---:|---:|---|---|---|
+| 8413 | 17613 | c983d3ae… | …\联络部\13.sgf | native `["O19"]`, `root_variation_count:2`, side W — bare terminal (fallback-clear staged; no marker) |
+| 7998 | 17268 | 73c9e477… → 564c42cc… | …\官子部\120.sgf area | native-repair staged: root set `["C16","C2"]`, no terminal marker added |
+| 8057 | 17156 | d11bb70a… → 0b7d5348… | …\官子部\120.sgf | native-repair: `before ["E2"] / after ["E2","Q16"]`; `desired_results` all `"branch"` |
+| 15436 | — | bc664d0d… | …\Phantom Kunai\17.sgf | `NATIVE_REPAIR_VALID_BUT_FALLBACK_CONFLICT`; owner decision required; not marker-injectable |
+| 65170 | 35578 | ca4995fb… | …\活之部103題\13.sgf | `MANUAL_RECONSTRUCTION_REQUIRED` — source position includes the answer; re-authoring, not marking |
+| 74535 | — | 50f40782… | …\Dragon Guard\手筋題\871.sgf | `SOURCE_PATH_CHANGED` → `RE_REVIEW_REQUIRED`; native `[]`, side UNKNOWN |
