@@ -97,6 +97,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
     <script src="/js/game/encounter_presentation_framework_v1.js?v=a023v1"></script>
+    <script src="/js/game/battlefield_boss_reward_consumer.js?v=f029v1"></script>
     <script src="/monster_trash.js?v=20260622i18n1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -2695,6 +2696,95 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
         opacity: .5;
         cursor: wait;
     }
+    .boss-reward-presentation[hidden] { display: none !important; }
+    .boss-reward-presentation {
+        width: min(520px, 100%);
+        margin: 2px auto 16px;
+        padding: 12px 14px;
+        border: 1px solid rgba(245, 201, 112, .48);
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255, 246, 211, .12), rgba(245, 158, 11, .08));
+        color: #fff7df;
+        text-align: left;
+        overflow: hidden;
+    }
+    .boss-reward-presentation-kicker {
+        margin-bottom: 7px;
+        color: #fbbf24;
+        font: 700 10px/1.3 'DM Mono', monospace;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    .boss-reward-presentation-item {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+    .boss-reward-presentation-icon {
+        width: 64px;
+        height: 64px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid rgba(245, 201, 112, .62);
+        border-radius: 12px;
+        background: rgba(12, 7, 4, .52);
+        flex: none;
+    }
+    .boss-reward-presentation-icon img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .boss-reward-presentation-fallback { font-size: 32px; line-height: 1; }
+    .boss-reward-presentation-title,
+    .boss-reward-presentation-item-name,
+    .boss-reward-presentation-state,
+    .boss-reward-presentation-meta {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .boss-reward-presentation-title {
+        color: #fff7df;
+        font: 700 18px/1.2 'Cormorant Garamond', serif;
+    }
+    .boss-reward-presentation-item-name {
+        margin-top: 2px;
+        color: #fde68a;
+        font-size: 14px;
+        font-weight: 800;
+    }
+    .boss-reward-presentation-state {
+        margin-top: 5px;
+        color: rgba(255, 247, 223, .82);
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    .boss-reward-presentation-meta {
+        margin-top: 10px;
+        color: rgba(253, 230, 138, .78);
+        font: 11px/1.4 'DM Mono', monospace;
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        .boss-cinematic {
+            padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+        }
+        .boss-reward-presentation { margin-bottom: 12px; padding: 10px 11px; }
+        .boss-reward-presentation-item { grid-template-columns: 52px minmax(0, 1fr); gap: 10px; }
+        .boss-reward-presentation-icon { width: 52px; height: 52px; }
+        .boss-reward-presentation-fallback { font-size: 26px; }
+        .boss-reward-presentation-title { font-size: 17px; }
+        .boss-reward-presentation-item-name { font-size: 13px; }
+        .boss-reward-presentation-state,
+        .boss-reward-presentation-meta { font-size: 11px; }
+        .boss-cinematic-btn,
+        .boss-cinematic-cancel-btn { min-height: 44px; }
+    }
     .boss-cinematic-progress {
         max-width: 420px;
         margin: 0 auto 14px;
@@ -2863,6 +2953,11 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
         .boss-cinematic.result-zone1-win .boss-cinematic-content,
         .boss-cinematic.result-zone1-fail .boss-cinematic-content {
             padding: 10px 14px;
+        }
+        .boss-cinematic.result-zone1-win .boss-cinematic-content {
+            max-height: calc(100% - 20px);
+            overflow: auto;
+            box-sizing: border-box;
         }
         .boss-cinematic.phase-lord-card .boss-cinematic-title,
         .boss-cinematic.result-zone1-win .boss-cinematic-title,
@@ -7850,6 +7945,21 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
             <h2 class="boss-cinematic-title modal-system-title" id="boss-cinematic-title" data-i18n="index.boss.title">領主封印已解除</h2>
             <div class="boss-cinematic-books" id="boss-cinematic-books"></div>
             <p class="boss-cinematic-line modal-system-lead" id="boss-cinematic-line" data-i18n="index.boss.line">古老封印正在崩解，領主即將現身。</p>
+            <div class="boss-reward-presentation" id="boss-reward-presentation" hidden aria-live="polite">
+                <div class="boss-reward-presentation-kicker" id="boss-reward-presentation-kicker"></div>
+                <div class="boss-reward-presentation-item">
+                    <div class="boss-reward-presentation-icon" id="boss-reward-presentation-icon" aria-label="">
+                        <img id="boss-reward-presentation-image" alt="" hidden loading="lazy" decoding="async">
+                        <span id="boss-reward-presentation-fallback" hidden aria-hidden="true"></span>
+                    </div>
+                    <div>
+                        <div class="boss-reward-presentation-title" id="boss-reward-presentation-title"></div>
+                        <div class="boss-reward-presentation-item-name" id="boss-reward-presentation-item-name"></div>
+                        <div class="boss-reward-presentation-state" id="boss-reward-presentation-state"></div>
+                    </div>
+                </div>
+                <div class="boss-reward-presentation-meta" id="boss-reward-presentation-meta"></div>
+            </div>
             <div class="boss-cinematic-rules" id="boss-cinematic-rules">
                 <span data-i18n="index.boss.rule_1">20 題試煉</span>
                 <span data-i18n="index.boss.rule_2">答對 16 題突破</span>
@@ -8171,7 +8281,10 @@ async function loadPlayerAvatar() {
             .catch(() => ({}));
         const [meRes, appearRes] = await Promise.all([
             getMe(),
-            fetch('/api/player/appearance', { credentials:'include' }).then(r=>r.json()),
+            fetch('/api/player/appearance', { credentials:'include', cache:'no-store' }).then(r=>{
+                if (!r.ok) throw new Error(`appearance refresh ${r.status}`);
+                return r.json();
+            }),
         ]);
         getPetStatus().then(petRes => {
             _homeSpiritPet = (petRes && petRes.pet && petRes.pet.image) ? petRes.pet.image : null;
@@ -8254,8 +8367,11 @@ async function loadPlayerAvatar() {
         const navHat = document.getElementById('nav-avatar-hat');
         if (navHat && hatItem) { navHat.textContent = hatItem.emoji; navHat.style.opacity = '1'; }
 
+        return true;
     } catch(e) {
-        // API 尚未部署時靜默忽略
+        // API 尚未部署時靜默忽略；callers that require an authoritative
+        // refresh can distinguish this from a successful hydration.
+        return false;
     }
 }
 
@@ -18399,6 +18515,9 @@ async function _startBossBattleNow(zone) {
 
 function hideBossCinematic() {
     _stopIntroFilm();
+    if (typeof BattlefieldBossRewardConsumer !== 'undefined') {
+        BattlefieldBossRewardConsumer.reset();
+    }
     const overlay = document.getElementById('boss-cinematic');
     if (overlay) {
         overlay.className = 'boss-cinematic';
@@ -18656,6 +18775,22 @@ async function _finishBossBattle() {
             );
             return;
         }
+        let rewardPresentation = null;
+        if (typeof BattlefieldBossRewardConsumer !== 'undefined') {
+            rewardPresentation = await BattlefieldBossRewardConsumer.present(data, {
+                refreshOwnership: async () => {
+                    if (typeof loadPlayerAvatar !== 'function') {
+                        throw new Error('wardrobe refresh is unavailable');
+                    }
+                    const refreshed = await loadPlayerAvatar();
+                    if (refreshed !== true) throw new Error('wardrobe refresh failed');
+                    if (window.parent && window.parent._appearState) {
+                        window.parent._appearState.appearanceLoaded = false;
+                    }
+                    return true;
+                },
+            });
+        }
         if (data.ok) {
             const finishedZoneKey = _bossZone?.key;
             _adventureProgress = data.zones || _adventureProgress;
@@ -18709,6 +18844,7 @@ async function _finishBossBattle() {
                         ? 0
                         : (Number.isFinite(Number(data.cooldown_left)) ? Number(data.cooldown_left) : 30),
                     replay,
+                    rewardPresentation,
                 });
     }
             const finishMessage = replay
@@ -18956,7 +19092,9 @@ async function showBossResultCinematic(result) {
     }
     if (result.replay && rules) rules.innerHTML = '';
     btn.disabled = false;
-    btn.textContent = I18n.t('index.boss.back_to_map');
+    btn.textContent = result.rewardPresentation?.hasReward
+        ? I18n.t('index.boss.reward.continue')
+        : I18n.t('index.boss.back_to_map');
     btn.onclick = () => {
         hideBossCinematic();
         window.location.href = '/?codex=' + Date.now();
