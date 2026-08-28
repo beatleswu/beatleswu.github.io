@@ -52,6 +52,22 @@
     }
   }
 
+  function setCompactProgressLoading(root) {
+    root.__e9CompactProgress = null;
+    var loading = t('e9.right_cards.loading', 'Loading…');
+    var toggle = root.querySelector('#e9-right-drawer-toggle');
+    var mobileSummary = root.querySelector('#e9-right-drawer-mobile-summary');
+    if (toggle) {
+      toggle.textContent = loading;
+      toggle.setAttribute('aria-label', loading);
+      toggle.removeAttribute('data-i18n');
+    }
+    if (mobileSummary) {
+      mobileSummary.textContent = loading;
+      mobileSummary.removeAttribute('data-i18n');
+    }
+  }
+
   function syncDrawerLandmark(root) {
     var landmark = root.querySelector('#e10-drawer-zone-landmark');
     var toggle = root.querySelector('#e9-right-drawer-toggle');
@@ -340,6 +356,15 @@
     var current = function () {
       return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);
     };
+    var onAdventureStateUpdated = function () {
+      if (!current()) return;
+      // Boss settlement invalidates the shared Adventure adapter. Clear the
+      // compact value before re-reading it so a drawer opened immediately
+      // after settlement cannot show the pre-clear progress snapshot.
+      setCompactProgressLoading(root);
+      setBody(root, 'boss_progress', t('e9.right_cards.loading', 'Loading…'));
+      loadBossProgress(root, current);
+    };
     var setOpen = function (open, restoreFocus) {
       if (!toggle || !panel) return;
       // On stacked portrait surfaces the lower Zone Card owns the detail
@@ -425,6 +450,7 @@
         window.E9.on(document, 'e9:zone-card-requested', onZoneCardRequested, null, generation);
         window.E9.on(document, 'e9:i18n-changed', onI18nChanged, null, generation);
         window.E9.on(document, 'e9:adventure-command', onAdventure, null, generation);
+        window.E9.on(document, 'e10:adventure-state-updated', onAdventureStateUpdated, null, generation);
         if (stackedDetailSurface) window.E9.on(stackedDetailSurface, 'change', syncDetailSurfaceOwnership, null, generation);
         if (portraitLowerCardSurface) window.E9.on(portraitLowerCardSurface, 'change', syncDetailSurfaceOwnership, null, generation);
       } else {
@@ -436,6 +462,7 @@
         document.addEventListener('e9:zone-card-requested', onZoneCardRequested);
         document.addEventListener('e9:adventure-command', onAdventure);
         document.addEventListener('e9:i18n-changed', onI18nChanged);
+        document.addEventListener('e10:adventure-state-updated', onAdventureStateUpdated);
         if (stackedDetailSurface && stackedDetailSurface.addEventListener) {
           stackedDetailSurface.addEventListener('change', syncDetailSurfaceOwnership);
         }

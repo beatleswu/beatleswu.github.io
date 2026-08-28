@@ -7231,7 +7231,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <link rel="stylesheet" href="/css/e9/world_stage.css?v=20260717e9c3">
     <link rel="stylesheet" href="/css/e9/rwd.css?v=20260801e10art1">
     <link rel="stylesheet" href="/css/e9/immersive_rpg.css?v=20260801e10art1">
-    <link rel="stylesheet" href="/css/e9/reference_world_map.css?v=20260801e10art1">
+    <link rel="stylesheet" href="/css/e9/reference_world_map.css?v=20260828e040s1">
     <link rel="stylesheet" href="/css/e9/art_directed_runtime.css?v=20260801e10art1">
 </head>
 <body data-sgf-report-surface="main_practice">
@@ -8984,6 +8984,17 @@ function _currentReviewMetadata(){
 let playerColor='B',solved=false,answering=false,currentIndex=-1;
 let allQuestions=[],logicBoard=[],boardSize=19;
 window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false;
+window.__GO_ADVENTURE_QUESTION_RUNTIME_ERROR__ = null;
+
+function notifyAdventureQuestionRuntimeError(reason, error) {
+    window.__GO_ADVENTURE_QUESTION_RUNTIME_ERROR__ = {
+        reason: String(reason || 'unavailable'),
+        message: error && error.message ? String(error.message) : null,
+    };
+    document.dispatchEvent(new CustomEvent('adventure:question-runtime-error', {
+        detail: { reason: String(reason || 'unavailable') },
+    }));
+}
 let _adventureActiveQuestions = null;
 let _mapBattleV1State = null;
 let _mapBattleV1Mode = 'disabled';
@@ -18812,6 +18823,13 @@ async function _finishBossBattle() {
             renderAdventureMap();
             _renderBossChallengeCard();
             invalidateE9AdventureStateCache();
+            // The visible E10 World Stage is a separate component from the
+            // legacy boss renderer. Tell it to re-read the invalidated,
+            // server-authoritative bootstrap so marker/clear/next-zone state
+            // cannot remain stale behind the result card.
+            document.dispatchEvent(new CustomEvent('e10:adventure-state-updated', {
+                detail: { source: 'adventure-boss-finish', zones: data.zones || null },
+            }));
             // Zone 1's own result card (star VFX / retry-training copy),
             // instead of the generic win/lose modal. Every other zone is
             // unchanged. This is also where the real boss-win authoritative
@@ -20555,12 +20573,12 @@ initNewbieQuest(me);
     console.log('[INIT] API URL:', qsApi.pathname + qsApi.search);
     let questions;
     try{const r=await fetch(qsApi.pathname + qsApi.search,{credentials:'include'});if(!r.ok)throw new Error(`HTTP ${r.status}`);questions=await r.json();console.log('[INIT] questions loaded:', questions.length);}
-    catch(err){if(statusEl)statusEl.textContent='ERROR';if(listDiv)listDiv.innerHTML=`<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">${I18n.t('index.load_err')}<br><small style="color:var(--ink3)">${_esc(err.message)}</small></div>`;console.error('[INIT] fetch error:', err);return;}
+    catch(err){if(statusEl)statusEl.textContent='ERROR';if(listDiv)listDiv.innerHTML=`<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">${I18n.t('index.load_err')}<br><small style="color:var(--ink3)">${_esc(err.message)}</small></div>`;notifyAdventureQuestionRuntimeError('questions', err);console.error('[INIT] fetch error:', err);return;}
     let initData={dueData:{due:[],count:0}};
     let mistakeStats={total:0};
     let adventureQuestionSrsReady = !e9ShellRequested;
     if (needsImmediatePracticeState || e9ShellRequested) {
-        try{initData=await SRS.init(onNewBadge);adventureQuestionSrsReady=true;}catch(e){console.error('[INIT] Adventure question SRS readiness failed:',e);}
+        try{initData=await SRS.init(onNewBadge);adventureQuestionSrsReady=true;}catch(e){notifyAdventureQuestionRuntimeError('srs', e);console.error('[INIT] Adventure question SRS readiness failed:',e);}
         try{mistakeStats=await fetch('/api/mistakes/stats').then(r=>r.json());}catch(e){}
     } else if (legacyWelcomeShellActive) {
         ensureLegacyHomeAmbientState();
@@ -20580,7 +20598,11 @@ initNewbieQuest(me);
     document.querySelector('main')?.scrollTo(0, 0);
     document.querySelector('.practice')?.scrollTo(0, 0);
     allQuestions=questions;srsDueTotal=initData.dueData?.count??0;if(statusEl)statusEl.textContent=I18n.t('index.sidebar_count').replace('{n}',allQuestions.length);
-    if (!e9ShellRequested || adventureQuestionSrsReady) {
+    if (e9ShellRequested && adventureQuestionSrsReady && !allQuestions.length) {
+        notifyAdventureQuestionRuntimeError('empty-question-pool');
+    }
+    if (!e9ShellRequested || (adventureQuestionSrsReady && allQuestions.length > 0)) {
+        window.__GO_ADVENTURE_QUESTION_RUNTIME_ERROR__ = null;
         window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = true;
         document.dispatchEvent(new CustomEvent('adventure:question-runtime-ready'));
     }
@@ -21768,9 +21790,9 @@ window.addEventListener('appinstalled', () => {
 <script src="/js/e9/quest_board.js?v=20260719e9q1"></script>
 <script src="/js/e9/top_hud.js?v=20260801e10art1"></script>
 <script src="/js/e9/left_nav.js?v=20260801e10art1"></script>
-<script src="/js/e9/right_cards.js?v=20260821e10xsurface002"></script>
+<script src="/js/e9/right_cards.js?v=20260828e040s1"></script>
 <script src="/js/e9/bottom_dock.js?v=20260801e10art1"></script>
-<script src="/js/e9/world_stage.js?v=20260821e10xsurface002"></script>
+<script src="/js/e9/world_stage.js?v=20260828e040s1"></script>
 <script src="/js/e9/shell.js?v=20260804e10navcache1"></script>
 <script src="/sgf_report_widget.js?v=a032r1" defer></script>
 </body>

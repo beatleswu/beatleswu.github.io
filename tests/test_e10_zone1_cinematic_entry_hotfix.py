@@ -155,7 +155,7 @@ def test_later_cinematic_gates_and_progression_boundaries_are_unchanged():
     assert 'window.E9.showAdventureZoneCard = showAdventureZoneCard;' in WORLD_STAGE
 
 
-def test_read_error_stays_in_e10_and_only_enables_conservative_zone1_entry():
+def test_read_error_stays_in_e10_and_disables_progression_entry_until_retry():
     retry_boundary = _block(
         WORLD_STAGE,
         '        if (!isRetry) {',
@@ -182,10 +182,11 @@ def test_read_error_stays_in_e10_and_only_enables_conservative_zone1_entry():
         '\n  var ACTIVE_INTRO_ZONE_KEY',
     )
     assert 'previous' in fallback
-    assert 'typeof ADVENTURE_ZONES' in fallback
-    assert 'var zone1 = index === 0;' in fallback
-    assert 'canEnter: zone1' in fallback
-    assert 'status: zone1 ? \'unlocked\' : \'locked\'' in fallback
+    assert 'return [];' in fallback
+    assert 'fabricated Zone 1' in WORLD_STAGE
+    assert 'authorityUnavailable' in degraded
+    assert 'disableAdventureControls(root);' in degraded
+    assert 'setRetryButton(root, true);' in degraded
 
 
 def test_read_error_entry_never_promotes_browser_state_or_legacy_readiness():
@@ -338,15 +339,14 @@ sandbox.dispatchZone1Entry({}, zone, unseen);
 e10Root.__e9WorldStageState = unseen;
 sandbox.replayAdventureIntro('k26_30');
 e10Root.__e9WorldStageState = readError;
-sandbox.dispatchZone1Entry({}, zone, readError);
-sandbox.replayAdventureIntro('k26_30');
+  e10Root.__e9WorldStageState = { ...readError, authorityUnavailable: true };
+  sandbox.dispatchZone1Entry({}, zone, e10Root.__e9WorldStageState);
+  sandbox.replayAdventureIntro('k26_30');
 
 setTimeout(() => {
   assert.deepStrictEqual(calls, [
     'ensure',
     'ensure',
-    ['cinematic', 'k26_30', 'first_entry'],
-    ['cinematic', 'k26_30', 'manual_replay'],
     ['cinematic', 'k26_30', 'first_entry'],
     ['cinematic', 'k26_30', 'manual_replay'],
   ]);
