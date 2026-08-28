@@ -60,15 +60,16 @@ def _submit_srs_block():
 class TestOldHarnessBlindSpot:
     """Why a new foundation was required at all."""
 
-    def test_old_acceptance_scripts_fulfil_the_review_route_with_ok_true(self):
+    def test_acceptance_scripts_use_the_production_review_shape(self):
         for relative in OLD_SHORTCUT_SCRIPTS:
             source = (REPO_ROOT / relative).read_text(encoding='utf-8')
             assert '/api/srs/review' in source, relative
-            assert "JSON.stringify({ ok: true })" in source, (
-                f'{relative} no longer contains the documented {{"ok":true}} '
-                'review shortcut; update this gate deliberately rather than '
-                'silently losing the record of the blind spot'
+            assert 'function committedReviewPayload()' in source, relative
+            assert 'ReviewTransport' in source and 'ok: true' in source, (
+                f'{relative} must preserve the malformed-response guard '
+                'while exercising a committed production-shaped response'
             )
+            assert "JSON.stringify({ ok: true })" not in source, relative
 
     def test_submit_srs_reads_response_fields_before_boss_authority(self):
         block = _submit_srs_block()
