@@ -91,6 +91,12 @@
             if (!reviewResult || reviewResult.ok !== true) {
                 return { advanced: false, reason: 'server_rejection_no_transition' };
             }
+            const authoritativeVerdict = reviewResult.boss_verdict;
+            if (!authoritativeVerdict
+                || (authoritativeVerdict.verdict !== 'AUTHORITATIVE_PASS'
+                    && authoritativeVerdict.verdict !== 'AUTHORITATIVE_FAIL')) {
+                return { advanced: false, reason: 'server_verdict_missing' };
+            }
 
             const context = getContext() || {};
             if (context.active !== true) {
@@ -126,10 +132,10 @@
                 questionId: submittedQuestionId,
             });
             trace('BOSS_TRANSITION_FROM_INDEX', {
-                index: submittedIndex, qid: submittedQuestionId, grade: submission.grade,
+                index: submittedIndex, qid: submittedQuestionId,
             });
             trace('BOSS_TRANSITION_FROM_QID', {
-                index: submittedIndex, qid: submittedQuestionId, grade: submission.grade,
+                index: submittedIndex, qid: submittedQuestionId,
             });
             trace('LORD_CONTROLLER_ENTER', {
                 index: submittedIndex,
@@ -138,7 +144,7 @@
 
             const nextIndex = submittedIndex + 1;
             const nextCorrect = Number(context.correct || 0)
-                + (Number(submission.grade) >= 3 ? 1 : 0);
+                + (authoritativeVerdict.verdict === 'AUTHORITATIVE_PASS' ? 1 : 0);
             try {
                 recordContractEvent(2, {
                     attemptId,

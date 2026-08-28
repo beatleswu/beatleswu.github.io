@@ -68,7 +68,7 @@ PUBLIC_SUBMISSION_DUPLICATE_FIELDS: tuple[str, ...] = (
     "grade",
 )
 
-# RPG Wave 1: the only two result keys allowed to ride alongside a legacy
+# RPG Wave 1 and B051: the only result keys allowed to ride alongside a legacy
 # shape without tripping the exact-shape compatibility check. Both are
 # presentation/read projections composed by domain authorities named in
 # their own modules -- this tuple carries no authority itself and must never
@@ -78,9 +78,12 @@ PUBLIC_SUBMISSION_DUPLICATE_FIELDS: tuple[str, ...] = (
 # MUST mirror this exact tuple (APPROVED_PRESENTATION_EXTENSION_FIELDS there)
 # or the client rejects an otherwise-successful, already-committed review as
 # invalid_review_response (see incident 017).
+# boss_verdict is a server-owned Lord Trial result projection.  It is not
+# accepted as a request field and is never a client correctness authority.
 APPROVED_PRESENTATION_EXTENSION_FIELDS: tuple[str, ...] = (
     "combat_stats",
     "level_up_rewards",
+    "boss_verdict",
 )
 
 # This is an internal, server-owned execution policy.  It is deliberately
@@ -119,6 +122,7 @@ class ReviewCommand:
     internal: bool = False
     submission_id: str | None = None
     combat_settlement_context: str | None = None
+    boss_answer: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,10 +131,11 @@ class ReviewOutcome:
 
     kind: ReviewOutcomeKind
     payload: Mapping[str, Any] = field(default_factory=dict)
-    # Approved presentation-only additions (see
+    # Approved legacy-compatible transport additions (see
     # APPROVED_PRESENTATION_EXTENSION_FIELDS) that were present on the
     # source legacy result. Never participates in the legacy shape check;
-    # never contains an XP/HP/combat/equipment authority write.
+    # never contains an XP/HP/combat/equipment authority write. A Lord Trial
+    # verdict is server-owned and read-only at this client boundary.
     presentation_extensions: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:

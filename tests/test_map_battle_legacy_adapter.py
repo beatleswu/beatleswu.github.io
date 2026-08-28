@@ -987,7 +987,7 @@ def test_boss_review_context_is_server_bound_and_practice_rows_do_not_resume_bos
     with client.session_transaction() as session:
         session["adventure_boss_exam"] = {
             "zone_key": "k26_30",
-            "question_ids": [QUESTION["id"], 9002],
+            "question_ids": [QUESTION["id"]],
             "started_at": started_at,
             "attempt_id": attempt_id,
             "attempt_mode": "first_clear",
@@ -1006,17 +1006,19 @@ def test_boss_review_context_is_server_bound_and_practice_rows_do_not_resume_bos
 
     # A normal-practice review is still a valid ordinary review, but it is not
     # evidence for the active Boss attempt because the server filters the exact
-    # reserved marker.
+    # reserved marker.  The Boss marker binds an attempt but does not prove
+    # correctness; B050 therefore fails closed until a server-owned Boss judge
+    # exists.
     ordinary = client.post(
         "/api/srs/review",
-        json={"question_id": 9002, "grade": 5, "source_context": "practice"},
+        json={"question_id": QUESTION["id"], "grade": 5, "source_context": "practice"},
     )
     assert ordinary.status_code == 200, ordinary.get_json()
     with app_module.app.test_request_context("/"):
         from flask import session
         session["adventure_boss_exam"] = {
             "zone_key": "k26_30",
-            "question_ids": [QUESTION["id"], 9002],
+            "question_ids": [QUESTION["id"]],
             "started_at": started_at,
             "attempt_id": attempt_id,
             "attempt_mode": "first_clear",
@@ -1024,8 +1026,8 @@ def test_boss_review_context_is_server_bound_and_practice_rows_do_not_resume_bos
         evidence = app_module._adventure_boss_attempt_evidence(
             conn, 101, session["adventure_boss_exam"]
         )
-    assert evidence["answered_count"] == 1
-    assert evidence["correct_count"] == 1
+    assert evidence["answered_count"] == 0
+    assert evidence["correct_count"] == 0
 
     before_rejections = conn.execute(
         "SELECT COUNT(*) FROM review_log"

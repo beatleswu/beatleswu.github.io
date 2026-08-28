@@ -20,6 +20,8 @@ from pathlib import Path
 
 import pytest
 
+from lord_trial_answer_service import encode_lord_trial_verdict
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -124,7 +126,21 @@ TEST_BOSS_SOURCE_CONTEXT = f'boss_trial:{TEST_BOSS_ATTEMPT_ID}'
 
 
 def _seed_review(conn, uid, question_id, grade, reviewed_at,
-                 source_context=TEST_BOSS_SOURCE_CONTEXT):
+                 source_context=TEST_BOSS_SOURCE_CONTEXT, server_verdict=None):
+    if source_context.startswith('boss_trial:'):
+        attempt_id = source_context[len('boss_trial:'):]
+        server_verdict = server_verdict or (
+            'AUTHORITATIVE_PASS' if grade >= 3 else 'AUTHORITATIVE_FAIL'
+        )
+        source_context = encode_lord_trial_verdict({
+            'schema': 'lord_trial_verdict_v1',
+            'attempt_id': attempt_id,
+            'question_id': int(question_id),
+            'verdict': server_verdict,
+            'authoritative_grade': 5 if server_verdict == 'AUTHORITATIVE_PASS' else 0,
+            'judge_version': 'lord-trial-map-battle-judge-v1',
+            'reason_code': 'test_fixture',
+        })
     conn.execute(
         'INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) VALUES (?,?,?,?,?)',
         (uid, question_id, grade, reviewed_at, source_context),

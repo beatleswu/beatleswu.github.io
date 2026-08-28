@@ -47,7 +47,7 @@
     // response carrying one -- e.g. a review that triggers a level-up -- gets
     // rejected as invalid_review_response even though it was already durably
     // committed server-side.
-    const APPROVED_PRESENTATION_EXTENSION_FIELDS = ['combat_stats', 'level_up_rewards'];
+    const APPROVED_PRESENTATION_EXTENSION_FIELDS = ['combat_stats', 'level_up_rewards', 'boss_verdict'];
     const PUBLIC_SUBMISSION_DUPLICATE = [
         'ok',
         'submission_duplicate',
@@ -128,6 +128,7 @@
         request.unit_done = !!value.unit_done;
         request.response_ms = value.response_ms == null ? null : value.response_ms;
         request.source_context = value.source_context || 'practice';
+        if (value.boss_answer !== undefined) request.boss_answer = value.boss_answer;
         request.training_set_id = value.training_set_id == null ? null : value.training_set_id;
         request.is_scaffolding = !!value.is_scaffolding;
         // A public caller may reuse a server-validated retry identity.  Do
@@ -219,6 +220,7 @@
             unit_done: unitDone,
             response_ms: value.response_ms,
             source_context: value.source_context,
+            boss_answer: value.boss_answer,
             training_set_id: value.training_set_id,
             is_scaffolding: value.is_scaffolding,
             submission_id: value.submission_id

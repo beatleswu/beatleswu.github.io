@@ -199,8 +199,10 @@ def _full_payload(**overrides):
     return payload
 
 
-def test_approved_extensions_are_exactly_combat_stats_and_level_up_rewards():
-    assert set(APPROVED_PRESENTATION_EXTENSION_FIELDS) == {"combat_stats", "level_up_rewards"}
+def test_approved_extensions_include_server_owned_lord_verdict():
+    assert set(APPROVED_PRESENTATION_EXTENSION_FIELDS) == {
+        "combat_stats", "level_up_rewards", "boss_verdict"
+    }
 
 
 def test_normal_legacy_result_unchanged_with_no_extensions_present():

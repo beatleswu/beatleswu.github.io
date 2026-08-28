@@ -130,7 +130,8 @@ def insert_review_log_with_identity(
     if getattr(inserted, "rowcount", 0) == 1:
         return {"inserted": True, "existing": None}
     existing = conn.execute(
-        """SELECT submission_id, question_id, grade, submission_payload_hash
+        """SELECT submission_id, question_id, grade, submission_payload_hash,
+                          source_context
              FROM review_log
             WHERE user_id=? AND submission_id=?""",
         (user_id, submission_id),

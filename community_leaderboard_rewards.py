@@ -5,6 +5,11 @@ import json
 import re
 from zoneinfo import ZoneInfo
 
+from srs_review_authority import (
+    AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES,
+    AUTHORITATIVE_REVIEW_SOURCE_PREFIXES,
+)
+
 WEEKLY_REWARD_MIN_SCORE = 30
 MONTHLY_REWARD_MIN_SCORE = 150
 
@@ -356,10 +361,13 @@ def fetch_leaderboard_participant_rows(conn, period_start_iso, period_end_iso=No
     sql = """
 WITH qualifying_distinct AS (
     SELECT rl.user_id, rl.question_id, MIN(rl.reviewed_at) AS first_counted_at
-      FROM review_log rl
+     FROM review_log rl
      WHERE rl.reviewed_at >= ?
        {period_end_clause}
        AND rl.grade >= 3
+       AND (rl.source_context LIKE ? OR
+            rl.source_context LIKE ? OR
+            rl.source LIKE ?)
      GROUP BY rl.user_id, rl.question_id
 ),
 scored AS (
@@ -398,7 +406,14 @@ SELECT u.id,
     )
     params = [period_start_iso]
     if period_end_iso:
+        # The period-end placeholder occurs before the authority placeholders
+        # in the CTE WHERE clause.
         params.append(period_end_iso)
+    params.extend([
+        f"{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES[0]}%",
+        f"{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES[1]}%",
+        f"{AUTHORITATIVE_REVIEW_SOURCE_PREFIXES[0]}%",
+    ])
     if limit is not None:
         params.append(limit)
     return conn.execute(sql, tuple(params)).fetchall()

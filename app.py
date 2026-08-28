@@ -156,6 +156,25 @@ from question_idempotency import (
     insert_review_log_with_identity,
     normalize_identity,
 )
+from srs_review_authority import (
+    AUTHORITATIVE_REVIEW_SOURCE_PREFIXES,
+    AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX,
+    PublicSrsReviewAuthorityError,
+    is_authoritative_review_source_context,
+    resolve_public_srs_review_authority,
+)
+from lord_trial_answer_service import (
+    LORD_TRIAL_PENDING_SOURCE,
+    LORD_TRIAL_RESULT_SOURCE_PREFIX,
+    LordTrialAnswerError,
+    LordTrialVerdictPersistenceError,
+    build_lord_trial_verdict,
+    decode_lord_trial_verdict,
+    judge_lord_trial_answer,
+    lord_trial_submission_id,
+    persist_lord_trial_verdict,
+    summarize_lord_trial_evidence,
+)
 from question_capacity_authority import (
     QuestionCapacityConflict,
     QuestionCapacityError,
@@ -4041,8 +4060,15 @@ def get_discipline_counts(uid, conn):
 
     rows = conn.execute(
         'SELECT question_id, COUNT(*) AS cnt FROM review_log '
-        'WHERE user_id=? AND grade>=3 GROUP BY question_id',
-        (uid,)
+        'WHERE user_id=? AND grade>=3 '
+        'AND (source_context LIKE ? OR source_context LIKE ? OR source LIKE ?) '
+        'GROUP BY question_id',
+        (
+            uid,
+            f'{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX}%',
+            f'{DAILY_D5B_SOURCE_PREFIX}%',
+            f'{AUTHORITATIVE_REVIEW_SOURCE_PREFIXES[0]}%',
+        )
     ).fetchall()
 
     counts = {d: 0 for d in SKILL_NODES}
@@ -11390,29 +11416,20 @@ def _adventure_correct_question_ids(conn, uid, cards):
 
     Adventure Lord progress is historical mastery: one passing answer is
     enough to credit a question, and a later failing SRS review must not take
-    that credit away.  ``review_log.grade >= 3`` is the server's existing
-    passing-grade predicate (also used by boss-attempt scoring).  The sticky
-    ``progress_credited`` bit is retained as a compatibility/fail-safe mirror
-    for rows written by the anti-farming progression path; ``last_grade`` is a
-    narrow legacy fallback for rows created before that mirror was populated.
-    None of these sources credit a question that was only displayed or only
-    answered incorrectly.
+    that credit away.  Public SRS ``grade`` is only a scheduling signal and
+    therefore cannot supply this correctness evidence.  The only accepted
+    review rows are those written by the trusted server-side Map Battle
+    handoff; the sticky card fields are deliberately not used as a fallback
+    because older public rows may have populated them from client claims.
     """
     correct_ids = {
         row['question_id']
         for row in conn.execute(
             'SELECT DISTINCT question_id FROM review_log '
-            'WHERE user_id=? AND grade>=3',
-            (uid,),
+            'WHERE user_id=? AND grade>=3 AND source_context LIKE ?',
+            (uid, f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}%'),
         ).fetchall()
     }
-    for row in cards:
-        try:
-            progress_credited = row['progress_credited']
-        except (KeyError, IndexError, TypeError):
-            progress_credited = 0
-        if progress_credited or (row['last_grade'] or 0) >= 3:
-            correct_ids.add(row['question_id'])
     return correct_ids
 
 
@@ -11443,7 +11460,9 @@ def _adventure_state(uid):
         )
 
     attempted_ids = {r['question_id'] for r in cards}
-    defeated_ids = {r['question_id'] for r in cards if (r['last_grade'] or 0) >= 3}
+    # ``last_grade`` is public SRS scheduling state, not correctness.  Defeat
+    # progress follows the same trusted server-review evidence as mastery.
+    defeated_ids = set(correct_ids)
     zones = []
     previous_cleared = True
 
@@ -12125,8 +12144,10 @@ def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
     """Derive ordered Boss progress from signed-session and review evidence.
 
     The signed session owns the ordered question list and attempt start time;
-    review_log owns whether each question settled and its best grade.  Resume
-    and final finish both use this helper so they cannot drift apart.
+    the server-owned Lord Trial result envelope in review_log owns whether
+    each question settled and its verdict.  The legacy review grade remains
+    an SM-2 scheduling value and is never consulted here. Resume and final
+    finish both use this helper so they cannot drift apart.
     """
     question_ids = exam.get('question_ids') if isinstance(exam, dict) else None
     started_at_raw = exam.get('started_at') if isinstance(exam, dict) else None
@@ -12152,47 +12173,44 @@ def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
     if datetime.datetime.now() > deadline:
         raise _AdventureBossAttemptError('attempt_expired')
 
-    source_context = _adventure_boss_source_context(attempt_id)
-
     placeholders = ','.join('?' for _ in qids)
     rows = conn.execute(
-        'SELECT question_id, grade FROM review_log '
-        f'WHERE user_id=? AND source_context=? AND question_id IN ({placeholders}) '
-        'AND reviewed_at >= ? AND reviewed_at <= ?',
-        (uid, source_context, *qids, started_at.isoformat(), deadline.isoformat())
+        'SELECT question_id, source_context FROM review_log '
+        f'WHERE user_id=? AND question_id IN ({placeholders}) '
+        'AND reviewed_at >= ? AND reviewed_at <= ? '
+        'AND source_context LIKE ?',
+        (
+            uid, *qids, started_at.isoformat(), deadline.isoformat(),
+            f'{LORD_TRIAL_RESULT_SOURCE_PREFIX}%',
+        )
     ).fetchall()
+    try:
+        summary = summarize_lord_trial_evidence(
+            rows, attempt_id=attempt_id, question_ids=qids
+        )
+    except LordTrialVerdictPersistenceError as exc:
+        message = str(exc)
+        if 'nonsequential' in message:
+            code = 'nonsequential_attempt_evidence'
+        elif 'conflicting' in message:
+            code = 'conflicting_boss_verdict'
+        else:
+            code = 'malformed_review_evidence'
+        raise _AdventureBossAttemptError(code) from exc
 
-    best_grade_by_qid = {}
-    for row in rows:
-        try:
-            qid = int(row['question_id'])
-            grade = int(row['grade'])
-        except (TypeError, ValueError):
-            raise _AdventureBossAttemptError('malformed_review_evidence')
-        if qid not in best_grade_by_qid or grade > best_grade_by_qid[qid]:
-            best_grade_by_qid[qid] = grade
-
-    settled_prefix_count = 0
-    for qid in qids:
-        if qid not in best_grade_by_qid:
-            break
-        settled_prefix_count += 1
-    if any(qid in best_grade_by_qid for qid in qids[settled_prefix_count:]):
-        raise _AdventureBossAttemptError('nonsequential_attempt_evidence')
-
-    complete = settled_prefix_count == len(qids)
+    settled_prefix_count = summary['settled_prefix_count']
+    complete = summary['complete']
     if require_complete and not complete:
         raise _AdventureBossAttemptError('incomplete_attempt')
 
-    settled_qids = qids[:settled_prefix_count]
     return {
         'question_ids': qids,
         'started_at': started_at,
         'deadline': deadline,
-        'best_grade_by_qid': best_grade_by_qid,
+        'verdict_by_qid': summary['verdict_by_qid'],
         'settled_prefix_count': settled_prefix_count,
         'answered_count': settled_prefix_count,
-        'correct_count': sum(1 for qid in settled_qids if best_grade_by_qid[qid] >= 3),
+        'correct_count': summary['correct_count'],
         'total': len(qids),
         'complete': complete,
     }
@@ -12590,7 +12608,13 @@ def curriculum_summary():
         rows = conn.execute(
             'SELECT question_id,last_grade FROM srs_cards WHERE user_id=?', (uid,)
         ).fetchall()
+        authoritative_rows = conn.execute(
+            'SELECT DISTINCT question_id FROM review_log '
+            'WHERE user_id=? AND grade>=3 AND source_context LIKE ?',
+            (uid, f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}%'),
+        ).fetchall()
     cards_count = len(rows)
+    defeated_ids = {r['question_id'] for r in authoritative_rows}
     for r in rows:
         meta = qid_meta.get(r['question_id'])
         if not meta:
@@ -12602,7 +12626,7 @@ def curriculum_summary():
             if not d:
                 continue
             d['practiced'] += 1
-            if grade >= 3:
+            if r['question_id'] in defeated_ids:
                 if enc == 'chapter_boss':
                     d['chapterBossDefeated'] += 1
                 elif enc == 'book_boss':
@@ -13966,6 +13990,7 @@ def srs_review():
         unit_done=data.get('unit_done', False),
         response_ms=data.get('response_ms'),
         source_context=data.get('source_context') or 'practice',
+        boss_answer=data.get('boss_answer'),
         training_set_id=data.get('training_set_id'),
         is_scaffolding=bool(data.get('is_scaffolding')),
         submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
@@ -13976,13 +14001,22 @@ def srs_review():
 
 def _review_submission_duplicate_response(row):
     """Return an explicit public acknowledgement for a committed retry."""
-    return jsonify({
+    payload = {
         'ok': True,
         'submission_duplicate': True,
         'submission_id': str(row['submission_id']),
         'question_id': int(row['question_id']),
         'grade': int(row['grade']),
-    })
+    }
+    source_context = None
+    try:
+        source_context = row['source_context']
+    except (KeyError, IndexError, TypeError):
+        pass
+    boss_verdict = decode_lord_trial_verdict(source_context)
+    if boss_verdict is not None:
+        payload['boss_verdict'] = boss_verdict
+    return jsonify(payload)
 
 
 def _review_submission_conflict_response(submission_id):
@@ -14011,6 +14045,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     grade     = data.get('grade')
     unit      = data.get('unit_name')
     unit_done = data.get('unit_done', False)
+    boss_answer = data.get('boss_answer')
     combat_settlement_context = data.get('combat_settlement_context')
     if combat_settlement_context is not None and (
         not internal
@@ -14032,12 +14067,18 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         source_context = str(data.get('source_context') or 'practice')
         if len(source_context) > BOSS_REVIEW_SOURCE_CONTEXT_MAX_LENGTH:
             return jsonify({'error': 'invalid_source_context'}), 400
-        if source_context.startswith(_MAP_BATTLE_PROGRESS_MARKER_PREFIX):
+        if is_authoritative_review_source_context(source_context):
+            return jsonify({'error': 'reserved_source_context'}), 400
+        if source_context.startswith(LORD_TRIAL_RESULT_SOURCE_PREFIX):
             return jsonify({'error': 'reserved_source_context'}), 400
         if source_context.startswith(BOSS_REVIEW_SOURCE_CONTEXT_PREFIX):
             boss_source_context = source_context
         else:
             source_context = source_context[:40]
+        if boss_answer is not None and boss_source_context is None:
+            return jsonify({'error': 'invalid_boss_answer_context'}), 400
+    if internal and boss_answer is not None:
+        return jsonify({'error': 'invalid_boss_answer_context'}), 400
     training_set_id = data.get('training_set_id')
     try:
         training_set_id = int(training_set_id) if training_set_id is not None else None
@@ -14046,6 +14087,70 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
     if not internal and (qid is None or grade not in (0,3,5)):
         return jsonify({'error':'參數錯誤'}), 400
+
+    # Public review grade is a legacy SM-2 scheduling signal only.  The
+    # public request carries no server-judged answer evidence, so this
+    # authority decision deliberately cannot grant correctness/progression.
+    # Map Battle takes the separate internal path below and derives its grade
+    # from the already-settled server row.
+    public_review_authority = None
+    if not internal:
+        try:
+            public_review_authority = resolve_public_srs_review_authority(grade)
+        except PublicSrsReviewAuthorityError:
+            return jsonify({'error': '參數錯誤'}), 400
+        grade = public_review_authority.scheduling_grade
+        if type(qid) is not int or not -(2 ** 31) <= qid <= (2 ** 31 - 1):
+            return jsonify({'error': 'invalid_question_id'}), 400
+
+    # Resolve identity before any duplicate, premium, or scheduling work.  A
+    # legacy question_id is only a compatibility alias for one enabled
+    # canonical record; it is never allowed to fall through to an empty
+    # question dictionary.
+    questions = _load_questions()
+    qs_map = {
+        q['id']: q
+        for q in questions
+        if isinstance(q, dict) and type(q.get('id')) is int
+    }
+    q_info = qs_map.get(qid, {})
+    if not internal:
+        canonical_matches = [
+            q for q in questions
+            if isinstance(q, dict) and type(q.get('id')) is int and q.get('id') == qid
+        ]
+        if (
+            len(canonical_matches) != 1
+            or canonical_matches[0].get('enabled', True) is False
+        ):
+            return jsonify({'error': 'unknown_question'}), 400
+        q_info = canonical_matches[0]
+
+    boss_canonical = None
+    boss_judge = None
+    boss_verdict = None
+    boss_attempt_id = None
+    if boss_source_context is not None:
+        boss_attempt_id = boss_source_context[len(BOSS_REVIEW_SOURCE_CONTEXT_PREFIX):]
+        exam = session.get('adventure_boss_exam')
+        if not isinstance(exam, dict) or exam.get('attempt_id') != boss_attempt_id:
+            return jsonify({'error': 'invalid_boss_attempt_context'}), 400
+        if boss_answer is None:
+            return jsonify({'error': 'boss_answer_required'}), 400
+        try:
+            boss_canonical, boss_judge = judge_lord_trial_answer(
+                boss_answer, question=q_info, exam=exam
+            )
+            boss_verdict = build_lord_trial_verdict(
+                attempt_id=boss_attempt_id, question_id=int(qid), judge=boss_judge
+            )
+            # One server identity covers all retries of one attempt/question;
+            # a client-proposed identity can never create a second verdict.
+            submission_id = lord_trial_submission_id(boss_attempt_id, int(qid))
+        except LordTrialAnswerError as exc:
+            return jsonify({'error': exc.code}), exc.status
+        except LordTrialVerdictPersistenceError:
+            return jsonify({'error': 'boss_verdict_unavailable'}), 503
 
     try:
         submission_id, _generated_submission_id = normalize_identity(
@@ -14065,6 +14170,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         'training_set_id': training_set_id,
         'is_scaffolding': bool(data.get('is_scaffolding')),
     }
+    if boss_canonical is not None:
+        # Retry identity binds to canonical answer evidence, never to a
+        # client correctness claim or raw non-canonical payload spelling.
+        submission_payload['boss_answer'] = boss_canonical.payload
     # Response time is stored as telemetry on the first durable row, but it
     # is not part of the logical answer mutation.  A response-loss retry may
     # legitimately measure a different client latency and must still replay.
@@ -14075,7 +14184,8 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     if not internal:
         with get_db() as identity_conn:
             existing_submission = identity_conn.execute(
-                'SELECT submission_id, question_id, grade, submission_payload_hash '
+                'SELECT submission_id, question_id, grade, submission_payload_hash, '
+                'source_context '
                 'FROM review_log WHERE user_id=? AND submission_id=?',
                 (uid, submission_id),
             ).fetchone()
@@ -14122,8 +14232,6 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     authoritative_map_battle_monster_defeated = False
     authoritative_map_battle_submission = None
 
-    qs_map = {q['id']: q for q in _load_questions()}
-    q_info = qs_map.get(qid, {})
     ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
 
     with get_db() as conn:
@@ -14208,6 +14316,11 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # ON CONFLICT DO NOTHING lets PostgreSQL resolve concurrent retries
         # without aborting the caller transaction; a same-id/different-hash
         # request is an explicit conflict, never a successful retry.
+        review_source_context = (
+            LORD_TRIAL_PENDING_SOURCE
+            if boss_source_context is not None
+            else source_context
+        )
         review_insert = insert_review_log_with_identity(
             conn,
             user_id=uid,
@@ -14223,7 +14336,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             question_rating_snapshot=question_rating_snapshot,
             item_rating_version=ITEM_RATING_VERSION,
             question_version=str(q_info.get('source') or qid),
-            source_context=source_context,
+            source_context=review_source_context,
             is_scaffolding=1 if data.get('is_scaffolding') else 0,
             training_set_id=training_set_id,
             submission_id=submission_id,
@@ -14233,15 +14346,35 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             existing_submission = review_insert['existing']
             if existing_submission['submission_payload_hash'] != submission_payload_hash:
                 return _review_submission_conflict_response(submission_id)
+            if boss_source_context is not None and decode_lord_trial_verdict(
+                existing_submission['source_context']
+            ) is None:
+                return jsonify({'error': 'boss_verdict_unavailable'}), 503
             return _review_submission_duplicate_response(existing_submission)
         row = conn.execute(
             'SELECT * FROM srs_cards WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
+        if boss_verdict is not None:
+            try:
+                persist_lord_trial_verdict(
+                    conn,
+                    user_id=uid,
+                    submission_id=submission_id,
+                    verdict=boss_verdict,
+                )
+            except LordTrialVerdictPersistenceError:
+                conn.rollback()
+                return jsonify({'error': 'boss_verdict_unavailable'}), 503
         ef,iv,rp = (row['ease_factor'],row['interval'],row['repetitions']) if row else (2.5,0,0)
         ef,iv,rp,due = sm2_update(ef,iv,rp,grade)
         # Phase 4D anti-farming: computed from the row as it existed BEFORE
         # this submission. Once true for a (user, question) pair, stays
         # true forever via progress_credited (see should_grant_review_progress).
-        should_grant_progress = should_grant_review_progress(row, grade)
+        # Only the server-owned Map Battle handoff can produce a correctness
+        # result. A public grade continues to update SM-2 below, but is never
+        # allowed to become progression/reward/combat authority.
+        should_grant_progress = (
+            should_grant_review_progress(row, grade) if internal else False
+        )
         existing_progress_credited = (
             row['progress_credited'] if row else 0
         )
@@ -14256,7 +14389,9 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             progress_credited=GREATEST(srs_cards.progress_credited, excluded.progress_credited)''',
             (uid,qid,ef,iv,rp,due,grade,now,progress_credited_flag))
 
-        if training_item:
+        # Premium training completion is correctness/progression state, not
+        # SRS scheduling. A public self-reported grade cannot complete it.
+        if training_item and internal:
             conn.execute(
                 '''UPDATE premium_training_items SET
                      first_grade=COALESCE(first_grade,?),completed_grade=?,
@@ -14307,7 +14442,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         mrow = conn.execute(
             'SELECT * FROM mistake_log WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
 
-        if grade >= 3:
+        if internal and grade >= 3:
             total, streak, mx, combo_streak, max_combo = _apply_credited_review_counters(
                 total, streak, mx, combo_streak, max_combo, should_grant_progress)
 
@@ -14431,7 +14566,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             _, rank_xp, _ = lv_progress(xp)
             if new_lv > cur_lv:
                 ranked_up = True
-        else:
+        elif internal:
             streak = 0
             # 連勝護盾：消耗一面護盾保住 combo（連擊加成不中斷）
             try:
@@ -14449,14 +14584,14 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             if not shield_used:
                 combo_streak = 0
 
-        if grade < 3:
+        if internal and grade < 3:
             if mrow:
                 conn.execute('UPDATE mistake_log SET wrong_count=wrong_count+1, last_wrong_at=? WHERE user_id=? AND question_id=?',
                              (now,uid,qid))
             else:
                 conn.execute('INSERT INTO mistake_log(user_id,question_id,wrong_count,correct_after,first_wrong_at,last_wrong_at) VALUES(?,?,1,0,?,?)',
                              (uid,qid,now,now))
-        else:
+        elif internal:
             if mrow:
                 conn.execute('UPDATE mistake_log SET correct_after=correct_after+1, last_correct_at=? WHERE user_id=? AND question_id=?',
                              (now,uid,qid))
@@ -14486,7 +14621,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             'max_combo': max_combo, 'rank_level': new_rank_level, 'rank_xp': rank_xp,
             'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),
         }
-        new_badges = check_and_award(conn, uid, stats, unit if unit_done else None)
+        new_badges = (
+            check_and_award(conn, uid, stats, unit if unit_done else None)
+            if internal else []
+        )
 
         # 升段外觀獎勵
         new_appearance_items = []
@@ -14543,7 +14681,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                         shadow_events=quest_shadow_events,
                         monster_settlement=monster_settlement_result,
                     )
-                else:
+                elif internal:
                     combat_q_info = dict(q_info)
                     if boss_source_context is not None:
                         # Lord Trial owns its own review/progression contract;
@@ -14560,7 +14698,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     )
             finally:
                 _QUEST_LEGACY_DAILY_ENABLED.reset(legacy_daily_token)
-            if quest_v2_runtime_enabled():
+            if internal and quest_v2_runtime_enabled():
                 quest_correctness_source = (
                     QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE
                     if combat_settlement_context == EXTERNAL_AUTHORITATIVE_MAP_BATTLE
@@ -14604,7 +14742,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
         # ── 同步法典純淨度 (grimoire_api 系統) ─────────────────────
         grimoire_id = q_info.get('grimoire_id')
-        if grimoire_id:
+        if grimoire_id and internal:
             try:
                 from grimoire_api import calc_node_purity
                 is_correct_g = (grade >= 3)
@@ -14702,6 +14840,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         'practice': _pet_training_state(pet_row),
         'training': _pet_training_state(pet_row),
         'new_appearance_items': [_APPEAR_MAP[i] for i in new_appearance_items if i in _APPEAR_MAP],
+        **({'boss_verdict': boss_verdict} if boss_verdict is not None else {}),
         **monster_data,
     })
 
@@ -15285,9 +15424,14 @@ def map_progress():
             'SELECT question_id,last_grade FROM srs_cards WHERE user_id=?',
             (uid,)
         ).fetchall()
+        authoritative_rows = conn.execute(
+            'SELECT DISTINCT question_id FROM review_log '
+            'WHERE user_id=? AND grade>=3 AND source_context LIKE ?',
+            (uid, f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}%'),
+        ).fetchall()
 
     seen_ids = {r['question_id'] for r in rows}
-    defeated_ids = {r['question_id'] for r in rows if (r['last_grade'] or 0) >= 3}
+    defeated_ids = {r['question_id'] for r in authoritative_rows}
     maps = {}
     for q in qs:
         map_id = q.get('map_id') or 'map_unknown'
@@ -17847,7 +17991,11 @@ def leaderboard():
         rows = conn.execute(
             """SELECT u.id, u.username,
                       COUNT(*)                                       AS total,
-                      SUM(CASE WHEN r.grade>=3 THEN 1 ELSE 0 END)   AS correct,
+                      SUM(CASE WHEN r.grade>=3 AND
+                                    (r.source_context LIKE ? OR
+                                     r.source_context LIKE ? OR
+                                     r.source LIKE ?)
+                               THEN 1 ELSE 0 END)                    AS correct,
                       MAX(DATE(r.reviewed_at))                        AS last_active,
                       COALESCE(us.xp, 0)                             AS xp,
                       COALESCE(us.rank_level, '30k')                 AS rank_level,
@@ -17859,7 +18007,12 @@ def leaderboard():
                GROUP BY u.id, us.xp, us.rank_level, us.max_combo
                ORDER BY correct DESC, total ASC
                LIMIT 50""",
-            (month_start,)
+            (
+                f'{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX}%',
+                f'{DAILY_D5B_SOURCE_PREFIX}%',
+                f'{AUTHORITATIVE_REVIEW_SOURCE_PREFIXES[0]}%',
+                month_start,
+            )
         ).fetchall()
 
     board = []

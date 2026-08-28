@@ -84,7 +84,8 @@ def sqlite_conn():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         question_id INTEGER NOT NULL,
-        grade INTEGER NOT NULL
+        grade INTEGER NOT NULL,
+        source_context TEXT NOT NULL DEFAULT 'practice'
     )''')
     conn.execute('''CREATE TABLE adventure_boss_progress (
         user_id INTEGER NOT NULL,
@@ -142,8 +143,8 @@ def _card(conn, qid, last_grade=0, progress_credited=0, uid=7):
 
 def _review(conn, qid, grade, uid=7):
     conn.execute(
-        'INSERT INTO review_log(user_id,question_id,grade) VALUES (?,?,?)',
-        (uid, qid, grade),
+        'INSERT INTO review_log(user_id,question_id,grade,source_context) VALUES (?,?,?,?)',
+        (uid, qid, grade, 'mbv1:test'),
     )
 
 
@@ -170,8 +171,9 @@ def test_wrong_or_seen_only_question_does_not_advance_lord_progress(adventure_st
 
 def test_passing_grade_advances_once_and_later_wrong_keeps_historical_credit(adventure_state_harness):
     app_module, conn = adventure_state_harness
-    # q1 passed, then later failed; q2 has duplicate passing reviews; q3 is
-    # represented by the sticky anti-farming bit.
+    # q1 passed, then later failed; q2 has duplicate passing reviews; q3 only
+    # has the old sticky bit and therefore cannot supply correctness authority
+    # without a trusted server-owned review row.
     _card(conn, 1, last_grade=0, progress_credited=0)
     _card(conn, 2, last_grade=5, progress_credited=1)
     _card(conn, 3, last_grade=0, progress_credited=1)
@@ -183,10 +185,10 @@ def test_passing_grade_advances_once_and_later_wrong_keeps_historical_credit(adv
 
     zone = _zone1(app_module)
 
-    assert zone['correct_count'] == 3
-    assert zone['seen'] == 3
-    assert zone['pct'] == 30
-    assert zone['boss_ready'] is True
+    assert zone['correct_count'] == 2
+    assert zone['seen'] == 2
+    assert zone['pct'] == 20
+    assert zone['boss_ready'] is False
 
 
 def test_threshold_is_locked_below_thirty_and_ready_at_thirty(adventure_state_harness):
@@ -257,4 +259,4 @@ def test_correct_predicate_rejects_wrong_grade_and_deduplicates_question_ids(app
         {'question_id': 13, 'last_grade': 0, 'progress_credited': 0},
     ]
 
-    assert app_module._adventure_correct_question_ids(sqlite_conn, 7, cards) == {11, 12}
+    assert app_module._adventure_correct_question_ids(sqlite_conn, 7, cards) == {11}

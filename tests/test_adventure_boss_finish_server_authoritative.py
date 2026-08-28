@@ -29,6 +29,8 @@ from pathlib import Path
 
 import pytest
 
+from lord_trial_answer_service import encode_lord_trial_verdict
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -144,7 +146,22 @@ TEST_BOSS_SOURCE_CONTEXT = f'boss_trial:{TEST_BOSS_ATTEMPT_ID}'
 
 
 def _seed_review(conn, uid, question_id, grade, reviewed_at,
-                 source_context=TEST_BOSS_SOURCE_CONTEXT):
+                 source_context=TEST_BOSS_SOURCE_CONTEXT,
+                 server_verdict=None):
+    if source_context.startswith('boss_trial:'):
+        attempt_id = source_context[len('boss_trial:'):]
+        server_verdict = server_verdict or (
+            'AUTHORITATIVE_PASS' if grade >= 3 else 'AUTHORITATIVE_FAIL'
+        )
+        source_context = encode_lord_trial_verdict({
+            'schema': 'lord_trial_verdict_v1',
+            'attempt_id': attempt_id,
+            'question_id': int(question_id),
+            'verdict': server_verdict,
+            'authoritative_grade': 5 if server_verdict == 'AUTHORITATIVE_PASS' else 0,
+            'judge_version': 'lord-trial-map-battle-judge-v1',
+            'reason_code': 'test_fixture',
+        })
     conn.execute(
         'INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) VALUES (?,?,?,?,?)',
         (uid, question_id, grade, reviewed_at, source_context),
@@ -295,10 +312,16 @@ class TestAuthoritativeResultScenarios:
     @pytest.mark.parametrize("first_grade,second_grade", [(0, 5), (5, 0)])
     def test_duplicate_records_are_deterministically_deduplicated(self, app_module, sqlite_conn, first_grade, second_grade):
         # Two review_log rows for the same question inside the window (e.g. a
-        # client retry) must resolve deterministically regardless of order:
-        # correct if ANY row for that question has grade>=3.
-        _seed_review(sqlite_conn, uid=1, question_id=601, grade=first_grade, reviewed_at=within_window(10))
-        _seed_review(sqlite_conn, uid=1, question_id=601, grade=second_grade, reviewed_at=within_window(20))
+        # legacy retry fixture) must resolve deterministically regardless of
+        # scheduling-grade order: one identical server verdict counts once.
+        _seed_review(
+            sqlite_conn, uid=1, question_id=601, grade=first_grade,
+            reviewed_at=within_window(10), server_verdict='AUTHORITATIVE_PASS',
+        )
+        _seed_review(
+            sqlite_conn, uid=1, question_id=601, grade=second_grade,
+            reviewed_at=within_window(20), server_verdict='AUTHORITATIVE_PASS',
+        )
         correct, total = app_module._adventure_boss_authoritative_result(
             sqlite_conn, uid=1, exam=_exam([601]))
         assert (correct, total) == (1, 1)
@@ -830,6 +853,25 @@ class TestBossResumeAuthority:
                 patched_get_db, app_module, uid, exam, qid, grade,
                 _exam_review_time(exam, offset),
             )
+            # The scheduling grade is intentionally varied to model retries;
+            # the server-owned verdict is immutable and therefore identical.
+            if offset == 5:
+                patched_get_db.execute(
+                    'UPDATE review_log SET source_context=? WHERE user_id=? AND question_id=? AND reviewed_at=?',
+                    (
+                        encode_lord_trial_verdict({
+                            'schema': 'lord_trial_verdict_v1',
+                            'attempt_id': exam['attempt_id'],
+                            'question_id': qid,
+                            'verdict': 'AUTHORITATIVE_PASS',
+                            'authoritative_grade': 5,
+                            'judge_version': 'lord-trial-map-battle-judge-v1',
+                            'reason_code': 'test_fixture',
+                        }),
+                        uid, qid, _exam_review_time(exam, offset),
+                    ),
+                )
+                patched_get_db.commit()
 
         resumed = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
         assert resumed.status_code == 200
