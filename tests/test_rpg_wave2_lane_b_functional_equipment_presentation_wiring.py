@@ -209,6 +209,16 @@ def test_reload_rehydrates_each_equipped_item_and_restores_same_presentation(tmp
             "/api/player/inventory/equip",
             json={"inv_id": inv_id, "action": "equip"},
         )
+        if item_id == "xp_amulet":
+            assert response.status_code == 400
+            assert response.get_json()["error"] == "XP_AMULET_HOLD_FOR_AUTHORITY"
+            reloaded_client = _client_for(path, monkeypatch)
+            by_item = {
+                item["item_id"]: item
+                for item in reloaded_client.get("/api/player/inventory").get_json()
+            }
+            assert by_item[item_id]["equipped"] is False
+            continue
         assert response.status_code == 200
         assert response.get_json()["item_id"] == item_id
 
