@@ -20,8 +20,8 @@ unchanged while the server remains default-off.
 
 When separately authorized, `/api/shop/catalog` may add an
 `equipment_offers` array. Each entry must be the existing server-owned
-`CoinShopOffer.as_dict()` shape, with these facts already resolved by the
-server:
+`CoinShopOffer.as_dict()`/C019 response shape, with these facts already
+resolved by the server:
 
 ```json
 {
@@ -92,7 +92,7 @@ if _canonical_coin_shop_purchase_enabled():
         if server_facts.destination != 'player_inventory':
             continue
         try:
-            equipment_offers.append(normalize_shop_offer(server_facts).as_dict())
+            equipment_offers.append(normalize_shop_offer(server_facts).as_c019_mapping())
         except (OfferNotReady, ShopOfferIdentityError):
             continue
 ```
