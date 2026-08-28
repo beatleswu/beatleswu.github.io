@@ -302,6 +302,7 @@ class BattlefieldBossRewardResult:
         return {
             "contract_version": self.contract_version,
             "status": self.status,
+            "passed": self.passed,
             "first_clear": self.first_clear,
             "replay": self.replay,
             "entitlement_consumed": self.entitlement_consumed,

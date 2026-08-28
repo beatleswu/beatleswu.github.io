@@ -1,10 +1,9 @@
 """Focused F028 Battlefield Boss Mapping A acquisition contracts.
 
 These tests exercise the route-independent service on disposable SQLite.  The
-production route is intentionally not imported or modified here: its current
-``app.py`` writer is separately owned by B050.  The tests therefore prove the
-service contract and the exact patch boundary without pretending that the
-route is already wired.
+service remains independent of the Flask route; F030 owns the separate thin
+route wiring.  The tests therefore prove the service contract and caller
+transaction boundary without duplicating route authority.
 """
 
 from __future__ import annotations
@@ -226,6 +225,7 @@ def test_all_ten_first_clear_rewards_persist_without_equip_or_combat_power(conn,
     assert result.item_id == expected_item_id
     assert result.ownership_row_id > 0
     assert result.as_response()["auto_equip"] is False
+    assert result.as_response()["passed"] is True
     assert result.as_response()["compensation"] is False
     assert result.as_response()["replacement_reward"] is False
     assert result.as_response()["combat_power"] == MAPPING_A_COMBAT_POWER == 0
