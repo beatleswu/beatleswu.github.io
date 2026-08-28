@@ -216,6 +216,12 @@ from spirit_adventure_milestone import (
     AdventureSpiritAcquisitionError,
     catch_up_adventure_spirit_unlocks,
 )
+from adventure_spirit_unlock_transport import (
+    build_adventure_spirit_unlock_results,
+)
+from adventure_boss_finish_response import (
+    compose_adventure_boss_finish_response,
+)
 from premium_v1_revenue import (
     C013_HIDDEN_IDS,
     C013_LAUNCH_COSMETIC_IDS,
@@ -12457,6 +12463,7 @@ def _adventure_boss_record_attempt(conn, uid, zone_key, passed, correct,
 @login_required
 def adventure_boss_finish():
     uid = session['user_id']
+    spirit_unlock_results = None
     # Parsed for backward-compatible request-body tolerance only. Client
     # correct/total fields (if present) are never read below -- the score is
     # always recomputed server-side from review_log evidence.
@@ -12511,7 +12518,13 @@ def adventure_boss_finish():
         # shared sink and this clear/reward transaction are caller-owned, so a
         # rejected or failed Spirit unlock rolls the Adventure settlement back.
         if passed:
-            _apply_adventure_spirit_milestone_catch_up(conn, uid)
+            raw_spirit_unlock_results = _apply_adventure_spirit_milestone_catch_up(
+                conn, uid,
+            )
+            spirit_unlock_results = build_adventure_spirit_unlock_results(
+                raw_spirit_unlock_results,
+                historical_catchup=True,
+            )
 
         # Same transaction as the clear-progress upsert above: if the reward
         # grant fails, the whole `with` block rolls back (db.py commits on
@@ -12527,7 +12540,7 @@ def adventure_boss_finish():
     session.pop('adventure_boss_exam', None)
     _clear_adventure_state_cache(uid)
     map_state = _adventure_map_state(uid)
-    return jsonify({
+    response = {
         'ok': True,
         'passed': passed,
         'correct': correct,
@@ -12538,7 +12551,13 @@ def adventure_boss_finish():
         'replay': is_replay,
         'reward': {'coins': reward_coins, 'first_clear': is_first_clear},
         **map_state,
-    })
+    }
+    return jsonify(
+        compose_adventure_boss_finish_response(
+            response,
+            spirit_unlock_results,
+        )
+    )
 
 # ══════════════════════════════════════════════════════════════
 # 題庫 API（index.html / mistakes.html 左側列表用）
