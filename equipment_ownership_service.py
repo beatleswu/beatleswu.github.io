@@ -38,10 +38,10 @@ LEGACY_SCHEMA = "LEGACY_SCHEMA"
 B033_VALID_SCHEMA = "B033_VALID_SCHEMA"
 B033_MALFORMED_SCHEMA = "B033_MALFORMED_SCHEMA"
 
-# These are the exact server-owned source values used by the current
-# Monster settlement and Admin grant writers. A route may not pass arbitrary
-# client provenance through this boundary.
-SUPPORTED_SOURCES = frozenset({"drop", "admin"})
+# These are the exact server-owned source values used by the current Monster,
+# Admin, and Coin Shop writers. A route may not pass arbitrary client
+# provenance through this boundary.
+SUPPORTED_SOURCES = frozenset({"drop", "admin", "coin_shop"})
 
 REQUIRED_COLUMNS = frozenset(
     {"id", "user_id", "equip_id", "equipped", "obtained_at", "source"}
@@ -316,9 +316,9 @@ def grant_equipment_ownership(
     """Create one server-authorized, unequipped Equipment ownership row.
 
     The function performs no ``commit`` or ``rollback``. ``source`` is the
-    bounded server vocabulary used by the current Monster and Admin writers:
-    ``drop`` and ``admin``. It accepts no client slot or equipped flag; the
-    row is always created with ``equipped=0``.
+    bounded server vocabulary used by the current Monster, Admin, and Coin
+    Shop writers: ``drop``, ``admin``, and ``coin_shop``. It accepts no client
+    slot or equipped flag; the row is always created with ``equipped=0``.
     """
 
     user_id = _validate_user_id(user_id)
