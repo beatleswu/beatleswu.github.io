@@ -90,13 +90,20 @@
     const opts = options || {};
     const registry = await loadRegistry();
     const character = registry.characters?.[characterKey];
+    const baseAsset = opts.baseAsset || character?.base || '';
+    const baseCharacter = character
+      ? { ...character, base: baseAsset }
+      : (baseAsset ? {
+          base: baseAsset,
+          hair_front_mask: opts.maskAsset || '',
+        } : null);
     const fallback = opts.fallbackElement || null;
     stage.innerHTML = '';
     stage.dataset.character = characterKey || '';
     stage.dataset.frame = registry.player_frame.id;
     delete stage.dataset.assetError;
 
-    if (!character) {
+    if (!baseCharacter) {
       stage.hidden = true;
       stage.dataset.supported = 'false';
       setFallback(fallback, true);
@@ -115,14 +122,15 @@
 
     appendEntries('BACK_WEAPON');
     appendEntries('BACK_BODY');
-    appendLayer(stage, character.base, 'character-base', `${characterKey} character base`);
+    appendLayer(stage, baseCharacter.base, 'character-base', `${characterKey} character base`);
     appendEntries('TORSO_ARMOR');
     appendEntries('FRONT_BODY');
     appendEntries('FRONT_ACCESSORY');
     appendEntries('HEAD_FACE');
 
     if (entries.some(item => (item.mask_requirements || []).includes('HAIR_FRONT_MASK'))) {
-      appendLayer(stage, character.hair_front_mask, 'character-hair-front-mask layer-hair-front-mask', 'reusable character hair mask');
+      const maskAsset = baseCharacter.hair_front_mask || opts.maskAsset || '';
+      if (maskAsset) appendLayer(stage, maskAsset, 'character-hair-front-mask layer-hair-front-mask', 'reusable character hair mask');
     }
     stage.dataset.equippedIds = selectedIds.join(',');
     stage.dataset.authority = 'server_equipped_projection';

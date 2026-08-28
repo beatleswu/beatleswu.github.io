@@ -2797,7 +2797,10 @@ def _cosmetic_product_payload(product, *, owned, equipped):
         },
     }
 
-# ── 外觀效果：item_id → 遊戲加成 ─────────────────────────────────────────────
+# ── Legacy appearance metadata: compatibility projection only ───────────────
+# C013/F030 and older profile consumers still need this catalog shape.  It is
+# not functional combat authority; current equipment effects come from the
+# server-owned player_inventory + EQUIPMENT_DEFS path.
 APPEARANCE_EFFECTS = {
     # 光環（aura）→ XP 加成
     'aura_green':      {'xp_bonus': 0.05,  'label': 'XP +5%'},
@@ -2846,9 +2849,14 @@ def _c013_owned_cosmetic_ids(conn, uid):
 
 
 def _get_appearance_effects(uid, conn):
-    """取得玩家已裝備外觀的所有加成，回傳 {xp_bonus, drop_bonus}。
-    效果端重驗：每件裝備需通過 _gear_unlocked（段位+累積答對），
-    玩家掉段或門檻收緊後，DB 殘留的高階裝備不再給加成。"""
+    """Read the legacy appearance-effect compatibility projection.
+
+    The response shape is retained for existing profile/compatibility
+    consumers, but this helper is not gameplay authority.  Functional
+    equipment effects are read from ``player_inventory`` and ``EQUIPMENT_DEFS``
+    by the server combat consumers; legacy appearance metadata must not be
+    folded into review or combat settlement totals.
+    """
     try:
         eq = conn.execute(
             'SELECT pa.*, us.go_rank AS _fx_go_rank, us.total_correct AS _fx_total_correct '
@@ -2869,7 +2877,8 @@ def _get_appearance_effects(uid, conn):
             fx = APPEARANCE_EFFECTS[iid]
             xp_b   += fx.get('xp_bonus', 0.0)
             drop_b += fx.get('drop_bonus', 0.0)
-    # ── 戰鬥裝備效果（與外觀效果整併成一套）──
+    # Legacy combat-field values remain visible in this compatibility read
+    # model only; they are not consumed by gameplay settlement.
     rank_tier = _rank_to_tier(eq['_fx_go_rank'] if '_fx_go_rank' in cols else '')
     total_correct = (eq['_fx_total_correct'] if '_fx_total_correct' in cols else 0) or 0
     def _tier(key):
@@ -14611,8 +14620,8 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         review_shadow_support_values = []
         new_rank_level = rank_level
         new_lv = xp_to_lv(xp)
-        # 裝備外觀加成
-        _appear_fx = _get_appearance_effects(uid, conn)
+        # A038: legacy appearance metadata remains a compatibility read model;
+        # only server-owned functional equipment can affect review XP.
         pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
 
         mrow = conn.execute(
@@ -14644,9 +14653,9 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     is_mc,
                     combo_multiplier_double=combo_multiplier_double,
                 )
-                # 套用外觀 XP 加成（光環 / 袍服 / 配飾）
+                # Apply only the canonical functional equipment XP effect.
                 equipment_xp_bonus = _safe_active_equipment_effect(conn, uid, 'xp_bonus')
-                total_xp_bonus = _appear_fx.get('xp_bonus', 0) + equipment_xp_bonus
+                total_xp_bonus = equipment_xp_bonus
                 if total_xp_bonus > 0:
                     xp_gain = int(xp_gain * (1 + total_xp_bonus))
                     review_shadow_support_values.append(
