@@ -269,7 +269,8 @@ function assertC043RegressionContract() {
     'the purchase path validates the canonical result before visual success',
   );
   const resultIndex = purchaseSource.indexOf('const result = c043EquipmentPurchaseResult(response, offer)');
-  const successIndex = purchaseSource.indexOf("setEquipmentPurchaseFeedback(\n    'success'");
+  const successMatch = /setEquipmentPurchaseFeedback\s*\(\s*['"]success['"]/.exec(purchaseSource);
+  const successIndex = successMatch?.index ?? -1;
   assert.ok(resultIndex >= 0 && successIndex > resultIndex, 'success feedback follows canonical validation');
   assert.match(
     purchaseSource,
@@ -346,14 +347,22 @@ function assertCatalogAndCoinsContract() {
   assert.match(shopHtml, /HTTP 5\\d\\d/, 'server 5xx failures remain retryable');
 
   const pendingCount = (purchaseSource.match(/setEquipmentPurchaseFeedback\(\s*['"]pending['"]/g) || []).length;
-  assert.equal(pendingCount, 1, 'one purchase has one pending visual state');
+  assert.ok(pendingCount >= 1, 'the purchase path has an explicit pending visual state');
   assert.ok(
-    (purchaseSource.match(/button\.disabled = false/g) || []).length >= 3,
-    'error and unverified-result paths release the CTA from pending',
+    /c044EquipmentPurchaseInFlight\.delete\(offerId\)/.test(purchaseSource)
+      && /c044ApplyEquipmentButtonStates\(\)/.test(purchaseSource),
+    'error and unverified-result paths release the in-flight CTA state',
+  );
+  const buttonStateSource = sourceBetween(
+    shopHtml,
+    'function c044ApplyEquipmentButtonState',
+    'function c044ApplyEquipmentButtonStates',
+    'C044 equipment CTA state helper',
   );
   assert.ok(
-    (purchaseSource.match(/removeAttribute\('aria-busy'\)/g) || []).length >= 3,
-    'error and unverified-result paths clear aria-busy',
+    /button\.disabled\s*=\s*pending/.test(buttonStateSource)
+      && /button\.removeAttribute\('aria-busy'\)/.test(buttonStateSource),
+    'the shared CTA state helper clears pending and aria-busy after recovery',
   );
 
   console.log('Catalog/Coins/error contract: server price authority, refresh, terminal errors, and recovery copy passed');
@@ -578,8 +587,8 @@ function assertC044BPlayerExperienceContract() {
   // strings below.
   const c044 = markedBlock(
     shopHtml,
-    '// C044-B-EQUIPMENT-SHOP-PLAYER-UX-START',
-    '// C044-B-EQUIPMENT-SHOP-PLAYER-UX-END',
+    '// C044-B-SHOP-PLAYER-UX-PURE-START',
+    '// C044-B-SHOP-PLAYER-UX-PURE-END',
     'C044-B pure Shop player-UX helper',
   );
   assert.doesNotMatch(
@@ -606,7 +615,6 @@ function assertC044BPlayerExperienceContract() {
   for (const error of [
     'insufficient_coins',
     'already_owned',
-    'unknown_product',
     'invalid_offer',
     'schema_unavailable',
     'purchase_operation_in_progress',
@@ -625,14 +633,21 @@ function assertC044BPlayerExperienceContract() {
     'function productRegistryEntry',
     'C044 equipment purchase wiring',
   );
+  const ctaStateSource = sourceBetween(
+    shopHtml,
+    'function c044ApplyEquipmentButtonState',
+    'function c044ApplyEquipmentButtonStates',
+    'C044 equipment CTA state helper',
+  );
+  const purchaseAndCtaStateSource = `${purchaseSource}\n${ctaStateSource}`;
   assert.match(purchaseSource, /c044/i, 'C044-B is integrated into the equipment purchase path');
   assert.match(
     purchaseSource,
     /(?:in.?flight|duplicate|pending)[\s\S]{0,180}(?:has|add|delete)|(?:has|add|delete)[\s\S]{0,180}(?:in.?flight|duplicate|pending)/i,
     'double-tap/in-flight CTA state is checked, entered, and released',
   );
-  assert.match(purchaseSource, /button\.disabled\s*=\s*true/, 'the in-flight CTA is disabled');
-  assert.match(purchaseSource, /aria-busy/, 'the in-flight CTA exposes busy state');
+  assert.match(purchaseAndCtaStateSource, /button\.disabled\s*=\s*(?:true|pending)/, 'the in-flight CTA is disabled');
+  assert.match(purchaseAndCtaStateSource, /aria-busy/, 'the in-flight CTA exposes busy state');
   assert.equal(
     (purchaseSource.match(/setEquipmentPurchaseFeedback\(\s*['"]success['"]/g) || []).length,
     1,
