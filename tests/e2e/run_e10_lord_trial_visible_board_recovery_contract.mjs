@@ -126,6 +126,34 @@ function lordZone(examSize = 20) {
   };
 }
 
+// The browser contract must exercise the same response shape that the real
+// review route returns.  ReviewTransport deliberately rejects a bare
+// { ok: true }, because a malformed response must never advance the attempt.
+function committedReviewPayload() {
+  return {
+    ok: true,
+    ease_factor: 2.5,
+    interval: 1,
+    due_date: '2026-08-28',
+    new_badges: [],
+    stats: {},
+    xp_gain: 0,
+    combo_mult: 1,
+    pet_xp_added: 0,
+    pet_xp_ratio: 0,
+    pet_xp_gained: 0,
+    combo_streak: 0,
+    shield_used: false,
+    xp_potion_active: false,
+    ranked_up: false,
+    new_rank_level: 'LV1',
+    pet: null,
+    practice: null,
+    training: null,
+    new_appearance_items: [],
+  };
+}
+
 function realQuestion(id, move) {
   return {
     id,
@@ -190,7 +218,7 @@ async function installRealApi(page, { questions, ids, zone }) {
   }));
   await page.route('**/api/srs/review', async (route) => {
     reviews.push(JSON.parse(route.request().postData() || '{}'));
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(committedReviewPayload()) });
   });
   await page.route('**/api/adventure/boss/finish', async (route) => {
     finishCalls += 1;
