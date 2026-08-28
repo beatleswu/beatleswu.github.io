@@ -533,6 +533,20 @@ button:focus-visible {
 .purchase-confirmation strong { display:block; color:var(--gold); margin-bottom:4px; }
 .purchase-confirmation div div { color:var(--muted); font-size:12px; line-height:1.45; }
 .purchase-confirmation a { flex:0 0 auto; min-height:40px; display:inline-flex; align-items:center; padding:0 12px; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; text-decoration:none; }
+.equipment-commerce-panel { border-color: rgba(86,214,194,.42); }
+.equipment-commerce-note { max-width: 760px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.equipment-grid { margin-top: 14px; }
+.equipment-card { border-color: rgba(86,214,194,.32); }
+.equipment-card .item-art { background: radial-gradient(circle, rgba(86,214,194,.2), rgba(0,0,0,.2)); }
+.equipment-art-fallback { color: var(--muted); font: 800 10px/1.2 'DM Mono',monospace; letter-spacing:.08em; text-align:center; text-transform:uppercase; }
+.equipment-purchase-feedback { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:14px; padding:13px 14px; border:1px solid rgba(86,214,194,.4); border-radius:var(--radius); background:rgba(10,8,6,.72); color:var(--text); }
+.equipment-purchase-feedback[data-state="pending"] { border-color:rgba(240,191,87,.45); }
+.equipment-purchase-feedback[data-state="error"] { border-color:rgba(214,91,75,.58); background:rgba(48,18,15,.78); }
+.equipment-purchase-feedback strong { display:block; color:var(--gold); margin-bottom:4px; }
+.equipment-purchase-feedback[data-state="error"] strong { color:#ffb0a2; }
+.equipment-purchase-feedback div div { color:var(--muted); font-size:12px; line-height:1.5; }
+.equipment-purchase-feedback a { flex:0 0 auto; min-height:40px; display:inline-flex; align-items:center; padding:0 12px; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; text-decoration:none; }
+.equipment-purchase-feedback[hidden] { display:none; }
 .cosmetic-commerce-panel { border-color: rgba(86,214,194,.42); }
 .cosmetic-note { color: var(--muted); font-size: 12px; line-height: 1.6; max-width: 690px; }
 .premium-v1-panel { border-color: rgba(240,191,87,.48); }
@@ -662,6 +676,8 @@ button:focus-visible {
   .cosmetic-grid { grid-template-columns: 1fr; }
   .item-card--cosmetic .item-top--cosmetic { grid-template-columns:minmax(104px, 38%) minmax(0, 1fr); }
   .item-card--cosmetic .item-art--fullbody { height:132px; }
+  .equipment-purchase-feedback { align-items:stretch; flex-direction:column; }
+  .equipment-purchase-feedback a { justify-content:center; width:100%; }
   .section-head { display: block; }
   .section-sub { margin-top: 6px; }
 }
@@ -729,6 +745,24 @@ button:focus-visible {
       <div class="cosmetic-grid" id="cosmetic-commerce-grid">
         <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       </div>
+    </div>
+  </section>
+
+  <section class="section panel equipment-commerce-panel" id="equipment-commerce-panel" aria-labelledby="equipment-commerce-title" hidden>
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker" id="equipment-commerce-kicker">FUNCTIONAL EQUIPMENT</div>
+          <div class="section-title" id="equipment-commerce-title">功能裝備商店</div>
+        </div>
+        <div class="section-sub" id="equipment-commerce-sub">由 server 提供的裝備商品</div>
+      </div>
+      <p class="equipment-commerce-note" id="equipment-commerce-note">購買後裝備會進入背包；裝備動作仍由背包中的既有流程主動執行。</p>
+      <div class="equipment-purchase-feedback" id="equipment-purchase-feedback" role="status" aria-live="polite" data-state="" hidden>
+        <div><strong id="equipment-purchase-feedback-title"></strong><div id="equipment-purchase-feedback-copy"></div></div>
+        <a id="equipment-purchase-feedback-backpack" href="/inventory" hidden>前往背包</a>
+      </div>
+      <div class="grid equipment-grid" id="equipment-commerce-grid" aria-live="polite"></div>
     </div>
   </section>
 
@@ -878,6 +912,7 @@ button:focus-visible {
 let catalog = null;
 let cosmeticCatalog = null;
 let premiumV1Offer = null;
+let equipmentOffers = [];
 let premiumV1SelectedCosmeticId = null;
 let cosmeticModalReturnFocus = null;
 let toastTimer = null;
@@ -1392,7 +1427,17 @@ function errorMessage(code, fallback) {
     unknown_product: "That cosmetic product is not available.",
     not_in_rotation: `This item isn't in today's rotation.`,
     effect_active: "This effect is already active.",
-    auto_use_only: "This tool can only be used automatically while solving."
+    auto_use_only: "This tool can only be used automatically while solving.",
+    shop_offer_unavailable: "This equipment offer is not currently available.",
+    invalid_offer: "This equipment offer could not be verified.",
+    offer_not_ready: "This equipment offer is not ready for purchase.",
+    purchase_operation_conflict: "This purchase identity is already bound to another offer.",
+    purchase_operation_in_progress: "This purchase is still being confirmed. Retry the same purchase.",
+    ownership_authority_unavailable: "The equipment inventory is temporarily unavailable.",
+    schema_unavailable: "The equipment purchase service is temporarily unavailable.",
+    acquisition_failed: "The equipment could not be added to your Backpack.",
+    canonical_result_unavailable: "The purchase was not confirmed by the Shop. Retry the same purchase.",
+    invalid_operation_identity: "The purchase could not be securely identified. Please try again."
   } : {
     insufficient_coins: "金幣不足，請先賺一些再回來。",
     already_owned: "你已經擁有這個項目了。",
@@ -1401,10 +1446,113 @@ function errorMessage(code, fallback) {
     unknown_product: "這個外觀商品目前不存在。",
     not_in_rotation: "這個商品今天不在輪替清單中。",
     effect_active: "這個效果已經在生效中。",
-    auto_use_only: "這個道具只能在題目中自動使用。"
+    auto_use_only: "這個道具只能在題目中自動使用。",
+    shop_offer_unavailable: "這件裝備目前無法購買。",
+    invalid_offer: "這件裝備商品無法驗證。",
+    offer_not_ready: "這件裝備尚未準備好購買。",
+    purchase_operation_conflict: "這筆購買識別已綁定其他商品。",
+    purchase_operation_in_progress: "這筆購買仍在確認中，請重試同一筆購買。",
+    ownership_authority_unavailable: "裝備背包目前暫時無法使用。",
+    schema_unavailable: "裝備購買服務目前暫時無法使用。",
+    acquisition_failed: "裝備無法加入你的背包。",
+    canonical_result_unavailable: "商城尚未確認這筆購買，請重試同一筆購買。",
+    invalid_operation_identity: "這筆購買無法安全識別，請再試一次。"
   };
   return map[code] || fallback || code || (isEn() ? "An unknown error occurred." : "發生未知錯誤。");
 }
+
+// C043-E-EQUIPMENT-COMMERCE-FEEDBACK-START
+// Optional equipment offers are accepted only from the server catalog.  This
+// adapter deliberately has no local product, price, currency, rarity, or
+// scarcity defaults.
+const C043_EQUIPMENT_CLASSES = Object.freeze(new Set(['WEAPON', 'ARMOR', 'ACCESSORY']));
+
+function c043IsPlainObject(value) {
+  if (!value || Object.prototype.toString.call(value) !== '[object Object]') return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function c043EquipmentPresentation(offer) {
+  return c043IsPlainObject(offer?.presentation_metadata)
+    ? offer.presentation_metadata
+    : {};
+}
+
+function c043EquipmentOffer(value) {
+  if (!c043IsPlainObject(value)) return null;
+  const offerId = typeof value.offer_id === 'string' ? value.offer_id : '';
+  const itemId = typeof value.item_id === 'string' ? value.item_id : '';
+  const currency = typeof value.currency_type === 'string'
+    ? value.currency_type.trim().toUpperCase()
+    : '';
+  const destination = typeof value.destination === 'string'
+    ? value.destination.trim().toLowerCase()
+    : '';
+  const acquisitionClass = typeof value.acquisition_class === 'string'
+    ? value.acquisition_class.trim().toUpperCase()
+    : '';
+  const status = typeof value.status === 'string' ? value.status.trim().toUpperCase() : '';
+  if (!offerId || !itemId || value.quantity !== 1
+      || !Number.isInteger(value.price) || value.price <= 0
+      || currency !== 'COINS'
+      || destination !== 'player_inventory'
+      || !C043_EQUIPMENT_CLASSES.has(acquisitionClass)
+      || status !== 'ACTIVE') {
+    return null;
+  }
+  return {
+    ...value,
+    offer_id: offerId,
+    item_id: itemId,
+    quantity: 1,
+    price: value.price,
+    currency_type: 'COINS',
+    destination: 'player_inventory',
+    acquisition_class: acquisitionClass,
+    status: 'ACTIVE',
+    presentation_metadata: c043EquipmentPresentation(value),
+  };
+}
+
+function c043EquipmentOffers(data) {
+  if (!Array.isArray(data?.equipment_offers)) return [];
+  return data.equipment_offers.map(c043EquipmentOffer).filter(Boolean);
+}
+
+function c043EquipmentOwnershipFocus(reference) {
+  if (typeof reference !== 'string') return '';
+  const match = /^player_inventory:([1-9]\d*)$/.exec(reference);
+  return match ? `/inventory?equipment=${encodeURIComponent(match[1])}` : '';
+}
+
+function c043EquipmentPurchaseResult(response, offer) {
+  if (!c043IsPlainObject(response) || response.ok !== true || !offer) return null;
+  const result = response.canonical_acquisition_result;
+  if (!c043IsPlainObject(result)
+      || result.source_type !== 'SHOP_COIN_PURCHASE'
+      || result.destination !== 'PLAYER_INVENTORY'
+      || result.ownership_authority !== 'player_inventory'
+      || result.item_id !== offer.item_id
+      || result.quantity !== offer.quantity
+      || typeof result.source_operation_id !== 'string'
+      || !result.source_operation_id.trim()
+      || result.source_reference !== offer.offer_id
+      || !c043EquipmentOwnershipFocus(result.ownership_reference)
+      || typeof result.can_equip !== 'boolean'
+      || typeof result.can_wear !== 'boolean'
+      || typeof result.replayed !== 'boolean'
+      || (result.is_new !== null && typeof result.is_new !== 'boolean')
+      || (response.ownership_reference != null
+        && response.ownership_reference !== result.ownership_reference)
+      || (response.source_operation_id != null
+        && response.source_operation_id !== result.source_operation_id)) {
+    return null;
+  }
+  return result;
+}
+// C043-E-EQUIPMENT-COMMERCE-FEEDBACK-END
+
 async function api(path, options) {
   const res = await fetch(path, { credentials: "include", ...options });
   const data = await res.json().catch(() => ({}));
@@ -2001,6 +2149,7 @@ async function loadCatalog() {
   renderWeekly(res);
   renderMonthly(res);
     renderItems(res);
+  renderEquipmentOffers(res);
   } catch (_) {
     catalog = {error: 'network_error'};
     renderShopLoadError(uiText('shop.state.networkError', 'Network error. Please retry.', '網路連線異常，請重試。'));
@@ -2046,6 +2195,241 @@ function renderCatalogSection(gridId, items, emptyMessage, badgeText) {
   items.forEach(item => {
     grid.appendChild(itemCard(item, { badge: badgeText }));
   });
+}
+
+function c043EquipmentText(offer, field) {
+  const presentation = c043EquipmentPresentation(offer);
+  const english = isEn();
+  const fields = english
+    ? [`${field}_en`, `display_${field}_en`, field, `display_${field}`]
+    : [field, `display_${field}`, `${field}_en`, `display_${field}_en`];
+  for (const source of [presentation, offer]) {
+    for (const key of fields) {
+      const value = source[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+  }
+  return '';
+}
+
+function c043EquipmentName(offer) {
+  return c043EquipmentText(offer, 'name') || offer.item_id;
+}
+
+function c043EquipmentDescription(offer) {
+  return c043EquipmentText(offer, 'description')
+    || uiText('shop.equipment.descriptionFallback', 'Server-described equipment offer.', 'server 提供的裝備商品。');
+}
+
+function c043EquipmentIconHTML(offer) {
+  const presentation = c043EquipmentPresentation(offer);
+  const icon = [presentation.icon_path, presentation.icon, offer.icon_path, offer.icon]
+    .find(value => typeof value === 'string' && value.trim());
+  if (!icon) {
+    return `<span class="equipment-art-fallback">${equipmentEsc(uiText('shop.equipment.artFallback', 'Equipment', '裝備'))}</span>`;
+  }
+  const value = icon.trim();
+  if (value.startsWith('/') || /^https?:\/\//i.test(value)) {
+    return `<img src="${equipmentEsc(value)}" alt="" loading="lazy" decoding="async">`;
+  }
+  return `<span class="emoji-fallback">${equipmentEsc(value)}</span>`;
+}
+
+function equipmentEsc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
+  }[character]));
+}
+
+function c043EquipmentOfferCardHTML(offer) {
+  const name = c043EquipmentName(offer);
+  const currencyLabel = isEn() ? 'coins' : '金幣';
+  return `<article class="item-card equipment-card" data-equipment-offer-id="${equipmentEsc(offer.offer_id)}" aria-label="${equipmentEsc(name)}">
+    <div class="item-top">
+      <div class="item-art">${c043EquipmentIconHTML(offer)}</div>
+      <div>
+        <div class="item-name">${equipmentEsc(name)}</div>
+        <div class="item-meta">${equipmentEsc(offer.acquisition_class)} · ${uiText('shop.equipment.serverOffer', 'Server offer', 'Server 商品')}</div>
+      </div>
+    </div>
+    <div class="item-desc">${equipmentEsc(c043EquipmentDescription(offer))}</div>
+    <div class="card-foot">
+      <div class="price">${money(offer.price)} ${currencyLabel}</div>
+      <button class="btn" type="button" data-equipment-purchase="${equipmentEsc(offer.offer_id)}" data-sfx="purchase">${uiText('shop.equipment.buy', 'Buy', '購買')}</button>
+    </div>
+  </article>`;
+}
+
+function renderEquipmentOffers(data) {
+  const panel = document.getElementById('equipment-commerce-panel');
+  const grid = document.getElementById('equipment-commerce-grid');
+  if (!panel || !grid) return;
+  equipmentOffers = c043EquipmentOffers(data);
+  const feedback = document.getElementById('equipment-purchase-feedback');
+  panel.hidden = !equipmentOffers.length && !!feedback?.hidden;
+  if (!equipmentOffers.length) {
+    grid.innerHTML = '';
+    return;
+  }
+  panel.hidden = false;
+  document.getElementById('equipment-commerce-kicker').textContent = uiText(
+    'shop.equipment.kicker', 'FUNCTIONAL EQUIPMENT', '功能裝備',
+  );
+  document.getElementById('equipment-commerce-title').textContent = uiText(
+    'shop.equipment.title', 'Equipment Shop', '功能裝備商店',
+  );
+  document.getElementById('equipment-commerce-sub').textContent = uiText(
+    'shop.equipment.sub', 'Server-provided offers', '由 server 提供的裝備商品',
+  );
+  document.getElementById('equipment-commerce-note').textContent = uiText(
+    'shop.equipment.note',
+    'Purchased equipment is added to your Backpack. Choose Equip there when you are ready.',
+    '購買後裝備會進入背包；準備好後請在背包主動選擇裝備。',
+  );
+  grid.innerHTML = equipmentOffers.map(c043EquipmentOfferCardHTML).join('');
+  grid.querySelectorAll('[data-equipment-purchase]').forEach(button => {
+    button.addEventListener('click', () => purchaseEquipment(button.dataset.equipmentPurchase, button));
+  });
+}
+
+function setEquipmentPurchaseFeedback(state, title, copy, backpackHref = '') {
+  const panel = document.getElementById('equipment-commerce-panel');
+  const feedback = document.getElementById('equipment-purchase-feedback');
+  const titleEl = document.getElementById('equipment-purchase-feedback-title');
+  const copyEl = document.getElementById('equipment-purchase-feedback-copy');
+  const backpack = document.getElementById('equipment-purchase-feedback-backpack');
+  if (!feedback || !titleEl || !copyEl || !backpack) return;
+  if (panel) panel.hidden = false;
+  feedback.hidden = false;
+  feedback.dataset.state = state;
+  feedback.setAttribute('role', state === 'error' ? 'alert' : 'status');
+  titleEl.textContent = title;
+  copyEl.textContent = copy;
+  backpack.hidden = !backpackHref;
+  if (backpackHref) backpack.href = backpackHref;
+  backpack.textContent = uiText('shop.purchase.goBackpack', 'Go to Backpack', '前往背包');
+}
+
+function c043EquipmentPurchaseError(response, fallback) {
+  const message = fallback || errorMessage(response?.error, response?.message);
+  if (!response || !shopPurchaseResponseIsRetryable(response)) return message;
+  return `${message} ${uiText(
+    'shop.equipment.retrySame',
+    'Retry the same purchase so the Shop can finish confirming it.',
+    '請重試同一筆購買，讓商城完成確認。',
+  )}`;
+}
+
+function c043EquipmentPurchaseSuccess(offer, result) {
+  const name = c043EquipmentName(offer);
+  const opening = result.replayed
+    ? uiText('shop.equipment.replayed', 'Purchase confirmed after retry.', '重試後已確認購買。')
+    : uiText('shop.equipment.committed', 'Equipment added to your Backpack.', '裝備已加入你的背包。');
+  const equipCopy = result.can_equip === true
+    ? uiText(
+      'shop.equipment.chooseEquip',
+      'Choose Equip from Backpack when you are ready; nothing was equipped automatically.',
+      '準備好後請在背包主動選擇裝備；本頁不會自動裝備。',
+    )
+    : uiText('shop.equipment.noEquip', 'The server did not mark this item as equipable.', 'server 沒有將這件物品標記為可裝備。');
+  return `${name} · ${opening} ${equipCopy}`;
+}
+
+async function purchaseEquipment(offerId, button) {
+  const offer = equipmentOffers.find(item => item.offer_id === offerId);
+  if (!offer) {
+    setEquipmentPurchaseFeedback(
+      'error',
+      uiText('shop.equipment.feedback.errorTitle', 'Equipment purchase unavailable', '裝備購買暫時無法使用'),
+      errorMessage('shop_offer_unavailable'),
+    );
+    return;
+  }
+  if (button) {
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+  }
+  setEquipmentPurchaseFeedback(
+    'pending',
+    uiText('shop.equipment.feedback.pendingTitle', 'Confirming equipment purchase…', '正在確認裝備購買…'),
+    uiText('shop.equipment.feedback.pendingCopy', 'The Shop is checking the server-owned offer.', '商城正在確認 server 商品資料。'),
+  );
+  setMerchant('talk', 'talk');
+  let response;
+  try {
+    response = await requestShopPurchase('/api/shop/buy', offer.offer_id, {
+      offer_id: offer.offer_id,
+    });
+  } catch (_) {
+    setMerchant('idle', 'idle');
+    const message = uiText(
+      'shop.equipment.networkError',
+      'Network error. Retry the same purchase.',
+      '網路連線異常，請重試同一筆購買。',
+    );
+    setEquipmentPurchaseFeedback(
+      'error',
+      uiText('shop.equipment.feedback.errorTitle', 'Equipment purchase unavailable', '裝備購買暫時無法使用'),
+      message,
+    );
+    if (button) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+    }
+    showToast(message);
+    return;
+  }
+  if (response?.error) {
+    setMerchant('idle', 'idle');
+    const message = c043EquipmentPurchaseError(response);
+    setEquipmentPurchaseFeedback(
+      'error',
+      uiText('shop.equipment.feedback.errorTitle', 'Equipment purchase unavailable', '裝備購買暫時無法使用'),
+      message,
+    );
+    if (button) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+    }
+    showToast(message);
+    return;
+  }
+  const result = c043EquipmentPurchaseResult(response, offer);
+  if (!result) {
+    setMerchant('idle', 'idle');
+    const message = uiText(
+      'shop.equipment.unverifiedResult',
+      'The Shop did not return a verifiable equipment result. Retry the same purchase.',
+      '商城沒有回傳可驗證的裝備結果，請重試同一筆購買。',
+    );
+    setEquipmentPurchaseFeedback(
+      'error',
+      uiText('shop.equipment.feedback.errorTitle', 'Equipment purchase unavailable', '裝備購買暫時無法使用'),
+      message,
+    );
+    if (button) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+    }
+    showToast(message);
+    return;
+  }
+  setMerchant('happy', 'happy');
+  setEquipmentPurchaseFeedback(
+    'success',
+    uiText('shop.equipment.feedback.successTitle', 'Equipment purchase successful', '裝備購買成功'),
+    c043EquipmentPurchaseSuccess(offer, result),
+    c043EquipmentOwnershipFocus(result.ownership_reference),
+  );
+  if (Number.isInteger(response.coins_after)) {
+    document.getElementById('coin-bal').textContent = money(response.coins_after);
+  }
+  await loadCatalog();
+  if (button?.isConnected) {
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
+  }
+  showToast(uiText('shop.equipment.feedback.successToast', 'Equipment added to Backpack.', '裝備已加入背包。'));
 }
 
 function productRegistryEntry(key) {
@@ -2271,6 +2655,7 @@ window.onLangChange = () => {
     renderWeekly(catalog);
     renderMonthly(catalog);
     renderItems(catalog);
+    renderEquipmentOffers(catalog);
     setMerchantLine('idle');
   }
   if (cosmeticCatalog && !cosmeticCatalog.error) renderCosmeticCommerce(cosmeticCatalog);
