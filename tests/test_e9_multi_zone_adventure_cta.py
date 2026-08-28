@@ -92,7 +92,8 @@ def test_cta_click_handler_is_rebound_per_selection_not_stacked():
 def test_locked_zone_can_be_inspected_but_has_no_challenge_target():
     assert "if (!target)" in WORLD_STAGE
     assert "enabled: false, targetZoneKey: null" in WORLD_STAGE
-    assert "button.disabled = !contract.enabled" in WORLD_STAGE
+    assert "var enabled = contract.enabled && adventureActionRuntimeReady(contract, state);" in WORLD_STAGE
+    assert "button.disabled = !enabled" in WORLD_STAGE
 
 
 def test_locked_tiles_only_select_details_and_never_start_challenge_directly():

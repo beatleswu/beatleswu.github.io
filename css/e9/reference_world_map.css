@@ -677,6 +677,28 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell[data-e10-visual-s
 body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-card,
 body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-board { display: none !important; }
 
+/* A failed authoritative bootstrap keeps the E10 shell visible but inert.
+   Keep its retry affordance above the map and global mobile chrome. */
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-stage__retry {
+  position: absolute;
+  z-index: 60;
+  top: 50%;
+  left: 50%;
+  min-height: 48px;
+  padding: 10px 22px;
+  border: 2px solid var(--e10-ref-gold);
+  border-radius: 7px;
+  color: #fff;
+  background: linear-gradient(180deg, #14b7a8, #05736c);
+  box-shadow: 0 3px 9px rgba(28, 14, 6, .42);
+  font-weight: 900;
+  transform: translate(-50%, -50%);
+}
+
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-stage__retry[hidden] {
+  display: none !important;
+}
+
 body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-cards {
   position: relative;
   display: block;
@@ -771,7 +793,7 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-map-stage__pl
 }
 
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
-  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell { width: 100vw; height: 100dvh !important; min-height: 0; margin: 0 auto; aspect-ratio: auto; border-radius: 12px; }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell { position: fixed; top: 0; left: 0; transform: none; box-sizing: border-box; width: 100vw; height: 100dvh !important; max-height: 100dvh; min-height: 0; margin: 0; aspect-ratio: auto; border-radius: 12px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body,
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body.is-right-drawer-open { position: absolute !important; inset: 0 !important; display: block !important; width: 100% !important; height: 100% !important; padding: 0 !important; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-slot,
@@ -793,6 +815,12 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-map-stage__pl
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-dock__list { grid-template-columns: repeat(5,minmax(0,1fr)); }
   body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot { width: 28%; }
 }
+
+/* The install prompts are global document UI. They must not cover the E10
+   fixed dock or the map CTA on a touch landscape viewport. The controls are
+   still available from the browser's install UI. */
+body[data-e10-visual-skin="immersive-rpg"] #pwa-install-bar,
+body[data-e10-visual-skin="immersive-rpg"] #ios-install-guide { display: none !important; }
 
 @media (min-width: 1280px) {
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {

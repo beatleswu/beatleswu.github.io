@@ -121,42 +121,38 @@
     return zones.filter(function (zone) { return zone.key === zoneKey; })[0] || null;
   }
 
-  // A cinematic-state read failure must not hand the player to the Legacy
-  // shell, but the E10 World Stage still needs an actionable Zone 1 node if
-  // the initial bootstrap failed before any authoritative zones were drawn.
-  // Use previously rendered authoritative zones when available. On a cold
-  // failure, use only static zone identity/coordinates already declared by
-  // the page and conservatively enable Zone 1; no progression values are
-  // inferred or persisted by this fallback, and Zones 2-10 stay disabled.
+  function questionRuntimeStateFromWindow() {
+    if (window.__GO_ADVENTURE_QUESTION_RUNTIME_ERROR__) return 'error';
+    if (window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === false) return 'pending';
+    return 'ready';
+  }
+
+  function questionRuntimeLabel(state) {
+    if (!state || state.questionRuntimeState === 'ready') return '';
+    if (state.questionRuntimeState === 'error') {
+      return t('e10.world_stage.question_runtime_error', 'Encounter unavailable — retry');
+    }
+    return t('e10.world_stage.question_runtime_pending', 'Loading encounter…');
+  }
+
+  function retryLabel() {
+    return t('e10.world_stage.retry', 'Retry');
+  }
+
+  // A read failure may retain already-rendered authoritative zones as a
+  // non-actionable visual snapshot while the retry control is exposed. A
+  // cold failure has no safe progression record and therefore renders no
+  // fabricated Zone 1 frontier.
   function readErrorFallbackZones(root) {
     var previous = root && root.__e9WorldStageState && root.__e9WorldStageState.zones;
     if (Array.isArray(previous) && previous.length) return previous;
-    if (typeof ADVENTURE_ZONES === 'undefined' || !Array.isArray(ADVENTURE_ZONES)) return [];
-    return ADVENTURE_ZONES.map(function (source, index) {
-      var zone1 = index === 0;
-      return {
-        key: source.key,
-        name: source.name,
-        nameEn: source.nameEn || null,
-        status: zone1 ? 'unlocked' : 'locked',
-        locked: !zone1,
-        canEnter: zone1,
-        cleared: false,
-        skippedByPlacement: false,
-        recommended: zone1,
-        selected: zone1,
-        stars: 0,
-        bossAvailable: false,
-        bossKey: null,
-        seen: 0,
-        total: 0,
-      };
-    });
+    return [];
   }
 
-  // Zone 1 remains the legacy constant consumed by the existing read-error
+  // Zone 1 remains the legacy constant consumed by the existing first-entry
   // harness. Zone 2 joins the same server-backed first-entry/replay contract
-  // without changing Zone 1's key or seen-state semantics.
+  // without changing Zone 1's key or seen-state semantics. These constants do
+  // not provide a progression fallback when the authoritative read fails.
   var ACTIVE_INTRO_ZONE_KEY = 'k26_30';
   var ACTIVE_INTRO_CINEMATIC_KEY = 'e10_zone1_intro_v1';
 
@@ -184,6 +180,21 @@
     return action.zoneKey === state.currentPlayerZoneKey
       ? t('e10.world_stage.continue_adventure', 'Continue Adventure')
       : t('index.adv.start_challenge', 'Start Challenge');
+  }
+
+  // Lord entry is already a server-backed action: the start response supplies
+  // the authoritative attempt and question queue, while the existing review
+  // route owns grading and settlement. It must not be blocked by the generic
+  // question-pool bootstrap, which may be empty or unavailable even though a
+  // cleared zone can still be replayed through that server contract.
+  function isServerBackedLordAction(action) {
+    return !!action && (action.kind === 'challenge_lord' || action.kind === 'replay_completed');
+  }
+
+  function adventureActionRuntimeReady(action, state) {
+    if (!state) return true;
+    if (state.authorityUnavailable) return false;
+    return isServerBackedLordAction(action) || state.questionRuntimeState === 'ready';
   }
 
   function resolvePrimaryCta(state, zones) {
@@ -748,6 +759,8 @@
   // bridge (window.ensureLegacyAdventureMapReady), not a new one.
   function dispatchAdventureAction(contract) {
     if (!contract || !contract.enabled || !contract.targetZoneKey) return;
+    var state = worldStageState();
+    if (!adventureActionRuntimeReady(contract, state)) return false;
     if (contract.kind === 'challenge_lord' || contract.kind === 'replay_completed') {
       var enter = function () {
         if (typeof window.openAdventureBossFromQuestCard === 'function') {
@@ -767,6 +780,7 @@
     if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
       window.E9.startAdventureFromE9(contract.targetZoneKey);
     }
+    return true;
   }
 
   function cinematicSeen(state, cinematicKey) {
@@ -826,7 +840,7 @@
 
   function dispatchZone1Entry(root, zone, state) {
     var cinematicKey = introCinematicKeyForZone(zone && zone.key);
-    if (!zone || !cinematicKey || zone.locked) return;
+    if (!zone || !cinematicKey || zone.locked || (state && state.authorityUnavailable)) return;
     // The bootstrap snapshot is server-authoritative. Missing state means
     // unseen, so a fresh account cannot be silently promoted by browser data.
     if (cinematicSeen(state, cinematicKey)) return;
@@ -924,6 +938,9 @@
   // activation available to the cinematic regardless of how long any of
   // this component's own async work takes.
   function replayAdventureIntro(zoneKey) {
+    var root = worldStageRoot();
+    var state = root && root.__e9WorldStageState;
+    if (state && state.authorityUnavailable) return false;
     if (!zoneStoryReplayAvailable(zoneKey)) return false;
     if (typeof window._unlockIntroAudioFromGesture === 'function') {
       try { window._unlockIntroAudioFromGesture(); } catch (error) { /* best-effort priming only */ }
@@ -936,8 +953,6 @@
     // unavailable (degraded load). That fallback genuinely runs through the
     // legacy-adjacent startAdventureStage entry point, so it keeps waiting
     // on Legacy Adventure Map readiness -- unlike the primary path above.
-    var root = worldStageRoot();
-    var state = root && root.__e9WorldStageState;
     withCinematicHost(function () {
       if (typeof window.startAdventureStage === 'function') {
         var options = { mode: 'manual_replay' };
@@ -1008,11 +1023,15 @@
       if (button) button.hidden = true;
       return;
     }
+    var state = worldStageState();
+    var enabled = contract.enabled && adventureActionRuntimeReady(contract, state);
     button.hidden = false;
-    button.disabled = !contract.enabled;
-    button.setAttribute('aria-disabled', contract.enabled ? 'false' : 'true');
+    button.disabled = !enabled;
+    button.setAttribute('aria-disabled', enabled ? 'false' : 'true');
     button.setAttribute('data-challenge-target-zone', contract.targetZoneKey || '');
-    button.textContent = contract.label;
+    button.textContent = enabled ? contract.label : (state && state.authorityUnavailable
+      ? t('e10.world_stage.authority_unavailable', 'Adventure state unavailable')
+      : questionRuntimeLabel(state));
     if (button.__e9AdventureHandler) {
       button.removeEventListener('click', button.__e9AdventureHandler);
     }
@@ -1034,11 +1053,15 @@
       button.removeAttribute('data-challenge-target-zone');
       return;
     }
+    var state = worldStageState();
+    var enabled = !state || (state.questionRuntimeState === 'ready' && !state.authorityUnavailable);
     button.hidden = false;
-    button.disabled = false;
-    button.setAttribute('aria-disabled', 'false');
+    button.disabled = !enabled;
+    button.setAttribute('aria-disabled', enabled ? 'false' : 'true');
     button.setAttribute('data-challenge-target-zone', contract.targetZoneKey || '');
-    button.textContent = contract.label;
+    button.textContent = enabled ? contract.label : (state && state.authorityUnavailable
+      ? t('e10.world_stage.authority_unavailable', 'Adventure state unavailable')
+      : questionRuntimeLabel(state));
     if (button.__e9SecondaryAdventureHandler) {
       button.removeEventListener('click', button.__e9SecondaryAdventureHandler);
     }
@@ -1117,6 +1140,8 @@
   function zoneSelectionDetail(zone, state) {
     var contract = ctaContract(zone, state);
     var secondary = secondaryCtaContract(zone, state);
+    var runtimeReady = !state || state.questionRuntimeState === 'ready';
+    var ctaEnabled = contract.enabled && adventureActionRuntimeReady(contract, state);
     var isCurrent = zone.key === state.currentPlayerZoneKey;
     return {
       zoneKey: zone.key,
@@ -1149,11 +1174,15 @@
       // display string is exactly the kind of second authority this hotfix
       // exists to remove.
       cleared: zone.cleared === true,
-      ctaEnabled: contract.enabled,
-      ctaLabel: contract.label,
+      ctaEnabled: ctaEnabled,
+      ctaLabel: ctaEnabled ? contract.label : (state && state.authorityUnavailable
+        ? t('e10.world_stage.authority_unavailable', 'Adventure state unavailable')
+        : questionRuntimeLabel(state)),
       secondaryCtaKind: secondary && secondary.kind || null,
-      secondaryCtaEnabled: !!(secondary && secondary.enabled),
-      secondaryCtaLabel: secondary && secondary.label || '',
+      secondaryCtaEnabled: !!(secondary && secondary.enabled && runtimeReady && !(state && state.authorityUnavailable)),
+      secondaryCtaLabel: secondary && secondary.enabled && runtimeReady && !(state && state.authorityUnavailable)
+        ? secondary.label
+        : '',
     };
   }
 
@@ -1337,6 +1366,11 @@
       state.selectedZoneKey = authority.selected.zone_key;
     }
     if (authority.generation) state.generation = authority.generation;
+    if (Object.prototype.hasOwnProperty.call(authority, 'authorityUnavailable')) {
+      state.authorityUnavailable = authority.authorityUnavailable === true;
+    } else {
+      state.authorityUnavailable = false;
+    }
     var authoritativeCurrentZoneKey = Object.prototype.hasOwnProperty.call(authority, 'currentZoneKey')
       ? authority.currentZoneKey
       : state.authoritativeCurrentZoneKey;
@@ -1572,25 +1606,60 @@
     }
   }
 
+  function setRetryButton(root, visible) {
+    var retry = root && root.querySelector('#e9-world-stage-retry');
+    if (!retry) return;
+    retry.hidden = !visible;
+    retry.disabled = !visible;
+    retry.textContent = retryLabel();
+    retry.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  }
+
+  function disableAdventureControls(root) {
+    if (!root) return;
+    root.querySelectorAll('.e9-adventure-cta').forEach(function (button) {
+      button.disabled = true;
+      button.setAttribute('aria-disabled', 'true');
+    });
+  }
+
   function renderReadErrorDegradedState(root, generation, reason) {
     var zones = readErrorFallbackZones(root);
-    if (!zones.length) {
-      console.error('[E10] cinematic-state read error has no E10 zone fallback:', reason);
-      return false;
-    }
     var stageState = root.__e9WorldStageState || (root.__e9WorldStageState = {});
     stageState.cinematicReadError = true;
     stageState.cinematics = {};
-    renderZones(root, zones, {
-      generation: generation,
-      currentZoneKey: null,
-      primaryAction: null,
-      secondaryAction: null,
-      cinematics: {},
-      cinematicReadError: true,
-    });
+    stageState.authorityUnavailable = true;
+    if (zones.length) {
+      renderZones(root, zones, {
+        generation: generation,
+        currentZoneKey: null,
+        primaryAction: null,
+        secondaryAction: null,
+        cinematics: {},
+        cinematicReadError: true,
+        authorityUnavailable: true,
+      });
+    } else {
+      var mapStage = root.querySelector('#e9-map-stage');
+      var zonesEl = root.querySelector('#e9-world-stage-zones');
+      var statusEl = root.querySelector('#e9-world-stage-status');
+      if (mapStage) mapStage.hidden = false;
+      if (zonesEl) { zonesEl.innerHTML = ''; zonesEl.hidden = true; }
+      if (statusEl) {
+        statusEl.textContent = t('e10.world_stage.authority_unavailable', 'Adventure state unavailable');
+        statusEl.removeAttribute('data-i18n');
+      }
+    }
+    var status = root.querySelector('#e9-world-stage-status');
+    if (status) {
+      status.textContent = t('e10.world_stage.authority_unavailable', 'Adventure state unavailable')
+        + ' — ' + retryLabel();
+      status.removeAttribute('data-i18n');
+    }
+    disableAdventureControls(root);
+    setRetryButton(root, true);
     enableImmersiveRpgSkin(root, generation);
-    console.warn('[E10] cinematic-state read unavailable; keeping E10 shell with conservative Zone 1 entry:', reason);
+    console.warn('[E10] authoritative Adventure state unavailable; keeping E10 shell non-actionable:', reason);
     return true;
   }
 
@@ -1663,13 +1732,17 @@
       }
       if (!result.data.zones.length) {
         // Structurally valid response but zero usable zones -- still a
-        // critical condition (World Stage has nothing real to show), not
-        // rendered as a fabricated empty board.
-        recoverToLegacy(new Error('adventure data returned zero valid zones'));
+        // critical condition (World Stage has nothing real to show). Keep the
+        // E10 shell visible but non-actionable until a fresh authoritative
+        // response arrives; never fabricate Zone 1 or fall back to a client
+        // progression frontier.
+        renderReadErrorDegradedState(root, generation,
+          new Error('adventure data returned zero valid zones'));
         return;
       }
       var authority = result.data;
       authority.generation = generation;
+      authority.authorityUnavailable = false;
       var stageState = root.__e9WorldStageState;
       if (stageState) {
         stageState.authoritativeCurrentZoneKey = authority.currentZoneKey;
@@ -1683,10 +1756,11 @@
       // Keeping current_zone_key and primary_action explicit here prevents a
       // re-entry render from relying on the previous in-memory stage state.
       renderZones(root, result.data.zones, authority);
+      setRetryButton(root, false);
       enableImmersiveRpgSkin(root, generation);
     }).catch(function (err) {
       if (!current()) return;
-      recoverToLegacy(err);
+      renderReadErrorDegradedState(root, generation, err);
     });
   }
 
@@ -1705,8 +1779,18 @@
       secondaryAction: null,
       avatarPresentation: null,
       cinematics: {},
+      authorityUnavailable: false,
+      questionRuntimeState: questionRuntimeStateFromWindow(),
       generation: generation,
     };
+    var retry = root.querySelector('#e9-world-stage-retry');
+    if (retry) {
+      retry.addEventListener('click', function () {
+        // A full reload retries both the authenticated question/SRS runtime
+        // and the Adventure bootstrap, preserving no client-side authority.
+        window.location.reload();
+      });
+    }
     var onChanged = function () {
       var state = root.__e9WorldStageState;
       if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones, {
@@ -1730,14 +1814,55 @@
       // preview event as appearance authority; re-read the committed provider.
       loadAvatarPresentation(root, generation);
     };
+    var rerender = function () {
+      var state = root.__e9WorldStageState;
+      if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation))
+          && state && state.zones && state.zones.length) {
+        renderZones(root, state.zones, {
+          currentZoneKey: state.authoritativeCurrentZoneKey,
+          primaryAction: state.primaryAction,
+          secondaryAction: state.secondaryAction,
+          generation: state.generation,
+          authorityUnavailable: state.authorityUnavailable === true,
+        });
+      }
+    };
+    var onQuestionRuntimeReady = function () {
+      var state = root.__e9WorldStageState;
+      if (!state) return;
+      state.questionRuntimeState = 'ready';
+      if (!state.authorityUnavailable) setRetryButton(root, false);
+      rerender();
+    };
+    var onQuestionRuntimeError = function () {
+      var state = root.__e9WorldStageState;
+      if (!state) return;
+      state.questionRuntimeState = 'error';
+      setRetryButton(root, true);
+      rerender();
+    };
+    var onAdventureStateUpdated = function () {
+      // Boss settlement already invalidates the shared adapter cache. This
+      // force-refresh re-renders the visible E10 World Stage from the same
+      // server-owned snapshot and preserves the player's selected zone.
+      if (!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) {
+        load(root, false, generation);
+      }
+    };
     if (window.E9 && typeof window.E9.on === 'function') {
       window.E9.on(document, 'e9:i18n-changed', onChanged, null, generation);
       window.E9.on(document, 'e9:i18n-ready', onReady, null, generation);
       window.E9.on(document, 'e9:player-avatar-updated', onAvatar, null, generation);
+      window.E9.on(document, 'adventure:question-runtime-ready', onQuestionRuntimeReady, null, generation);
+      window.E9.on(document, 'adventure:question-runtime-error', onQuestionRuntimeError, null, generation);
+      window.E9.on(document, 'e10:adventure-state-updated', onAdventureStateUpdated, null, generation);
     } else {
       document.addEventListener('e9:i18n-changed', onChanged);
       document.addEventListener('e9:i18n-ready', onReady);
       document.addEventListener('e9:player-avatar-updated', onAvatar);
+      document.addEventListener('adventure:question-runtime-ready', onQuestionRuntimeReady);
+      document.addEventListener('adventure:question-runtime-error', onQuestionRuntimeError);
+      document.addEventListener('e10:adventure-state-updated', onAdventureStateUpdated);
     }
     loadAvatarPresentation(root, generation);
     load(root, false, generation);

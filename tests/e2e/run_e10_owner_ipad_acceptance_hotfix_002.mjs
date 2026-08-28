@@ -127,6 +127,47 @@ function realQuestion(id, move) {
   };
 }
 
+// Keep the fixture on the same public response contract as the real review
+// route.  A bare { ok: true } is intentionally rejected by ReviewTransport;
+// accepting it would let a malformed response advance a Lord attempt.
+function committedReviewPayload() {
+  return committedReviewPayloadFor({ questionId: null, attemptId: null });
+}
+
+function committedReviewPayloadFor({ questionId, attemptId }) {
+  return {
+    ok: true,
+    ease_factor: 2.5,
+    interval: 1,
+    due_date: '2026-08-28',
+    new_badges: [],
+    stats: {},
+    xp_gain: 0,
+    combo_mult: 1,
+    pet_xp_added: 0,
+    pet_xp_ratio: 0,
+    pet_xp_gained: 0,
+    combo_streak: 0,
+    shield_used: false,
+    xp_potion_active: false,
+    ranked_up: false,
+    new_rank_level: 'LV1',
+    pet: null,
+    practice: null,
+    training: null,
+    new_appearance_items: [],
+    boss_verdict: {
+      schema: 'lord_trial_verdict_v1',
+      attempt_id: attemptId,
+      question_id: questionId,
+      verdict: 'AUTHORITATIVE_PASS',
+      authoritative_grade: 5,
+      judge_version: 'lord-trial-map-battle-judge-v1',
+      reason_code: 'answer_tree_leaf',
+    },
+  };
+}
+
 const moves = ['dd', 'ee', 'ff', 'dg', 'eg', 'fg', 'dh', 'eh', 'fh', 'di', 'ei', 'fi', 'gd', 'ge', 'gf', 'gh', 'gi', 'hd', 'he', 'hf'];
 const fullQuestions = moves.map((move, index) => realQuestion(7001 + index, move));
 const summaries = fullQuestions.map(({ id, topic, rank }) => ({ id, topic, rank }));
@@ -134,7 +175,12 @@ const queue = fullQuestions.map((q) => q.id);
 const zone = lordZone();
 
 async function openPage(browser, origin, viewport = { width: 1024, height: 1366 }) {
-  const page = await browser.newPage({ viewport });
+  const touchViewport = viewport.width <= 1024;
+  const page = await browser.newPage({
+    viewport,
+    hasTouch: touchViewport,
+    isMobile: touchViewport,
+  });
   await page.addInitScript(INIT_SCRIPT);
   await page.route('**/api/**', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: '{}',
@@ -152,7 +198,11 @@ async function openPage(browser, origin, viewport = { width: 1024, height: 1366 
   return page;
 }
 
-async function installRealApi(page, { resume = false } = {}) {
+async function installRealApi(page, {
+  resume = false,
+  reviewDelayMs = 0,
+  reviewFailureStatus = null,
+} = {}) {
   let startCalls = 0;
   const reviews = [];
   let finishCalls = 0;
@@ -186,7 +236,23 @@ async function installRealApi(page, { resume = false } = {}) {
   await page.route('**/api/srs/review', async (route) => {
     const body = JSON.parse(route.request().postData() || '{}');
     reviews.push(body);
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) });
+    if (reviewDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, reviewDelayMs));
+    if (reviewFailureStatus) {
+      await route.fulfill({
+        status: reviewFailureStatus,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'review_unavailable', retryable: true }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(committedReviewPayloadFor({
+        questionId: body.question_id,
+        attemptId: 'owner-real-attempt-001',
+      })),
+    });
   });
   await page.route('**/api/adventure/boss/finish', async (route) => {
     finishCalls += 1;
@@ -209,12 +275,14 @@ async function installRealApi(page, { resume = false } = {}) {
   return { startCalls: () => startCalls, reviews, finishCalls: () => finishCalls };
 }
 
-async function clickBoard(page, x, y) {
+async function clickBoard(page, x, y, { touch = false } = {}) {
   const canvas = page.locator('#board-canvas-wrap canvas').first();
   await canvas.waitFor({ state: 'visible', timeout: 10000 });
   const box = await canvas.boundingBox();
   if (!box) throw new Error('WGo board canvas has no hit-test box');
-  await page.mouse.click(box.x + box.width * ((x + 0.5) / 9), box.y + box.height * ((y + 0.5) / 9));
+  const point = { x: box.x + box.width * ((x + 0.5) / 9), y: box.y + box.height * ((y + 0.5) / 9) };
+  if (touch) await page.touchscreen.tap(point.x, point.y);
+  else await page.mouse.click(point.x, point.y);
 }
 
 async function startLord(page, expectedProgress = '1/20') {
@@ -304,20 +372,25 @@ async function pollBoardSettling(page, expectedQid, beforeFingerprint, windowMs 
   };
 }
 
-async function runRealDataLordTransition(browser, origin) {
-  const page = await openPage(browser, origin);
-  const api = await installRealApi(page);
+async function runRealDataLordTransition(browser, origin, {
+  label = 'ipad portrait',
+  viewport = { width: 1024, height: 1366 },
+  reviewDelayMs = 0,
+} = {}) {
+  const page = await openPage(browser, origin, viewport);
+  const api = await installRealApi(page, { reviewDelayMs });
+  const touch = viewport.width <= 1024;
   try {
     const queueContract = { length: queue.length, valid: queue.every(Number.isInteger), unique: new Set(queue).size, consecutiveDuplicates: queue.slice(1).filter((qid, i) => qid === queue[i]).length };
     if (queueContract.length !== 20 || !queueContract.valid || queueContract.unique !== 20 || queueContract.consecutiveDuplicates !== 0) throw new Error(`real queue contract failed: ${JSON.stringify(queueContract)}`);
     await startLord(page);
     const before = await boardSnapshot(page);
-    await clickBoard(page, 3, 3);
+    await clickBoard(page, 3, 3, { touch });
     await page.waitForFunction((next) => Number(currentQ?.id) === next && _bossIndex === 1, queue[1], { timeout: 10000 });
     const afterQ2Boundary = await boardSnapshot(page);
     const afterQ2Settling = await pollBoardSettling(page, queue[1], before.fingerprint);
     const afterQ2 = afterQ2Settling.latest;
-    await clickBoard(page, 1, 1);
+    await clickBoard(page, 1, 1, { touch });
     await page.waitForFunction((next) => Number(currentQ?.id) === next && _bossIndex === 2, queue[2], { timeout: 10000 });
     const afterQ3Boundary = await boardSnapshot(page);
     const afterQ3Settling = await pollBoardSettling(page, queue[2], afterQ2.fingerprint);
@@ -339,6 +412,10 @@ async function runRealDataLordTransition(browser, origin) {
       })}`);
     }
     return {
+      label,
+      viewport,
+      reviewDelayMs,
+      input: touch ? 'touch' : 'mouse',
       queueContract,
       before,
       afterQ2Boundary,
@@ -351,6 +428,91 @@ async function runRealDataLordTransition(browser, origin) {
       transitionsPass,
       persistentFailureReproduced: !transitionsPass && process.env.E10_E2E_BASELINE_DIAGNOSTIC === '1',
     };
+  } finally {
+    await page.close();
+  }
+}
+
+async function runDoubleTapTransition(browser, origin) {
+  const page = await openPage(browser, origin, { width: 1024, height: 1366 });
+  const api = await installRealApi(page, { reviewDelayMs: 250 });
+  try {
+    await startLord(page);
+    const canvas = page.locator('#board-canvas-wrap canvas').first();
+    await canvas.waitFor({ state: 'visible', timeout: 10000 });
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error('WGo board canvas has no hit-test box');
+    const point = { x: box.x + box.width * (3.5 / 9), y: box.y + box.height * (3.5 / 9) };
+    await Promise.all([page.touchscreen.tap(point.x, point.y), page.touchscreen.tap(point.x, point.y)]);
+    await page.waitForFunction((next) => Number(currentQ?.id) === next && _bossIndex === 1, queue[1], { timeout: 10000 });
+    const state = await page.evaluate(() => ({
+      qid: Number(currentQ?.id),
+      index: _bossIndex,
+      reviews: window.__GO_E10_ACCEPTANCE_TRACE__?.filter((e) => e.event === 'REVIEW_REQUESTED').length || 0,
+      transitions: window.__GO_E10_ACCEPTANCE_TRACE__?.filter((e) => e.event === 'BOSS_TRANSITION_FROM_INDEX').length || 0,
+      canvasQids: [...new Set([...document.querySelectorAll('#board-canvas-wrap canvas')].map((c) => c.dataset.questionId))],
+    }));
+    if (state.qid !== queue[1] || state.index !== 1 || state.reviews !== 1 || state.transitions !== 1 || api.reviews.length !== 1) {
+      throw new Error(`double-tap transition was not exactly once: ${JSON.stringify({ state, reviews: api.reviews })}`);
+    }
+    return { state, reviewCount: api.reviews.length, exactlyOnce: true };
+  } finally {
+    await page.close();
+  }
+}
+
+async function runFailedSubmit(browser, origin) {
+  const page = await openPage(browser, origin, { width: 1024, height: 1366 });
+  const api = await installRealApi(page, { reviewFailureStatus: 503 });
+  try {
+    await startLord(page);
+    await clickBoard(page, 3, 3, { touch: true });
+    await page.waitForTimeout(1000);
+    const state = await page.evaluate(() => ({
+      qid: Number(currentQ?.id),
+      index: _bossIndex,
+      transitionCount: window.__GO_E10_ACCEPTANCE_TRACE__?.filter((e) => e.event === 'BOSS_TRANSITION_FROM_INDEX').length || 0,
+      message: document.getElementById('msg-box')?.textContent || '',
+    }));
+    if (state.qid !== queue[0] || state.index !== 0 || state.transitionCount !== 0 || api.reviews.length !== 1) {
+      throw new Error(`failed review advanced the Lord state: ${JSON.stringify({ state, reviews: api.reviews })}`);
+    }
+    return { state, reviewCount: api.reviews.length, advanced: false };
+  } finally {
+    await page.close();
+  }
+}
+
+async function runOrientationChangeTransition(browser, origin) {
+  const page = await openPage(browser, origin, { width: 1024, height: 1366 });
+  const api = await installRealApi(page, { reviewDelayMs: 250 });
+  try {
+    await startLord(page);
+    await clickBoard(page, 3, 3, { touch: true });
+    await page.waitForTimeout(100);
+    const pendingBeforeSettle = await page.evaluate(() => ({ qid: Number(currentQ?.id), index: _bossIndex }));
+    if (pendingBeforeSettle.qid !== queue[0] || pendingBeforeSettle.index !== 0) {
+      throw new Error(`delayed review advanced before response settled: ${JSON.stringify(pendingBeforeSettle)}`);
+    }
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.waitForFunction((next) => Number(currentQ?.id) === next && _bossIndex === 1, queue[1], { timeout: 10000 });
+    await clickBoard(page, 3, 3, { touch: true });
+    await page.setViewportSize({ width: 1024, height: 1366 });
+    await page.waitForFunction((next) => Number(currentQ?.id) === next && _bossIndex === 2, queue[2], { timeout: 10000 });
+    const state = await page.evaluate(() => {
+      const canvases = [...document.querySelectorAll('#board-canvas-wrap canvas')];
+      return {
+        qid: Number(currentQ?.id),
+        index: _bossIndex,
+        transitionCount: window.__GO_E10_ACCEPTANCE_TRACE__?.filter((e) => e.event === 'BOSS_TRANSITION_FROM_INDEX').length || 0,
+        canvasQids: [...new Set(canvases.map((c) => c.dataset.questionId))],
+        rectsNonZero: canvases.every((c) => c.getBoundingClientRect().width > 0 && c.getBoundingClientRect().height > 0),
+      };
+    });
+    if (state.qid !== queue[2] || state.index !== 2 || state.transitionCount !== 2 || !state.rectsNonZero || api.reviews.length !== 2) {
+      throw new Error(`orientation transition failed: ${JSON.stringify({ state, reviews: api.reviews })}`);
+    }
+    return { state, reviewCount: api.reviews.length, pendingBeforeSettle, safe: true };
   } finally {
     await page.close();
   }
@@ -622,6 +784,25 @@ async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
   try {
     const lord = await runRealDataLordTransition(browser, origin);
+    const multiDevice = {
+      ipadLandscape: await runRealDataLordTransition(browser, origin, {
+        label: 'ipad landscape', viewport: { width: 1024, height: 768 },
+      }),
+      desktop: await runRealDataLordTransition(browser, origin, {
+        label: 'desktop', viewport: { width: 1280, height: 900 },
+      }),
+      mobile: await runRealDataLordTransition(browser, origin, {
+        label: 'mobile', viewport: { width: 430, height: 932 },
+      }),
+    };
+    const slowResult = await runRealDataLordTransition(browser, origin, {
+      label: 'ipad portrait delayed review',
+      viewport: { width: 1024, height: 1366 },
+      reviewDelayMs: 750,
+    });
+    const doubleTap = await runDoubleTapTransition(browser, origin);
+    const failedSubmit = await runFailedSubmit(browser, origin);
+    const orientationChange = await runOrientationChangeTransition(browser, origin);
     if (process.env.E10_E2E_BASELINE_DIAGNOSTIC === '1') {
       console.log(JSON.stringify({
         ok: true,
@@ -629,6 +810,11 @@ async function main() {
         engine: 'chromium-iPad-viewport-Safari-media-contract',
         ipadViewport: { width: 1024, height: 1366 },
         lord,
+        multiDevice,
+        slowResult,
+        doubleTap,
+        failedSubmit,
+        orientationChange,
       }, null, 2));
       return;
     }
@@ -637,7 +823,7 @@ async function main() {
     const zone2Audio = await runZone2Audio(browser, origin);
     const zone2AutomaticPhases = await runZone2AutomaticPhaseAudio(browser, origin);
     const zone1Audio = await runZone1Audio(browser, origin);
-    console.log(JSON.stringify({ ok: true, engine: 'chromium-iPad-viewport-Safari-media-contract', ipadViewport: { width: 1024, height: 1366 }, lord, resume, returnMapModeMatrix, zone2Audio, zone2AutomaticPhases, zone1Audio }, null, 2));
+    console.log(JSON.stringify({ ok: true, engine: 'chromium-iPad-viewport-Safari-media-contract', ipadViewport: { width: 1024, height: 1366 }, lord, multiDevice, slowResult, doubleTap, failedSubmit, orientationChange, resume, returnMapModeMatrix, zone2Audio, zone2AutomaticPhases, zone1Audio }, null, 2));
   } finally {
     await browser.close();
     server.close();

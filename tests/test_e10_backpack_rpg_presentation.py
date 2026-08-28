@@ -91,8 +91,8 @@ def test_use_eligibility_and_non_manual_protection_remain_controller_owned():
 def test_return_action_uses_the_existing_world_map_lifecycle_target():
     assert INVENTORY.count("data-e10-return-map") == 2
     assert INVENTORY.count('data-e10-lifecycle-return="world-map"') == 2
-    assert '<a class="e10-backpack-header-brand" href="/"' in INVENTORY
-    assert '<a class="e10-backpack-return" href="/"' in INVENTORY
+    assert '<a class="e10-backpack-header-brand" href="/?adventure=1"' in INVENTORY
+    assert '<a class="e10-backpack-return" href="/?adventure=1"' in INVENTORY
     assert "返回地圖" in INVENTORY
 
 

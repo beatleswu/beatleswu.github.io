@@ -481,7 +481,11 @@ async function runLostFinishRecovery(browser, origin) {
   }
 }
 
-async function runReplayCta(browser, origin, stars, { dailyLimitReached = false, dailyLimitProgress = false } = {}) {
+async function runReplayCta(browser, origin, stars, {
+  dailyLimitReached = false,
+  dailyLimitProgress = false,
+  questionPoolAvailable = false,
+} = {}) {
   const page = await newPage(browser, origin, {
     viewport: { width: 1024, height: 1366 },
     shell: true,
@@ -489,8 +493,32 @@ async function runReplayCta(browser, origin, stars, { dailyLimitReached = false,
   await page.route('**/api/questions**', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: '[]',
+    body: JSON.stringify(questionPoolAvailable
+      ? [question(201, 'dd', { x: 3, y: 3 })]
+      : []),
   }));
+  if (questionPoolAvailable) {
+    await page.route('**/api/srs/due**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ due: [], count: 0 }),
+    }));
+    await page.route('**/api/srs/all**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '[]',
+    }));
+    await page.route('**/api/badges/definitions**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '[]',
+    }));
+    await page.route('**/api/badges/earned**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: '[]',
+    }));
+  }
   await page.route('**/api/adventure/bootstrap**', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -549,6 +577,8 @@ async function runReplayCta(browser, origin, stars, { dailyLimitReached = false,
     await page.locator('#e9-world-stage-details-cta').waitFor({ state: 'visible', timeout: 10000 });
     const before = await page.evaluate(() => ({
       primary: document.getElementById('e9-world-stage-details-cta')?.textContent || '',
+      questionRuntimeReady: window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__,
+      questionRuntimeError: window.__GO_ADVENTURE_QUESTION_RUNTIME_ERROR__,
       secondary: (() => {
         const node = document.getElementById('e9-world-stage-details-secondary-cta');
         return node ? { hidden: node.hidden, disabled: node.disabled, text: node.textContent || '' } : null;
@@ -558,9 +588,14 @@ async function runReplayCta(browser, origin, stars, { dailyLimitReached = false,
       throw new Error(`cleared ${stars}-star primary CTA is not replay: ${JSON.stringify(before)}`);
     }
     if (stars < 3) {
-      if (!before.secondary || before.secondary.hidden || before.secondary.disabled
-        || !before.secondary.text.includes('補星修行')) {
-        throw new Error(`cleared ${stars}-star secondary training CTA missing: ${JSON.stringify(before)}`);
+      if (questionPoolAvailable) {
+        if (!before.secondary || before.secondary.hidden || before.secondary.disabled
+          || !before.secondary.text.includes('補星修行')) {
+          throw new Error(`cleared ${stars}-star secondary training CTA missing: ${JSON.stringify(before)}`);
+        }
+      } else if (!before.secondary || before.secondary.hidden || !before.secondary.disabled
+        || !before.secondary.text.includes('Encounter unavailable')) {
+        throw new Error(`cleared ${stars}-star secondary training CTA should fail closed without a question pool: ${JSON.stringify(before)}`);
       }
     } else if (before.secondary && !before.secondary.hidden) {
       throw new Error('3-star cleared zone unexpectedly exposes a star-training CTA');
@@ -593,9 +628,9 @@ async function runReplayCta(browser, origin, stars, { dailyLimitReached = false,
         || afterCorrect.board === afterWrong.board) {
         throw new Error(`replay daily-limit Boss did not auto-advance: ${JSON.stringify({ afterCorrect, afterWrong })}`);
       }
-      return { stars, dailyLimitReached, dailyLimitProgress, primary: before.primary, secondary: before.secondary?.text || '', bossStarts, afterCorrect, afterWrong };
+      return { stars, dailyLimitReached, dailyLimitProgress, questionPoolAvailable, primary: before.primary, secondary: before.secondary?.text || '', bossStarts, afterCorrect, afterWrong };
     }
-    return { stars, dailyLimitReached, dailyLimitProgress, primary: before.primary, secondary: before.secondary?.text || '', bossStarts };
+    return { stars, dailyLimitReached, dailyLimitProgress, questionPoolAvailable, primary: before.primary, secondary: before.secondary?.text || '', bossStarts };
   } finally {
     await page.close();
   }
@@ -612,6 +647,7 @@ async function main() {
     const lostFinish = await runLostFinishRecovery(browser, origin);
     const replay = [];
     for (const stars of [1, 2, 3]) replay.push(await runReplayCta(browser, origin, stars));
+    const replayStarRepair = await runReplayCta(browser, origin, 1, { questionPoolAvailable: true });
     const replayDailyLimit = await runReplayCta(browser, origin, 1, {
       dailyLimitReached: true,
       dailyLimitProgress: true,
@@ -625,6 +661,7 @@ async function main() {
       dailyLimitResume,
       lostFinish,
       replay,
+      replayStarRepair,
       replayDailyLimit,
     }, null, 2));
   } finally {

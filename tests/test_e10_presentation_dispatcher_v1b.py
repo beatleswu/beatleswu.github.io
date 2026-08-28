@@ -44,7 +44,7 @@ B1_SRS_SCRIPT_SRC = "/srs.js?v=20260816e10v1bb1"
 # same release tag as the new cinematic_replay.js module it now cooperates
 # with (RELEASE-CACHE-FIX-01).
 BASE_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260801e10art1"
-RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260821e10xsurface002"
+E042_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260828e042s1"
 # E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002: right_cards.js's own content
 # changed too (the landscape Replay Story surface stopped deciding visibility
 # from a hardcoded zone-key allowlist and now asks the shared availability
@@ -52,7 +52,7 @@ RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260821e
 # same reason world_stage.js did above -- a returning iPad user's cached copy
 # would otherwise keep the dead/absent button.
 BASE_RIGHT_CARDS_SCRIPT_SRC = "/js/e9/right_cards.js?v=20260801e10art1"
-XSURFACE_002_RIGHT_CARDS_SCRIPT_SRC = "/js/e9/right_cards.js?v=20260821e10xsurface002"
+E040_S1_RIGHT_CARDS_SCRIPT_SRC = "/js/e9/right_cards.js?v=20260828e040s1"
 SYNTHETIC_SECRET = "e10-v1b-b1b-contract-test-secret"
 B2_DISPATCH_INSERTION = """\
     const b2Dispatcher = window.PresentationDispatcher;
@@ -663,14 +663,14 @@ def test_b1_index_html_changes_are_script_loading_only():
         and not src.startswith("/js/game/game_bootstrap.js")
         and not src.startswith("/js/game/cinematic_replay.js")
     ]
-    assert RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC in current_srcs
+    assert E042_WORLD_STAGE_SCRIPT_SRC in current_srcs
     assert BASE_WORLD_STAGE_SCRIPT_SRC not in current_srcs
-    assert XSURFACE_002_RIGHT_CARDS_SCRIPT_SRC in current_srcs
+    assert E040_S1_RIGHT_CARDS_SCRIPT_SRC in current_srcs
     assert BASE_RIGHT_CARDS_SCRIPT_SRC not in current_srcs
     normalized_current_srcs = [
         BASE_SRS_SCRIPT_SRC if src == B1_SRS_SCRIPT_SRC
-        else BASE_WORLD_STAGE_SCRIPT_SRC if src == RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC
-        else BASE_RIGHT_CARDS_SCRIPT_SRC if src == XSURFACE_002_RIGHT_CARDS_SCRIPT_SRC
+        else BASE_WORLD_STAGE_SCRIPT_SRC if src == E042_WORLD_STAGE_SCRIPT_SRC
+        else BASE_RIGHT_CARDS_SCRIPT_SRC if src == E040_S1_RIGHT_CARDS_SCRIPT_SRC
         else src
         for src in current_without_dispatcher
     ]
