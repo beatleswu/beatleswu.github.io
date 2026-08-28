@@ -119,9 +119,16 @@ def sqlite_conn():
         updated_at          TEXT,
         PRIMARY KEY (user_id, zone_key)
     )''')
-    # Needed since the Adventure First Zone Clear Reward Sprint: a genuine
-    # first-clear now calls the existing _grant_coins() helper, which reads
-    # and writes these two tables.
+    # Needed by the live F028 Mapping A reward service: a genuine first-clear
+    # writes the existing wardrobe ownership authority in this same fixture.
+    conn.execute('''CREATE TABLE player_wardrobe (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        item_id TEXT NOT NULL,
+        obtained_at TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'drop',
+        UNIQUE(user_id, item_id)
+    )''')
     conn.execute('''CREATE TABLE user_stats (
         user_id INTEGER PRIMARY KEY,
         coins INTEGER NOT NULL DEFAULT 0
@@ -459,15 +466,8 @@ class TestFinishRouteReplayAndIdempotency:
 
 
 class TestFinishRouteNoRewardSideEffects:
-    # NOTE: as of the Adventure First Zone Clear Reward Sprint (feat: grant
-    # first-clear adventure rewards), a genuine first clear DOES call
-    # _grant_coins() -- that is the intended, owner-authorized behavior of
-    # that Sprint, exercised thoroughly in
-    # tests/test_adventure_first_clear_reward.py. What THIS PR's scope still
-    # guarantees, and what stays pinned here, is narrower: _spend_coins is
-    # never invoked by boss/finish (nothing is ever deducted here), and
-    # when _grant_coins is invoked it is always with bypass_daily_cap=True
-    # (the one-time achievement path), never the ordinary farmable path.
+    # F030 replaces the legacy coin-only first-clear reward with the
+    # server-authored Mapping A wardrobe result. Currency must remain absent.
     def test_spend_coins_never_invoked_on_a_passing_finish(self, client, app_module, patched_get_db, stub_adventure_state, monkeypatch):
         calls = []
         if hasattr(app_module, '_spend_coins'):
@@ -485,15 +485,9 @@ class TestFinishRouteNoRewardSideEffects:
         assert resp.get_json()['passed'] is True
         assert calls == []
 
-    def test_grant_coins_when_invoked_always_bypasses_daily_cap(self, client, app_module, patched_get_db, stub_adventure_state, monkeypatch):
+    def test_legacy_coin_grant_is_not_called_on_a_passing_finish(self, client, app_module, patched_get_db, stub_adventure_state, monkeypatch):
         calls = []
-        real_grant_coins = app_module._grant_coins
-
-        def spy(conn, uid, amount, reason, bypass_daily_cap=False):
-            calls.append({'amount': amount, 'reason': reason, 'bypass_daily_cap': bypass_daily_cap})
-            return real_grant_coins(conn, uid, amount, reason, bypass_daily_cap=bypass_daily_cap)
-
-        monkeypatch.setattr(app_module, '_grant_coins', spy)
+        monkeypatch.setattr(app_module, '_grant_coins', lambda *args, **kwargs: calls.append(args))
 
         uid = 12
         qids = list(range(5101, 5121))
@@ -504,8 +498,8 @@ class TestFinishRouteNoRewardSideEffects:
 
         resp = client.post('/api/adventure/boss/finish', json={})
         assert resp.status_code == 200
-        assert len(calls) == 1
-        assert calls[0]['bypass_daily_cap'] is True
+        assert calls == []
+        assert resp.get_json()['reward']['coins'] == 0
 
     def test_source_contains_no_direct_currency_writes_bypassing_grant_coins(self):
         # boss/finish may call the reused, audited _grant_coins() helper,
@@ -517,7 +511,7 @@ class TestFinishRouteNoRewardSideEffects:
         finish_start = app_py.index("def adventure_boss_finish()")
         finish_end = app_py.index("\n@app.route(", finish_start + 1)
         section = app_py[start:end] + app_py[finish_start:finish_end]
-        for forbidden in ('_spend_coins', '_coin_balance', 'INSERT INTO currency_log', 'UPDATE user_stats'):
+        for forbidden in ('_spend_coins', '_coin_balance', '_grant_coins(', 'INSERT INTO currency_log', 'UPDATE user_stats'):
             assert forbidden not in section, f"{forbidden} must not appear directly in boss/finish scoring logic"
         assert app_py.count('def _grant_coins(') == 1, "must reuse the single existing _grant_coins(), not fork it"
 
@@ -663,7 +657,9 @@ class TestLordReplayMode:
         assert body['passed'] is True
         assert body['replay'] is True
         assert body['attempt_mode'] == 'replay'
-        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert body['reward']['coins'] == 0
+        assert body['reward']['first_clear'] is False
+        assert body['reward']['status'] == 'NO_REWARD'
         assert body['cooldown_left'] == 0
         assert grants == []
         row = patched_get_db.execute(
@@ -998,7 +994,9 @@ class TestLordReplayModeContinuation:
         body = response.get_json()
         assert body['passed'] is False
         assert body['replay'] is True
-        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert body['reward']['coins'] == 0
+        assert body['reward']['first_clear'] is False
+        assert body['reward']['status'] == 'NO_REWARD'
         assert body['cooldown_left'] == 0
         row = patched_get_db.execute(
             'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?', (uid, 'k26_30')
@@ -1031,7 +1029,9 @@ class TestLordReplayModeContinuation:
         assert body['passed'] is True
         assert body['replay'] is True
         assert body['attempt_mode'] == 'replay'
-        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert body['reward']['coins'] == 0
+        assert body['reward']['first_clear'] is False
+        assert body['reward']['status'] == 'NO_REWARD'
         assert grants == []
         row = patched_get_db.execute(
             'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?', (uid, 'k21_25')

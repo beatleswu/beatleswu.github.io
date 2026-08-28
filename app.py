@@ -237,6 +237,11 @@ from equipment_ownership_service import (
     EquipmentOwnershipError,
     grant_equipment_ownership,
 )
+from battlefield_boss_reward_service import (
+    BattlefieldBossFirstClearSettlement,
+    BattlefieldBossRewardError,
+    grant_battlefield_boss_first_clear_reward,
+)
 from equipment_loadout_service import (
     EquipmentLoadoutError,
     equip_owned_item,
@@ -11018,9 +11023,6 @@ def _new_adventure_boss_attempt_id():
     # reserved prefix it remains below review_log.source_context's 40-char
     # contract and is not guessable from a timestamp or zone key.
     return secrets.token_urlsafe(18)
-# Fixed, same for every zone. Achievement-style, one-time reward -- granted
-# via _grant_coins(bypass_daily_cap=True), never subject to the daily coin cap.
-ADVENTURE_FIRST_CLEAR_REWARD_COINS = 200
 
 
 def _adventure_first_clear_operation_id(uid, zone_key):
@@ -12384,20 +12386,42 @@ def adventure_boss_finish():
         is_replay = settlement['is_replay']
         is_first_clear = settlement['is_first_clear']
 
-        # Same transaction as the clear-progress upsert above: if the reward
-        # grant fails, the whole `with` block rolls back (db.py commits on
-        # clean exit, rolls back on exception) -- a boss clear can never be
-        # recorded without its first-clear reward, or vice versa.
-        reward_coins = 0
-        if is_first_clear:
-            reward_coins = _grant_coins(
-                conn, uid, ADVENTURE_FIRST_CLEAR_REWARD_COINS,
-                f'adventure_first_clear:{zone_key}', bypass_daily_cap=True,
+        # The attempt result is the only first-clear authority.  F028 owns
+        # Mapping A resolution and writes the existing wardrobe authority in
+        # this same caller transaction; no request-body reward id is read.
+        try:
+            boss_settlement = BattlefieldBossFirstClearSettlement.from_authoritative_attempt(
+                user_id=uid,
+                zone_key=zone_key,
+                passed=passed,
+                attempt_result=settlement,
             )
+            reward_result = grant_battlefield_boss_first_clear_reward(
+                conn,
+                boss_settlement,
+                appearance_definitions=APPEARANCE_DEFS,
+                presentation_registry=PURE_COSMETIC_PRESENTATION_REGISTRY,
+                appearance_effects=APPEARANCE_EFFECTS,
+                obtained_at=now,
+            )
+        except BattlefieldBossRewardError as exc:
+            # A catalog/identity failure must not commit the progress
+            # transition without its first-clear reward.  Keep the exam in
+            # session so a corrected retry can be attempted; do not report a
+            # successful Boss finish.
+            conn.rollback()
+            return jsonify({'ok': False, 'error': exc.code}), 400
 
     session.pop('adventure_boss_exam', None)
     _clear_adventure_state_cache(uid)
     map_state = _adventure_map_state(uid)
+    reward_payload = {
+        # Preserve the existing response key without a currency fallback or
+        # already-owned compensation.  The rest is the server-authored F028
+        # projection consumed by F029.
+        'coins': 0,
+        **reward_result.as_response(),
+    }
     return jsonify({
         'ok': True,
         'passed': passed,
@@ -12407,7 +12431,8 @@ def adventure_boss_finish():
         'cooldown_left': 0 if is_replay else (0 if passed else BOSS_FAIL_COOLDOWN),
         'attempt_mode': 'replay' if is_replay else 'first_clear',
         'replay': is_replay,
-        'reward': {'coins': reward_coins, 'first_clear': is_first_clear},
+        'reward': reward_payload,
+        'reward_item': reward_payload['reward_item'],
         **map_state,
     })
 

@@ -1,17 +1,9 @@
-"""Regression tests for the Adventure First Zone Clear Reward Sprint
-(feat: grant first-clear adventure rewards).
+"""Regression tests for the live Battlefield Boss first-clear reward route.
 
-Built directly on PR #211's server-authoritative boss/finish scoring
-(app.py's `_adventure_boss_authoritative_result`) -- this Sprint adds
-exactly one further mutation to the SAME transaction that already upserts
-`adventure_boss_progress`: a fixed 200-Coin grant via the existing,
-unmodified `_grant_coins(..., bypass_daily_cap=True)` helper, gated
-strictly on a genuine first-clear transition (`is_first_clear`, computed
-from the same `existing`/`passed` values the progress upsert itself uses).
-
-No second Coins system, no new API route, no schema change: the reward is
-folded into the same `/api/adventure/boss/finish` response as
-`reward: {coins, first_clear}`.
+F030 replaces the historical coin-only first-clear projection with the
+server-authored F028 Mapping A wardrobe result. The existing finish route,
+authoritative score handoff, and caller-owned transaction remain the scope
+under test; currency must stay at zero and no legacy coin writer may run.
 """
 import sys
 import sqlite3
@@ -101,6 +93,14 @@ def sqlite_conn():
         cleared_at          TEXT,
         updated_at          TEXT,
         PRIMARY KEY (user_id, zone_key)
+    )''')
+    conn.execute('''CREATE TABLE player_wardrobe (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        item_id TEXT NOT NULL,
+        obtained_at TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'drop',
+        UNIQUE(user_id, item_id)
     )''')
     conn.execute('''CREATE TABLE user_stats (
         user_id INTEGER PRIMARY KEY,
@@ -228,7 +228,7 @@ def _coins_and_log(conn, uid):
 
 
 class TestFirstClearGrantsReward:
-    def test_first_clear_grants_200_coins(self, client, app_module, patched_get_db, stub_adventure_state):
+    def test_first_clear_grants_mapping_a_wardrobe_item_without_coins(self, client, app_module, patched_get_db, stub_adventure_state):
         uid = 101
         qids = list(range(11001, 11021))
         _seed_full_pass_evidence(patched_get_db, uid, qids)
@@ -239,13 +239,18 @@ class TestFirstClearGrantsReward:
         assert resp.status_code == 200
         body = resp.get_json()
         assert body['passed'] is True
-        assert body['reward'] == {'coins': 200, 'first_clear': True}
+        assert body['reward']['coins'] == 0
+        assert body['reward']['first_clear'] is True
+        assert body['reward']['status'] == 'GRANTED'
+        assert body['reward']['item_id'] == 'robe_dragon'
 
         coins, log = _coins_and_log(patched_get_db, uid)
-        assert coins == 200
-        assert len(log) == 1
-        assert log[0]['delta'] == 200
-        assert log[0]['reason'] == f'adventure_first_clear:{ZONE_KEY}'
+        assert coins == 0
+        assert log == []
+        assert patched_get_db.execute(
+            'SELECT COUNT(*) FROM player_wardrobe WHERE user_id=? AND item_id=?',
+            (uid, 'robe_dragon'),
+        ).fetchone()[0] == 1
 
     def test_pass_after_failed_attempt_claims_atomic_first_clear_once(
         self, client, app_module, patched_get_db, stub_adventure_state
@@ -267,7 +272,7 @@ class TestFirstClearGrantsReward:
         response = client.post('/api/adventure/boss/finish', json={})
 
         assert response.status_code == 200
-        assert response.get_json()['reward'] == {'coins': 200, 'first_clear': True}
+        assert response.get_json()['reward']['status'] == 'GRANTED'
         row = patched_get_db.execute(
             'SELECT cleared, attempts FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
             (uid, ZONE_KEY),
@@ -275,19 +280,19 @@ class TestFirstClearGrantsReward:
         assert row['cleared'] == 1
         assert row['attempts'] == 2
         coins, log = _coins_and_log(patched_get_db, uid)
-        assert coins == 200
-        assert len(log) == 1
+        assert coins == 0
+        assert log == []
 
 
 class TestAlreadyClearedGrantsNothing:
-    def test_already_cleared_zone_grants_zero_coins(self, client, app_module, patched_get_db, stub_adventure_state):
+    def test_already_cleared_zone_grants_no_second_reward(self, client, app_module, patched_get_db, stub_adventure_state):
         uid = 102
         qids_first = list(range(12001, 12021))
         _seed_full_pass_evidence(patched_get_db, uid, qids_first)
         _login(client, uid)
         _set_exam(client, _exam(qids_first))
         first = client.post('/api/adventure/boss/finish', json={})
-        assert first.get_json()['reward']['coins'] == 200
+        assert first.get_json()['reward']['status'] == 'GRANTED'
 
         # A second, later, independent clear attempt (fresh boss/start ->
         # fresh question set) of the SAME already-cleared zone must not pay out again.
@@ -298,15 +303,17 @@ class TestAlreadyClearedGrantsNothing:
         assert second.status_code == 200
         body = second.get_json()
         assert body['passed'] is True
-        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert body['reward']['coins'] == 0
+        assert body['reward']['first_clear'] is False
+        assert body['reward']['status'] == 'NO_REWARD'
 
         coins, log = _coins_and_log(patched_get_db, uid)
-        assert coins == 200  # unchanged from the first clear
-        assert len(log) == 1  # no second currency_log row
+        assert coins == 0
+        assert log == []
 
 
 class TestReplayGrantsNothing:
-    def test_replay_without_fresh_start_grants_zero_coins(self, client, app_module, patched_get_db, stub_adventure_state):
+    def test_replay_without_fresh_start_grants_no_reward(self, client, app_module, patched_get_db, stub_adventure_state):
         uid = 103
         qids = list(range(13001, 13021))
         _seed_full_pass_evidence(patched_get_db, uid, qids)
@@ -314,7 +321,7 @@ class TestReplayGrantsNothing:
         _set_exam(client, _exam(qids))
 
         first = client.post('/api/adventure/boss/finish', json={})
-        assert first.get_json()['reward'] == {'coins': 200, 'first_clear': True}
+        assert first.get_json()['reward']['status'] == 'GRANTED'
 
         # Session's exam slot was popped on completion -- an immediate
         # second call (no fresh boss/start) must be rejected outright, not
@@ -324,12 +331,12 @@ class TestReplayGrantsNothing:
         assert second.get_json()['error'] == 'no_active_exam'
 
         coins, log = _coins_and_log(patched_get_db, uid)
-        assert coins == 200
-        assert len(log) == 1
+        assert coins == 0
+        assert log == []
 
 
 class TestForgedScoreGrantsNothing:
-    def test_forged_perfect_score_with_failing_evidence_grants_zero_coins(self, client, app_module, patched_get_db, stub_adventure_state):
+    def test_forged_perfect_score_with_failing_evidence_grants_no_reward(self, client, app_module, patched_get_db, stub_adventure_state):
         uid = 104
         qids = list(range(14001, 14021))
         _seed_full_fail_evidence(patched_get_db, uid, qids, correct_count=0)
@@ -342,7 +349,9 @@ class TestForgedScoreGrantsNothing:
         body = resp.get_json()
         assert body['passed'] is False
         assert body['correct'] == 0
-        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert body['reward']['coins'] == 0
+        assert body['reward']['first_clear'] is False
+        assert body['reward']['status'] == 'NO_REWARD'
 
         coins, log = _coins_and_log(patched_get_db, uid)
         assert coins == 0
@@ -350,7 +359,7 @@ class TestForgedScoreGrantsNothing:
 
 
 class TestDailyCapDoesNotBlockFirstClear:
-    def test_daily_cap_already_reached_still_grants_full_200(self, client, app_module, patched_get_db, stub_adventure_state):
+    def test_daily_coin_cap_is_irrelevant_to_mapping_a_first_clear(self, client, app_module, patched_get_db, stub_adventure_state):
         uid = 105
         # Simulate the user already having earned the full daily cap today
         # via ordinary (non-adventure) income.
@@ -374,14 +383,16 @@ class TestDailyCapDoesNotBlockFirstClear:
         resp = client.post('/api/adventure/boss/finish', json={})
         assert resp.status_code == 200
         body = resp.get_json()
-        assert body['reward'] == {'coins': 200, 'first_clear': True}
+        assert body['reward']['coins'] == 0
+        assert body['reward']['first_clear'] is True
+        assert body['reward']['status'] == 'GRANTED'
 
         coins, _ = _coins_and_log(patched_get_db, uid)
-        assert coins == app_module._COIN_DAILY_CAP + 200
+        assert coins == app_module._COIN_DAILY_CAP
 
 
 class TestCurrencyLogRecordsReward:
-    def test_currency_log_entry_is_zone_specific_and_auditable(self, client, app_module, patched_get_db, stub_adventure_state):
+    def test_mapping_a_reward_does_not_write_currency_log(self, client, app_module, patched_get_db, stub_adventure_state):
         uid = 106
         qids = list(range(16001, 16021))
         _seed_full_pass_evidence(patched_get_db, uid, qids)
@@ -389,13 +400,9 @@ class TestCurrencyLogRecordsReward:
         _set_exam(client, _exam(qids))
 
         client.post('/api/adventure/boss/finish', json={})
-        row = patched_get_db.execute(
-            'SELECT user_id, delta, balance_after, reason FROM currency_log WHERE user_id=?', (uid,)
-        ).fetchone()
-        assert row['user_id'] == uid
-        assert row['delta'] == 200
-        assert row['balance_after'] == 200
-        assert row['reason'] == 'adventure_first_clear:k1_5'
+        assert patched_get_db.execute(
+            'SELECT COUNT(*) FROM currency_log WHERE user_id=?', (uid,)
+        ).fetchone()[0] == 0
 
 
 class TestRewardAndClearAreSameTransaction:
@@ -407,15 +414,15 @@ class TestRewardAndClearAreSameTransaction:
         _set_exam(client, _exam(qids))
 
         def boom(*args, **kwargs):
-            raise RuntimeError("simulated coin-grant failure")
+            raise RuntimeError("simulated wardrobe-grant failure")
 
-        monkeypatch.setattr(app_module, '_grant_coins', boom)
+        monkeypatch.setattr(app_module, 'grant_battlefield_boss_first_clear_reward', boom)
 
         with pytest.raises(RuntimeError):
             client.post('/api/adventure/boss/finish', json={})
 
         # Nothing must be half-committed: no adventure_boss_progress row,
-        # no coins, no currency_log entry.
+        # no wardrobe row and no currency_log entry.
         progress_row = patched_get_db.execute(
             'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?', (uid, ZONE_KEY)
         ).fetchone()
@@ -444,7 +451,9 @@ class TestLegacyFlowUnaffected:
         assert body['passed'] is False
         assert body['correct'] == 10
         assert body['cooldown_left'] == app_module.BOSS_FAIL_COOLDOWN
-        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert body['reward']['coins'] == 0
+        assert body['reward']['first_clear'] is False
+        assert body['reward']['status'] == 'NO_REWARD'
 
 
 class TestNoSecondRewardSystemIntroduced:
@@ -452,5 +461,6 @@ class TestNoSecondRewardSystemIntroduced:
         app_py = _read(REPO_ROOT / 'app.py')
         for forbidden_route in ("'/api/adventure/reward'", "'/reward'", "'/grant'"):
             assert forbidden_route not in app_py
-        # Exactly one _grant_coins definition -- PR2 must reuse it, not fork it.
+        # Exactly one legacy currency helper remains; F030 must not call or
+        # fork it for the Mapping A reward.
         assert app_py.count('def _grant_coins(') == 1
