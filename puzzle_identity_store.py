@@ -44,6 +44,8 @@ class PuzzleIdentityError(RuntimeError):
 class AmbiguousAliasError(PuzzleIdentityError):
     """An alias resolves to more than one identity — never auto-merge."""
 
+    candidates: tuple[str, ...] = ()
+
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -519,23 +521,54 @@ class PuzzleIdentityStore:
 
     # ---- resolver (exact / missing / ambiguous fail-closed) ---- #
 
+    def has_identity_tables(self) -> bool:
+        """True iff this candidate's tables exist on the connection.
+
+        A missing table surfaces as a driver error (SQLite ``OperationalError``,
+        PostgreSQL ``UndefinedTable``); either way the read window degrades to
+        UNAVAILABLE rather than raising into a caller.
+        """
+        try:
+            self._one("SELECT 1 FROM puzzle_identity_alias WHERE 1=0")
+            self._one("SELECT 1 FROM puzzle_identity_registry WHERE 1=0")
+            return True
+        except Exception:  # noqa: BLE001
+            try:
+                if hasattr(self._conn, "rollback"):
+                    self._conn.rollback()  # clear an aborted PG transaction
+            except Exception:  # noqa: BLE001
+                pass
+            return False
+
     def resolve(self, alias_kind: str, alias_value: str, *,
-                alias_context: str = DEFAULT_ALIAS_CONTEXT) -> dict[str, Any]:
+                alias_context: str | None = DEFAULT_ALIAS_CONTEXT) -> dict[str, Any]:
+        """Resolve one alias.  ``alias_context=None`` means *any* context — the
+        distinct-uuid check across contexts is what makes cross-context
+        ambiguity fail closed."""
         if alias_kind not in ALIAS_KINDS:
             raise PuzzleIdentityError(f"unsupported alias_kind: {alias_kind}")
-        rows = self._all(
-            "SELECT source_record_uuid FROM puzzle_identity_alias "
-            "WHERE alias_kind=? AND alias_value=? AND alias_context=? AND is_current = ?",
-            (alias_kind, str(alias_value), alias_context, True),
-        )
+        if alias_context is None:
+            rows = self._all(
+                "SELECT source_record_uuid FROM puzzle_identity_alias "
+                "WHERE alias_kind=? AND alias_value=? AND is_current = ?",
+                (alias_kind, str(alias_value), True),
+            )
+        else:
+            rows = self._all(
+                "SELECT source_record_uuid FROM puzzle_identity_alias "
+                "WHERE alias_kind=? AND alias_value=? AND alias_context=? AND is_current = ?",
+                (alias_kind, str(alias_value), alias_context, True),
+            )
         uuids = sorted({str(self._val(r, 0, "source_record_uuid")) for r in rows})
         if not uuids:
             return {"status": "MISSING", "source_record_uuid": None}
         if len(uuids) > 1:
-            raise AmbiguousAliasError(
+            exc = AmbiguousAliasError(
                 f"alias ({alias_kind}, {alias_value}, {alias_context}) resolves to "
                 f"{len(uuids)} identities: {uuids}"
             )
+            exc.candidates = tuple(uuids)
+            raise exc
         ident = self.get_identity(uuids[0]) or {}
         status = "RETIRED" if ident.get("identity_status") == "RETIRED" else "EXACT"
         return {
@@ -543,6 +576,85 @@ class PuzzleIdentityStore:
             "source_record_uuid": uuids[0],
             "identity_status": ident.get("identity_status"),
         }
+
+    def resolve_batch(self, alias_kind: str, alias_values: Sequence[Any], *,
+                      alias_context: str | None = None) -> dict[str, dict[str, Any]]:
+        """Resolve many alias values in one query (SRS / review_log aggregates).
+
+        Returns ``{str(value): {status, source_record_uuid, identity_status,
+        candidates}}`` — EXACT / RETIRED / MISSING / AMBIGUOUS, never raises for
+        an ambiguous value (it is reported as its own fail-closed row)."""
+        if alias_kind not in ALIAS_KINDS:
+            raise PuzzleIdentityError(f"unsupported alias_kind: {alias_kind}")
+        wanted = [str(v) for v in alias_values]
+        out: dict[str, dict[str, Any]] = {
+            v: {"status": "MISSING", "source_record_uuid": None} for v in wanted
+        }
+        if not wanted:
+            return out
+        by_value: dict[str, set[str]] = {}
+        for chunk_start in range(0, len(wanted), 400):
+            chunk = wanted[chunk_start:chunk_start + 400]
+            placeholders = ",".join("?" * len(chunk))
+            if alias_context is None:
+                sql = ("SELECT alias_value, source_record_uuid FROM puzzle_identity_alias "
+                       f"WHERE alias_kind=? AND is_current = ? AND alias_value IN ({placeholders})")
+                params = [alias_kind, True, *chunk]
+            else:
+                sql = ("SELECT alias_value, source_record_uuid FROM puzzle_identity_alias "
+                       f"WHERE alias_kind=? AND alias_context=? AND is_current = ? "
+                       f"AND alias_value IN ({placeholders})")
+                params = [alias_kind, alias_context, True, *chunk]
+            for r in self._all(sql, tuple(params)):
+                v = str(self._val(r, 0, "alias_value"))
+                by_value.setdefault(v, set()).add(str(self._val(r, 1, "source_record_uuid")))
+        statuses: dict[str, str] = {}
+        for v, us in by_value.items():
+            if len(us) > 1:
+                out[v] = {"status": "AMBIGUOUS", "source_record_uuid": None,
+                          "candidates": tuple(sorted(us))}
+            else:
+                statuses[v] = next(iter(us))
+        if statuses:
+            uniq = sorted(set(statuses.values()))
+            ph = ",".join("?" * len(uniq))
+            state = {}
+            for r in self._all(
+                "SELECT source_record_uuid, identity_status FROM puzzle_identity_registry "
+                f"WHERE source_record_uuid IN ({ph})", tuple(uniq)
+            ):
+                state[str(self._val(r, 0, "source_record_uuid"))] = self._val(r, 1, "identity_status")
+            for v, u in statuses.items():
+                st = "RETIRED" if state.get(u) == "RETIRED" else "EXACT"
+                out[v] = {"status": st, "source_record_uuid": u,
+                          "identity_status": state.get(u)}
+        return out
+
+    def aliases_of_kind(self, source_record_uuid: str, alias_kind: str, *,
+                        current_only: bool = True) -> list[str]:
+        """Reverse lookup: an identity's alias values of one kind (admin/audit)."""
+        u = _validate_uuid(source_record_uuid)
+        if alias_kind not in ALIAS_KINDS:
+            raise PuzzleIdentityError(f"unsupported alias_kind: {alias_kind}")
+        sql = ("SELECT alias_value FROM puzzle_identity_alias "
+               "WHERE source_record_uuid=? AND alias_kind=?")
+        params: list[Any] = [u, alias_kind]
+        if current_only:
+            sql += " AND is_current = ?"
+            params.append(True)
+        sql += " ORDER BY id"
+        return [str(self._val(r, 0, "alias_value")) for r in self._all(sql, tuple(params))]
+
+    def count_identities(self) -> int:
+        row = self._one("SELECT COUNT(*) FROM puzzle_identity_registry")
+        return int(self._val(row, 0, "count") or 0)
+
+    def genesis_bootstrap_applied(self) -> bool:
+        row = self._one(
+            "SELECT status FROM puzzle_identity_bootstrap_receipt "
+            "WHERE bootstrap_singleton='GENESIS'"
+        )
+        return bool(row) and str(self._val(row, 0, "status")) == "APPLIED"
 
 
 __all__ = [
