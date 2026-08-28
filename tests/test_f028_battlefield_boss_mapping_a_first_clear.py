@@ -10,10 +10,13 @@ route is already wired.
 from __future__ import annotations
 
 import ast
+import os
 import sqlite3
 from pathlib import Path
 
 import pytest
+
+os.environ.setdefault("SECRET_KEY", "f028-disposable-test-secret")
 
 from battlefield_boss_reward_service import (
     ALREADY_OWNED,
@@ -179,6 +182,21 @@ def test_f027_dependency_and_locked_zone_topology_are_exact():
     assert tuple(BATTLEFIELD_BOSS_MAPPING_A_ZONE_BY_ZONE.values()) == tuple(
         entry.zone for entry in MAPPING_A_CATALOG
     )
+
+
+def test_all_ten_resolve_against_current_app_catalog_and_presentation_contract():
+    import app as app_module
+
+    for zone_key in BATTLEFIELD_BOSS_ZONE_KEYS:
+        reward = resolve_battlefield_boss_mapping_a_reward(
+            zone_key,
+            appearance_definitions=app_module.APPEARANCE_DEFS,
+            presentation_registry=app_module.PURE_COSMETIC_PRESENTATION_REGISTRY,
+            appearance_effects=app_module.APPEARANCE_EFFECTS,
+        )
+        assert reward.item_id == BATTLEFIELD_BOSS_MAPPING_A_ITEM_BY_ZONE[zone_key]
+        assert reward.presentation["combat_authority"] == "NO"
+        assert reward.presentation["functional_effect_count"] == 0
     assert tuple(BATTLEFIELD_BOSS_MAPPING_A_ITEM_BY_ZONE.values()) == MAPPING_A_IDS
     assert all(
         resolve_battlefield_boss_mapping_a_reward(
