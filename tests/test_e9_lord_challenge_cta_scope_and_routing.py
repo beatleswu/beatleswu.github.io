@@ -290,6 +290,18 @@ async function main() {
   const calls = { boss: [], ordinary: [], cinematic: [], ensure: [], events: [] };
   const sandbox = {
     console,
+    // worldStageState() now reads the real component's DOM-owned state before
+    // dispatching.  This is the smallest test-only DOM adapter that keeps
+    // the extracted production functions on their actual readiness path;
+    // it does not reimplement CTA routing or application behavior.
+    document: {
+      querySelector: function (selector) {
+        if (selector === '#e9-world-stage-slot') {
+          return { __e9WorldStageState: { questionRuntimeState: 'ready' } };
+        }
+        return null;
+      },
+    },
     t: function (key, fallback) { return fallback; },
     window: {
       __GO_E10_BATTLE_LIFECYCLE__: undefined,

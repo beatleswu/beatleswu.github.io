@@ -1,7 +1,13 @@
-"""D011 disposable PostgreSQL proof for Adventure first-clear settlement.
+"""D011 disposable PostgreSQL proof for Adventure first-clear CAS behavior.
 
 The test is deliberately opt-in.  It refuses to connect unless the caller
 provides an explicitly disposable URL and an explicit safety marker.
+
+Current F030/F028 Mapping A owns first-clear reward settlement as wardrobe
+ownership.  These PostgreSQL tests retain the database-level clear CAS,
+retry, and rollback proof and explicitly ensure the retired legacy coin grant
+does not return; Mapping A ownership settlement is covered by the F028/F030
+authority suites.
 """
 
 from __future__ import annotations
@@ -112,14 +118,6 @@ def _run_first_clear(url: str, barrier: threading.Barrier, outcomes, errors) -> 
             0,
             "2026-08-24T12:00:00",
         )
-        if result["is_first_clear"]:
-            app_module._grant_coins(
-                conn,
-                9001,
-                app_module.ADVENTURE_FIRST_CLEAR_REWARD_COINS,
-                f"adventure_first_clear:{ZONE_KEY}",
-                bypass_daily_cap=True,
-            )
         conn.commit()
         outcomes.append(result)
     except Exception as exc:  # pragma: no cover - assertion reports details
@@ -129,7 +127,7 @@ def _run_first_clear(url: str, barrier: threading.Barrier, outcomes, errors) -> 
         conn.close()
 
 
-def test_concurrent_first_clear_has_one_winner_and_one_coin_grant(disposable_postgres):
+def test_concurrent_first_clear_has_one_winner_and_no_legacy_coin_grant(disposable_postgres):
     barrier = threading.Barrier(2)
     outcomes = []
     errors = []
@@ -170,12 +168,12 @@ def test_concurrent_first_clear_has_one_winner_and_one_coin_grant(disposable_pos
 
     assert progress["cleared"] == 1
     assert progress["attempts"] == 2
-    assert reward["count"] == 1
-    assert reward["total"] == app_module.ADVENTURE_FIRST_CLEAR_REWARD_COINS
-    assert balance["coins"] == app_module.ADVENTURE_FIRST_CLEAR_REWARD_COINS
+    assert reward["count"] == 0
+    assert reward["total"] == 0
+    assert balance is None
 
 
-def test_first_clear_retry_replays_without_second_reward(disposable_postgres):
+def test_first_clear_retry_replays_without_legacy_coin_grant(disposable_postgres):
     conn = _connect(disposable_postgres)
     try:
         first = app_module._adventure_boss_record_attempt(
@@ -186,13 +184,6 @@ def test_first_clear_retry_replays_without_second_reward(disposable_postgres):
             "is_replay": False,
             "is_first_clear": True,
         }
-        app_module._grant_coins(
-            conn,
-            9002,
-            app_module.ADVENTURE_FIRST_CLEAR_REWARD_COINS,
-            f"adventure_first_clear:{ZONE_KEY}",
-            bypass_daily_cap=True,
-        )
         conn.commit()
 
         retry = app_module._adventure_boss_record_attempt(
@@ -218,22 +209,15 @@ def test_first_clear_retry_replays_without_second_reward(disposable_postgres):
 
     assert progress["cleared"] == 1
     assert progress["attempts"] == 2
-    assert reward["count"] == 1
+    assert reward["count"] == 0
 
 
-def test_rollback_removes_clear_and_reward(disposable_postgres):
+def test_rollback_removes_clear_and_legacy_coin_state(disposable_postgres):
     conn = _connect(disposable_postgres)
     try:
         with pytest.raises(RuntimeError, match="forced D011 rollback"):
             app_module._adventure_boss_record_attempt(
                 conn, 9003, ZONE_KEY, True, 20, 0, "2026-08-24T12:00:00"
-            )
-            app_module._grant_coins(
-                conn,
-                9003,
-                app_module.ADVENTURE_FIRST_CLEAR_REWARD_COINS,
-                f"adventure_first_clear:{ZONE_KEY}",
-                bypass_daily_cap=True,
             )
             raise RuntimeError("forced D011 rollback")
     finally:

@@ -380,7 +380,13 @@ def test_sw_cache_identity_upgrade_contract_is_explicit():
     # The static-coherence repair intentionally changes cache identity and
     # activation semantics so a new worker can retire stale E10 bundles.
     sw_js = _read(SW_JS)
-    assert sw_js.count("const VERSION") == 1
+    # Historical superseded identities remain in explanatory comments.  Only
+    # an executable declaration owns the current cache namespace.
+    declarations = [
+        line for line in sw_js.splitlines()
+        if line.strip().startswith("const VERSION")
+    ]
+    assert len(declarations) == 1, declarations
     assert "self.addEventListener('fetch'" in sw_js
     assert "self.addEventListener('install'" in sw_js
     assert "self.addEventListener('activate'" in sw_js

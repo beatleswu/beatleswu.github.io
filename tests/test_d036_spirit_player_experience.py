@@ -4,15 +4,12 @@ import datetime as dt
 import contextlib
 import importlib.util
 from pathlib import Path
-import socket
-import subprocess
 import sys
-import time
-import uuid
 
 import pytest
 
 from lord_trial_answer_service import encode_lord_trial_verdict
+from tests.postgres_test_harness import disposable_postgres
 
 
 TESTS_DIR = Path(__file__).resolve().parent
@@ -295,72 +292,14 @@ def _load_postgres_helpers():
 
 @contextlib.contextmanager
 def _d036_postgres_container(helpers):
-    """Start disposable PostgreSQL with the proven bounded readiness window."""
+    """Start D036 PostgreSQL through the shared health-gated harness."""
 
-    if not helpers._docker_available():
-        pytest.skip("Docker server unavailable for D036 disposable PostgreSQL proof")
-    name = f"go-odyssey-d036-pg-{uuid.uuid4().hex[:10]}"
-    run = subprocess.run(
-        [
-            "docker", "run", "--rm", "-d", "--name", name,
-            "-e", "POSTGRES_PASSWORD=go", "-e", "POSTGRES_USER=go",
-            "-e", "POSTGRES_DB=go_odyssey", "-p", "127.0.0.1::5432",
-            "postgres:16-alpine",
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-        timeout=120,
-    )
-    container_id = run.stdout.strip()
-
-    def wait_for_port(host, port, timeout=90.0):
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-                sock.settimeout(0.5)
-                if sock.connect_ex((host, port)) == 0:
-                    return
-            time.sleep(0.25)
-        raise TimeoutError(f"D036 disposable PostgreSQL port did not become ready: {host}:{port}")
-
-    def wait_for_postgres(database_url, timeout=90.0):
-        import psycopg2
-
-        deadline = time.time() + timeout
-        last_error = None
-        while time.time() < deadline:
-            try:
-                probe = psycopg2.connect(database_url, connect_timeout=3)
-                probe.close()
-                return
-            except Exception as exc:  # pragma: no cover - environment timing
-                last_error = exc
-                time.sleep(0.5)
-        raise last_error
-
-    try:
-        port_result = subprocess.run(
-            ["docker", "port", container_id, "5432/tcp"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=30,
-        )
-        host, port_text = port_result.stdout.strip().rsplit(":", 1)
-        port = int(port_text)
-        wait_for_port(host, port)
-        database_url = f"postgresql://go:go@{host}:{port}/go_odyssey"
-        wait_for_postgres(database_url)
-        yield database_url
-    finally:
-        subprocess.run(
-            ["docker", "rm", "-f", container_id],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
+    # Keep the helpers argument for the existing dynamic-import seam used by
+    # this test; its wrapper remains the source of the Postgres connection
+    # adapter, while lifecycle/readiness is centralized here.
+    del helpers
+    with disposable_postgres(name_prefix="go-odyssey-d036-pg") as record:
+        yield record["database_url"]
 
 
 def test_disposable_postgres_d036_unlock_response_and_status_rehydrate(
