@@ -1,0 +1,524 @@
+"""Repository for the Immutable Puzzle Identity registry, aliases and lineage.
+
+Storage foundation only (LC013).  This module never populates the 42,804 frozen
+genesis identities and never wires application call sites.  It provides the
+narrow, transaction-safe operations a future owner-gated bootstrap and a future
+resolver will build on:
+
+  * create a HISTORICAL_GENESIS identity (UUIDv5, genesis-receipt bound)
+  * create a NATIVE_UUIDV4 identity (persisted once)
+  * rename / move  -> same source_record_uuid, superseded alias + lineage event
+  * content-correction  -> lineage only, and only with explicit reviewed continuity
+  * replacement / split / merge  -> never reuse an existing UUID
+  * retire / restore  -> status change, identity stays resolvable
+  * resolve(alias)  -> exact / missing / ambiguous(fail-closed) / retired
+
+The current/live source path is an *alias*, never the identity key.
+``source_record_uuid`` is immutable (DB-enforced) and lineage is append-only
+(DB-enforced); this module additionally fails closed *before* touching the DB.
+"""
+from __future__ import annotations
+
+import uuid as _uuid
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import Any, Iterable, Iterator, Sequence
+
+from migrations.puzzle_identity_registry_v1 import (
+    ALIAS_KINDS,
+    IDENTITY_SCHEMA_VERSION,
+    LINEAGE_EVENT_TYPES,
+    LINEAGE_MUTATION_EVENTS,
+)
+
+GENESIS_CREATED_BY = "lc012_p2_genesis_bootstrap"
+NATIVE_CREATED_BY_DEFAULT = "native_authoring"
+DEFAULT_ALIAS_CONTEXT = "genesis-v1"
+POST_GENESIS_ALIAS_CONTEXT = "post-genesis"
+
+
+class PuzzleIdentityError(RuntimeError):
+    """Fail-closed puzzle-identity storage error."""
+
+
+class AmbiguousAliasError(PuzzleIdentityError):
+    """An alias resolves to more than one identity — never auto-merge."""
+
+
+def _iso_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _validate_uuid(value: str, *, expect_version: int | None = None) -> str:
+    try:
+        parsed = _uuid.UUID(str(value))
+    except (ValueError, AttributeError, TypeError) as exc:
+        raise PuzzleIdentityError(f"not a valid UUID: {value!r}") from exc
+    if str(parsed) != str(value).lower():
+        raise PuzzleIdentityError(f"non-canonical UUID text: {value!r}")
+    if expect_version is not None and parsed.version != expect_version:
+        raise PuzzleIdentityError(
+            f"expected UUIDv{expect_version}, got v{parsed.version}: {value}"
+        )
+    return str(parsed)
+
+
+class PuzzleIdentityStore:
+    def __init__(self, conn: Any, *, clock: Any = _iso_now) -> None:
+        self._conn = conn
+        self._clock = clock
+        self._sp = 0
+
+    # ---- low level -------------------------------------------------------- #
+
+    def _exec(self, sql: str, params: Sequence[Any] = ()) -> Any:
+        if hasattr(self._conn, "execute"):
+            return self._conn.execute(sql, tuple(params))
+        cur = self._conn.cursor()
+        cur.execute(sql.replace("?", "%s"), tuple(params))
+        return cur
+
+    def _one(self, sql: str, params: Sequence[Any] = ()) -> Any:
+        cur = self._exec(sql, params)
+        row = cur.fetchone()
+        if not hasattr(self._conn, "execute"):
+            cur.close()
+        return row
+
+    def _all(self, sql: str, params: Sequence[Any] = ()) -> list[Any]:
+        cur = self._exec(sql, params)
+        rows = list(cur.fetchall())
+        if not hasattr(self._conn, "execute"):
+            cur.close()
+        return rows
+
+    @staticmethod
+    def _val(row: Any, idx: int, key: str) -> Any:
+        if row is None:
+            return None
+        if hasattr(row, "keys"):
+            try:
+                return row[key]
+            except (KeyError, IndexError):
+                return row[idx]
+        return row[idx]
+
+    @contextmanager
+    def _unit(self, tag: str) -> Iterator[None]:
+        """Atomic sub-operation: SAVEPOINT / RELEASE / ROLLBACK-on-error.
+
+        Independent of the caller's outer transaction — a failed operation
+        leaves no partial registry/alias/lineage state.
+        """
+        self._sp += 1
+        name = f"pis_{tag}_{self._sp}"
+        self._exec(f"SAVEPOINT {name}")
+        try:
+            yield
+        except Exception:
+            self._exec(f"ROLLBACK TO SAVEPOINT {name}")
+            self._exec(f"RELEASE SAVEPOINT {name}")
+            raise
+        else:
+            self._exec(f"RELEASE SAVEPOINT {name}")
+
+    # ---- reads --------------------------------------------------------- #
+
+    def get_identity(self, source_record_uuid: str) -> dict[str, Any] | None:
+        u = _validate_uuid(source_record_uuid)
+        row = self._one(
+            "SELECT source_record_uuid, identity_kind, identity_version, origin_class, "
+            "identity_status, created_at, created_by_process, creation_reason, "
+            "genesis_receipt_ref, retired_at, retire_reason, provenance_note "
+            "FROM puzzle_identity_registry WHERE source_record_uuid=?",
+            (u,),
+        )
+        if row is None:
+            return None
+        cols = [
+            "source_record_uuid", "identity_kind", "identity_version", "origin_class",
+            "identity_status", "created_at", "created_by_process", "creation_reason",
+            "genesis_receipt_ref", "retired_at", "retire_reason", "provenance_note",
+        ]
+        return {c: self._val(row, i, c) for i, c in enumerate(cols)}
+
+    def list_aliases(self, source_record_uuid: str, *, current_only: bool = False) -> list[dict[str, Any]]:
+        u = _validate_uuid(source_record_uuid)
+        sql = (
+            "SELECT alias_kind, alias_value, alias_context, confidence, is_current, "
+            "recorded_at, recorded_by FROM puzzle_identity_alias WHERE source_record_uuid=?"
+        )
+        if current_only:
+            sql += " AND is_current=1"
+        sql += " ORDER BY id"
+        cols = ["alias_kind", "alias_value", "alias_context", "confidence",
+                "is_current", "recorded_at", "recorded_by"]
+        return [
+            {c: self._val(r, i, c) for i, c in enumerate(cols)}
+            for r in self._all(sql, (u,))
+        ]
+
+    def get_lineage(self, source_record_uuid: str) -> list[dict[str, Any]]:
+        u = _validate_uuid(source_record_uuid)
+        cols = ["seq", "event_type", "occurred_at", "actor", "from_value", "to_value",
+                "related_source_record_uuid", "relationship_role", "reason", "evidence_ref"]
+        rows = self._all(
+            "SELECT seq, event_type, occurred_at, actor, from_value, to_value, "
+            "related_source_record_uuid, relationship_role, reason, evidence_ref "
+            "FROM puzzle_identity_lineage WHERE source_record_uuid=? ORDER BY seq",
+            (u,),
+        )
+        return [{c: self._val(r, i, c) for i, c in enumerate(cols)} for r in rows]
+
+    def _next_seq(self, source_record_uuid: str) -> int:
+        row = self._one(
+            "SELECT COALESCE(MAX(seq), 0) FROM puzzle_identity_lineage "
+            "WHERE source_record_uuid=?",
+            (source_record_uuid,),
+        )
+        return int(self._val(row, 0, "coalesce") or 0) + 1
+
+    def _require_identity(self, source_record_uuid: str) -> dict[str, Any]:
+        ident = self.get_identity(source_record_uuid)
+        if ident is None:
+            raise PuzzleIdentityError(f"unknown identity: {source_record_uuid}")
+        return ident
+
+    # ---- alias write helpers ----------------------------------------- #
+
+    def _insert_alias(self, u: str, kind: str, value: str, *, context: str,
+                      confidence: str, recorded_by: str, when: str) -> None:
+        if kind not in ALIAS_KINDS:
+            raise PuzzleIdentityError(f"unsupported alias_kind: {kind}")
+        self._exec(
+            "INSERT INTO puzzle_identity_alias "
+            "(source_record_uuid, alias_kind, alias_value, alias_context, confidence, "
+            " is_current, recorded_at, recorded_by) VALUES (?,?,?,?,?,1,?,?)",
+            (u, kind, value, context, confidence, when, recorded_by),
+        )
+
+    def _supersede_current(self, u: str, kind: str) -> None:
+        self._exec(
+            "UPDATE puzzle_identity_alias SET is_current=0 "
+            "WHERE source_record_uuid=? AND alias_kind=? AND is_current=1",
+            (u, kind),
+        )
+
+    def _append_lineage(self, u: str, event_type: str, *, actor: str, reason: str,
+                        when: str, from_value: str | None = None,
+                        to_value: str | None = None,
+                        related: str | None = None,
+                        role: str | None = None,
+                        evidence_ref: str | None = None) -> int:
+        if event_type not in LINEAGE_EVENT_TYPES:
+            raise PuzzleIdentityError(f"unsupported lineage event_type: {event_type}")
+        seq = self._next_seq(u)
+        self._exec(
+            "INSERT INTO puzzle_identity_lineage "
+            "(source_record_uuid, seq, event_type, occurred_at, actor, from_value, "
+            " to_value, related_source_record_uuid, relationship_role, reason, "
+            " evidence_ref, recorded_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (u, seq, event_type, when, actor, from_value, to_value, related, role,
+             reason, evidence_ref, when),
+        )
+        return seq
+
+    # ---- creation --------------------------------------------------- #
+
+    def create_historical_genesis_identity(
+        self,
+        source_record_uuid: str,
+        *,
+        receipt_sha256: str,
+        canonical_source: str,
+        legacy_question_id: str | int | None = None,
+        historical_source_path: str | None = None,
+        created_by_process: str = GENESIS_CREATED_BY,
+        creation_reason: str,
+        when: str | None = None,
+    ) -> str:
+        u = _validate_uuid(source_record_uuid, expect_version=5)
+        when = when or self._clock()
+        with self._unit("genesis"):
+            self._exec(
+                "INSERT INTO puzzle_identity_registry "
+                "(source_record_uuid, identity_kind, identity_version, origin_class, "
+                " identity_status, created_at, created_by_process, creation_reason, "
+                " genesis_receipt_ref) "
+                "VALUES (?, 'HISTORICAL_GENESIS', ?, 'GENESIS', 'ACTIVE', ?, ?, ?, ?)",
+                (u, IDENTITY_SCHEMA_VERSION, when, created_by_process,
+                 creation_reason, receipt_sha256),
+            )
+            self._insert_alias(u, "CANONICAL_SOURCE_KEY", canonical_source,
+                               context=DEFAULT_ALIAS_CONTEXT, confidence="EXACT",
+                               recorded_by=created_by_process, when=when)
+            self._insert_alias(u, "CURRENT_SOURCE_PATH", canonical_source,
+                               context=DEFAULT_ALIAS_CONTEXT, confidence="EXACT",
+                               recorded_by=created_by_process, when=when)
+            if historical_source_path:
+                self._insert_alias(u, "HISTORICAL_SOURCE_PATH", historical_source_path,
+                                   context=DEFAULT_ALIAS_CONTEXT, confidence="EXACT",
+                                   recorded_by=created_by_process, when=when)
+            if legacy_question_id is not None:
+                self._insert_alias(u, "LEGACY_QUESTION_ID", str(legacy_question_id),
+                                   context=DEFAULT_ALIAS_CONTEXT, confidence="EXACT",
+                                   recorded_by=created_by_process, when=when)
+            self._append_lineage(u, "GENESIS", actor=created_by_process,
+                                 reason=creation_reason, when=when)
+        return u
+
+    def create_native_identity(
+        self,
+        *,
+        source_record_uuid: str | None = None,
+        created_by_process: str = NATIVE_CREATED_BY_DEFAULT,
+        creation_reason: str,
+        current_source_path: str | None = None,
+        legacy_question_id: str | int | None = None,
+        when: str | None = None,
+    ) -> str:
+        if source_record_uuid is None:
+            u = str(_uuid.uuid4())
+        else:
+            u = _validate_uuid(source_record_uuid, expect_version=4)
+        when = when or self._clock()
+        with self._unit("native"):
+            self._exec(
+                "INSERT INTO puzzle_identity_registry "
+                "(source_record_uuid, identity_kind, identity_version, origin_class, "
+                " identity_status, created_at, created_by_process, creation_reason, "
+                " genesis_receipt_ref) "
+                "VALUES (?, 'NATIVE_UUIDV4', ?, 'NATIVE', 'ACTIVE', ?, ?, ?, NULL)",
+                (u, IDENTITY_SCHEMA_VERSION, when, created_by_process, creation_reason),
+            )
+            if current_source_path:
+                self._insert_alias(u, "CURRENT_SOURCE_PATH", current_source_path,
+                                   context=POST_GENESIS_ALIAS_CONTEXT,
+                                   confidence="EXACT", recorded_by=created_by_process,
+                                   when=when)
+            if legacy_question_id is not None:
+                self._insert_alias(u, "LEGACY_QUESTION_ID", str(legacy_question_id),
+                                   context=POST_GENESIS_ALIAS_CONTEXT,
+                                   confidence="RECORDED", recorded_by=created_by_process,
+                                   when=when)
+            self._append_lineage(u, "NATIVE_CREATE", actor=created_by_process,
+                                 reason=creation_reason, when=when)
+        return u
+
+    # ---- generic append ------------------------------------------- #
+
+    def append_lineage_event(self, source_record_uuid: str, event_type: str, *,
+                             actor: str, reason: str, from_value: str | None = None,
+                             to_value: str | None = None,
+                             related_source_record_uuid: str | None = None,
+                             relationship_role: str | None = None,
+                             evidence_ref: str | None = None,
+                             when: str | None = None) -> int:
+        u = _validate_uuid(source_record_uuid)
+        if event_type not in LINEAGE_MUTATION_EVENTS:
+            raise PuzzleIdentityError(
+                f"append_lineage_event only accepts mutation events, not {event_type!r}"
+            )
+        self._require_identity(u)
+        when = when or self._clock()
+        rel = _validate_uuid(related_source_record_uuid) if related_source_record_uuid else None
+        with self._unit("lineage"):
+            return self._append_lineage(u, event_type, actor=actor, reason=reason,
+                                        when=when, from_value=from_value,
+                                        to_value=to_value, related=rel,
+                                        role=relationship_role, evidence_ref=evidence_ref)
+
+    # ---- rename / move (same UUID) ------------------------------- #
+
+    def _relocate(self, u: str, event_type: str, *, from_path: str, to_path: str,
+                  actor: str, reason: str, alias_context: str, when: str) -> int:
+        self._require_identity(u)
+        with self._unit("relocate"):
+            self._supersede_current(u, "CURRENT_SOURCE_PATH")
+            self._insert_alias(u, "CURRENT_SOURCE_PATH", to_path, context=alias_context,
+                               confidence="EXACT", recorded_by=actor, when=when)
+            return self._append_lineage(u, event_type, actor=actor, reason=reason,
+                                        when=when, from_value=from_path, to_value=to_path)
+
+    def record_rename(self, source_record_uuid: str, *, from_path: str, to_path: str,
+                      actor: str, reason: str,
+                      alias_context: str = POST_GENESIS_ALIAS_CONTEXT,
+                      when: str | None = None) -> int:
+        u = _validate_uuid(source_record_uuid)
+        return self._relocate(u, "RENAME", from_path=from_path, to_path=to_path,
+                              actor=actor, reason=reason, alias_context=alias_context,
+                              when=when or self._clock())
+
+    def record_move(self, source_record_uuid: str, *, from_path: str, to_path: str,
+                    actor: str, reason: str,
+                    alias_context: str = POST_GENESIS_ALIAS_CONTEXT,
+                    when: str | None = None) -> int:
+        u = _validate_uuid(source_record_uuid)
+        return self._relocate(u, "MOVE", from_path=from_path, to_path=to_path,
+                              actor=actor, reason=reason, alias_context=alias_context,
+                              when=when or self._clock())
+
+    # ---- content correction (fail closed) ---------------------- #
+
+    def record_content_correction(self, source_record_uuid: str, *, reviewed: bool,
+                                  actor: str, reason: str,
+                                  from_content_sha256: str | None = None,
+                                  to_content_sha256: str | None = None,
+                                  evidence_ref: str | None = None,
+                                  when: str | None = None) -> int:
+        u = _validate_uuid(source_record_uuid)
+        self._require_identity(u)
+        if not reviewed:
+            raise PuzzleIdentityError(
+                "content correction does not auto-preserve identity: a reviewed "
+                "continuity decision (reviewed=True) is required"
+            )
+        when = when or self._clock()
+        with self._unit("content"):
+            return self._append_lineage(
+                u, "CONTENT_CORRECTION", actor=actor, reason=reason, when=when,
+                from_value=from_content_sha256, to_value=to_content_sha256,
+                evidence_ref=evidence_ref,
+            )
+
+    # ---- replacement / split / merge (never reuse a UUID) ----- #
+
+    def record_replacement(self, *, old_source_record_uuid: str,
+                           new_source_record_uuid: str, actor: str, reason: str,
+                           retire_old: bool = True, when: str | None = None) -> None:
+        old = _validate_uuid(old_source_record_uuid)
+        new = _validate_uuid(new_source_record_uuid)
+        if old == new:
+            raise PuzzleIdentityError("replacement must not reuse the old UUID")
+        self._require_identity(old)
+        if self.get_identity(new) is None:
+            raise PuzzleIdentityError(
+                "replacement target identity must be created before replacement"
+            )
+        when = when or self._clock()
+        with self._unit("replace"):
+            if retire_old:
+                self._set_status(old, "RETIRED", reason=reason, when=when)
+            self._append_lineage(old, "REPLACED", actor=actor, reason=reason, when=when,
+                                 related=new, role="SUPERSEDED_BY")
+            self._append_lineage(new, "REPLACED", actor=actor, reason=reason, when=when,
+                                 related=old, role="SUPERSEDES")
+
+    def record_split(self, *, parent_source_record_uuid: str,
+                     child_source_record_uuids: Iterable[str], actor: str, reason: str,
+                     retire_parent: bool = True, when: str | None = None) -> None:
+        parent = _validate_uuid(parent_source_record_uuid)
+        children = [_validate_uuid(c) for c in child_source_record_uuids]
+        if not children:
+            raise PuzzleIdentityError("split requires at least one child identity")
+        if parent in children:
+            raise PuzzleIdentityError("split child must not reuse the parent UUID")
+        if len(set(children)) != len(children):
+            raise PuzzleIdentityError("split children must be distinct")
+        self._require_identity(parent)
+        for c in children:
+            if self.get_identity(c) is None:
+                raise PuzzleIdentityError(f"split child identity {c} must exist first")
+        when = when or self._clock()
+        with self._unit("split"):
+            if retire_parent:
+                self._set_status(parent, "RETIRED", reason=reason, when=when)
+            for c in children:
+                self._append_lineage(parent, "SPLIT", actor=actor, reason=reason,
+                                     when=when, related=c, role="PARENT")
+                self._append_lineage(c, "SPLIT", actor=actor, reason=reason, when=when,
+                                     related=parent, role="CHILD")
+
+    def record_merge(self, *, survivor_source_record_uuid: str,
+                     non_survivor_source_record_uuids: Iterable[str], actor: str,
+                     reason: str, when: str | None = None) -> None:
+        survivor = _validate_uuid(survivor_source_record_uuid)
+        losers = [_validate_uuid(x) for x in non_survivor_source_record_uuids]
+        if not losers:
+            raise PuzzleIdentityError("merge requires at least one non-survivor")
+        if survivor in losers:
+            raise PuzzleIdentityError("merge survivor cannot also be a non-survivor")
+        if len(set(losers)) != len(losers):
+            raise PuzzleIdentityError("merge non-survivors must be distinct")
+        self._require_identity(survivor)
+        for x in losers:
+            self._require_identity(x)
+        when = when or self._clock()
+        with self._unit("merge"):
+            for x in losers:
+                self._set_status(x, "RETIRED", reason=reason, when=when)
+                self._append_lineage(survivor, "MERGE", actor=actor, reason=reason,
+                                     when=when, related=x, role="SURVIVOR")
+                self._append_lineage(x, "MERGE", actor=actor, reason=reason, when=when,
+                                     related=survivor, role="NON_SURVIVOR")
+
+    # ---- retire / restore --------------------------------------- #
+
+    def _set_status(self, u: str, status: str, *, reason: str, when: str) -> None:
+        if status == "RETIRED":
+            self._exec(
+                "UPDATE puzzle_identity_registry SET identity_status='RETIRED', "
+                "retired_at=?, retire_reason=? WHERE source_record_uuid=?",
+                (when, reason, u),
+            )
+        else:
+            self._exec(
+                "UPDATE puzzle_identity_registry SET identity_status='ACTIVE', "
+                "retired_at=NULL, retire_reason=NULL WHERE source_record_uuid=?",
+                (u,),
+            )
+
+    def retire_identity(self, source_record_uuid: str, *, reason: str, actor: str,
+                        when: str | None = None) -> int:
+        u = _validate_uuid(source_record_uuid)
+        self._require_identity(u)
+        when = when or self._clock()
+        with self._unit("retire"):
+            self._set_status(u, "RETIRED", reason=reason, when=when)
+            return self._append_lineage(u, "DELETE", actor=actor, reason=reason, when=when)
+
+    def restore_identity(self, source_record_uuid: str, *, reason: str, actor: str,
+                         when: str | None = None) -> int:
+        u = _validate_uuid(source_record_uuid)
+        self._require_identity(u)
+        when = when or self._clock()
+        with self._unit("restore"):
+            self._set_status(u, "ACTIVE", reason=reason, when=when)
+            return self._append_lineage(u, "RESTORE", actor=actor, reason=reason, when=when)
+
+    # ---- resolver (exact / missing / ambiguous fail-closed) ---- #
+
+    def resolve(self, alias_kind: str, alias_value: str, *,
+                alias_context: str = DEFAULT_ALIAS_CONTEXT) -> dict[str, Any]:
+        if alias_kind not in ALIAS_KINDS:
+            raise PuzzleIdentityError(f"unsupported alias_kind: {alias_kind}")
+        rows = self._all(
+            "SELECT source_record_uuid FROM puzzle_identity_alias "
+            "WHERE alias_kind=? AND alias_value=? AND alias_context=? AND is_current=1",
+            (alias_kind, str(alias_value), alias_context),
+        )
+        uuids = sorted({str(self._val(r, 0, "source_record_uuid")) for r in rows})
+        if not uuids:
+            return {"status": "MISSING", "source_record_uuid": None}
+        if len(uuids) > 1:
+            raise AmbiguousAliasError(
+                f"alias ({alias_kind}, {alias_value}, {alias_context}) resolves to "
+                f"{len(uuids)} identities: {uuids}"
+            )
+        ident = self.get_identity(uuids[0]) or {}
+        status = "RETIRED" if ident.get("identity_status") == "RETIRED" else "EXACT"
+        return {
+            "status": status,
+            "source_record_uuid": uuids[0],
+            "identity_status": ident.get("identity_status"),
+        }
+
+
+__all__ = [
+    "AmbiguousAliasError",
+    "DEFAULT_ALIAS_CONTEXT",
+    "GENESIS_CREATED_BY",
+    "POST_GENESIS_ALIAS_CONTEXT",
+    "PuzzleIdentityError",
+    "PuzzleIdentityStore",
+]
