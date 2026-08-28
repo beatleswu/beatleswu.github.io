@@ -256,6 +256,12 @@ from equipment_ownership_service import (
     EquipmentOwnershipError,
     grant_equipment_ownership,
 )
+from equipment_commerce_service import (
+    EquipmentAlreadyOwned,
+    ServerFactEquipmentOfferAuthority,
+    purchase_equipment_with_coins,
+)
+from equipment_shop_offer_authority import build_authoritative_equipment_offer_facts
 from battlefield_boss_reward_service import (
     BattlefieldBossFirstClearSettlement,
     BattlefieldBossRewardError,
@@ -22006,14 +22012,27 @@ def _canonical_equipment_slot_source():
     }
 
 
+def _canonical_equipment_shop_offer_facts():
+    """Return the C046 Owner-approved Equipment offer facts.
+
+    ``EQUIPMENT_DEFS`` remains the server definition authority while the
+    sibling C046 module owns the exact starter assortment and Coins prices.
+    This function is only an app wiring seam; it does not duplicate catalog
+    or price data and does not mutate feature gates.
+    """
+
+    return build_authoritative_equipment_offer_facts(EQUIPMENT_DEFS)
+
+
 def _canonical_shop_offer_facts(conn, *, appearance_only=False):
     """Resolve current server Shop facts without trusting request fields.
 
     Only already-supported single-grant Coin products enter this adapter.
     Legacy bundles/effects/pet grants remain on the existing route until a
-    separate approved destination/grant adapter exists.  No functional
-    Equipment is added to ``SHOP_ITEMS`` here; tests may inject a synthetic
-    server-owned fact through this helper.
+    separate approved destination/grant adapter exists.  C046 contributes
+    static functional Equipment facts from its server-owned offer authority;
+    the definitions are not copied into ``SHOP_ITEMS``. Tests may inject a
+    synthetic server-owned fact through this helper.
     """
 
     today = datetime.date.today().isoformat()
@@ -22042,6 +22061,7 @@ def _canonical_shop_offer_facts(conn, *, appearance_only=False):
 
     facts = []
     if not appearance_only:
+        facts.extend(_canonical_equipment_shop_offer_facts())
         for item_key, item in SHOP_ITEMS.items():
             # Bundles, pet grants, and effect-bearing items retain their
             # existing route until an explicit canonical adapter exists.
@@ -22398,6 +22418,8 @@ def _canonical_shop_error_response(error):
         return {'error': 'ownership_authority_unavailable', 'code': 'OWNERSHIP_AUTHORITY_UNAVAILABLE'}, 503
     if isinstance(error, SchemaUnavailable):
         return {'error': 'schema_unavailable', 'code': 'SCHEMA_UNAVAILABLE'}, 503
+    if isinstance(error, EquipmentAlreadyOwned):
+        return {'error': 'already_owned', 'code': 'EQUIPMENT_ALREADY_OWNED'}, 409
     if isinstance(error, AcquisitionFailed):
         return {'error': 'acquisition_failed', 'code': 'ACQUISITION_FAILED'}, 422
     if isinstance(error, CoinDebitFailed):
@@ -22437,22 +22459,49 @@ def _canonical_shop_purchase_response(uid, body, *, appearance_only=False):
                 body,
                 appearance_only=appearance_only,
             )
-            authority = StaticShopOfferAuthority.from_mappings([
-                normalized_offer.as_c019_mapping()
-            ])
-            result = purchase_with_coins(
-                conn,
-                int(uid),
-                operation_id,
-                normalized_offer.offer_id,
-                offer_authority=authority,
-                acquisition_authority=SqlAcquisitionAuthority(
-                    equipment_slot_source=_canonical_equipment_slot_source()
-                ),
-                # C026 accepts this only as a compatibility probe; it never
-                # becomes the resolved server price.
-                client_price=body.get('price', body.get('client_price')),
+            is_functional_equipment = (
+                not appearance_only
+                and normalized_offer.destination == 'player_inventory'
+                and normalized_offer.acquisition_class in {
+                    'WEAPON', 'ARMOR', 'ACCESSORY',
+                }
             )
+            if is_functional_equipment:
+                equipment_facts = [
+                    server_facts
+                    for server_facts in _canonical_shop_offer_facts(conn)
+                    if server_facts.destination == 'player_inventory'
+                    and server_facts.acquisition_class in {
+                        'WEAPON', 'ARMOR', 'ACCESSORY',
+                    }
+                ]
+                result = purchase_equipment_with_coins(
+                    conn,
+                    int(uid),
+                    operation_id,
+                    normalized_offer.item_id,
+                    catalog_authority=ServerFactEquipmentOfferAuthority(
+                        equipment_facts
+                    ),
+                    equipment_defs=EQUIPMENT_DEFS,
+                )
+            else:
+                authority = StaticShopOfferAuthority.from_mappings([
+                    normalized_offer.as_c019_mapping()
+                ])
+                result = purchase_with_coins(
+                    conn,
+                    int(uid),
+                    operation_id,
+                    normalized_offer.offer_id,
+                    offer_authority=authority,
+                    acquisition_authority=SqlAcquisitionAuthority(
+                        equipment_slot_source=_canonical_equipment_slot_source()
+                    ),
+                    # C026 accepts this only as a compatibility probe; it never
+                    # becomes the resolved server price.
+                    client_price=body.get('price', body.get('client_price')),
+                )
             # C026 and D5A are one caller-owned mutation transaction.  No
             # response is returned until this commit succeeds.
             conn.commit()
@@ -23090,6 +23139,23 @@ def shop_catalog():
         earned = _coins_earned_today(conn, uid)
         inv_rows = conn.execute(
             'SELECT item_key, qty FROM shop_inventory WHERE user_id=? AND qty>0', (uid,)).fetchall()
+        equipment_offers = []
+        equipment_ownership = {}
+        if _canonical_coin_shop_purchase_enabled():
+            for server_facts in _canonical_equipment_shop_offer_facts():
+                equipment_offers.append(
+                    normalize_shop_offer(server_facts).as_c019_mapping()
+                )
+                ownership_row = conn.execute(
+                    'SELECT COUNT(*) AS owned_quantity FROM player_inventory '
+                    'WHERE user_id=? AND equip_id=?',
+                    (uid, server_facts.item_id),
+                ).fetchone()
+                owned_quantity = int(ownership_row['owned_quantity'] or 0)
+                equipment_ownership[server_facts.item_id] = {
+                    'owned_quantity': owned_quantity,
+                    'ownership_state': 'OWNED' if owned_quantity else 'NOT_OWNED',
+                }
         slots = _daily_shop_slots(conn)
         pity = _gacha_pity_count(conn, uid)
         collection = _gacha_collection_progress(conn, uid)
@@ -23103,6 +23169,8 @@ def shop_catalog():
         'weekly_items': _shop_weekly_items(),
         'monthly_items': _shop_monthly_items(),
         'inventory': {r['item_key']: r['qty'] for r in inv_rows},
+        'equipment_offers': equipment_offers,
+        'equipment_ownership': equipment_ownership,
         'daily_slots': slots if not is_premium(uid) else slots,   # 全列給前端，免費版前端只顯示 3 格
         'daily_slots_visible': 5 if is_premium(uid) else 3,
         'gacha': {'cost': _GACHA_COST, 'pity': _GACHA_PITY, 'pity_count': pity,

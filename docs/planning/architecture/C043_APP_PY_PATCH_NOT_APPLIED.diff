@@ -1,0 +1,96 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -236,9 +236,13 @@
+ from equipment_ownership_service import (
+     EquipmentOwnershipError,
+     grant_equipment_ownership,
+ )
++from equipment_commerce_service import (
++    ServerFactEquipmentOfferAuthority,
++    purchase_equipment_with_coins,
++)
+ from equipment_loadout_service import (
+     EquipmentLoadoutError,
+     equip_owned_item,
+     unequip_owned_item,
+ )
+@@ -22257,21 +22261,40 @@
+             normalized_offer = _canonical_shop_offer_for_request(
+                 conn,
+                 body,
+                 appearance_only=appearance_only,
+             )
+-            authority = StaticShopOfferAuthority.from_mappings([
+-                normalized_offer.as_c019_mapping()
+-            ])
+-            result = purchase_with_coins(
+-                conn,
+-                int(uid),
+-                operation_id,
+-                normalized_offer.offer_id,
+-                offer_authority=authority,
+-                acquisition_authority=SqlAcquisitionAuthority(
+-                    equipment_slot_source=_canonical_equipment_slot_source()
+-                ),
+-                # C026 accepts this only as a compatibility probe; it never
+-                # becomes the resolved server price.
+-                client_price=body.get('price', body.get('client_price')),
+-            )
++            is_functional_equipment = (
++                not appearance_only
++                and normalized_offer.destination == 'player_inventory'
++                and normalized_offer.acquisition_class in {
++                    'WEAPON', 'ARMOR', 'ACCESSORY',
++                }
++            )
++            if is_functional_equipment:
++                result = purchase_equipment_with_coins(
++                    conn,
++                    int(uid),
++                    operation_id,
++                    normalized_offer.item_id,
++                    catalog_authority=ServerFactEquipmentOfferAuthority(
++                        _canonical_shop_offer_facts(conn)
++                    ),
++                    equipment_defs=EQUIPMENT_DEFS,
++                )
++            else:
++                authority = StaticShopOfferAuthority.from_mappings([
++                    normalized_offer.as_c019_mapping()
++                ])
++                result = purchase_with_coins(
++                    conn,
++                    int(uid),
++                    operation_id,
++                    normalized_offer.offer_id,
++                    offer_authority=authority,
++                    acquisition_authority=SqlAcquisitionAuthority(
++                        equipment_slot_source=_canonical_equipment_slot_source()
++                    ),
++                    # C026 accepts this only as a compatibility probe; it never
++                    # becomes the resolved server price.
++                    client_price=body.get('price', body.get('client_price')),
++                )
+@@ -22913,5 +22936,16 @@
+         inv_rows = conn.execute(
+             'SELECT item_key, qty FROM shop_inventory WHERE user_id=? AND qty>0', (uid,)).fetchall()
+         slots = _daily_shop_slots(conn)
++        equipment_offers = []
++        if _canonical_coin_shop_purchase_enabled():
++            for server_facts in _canonical_shop_offer_facts(conn):
++                if server_facts.destination != 'player_inventory':
++                    continue
++                try:
++                    equipment_offers.append(
++                        normalize_shop_offer(server_facts).as_c019_mapping()
++                    )
++                except (OfferNotReady, ShopOfferIdentityError):
++                    continue
+         pity = _gacha_pity_count(conn, uid)
+         collection = _gacha_collection_progress(conn, uid)
+@@ -22933,3 +22967,4 @@
+         'item_registry_version': ITEM_REGISTRY_VERSION,
+         'shop_product_grant_registry': product_registry,
++        'equipment_offers': equipment_offers,
+     })
