@@ -15,6 +15,9 @@ I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 OWNER_E2E = (ROOT / "tests/e2e/run_e10_lord_trial_owner_acceptance_regression.mjs").read_text(
     encoding="utf-8"
 )
+E042_E2E = (ROOT / "tests/e2e/run_e042_cleared_zone_replay_cta.mjs").read_text(
+    encoding="utf-8"
+)
 
 
 def test_cleared_primary_replay_is_not_blocked_by_generic_question_runtime():
@@ -78,6 +81,13 @@ def test_static_cache_revision_covers_only_changed_world_stage_module():
     assert '/js/e9/world_stage.js?v=20260828e042s1' in INDEX
     assert '/js/e9/right_cards.js?v=20260828e040s1' in INDEX
     assert '/css/e9/reference_world_map.css?v=20260828e040s1' in INDEX
+
+
+def test_f029_and_e042_share_the_reconciled_index_contract():
+    assert '/js/game/battlefield_boss_reward_consumer.js?v=f029v1' in INDEX
+    assert '/js/e9/world_stage.js?v=20260828e042s1' in INDEX
+    assert "verdict: outcome === 'pass' ? 'AUTHORITATIVE_PASS' : 'AUTHORITATIVE_FAIL'" in E042_E2E
+    assert "judge_version: 'lord-trial-map-battle-judge-v1'" in E042_E2E
 
 
 def test_owner_regression_distinguishes_replay_from_question_pool_star_repair():

@@ -130,6 +130,10 @@ function lordZone(examSize = 20) {
 // review route returns.  ReviewTransport deliberately rejects a bare
 // { ok: true }, because a malformed response must never advance the attempt.
 function committedReviewPayload() {
+  return committedReviewPayloadFor({ questionId: null, attemptId: null });
+}
+
+function committedReviewPayloadFor({ questionId, attemptId }) {
   return {
     ok: true,
     ease_factor: 2.5,
@@ -151,6 +155,15 @@ function committedReviewPayload() {
     practice: null,
     training: null,
     new_appearance_items: [],
+    boss_verdict: {
+      schema: 'lord_trial_verdict_v1',
+      attempt_id: attemptId,
+      question_id: questionId,
+      verdict: 'AUTHORITATIVE_PASS',
+      authoritative_grade: 5,
+      judge_version: 'lord-trial-map-battle-judge-v1',
+      reason_code: 'answer_tree_leaf',
+    },
   };
 }
 
@@ -217,8 +230,16 @@ async function installRealApi(page, { questions, ids, zone }) {
     }),
   }));
   await page.route('**/api/srs/review', async (route) => {
-    reviews.push(JSON.parse(route.request().postData() || '{}'));
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(committedReviewPayload()) });
+    const request = JSON.parse(route.request().postData() || '{}');
+    reviews.push(request);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(committedReviewPayloadFor({
+        questionId: request.question_id,
+        attemptId: 'visible-board-recovery-attempt-001',
+      })),
+    });
   });
   await page.route('**/api/adventure/boss/finish', async (route) => {
     finishCalls += 1;

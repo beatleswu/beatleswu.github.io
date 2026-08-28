@@ -116,7 +116,7 @@ function question() {
   };
 }
 
-function committedReviewPayload() {
+function committedReviewPayload({ outcome, attemptId }) {
   return {
     ok: true,
     ease_factor: 2.5,
@@ -138,6 +138,15 @@ function committedReviewPayload() {
     practice: null,
     training: null,
     new_appearance_items: [],
+    boss_verdict: {
+      schema: 'lord_trial_verdict_v1',
+      attempt_id: attemptId,
+      question_id: 4201,
+      verdict: outcome === 'pass' ? 'AUTHORITATIVE_PASS' : 'AUTHORITATIVE_FAIL',
+      authoritative_grade: outcome === 'pass' ? 5 : 0,
+      judge_version: 'lord-trial-map-battle-judge-v1',
+      reason_code: 'answer_tree_leaf',
+    },
   };
 }
 
@@ -196,7 +205,9 @@ async function runScenario(browser, origin, {
     status: 200, contentType: 'application/json', body: bodyJson({ unit_complete: false }),
   }));
   await page.route('**/api/srs/review**', (route) => route.fulfill({
-    status: 200, contentType: 'application/json', body: bodyJson(committedReviewPayload()),
+    status: 200,
+    contentType: 'application/json',
+    body: bodyJson(committedReviewPayload({ outcome, attemptId: `e042-${name}` })),
   }));
   await page.route('**/api/adventure/bootstrap**', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: bodyJson(bootstrap()),

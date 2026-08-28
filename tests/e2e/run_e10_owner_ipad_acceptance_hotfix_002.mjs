@@ -131,6 +131,10 @@ function realQuestion(id, move) {
 // route.  A bare { ok: true } is intentionally rejected by ReviewTransport;
 // accepting it would let a malformed response advance a Lord attempt.
 function committedReviewPayload() {
+  return committedReviewPayloadFor({ questionId: null, attemptId: null });
+}
+
+function committedReviewPayloadFor({ questionId, attemptId }) {
   return {
     ok: true,
     ease_factor: 2.5,
@@ -152,6 +156,15 @@ function committedReviewPayload() {
     practice: null,
     training: null,
     new_appearance_items: [],
+    boss_verdict: {
+      schema: 'lord_trial_verdict_v1',
+      attempt_id: attemptId,
+      question_id: questionId,
+      verdict: 'AUTHORITATIVE_PASS',
+      authoritative_grade: 5,
+      judge_version: 'lord-trial-map-battle-judge-v1',
+      reason_code: 'answer_tree_leaf',
+    },
   };
 }
 
@@ -232,7 +245,14 @@ async function installRealApi(page, {
       });
       return;
     }
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(committedReviewPayload()) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(committedReviewPayloadFor({
+        questionId: body.question_id,
+        attemptId: 'owner-real-attempt-001',
+      })),
+    });
   });
   await page.route('**/api/adventure/boss/finish', async (route) => {
     finishCalls += 1;
