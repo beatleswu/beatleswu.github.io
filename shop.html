@@ -2358,7 +2358,7 @@ async function purchaseEquipment(offerId, button) {
   let response;
   try {
     response = await requestShopPurchase('/api/shop/buy', offer.offer_id, {
-      offer_id: offer.offer_id,
+      item_key: offer.item_id,
     });
   } catch (_) {
     setMerchant('idle', 'idle');

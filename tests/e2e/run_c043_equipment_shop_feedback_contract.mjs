@@ -151,8 +151,13 @@ assert.equal(
 assert.match(shopHtml, /equipment_offers/, 'Shop reads the optional equipment-offer field');
 assert.match(
   shopHtml,
-  /requestShopPurchase\('\/api\/shop\/buy', offer\.offer_id/,
+  /requestShopPurchase\('\/api\/shop\/buy', offer\.offer_id, \{\s*item_key: offer\.item_id/,
   'equipment purchase uses the existing Shop purchase route',
+);
+assert.doesNotMatch(
+  shopHtml,
+  /requestShopPurchase\('\/api\/shop\/buy', offer\.offer_id, \{[^}]*price/,
+  'equipment purchase does not send a client price',
 );
 assert.match(shopHtml, /canonical_acquisition_result/, 'Shop requires canonical purchase evidence');
 assert.doesNotMatch(

@@ -45,8 +45,9 @@ product, price, currency, rarity, or scarcity defaults.
 
 ## Purchase and feedback loop
 
-The equipment button posts to the existing `POST /api/shop/buy` route with
-`offer_id`. The established `requestShopPurchase` helper adds a stable
+The equipment button posts to the existing `POST /api/shop/buy` route with the
+server-owned `item_key`; the displayed `offer_id` is used only as the stable
+purchase-intent selector. The established `requestShopPurchase` helper adds a stable
 `purchase_operation_id`; network, post-commit canonical-result, and
 in-progress failures keep that identity for a same-purchase retry. Client
 price, quantity, destination, slot, and equip fields are not sent.
