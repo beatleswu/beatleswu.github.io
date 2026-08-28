@@ -8,7 +8,10 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: clamp(16px, 4vw, 46px);
+  padding: max(16px, env(safe-area-inset-top))
+           max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom))
+           max(16px, env(safe-area-inset-left));
   color: #f7f1dc;
   background:
     radial-gradient(circle at 50% 42%, rgba(79, 155, 177, .18), transparent 34%),
@@ -62,8 +65,10 @@
 }
 
 .d031-spirit-result__close {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   flex: 0 0 auto;
   border: 1px solid rgba(235, 216, 157, .32);
   border-radius: 50%;
@@ -72,6 +77,7 @@
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .d031-spirit-result__close:hover,
@@ -238,7 +244,10 @@
 
 @media (max-width: 900px) {
   .d031-spirit-result {
-    padding: 24px;
+    padding: max(24px, env(safe-area-inset-top))
+             max(24px, env(safe-area-inset-right))
+             max(24px, env(safe-area-inset-bottom))
+             max(24px, env(safe-area-inset-left));
   }
 
   .d031-spirit-result__card {
@@ -272,7 +281,10 @@
 @media (max-width: 600px) {
   .d031-spirit-result {
     align-items: center;
-    padding: 12px;
+    padding: max(12px, env(safe-area-inset-top))
+             max(12px, env(safe-area-inset-right))
+             max(12px, env(safe-area-inset-bottom))
+             max(12px, env(safe-area-inset-left));
   }
 
   .d031-spirit-result__card {

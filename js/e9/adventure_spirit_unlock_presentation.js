@@ -8,11 +8,14 @@
   'use strict';
 
   var CONTRACT_VERSION = 'ADVENTURE_SPIRIT_UNLOCK_RESULT_V1';
+  var TRANSPORT_CONTRACT_VERSION = 'ADVENTURE_SPIRIT_UNLOCK_RESULT_TRANSPORT_V1';
   var SOURCE_AUTHORITY = 'ADVENTURE_ZONE_MILESTONE';
   var SOURCE_FACT = 'adventure_boss_progress.cleared=1';
   var OPERATION_TYPE = 'SPIRIT_UNLOCK';
   var OWNERSHIP_STORE = 'pet_collection';
   var ROOT_ID = 'd031-adventure-spirit-result';
+  var COMPLETION_EVENT = 'adventure-spirit-unlock-complete';
+  var SYNC_CHANNEL_NAME = 'go-odyssey-spirit-sync-v1';
 
   var STATES = Object.freeze({
     NEW_SPIRIT_UNLOCK: 'NEW_SPIRIT_UNLOCK',
@@ -71,6 +74,10 @@
     return typeof value === 'string' && value.trim().length > 0;
   }
 
+  function hasOwn(value, key) {
+    return Object.prototype.hasOwnProperty.call(value, key);
+  }
+
   function exactSourceReference(userId, zoneKey) {
     return 'adventure_boss_progress:' + String(userId) + ':' + zoneKey;
   }
@@ -87,6 +94,7 @@
 
   function normalizeResult(raw) {
     if (!isObject(raw)) return null;
+    if (raw.contract_version !== TRANSPORT_CONTRACT_VERSION) return null;
     if (!isPositiveInteger(raw.user_id)) return null;
     if (!isNonEmptyString(raw.zone_key)) return null;
 
@@ -107,25 +115,44 @@
     if (typeof raw.replayed !== 'boolean') return null;
     if (typeof raw.eligible !== 'boolean' || typeof raw.cleared !== 'boolean') return null;
     if (!isNonEmptyString(raw.status)) return null;
+    if (typeof raw.ownership_created !== 'boolean') return null;
+    if (raw.already_owned !== null && typeof raw.already_owned !== 'boolean') return null;
+    if (typeof raw.replay !== 'boolean') return null;
+    if (!isNonEmptyString(raw.reason_code)) return null;
+    if (!hasOwn(raw, 'historical_catchup')) return null;
+    if (raw.historical_catchup !== null && typeof raw.historical_catchup !== 'boolean') return null;
 
     var state;
     if (raw.status === 'UNLOCKED') {
       if (!raw.eligible || !raw.cleared || raw.replayed !== false) return null;
       if (raw.operation_status !== 'COMPLETED') return null;
+      if (raw.result_state !== 'UNLOCKED' || raw.ownership_created !== true ||
+          raw.already_owned !== false || raw.replay !== false ||
+          raw.reason_code !== 'MILESTONE_UNLOCKED') return null;
       if (raw.ownership_mutation_count !== 1 || raw.new_unlock_count !== 1) return null;
       state = STATES.NEW_SPIRIT_UNLOCK;
     } else if (raw.status === 'NO_OP') {
       if (!raw.eligible || !raw.cleared || raw.replayed !== false) return null;
       if (raw.operation_status !== 'COMPLETED') return null;
+      if (raw.result_state !== 'NO_OP' || raw.ownership_created !== false ||
+          raw.already_owned !== true || raw.replay !== false ||
+          raw.reason_code !== 'MILESTONE_ALREADY_OWNED') return null;
       if (raw.ownership_mutation_count !== 0 || raw.new_unlock_count !== 0) return null;
       state = STATES.ALREADY_OWNED_NO_OP;
     } else if (raw.status === 'REPLAY') {
       if (!raw.eligible || !raw.cleared || raw.replayed !== true) return null;
       if (raw.operation_status !== 'COMPLETED') return null;
+      if (raw.result_state !== 'NO_OP' || raw.ownership_created !== false ||
+          raw.already_owned !== true || raw.replay !== true ||
+          raw.reason_code !== 'MILESTONE_REPLAY') return null;
       if (raw.ownership_mutation_count !== 0 || raw.new_unlock_count !== 0) return null;
       state = STATES.ALREADY_OWNED_NO_OP;
     } else if (raw.status === 'NOT_ELIGIBLE') {
       if (raw.eligible || raw.cleared || raw.replayed !== false) return null;
+      if (hasOwn(raw, 'operation_status') && raw.operation_status !== undefined) return null;
+      if (raw.result_state !== 'NOT_ELIGIBLE' || raw.ownership_created !== false ||
+          raw.already_owned !== null || raw.replay !== false ||
+          raw.reason_code !== 'MILESTONE_NOT_ELIGIBLE') return null;
       if (raw.ownership_mutation_count !== 0 || raw.new_unlock_count !== 0) return null;
       state = STATES.NO_MILESTONE_UNLOCK;
     } else {
@@ -162,6 +189,11 @@
       many.sort(function (left, right) {
         return left.zoneNumber - right.zoneNumber;
       });
+      for (var j = 1; j < many.length; j += 1) {
+        if (many[j - 1].userId === many[j].userId && many[j - 1].zoneKey === many[j].zoneKey) {
+          return null;
+        }
+      }
       return many;
     }
     var one = normalizeResult(raw);
@@ -172,8 +204,7 @@
     var actionable = normalized.filter(function (item) {
       return item.state !== STATES.NO_MILESTONE_UNLOCK;
     });
-    if (actionable.length) return actionable;
-    return normalized.length ? [normalized[0]] : [];
+    return actionable;
   }
 
   function addText(doc, parent, tag, className, value) {
@@ -194,6 +225,12 @@
     root.setAttribute('aria-modal', 'false');
     root.setAttribute('aria-live', 'polite');
     root.hidden = true;
+    root.addEventListener('keydown', function (event) {
+      if (event && event.key === 'Escape') {
+        if (typeof event.preventDefault === 'function') event.preventDefault();
+        advance();
+      }
+    });
     if (doc.body) doc.body.appendChild(root);
     return root;
   }
@@ -221,7 +258,7 @@
     var close = doc.createElement('button');
     close.type = 'button';
     close.className = 'd031-spirit-result__close';
-    close.setAttribute('aria-label', 'Continue');
+    close.setAttribute('aria-label', 'Dismiss');
     close.textContent = '×';
     close.addEventListener('click', advance);
     header.appendChild(close);
@@ -301,6 +338,7 @@
       return;
     }
     clear();
+    notifyCompletion();
   }
 
   function present(raw) {
@@ -311,7 +349,11 @@
     }
     queue = presentationQueue(normalized);
     current = queue.shift() || null;
-    if (current) render(current);
+    if (!current) {
+      clear();
+      return [];
+    }
+    render(current);
     return [current].concat(queue).filter(Boolean).map(function (item) { return item.state; });
   }
 
@@ -323,8 +365,35 @@
     if (root) root.hidden = true;
   }
 
+  function notifyCompletion() {
+    if (!global || typeof global.dispatchEvent !== 'function') return;
+    var event = null;
+    try {
+      if (typeof global.CustomEvent === 'function') {
+        event = new global.CustomEvent(COMPLETION_EVENT);
+      } else if (global.document && typeof global.document.createEvent === 'function') {
+        event = global.document.createEvent('Event');
+        event.initEvent(COMPLETION_EVENT, false, false);
+      }
+      if (event) global.dispatchEvent(event);
+    } catch (_error) {
+      // Completion notification is a refresh hint only; presentation remains complete.
+    }
+    try {
+      if (typeof global.BroadcastChannel === 'function') {
+        var channel = new global.BroadcastChannel(SYNC_CHANNEL_NAME);
+        channel.postMessage({ type: COMPLETION_EVENT });
+        if (typeof channel.close === 'function') channel.close();
+      }
+    } catch (_channelError) {
+      // Cross-document refresh is best effort; server persistence remains authoritative.
+    }
+  }
+
   return Object.freeze({
     CONTRACT_VERSION: CONTRACT_VERSION,
+    COMPLETION_EVENT: COMPLETION_EVENT,
+    SYNC_CHANNEL_NAME: SYNC_CHANNEL_NAME,
     STATES: STATES,
     MILESTONES: MILESTONES,
     normalizeResult: normalizeResult,

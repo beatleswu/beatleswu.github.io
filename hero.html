@@ -2827,7 +2827,7 @@ async function loadPetStatus() {
   if (!root) return;
   root.innerHTML = `<div class="pet-empty">${isEn() ? 'Loading companion data...' : '載入寵物資料中…'}</div>`;
   try {
-    _petState = await fetch('/api/pet/status', { credentials:'include' }).then(r => r.json());
+    _petState = await fetch('/api/pet/status', { credentials:'include', cache:'no-store' }).then(r => r.json());
     renderPetCompanion();
     renderHeroOverview();
   } catch (e) {
@@ -2839,6 +2839,7 @@ function renderPetCompanion() {
   const root = document.getElementById('pet-companion-root');
   if (!root || !_petState) return;
   if (!_petState.pet) {
+    const collection = _petState.collection || {};
     root.innerHTML = `
       <div>
         <div class="pet-intro-text">
@@ -2846,6 +2847,7 @@ function renderPetCompanion() {
             ? 'Choose one companion to begin. It will stay on your Hero page, gain levels through feeding and practice, and grow with your Go journey.'
             : '選一隻棋靈夥伴開始同行。牠會留在 HERO 頁，透過餵食與修行升級，陪你一起走完整個圍棋旅程。'}
         </div>
+        ${petRosterHTML(collection, { showSingle: true })}
         <div class="pet-choice-grid">
           ${(_petState.catalog || []).map(p => `
             <button class="pet-choice-card" style="--pet-accent:${p.accent || '#0b6f69'}" onclick="choosePet('${p.key}')">
@@ -3128,11 +3130,11 @@ function petMilestoneToast(milestones) {
     : `里程碑 LV${m.level} 達成！陪練加成提升，獲得 ${reward}`;
 }
 
-function petRosterHTML(col) {
+function petRosterHTML(col, { showSingle = false } = {}) {
   if (!col) return '';
   const owned = col.collection || [];
   const locked = col.locked || [];
-  if (owned.length <= 1 && !locked.length) return '';   // 只有一隻且無可解鎖 → 不顯示
+  if (owned.length <= 1 && !locked.length && !showSingle) return '';   // 只有一隻且無可解鎖 → 不顯示
   const ownedChips = owned.map(o => `
     <button class="pet-roster-chip${o.active ? ' active' : ''}" ${o.active ? 'disabled' : `onclick="switchPet('${o.key}')"`} style="--pet-accent:${o.accent || '#0b6f69'}">
       <img class="pet-roster-art" src="${petAnimatedImage(o)}" alt="" loading="lazy" decoding="async">
@@ -3457,8 +3459,10 @@ function selectHeroTab(tab, push) {
   document.body.dataset.heroTab = canonical;
   if (canonical !== 'pet') { stopPetFrameAnimation(); stopPetCooldownTicker(); stopPetTypewriter(); }
   if (canonical === 'equipment' || canonical === 'appearance') renderCombatGearControls();
-  if (canonical === 'pet' && !_petLoaded) { _petLoaded = true; loadPetStatus(); }
-  else if (canonical === 'pet' && _petState?.pet) renderPetCompanion();
+  if (canonical === 'pet') {
+    _petLoaded = true;
+    loadPetStatus();
+  }
   if (canonical === 'honors' && !_badgesLoaded) loadBadgesTab();
   if (push) history.pushState({ heroTab: canonical }, '', `/hero?tab=${encodeURIComponent(canonical)}`);
 }
@@ -5299,6 +5303,25 @@ window.addEventListener('DOMContentLoaded', async () => {
     selectHeroTab(LEGACY_TAB_ALIASES[tab] || (ALL_TABS.includes(tab) ? tab : 'hero'), false);
   });
 });
+
+window.addEventListener('adventure-spirit-unlock-complete', () => {
+  _petLoaded = true;
+  loadPetStatus();
+});
+
+try {
+  if (typeof BroadcastChannel === 'function') {
+    const spiritUnlockSyncChannel = new BroadcastChannel('go-odyssey-spirit-sync-v1');
+    spiritUnlockSyncChannel.addEventListener('message', event => {
+      if (event?.data?.type === 'adventure-spirit-unlock-complete') {
+        _petLoaded = true;
+        loadPetStatus();
+      }
+    });
+  }
+} catch (_) {
+  // Hero reload/re-entry remains the authoritative fallback refresh path.
+}
 
 function closePremWelcome() {
   document.getElementById('prem-welcome-modal')?.classList.remove('show');

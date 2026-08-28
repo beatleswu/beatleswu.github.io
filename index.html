@@ -7138,7 +7138,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <link rel="stylesheet" href="/css/e9/immersive_rpg.css?v=20260801e10art1">
     <link rel="stylesheet" href="/css/e9/reference_world_map.css?v=20260801e10art1">
     <link rel="stylesheet" href="/css/e9/art_directed_runtime.css?v=20260801e10art1">
-    <link rel="stylesheet" href="/css/e9/adventure_spirit_unlock.css?v=20260827d031">
+    <link rel="stylesheet" href="/css/e9/adventure_spirit_unlock.css?v=20260828d036">
 </head>
 <body data-sgf-report-surface="main_practice">
 <div id="world-presentation-pending" role="status" aria-live="polite">
@@ -8092,11 +8092,37 @@ let _homeSpiritPet = null;  // 主角卡片要顯示的棋靈夥伴立繪（取�
 let _petStatusPromise = null;
 function getPetStatus() {
     if (!_petStatusPromise) {
-        _petStatusPromise = fetch('/api/pet/status', { credentials:'include' })
+        _petStatusPromise = fetch('/api/pet/status', { credentials:'include', cache:'no-store' })
             .then(r => r.json())
             .catch(() => ({}));
     }
     return _petStatusPromise;
+}
+
+function refreshPetStatusFromServer() {
+    _petStatusPromise = null;
+    return getPetStatus().then(petRes => {
+        _homeSpiritPet = (petRes && petRes.pet && petRes.pet.image) ? petRes.pet.image : null;
+        applyHeroCombatAvatarToIndex();
+        return petRes;
+    });
+}
+
+window.addEventListener('adventure-spirit-unlock-complete', () => {
+    refreshPetStatusFromServer().catch(() => {});
+});
+
+try {
+    if (typeof BroadcastChannel === 'function') {
+        const spiritUnlockSyncChannel = new BroadcastChannel('go-odyssey-spirit-sync-v1');
+        spiritUnlockSyncChannel.addEventListener('message', event => {
+            if (event?.data?.type === 'adventure-spirit-unlock-complete') {
+                refreshPetStatusFromServer().catch(() => {});
+            }
+        });
+    }
+} catch (_) {
+    // Same-document refresh still works when cross-document channels are unavailable.
 }
 
 function applyHeroCombatAvatarToIndex() {
@@ -21605,7 +21631,7 @@ window.addEventListener('appinstalled', () => {
 })();
 </script>
 <script src="/sound.js?v=20260707a"></script>
-<script src="/js/e9/adventure_spirit_unlock_presentation.js?v=20260827d031"></script>
+<script src="/js/e9/adventure_spirit_unlock_presentation.js?v=20260828d036r2"></script>
 
 <!-- E9 Adventure Shell (feature-flagged, default OFF). Order matters:
      feature_flags -> component_loader -> per-component inits -> shell (shell

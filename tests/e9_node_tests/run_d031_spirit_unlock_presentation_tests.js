@@ -31,7 +31,8 @@ function resultFor(definition, status = 'UNLOCKED', overrides = {}) {
   const eligible = status !== 'NOT_ELIGIBLE';
   const replayed = status === 'REPLAY';
   const mutation = status === 'UNLOCKED' ? 1 : 0;
-  return Object.assign({
+  const result = {
+    contract_version: 'ADVENTURE_SPIRIT_UNLOCK_RESULT_TRANSPORT_V1',
     user_id: 43102,
     zone_number: definition.zone_number,
     zone_key: definition.zone_key,
@@ -48,11 +49,21 @@ function resultFor(definition, status = 'UNLOCKED', overrides = {}) {
     replacement_count: 0,
     client_completion_authority: false,
     status,
-    operation_status: eligible ? 'COMPLETED' : undefined,
+    result_state: status === 'REPLAY' ? 'NO_OP' : status,
+    ownership_created: status === 'UNLOCKED',
+    already_owned: status === 'NOT_ELIGIBLE' ? null : status !== 'UNLOCKED',
+    historical_catchup: null,
+    replay: replayed,
+    reason_code: status === 'UNLOCKED' ? 'MILESTONE_UNLOCKED'
+      : status === 'NO_OP' ? 'MILESTONE_ALREADY_OWNED'
+      : status === 'REPLAY' ? 'MILESTONE_REPLAY'
+      : 'MILESTONE_NOT_ELIGIBLE',
     replayed,
     ownership_mutation_count: mutation,
     new_unlock_count: mutation,
-  }, overrides);
+  };
+  if (eligible) result.operation_status = 'COMPLETED';
+  return Object.assign(result, overrides);
 }
 
 class FakeNode {
@@ -238,6 +249,18 @@ test('array normalization is deterministic and sorted by locked zone number', ()
   assert.deepStrictEqual(normalized.map((item) => item.zoneNumber), [4, 6, 8]);
 });
 
+test('duplicate or contradictory server batches fail closed', () => {
+  const valid = resultFor(MILESTONES[0]);
+  assert.strictEqual(presentation.normalizeResults([valid, resultFor(MILESTONES[0])]), null);
+  assert.strictEqual(
+    presentation.normalizeResult(Object.assign({}, valid, {
+      result_state: 'NO_OP',
+      ownership_created: false,
+    })),
+    null,
+  );
+});
+
 test('mixed catch-up results present actionable results and omit ineligible noise', () => {
   const states = presentation.present([
     resultFor(MILESTONES[2], 'NOT_ELIGIBLE'),
@@ -289,16 +312,30 @@ test('no-op presentation contains no acquisition language', () => {
   }
 });
 
-test('no-unlock presentation is neutral', () => {
+test('non-eligible result produces no presentation', () => {
   const oldDocument = global.document;
   const document = new FakeDocument();
   global.document = document;
   try {
-    presentation.present(resultFor(MILESTONES[0], 'NOT_ELIGIBLE'));
+    assert.deepStrictEqual(presentation.present(resultFor(MILESTONES[0], 'NOT_ELIGIBLE')), []);
     const root = document.getElementById('d031-adventure-spirit-result');
-    assert.strictEqual(root.getAttribute('data-d031-presentation-state'), 'NO_MILESTONE_UNLOCK');
-    assert.ok(allText(root).includes('No new Spirit unlocked'));
-    assert.strictEqual(root.querySelectorAll('img').length, 0);
+    assert.strictEqual(root, null);
+  } finally {
+    global.document = oldDocument;
+    presentation.clear();
+  }
+});
+
+test('neutral result clears any stale visible presentation', () => {
+  const oldDocument = global.document;
+  const document = new FakeDocument();
+  global.document = document;
+  try {
+    presentation.present(resultFor(MILESTONES[0]));
+    const root = document.getElementById('d031-adventure-spirit-result');
+    assert.strictEqual(root.hidden, false);
+    presentation.present(resultFor(MILESTONES[0], 'NOT_ELIGIBLE'));
+    assert.strictEqual(root.hidden, true);
   } finally {
     global.document = oldDocument;
     presentation.clear();
@@ -312,10 +349,77 @@ test('continue closes the final result without an unlock action', () => {
   try {
     presentation.present(resultFor(MILESTONES[0]));
     const root = document.getElementById('d031-adventure-spirit-result');
+    assert.strictEqual(root.querySelectorAll('button')[0].getAttribute('aria-label'), 'Dismiss');
     root.querySelectorAll('button')[1].click();
     assert.strictEqual(root.hidden, true);
   } finally {
     global.document = oldDocument;
+    presentation.clear();
+  }
+});
+
+test('Escape dismisses the final result and emits one completion hint', () => {
+  const oldDocument = global.document;
+  const oldCustomEvent = global.CustomEvent;
+  const oldDispatchEvent = global.dispatchEvent;
+  const document = new FakeDocument();
+  const events = [];
+  global.document = document;
+  global.CustomEvent = function CustomEvent(type) { this.type = type; };
+  global.dispatchEvent = (event) => events.push(event.type);
+  try {
+    presentation.present(resultFor(MILESTONES[0]));
+    const root = document.getElementById('d031-adventure-spirit-result');
+    let prevented = false;
+    root.dispatchEvent({ type: 'keydown', key: 'Escape', preventDefault: () => { prevented = true; } });
+    assert.strictEqual(prevented, true);
+    assert.strictEqual(root.hidden, true);
+    assert.deepStrictEqual(events, [presentation.COMPLETION_EVENT]);
+  } finally {
+    global.document = oldDocument;
+    global.CustomEvent = oldCustomEvent;
+    global.dispatchEvent = oldDispatchEvent;
+    presentation.clear();
+  }
+});
+
+test('completion broadcasts a refresh hint without carrying ownership state', () => {
+  const oldDocument = global.document;
+  const oldCustomEvent = global.CustomEvent;
+  const oldDispatchEvent = global.dispatchEvent;
+  const oldBroadcastChannel = global.BroadcastChannel;
+  const document = new FakeDocument();
+  const messages = [];
+  const channels = [];
+  function FakeBroadcastChannel(name) {
+    this.name = name;
+    this.listeners = [];
+    channels.push(this);
+  }
+  FakeBroadcastChannel.prototype.addEventListener = function (type, listener) {
+    if (type === 'message') this.listeners.push(listener);
+  };
+  FakeBroadcastChannel.prototype.postMessage = function (message) {
+    channels.forEach((channel) => {
+      if (channel !== this) channel.listeners.forEach((listener) => listener({ data: message }));
+    });
+  };
+  FakeBroadcastChannel.prototype.close = function () {};
+  global.document = document;
+  global.CustomEvent = function CustomEvent(type) { this.type = type; };
+  global.dispatchEvent = () => {};
+  global.BroadcastChannel = FakeBroadcastChannel;
+  try {
+    const observer = new global.BroadcastChannel(presentation.SYNC_CHANNEL_NAME);
+    observer.addEventListener('message', (event) => messages.push(event.data));
+    presentation.present(resultFor(MILESTONES[0]));
+    document.getElementById('d031-adventure-spirit-result').querySelectorAll('button')[1].click();
+    assert.deepStrictEqual(messages, [{ type: presentation.COMPLETION_EVENT }]);
+  } finally {
+    global.document = oldDocument;
+    global.CustomEvent = oldCustomEvent;
+    global.dispatchEvent = oldDispatchEvent;
+    global.BroadcastChannel = oldBroadcastChannel;
     presentation.clear();
   }
 });
