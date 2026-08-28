@@ -1693,6 +1693,14 @@ const I18n = (() => {
         'index.boss.result_fail_rule_1':{ en: 'Cooldown: {cooldown} problems', zh: '冷卻 {cooldown} 題' },
         'index.boss.result_fail_rule_2':{ en: 'Return to main line to recharge', zh: '回主線充能' },
         'index.boss.back_to_map':       { en: 'Back to Map', zh: '返回地圖' },
+        'index.boss.reward.kicker': { en: 'Battlefield Boss Reward', zh: '戰場領主獎勵' },
+        'index.boss.reward.grantedTitle': { en: 'Reward earned', zh: '獎勵已取得' },
+        'index.boss.reward.grantedBody': { en: 'Added to your wardrobe. It is not equipped automatically.', zh: '已加入你的衣櫃，不會自動裝備。' },
+        'index.boss.reward.alreadyTitle': { en: 'Already in your wardrobe', zh: '衣櫃已有此物' },
+        'index.boss.reward.alreadyBody': { en: 'Your collection is unchanged. No replacement reward was issued.', zh: '收藏未變更，沒有發放替代獎勵。' },
+        'index.boss.reward.meta': { en: 'Cosmetic appearance · no combat bonus', zh: '純外觀 · 不增加戰力' },
+        'index.boss.reward.continue': { en: 'Continue', zh: '繼續' },
+        'index.boss.reward.refreshFailed': { en: 'Reward recorded. Wardrobe refresh is unavailable; reload to verify your collection.', zh: '獎勵已記錄，但衣櫃更新暫時失敗；請重新整理確認收藏。' },
 
         // index.html — daily training dynamic
         'index.daily.start':    { en: 'Start training', zh: '開始修煉' },
