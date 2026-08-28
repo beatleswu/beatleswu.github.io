@@ -231,6 +231,16 @@ from spirit_runtime import (
     build_b022_active_spirit_projection,
     build_spirit_projection,
 )
+from spirit_adventure_milestone import (
+    AdventureSpiritAcquisitionError,
+    catch_up_adventure_spirit_unlocks,
+)
+from adventure_spirit_unlock_transport import (
+    build_adventure_spirit_unlock_results,
+)
+from adventure_boss_finish_response import (
+    compose_adventure_boss_finish_response,
+)
 from premium_v1_revenue import (
     C013_HIDDEN_IDS,
     C013_LAUNCH_COSMETIC_IDS,
@@ -12363,6 +12373,7 @@ def _adventure_boss_record_attempt(conn, uid, zone_key, passed, correct,
 @login_required
 def adventure_boss_finish():
     uid = session['user_id']
+    spirit_unlock_results = None
     # Parsed for backward-compatible request-body tolerance only. Client
     # correct/total fields (if present) are never read below -- the score is
     # always recomputed server-side from review_log evidence.
@@ -12420,6 +12431,18 @@ def adventure_boss_finish():
                 passed=passed,
                 attempt_result=settlement,
             )
+            # Adventure progress is the only Spirit eligibility authority.
+            # Keep the accepted D030 catch-up and D033 response adaptation in
+            # the same caller-owned transaction as fresh F030 reward A.
+            if passed:
+                raw_spirit_unlock_results = _apply_adventure_spirit_milestone_catch_up(
+                    conn, uid,
+                )
+                spirit_unlock_results = build_adventure_spirit_unlock_results(
+                    raw_spirit_unlock_results,
+                    historical_catchup=True,
+                )
+
             reward_result = grant_battlefield_boss_first_clear_reward(
                 conn,
                 boss_settlement,
@@ -12446,7 +12469,7 @@ def adventure_boss_finish():
         'coins': 0,
         **reward_result.as_response(),
     }
-    return jsonify({
+    response = {
         'ok': True,
         'passed': passed,
         'correct': correct,
@@ -12458,7 +12481,13 @@ def adventure_boss_finish():
         'reward': reward_payload,
         'reward_item': reward_payload['reward_item'],
         **map_state,
-    })
+    }
+    return jsonify(
+        compose_adventure_boss_finish_response(
+            response,
+            spirit_unlock_results,
+        )
+    )
 
 # ══════════════════════════════════════════════════════════════
 # 題庫 API（index.html / mistakes.html 左側列表用）
