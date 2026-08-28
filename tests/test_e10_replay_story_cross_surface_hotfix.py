@@ -262,7 +262,7 @@ def test_cache_identity_was_bumped_off_v236():
 
 def test_changed_runtime_modules_carry_a_new_cache_tag():
     for src in (
-        "/js/e9/world_stage.js?v=20260828e040s1",
+        "/js/e9/world_stage.js?v=20260828e042s1",
         "/js/e9/right_cards.js?v=20260828e040s1",
     ):
         assert src in INDEX, f"{src} missing -- cached clients keep the broken copy"
