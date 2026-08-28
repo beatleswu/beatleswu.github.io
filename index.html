@@ -8108,8 +8108,16 @@ function refreshPetStatusFromServer() {
     });
 }
 
+function refreshActiveSpiritPresentation() {
+    return refreshPetStatusFromServer().then(() => loadQuizPet());
+}
+
 window.addEventListener('adventure-spirit-unlock-complete', () => {
     refreshPetStatusFromServer().catch(() => {});
+});
+
+window.addEventListener('active-spirit-selection-complete', () => {
+    refreshActiveSpiritPresentation().catch(() => {});
 });
 
 try {
@@ -8118,6 +8126,8 @@ try {
         spiritUnlockSyncChannel.addEventListener('message', event => {
             if (event?.data?.type === 'adventure-spirit-unlock-complete') {
                 refreshPetStatusFromServer().catch(() => {});
+            } else if (event?.data?.type === 'active-spirit-selection-complete') {
+                refreshActiveSpiritPresentation().catch(() => {});
             }
         });
     }
