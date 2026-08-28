@@ -7,15 +7,14 @@ disposable-PostgreSQL test below; SQLite is never treated as equivalent.
 
 import contextlib
 import json
-import shutil
 import sqlite3
-import socket
-import subprocess
 import threading
-import time
-import uuid
 
 import pytest
+
+from tests.postgres_test_harness import (
+    disposable_postgres as _disposable_postgres,
+)
 
 from map_battle_persistence import (
     LEGACY_ALREADY_V1,
@@ -38,7 +37,6 @@ from map_battle_persistence import (
 )
 
 
-_DOCKER_COMMAND_TIMEOUT = 60
 _POSTGRES_CONNECT_TIMEOUT = 3
 
 
@@ -384,101 +382,10 @@ def test_invalid_settlement_payload_never_writes_damage(sqlite_db):
     ).fetchone()[0:3] == ("RESERVED", 0, 0)
 
 
-def _docker_available():
-    if shutil.which("docker") is None:
-        return False
-    try:
-        result = subprocess.run(
-            ["docker", "version", "--format", "{{.Server.Version}}"],
-            capture_output=True,
-            text=True,
-            timeout=_DOCKER_COMMAND_TIMEOUT,
-        )
-    except subprocess.TimeoutExpired:
-        return False
-    return result.returncode == 0 and bool(result.stdout.strip())
-
-
-def _wait_for_port(host, port, timeout=30.0):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-            sock.settimeout(0.5)
-            if sock.connect_ex((host, port)) == 0:
-                return
-        time.sleep(0.2)
-    raise TimeoutError(f"timed out waiting for {host}:{port}")
-
-
-def _wait_for_postgres(database_url, timeout=30.0):
-    import psycopg2
-
-    deadline = time.time() + timeout
-    last_error = None
-    while time.time() < deadline:
-        try:
-            conn = psycopg2.connect(database_url, connect_timeout=_POSTGRES_CONNECT_TIMEOUT)
-            conn.close()
-            return
-        except Exception as exc:
-            last_error = exc
-            time.sleep(0.5)
-    raise last_error
-
-
 @contextlib.contextmanager
 def _postgres_container():
-    if not _docker_available():
-        pytest.skip("docker server unavailable for disposable Map Battle PostgreSQL test")
-    container_name = f"go-odyssey-map-battle-test-{uuid.uuid4().hex[:10]}"
-    try:
-        run = subprocess.run(
-            [
-                "docker", "run", "--rm", "-d", "--name", container_name,
-                "-e", "POSTGRES_PASSWORD=go", "-e", "POSTGRES_USER=go",
-                "-e", "POSTGRES_DB=go_odyssey", "-p", "127.0.0.1::5432",
-                "postgres:16-alpine",
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=_DOCKER_COMMAND_TIMEOUT,
-        )
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
-        subprocess.run(
-            ["docker", "rm", "-f", container_name],
-            capture_output=True,
-            text=True,
-            timeout=_DOCKER_COMMAND_TIMEOUT,
-            check=False,
-        )
-        raise
-    container_id = run.stdout.strip()
-    try:
-        port_result = subprocess.run(
-            ["docker", "port", container_id, "5432/tcp"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=_DOCKER_COMMAND_TIMEOUT,
-        )
-        host, port_text = port_result.stdout.strip().rsplit(":", 1)
-        port = int(port_text)
-        _wait_for_port(host, port)
-        database_url = f"postgresql://go:go@{host}:{port}/go_odyssey"
-        _wait_for_postgres(database_url)
-        yield database_url
-    finally:
-        try:
-            subprocess.run(
-                ["docker", "rm", "-f", container_id],
-                capture_output=True,
-                text=True,
-                timeout=_DOCKER_COMMAND_TIMEOUT,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            pass
+    with _disposable_postgres(name_prefix="go-odyssey-map-battle-test") as record:
+        yield record["database_url"]
 
 
 def _postgres_wrapper(database_url):

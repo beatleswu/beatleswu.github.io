@@ -135,7 +135,10 @@ def test_automatic_answer_feedback_renders_without_scrolling_the_viewport():
     assert "showExplanation(_lastWrongMove || null, { reveal: true });" in explicit_reveal
     assert "scrollIntoView" not in explicit_reveal
     assert board_flow.count("showExplanation({x, y});") == 3
-    assert "showExplanation();submitSRS(3)" in board_flow
+    # B051's canonical Lord path carries the server-judged answer evidence
+    # as review metadata; the public grade remains only the bounded SRS
+    # scheduling signal.
+    assert "showExplanation();if(bossAnswer)submitSRS(3,bossAnswer);else submitSRS(3);" in board_flow
     assert "showExplanation(null, { reveal: true });" in _function_block("showAnswer", "_renderShopStatus")
     assert "hideExplanation();" in load_question
 
