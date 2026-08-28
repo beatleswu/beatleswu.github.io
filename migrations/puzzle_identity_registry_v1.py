@@ -21,7 +21,7 @@ triggers on both SQLite (test) and PostgreSQL (production target).
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 
 SCHEMA_VERSION = "puzzle_identity_registry_v1"
@@ -131,10 +131,16 @@ def _dialect(conn: Any) -> str:
 
 
 def _execute(conn: Any, sql: str, params: tuple[Any, ...] = ()) -> Any:
+    # No-param statements (all DDL) are sent without a parameter sequence so the
+    # PostgreSQL wrapper does not run %-interpolation over DDL that legitimately
+    # contains '%' (e.g. plpgsql RAISE format specifiers, LIKE patterns).
     if hasattr(conn, "execute"):
-        return conn.execute(sql, params)
+        return conn.execute(sql, params) if params else conn.execute(sql)
     cursor = conn.cursor()
-    cursor.execute(sql.replace("?", "%s"), params)
+    if params:
+        cursor.execute(sql.replace("?", "%s"), params)
+    else:
+        cursor.execute(sql)
     return cursor
 
 
@@ -208,8 +214,23 @@ def _stamp(dialect: str) -> str:
     return "TEXT" if dialect == "sqlite" else "TIMESTAMPTZ"
 
 
-def _bool(dialect: str) -> str:
+def _bool_type(dialect: str) -> str:
     return "INTEGER" if dialect == "sqlite" else "BOOLEAN"
+
+
+def _bool_default(dialect: str, value: bool) -> str:
+    if dialect == "sqlite":
+        return "1" if value else "0"
+    return "TRUE" if value else "FALSE"
+
+
+def _is_true_predicate(dialect: str, col: str = "is_current") -> str:
+    """A dialect-correct 'this boolean flag is true' predicate.
+
+    PostgreSQL evaluates the BOOLEAN column directly; SQLite compares the
+    INTEGER flag to 1.  Neither relies on an implicit 0/1 -> BOOLEAN cast.
+    """
+    return col if dialect == "postgres" else f"{col} = 1"
 
 
 def _in_list(col: str, values: tuple[str, ...]) -> str:
@@ -218,13 +239,44 @@ def _in_list(col: str, values: tuple[str, ...]) -> str:
 
 
 def _table_ddl(dialect: str) -> list[str]:
+    """CREATE TABLE statements in FK-dependency order.
+
+    bootstrap_receipt (no deps) -> registry (-> bootstrap_receipt)
+    -> alias / lineage (-> registry).  PostgreSQL requires every referenced
+    parent to exist first; SQLite tolerates any order but is created the same way.
+    """
     ident = _id_type(dialect)
     stamp = _stamp(dialect)
-    boolean = _bool(dialect)
+    bool_type = _bool_type(dialect)
+    bool_default_true = _bool_default(dialect, True)
+    # SQLite keeps an explicit 0/1 domain check; PostgreSQL BOOLEAN needs none.
+    is_current_check = (
+        "\n                CHECK (is_current IN (0, 1)),"
+        if dialect == "sqlite" else ","
+    )
     uuid_shape = _UUID_SHAPE_CHECK.format(col="source_record_uuid")
     related_shape = _UUID_SHAPE_CHECK.format(col="related_source_record_uuid")
 
     return [
+        f"""CREATE TABLE IF NOT EXISTS puzzle_identity_bootstrap_receipt (
+            receipt_sha256 TEXT PRIMARY KEY NOT NULL,
+            bootstrap_singleton TEXT NOT NULL DEFAULT 'GENESIS' UNIQUE
+                CHECK (bootstrap_singleton = 'GENESIS'),
+            frozen_corpus_sha256 TEXT NOT NULL,
+            record_count INTEGER NOT NULL CHECK (record_count > 0),
+            namespace_uuid TEXT NOT NULL,
+            canonicalisation_rules_version TEXT NOT NULL,
+            genesis_key_spec_version TEXT NOT NULL,
+            historical_tree_commit TEXT NOT NULL,
+            historical_tree_manifest_sha256 TEXT NOT NULL,
+            historical_rename_map_sha256 TEXT NOT NULL,
+            genesis_record_manifest_sha256 TEXT NOT NULL,
+            proposed_uuid_list_sha256 TEXT NOT NULL,
+            status TEXT NOT NULL CHECK ({_in_list('status', BOOTSTRAP_STATUSES)}),
+            identities_written INTEGER NOT NULL DEFAULT 0 CHECK (identities_written >= 0),
+            applied_at {stamp} NOT NULL,
+            applied_by TEXT NOT NULL
+        )""",
         f"""CREATE TABLE IF NOT EXISTS puzzle_identity_registry (
             source_record_uuid TEXT PRIMARY KEY NOT NULL
                 CHECK ({uuid_shape}),
@@ -255,8 +307,7 @@ def _table_ddl(dialect: str) -> list[str]:
             alias_context TEXT NOT NULL DEFAULT 'genesis-v1',
             confidence TEXT NOT NULL DEFAULT 'EXACT'
                 CHECK ({_in_list('confidence', ALIAS_CONFIDENCE)}),
-            is_current {boolean} NOT NULL DEFAULT 1
-                CHECK (is_current IN (0, 1)),
+            is_current {bool_type} NOT NULL DEFAULT {bool_default_true}{is_current_check}
             recorded_at {stamp} NOT NULL,
             recorded_by TEXT NOT NULL,
             UNIQUE (source_record_uuid, alias_kind, alias_value, alias_context)
@@ -281,25 +332,6 @@ def _table_ddl(dialect: str) -> list[str]:
             recorded_at {stamp} NOT NULL,
             UNIQUE (source_record_uuid, seq)
         )""",
-        f"""CREATE TABLE IF NOT EXISTS puzzle_identity_bootstrap_receipt (
-            receipt_sha256 TEXT PRIMARY KEY NOT NULL,
-            bootstrap_singleton TEXT NOT NULL DEFAULT 'GENESIS' UNIQUE
-                CHECK (bootstrap_singleton = 'GENESIS'),
-            frozen_corpus_sha256 TEXT NOT NULL,
-            record_count INTEGER NOT NULL CHECK (record_count > 0),
-            namespace_uuid TEXT NOT NULL,
-            canonicalisation_rules_version TEXT NOT NULL,
-            genesis_key_spec_version TEXT NOT NULL,
-            historical_tree_commit TEXT NOT NULL,
-            historical_tree_manifest_sha256 TEXT NOT NULL,
-            historical_rename_map_sha256 TEXT NOT NULL,
-            genesis_record_manifest_sha256 TEXT NOT NULL,
-            proposed_uuid_list_sha256 TEXT NOT NULL,
-            status TEXT NOT NULL CHECK ({_in_list('status', BOOTSTRAP_STATUSES)}),
-            identities_written INTEGER NOT NULL DEFAULT 0 CHECK (identities_written >= 0),
-            applied_at {stamp} NOT NULL,
-            applied_by TEXT NOT NULL
-        )""",
     ]
 
 
@@ -312,14 +344,24 @@ INDEX_SPECS: tuple[tuple[str, str, str], ...] = (
     ("idx_pil_related_uuid", "puzzle_identity_lineage", "related_source_record_uuid"),
 )
 
-# One current binding per (alias_kind, alias_value, alias_context): this is the
-# storage-level guarantee behind AMBIGUOUS_ALIAS_FAILS_CLOSED.
-PARTIAL_UNIQUE_SPECS: tuple[tuple[str, str, str, str], ...] = (
+# Partial unique indexes.  The predicate is rendered per dialect so PostgreSQL
+# evaluates the BOOLEAN column directly and SQLite compares the 0/1 flag.
+#   uq_pia_current_alias     -> AMBIGUOUS_ALIAS_FAILS_CLOSED: at most one identity
+#                               may *currently* hold a given (kind, value, context)
+#   uq_pia_one_current_path  -> at most one *current* CURRENT_SOURCE_PATH per
+#                               identity, so rename/move fail-closed on `from_path`
+PARTIAL_UNIQUE_SPECS: tuple[tuple[str, str, str, Callable[[str], str]], ...] = (
     (
         "uq_pia_current_alias",
         "puzzle_identity_alias",
         "alias_kind, alias_value, alias_context",
-        "is_current = 1",
+        lambda d: _is_true_predicate(d),
+    ),
+    (
+        "uq_pia_one_current_path",
+        "puzzle_identity_alias",
+        "source_record_uuid",
+        lambda d: f"alias_kind = 'CURRENT_SOURCE_PATH' AND {_is_true_predicate(d)}",
     ),
 )
 
@@ -420,7 +462,7 @@ def _pg_trigger_ddl() -> list[str]:
         """CREATE OR REPLACE FUNCTION puzzle_identity_reject_write()
            RETURNS trigger AS $$
            BEGIN
-             RAISE EXCEPTION 'append-only table: % not permitted', TG_OP;
+             RAISE EXCEPTION 'append-only puzzle_identity table: operation not permitted';
            END;
            $$ LANGUAGE plpgsql""",
         "DROP TRIGGER IF EXISTS trg_pir_uuid_immutable ON puzzle_identity_registry",
@@ -515,11 +557,11 @@ def upgrade(conn: Any, *, dry_run: bool = False) -> dict[str, Any]:
         _execute(conn, statement)
     for name, table, cols in INDEX_SPECS:
         _execute(conn, f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({cols})")
-    for name, table, cols, predicate in PARTIAL_UNIQUE_SPECS:
+    for name, table, cols, predicate_fn in PARTIAL_UNIQUE_SPECS:
         _execute(
             conn,
             f"CREATE UNIQUE INDEX IF NOT EXISTS {name} ON {table} ({cols}) "
-            f"WHERE {predicate}",
+            f"WHERE {predicate_fn(before['dialect'])}",
         )
 
     if _is_sqlite(conn):

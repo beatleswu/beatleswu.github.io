@@ -237,20 +237,25 @@ def genesis_join(
 # genesis record manifest  (deterministic, sorted by canonical_source)
 # --------------------------------------------------------------------------- #
 
-def genesis_record_manifest(join: dict[str, Any]) -> tuple[bytes, dict[str, Any]]:
+_MANIFEST_ROW_KEYS = (
+    "source_record_uuid_proposed",
+    "canonical_source",
+    "historical_source",
+    "provenance_relation",
+    "legacy_question_id",
+    "record_index",
+    "content_evidence_sha256",
+)
+
+
+def build_manifest_doc(rows: list[dict[str, Any]]) -> tuple[bytes, list[dict[str, Any]]]:
+    """The one canonical genesis-record-manifest serialisation.
+
+    Accepts either join rows or already-projected manifest rows; the output is
+    byte-identical to what LC012-R2 committed (``genesis_record_manifest_sha256``).
+    """
     manifest_rows = sorted(
-        (
-            {
-                "source_record_uuid_proposed": x["source_record_uuid_proposed"],
-                "canonical_source": x["canonical_source"],
-                "historical_source": x["historical_source"],
-                "provenance_relation": x["provenance_relation"],
-                "legacy_question_id": x["legacy_question_id"],
-                "record_index": x["record_index"],
-                "content_evidence_sha256": x["content_evidence_sha256"],
-            }
-            for x in join["rows"]
-        ),
+        ({k: r[k] for k in _MANIFEST_ROW_KEYS} for r in rows),
         key=lambda r: (r["canonical_source"] or "", r["record_index"]),
     )
     header = {
@@ -263,8 +268,24 @@ def genesis_record_manifest(join: dict[str, Any]) -> tuple[bytes, dict[str, Any]
         "historical_tree_commit": OWNER_P2_TREE_COMMIT,
         "historical_tree_manifest_sha256": OWNER_P2_TREE_MANIFEST_SHA256,
     }
-    doc = {"header": header, "rows": manifest_rows}
-    body = _canon_json_bytes(doc)
+    return _canon_json_bytes({"header": header, "rows": manifest_rows}), manifest_rows
+
+
+def manifest_sha256_from_rows(rows: list[dict[str, Any]]) -> str:
+    """Recompute ``genesis_record_manifest_sha256`` from manifest rows (reused, not reinvented)."""
+    body, _ = build_manifest_doc(rows)
+    return _sha256_bytes(body)
+
+
+def uuid_list_sha256_from_uuids(uuids: list[str]) -> str:
+    """Recompute ``proposed_uuid_list_sha256`` using the LC012-R2 ordering/hash convention."""
+    return hashlib.sha256(
+        "\n".join(sorted(u for u in uuids if u)).encode("utf-8")
+    ).hexdigest()
+
+
+def genesis_record_manifest(join: dict[str, Any]) -> tuple[bytes, dict[str, Any]]:
+    body, manifest_rows = build_manifest_doc(join["rows"])
     stats = {
         "row_count": len(manifest_rows),
         "distinct_uuid": len({r["source_record_uuid_proposed"] for r in manifest_rows}),

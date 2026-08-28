@@ -72,10 +72,14 @@ class PuzzleIdentityStore:
     # ---- low level -------------------------------------------------------- #
 
     def _exec(self, sql: str, params: Sequence[Any] = ()) -> Any:
+        p = tuple(params)
         if hasattr(self._conn, "execute"):
-            return self._conn.execute(sql, tuple(params))
+            return self._conn.execute(sql, p) if p else self._conn.execute(sql)
         cur = self._conn.cursor()
-        cur.execute(sql.replace("?", "%s"), tuple(params))
+        if p:
+            cur.execute(sql.replace("?", "%s"), p)
+        else:
+            cur.execute(sql)
         return cur
 
     def _one(self, sql: str, params: Sequence[Any] = ()) -> Any:
@@ -148,14 +152,16 @@ class PuzzleIdentityStore:
             "SELECT alias_kind, alias_value, alias_context, confidence, is_current, "
             "recorded_at, recorded_by FROM puzzle_identity_alias WHERE source_record_uuid=?"
         )
+        params: list[Any] = [u]
         if current_only:
-            sql += " AND is_current=1"
+            sql += " AND is_current = ?"
+            params.append(True)          # dialect-adapted: PG TRUE / SQLite 1
         sql += " ORDER BY id"
         cols = ["alias_kind", "alias_value", "alias_context", "confidence",
                 "is_current", "recorded_at", "recorded_by"]
         return [
             {c: self._val(r, i, c) for i, c in enumerate(cols)}
-            for r in self._all(sql, (u,))
+            for r in self._all(sql, tuple(params))
         ]
 
     def get_lineage(self, source_record_uuid: str) -> list[dict[str, Any]]:
@@ -193,15 +199,24 @@ class PuzzleIdentityStore:
         self._exec(
             "INSERT INTO puzzle_identity_alias "
             "(source_record_uuid, alias_kind, alias_value, alias_context, confidence, "
-            " is_current, recorded_at, recorded_by) VALUES (?,?,?,?,?,1,?,?)",
-            (u, kind, value, context, confidence, when, recorded_by),
+            " is_current, recorded_at, recorded_by) VALUES (?,?,?,?,?,?,?,?)",
+            (u, kind, value, context, confidence, True, when, recorded_by),
         )
+
+    def _current_aliases(self, u: str, kind: str) -> list[tuple[str, str]]:
+        rows = self._all(
+            "SELECT alias_value, alias_context FROM puzzle_identity_alias "
+            "WHERE source_record_uuid=? AND alias_kind=? AND is_current = ? ORDER BY id",
+            (u, kind, True),
+        )
+        return [(str(self._val(r, 0, "alias_value")),
+                 str(self._val(r, 1, "alias_context"))) for r in rows]
 
     def _supersede_current(self, u: str, kind: str) -> None:
         self._exec(
-            "UPDATE puzzle_identity_alias SET is_current=0 "
-            "WHERE source_record_uuid=? AND alias_kind=? AND is_current=1",
-            (u, kind),
+            "UPDATE puzzle_identity_alias SET is_current = ? "
+            "WHERE source_record_uuid=? AND alias_kind=? AND is_current = ?",
+            (False, u, kind, True),
         )
 
     def _append_lineage(self, u: str, event_type: str, *, actor: str, reason: str,
@@ -333,6 +348,22 @@ class PuzzleIdentityStore:
     def _relocate(self, u: str, event_type: str, *, from_path: str, to_path: str,
                   actor: str, reason: str, alias_context: str, when: str) -> int:
         self._require_identity(u)
+        # Fail closed BEFORE any mutation: the identity must have exactly one
+        # current CURRENT_SOURCE_PATH and its value must equal the supplied
+        # from_path.  A stale or fabricated from_path mutates nothing.
+        current = self._current_aliases(u, "CURRENT_SOURCE_PATH")
+        if len(current) != 1:
+            raise PuzzleIdentityError(
+                f"{event_type}: identity {u} has {len(current)} current "
+                f"CURRENT_SOURCE_PATH aliases (expected exactly 1)"
+            )
+        if current[0][0] != from_path:
+            raise PuzzleIdentityError(
+                f"{event_type}: stale from_path {from_path!r}; current path is "
+                f"{current[0][0]!r} — no mutation performed"
+            )
+        if to_path == from_path:
+            raise PuzzleIdentityError(f"{event_type}: to_path equals from_path")
         with self._unit("relocate"):
             self._supersede_current(u, "CURRENT_SOURCE_PATH")
             self._insert_alias(u, "CURRENT_SOURCE_PATH", to_path, context=alias_context,
@@ -494,8 +525,8 @@ class PuzzleIdentityStore:
             raise PuzzleIdentityError(f"unsupported alias_kind: {alias_kind}")
         rows = self._all(
             "SELECT source_record_uuid FROM puzzle_identity_alias "
-            "WHERE alias_kind=? AND alias_value=? AND alias_context=? AND is_current=1",
-            (alias_kind, str(alias_value), alias_context),
+            "WHERE alias_kind=? AND alias_value=? AND alias_context=? AND is_current = ?",
+            (alias_kind, str(alias_value), alias_context, True),
         )
         uuids = sorted({str(self._val(r, 0, "source_record_uuid")) for r in rows})
         if not uuids:

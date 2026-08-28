@@ -229,3 +229,142 @@ rows.
    `source=''` identity-less. Owned by the authoring/`app.py` line, not here.
 4. **MANUAL-marker policy** — a separate owner decision; then attach semantics to
    the reserved field.
+
+---
+
+## 11. LC013-R1 — correctness closure (base `fb76d40b7`)
+
+Coordinator review found blockers; R1 repairs only those, no redesign.
+
+### 11.1 PostgreSQL table-creation dependency (§5)
+
+`_table_ddl()` now emits **`puzzle_identity_bootstrap_receipt` → `puzzle_identity_registry`
+→ `puzzle_identity_alias` → `puzzle_identity_lineage`**, so every FK parent
+exists before its dependant. SQLite is created the same way (order-agnostic
+there). `POSTGRES_FK_CREATION_ORDER = PASS`, `SQLITE_FK_CREATION_ORDER = PASS`
+(proved on a real disposable PostgreSQL 16.14 container).
+
+### 11.2 Boolean correctness (§6)
+
+`is_current` is a real `BOOLEAN` on PostgreSQL (`DEFAULT TRUE`, no `IN (0,1)`
+check) and `INTEGER` on SQLite (`DEFAULT 1`, `CHECK (is_current IN (0,1))`). The
+partial-unique predicate is rendered per dialect (`WHERE is_current` on PG,
+`WHERE is_current = 1` on SQLite) via `_is_true_predicate()`. The repository
+binds Python `True`/`False` as parameters (psycopg2 → `TRUE`/`FALSE`, sqlite3 →
+`1`/`0`) — **no source relies on an implicit `0/1` → `BOOLEAN` cast**. Proved on
+real PostgreSQL: DDL type is `boolean`, insert wrote `TRUE`, a superseded alias
+is `NOT is_current`, `resolve()` filters on the boolean, and the partial-unique
+index rejects a second current claimant.
+
+### 11.3 Real PostgreSQL execution is mandatory (§7)
+
+`tests/test_lc013_r1_postgres_and_genesis.py` starts a disposable
+`postgres:16.14-alpine` container and runs `upgrade()`, `validate_schema()`, and
+the full repository lifecycle (genesis + native create, alias insert/supersede,
+rename, move, retire, restore, resolve) plus every trigger
+(UUID immutable, creation-fact immutable, alias-binding immutable, lineage
+UPDATE + DELETE rejected, bootstrap-receipt immutable) and the partial-unique
+alias constraint. The readiness wait gates on an in-container `SELECT 1` against
+the target DB before the host connection (the alpine entrypoint publishes the
+port long before the DB exists). If Docker/the image is unavailable the module
+**skips**; a container that never serves is a **failure**, never a silent pass.
+`POSTGRES_RUNTIME_SCHEMA_TEST / POSTGRES_RUNTIME_REPOSITORY_TEST /
+POSTGRES_TRIGGER_TEST = PASS`.
+
+### 11.4 Real LC012-R2 receipt shape + integrity recomputation (§9–§13)
+
+`GenesisReceiptVerifier` consumes the **exact committed
+`docs/planning/lc012_p2_genesis_receipt.json` bytes unmodified** and computes
+`receipt_sha256` from those bytes itself (the artifact carries no self-sha
+field). It then **recomputes** every fact — `genesis_bootstrap_safe_to_run` is
+recorded but never trusted (`SAFE_TO_RUN_BOOLEAN_TRUSTED_WITHOUT_RECOMPUTE = NO`):
+
+- static: `frozen_corpus_sha256`, `frozen_record_count`, `identity_namespace`,
+  `canonicalization_version`, `genesis_key_version`, `historical_tree_commit`,
+  `historical_tree_manifest_sha256`, `provenance_rank`, `exact_build_binding`
+  must equal the frozen constants;
+- `genesis_record_manifest_sha256` is recomputed from the manifest rows with the
+  **accepted LC012-R2 serialisation** (`build_manifest_doc` / `manifest_sha256_from_rows`
+  added to `tools/lc012_p2_genesis_freeze.py` — reused, not reinvented) →
+  `ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e0267e4828`;
+- `proposed_uuid_list_sha256` is recomputed with the LC012-R2 ordering/hash
+  (`uuid_list_sha256_from_uuids`) → `cb47e9d6…`;
+- `historical_rename_map_sha256` is recomputed from the committed
+  `lc012_p2_historical_rename_map.json` bytes → `473a80a3…`, 918 entries;
+- **every one of the 42,804 rows**: `uuidv5(namespace, "gk1"+US+"sgf-source-file"+US+"v1"+US+canonical_source)`
+  (`mint_genesis_uuid`) must equal `source_record_uuid_proposed` — a valid but
+  *wrong* UUIDv5 is rejected (`UUID_CANONICAL_SOURCE_BINDING_MISMATCH = 0`);
+- provenance: `DIRECT_PATH_MATCH` ⇒ `historical == canonical`;
+  `HISTORICAL_RENAME_MATCH` ⇒ `canonical_source` is a `pre_reorg_source` in the
+  locked rename map and `historical_source` is its `post_reorg_source`
+  (`RENAME_PROVENANCE_MISMATCH = 0`). Counts: 41,886 direct + 918 rename =
+  42,804.
+
+The full manifest is regenerated read-only from `C:\go-website` git history
+(P2 pin `b162f9e72`) in `tests/test_lc013_r1_genesis_binding.py`; the LC012-R2
+artifacts are **read and hashed only** (`GENESIS_ARTIFACT_MUTATION = NO`).
+
+### 11.5 Rename / move fail-closed hardening (§15)
+
+`_relocate()` now verifies **before any mutation** that the identity has exactly
+one current `CURRENT_SOURCE_PATH` alias and its value equals `from_path`
+(and `to_path != from_path`). A stale or fabricated `from_path` raises and
+mutates nothing (lineage unchanged, alias unchanged). A new partial-unique index
+`uq_pia_one_current_path` guarantees the "exactly one current path per identity"
+precondition at the storage layer. Tested on SQLite (and the correct-path
+rename/move path is also exercised on real PostgreSQL).
+
+### 11.6 Adversarial genesis tests (§16)
+
+18 rejection scenarios in `test_lc013_r1_genesis_binding.py`: valid UUIDv5 for a
+different `canonical_source`; swapped UUIDs; changed `canonical_source` / same
+UUID; tampered manifest row; tampered `genesis_record_manifest_sha256`; tampered
+`historical_rename_map_sha256`; wrong `proposed_uuid_list_sha256`; wrong
+namespace; wrong canonicalisation version; wrong historical-tree pin; bogus
+self-sha with mismatched bytes; wrong record count; duplicate UUID; UUIDv4 row;
+missing `canonical_source`; invalid `provenance_relation`; non-empty registry;
+second different genesis bootstrap. `ADVERSARIAL_GENESIS_TESTS = PASS`.
+
+### 11.7 Once-only atomicity (§17)
+
+`GenesisBootstrap.apply()` runs the receipt-row insert **and** every identity
+create inside one `SAVEPOINT`, then asserts
+`COUNT(genesis_receipt_ref = <sha>) == len(rows)` **inside** the unit before it
+releases — so an `APPLIED` receipt can never become durable with a short count.
+Same receipt bytes → `ALREADY_APPLIED` no-op (only if the registry count agrees);
+different receipt → fail closed (the `bootstrap_singleton` UNIQUE row).
+`BOOTSTRAP_ATOMICITY / SAME_RECEIPT_IDEMPOTENCY / DIFFERENT_RECEIPT_FAILS_CLOSED = PASS`.
+
+### 11.8 Fresh-master integration boundary (§21)
+
+Current `origin/master` = `1f419eddaf77716d27d9c160daf15150bc26ceec`; the
+Learning Core lineage is historically diverged from current RPG master. **R1
+does not merge / rebase / cherry-pick / open a PR.** A later Coordinator task
+creates the fresh-master integration candidate. For that task:
+
+- **`LC013_REQUIRED_FILES_FOR_FUTURE_INTEGRATION`**:
+  `migrations/puzzle_identity_registry_v1.py`, `puzzle_identity_store.py`,
+  `puzzle_identity_genesis_bootstrap.py`,
+  `tests/test_lc013_puzzle_identity_registry.py`,
+  `tests/test_lc013_r1_postgres_and_genesis.py`,
+  `tests/test_lc013_r1_genesis_binding.py`,
+  `docs/planning/lc013_identity_registry_and_lineage_storage_candidate.md`.
+- **`LC011_LC012_DEPENDENCY_FILES_REQUIRED`** (imported by the bootstrap
+  verifier): `tools/lc011_identity_registry_prototype.py`
+  (`mint_genesis_uuid`, `PROPOSED_CANONICAL_NAMESPACE_UUID`,
+  `CANONICALISATION_RULES_VERSION`, `GENESIS_KEY_SPEC_VERSION`),
+  `tools/lc012_sgf_source_tree_freeze.py` (`GENESIS_SNAPSHOT_SHA256`,
+  `EXPECTED_RECORD_COUNT`), `tools/lc012_p2_genesis_freeze.py`
+  (`OWNER_P2_TREE_COMMIT`, `OWNER_P2_TREE_MANIFEST_SHA256`,
+  `KNOWN_PROPOSED_UUID_LIST_SHA256`, `build_manifest_doc`,
+  `manifest_sha256_from_rows`, `uuid_list_sha256_from_uuids`), and the three
+  immutable `docs/planning/lc012_p2_*` artifacts (receipt / rename map /
+  manifest proof).
+- **`OLD_LEARNING_CORE_RUNTIME_FILES_NOT_REQUIRED_FOR_LC013_STORAGE`**: the LC001–LC009
+  judge/SRS/attempt-transport runtime (`canonical_learning_judge.py`,
+  `js/game/review_transport.js`, the `SRS_REVIEW_NO_ATTEMPT_POLICY` wiring,
+  `tools/lc005*`–`tools/lc009*`), the LC008/LC010 audit tools, and every
+  `tests/test_lc00[1-9]*` / RPG-divergent test — none is needed for the
+  identity-storage layer.
+
+`FRESH_MASTER_INTEGRATION_STILL_REQUIRED = YES`.

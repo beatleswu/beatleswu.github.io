@@ -24,7 +24,18 @@ from puzzle_identity_store import (
     PuzzleIdentityError,
     PuzzleIdentityStore,
 )
-from puzzle_identity_genesis_bootstrap import GenesisBootstrap, GenesisBootstrapError
+import json as _json
+
+from puzzle_identity_genesis_bootstrap import (
+    GenesisBootstrap,
+    GenesisBootstrapError,
+    GenesisReceiptVerifier,
+)
+from tools.lc011_identity_registry_prototype import mint_genesis_uuid
+from tools.lc012_p2_genesis_freeze import (
+    manifest_sha256_from_rows,
+    uuid_list_sha256_from_uuids,
+)
 
 _SYNTH_NS = uuid.UUID("00000000-0000-4000-8000-000000000000")
 _FIXED_TIME = "2026-08-28T12:00:00+00:00"
@@ -90,7 +101,7 @@ def test_postgres_ddl_shape():
     assert "bootstrap_singleton TEXT NOT NULL DEFAULT 'GENESIS' UNIQUE" in ddl
     trg = " ".join(_pg_trigger_ddl())
     assert "source_record_uuid is immutable" in trg
-    assert "append-only table" in trg
+    assert "append-only puzzle_identity table" in trg
     assert "BEFORE UPDATE OR DELETE ON puzzle_identity_lineage" in trg
 
 
@@ -364,24 +375,29 @@ def test_content_correction_fails_closed_without_review(store):
 
 
 # --------------------------------------------------------------- bootstrap interface (§31/§32)
+#
+# Synthetic manifests use the REAL genesis-key algorithm over fake canonical
+# sources, so the per-row uuidv5(namespace, gk1 ... canonical_source) binding and
+# the digest recomputations are all exercised — just not against the frozen corpus.
 
 def _synth_manifest(n=3):
     rows = []
     for i in range(n):
-        cs = f"synthc/{i}.sgf"
+        cs = f"synthetic-collection/{i}.sgf"
         rows.append({
-            "source_record_uuid_proposed": _synth_v5(cs),
+            "source_record_uuid_proposed": mint_genesis_uuid(cs),
             "canonical_source": cs,
             "historical_source": cs,
             "provenance_relation": "DIRECT_PATH_MATCH",
             "legacy_question_id": 900000 + i,
+            "record_index": i,
+            "content_evidence_sha256": uuid.uuid5(_SYNTH_NS, cs).hex + uuid.uuid5(_SYNTH_NS, cs).hex,
         })
     return rows
 
 
-def _synth_receipt(rows):
-    return {
-        "receipt_sha256": "cd" * 32,
+def _synth_receipt(rows, **override):
+    r = {
         "frozen_corpus_sha256": "ff" * 32,
         "frozen_record_count": len(rows),
         "identity_namespace": str(_SYNTH_NS),
@@ -390,12 +406,25 @@ def _synth_receipt(rows):
         "historical_tree_commit": "synthcommit",
         "historical_tree_manifest_sha256": "aa" * 32,
         "historical_rename_map_sha256": "bb" * 32,
-        "genesis_record_manifest_sha256": "dd" * 32,
-        "proposed_uuid_list_sha256": "ee" * 32,
+        "genesis_record_manifest_sha256": manifest_sha256_from_rows(rows),
+        "proposed_uuid_list_sha256": uuid_list_sha256_from_uuids(
+            [x["source_record_uuid_proposed"] for x in rows]),
         "provenance_rank": "B",
         "exact_build_binding": False,
         "genesis_bootstrap_once_only_gate": {"genesis_bootstrap_safe_to_run": True},
     }
+    r.update(override)
+    return r
+
+
+def _verifier(rows, receipt=None, *, canonical=False, rename_map_bytes=None):
+    receipt = receipt if receipt is not None else _synth_receipt(rows)
+    return GenesisReceiptVerifier(
+        receipt_bytes=_json.dumps(receipt).encode("utf-8"),
+        manifest_rows=rows,
+        rename_map_bytes=rename_map_bytes,
+        require_canonical_genesis=canonical,
+    )
 
 
 @pytest.fixture()
@@ -412,28 +441,26 @@ def test_bootstrap_interface_synthetic_apply_and_idempotency(empty_conn):
     st = PuzzleIdentityStore(empty_conn, clock=lambda: _FIXED_TIME)
     rows = _synth_manifest(3)
     receipt = _synth_receipt(rows)
-    bs = GenesisBootstrap(st, receipt, rows, require_canonical_genesis=False)
+    bs = GenesisBootstrap(st, _verifier(rows, receipt))
     assert bs.preflight()["ok"]
     res = bs.apply(applied_by="lc013-test", when=_FIXED_TIME)
     assert res["status"] == "APPLIED" and res["identities_written"] == 3
     assert empty_conn.execute(
         "SELECT COUNT(*) FROM puzzle_identity_registry").fetchone()[0] == 3
-    # re-run same receipt -> idempotent no-op
-    again = GenesisBootstrap(st, receipt, rows, require_canonical_genesis=False)
+    # re-run identical receipt bytes -> idempotent no-op
+    again = GenesisBootstrap(st, _verifier(rows, receipt))
     assert again.apply(applied_by="lc013-test", when=_FIXED_TIME)["status"] == "ALREADY_APPLIED"
-    # a different receipt -> fails closed (once-only)
-    other = _synth_receipt(rows)
-    other["receipt_sha256"] = "99" * 32
+    # a different receipt (different bytes -> different sha) -> fails closed
+    other = _synth_receipt(rows, historical_tree_commit="different-commit")
     with pytest.raises(GenesisBootstrapError):
-        GenesisBootstrap(st, other, rows, require_canonical_genesis=False).apply(
-            applied_by="x", when=_FIXED_TIME)
+        GenesisBootstrap(st, _verifier(rows, other)).apply(applied_by="x", when=_FIXED_TIME)
 
 
 def test_bootstrap_second_run_fails_closed_on_nonempty_registry(empty_conn):
     st = PuzzleIdentityStore(empty_conn, clock=lambda: _FIXED_TIME)
     st.create_native_identity(creation_reason="pre-existing")
     rows = _synth_manifest(2)
-    bs = GenesisBootstrap(st, _synth_receipt(rows), rows, require_canonical_genesis=False)
+    bs = GenesisBootstrap(st, _verifier(rows))
     assert not bs.preflight()["ok"]
     with pytest.raises(GenesisBootstrapError):
         bs.apply(applied_by="x", when=_FIXED_TIME)
@@ -442,7 +469,7 @@ def test_bootstrap_second_run_fails_closed_on_nonempty_registry(empty_conn):
 def test_bootstrap_canonical_mode_rejects_non_frozen_receipt(empty_conn):
     st = PuzzleIdentityStore(empty_conn, clock=lambda: _FIXED_TIME)
     rows = _synth_manifest(3)
-    bs = GenesisBootstrap(st, _synth_receipt(rows), rows, require_canonical_genesis=True)
+    bs = GenesisBootstrap(st, _verifier(rows, canonical=True))
     pf = bs.preflight()
     assert not pf["ok"]
     assert any("frozen" in p for p in pf["problems"])
@@ -454,5 +481,5 @@ def test_bootstrap_rejects_non_v5_uuid_rows(empty_conn):
     st = PuzzleIdentityStore(empty_conn, clock=lambda: _FIXED_TIME)
     rows = _synth_manifest(3)
     rows[1]["source_record_uuid_proposed"] = str(uuid.uuid4())  # v4 in a genesis manifest
-    bs = GenesisBootstrap(st, _synth_receipt(rows), rows, require_canonical_genesis=False)
+    bs = GenesisBootstrap(st, _verifier(rows))
     assert not bs.preflight()["ok"]
