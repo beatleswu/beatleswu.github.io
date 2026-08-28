@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import inspect
+import json
 from pathlib import Path
 import sqlite3
 import threading
@@ -150,6 +151,37 @@ def test_success_uses_server_price_b040_and_never_equips() -> None:
         assert "coin_shop" in SUPPORTED_SOURCES
     finally:
         conn.close()
+
+
+def test_committed_purchase_survives_close_and_reload(tmp_path: Path) -> None:
+    path = tmp_path / "c043-reload.sqlite"
+    conn = _connection(path=path)
+    try:
+        result = _purchase(conn, operation_id="c043-reload")
+        conn.commit()
+        ownership_reference = result.ownership_reference
+    finally:
+        conn.close()
+
+    reloaded = _open_existing(path)
+    try:
+        row = reloaded.execute(
+            "SELECT coins FROM user_stats WHERE user_id=1"
+        ).fetchone()
+        assert row[0] == 400
+        inventory = reloaded.execute(
+            "SELECT id, equip_id, equipped, source FROM player_inventory"
+        ).fetchone()
+        assert tuple(inventory) == (1, "iron_sword", 0, "coin_shop")
+        operation = reloaded.execute(
+            "SELECT operation_status, result_payload FROM coin_purchase_operations "
+            "WHERE user_id=1 AND purchase_operation_id=?",
+            ("c043-reload",),
+        ).fetchone()
+        assert operation[0] == "COMMITTED"
+        assert json.loads(operation[1])["ownership_reference"] == ownership_reference
+    finally:
+        reloaded.close()
 
 
 @pytest.mark.parametrize(
