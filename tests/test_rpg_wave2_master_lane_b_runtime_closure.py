@@ -91,7 +91,7 @@ def test_functional_registry_has_fourteen_full_body_items_and_inventory_only_sto
         assert payload["style_equipment"] is False
 
     assert "fetch('/api/player/inventory'" in HERO
-    assert "item.functional_equipment === true" in HERO
+    assert "item.functional_equipment !== true" in HERO
     assert "server state · icon + full-body projection" in HERO
     assert "data-presentation-mode" in HERO
     assert "damage" not in HERO[HERO.index("function functionalProjectionItemHTML"):HERO.index("function combatGearButtonHTML")]

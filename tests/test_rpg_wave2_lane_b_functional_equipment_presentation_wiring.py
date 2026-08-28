@@ -178,11 +178,15 @@ def test_hero_preview_projection_is_server_driven_and_fail_closed():
     assert 'id="pv-functional-wearable-back"' in HERO
     assert 'id="pv-functional-wearable-front"' in HERO
     assert "FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS" in HERO
-    full_body_block = HERO[HERO.index("const FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS"):HERO.index("const FUNCTIONAL_WEARABLE_ASSET_ROOT")]
+    full_body_start = HERO.index("const FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS")
+    full_body_end = HERO.index("]);", full_body_start) + 3
+    full_body_block = HERO[full_body_start:full_body_end]
     assert "go_stone_black" not in full_body_block
+    assert "normalizeHeroFunctionalEquipment" in HERO
+    assert "FUNCTIONAL_HERO_SLOT_BY_ID" in HERO
     assert "presentation.mode !== 'FULL_BODY_OVERLAY'" in HERO
     assert "presentation.full_body_required !== true" in HERO
-    assert "item.functional_equipment !== true || item.equipped !== true" in HERO
+    assert "item.functional_equipment !== true" in HERO
     assert "onerror=null;this.hidden=true;this.dataset.presentationState='fallback'" in HERO
     assert "renderFunctionalWearableProjection()" in HERO
     assert "fetch('/api/player/inventory'" in HERO
@@ -199,10 +203,13 @@ def test_reload_rehydrates_each_equipped_item_and_restores_same_presentation(tmp
     rows = sorted(
         (row[0], row[1])
         for row in sqlite3.connect(path).execute(
-            "SELECT id,equip_id FROM player_inventory WHERE user_id=1"
+            "SELECT id,equip_id FROM player_inventory "
+            "WHERE user_id=1 AND equip_id <> 'xp_amulet'"
         )
     )
-    assert len(rows) == 14
+    # XP Amulet remains a HOLD_FOR_AUTHORITY item: legacy ownership may be
+    # displayed, but a new equip command is deliberately forbidden.
+    assert len(rows) == 13
 
     for inv_id, item_id in rows:
         response = client.post(

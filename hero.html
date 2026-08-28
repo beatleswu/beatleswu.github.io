@@ -3875,27 +3875,6 @@ function setGearLayer(layerId, slot, key) {
   positionGearLayer(layer, slot, src);
 }
 
-function renderFunctionalWearableProjection(profile = _profileData) {
-  const renderer = window.GoOdysseyWearableRenderer;
-  if (!renderer || !profile) return;
-  const characterKey = profile.character_key || _combatGear.character;
-  const equipped = Array.isArray(profile.functional_equipment)
-    ? profile.functional_equipment
-    : [];
-  const charStage = document.getElementById('char-functional-wearable-stage');
-  const charFallback = document.getElementById('char-fullbody-avatar-img');
-  renderer.renderSafe(charStage, characterKey, equipped, { fallbackElement: charFallback })
-    .then(result => {
-      if (charStage) charStage.setAttribute('aria-hidden', result.supported ? 'false' : 'true');
-    });
-  const previewStage = document.getElementById('pv-functional-wearable-stage');
-  const previewFallback = document.getElementById('pv-fullbody-avatar-img');
-  renderer.renderSafe(previewStage, characterKey, equipped, { fallbackElement: previewFallback })
-    .then(result => {
-      if (previewStage) previewStage.setAttribute('aria-hidden', result.supported ? 'false' : 'true');
-    });
-}
-
 function applyCombatGearVisuals() {
   syncFullBodyAvatar(_wardrobeItems);
   document.getElementById('char-avatar')?.setAttribute('data-character', _combatGear.character);
@@ -3927,6 +3906,49 @@ const FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS = new Set([
   'cloth_robe', 'leather_armor', 'fox_pelt', 'dragon_scale', 'void_mantle',
   'lucky_stone', 'xp_amulet', 'fox_mask', 'dragon_eye',
 ]);
+const FUNCTIONAL_HERO_SLOT_BY_ID = Object.freeze({
+  wooden_sword: 'weapon',
+  iron_sword: 'weapon',
+  fox_fang: 'weapon',
+  dragon_claw: 'weapon',
+  celestial_blade: 'weapon',
+  cloth_robe: 'armor',
+  leather_armor: 'armor',
+  fox_pelt: 'armor',
+  dragon_scale: 'armor',
+  void_mantle: 'armor',
+  lucky_stone: 'accessory',
+  xp_amulet: 'accessory',
+  fox_mask: 'accessory',
+  dragon_eye: 'accessory',
+});
+const FUNCTIONAL_HERO_SLOTS = new Set(['weapon', 'armor', 'accessory']);
+function normalizeHeroFunctionalEquipment(items) {
+  if (!Array.isArray(items)) return { status: 'unavailable', items: [] };
+  const normalized = [];
+  const seenSlots = new Set();
+  for (const item of items) {
+    if (!item || item.equipped !== true) continue;
+    const itemId = String(item.item_id || item.id || '').trim();
+    if (itemId === 'go_stone_black') continue;
+    if (item.functional_equipment !== true
+      || !FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(itemId)
+      || !FUNCTIONAL_HERO_SLOTS.has(item.slot)
+      || FUNCTIONAL_HERO_SLOT_BY_ID[itemId] !== item.slot) {
+      return { status: 'unavailable', items: [] };
+    }
+    if (seenSlots.has(item.slot)) return { status: 'unavailable', items: [] };
+    seenSlots.add(item.slot);
+    normalized.push({
+      ...item,
+      item_id: itemId,
+      id: itemId,
+      slot: item.slot,
+      currently_equipped: true,
+    });
+  }
+  return { status: 'ready', items: normalized };
+}
 const FUNCTIONAL_WEARABLE_ASSET_ROOT = '/assets/hero/equipment/wearables/overlays/';
 const FUNCTIONAL_WEARABLE_MASK_ROOT = '/assets/hero/equipment/wearables/masks/';
 const FUNCTIONAL_WEARABLE_BACK_LAYERS = new Set(['BACK_WEAPON', 'BACK_BODY']);
@@ -4056,7 +4078,9 @@ function functionalProjectionItemHTML(item) {
   </div>`;
 }
 function renderFunctionalEquipmentProjection() {
-  const items = (_functionalEquipmentItems || []).filter(item => item && (item.equipped || item.currently_equipped));
+  const items = (_functionalEquipmentItems || []).filter(item => item
+    && item.item_id !== 'go_stone_black'
+    && (item.equipped || item.currently_equipped));
   const targets = [
     [document.getElementById('hero-functional-projection'), document.getElementById('hero-functional-projection-list')],
     [document.getElementById('pv-functional-projection'), document.getElementById('pv-functional-projection-list')],
@@ -4939,23 +4963,35 @@ function renderHeroOverview() {
     const element = document.getElementById(id);
     if (element) element.textContent = value || '—';
   };
-  const character = COMBAT_GEAR.character.find(item => item.key === _combatGear.character);
-  const equipmentSlots = ['armor','cape','weapon','offhand','hat','aura','acc'];
-  const equippedCombat = equipmentSlots.map(slot => {
-    const item = COMBAT_GEAR[slot]?.find(candidate => candidate.key === _combatGear[slot]);
-    return item && item.key !== COMBAT_GEAR[slot][0].key ? { slot, item } : null;
-  }).filter(Boolean);
-  const wardrobeEquipped = (_wardrobeItems || []).filter(item => item.equipped && item.type !== 'title');
-  const equipmentNames = equippedCombat.map(({ item }) => dispName(item));
-  const bonusTotals = { xp_bonus: 0, drop_bonus: 0 };
-  equippedCombat.map(({ item }) => item).concat(wardrobeEquipped).forEach(item => {
-    Object.entries(item.effects || {}).forEach(([key, value]) => {
-      bonusTotals[key] = Number(bonusTotals[key] || 0) + Number(value || 0);
+  const character = COMBAT_GEAR.character.find(item => item.key === presentationView.heroId);
+  const functionalEquipped = _functionalEquipmentState === 'ready'
+    ? (_functionalEquipmentItems || []).filter(item => item
+      && item.item_id !== 'go_stone_black'
+      && item.equipped === true)
+    : [];
+  const equipmentNames = functionalEquipped.map(functionalProjectionName);
+  const bonusLabels = [];
+  functionalEquipped.forEach(item => {
+    (Array.isArray(item.active_effect_details) ? item.active_effect_details : []).forEach(effect => {
+      const label = isEn() ? (effect.label_en || effect.label || effect.key) : (effect.label || effect.label_en || effect.key);
+      const value = isEn()
+        ? (effect.value_label_en || effect.value_label || effect.value)
+        : (effect.value_label || effect.value_label_en || effect.value);
+      bonusLabels.push(`${label} ${value}`);
     });
   });
-  const bonusLabels = [];
-  if (bonusTotals.xp_bonus) bonusLabels.push(`XP +${Math.round(bonusTotals.xp_bonus * 100)}%`);
-  if (bonusTotals.drop_bonus) bonusLabels.push(`${isEn() ? 'Drop' : '掉落'} +${Math.round(bonusTotals.drop_bonus * 100)}%`);
+  const combatStats = res.combat_stats || {};
+  if (Number(combatStats.attack_bonus_pct || 0)) {
+    bonusLabels.push(`${isEn() ? 'Attack' : '攻擊'} +${combatStats.attack_bonus_pct}%`);
+  }
+  if (Number(combatStats.damage_reduction_pct || 0)) {
+    bonusLabels.push(`${isEn() ? 'Damage reduction' : '受傷減免'} +${combatStats.damage_reduction_pct}%`);
+  }
+  if (Number(combatStats.crit_multiplier || 1) > 1) {
+    bonusLabels.push(`${isEn() ? 'Critical multiplier' : '暴擊倍率'} ×${combatStats.crit_multiplier}`);
+  }
+  if (combatStats.counter_negated) bonusLabels.push(isEn() ? 'Counter negation' : '抵銷反擊');
+  if (combatStats.combo_multiplier_double) bonusLabels.push(isEn() ? 'Combo multiplier' : '連擊加成翻倍');
   const petBonus = Number(_petState?.bonus?.current_pct || 0);
   if (petBonus) bonusLabels.push(`${isEn() ? 'Spirit' : '棋靈'} +${petBonus}%`);
   const title = isEn()
@@ -4969,7 +5005,9 @@ function renderHeroOverview() {
   set('hero-overview-premium', res.is_premium ? (isEn() ? 'Active' : '啟用') : (isEn() ? 'Standard' : '一般'));
   set('hero-overview-title', title);
   set('hero-overview-spirit', pet ? (pet.nickname || petLocal(pet, 'name', 'name_en')) : (isEn() ? 'Not selected' : '尚未選擇'));
-  set('hero-overview-equipment', equipmentNames.length ? equipmentNames.join(' · ') : (isEn() ? 'No stat equipment equipped' : '尚未裝備數值裝備'));
+  set('hero-overview-equipment', _functionalEquipmentState === 'unavailable'
+    ? (isEn() ? 'Functional equipment presentation unavailable.' : '戰鬥裝備展示暫不可用。')
+    : (equipmentNames.length ? equipmentNames.join(' · ') : (isEn() ? 'No stat equipment equipped' : '尚未裝備數值裝備')));
   const overviewXp = Number(presentationView.xp ?? 0);
   const overviewXpNext = presentationView.xpNext;
   set('hero-overview-xp', overviewXpNext
@@ -5000,10 +5038,9 @@ async function hydrateAuthoritativeHeroPresentation() {
     _combatGear.character = serverCharacter;
     if (inventoryResponse.ok) {
       const inventory = await inventoryResponse.json();
-      _functionalEquipmentItems = Array.isArray(inventory)
-        ? inventory.filter(item => item && item.functional_equipment === true && item.item_id)
-        : [];
-      _functionalEquipmentState = 'ready';
+      const normalized = normalizeHeroFunctionalEquipment(inventory);
+      _functionalEquipmentItems = normalized.items;
+      _functionalEquipmentState = normalized.status;
     } else {
       _functionalEquipmentState = 'unavailable';
     }
