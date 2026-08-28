@@ -25,6 +25,11 @@ import sqlite3
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
+from mapping_a_wardrobe_runtime import (
+    MAPPING_A_IDS,
+    consume_mapping_a_cosmetics,
+)
+
 
 READ_MODEL_NAME = "player_hero_state"
 READ_MODEL_VERSION = "player_hero_state_v1"
@@ -650,8 +655,28 @@ def _project_cosmetics_and_hero(
         "invalid_selected_ids": sorted(invalid_selected_ids),
         "gameplay_effects_projected": False,
     }
+
+    # F027-R1 is an additive validation/consumption gate over the existing
+    # B028 projection.  Minimal injected catalogs used by older callers may
+    # intentionally omit Mapping A, so only the complete canonical catalog
+    # activates this gate; the production catalog contains all ten IDs.
+    if set(MAPPING_A_IDS).issubset(catalog):
+        mapping_a_projection = consume_mapping_a_cosmetics(
+            cosmetics,
+            appearance_definitions=catalog,
+        )
+        if not mapping_a_projection.is_ready:
+            invalid_item_ids.update(mapping_a_projection.invalid_item_ids)
+            invalid_selected_ids.update(mapping_a_projection.invalid_selected_ids)
+            cosmetics["invalid_item_ids"] = sorted(invalid_item_ids)
+            cosmetics["invalid_selected_ids"] = sorted(invalid_selected_ids)
+            cosmetics["projection_status"] = (
+                "AUTHORITY_UNAVAILABLE"
+                if mapping_a_projection.status == "AUTHORITY_UNAVAILABLE"
+                else "INVALID_STORED_STATE"
+            )
     return cosmetics, hero, {
-        "projection_status": status,
+        "projection_status": cosmetics["projection_status"],
         "authority": "player_wardrobe_and_player_appearance",
         "source_version": "existing_appearance_defs_wardrobe_projection",
     }
