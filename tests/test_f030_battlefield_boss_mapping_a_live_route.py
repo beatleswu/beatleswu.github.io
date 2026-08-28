@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+from lord_trial_answer_service import encode_lord_trial_verdict
+
 
 CONTRACT_VERSION = "F028_BATTLEFIELD_BOSS_MAPPING_A_FIRST_CLEAR_V1"
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -226,12 +228,30 @@ def _set_exam(client, *, zone_key, question_ids, attempt_mode=None):
 
 
 def _seed_reviews(connection, app_module, uid, question_ids, *, grade=5):
-    source_context = app_module._adventure_boss_source_context(TEST_ATTEMPT_ID)
     reviewed_at = (_STARTED_AT_DT + _dt.timedelta(seconds=60)).isoformat()
+    verdict = "AUTHORITATIVE_PASS" if grade >= 3 else "AUTHORITATIVE_FAIL"
+    authoritative_grade = 5 if verdict == "AUTHORITATIVE_PASS" else 0
     connection.executemany(
         "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
         "VALUES (?,?,?,?,?)",
-        [(uid, question_id, grade, reviewed_at, source_context) for question_id in question_ids],
+        [
+            (
+                uid,
+                question_id,
+                grade,
+                reviewed_at,
+                encode_lord_trial_verdict({
+                    "schema": "lord_trial_verdict_v1",
+                    "attempt_id": TEST_ATTEMPT_ID,
+                    "question_id": int(question_id),
+                    "verdict": verdict,
+                    "authoritative_grade": authoritative_grade,
+                    "judge_version": "lord-trial-map-battle-judge-v1",
+                    "reason_code": "f030_route_fixture",
+                }),
+            )
+            for question_id in question_ids
+        ],
     )
     connection.commit()
 
@@ -528,3 +548,66 @@ def test_route_response_keeps_f028_projection_and_d035_d036_spirit_data(app_modu
     assert "reward_result.as_response()" in route
     assert "'reward_item': reward_payload['reward_item']" in route
     assert "**map_state" in route
+
+
+def test_same_reconciled_source_keeps_b051_verdict_authority_and_f030_reward(
+    client, app_module, route_db, patched_route
+):
+    """The final app.py must preserve B051 judging while settling F030 rewards."""
+    connection, state, _ = patched_route
+    uid = 81
+    zone_key = "k26_30"
+    question = {
+        "id": 170001,
+        "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dd]C[answer]))",
+        "accepted_moves": [{"x": 3, "y": 3}],
+    }
+    exam = {"attempt_id": TEST_ATTEMPT_ID, "zone_key": zone_key}
+    _canonical, judged = app_module.judge_lord_trial_answer(
+        {"moves": [{"x": 3, "y": 3}]}, question=question, exam=exam
+    )
+    assert judged.result == "CORRECT"
+    assert judged.authoritative_grade == 5
+
+    question_ids = list(range(170001, 170021))
+    reviewed_at = (_STARTED_AT_DT + _dt.timedelta(seconds=60)).isoformat()
+    rows = []
+    for question_id in question_ids:
+        verdict = app_module.build_lord_trial_verdict(
+            attempt_id=TEST_ATTEMPT_ID,
+            question_id=question_id,
+            judge=judged,
+        )
+        rows.append(
+            (
+                uid,
+                question_id,
+                0,  # forged/low client scheduling grade; verdict remains server-owned
+                reviewed_at,
+                encode_lord_trial_verdict(verdict),
+            )
+        )
+    connection.executemany(
+        "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
+        "VALUES (?,?,?,?,?)",
+        rows,
+    )
+    connection.commit()
+
+    state["zone_key"] = zone_key
+    _login(client, uid)
+    _set_exam(client, zone_key=zone_key, question_ids=question_ids)
+    response = client.post(
+        "/api/adventure/boss/finish",
+        json={"correct": 0, "total": 20, "grade": 0},
+    )
+
+    assert response.status_code == 200, response.get_json()
+    body = response.get_json()
+    assert body["passed"] is True
+    assert body["correct"] == 20
+    assert body["reward"]["item_id"] == "back_pack"
+    assert connection.execute(
+        "SELECT COUNT(*) FROM player_wardrobe WHERE user_id=? AND item_id=?",
+        (uid, "back_pack"),
+    ).fetchone()[0] == 1
