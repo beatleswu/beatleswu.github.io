@@ -12,6 +12,8 @@ import uuid
 
 import pytest
 
+from lord_trial_answer_service import encode_lord_trial_verdict
+
 
 TESTS_DIR = Path(__file__).resolve().parent
 if str(TESTS_DIR) not in sys.path:
@@ -88,7 +90,21 @@ def _prepare_pass(client, conn, user_id, *, zone_key, attempt_id, start_id):
         conn.execute(
             "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
             "VALUES(?,?,?,?,?)",
-            (user_id, question_id, 5, reviewed_at, f"boss_trial:{attempt_id}"),
+            (
+                user_id,
+                question_id,
+                5,
+                reviewed_at,
+                encode_lord_trial_verdict({
+                    "schema": "lord_trial_verdict_v1",
+                    "attempt_id": attempt_id,
+                    "question_id": question_id,
+                    "verdict": "AUTHORITATIVE_PASS",
+                    "authoritative_grade": 5,
+                    "judge_version": "lord-trial-map-battle-judge-v1",
+                    "reason_code": "d036_fixture",
+                }),
+            ),
         )
     conn.commit()
 
@@ -108,7 +124,21 @@ def _prepare_fail(client, conn, user_id, *, zone_key, attempt_id, start_id):
         "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
         "VALUES(?,?,?,?,?)",
         [
-            (user_id, question_id, 0, reviewed_at, f"boss_trial:{attempt_id}")
+            (
+                user_id,
+                question_id,
+                0,
+                reviewed_at,
+                encode_lord_trial_verdict({
+                    "schema": "lord_trial_verdict_v1",
+                    "attempt_id": attempt_id,
+                    "question_id": question_id,
+                    "verdict": "AUTHORITATIVE_FAIL",
+                    "authoritative_grade": 0,
+                    "judge_version": "lord-trial-map-battle-judge-v1",
+                    "reason_code": "d036_fixture",
+                }),
+            )
             for question_id in question_ids
         ],
     )
@@ -125,6 +155,7 @@ def _d036_postgres_schema(conn):
         "user_pets",
         "currency_log",
         "user_stats",
+        "player_wardrobe",
         "adventure_boss_progress",
         "adventure_zone_unlocks",
         "review_log",
@@ -177,6 +208,16 @@ def _d036_postgres_schema(conn):
             balance_after INTEGER NOT NULL,
             reason TEXT NOT NULL,
             created_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE player_wardrobe(
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            item_id TEXT NOT NULL,
+            obtained_at TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'drop',
+            UNIQUE(user_id, item_id)
         )"""
     )
     conn.execute(
@@ -380,6 +421,9 @@ def test_disposable_postgres_d036_unlock_response_and_status_rehydrate(
             assert first.status_code == 200
             first_body = first.get_json()
             assert first_body["passed"] is True
+            assert first_body["reward"]["status"] == "GRANTED"
+            assert first_body["reward"]["item_id"] == "robe_crane"
+            assert first_body["reward"]["ownership_authority"] == "player_wardrobe"
             assert first_body["adventure_spirit_unlock_results"][0]["status"] == "UNLOCKED"
             assert first_body["adventure_spirit_unlock_results"][0]["spirit_id"] == (
                 "starpath_antlerling"

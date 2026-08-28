@@ -148,6 +148,7 @@ def _patch_common_route(app_module, monkeypatch, result=None, passed=True):
         app_module,
         "_adventure_boss_record_attempt",
         lambda *_args, **_kwargs: {
+            "operation_id": f"adventure:first_clear:{USER_ID}:k11_15",
             "is_replay": False,
             "is_first_clear": False,
         },
@@ -183,7 +184,11 @@ def test_failed_boss_attempt_returns_neutral_spirit_list_and_preserves_response(
     assert body["passed"] is False
     assert body["adventure_spirit_unlock_results"] == []
     assert body["existing_map_field"] == "preserved"
-    assert body["reward"] == {"coins": 0, "first_clear": False}
+    assert body["reward"]["contract_version"] == "F028_BATTLEFIELD_BOSS_MAPPING_A_FIRST_CLEAR_V1"
+    assert body["reward"]["status"] == "NO_REWARD"
+    assert body["reward"]["coins"] == 0
+    assert body["reward"]["first_clear"] is False
+    assert body["reward"]["reward_item"] is None
 
 
 @pytest.mark.parametrize(
@@ -206,7 +211,11 @@ def test_passed_route_transports_server_result_as_historical_and_additive(
     assert body["ok"] is True
     assert body["passed"] is True
     assert body["existing_map_field"] == "preserved"
-    assert body["reward"] == {"coins": 0, "first_clear": False}
+    assert body["reward"]["contract_version"] == "F028_BATTLEFIELD_BOSS_MAPPING_A_FIRST_CLEAR_V1"
+    assert body["reward"]["status"] == "NO_REWARD"
+    assert body["reward"]["coins"] == 0
+    assert body["reward"]["first_clear"] is False
+    assert body["reward"]["reward_item"] is None
     assert len(body["adventure_spirit_unlock_results"]) == 1
     item = body["adventure_spirit_unlock_results"][0]
     assert item["result_state"] == result_state

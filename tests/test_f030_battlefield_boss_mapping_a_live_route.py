@@ -153,6 +153,9 @@ def route_db(tmp_path):
 
 class _FakeDbConnectionContext:
     def __init__(self, connection: sqlite3.Connection):
+        # D030's production query builder uses this marker to omit the
+        # PostgreSQL-only FOR UPDATE suffix for the disposable SQLite double.
+        self._conn = connection
         self.connection = connection
 
     def execute(self, statement, parameters=None):
@@ -198,13 +201,22 @@ def patched_route(app_module, route_db, monkeypatch):
             "cleared": False,
         }],
     )
-    spirit_results = [{"source": "D035_D036_ACCEPTED_FIXTURE"}]
+    # Keep F030's route proof focused on Mapping A.  D038's Spirit route
+    # adapter is exercised by the D030/D035/D036 suites with the companion
+    # schema installed; this fixture intentionally supplies the neutral D032
+    # result while preserving an unrelated map-state field.
+    spirit_results = []
     monkeypatch.setattr(
         app_module,
         "_adventure_map_state",
         lambda _uid, selected_stage_key=None, use_cache=False: {
-            "adventure_spirit_unlock_results": spirit_results,
+            "existing_map_field": "preserved",
         },
+    )
+    monkeypatch.setattr(
+        app_module,
+        "_apply_adventure_spirit_milestone_catch_up",
+        lambda _conn, _uid: [],
     )
     return connection, state, spirit_results
 

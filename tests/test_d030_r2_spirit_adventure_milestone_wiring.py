@@ -9,6 +9,7 @@ import types
 
 import pytest
 
+from lord_trial_answer_service import encode_lord_trial_verdict
 from migrations.companion_operations_v1 import upgrade as upgrade_companion_schema
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
 
@@ -142,6 +143,14 @@ def _new_db():
             qty INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY(user_id, item_key)
         );
+        CREATE TABLE player_wardrobe(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            item_id TEXT NOT NULL,
+            obtained_at TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'drop',
+            UNIQUE(user_id, item_id)
+        );
         CREATE TABLE pet_action_log(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -230,7 +239,21 @@ def _seed_pass(conn, user_id, attempt_id, question_ids, started_at):
         "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
         "VALUES(?,?,?,?,?)",
         [
-            (user_id, question_id, 5, reviewed_at, f"boss_trial:{attempt_id}")
+            (
+                user_id,
+                question_id,
+                5,
+                reviewed_at,
+                encode_lord_trial_verdict({
+                    "schema": "lord_trial_verdict_v1",
+                    "attempt_id": attempt_id,
+                    "question_id": question_id,
+                    "verdict": "AUTHORITATIVE_PASS",
+                    "authoritative_grade": 5,
+                    "judge_version": "lord-trial-map-battle-judge-v1",
+                    "reason_code": "d030_r2_fixture",
+                }),
+            )
             for question_id in question_ids
         ],
     )
@@ -242,6 +265,11 @@ MILESTONE_CASES = (
     ("k1_5", "fatty"),
     ("d3_4", "obsidian_bastion"),
 )
+MAPPING_A_ITEMS = {
+    "k11_15": "robe_crane",
+    "k1_5": "robe_dragon",
+    "d3_4": "back_cloak",
+}
 
 
 def test_real_adventure_settlement_unlocks_all_three_mapped_spirits(
@@ -269,8 +297,17 @@ def test_real_adventure_settlement_unlocks_all_three_mapped_spirits(
             "spirit_id": "ink_drop_kelpie",
         })
         assert response.status_code == 200
-        assert response.get_json()["passed"] is True
-        assert response.get_json()["reward"]["first_clear"] is True
+        body = response.get_json()
+        assert body["passed"] is True
+        assert body["reward"]["first_clear"] is True
+        assert body["reward"]["status"] == "GRANTED"
+        assert body["reward"]["item_id"] == MAPPING_A_ITEMS[zone_key]
+        assert body["reward"]["ownership_authority"] == "player_wardrobe"
+        current_unlock = next(
+            item for item in body["adventure_spirit_unlock_results"]
+            if item["zone_key"] == zone_key
+        )
+        assert current_unlock["spirit_id"] == spirit_id
         assert conn.execute(
             "SELECT cleared FROM adventure_boss_progress WHERE user_id=? AND zone_key=?",
             (user_id, zone_key),
@@ -298,6 +335,35 @@ def test_real_adventure_settlement_unlocks_all_three_mapped_spirits(
     ).fetchone()[0] == 0
     assert conn.execute(
         "SELECT COUNT(*) FROM user_pets WHERE user_id=?", (user_id,)
+    ).fetchone()[0] == 0
+
+
+def test_non_milestone_first_clear_settles_mapping_a_without_spirit_grant(
+    app_module, client, runtime
+):
+    conn, state = runtime
+    user_id = 30206
+    zone_key = "k26_30"
+    question_ids = list(range(6000, 6020))
+    _login(client, user_id)
+    state["zone_key"] = zone_key
+    started_at = _set_exam(
+        client, zone_key=zone_key, attempt_id="d030-r2-non-milestone", question_ids=question_ids
+    )
+    _seed_pass(conn, user_id, "d030-r2-non-milestone", question_ids, started_at)
+
+    response = client.post("/api/adventure/boss/finish", json={"spirit_id": "fatty"})
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["passed"] is True
+    assert body["reward"]["status"] == "GRANTED"
+    assert body["reward"]["item_id"] == "back_pack"
+    assert {item["result_state"] for item in body["adventure_spirit_unlock_results"]} == {
+        "NOT_ELIGIBLE"
+    }
+    assert conn.execute(
+        "SELECT COUNT(*) FROM pet_collection WHERE user_id=?", (user_id,)
     ).fetchone()[0] == 0
 
 
