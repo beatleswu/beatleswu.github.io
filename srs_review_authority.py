@@ -20,6 +20,12 @@ from typing import Any, Final
 
 PUBLIC_REVIEW_NO_SERVER_JUDGE: Final[str] = "LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE"
 PUBLIC_SRS_GRADES: Final[frozenset[int]] = frozenset({0, 3, 5})
+AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX: Final[str] = "mbv1:"
+AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES: Final[tuple[str, ...]] = (
+    "mbv1:",
+    "daily_d5b:v1:",
+)
+AUTHORITATIVE_REVIEW_SOURCE_PREFIXES: Final[tuple[str, ...]] = ("rt:",)
 
 
 class PublicSrsReviewAuthorityError(ValueError):
@@ -54,10 +60,39 @@ def resolve_public_srs_review_authority(grade: Any) -> PublicSrsReviewAuthority:
     return PublicSrsReviewAuthority(scheduling_grade=grade)
 
 
+def is_authoritative_review_source_context(value: Any) -> bool:
+    """Return whether a review row came from a trusted server result.
+
+    These prefixes are private to existing server-authoritative adapters.
+    Public callers are rejected from using them by the existing operation
+    boundary; this predicate is for downstream consumers that must not
+    reinterpret a legacy client grade as correctness.
+    """
+
+    return (
+        isinstance(value, str)
+        and value.startswith(AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES)
+    )
+
+
+def is_authoritative_review_source(value: Any) -> bool:
+    """Return whether a legacy ``source`` field identifies server judging."""
+
+    return (
+        isinstance(value, str)
+        and value.startswith(AUTHORITATIVE_REVIEW_SOURCE_PREFIXES)
+    )
+
+
 __all__ = [
     "PUBLIC_REVIEW_NO_SERVER_JUDGE",
     "PUBLIC_SRS_GRADES",
+    "AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX",
+    "AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES",
+    "AUTHORITATIVE_REVIEW_SOURCE_PREFIXES",
     "PublicSrsReviewAuthority",
     "PublicSrsReviewAuthorityError",
+    "is_authoritative_review_source_context",
+    "is_authoritative_review_source",
     "resolve_public_srs_review_authority",
 ]
