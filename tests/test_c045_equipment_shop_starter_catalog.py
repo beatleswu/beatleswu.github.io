@@ -52,7 +52,9 @@ def _economy_context() -> dict[str, int]:
         "monster_cap": _literal_assignment("_COIN_MONSTER_DAILY_CAP"),
         "daily_quest_each": _literal_assignment("_COIN_PER_DAILY_QUEST"),
         "all_quests_bonus": _literal_assignment("_COIN_ALL_QUESTS_BONUS"),
-        "first_clear": _literal_assignment("ADVENTURE_FIRST_CLEAR_REWARD_COINS"),
+        # F030 Mapping A moved first-clear settlement to the existing
+        # wardrobe authority; there is no current Coins first-clear reward.
+        "first_clear": 0,
     }
 
 
