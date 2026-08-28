@@ -33,7 +33,7 @@ def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract(
 def test_locked_zones_allow_detail_selection_but_never_get_an_entry_target():
     assert "data-zone-locked" in WORLD
     assert "enabled: false, targetZoneKey: null" in WORLD
-    assert "var enabled = contract.enabled && runtimeReady" in WORLD
+    assert "var enabled = contract.enabled && adventureActionRuntimeReady(contract, state);" in WORLD
     assert "button.disabled = !enabled" in WORLD
 
 

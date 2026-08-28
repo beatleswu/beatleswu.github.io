@@ -33,10 +33,13 @@ def test_e9_question_runtime_waits_for_questions_and_srs_readiness():
     assert "{ once: true }" in SHELL
 
 
-def test_question_runtime_error_keeps_world_stage_visible_but_non_actionable():
+def test_question_runtime_error_keeps_world_stage_visible_and_only_generic_actions_non_actionable():
     assert "state.questionRuntimeState = 'error';" in WORLD
     assert "setRetryButton(root, true);" in WORLD
-    assert "state.authorityUnavailable || state.questionRuntimeState !== 'ready'" in WORLD
+    assert "function isServerBackedLordAction(action)" in WORLD
+    assert "function adventureActionRuntimeReady(action, state)" in WORLD
+    assert "return isServerBackedLordAction(action) || state.questionRuntimeState === 'ready';" in WORLD
+    assert "var enabled = contract.enabled && adventureActionRuntimeReady(contract, state);" in WORLD
     assert "button.disabled = !enabled" in WORLD
 
 
@@ -48,7 +51,7 @@ def test_boss_finish_refreshes_world_stage_and_compact_progress():
 
 
 def test_changed_e10_static_resources_use_a_fresh_source_revision():
-    assert "/js/e9/world_stage.js?v=20260828e040s1" in INDEX
+    assert "/js/e9/world_stage.js?v=20260828e042s1" in INDEX
     assert "/js/e9/right_cards.js?v=20260828e040s1" in INDEX
     assert "/css/e9/reference_world_map.css?v=20260828e040s1" in INDEX
     assert "/js/e9/world_stage.js?v=20260821e10xsurface002" not in INDEX

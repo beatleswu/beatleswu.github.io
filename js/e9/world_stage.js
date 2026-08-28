@@ -182,6 +182,21 @@
       : t('index.adv.start_challenge', 'Start Challenge');
   }
 
+  // Lord entry is already a server-backed action: the start response supplies
+  // the authoritative attempt and question queue, while the existing review
+  // route owns grading and settlement. It must not be blocked by the generic
+  // question-pool bootstrap, which may be empty or unavailable even though a
+  // cleared zone can still be replayed through that server contract.
+  function isServerBackedLordAction(action) {
+    return !!action && (action.kind === 'challenge_lord' || action.kind === 'replay_completed');
+  }
+
+  function adventureActionRuntimeReady(action, state) {
+    if (!state) return true;
+    if (state.authorityUnavailable) return false;
+    return isServerBackedLordAction(action) || state.questionRuntimeState === 'ready';
+  }
+
   function resolvePrimaryCta(state, zones) {
     var resume = activeMandatoryEncounterAction(state);
     if (resume && findZone(zones, resume.zoneKey)) return resume;
@@ -745,7 +760,7 @@
   function dispatchAdventureAction(contract) {
     if (!contract || !contract.enabled || !contract.targetZoneKey) return;
     var state = worldStageState();
-    if (state && (state.authorityUnavailable || state.questionRuntimeState !== 'ready')) return false;
+    if (!adventureActionRuntimeReady(contract, state)) return false;
     if (contract.kind === 'challenge_lord' || contract.kind === 'replay_completed') {
       var enter = function () {
         if (typeof window.openAdventureBossFromQuestCard === 'function') {
@@ -1009,8 +1024,7 @@
       return;
     }
     var state = worldStageState();
-    var runtimeReady = !state || state.questionRuntimeState === 'ready';
-    var enabled = contract.enabled && runtimeReady && !(state && state.authorityUnavailable);
+    var enabled = contract.enabled && adventureActionRuntimeReady(contract, state);
     button.hidden = false;
     button.disabled = !enabled;
     button.setAttribute('aria-disabled', enabled ? 'false' : 'true');
@@ -1127,7 +1141,7 @@
     var contract = ctaContract(zone, state);
     var secondary = secondaryCtaContract(zone, state);
     var runtimeReady = !state || state.questionRuntimeState === 'ready';
-    var ctaEnabled = contract.enabled && runtimeReady && !(state && state.authorityUnavailable);
+    var ctaEnabled = contract.enabled && adventureActionRuntimeReady(contract, state);
     var isCurrent = zone.key === state.currentPlayerZoneKey;
     return {
       zoneKey: zone.key,
