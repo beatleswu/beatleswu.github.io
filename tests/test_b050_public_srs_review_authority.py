@@ -320,6 +320,29 @@ def test_boss_conflicting_retry_and_missing_or_forged_answer_fail_closed(api_env
     assert ordinary.get_json()["error"] == "invalid_boss_answer_context"
 
 
+def test_boss_question_outside_signed_attempt_fails_closed_without_write(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    _set_boss_exam(client)
+    outside_question = {**QUESTION, "id": 7002}
+    monkeypatch.setattr(
+        app_module, "_load_questions", lambda: [dict(QUESTION), outside_question]
+    )
+    response = client.post(
+        "/api/srs/review",
+        json={
+            "question_id": 7002,
+            "grade": 5,
+            "source_context": "boss_trial:b050boss01",
+            "boss_answer": {"moves": [{"x": 3, "y": 3}]},
+        },
+    )
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "invalid_boss_attempt_question"
+    assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 0
+
+
 def test_boss_server_fail_wins_over_forged_high_scheduling_grade(api_env):
     client, conn = api_env
     _set_boss_exam(client, attempt_id="b050boss02")
