@@ -2827,7 +2827,7 @@ async function loadPetStatus() {
   if (!root) return;
   root.innerHTML = `<div class="pet-empty">${isEn() ? 'Loading companion data...' : '載入寵物資料中…'}</div>`;
   try {
-    _petState = await fetch('/api/pet/status', { credentials:'include' }).then(r => r.json());
+    _petState = await fetch('/api/pet/status', { credentials:'include', cache:'no-store' }).then(r => r.json());
     renderPetCompanion();
     renderHeroOverview();
   } catch (e) {
@@ -2839,6 +2839,7 @@ function renderPetCompanion() {
   const root = document.getElementById('pet-companion-root');
   if (!root || !_petState) return;
   if (!_petState.pet) {
+    const collection = _petState.collection || {};
     root.innerHTML = `
       <div>
         <div class="pet-intro-text">
@@ -2846,6 +2847,7 @@ function renderPetCompanion() {
             ? 'Choose one companion to begin. It will stay on your Hero page, gain levels through feeding and practice, and grow with your Go journey.'
             : '選一隻棋靈夥伴開始同行。牠會留在 HERO 頁，透過餵食與修行升級，陪你一起走完整個圍棋旅程。'}
         </div>
+        ${petRosterHTML(collection, { showSingle: true })}
         <div class="pet-choice-grid">
           ${(_petState.catalog || []).map(p => `
             <button class="pet-choice-card" style="--pet-accent:${p.accent || '#0b6f69'}" onclick="choosePet('${p.key}')">
@@ -3128,13 +3130,13 @@ function petMilestoneToast(milestones) {
     : `里程碑 LV${m.level} 達成！陪練加成提升，獲得 ${reward}`;
 }
 
-function petRosterHTML(col) {
+function petRosterHTML(col, { showSingle = false } = {}) {
   if (!col) return '';
   const owned = col.collection || [];
   const locked = col.locked || [];
-  if (owned.length <= 1 && !locked.length) return '';   // 只有一隻且無可解鎖 → 不顯示
+  if (owned.length <= 1 && !locked.length && !showSingle) return '';   // 只有一隻且無可解鎖 → 不顯示
   const ownedChips = owned.map(o => `
-    <button class="pet-roster-chip${o.active ? ' active' : ''}" ${o.active ? 'disabled' : `onclick="switchPet('${o.key}')"`} style="--pet-accent:${o.accent || '#0b6f69'}">
+    <button type="button" class="pet-roster-chip${o.active ? ' active' : ''}" data-spirit-id="${escapeHTML(o.key)}" aria-pressed="${o.active ? 'true' : 'false'}" ${o.active ? 'disabled' : `onclick="switchPet('${o.key}')"`} style="--pet-accent:${o.accent || '#0b6f69'}">
       <img class="pet-roster-art" src="${petAnimatedImage(o)}" alt="" loading="lazy" decoding="async">
       <span class="pet-roster-name">${escapeHTML(o.nickname || petLocal(o,'name','name_en'))}</span>
       <span class="pet-roster-lv">LV${o.level}${o.active ? ` · ${isEn() ? 'Active' : '出戰'}` : ''}</span>
@@ -3157,22 +3159,84 @@ function petRosterHTML(col) {
     </div>`;
 }
 
-async function switchPet(petKey) {
+const ACTIVE_SPIRIT_SYNC_EVENT = 'active-spirit-selection-complete';
+const ACTIVE_SPIRIT_SYNC_CHANNEL = 'go-odyssey-spirit-sync-v1';
+let _petSwitchInFlight = null;
+
+function newCompanionOperationId(prefix) {
+  const suffix = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}:${suffix}`;
+}
+
+function notifyActiveSpiritSelection() {
   try {
-    const res = await fetch('/api/pet/switch', {
-      method:'POST', credentials:'include',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({pet_key: petKey}),
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || 'failed');
-    showToast(data.message || (isEn() ? 'Companion switched' : '已切換出戰棋靈'));
-    // 讓登場的棋靈說一句出戰台詞
-    _petPendingLine = { sit:'switch', action:'pet', leveled:false, milestone:false, text: petSay(petKey, 'switch') };
-    await loadPetStatus();
-  } catch (e) {
-    showToast(e.message || (isEn() ? 'Switch failed' : '切換失敗'));
+    window.dispatchEvent(new CustomEvent(ACTIVE_SPIRIT_SYNC_EVENT));
+  } catch (_) {}
+  try {
+    if (typeof BroadcastChannel === 'function') {
+      const channel = new BroadcastChannel(ACTIVE_SPIRIT_SYNC_CHANNEL);
+      channel.postMessage({type: ACTIVE_SPIRIT_SYNC_EVENT});
+      channel.close();
+    }
+  } catch (_) {
+    // Re-entry/reload remains the authoritative refresh fallback.
   }
+}
+
+async function switchPet(petKey) {
+  if (_petSwitchInFlight) return _petSwitchInFlight;
+  const requestedKey = String(petKey || '').trim();
+  const expectedActive = _petState?.pet?.pet_key || null;
+  const operationId = newCompanionOperationId('d037:spirit-switch');
+  _petSwitchInFlight = (async () => {
+    try {
+      let response = null;
+      let lastError = null;
+      // A network-level retry deliberately reuses the B023 operation identity.
+      // If the first response was lost after commit, B023 replays that result.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          response = await fetch('/api/pet/switch', {
+            method:'POST', credentials:'include',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              pet_key: requestedKey,
+              operation_id: operationId,
+              expected_active_spirit_id: expectedActive,
+            }),
+          });
+          break;
+        } catch (error) {
+          lastError = error;
+          if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 120));
+        }
+      }
+      if (!response) throw lastError || new Error('selection request failed');
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok !== true || !data.pet || data.pet.pet_key !== requestedKey) {
+        throw new Error(data.error || (isEn() ? 'Switch failed' : '切換失敗'));
+      }
+      await loadPetStatus();
+      if (!_petState?.pet || _petState.pet.pet_key !== requestedKey) {
+        throw new Error(isEn() ? 'Companion state did not refresh' : '棋靈狀態未完成同步');
+      }
+      showToast(data.message || (isEn() ? 'Companion switched' : '已切換出戰棋靈'));
+      _petPendingLine = {
+        sit:'switch', action:'pet', leveled:false, milestone:false,
+        text: petSay(requestedKey, 'switch'),
+      };
+      notifyActiveSpiritSelection();
+    } catch (e) {
+      showToast(e.message || (isEn() ? 'Switch failed' : '切換失敗'));
+      // Never leave an optimistic or stale marker after a rejected request.
+      await loadPetStatus().catch(() => {});
+    } finally {
+      _petSwitchInFlight = null;
+    }
+  })();
+  return _petSwitchInFlight;
 }
 
 async function unlockPet(petKey) {
@@ -3457,8 +3521,10 @@ function selectHeroTab(tab, push) {
   document.body.dataset.heroTab = canonical;
   if (canonical !== 'pet') { stopPetFrameAnimation(); stopPetCooldownTicker(); stopPetTypewriter(); }
   if (canonical === 'equipment' || canonical === 'appearance') renderCombatGearControls();
-  if (canonical === 'pet' && !_petLoaded) { _petLoaded = true; loadPetStatus(); }
-  else if (canonical === 'pet' && _petState?.pet) renderPetCompanion();
+  if (canonical === 'pet') {
+    _petLoaded = true;
+    loadPetStatus();
+  }
   if (canonical === 'honors' && !_badgesLoaded) loadBadgesTab();
   if (push) history.pushState({ heroTab: canonical }, '', `/hero?tab=${encodeURIComponent(canonical)}`);
 }
@@ -5299,6 +5365,31 @@ window.addEventListener('DOMContentLoaded', async () => {
     selectHeroTab(LEGACY_TAB_ALIASES[tab] || (ALL_TABS.includes(tab) ? tab : 'hero'), false);
   });
 });
+
+window.addEventListener('adventure-spirit-unlock-complete', () => {
+  _petLoaded = true;
+  loadPetStatus();
+});
+
+window.addEventListener(ACTIVE_SPIRIT_SYNC_EVENT, () => {
+  _petLoaded = true;
+  loadPetStatus();
+});
+
+try {
+  if (typeof BroadcastChannel === 'function') {
+    const spiritUnlockSyncChannel = new BroadcastChannel(ACTIVE_SPIRIT_SYNC_CHANNEL);
+    spiritUnlockSyncChannel.addEventListener('message', event => {
+      if (event?.data?.type === 'adventure-spirit-unlock-complete'
+          || event?.data?.type === ACTIVE_SPIRIT_SYNC_EVENT) {
+        _petLoaded = true;
+        loadPetStatus();
+      }
+    });
+  }
+} catch (_) {
+  // Hero reload/re-entry remains the authoritative fallback refresh path.
+}
 
 function closePremWelcome() {
   document.getElementById('prem-welcome-modal')?.classList.remove('show');

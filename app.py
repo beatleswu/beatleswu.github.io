@@ -231,6 +231,16 @@ from spirit_runtime import (
     build_b022_active_spirit_projection,
     build_spirit_projection,
 )
+from spirit_adventure_milestone import (
+    AdventureSpiritAcquisitionError,
+    catch_up_adventure_spirit_unlocks,
+)
+from adventure_spirit_unlock_transport import (
+    build_adventure_spirit_unlock_results,
+)
+from adventure_boss_finish_response import (
+    compose_adventure_boss_finish_response,
+)
 from premium_v1_revenue import (
     C013_HIDDEN_IDS,
     C013_LAUNCH_COSMETIC_IDS,
@@ -3917,6 +3927,122 @@ def _pet_collection_state(conn, uid, active_key):
         'max_level': max_level, 'allowed_count': allowed, 'owned_count': owned_count,
         'collection': collection, 'locked': locked,
     }
+
+
+def _mutate_spirit_unlock(inner_conn, uid, target, operation_id,
+                          *, require_starter=True,
+                          require_order=True, require_level=True,
+                          source_type='OTHER_AUTHORITATIVE_SETTLEMENT',
+                          source_id=None):
+    """Apply the single server-owned Spirit collection unlock mutation.
+
+    The public ``/api/pet/unlock`` route and the Adventure milestone bridge
+    share this sink.  Callers decide eligibility and operation identity; this
+    function only validates the canonical Spirit, mutates ``pet_collection``
+    once, and records the existing food/lineage side effects in the same
+    caller-owned transaction.
+    """
+    if target not in PET_CATALOG:
+        raise CompanionMutationRejected(
+            {'ok': False, 'error': '未知的寵物'},
+            status_code=400, error_code='UNKNOWN_SPIRIT')
+    now = datetime.datetime.now().isoformat()
+    suffix = '' if getattr(getattr(inner_conn, '_conn', inner_conn),
+                           '__class__', type(inner_conn)).__module__.startswith('sqlite3') else ' FOR UPDATE'
+    locked_owned = inner_conn.execute(
+        f'SELECT pet_key FROM pet_collection WHERE user_id=?{suffix}', (uid,)
+    ).fetchall()
+    owned = [row['pet_key'] for row in locked_owned]
+    if require_starter and not owned:
+        raise CompanionMutationRejected(
+            {'ok': False, 'error': '請先選擇第一隻棋靈'},
+            status_code=400, error_code='NO_STARTER_SPIRIT')
+    if target in owned:
+        raise CompanionMutationRejected(
+            {'ok': False, 'error': '已擁有此棋靈'},
+            status_code=409, error_code='SPIRIT_ALREADY_OWNED')
+    if require_order:
+        expected = _next_pet_unlock_key(owned)
+        if target != expected:
+            raise CompanionMutationRejected(
+                {'ok': False, 'error': '請依序解鎖棋靈', 'next_pet_key': expected},
+                status_code=403, error_code='SPIRIT_UNLOCK_ORDER')
+    if require_level:
+        max_level = _pet_max_owned_level(inner_conn, uid)
+        allowed = _pet_allowed_count(max_level)
+        if len(owned) >= allowed:
+            need = (PET_UNLOCK_THRESHOLDS[len(owned)]
+                    if len(owned) < len(PET_UNLOCK_THRESHOLDS) else None)
+            if need is None:
+                raise CompanionMutationRejected(
+                    {'ok': False,
+                     'error': '此棋靈等待已批准的伺服器獎勵來源',
+                     'unlock_source': CANONICAL_SPIRIT_CATALOG[target].get(
+                         'unlock_source')},
+                    status_code=403, error_code='SPIRIT_UNLOCK_SOURCE_UNAVAILABLE')
+            raise CompanionMutationRejected(
+                {'ok': False, 'error': f'養到 LV{need} 才能解鎖下一隻棋靈',
+                 'need_level': need},
+                status_code=403, error_code='SPIRIT_UNLOCK_LEVEL')
+    unlock_insert = inner_conn.execute(
+        'INSERT INTO pet_collection(user_id,pet_key,nickname,level,xp,fullness,affection,'
+        'selected_at,daily_bond,daily_train_xp) VALUES(?,?,?,?,?,?,?,?,?,?) '
+        'ON CONFLICT(user_id,pet_key) DO NOTHING',
+        (uid, target, PET_CATALOG[target]['name'], 1, 0, 60, 10, now, 0, 0)
+    )
+    if getattr(unlock_insert, 'rowcount', 0) != 1:
+        raise CompanionMutationRejected(
+            {'ok': False, 'error': '已擁有此棋靈'},
+            status_code=409, error_code='SPIRIT_ALREADY_OWNED')
+    _grant_pet_food(inner_conn, uid, 'go_spirit_candy', 3)
+    lineage_id = f'companion:{uid}:{operation_id}'
+    append_spirit_reward_event(
+        inner_conn, user_id=uid, operation_id=operation_id,
+        lineage_id=lineage_id, source_type=source_type,
+        source_id=source_id or f'spirit_unlock:{target}', reward_type='FOOD',
+        reward_key='go_spirit_candy', quantity=3, spirit_id=target)
+    inner_conn.execute(
+        'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
+        (uid, 'unlock', target, now)
+    )
+    pet_row = inner_conn.execute(
+        'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+    collection_state = _pet_collection_state(
+        inner_conn, uid, pet_row['pet_key'] if pet_row else None)
+    return {
+        'ok': True, 'collection': collection_state,
+        'message': f'{PET_CATALOG[target]["name"]} 加入了你的棋靈收藏',
+    }, 200
+
+
+def _adventure_spirit_unlock_sink(inner_conn, uid, spirit_id, zone_key,
+                                  operation_id):
+    """Adapt D030's server-derived milestone to the existing unlock sink."""
+    return _mutate_spirit_unlock(
+        inner_conn,
+        uid,
+        spirit_id,
+        operation_id,
+        require_starter=False,
+        require_order=False,
+        require_level=False,
+        source_type='ADVENTURE',
+        source_id=f'adventure_spirit_milestone:{zone_key}',
+    )
+
+
+def _apply_adventure_spirit_milestone_catch_up(conn, uid):
+    """Consume only persisted Adventure clears through the shared sink."""
+    results = catch_up_adventure_spirit_unlocks(
+        conn, user_id=uid, mutation=_adventure_spirit_unlock_sink)
+    rejected = [result for result in results if result.get('status') == 'REJECTED']
+    if rejected:
+        code = rejected[0].get('sink_result', {}).get('code') or 'SPIRIT_UNLOCK_REJECTED'
+        raise AdventureSpiritAcquisitionError(
+            'Adventure Spirit milestone sink rejected an authoritative unlock',
+            code=code,
+        )
+    return results
 
 def _pet_player_xp_bonus(conn, uid, context):
     """棋靈夥伴給玩家的答題 XP 加成比例（依等級/親密度/專長情境/飽食度）。
@@ -12363,6 +12489,7 @@ def _adventure_boss_record_attempt(conn, uid, zone_key, passed, correct,
 @login_required
 def adventure_boss_finish():
     uid = session['user_id']
+    spirit_unlock_results = None
     # Parsed for backward-compatible request-body tolerance only. Client
     # correct/total fields (if present) are never read below -- the score is
     # always recomputed server-side from review_log evidence.
@@ -12420,6 +12547,18 @@ def adventure_boss_finish():
                 passed=passed,
                 attempt_result=settlement,
             )
+            # Adventure progress is the only Spirit eligibility authority.
+            # Keep the accepted D030 catch-up and D033 response adaptation in
+            # the same caller-owned transaction as fresh F030 reward A.
+            if passed:
+                raw_spirit_unlock_results = _apply_adventure_spirit_milestone_catch_up(
+                    conn, uid,
+                )
+                spirit_unlock_results = build_adventure_spirit_unlock_results(
+                    raw_spirit_unlock_results,
+                    historical_catchup=True,
+                )
+
             reward_result = grant_battlefield_boss_first_clear_reward(
                 conn,
                 boss_settlement,
@@ -12446,7 +12585,7 @@ def adventure_boss_finish():
         'coins': 0,
         **reward_result.as_response(),
     }
-    return jsonify({
+    response = {
         'ok': True,
         'passed': passed,
         'correct': correct,
@@ -12458,7 +12597,13 @@ def adventure_boss_finish():
         'reward': reward_payload,
         'reward_item': reward_payload['reward_item'],
         **map_state,
-    })
+    }
+    return jsonify(
+        compose_adventure_boss_finish_response(
+            response,
+            spirit_unlock_results,
+        )
+    )
 
 # ══════════════════════════════════════════════════════════════
 # 題庫 API（index.html / mistakes.html 左側列表用）
@@ -16203,75 +16348,9 @@ def pet_unlock():
     target = (data.get('pet_key') or '').strip()
     with get_db() as conn:
         def mutate(inner_conn, operation_id):
-            if target not in PET_CATALOG:
-                raise CompanionMutationRejected(
-                    {'ok': False, 'error': '未知的寵物'},
-                    status_code=400, error_code='UNKNOWN_SPIRIT')
-            now = datetime.datetime.now().isoformat()
-            suffix = '' if getattr(getattr(inner_conn, '_conn', inner_conn),
-                                   '__class__', type(inner_conn)).__module__.startswith('sqlite3') else ' FOR UPDATE'
-            locked_owned = inner_conn.execute(
-                f'SELECT pet_key FROM pet_collection WHERE user_id=?{suffix}', (uid,)
-            ).fetchall()
-            owned = [row['pet_key'] for row in locked_owned]
-            if not owned:
-                raise CompanionMutationRejected(
-                    {'ok': False, 'error': '請先選擇第一隻棋靈'},
-                    status_code=400, error_code='NO_STARTER_SPIRIT')
-            if target in owned:
-                raise CompanionMutationRejected(
-                    {'ok': False, 'error': '已擁有此棋靈'},
-                    status_code=409, error_code='SPIRIT_ALREADY_OWNED')
-            expected = _next_pet_unlock_key(owned)
-            if target != expected:
-                raise CompanionMutationRejected(
-                    {'ok': False, 'error': '請依序解鎖棋靈', 'next_pet_key': expected},
-                    status_code=403, error_code='SPIRIT_UNLOCK_ORDER')
-            max_level = _pet_max_owned_level(inner_conn, uid)
-            allowed = _pet_allowed_count(max_level)
-            if len(owned) >= allowed:
-                need = (PET_UNLOCK_THRESHOLDS[len(owned)]
-                        if len(owned) < len(PET_UNLOCK_THRESHOLDS) else None)
-                if need is None:
-                    raise CompanionMutationRejected(
-                        {'ok': False,
-                         'error': '此棋靈等待已批准的伺服器獎勵來源',
-                         'unlock_source': CANONICAL_SPIRIT_CATALOG[target].get(
-                             'unlock_source')},
-                        status_code=403, error_code='SPIRIT_UNLOCK_SOURCE_UNAVAILABLE')
-                raise CompanionMutationRejected(
-                    {'ok': False, 'error': f'養到 LV{need} 才能解鎖下一隻棋靈',
-                     'need_level': need},
-                    status_code=403, error_code='SPIRIT_UNLOCK_LEVEL')
-            unlock_insert = inner_conn.execute(
-                'INSERT INTO pet_collection(user_id,pet_key,nickname,level,xp,fullness,affection,'
-                'selected_at,daily_bond,daily_train_xp) VALUES(?,?,?,?,?,?,?,?,?,?) '
-                'ON CONFLICT(user_id,pet_key) DO NOTHING',
-                (uid, target, PET_CATALOG[target]['name'], 1, 0, 60, 10, now, 0, 0)
+            return _mutate_spirit_unlock(
+                inner_conn, uid, target, operation_id,
             )
-            if getattr(unlock_insert, 'rowcount', 0) != 1:
-                raise CompanionMutationRejected(
-                    {'ok': False, 'error': '已擁有此棋靈'},
-                    status_code=409, error_code='SPIRIT_ALREADY_OWNED')
-            _grant_pet_food(inner_conn, uid, 'go_spirit_candy', 3)
-            lineage_id = f'companion:{uid}:{operation_id}'
-            append_spirit_reward_event(
-                inner_conn, user_id=uid, operation_id=operation_id,
-                lineage_id=lineage_id, source_type='OTHER_AUTHORITATIVE_SETTLEMENT',
-                source_id=f'spirit_unlock:{target}', reward_type='FOOD',
-                reward_key='go_spirit_candy', quantity=3, spirit_id=target)
-            inner_conn.execute(
-                'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
-                (uid, 'unlock', target, now)
-            )
-            pet_row = inner_conn.execute(
-                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-            collection_state = _pet_collection_state(
-                inner_conn, uid, pet_row['pet_key'] if pet_row else None)
-            return {
-                'ok': True, 'collection': collection_state,
-                'message': f'{PET_CATALOG[target]["name"]} 加入了你的棋靈收藏',
-            }, 200
 
         result = _run_companion_route(
             conn, user_id=uid, operation_type='SPIRIT_UNLOCK',
