@@ -22,11 +22,38 @@ def test_e9_zone_cta_uses_canonical_in_page_question_entry():
 
 def test_e9_question_runtime_waits_for_questions_and_srs_readiness():
     assert "window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false" in INDEX
+    assert "window.__GO_ADVENTURE_QUESTION_RUNTIME_ERROR__ = null" in INDEX
+    assert "notifyAdventureQuestionRuntimeError('questions', err)" in INDEX
+    assert "notifyAdventureQuestionRuntimeError('srs', e)" in INDEX
     assert "needsImmediatePracticeState || e9ShellRequested" in INDEX
     assert "adventureQuestionSrsReady=true" in INDEX
     assert "adventure:question-runtime-ready" in INDEX
+    assert "adventure:question-runtime-error" in INDEX
     assert "adventureEntryPhase === 'queued'" in SHELL
     assert "{ once: true }" in SHELL
+
+
+def test_question_runtime_error_keeps_world_stage_visible_but_non_actionable():
+    assert "state.questionRuntimeState = 'error';" in WORLD
+    assert "setRetryButton(root, true);" in WORLD
+    assert "state.authorityUnavailable || state.questionRuntimeState !== 'ready'" in WORLD
+    assert "button.disabled = !enabled" in WORLD
+
+
+def test_boss_finish_refreshes_world_stage_and_compact_progress():
+    assert "document.dispatchEvent(new CustomEvent('e10:adventure-state-updated'" in INDEX
+    assert "window.E9.on(document, 'e10:adventure-state-updated', onAdventureStateUpdated" in WORLD
+    assert "window.E9.on(document, 'e10:adventure-state-updated', onAdventureStateUpdated" in RIGHT
+    assert "setCompactProgressLoading(root);" in RIGHT
+
+
+def test_changed_e10_static_resources_use_a_fresh_source_revision():
+    assert "/js/e9/world_stage.js?v=20260828e040s1" in INDEX
+    assert "/js/e9/right_cards.js?v=20260828e040s1" in INDEX
+    assert "/css/e9/reference_world_map.css?v=20260828e040s1" in INDEX
+    assert "/js/e9/world_stage.js?v=20260821e10xsurface002" not in INDEX
+    assert "/js/e9/right_cards.js?v=20260821e10xsurface002" not in INDEX
+    assert "/css/e9/reference_world_map.css?v=20260801e10art1" not in INDEX
 
 
 def test_failed_in_page_filter_does_not_hide_map_before_question_exists():
