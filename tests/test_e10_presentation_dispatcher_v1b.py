@@ -181,6 +181,63 @@ let _reviewRequestInFlightKey = null;
 let _lordTrialController = null;
 """
 
+B051_SUBMIT_SRS_BOSS_ARGUMENT = """\
+    const bossAnswer = arguments.length > 1 ? arguments[1] : null;
+"""
+B051_SUBMIT_SRS_BOSS_METADATA = """\
+    if (_bossMode && bossAnswer) reviewMetadata.boss_answer = bossAnswer;
+"""
+B051_LORD_VERDICT_GUARD = """\
+            const authoritativeVerdict = reviewResult.boss_verdict;
+            if (!authoritativeVerdict
+                || (authoritativeVerdict.verdict !== 'AUTHORITATIVE_PASS'
+                    && authoritativeVerdict.verdict !== 'AUTHORITATIVE_FAIL')) {
+                return { advanced: false, reason: 'server_verdict_missing' };
+            }
+
+"""
+
+
+def _normalize_b051_submit_srs(current_function: str) -> str:
+    for fragment in (B051_SUBMIT_SRS_BOSS_ARGUMENT, B051_SUBMIT_SRS_BOSS_METADATA):
+        assert current_function.count(fragment) == 1
+        current_function = current_function.replace(fragment, "", 1)
+    assert current_function.count("if(!_bossMode&&grade>=3&&unit){") == 1
+    current_function = current_function.replace(
+        "if(!_bossMode&&grade>=3&&unit){", "if(grade>=3&&unit){", 1
+    )
+    b051_correct_tally = """\
+        _todayTotal++;
+        if (data.boss_verdict?.verdict === 'AUTHORITATIVE_PASS') _todayCorrect++;
+"""
+    assert current_function.count(b051_correct_tally) == 1
+    current_function = current_function.replace(
+        b051_correct_tally, "        _todayTotal++; if(grade>=3) _todayCorrect++;\n", 1
+    )
+    return current_function
+
+
+def _normalize_b051_lord_controller(current_source: str) -> str:
+    assert current_source.count(B051_LORD_VERDICT_GUARD) == 1
+    current_source = current_source.replace(B051_LORD_VERDICT_GUARD, "", 1)
+    assert current_source.count("index: submittedIndex, qid: submittedQuestionId,\n") == 2
+    current_source = current_source.replace(
+        "index: submittedIndex, qid: submittedQuestionId,\n",
+        "index: submittedIndex, qid: submittedQuestionId, grade: submission.grade,\n",
+        2,
+    )
+    b051_next_correct = """\
+            const nextCorrect = Number(context.correct || 0)
+                + (authoritativeVerdict.verdict === 'AUTHORITATIVE_PASS' ? 1 : 0);
+"""
+    assert current_source.count(b051_next_correct) == 1
+    return current_source.replace(
+        b051_next_correct,
+        "            const nextCorrect = Number(context.correct || 0)\n"
+        "                + (Number(submission.grade) >= 3 ? 1 : 0);\n",
+        1,
+    )
+
 FROZEN_INDEX_FUNCTIONS = (
     "_dispatchCommittedReviewPresentation",
     "submitSRS",
@@ -526,6 +583,7 @@ def test_index_html_effect_bodies_and_lord_controller_are_frozen():
         current_function = _extract_function(current_index, name)
         base_function = _extract_function(base_index, name)
         if name == "submitSRS":
+            current_function = _normalize_b051_submit_srs(current_function)
             current_function = _normalize_b4_submit_srs(current_function, base_function)
         b2_delta = B2_INDEX_FUNCTION_DELTAS.get(name)
         if b2_delta:
@@ -547,7 +605,10 @@ def test_index_html_effect_bodies_and_lord_controller_are_frozen():
             base_function
         ), f"B1 changed frozen index function body: {name}"
 
-    assert _read(LORD_CONTROLLER_PATH) == _git_show("js/game/lord_trial_controller.js")
+    controller_source = _normalize_b051_lord_controller(_read(LORD_CONTROLLER_PATH))
+    assert _stable_js(controller_source) == _stable_js(
+        _git_show("js/game/lord_trial_controller.js")
+    )
 
 
 def test_b1_index_html_changes_are_script_loading_only():

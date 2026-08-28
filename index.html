@@ -8872,6 +8872,7 @@ let _adventureActiveQuestions = null;
 let _mapBattleV1State = null;
 let _mapBattleV1Mode = 'disabled';
 let _mapBattleV1Moves = [];
+let _lordTrialAnswerMoves = [];
 let _mapBattleV1Context = null;
 let _mapBattleV1PrepareSerial = 0;
 let _mapBattleV1TransitionPending = false;
@@ -9346,6 +9347,7 @@ function _dispatchCommittedReviewPresentation(data, grade, lordController = null
 }
 
 async function submitSRS(grade){
+    const bossAnswer = arguments.length > 1 ? arguments[1] : null;
     if(!currentQ)return;
     if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
     const bossAnswerContext = _bossMode
@@ -9360,6 +9362,7 @@ async function submitSRS(grade){
         return;
     }
     const reviewMetadata = _currentReviewMetadata();
+    if (_bossMode && bossAnswer) reviewMetadata.boss_answer = bossAnswer;
     const identity = _gameSession.adoptQuestion(currentQ, {
         ..._modeContext.identityOptions(currentQ),
         lifecycleGeneration: _mapBattleV1LifecycleGeneration,
@@ -9368,7 +9371,7 @@ async function submitSRS(grade){
     if (!_gameSession.beginReview(identity)) return;
     return (async () => {
     const unit=currentUnitName();let unitDone=false;
-    if(grade>=3&&unit){
+    if(!_bossMode&&grade>=3&&unit){
         try{const prog=await SRS.reportUnitProgress(currentQ.id,unit);unitDone=prog.unit_complete;}
         catch(e){/* /api/unit-progress 不存在時靜默忽略 */}
     }
@@ -9452,7 +9455,8 @@ async function submitSRS(grade){
             });
             console.error('[BOSS] committed review transition failed', error);
         }
-        _todayTotal++; if(grade>=3) _todayCorrect++;
+        _todayTotal++;
+        if (data.boss_verdict?.verdict === 'AUTHORITATIVE_PASS') _todayCorrect++;
         _e10AcceptanceTrace('PRESENTATION_DISPATCH_STARTED', {
             qid: Number(bossAnswerContext.questionId), grade,
         });
@@ -10022,6 +10026,7 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
     _resetE10BattleRevealState();
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
+    _lordTrialAnswerMoves = [];
     _mapBattleV1Context = null;
     _publishMapBattleV1Lifecycle();
     if (_bossMode) {
@@ -11342,6 +11347,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     _clearMapBattleV1Resume();
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
+    _lordTrialAnswerMoves = [];
     _mapBattleV1Context = null;
     _mapBattleV1Mode = (!_bossMode && _isAdventureZonePractice()) ? 'pending' : 'disabled';
     _publishMapBattleV1Lifecycle();
@@ -11585,6 +11591,11 @@ function onBoardClick(bx,by){
     }
 
     if(solved)return;
+    if (_bossMode) _lordTrialAnswerMoves.push({action:'play',x,y});
+    const bossAnswer = _bossMode
+        ? {moves:_lordTrialAnswerMoves.map(move => ({...move}))}
+        : null;
+    const submitCorrect = () => bossAnswer ? submitSRS(3, bossAnswer) : submitSRS(3);
     const matched=currentNode.children.find(c=>c.move&&c.move.x===x&&c.move.y===y);
     if(!matched){
         playWrong();const opp=playerColor==='B'?'W':'B';playStone(x,y,playerColor);
@@ -11601,7 +11612,7 @@ function onBoardClick(bx,by){
         }
         if(_bossMode){
             showExplanation({x, y});
-            submitSRS(0);
+            submitSRS(0, bossAnswer);
             return;
         }
         if(_challengeId&&window._challengeWrongHandler){window._challengeWrongHandler();}
@@ -11631,7 +11642,7 @@ function onBoardClick(bx,by){
     }
     if (_mapBattleV1IsActive()) _mapBattleV1Moves.push({x, y});
     playStone(x,y,playerColor);currentNode=matched;
-    if(currentNode.children.length===0){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitSRS(3);if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();return;}
+    if(currentNode.children.length===0){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();if(bossAnswer)submitSRS(3,bossAnswer);else submitSRS(3);if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();return;}
     answering=true;
     const computerReplyGuard = _gameBootstrap.capture({
         question: currentQ,
@@ -11649,10 +11660,10 @@ function onBoardClick(bx,by){
             return;
         }
         answering=false;const reply=currentNode.children[0];
-        if(!reply||!reply.move){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitSRS(3);if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();return;}
+        if(!reply||!reply.move){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitCorrect();if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();return;}
         const placed=playStone(reply.move.x,reply.move.y,reply.color,true);  // 電腦回應：skip rule re-check
         currentNode=reply;
-        if(!placed||currentNode.children.length===0){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitSRS(3);if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();}
+        if(!placed||currentNode.children.length===0){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitCorrect();if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();}
         else setMsg(I18n.t('index.continue'),'info');
     },400);
 }

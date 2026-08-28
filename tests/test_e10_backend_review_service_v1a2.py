@@ -510,7 +510,7 @@ def test_srs_review_operation_owns_d5b_identity_and_response_contract():
 
 def test_review_identity_contract_keeps_incident017_extensions_fail_closed():
     assert set(APPROVED_PRESENTATION_EXTENSION_FIELDS) == {
-        "combat_stats", "level_up_rewards"
+        "combat_stats", "level_up_rewards", "boss_verdict"
     }
     approved = _core_payload()
     approved.update(

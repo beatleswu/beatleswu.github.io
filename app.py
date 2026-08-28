@@ -163,6 +163,18 @@ from srs_review_authority import (
     is_authoritative_review_source_context,
     resolve_public_srs_review_authority,
 )
+from lord_trial_answer_service import (
+    LORD_TRIAL_PENDING_SOURCE,
+    LORD_TRIAL_RESULT_SOURCE_PREFIX,
+    LordTrialAnswerError,
+    LordTrialVerdictPersistenceError,
+    build_lord_trial_verdict,
+    decode_lord_trial_verdict,
+    judge_lord_trial_answer,
+    lord_trial_submission_id,
+    persist_lord_trial_verdict,
+    summarize_lord_trial_evidence,
+)
 from question_capacity_authority import (
     QuestionCapacityConflict,
     QuestionCapacityError,
@@ -12132,8 +12144,10 @@ def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
     """Derive ordered Boss progress from signed-session and review evidence.
 
     The signed session owns the ordered question list and attempt start time;
-    review_log owns whether each question settled and its best grade.  Resume
-    and final finish both use this helper so they cannot drift apart.
+    the server-owned Lord Trial result envelope in review_log owns whether
+    each question settled and its verdict.  The legacy review grade remains
+    an SM-2 scheduling value and is never consulted here. Resume and final
+    finish both use this helper so they cannot drift apart.
     """
     question_ids = exam.get('question_ids') if isinstance(exam, dict) else None
     started_at_raw = exam.get('started_at') if isinstance(exam, dict) else None
@@ -12159,55 +12173,44 @@ def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
     if datetime.datetime.now() > deadline:
         raise _AdventureBossAttemptError('attempt_expired')
 
-    source_context = _adventure_boss_source_context(attempt_id)
+    placeholders = ','.join('?' for _ in qids)
+    rows = conn.execute(
+        'SELECT question_id, source_context FROM review_log '
+        f'WHERE user_id=? AND question_id IN ({placeholders}) '
+        'AND reviewed_at >= ? AND reviewed_at <= ? '
+        'AND source_context LIKE ?',
+        (
+            uid, *qids, started_at.isoformat(), deadline.isoformat(),
+            f'{LORD_TRIAL_RESULT_SOURCE_PREFIX}%',
+        )
+    ).fetchall()
+    try:
+        summary = summarize_lord_trial_evidence(
+            rows, attempt_id=attempt_id, question_ids=qids
+        )
+    except LordTrialVerdictPersistenceError as exc:
+        message = str(exc)
+        if 'nonsequential' in message:
+            code = 'nonsequential_attempt_evidence'
+        elif 'conflicting' in message:
+            code = 'conflicting_boss_verdict'
+        else:
+            code = 'malformed_review_evidence'
+        raise _AdventureBossAttemptError(code) from exc
 
-    # ``boss_trial:<attempt>`` is a signed attempt/question binding, not an
-    # answer verdict.  The public route only records the client SRS grade for
-    # scheduling, so it must not become Boss correctness evidence.  Until a
-    # server-owned Boss judge exists, this intentionally yields no evidence;
-    # boss/finish therefore fails closed with ``incomplete_attempt``.
-    if is_authoritative_review_source_context(source_context):
-        placeholders = ','.join('?' for _ in qids)
-        rows = conn.execute(
-            'SELECT question_id, grade FROM review_log '
-            f'WHERE user_id=? AND source_context=? AND question_id IN ({placeholders}) '
-            'AND reviewed_at >= ? AND reviewed_at <= ?',
-            (uid, source_context, *qids, started_at.isoformat(), deadline.isoformat())
-        ).fetchall()
-    else:
-        rows = ()
-
-    best_grade_by_qid = {}
-    for row in rows:
-        try:
-            qid = int(row['question_id'])
-            grade = int(row['grade'])
-        except (TypeError, ValueError):
-            raise _AdventureBossAttemptError('malformed_review_evidence')
-        if qid not in best_grade_by_qid or grade > best_grade_by_qid[qid]:
-            best_grade_by_qid[qid] = grade
-
-    settled_prefix_count = 0
-    for qid in qids:
-        if qid not in best_grade_by_qid:
-            break
-        settled_prefix_count += 1
-    if any(qid in best_grade_by_qid for qid in qids[settled_prefix_count:]):
-        raise _AdventureBossAttemptError('nonsequential_attempt_evidence')
-
-    complete = settled_prefix_count == len(qids)
+    settled_prefix_count = summary['settled_prefix_count']
+    complete = summary['complete']
     if require_complete and not complete:
         raise _AdventureBossAttemptError('incomplete_attempt')
 
-    settled_qids = qids[:settled_prefix_count]
     return {
         'question_ids': qids,
         'started_at': started_at,
         'deadline': deadline,
-        'best_grade_by_qid': best_grade_by_qid,
+        'verdict_by_qid': summary['verdict_by_qid'],
         'settled_prefix_count': settled_prefix_count,
         'answered_count': settled_prefix_count,
-        'correct_count': sum(1 for qid in settled_qids if best_grade_by_qid[qid] >= 3),
+        'correct_count': summary['correct_count'],
         'total': len(qids),
         'complete': complete,
     }
@@ -13987,6 +13990,7 @@ def srs_review():
         unit_done=data.get('unit_done', False),
         response_ms=data.get('response_ms'),
         source_context=data.get('source_context') or 'practice',
+        boss_answer=data.get('boss_answer'),
         training_set_id=data.get('training_set_id'),
         is_scaffolding=bool(data.get('is_scaffolding')),
         submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
@@ -13997,13 +14001,22 @@ def srs_review():
 
 def _review_submission_duplicate_response(row):
     """Return an explicit public acknowledgement for a committed retry."""
-    return jsonify({
+    payload = {
         'ok': True,
         'submission_duplicate': True,
         'submission_id': str(row['submission_id']),
         'question_id': int(row['question_id']),
         'grade': int(row['grade']),
-    })
+    }
+    source_context = None
+    try:
+        source_context = row['source_context']
+    except (KeyError, IndexError, TypeError):
+        pass
+    boss_verdict = decode_lord_trial_verdict(source_context)
+    if boss_verdict is not None:
+        payload['boss_verdict'] = boss_verdict
+    return jsonify(payload)
 
 
 def _review_submission_conflict_response(submission_id):
@@ -14032,6 +14045,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     grade     = data.get('grade')
     unit      = data.get('unit_name')
     unit_done = data.get('unit_done', False)
+    boss_answer = data.get('boss_answer')
     combat_settlement_context = data.get('combat_settlement_context')
     if combat_settlement_context is not None and (
         not internal
@@ -14055,10 +14069,16 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             return jsonify({'error': 'invalid_source_context'}), 400
         if is_authoritative_review_source_context(source_context):
             return jsonify({'error': 'reserved_source_context'}), 400
+        if source_context.startswith(LORD_TRIAL_RESULT_SOURCE_PREFIX):
+            return jsonify({'error': 'reserved_source_context'}), 400
         if source_context.startswith(BOSS_REVIEW_SOURCE_CONTEXT_PREFIX):
             boss_source_context = source_context
         else:
             source_context = source_context[:40]
+        if boss_answer is not None and boss_source_context is None:
+            return jsonify({'error': 'invalid_boss_answer_context'}), 400
+    if internal and boss_answer is not None:
+        return jsonify({'error': 'invalid_boss_answer_context'}), 400
     training_set_id = data.get('training_set_id')
     try:
         training_set_id = int(training_set_id) if training_set_id is not None else None
@@ -14106,6 +14126,32 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             return jsonify({'error': 'unknown_question'}), 400
         q_info = canonical_matches[0]
 
+    boss_canonical = None
+    boss_judge = None
+    boss_verdict = None
+    boss_attempt_id = None
+    if boss_source_context is not None:
+        boss_attempt_id = boss_source_context[len(BOSS_REVIEW_SOURCE_CONTEXT_PREFIX):]
+        exam = session.get('adventure_boss_exam')
+        if not isinstance(exam, dict) or exam.get('attempt_id') != boss_attempt_id:
+            return jsonify({'error': 'invalid_boss_attempt_context'}), 400
+        if boss_answer is None:
+            return jsonify({'error': 'boss_answer_required'}), 400
+        try:
+            boss_canonical, boss_judge = judge_lord_trial_answer(
+                boss_answer, question=q_info, exam=exam
+            )
+            boss_verdict = build_lord_trial_verdict(
+                attempt_id=boss_attempt_id, question_id=int(qid), judge=boss_judge
+            )
+            # One server identity covers all retries of one attempt/question;
+            # a client-proposed identity can never create a second verdict.
+            submission_id = lord_trial_submission_id(boss_attempt_id, int(qid))
+        except LordTrialAnswerError as exc:
+            return jsonify({'error': exc.code}), exc.status
+        except LordTrialVerdictPersistenceError:
+            return jsonify({'error': 'boss_verdict_unavailable'}), 503
+
     try:
         submission_id, _generated_submission_id = normalize_identity(
             submission_id,
@@ -14124,6 +14170,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         'training_set_id': training_set_id,
         'is_scaffolding': bool(data.get('is_scaffolding')),
     }
+    if boss_canonical is not None:
+        # Retry identity binds to canonical answer evidence, never to a
+        # client correctness claim or raw non-canonical payload spelling.
+        submission_payload['boss_answer'] = boss_canonical.payload
     # Response time is stored as telemetry on the first durable row, but it
     # is not part of the logical answer mutation.  A response-loss retry may
     # legitimately measure a different client latency and must still replay.
@@ -14134,7 +14184,8 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     if not internal:
         with get_db() as identity_conn:
             existing_submission = identity_conn.execute(
-                'SELECT submission_id, question_id, grade, submission_payload_hash '
+                'SELECT submission_id, question_id, grade, submission_payload_hash, '
+                'source_context '
                 'FROM review_log WHERE user_id=? AND submission_id=?',
                 (uid, submission_id),
             ).fetchone()
@@ -14265,6 +14316,11 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # ON CONFLICT DO NOTHING lets PostgreSQL resolve concurrent retries
         # without aborting the caller transaction; a same-id/different-hash
         # request is an explicit conflict, never a successful retry.
+        review_source_context = (
+            LORD_TRIAL_PENDING_SOURCE
+            if boss_source_context is not None
+            else source_context
+        )
         review_insert = insert_review_log_with_identity(
             conn,
             user_id=uid,
@@ -14280,7 +14336,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             question_rating_snapshot=question_rating_snapshot,
             item_rating_version=ITEM_RATING_VERSION,
             question_version=str(q_info.get('source') or qid),
-            source_context=source_context,
+            source_context=review_source_context,
             is_scaffolding=1 if data.get('is_scaffolding') else 0,
             training_set_id=training_set_id,
             submission_id=submission_id,
@@ -14290,9 +14346,24 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             existing_submission = review_insert['existing']
             if existing_submission['submission_payload_hash'] != submission_payload_hash:
                 return _review_submission_conflict_response(submission_id)
+            if boss_source_context is not None and decode_lord_trial_verdict(
+                existing_submission['source_context']
+            ) is None:
+                return jsonify({'error': 'boss_verdict_unavailable'}), 503
             return _review_submission_duplicate_response(existing_submission)
         row = conn.execute(
             'SELECT * FROM srs_cards WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
+        if boss_verdict is not None:
+            try:
+                persist_lord_trial_verdict(
+                    conn,
+                    user_id=uid,
+                    submission_id=submission_id,
+                    verdict=boss_verdict,
+                )
+            except LordTrialVerdictPersistenceError:
+                conn.rollback()
+                return jsonify({'error': 'boss_verdict_unavailable'}), 503
         ef,iv,rp = (row['ease_factor'],row['interval'],row['repetitions']) if row else (2.5,0,0)
         ef,iv,rp,due = sm2_update(ef,iv,rp,grade)
         # Phase 4D anti-farming: computed from the row as it existed BEFORE
@@ -14769,6 +14840,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         'practice': _pet_training_state(pet_row),
         'training': _pet_training_state(pet_row),
         'new_appearance_items': [_APPEAR_MAP[i] for i in new_appearance_items if i in _APPEAR_MAP],
+        **({'boss_verdict': boss_verdict} if boss_verdict is not None else {}),
         **monster_data,
     })
 

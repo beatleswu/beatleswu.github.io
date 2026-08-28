@@ -20,6 +20,7 @@ from srs_review_authority import (
     is_authoritative_review_source_context,
     resolve_public_srs_review_authority,
 )
+from lord_trial_answer_service import decode_lord_trial_verdict
 
 
 os.environ["SECRET_KEY"] = "b050-process-scoped-synthetic-secret"
@@ -27,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 QUESTION = {
     "id": 7001,
     "source": "b050/legacy-fixture.sgf",
-    "content": "(;SZ[19];B[dd];W[ee])",
+    "content": "(;SZ[19]PL[B];B[dd];W[ee])",
     "difficulty": "10k",
     "topic": "B050",
     "level": "10k",
@@ -233,6 +234,113 @@ def _post(client, *, grade, submission_id, **extra):
     )
 
 
+def _set_boss_exam(client, *, attempt_id="b050boss01"):
+    with client.session_transaction() as session:
+        session["adventure_boss_exam"] = {
+            "zone_key": "k26_30",
+            "question_ids": [QUESTION["id"]],
+            "started_at": datetime.datetime.now().isoformat(),
+            "attempt_id": attempt_id,
+            "attempt_mode": "first_clear",
+        }
+
+
+def test_boss_review_judges_moves_and_persists_verdict_separately_from_grade(api_env):
+    client, conn = api_env
+    _set_boss_exam(client)
+    response = _post(
+        client,
+        grade=0,
+        submission_id="client-proposed-id",
+        source_context="boss_trial:b050boss01",
+        boss_answer={"moves": [{"x": 3, "y": 3}]},
+        correct=False,
+        total=999,
+    )
+    assert response.status_code == 200, response.get_json()
+    body = response.get_json()
+    assert body["boss_verdict"]["verdict"] == "AUTHORITATIVE_PASS"
+    assert body["boss_verdict"]["authoritative_grade"] == 5
+
+    row = conn.execute(
+        "SELECT grade, source_context, submission_id FROM review_log WHERE user_id=101"
+    ).fetchone()
+    assert row["grade"] == 0  # client grade remains SM-2 scheduling only
+    assert row["submission_id"] == "lord-trial:b050boss01:7001"
+    assert decode_lord_trial_verdict(row["source_context"])["verdict"] == "AUTHORITATIVE_PASS"
+
+    duplicate = _post(
+        client,
+        grade=0,
+        submission_id="different-client-retry-id",
+        source_context="boss_trial:b050boss01",
+        boss_answer={"moves": [{"x": 3, "y": 3}]},
+    )
+    assert duplicate.status_code == 200
+    assert duplicate.get_json()["submission_duplicate"] is True
+    assert duplicate.get_json()["boss_verdict"]["verdict"] == "AUTHORITATIVE_PASS"
+    assert conn.execute("SELECT COUNT(*) FROM review_log WHERE user_id=101").fetchone()[0] == 1
+
+
+def test_boss_conflicting_retry_and_missing_or_forged_answer_fail_closed(api_env):
+    client, conn = api_env
+    _set_boss_exam(client)
+    missing = _post(
+        client, grade=5, submission_id="missing", source_context="boss_trial:b050boss01"
+    )
+    assert missing.status_code == 400
+    assert missing.get_json()["error"] == "boss_answer_required"
+
+    first = _post(
+        client,
+        grade=5,
+        submission_id="first",
+        source_context="boss_trial:b050boss01",
+        boss_answer={"moves": [{"x": 3, "y": 3}]},
+    )
+    assert first.status_code == 200
+    conflicting = _post(
+        client,
+        grade=5,
+        submission_id="other-id",
+        source_context="boss_trial:b050boss01",
+        boss_answer={"moves": [{"x": 4, "y": 3}]},
+    )
+    assert conflicting.status_code == 409
+    assert conflicting.get_json()["error"] == "idempotency_conflict"
+    assert conn.execute("SELECT COUNT(*) FROM review_log WHERE user_id=101").fetchone()[0] == 1
+
+    ordinary = _post(
+        client,
+        grade=5,
+        submission_id="ordinary-with-answer",
+        boss_answer={"moves": [{"x": 3, "y": 3}]},
+    )
+    assert ordinary.status_code == 400
+    assert ordinary.get_json()["error"] == "invalid_boss_answer_context"
+
+
+def test_boss_server_fail_wins_over_forged_high_scheduling_grade(api_env):
+    client, conn = api_env
+    _set_boss_exam(client, attempt_id="b050boss02")
+    response = _post(
+        client,
+        grade=5,
+        submission_id="forged-high-grade",
+        source_context="boss_trial:b050boss02",
+        boss_answer={"moves": [{"x": 4, "y": 3}]},
+        correct=True,
+        total=20,
+    )
+    assert response.status_code == 200, response.get_json()
+    assert response.get_json()["boss_verdict"]["verdict"] == "AUTHORITATIVE_FAIL"
+    row = conn.execute(
+        "SELECT grade, source_context FROM review_log WHERE user_id=101"
+    ).fetchone()
+    assert row["grade"] == 5
+    assert decode_lord_trial_verdict(row["source_context"])["verdict"] == "AUTHORITATIVE_FAIL"
+
+
 def test_policy_accepts_scheduling_grades_but_never_grants_correctness():
     for grade in (0, 3, 5):
         decision = resolve_public_srs_review_authority(grade)
@@ -305,7 +413,10 @@ def test_public_review_never_enters_legacy_combat_tail(api_env, app_module, monk
     assert response.status_code == 200, response.get_json()
 
 
-@pytest.mark.parametrize("reserved_context", ["mbv1:forged", "daily_d5b:v1:forged"])
+@pytest.mark.parametrize(
+    "reserved_context",
+    ["mbv1:forged", "daily_d5b:v1:forged", "lord_trial:v1:forged"],
+)
 def test_public_review_cannot_impersonate_server_owned_result_context(
     api_env, reserved_context
 ):
