@@ -27,7 +27,7 @@
 <title data-i18n="inv.title">背包 — 弈境奇兵 (Go Odyssey)</title>
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/i18n.js?v=20260710a"></script>
-<script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0351"></script>
+<script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0361"></script>
 <script src="/community_reward_notifications.js?v=20260706b" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -378,9 +378,13 @@ main {
 .functional-equipment-badge { display:inline-flex; margin-top:10px; padding:3px 7px; border-radius:999px; background:var(--teal-bg); color:var(--teal-dark); border:1px solid var(--teal-mid); font:700 9px/1.2 var(--mono); }
 .functional-equipment-card-effects { margin-top:10px; display:grid; gap:4px; }
 .functional-effect-line { display:flex; justify-content:space-between; gap:8px; color:var(--ink2); font-size:11px; line-height:1.4; }
+.functional-effect-line > span:first-child { min-width:0; overflow-wrap:anywhere; }
+.functional-effect-status { display:block; margin-top:2px; color:var(--ink4); font:500 9px/1.3 var(--mono); text-decoration:none; }
 .functional-effect-value { color:var(--teal-dark); font-family:var(--mono); font-weight:800; white-space:nowrap; }
 .functional-effect-disabled { color:var(--ink4); text-decoration:line-through; }
 .functional-effect-disabled .functional-effect-value { color:var(--ink4); }
+.functional-effect-inventory-only { color:var(--ink3); }
+.functional-effect-inventory-only .functional-effect-value { color:var(--ink3); }
 .functional-equipment-empty { grid-column:1/-1; padding:36px 18px; border:1px dashed var(--border2); border-radius:14px; text-align:center; color:var(--ink3); background:var(--surface2); }
 .functional-equipment-detail { position:sticky; top:76px; border:1px solid var(--border); border-radius:16px; background:#fff; padding:18px; box-shadow:var(--shadow); }
 .functional-equipment-detail[data-empty="true"] { color:var(--ink3); min-height:260px; display:grid; place-items:center; text-align:center; line-height:1.6; }
@@ -400,6 +404,7 @@ main {
 .functional-detail-section h3 { color:var(--ink2); font-size:11px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
 .functional-detail-list { display:grid; gap:6px; }
 .functional-detail-row { display:flex; justify-content:space-between; gap:12px; color:var(--ink2); font-size:12px; line-height:1.45; }
+.functional-detail-row > span:first-child { min-width:0; overflow-wrap:anywhere; }
 .functional-detail-row strong { color:var(--teal-dark); font-family:var(--mono); text-align:right; }
 .functional-detail-row.muted,.functional-detail-row.muted strong { color:var(--ink4); }
 .functional-compare-row { display:flex; justify-content:space-between; gap:10px; font-size:12px; line-height:1.5; }
@@ -410,7 +415,7 @@ main {
 .functional-detail-actions { display:flex; gap:8px; margin-top:16px; }
 .functional-detail-action { flex:1; min-height:42px; border:0; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; cursor:pointer; }
 .functional-detail-action.secondary { background:var(--cream2); color:var(--ink2); border:1px solid var(--border2); }
-.functional-detail-action:disabled { opacity:.55; cursor:wait; }
+.functional-detail-action:disabled { opacity:.55; cursor:not-allowed; }
 .functional-detail-source { color:var(--ink3); font-size:12px; line-height:1.55; }
 @media (max-width:700px) {
   .functional-equipment-layout { grid-template-columns:1fr; }
@@ -481,7 +486,7 @@ main {
       <div>
         <p class="functional-equipment-kicker">FUNCTIONAL EQUIPMENT</p>
         <h1 id="functional-equipment-title">戰鬥裝備 / Functional Equipment</h1>
-        <p class="functional-equipment-note">由伺服器保存的戰鬥裝備背包。這裡的裝備會影響已支援的遊戲效果；外觀裝備請到 Hero Style Gear 管理。</p>
+        <p class="functional-equipment-note">由伺服器保存的戰鬥裝備背包。效果與數值來自 server-defined equipment；這裡的裝備會影響已支援的遊戲效果。外觀裝備請到 Hero Style Gear 管理。<br>Server-defined effects only; cosmetic gear never grants combat power.</p>
       </div>
       <a class="functional-equipment-link" href="/hero?tab=equipment">外觀裝備 / Hero Style Gear</a>
     </div>
@@ -504,7 +509,7 @@ main {
             <div>
               <div class="functional-detail-name" id="functional-detail-name"></div>
               <div class="functional-detail-meta" id="functional-detail-meta"></div>
-              <div class="functional-detail-badge">戰鬥裝備 / Functional Equipment</div>
+              <div class="functional-detail-badge" id="functional-detail-badge">戰鬥裝備 / Functional Equipment</div>
             </div>
           </div>
           <div class="functional-wearable-preview" aria-live="polite">
@@ -594,6 +599,11 @@ const FUNCTIONAL_EQUIPMENT_FILTERS = [
   { key:'equipped', label:'已裝備 / Equipped' },
   { key:'new', label:'新取得 / New' },
 ];
+// A036 presentation gate: effect details remain visible while new functional
+// Equip stays unavailable until the separately governed Loadout activation.
+// Currently equipped rows may still expose Unequip for legacy recovery.
+const FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED = false;
+const FUNCTIONAL_INVENTORY_ONLY_IDS = new Set(['go_stone_black']);
 const FUNCTIONAL_RARITY_LABELS = {
   common:'普通 / Common', uncommon:'非凡 / Uncommon', rare:'稀有 / Rare',
   epic:'史詩 / Epic', legendary:'傳說 / Legendary',
@@ -672,35 +682,56 @@ function functionalEquipmentFilterMatch(item) {
   return item.slot === activeFunctionalEquipmentFilter;
 }
 function functionalEffectDetails(item) {
-  return Array.isArray(item.active_effect_details) ? item.active_effect_details : [];
+  if (FUNCTIONAL_INVENTORY_ONLY_IDS.has(item?.item_id)) return [];
+  return Array.isArray(item?.active_effect_details)
+    ? item.active_effect_details.filter(detail => detail && typeof detail === 'object' && !Array.isArray(detail))
+    : [];
 }
 function functionalUnsupportedEffects(item) {
-  return Array.isArray(item.unsupported_effects) ? item.unsupported_effects : [];
+  if (FUNCTIONAL_INVENTORY_ONLY_IDS.has(item?.item_id)) return [];
+  return Array.isArray(item?.unsupported_effects)
+    ? item.unsupported_effects.filter(detail => detail && typeof detail === 'object' && !Array.isArray(detail))
+    : [];
 }
 function functionalEffectLabel(detail) {
-  return functionalEquipmentIsEn() ? (detail.label_en || detail.label || detail.key) : (detail.label || detail.label_en || detail.key);
+  const candidates = functionalEquipmentIsEn() ? [detail.label_en, detail.label] : [detail.label, detail.label_en];
+  const label = candidates.find(value => typeof value === 'string' && value.trim());
+  return label || (functionalEquipmentIsEn() ? 'Defined effect' : '已定義效果');
 }
 function functionalEffectValue(detail) {
-  return functionalEquipmentIsEn() ? (detail.value_label_en || detail.value_label || detail.value) : (detail.value_label || detail.value_label_en || detail.value);
+  const candidates = functionalEquipmentIsEn()
+    ? [detail.value_label_en, detail.declared_value_label_en, detail.value_label, detail.declared_value_label]
+    : [detail.value_label, detail.declared_value_label, detail.value_label_en, detail.declared_value_label_en];
+  const value = candidates.find(candidate => typeof candidate === 'string' && candidate.trim());
+  return value || (functionalEquipmentIsEn() ? 'Value unavailable' : '數值暫不可用');
+}
+function functionalEffectStatus() {
+  return functionalEquipmentIsEn() ? 'Not currently effective' : '尚未啟用';
+}
+function functionalEquipmentInventoryOnlyLine(detailClass = 'functional-effect-line') {
+  return `<div class="${detailClass} functional-effect-inventory-only"><span>${functionalEquipmentIsEn() ? 'Collection trophy' : '收藏品'}</span><span class="functional-effect-value">${functionalEquipmentIsEn() ? 'No combat power' : '不提供戰鬥能力'}</span></div>`;
 }
 function functionalDeltaLabel(delta) {
   return functionalEquipmentIsEn() ? (delta.delta_label_en || delta.delta_label || delta.delta) : (delta.delta_label || delta.delta_label_en || delta.delta);
 }
 function functionalEquipmentCardHTML(item) {
   const selected = String(item.inv_id) === String(selectedFunctionalInventoryId);
+  const inventoryOnly = FUNCTIONAL_INVENTORY_ONLY_IDS.has(item.item_id);
   const active = functionalEffectDetails(item);
   const unsupported = functionalUnsupportedEffects(item);
   const effectRows = active.map(effect => `
     <div class="functional-effect-line"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><span class="functional-effect-value">${functionalEquipmentEscape(functionalEffectValue(effect))}</span></div>`).join('');
   const unsupportedRows = unsupported.map(effect => `
-    <div class="functional-effect-line functional-effect-disabled"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><span class="functional-effect-value">${functionalEquipmentIsEn() ? 'Not currently effective' : '尚未啟用'}</span></div>`).join('');
-  const effects = effectRows + unsupportedRows || `<div class="functional-effect-line functional-effect-disabled"><span>${functionalEquipmentIsEn() ? 'No active effect' : '目前沒有啟用效果'}</span><span class="functional-effect-value">—</span></div>`;
+    <div class="functional-effect-line functional-effect-disabled"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}<small class="functional-effect-status">${functionalEquipmentEscape(functionalEffectStatus(effect))}</small></span><span class="functional-effect-value">${functionalEquipmentEscape(functionalEffectValue(effect))}</span></div>`).join('');
+  const effects = inventoryOnly
+    ? functionalEquipmentInventoryOnlyLine()
+    : (effectRows + unsupportedRows || `<div class="functional-effect-line functional-effect-disabled"><span>${functionalEquipmentIsEn() ? 'No active effect' : '目前沒有啟用效果'}</span><span class="functional-effect-value">—</span></div>`);
   return `<button type="button" class="functional-equipment-card" data-functional-inv-id="${functionalEquipmentEscape(item.inv_id)}" data-rarity="${functionalEquipmentEscape(item.rarity || 'common')}" data-selected="${selected}" data-equipped="${!!item.equipped}" aria-pressed="${selected}">
     <div class="functional-equipment-card-head">
       <div class="functional-equipment-icon"><img src="${functionalEquipmentEscape(item.icon)}" alt="${functionalEquipmentEscape(item.icon_alt || functionalEquipmentName(item))}" loading="lazy" decoding="async"></div>
       <div><div class="functional-equipment-card-name">${functionalEquipmentEscape(functionalEquipmentName(item))}</div><div class="functional-equipment-card-meta">${functionalEquipmentEscape(functionalEquipmentRarity(item))} · ${functionalEquipmentEscape(functionalEquipmentSlot(item))}</div></div>
     </div>
-    <span class="functional-equipment-badge">戰鬥裝備 / Functional</span>
+    <span class="functional-equipment-badge">${inventoryOnly ? (functionalEquipmentIsEn() ? 'Collection / Trophy' : '收藏品 / Trophy') : '戰鬥裝備 / Functional'}</span>
     <div class="functional-equipment-card-effects">${effects}</div>
   </button>`;
 }
@@ -765,15 +796,21 @@ function renderFunctionalEquipmentDetail(item) {
   icon.src = item.icon || '';
   icon.alt = item.icon_alt || name;
   document.getElementById('functional-detail-name').textContent = name;
-  document.getElementById('functional-detail-meta').textContent = `${functionalEquipmentRarity(item)} · ${functionalEquipmentSlot(item)} · ${item.item_id}`;
+  const detailBadge = document.getElementById('functional-detail-badge');
+  if (detailBadge) detailBadge.textContent = FUNCTIONAL_INVENTORY_ONLY_IDS.has(item.item_id)
+    ? (functionalEquipmentIsEn() ? 'Collection / Trophy' : '收藏品 / Trophy')
+    : '戰鬥裝備 / Functional Equipment';
+  document.getElementById('functional-detail-meta').textContent = `${functionalEquipmentRarity(item)} · ${functionalEquipmentSlot(item)}`;
   const ownership = document.getElementById('functional-detail-ownership');
   ownership.innerHTML = `
     <div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'Owned quantity' : '持有數量'}</span><strong>×${Number(item.owned_quantity || 1)}</strong></div>
     <div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'State' : '狀態'}</span><strong>${item.equipped ? (functionalEquipmentIsEn() ? 'Equipped' : '已裝備') : (functionalEquipmentIsEn() ? 'Owned' : '已持有')}</strong></div>`;
   const effects = document.getElementById('functional-detail-effects');
   const active = functionalEffectDetails(item).map(effect => `<div class="functional-detail-row"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><strong>${functionalEquipmentEscape(functionalEffectValue(effect))}</strong></div>`).join('');
-  const unsupported = functionalUnsupportedEffects(item).map(effect => `<div class="functional-detail-row muted"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><strong>${functionalEquipmentIsEn() ? 'Not currently effective' : '尚未啟用'}</strong></div>`).join('');
-  effects.innerHTML = active + unsupported || `<div class="functional-detail-row muted"><span>${functionalEquipmentIsEn() ? 'No active effect' : '目前沒有啟用效果'}</span><strong>—</strong></div>`;
+  const unsupported = functionalUnsupportedEffects(item).map(effect => `<div class="functional-detail-row muted"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}<small class="functional-effect-status">${functionalEquipmentEscape(functionalEffectStatus(effect))}</small></span><strong>${functionalEquipmentEscape(functionalEffectValue(effect))}</strong></div>`).join('');
+  effects.innerHTML = FUNCTIONAL_INVENTORY_ONLY_IDS.has(item.item_id)
+    ? functionalEquipmentInventoryOnlyLine('functional-detail-row')
+    : (active + unsupported || `<div class="functional-detail-row muted"><span>${functionalEquipmentIsEn() ? 'No active effect' : '目前沒有啟用效果'}</span><strong>—</strong></div>`);
   const comparison = document.getElementById('functional-detail-comparison');
   const summary = item.comparison_summary || {};
   let comparisonHTML = '';
@@ -792,12 +829,25 @@ function renderFunctionalEquipmentDetail(item) {
   comparison.innerHTML = comparisonHTML || `<div class="functional-detail-row muted"><span>—</span><strong>—</strong></div>`;
   document.getElementById('functional-detail-source').textContent = `${functionalEquipmentIsEn() ? (item.where_to_obtain_en || 'Monster drop') : (item.where_to_obtain || '怪物掉落')} · ${functionalEquipmentIsEn() ? 'Source' : '來源'}: ${item.source || 'drop'}`;
   const action = document.getElementById('functional-detail-action');
-  action.textContent = item.equipped ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下') : (functionalEquipmentIsEn() ? 'Equip' : '裝備');
-  action.disabled = false;
-  action.onclick = () => performFunctionalEquipmentAction(item, item.equipped ? 'unequip' : 'equip', action);
+  const actionType = item.equipped ? 'unequip' : 'equip';
+  const blockedNewEquip = actionType === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED;
+  action.textContent = item.equipped
+    ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下')
+    : (blockedNewEquip
+      ? (functionalEquipmentIsEn() ? 'Equip unavailable' : '尚未開放裝備')
+      : (functionalEquipmentIsEn() ? 'Equip' : '裝備'));
+  action.disabled = blockedNewEquip;
+  action.title = blockedNewEquip
+    ? (functionalEquipmentIsEn() ? 'Loadout is not enabled; this is presentation only.' : '配裝功能尚未啟用；目前僅供查看。')
+    : '';
+  action.onclick = blockedNewEquip ? null : () => performFunctionalEquipmentAction(item, actionType, action);
 }
 async function performFunctionalEquipmentAction(item, action, button) {
   if (!item || item.inv_id == null) return;
+  if (action === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED) {
+    showBackpackToast(functionalEquipmentIsEn() ? 'Loadout is not enabled.' : '配裝功能尚未啟用。');
+    return;
+  }
   button.disabled = true;
   try {
     const response = await fetch('/api/player/inventory/equip', {

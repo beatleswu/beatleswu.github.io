@@ -6,7 +6,7 @@
 <title data-i18n="hero.title">英雄 — 弈境奇兵 (Go Odyssey)</title>
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/i18n.js?v=20260710a"></script>
-<script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0351"></script>
+<script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0361"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -558,7 +558,8 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .hero-functional-projection-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .hero-functional-projection-copy { min-width: 0; overflow: hidden; }
 .hero-functional-projection-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hero-functional-projection-effect { display: block; color: #f6d98a; font: 700 8px/1.35 'DM Mono', monospace; }
+.hero-functional-projection-effect { display: block; color: #f6d98a; font: 700 8px/1.35 'DM Mono', monospace; overflow-wrap:anywhere; }
+.hero-functional-projection-state { display: block; margin-top: 2px; color: rgba(255,255,255,.58); font: 700 8px/1.3 'DM Mono', monospace; }
 .hero-functional-projection-status { color: rgba(255,255,255,.62); font-size: 10px; line-height: 1.4; }
 .hero-functional-projection[data-state="unavailable"] { border-color: rgba(252,165,165,.5); }
 .hero-style-projection {
@@ -1703,6 +1704,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .pv-functional-projection .hero-functional-projection-item { border-color: var(--border2); background: #fff; color: var(--ink2); }
 .pv-functional-projection .hero-functional-projection-icon { background: var(--cream2); color: var(--teal-dark); }
 .pv-functional-projection .hero-functional-projection-effect { color: var(--teal-dark); }
+.pv-functional-projection .hero-functional-projection-state { color: var(--ink3); }
 .pv-functional-projection .hero-functional-projection-status { color: var(--ink3); }
 .pv-style-projection { margin-top: 8px; background: #fff; }
 .pv-style-projection .hero-functional-projection-head { color: var(--ink3); }
@@ -2115,7 +2117,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
             <span class="section-title">目前已裝備 / Current equipped</span>
             <div class="section-header-line"></div>
           </div>
-          <p class="hero-domain-note">由 Backpack 的 server-owned inventory 狀態投影；此頁不會以 local loadout 取代它。</p>
+          <p class="hero-domain-note">由 Backpack 的 server-owned inventory 狀態投影；效果與數值來自 server-defined equipment，此頁不會以 local loadout 取代它。</p>
           <div class="hero-functional-projection" id="hero-equipment-functional-projection"
                data-state="loading" aria-live="polite" aria-label="目前已裝備功能裝備 / Current functional equipment">
             <div class="hero-functional-projection-head">
@@ -4105,17 +4107,48 @@ function functionalProjectionIconHTML(item) {
     ? `<img src="${escapeHTML(safe)}" alt="${name}" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>${fallback}</span>`
     : `<span>${fallback}</span>`;
 }
+function functionalProjectionEffectDetails(details) {
+  return Array.isArray(details)
+    ? details.filter(effect => effect && typeof effect === 'object' && !Array.isArray(effect))
+    : [];
+}
+function functionalProjectionEffectLabel(effect) {
+  const candidates = isEn()
+    ? [effect.label_en, effect.label]
+    : [effect.label, effect.label_en];
+  const label = candidates.find(value => typeof value === 'string' && value.trim());
+  return label || (isEn() ? 'Defined effect' : '已定義效果');
+}
+function functionalProjectionEffectValue(effect, declared = false) {
+  const candidates = isEn()
+    ? (declared
+      ? [effect.declared_value_label_en, effect.declared_value_label, effect.value_label_en, effect.value_label]
+      : [effect.value_label_en, effect.value_label])
+    : (declared
+      ? [effect.declared_value_label, effect.declared_value_label_en, effect.value_label, effect.value_label_en]
+      : [effect.value_label, effect.value_label_en]);
+  const value = candidates.find(candidate => typeof candidate === 'string' && candidate.trim());
+  return value || '';
+}
 function functionalProjectionEffectText(item) {
-  const active = Array.isArray(item.active_effect_details) ? item.active_effect_details : [];
+  const active = functionalProjectionEffectDetails(item?.active_effect_details);
   if (active.length) {
     return active.slice(0, 2).map(effect => {
-      const label = isEn() ? (effect.label_en || effect.label || effect.key) : (effect.label || effect.label_en || effect.key);
-      const value = isEn() ? (effect.value_label_en || effect.value_label || effect.value) : (effect.value_label || effect.value_label_en || effect.value);
-      return `${label} ${value}`;
+      const label = functionalProjectionEffectLabel(effect);
+      const value = functionalProjectionEffectValue(effect);
+      return `${label}${value == null || value === '' ? '' : ` ${value}`}`;
     }).join(' · ');
   }
-  const unsupported = Array.isArray(item.unsupported_effects) ? item.unsupported_effects : [];
-  return unsupported.length ? (isEn() ? 'Not currently effective' : '尚未啟用') : (isEn() ? 'No active effect' : '目前沒有啟用效果');
+  const unsupported = functionalProjectionEffectDetails(item?.unsupported_effects);
+  if (unsupported.length) {
+    return unsupported.slice(0, 2).map(effect => {
+      const label = functionalProjectionEffectLabel(effect);
+      const value = functionalProjectionEffectValue(effect, true);
+      const status = isEn() ? 'Not currently effective' : '尚未啟用';
+      return `${label}${value == null || value === '' ? '' : ` ${value}`} · ${status}`;
+    }).join(' · ');
+  }
+  return isEn() ? 'No active effect' : '目前沒有啟用效果';
 }
 function functionalProjectionItemHTML(item) {
   const slot = FUNCTIONAL_SLOT_LABELS[item.slot] || { zh: '裝備', en: 'Equipment' };
@@ -4126,7 +4159,7 @@ function functionalProjectionItemHTML(item) {
   return `<div class="hero-functional-projection-item" data-functional-item-id="${escapeHTML(item.item_id || item.id || '')}" data-presentation-mode="${escapeHTML(item.presentation?.mode || 'ICON_ONLY')}">
     <a href="/inventory?equipment=${encodeURIComponent(item.inv_id ?? '')}" aria-label="${name} · ${escapeHTML(slotLabel)}">
       <span class="hero-functional-projection-icon">${icon}</span>
-      <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${escapeHTML(slotLabel)}</span><span class="hero-functional-projection-effect">${effect}</span></span>
+      <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${escapeHTML(slotLabel)}</span><span class="hero-functional-projection-state">${isEn() ? 'Equipped' : '已裝備'}</span><span class="hero-functional-projection-effect">${effect}</span></span>
     </a>
   </div>`;
 }
@@ -4167,14 +4200,12 @@ function renderAuthoritativeFunctionalEffects(items = _functionalEquipmentItems)
   (Array.isArray(items) ? items : []).forEach(item => {
     if (!item || item.functional_equipment !== true || item.equipped !== true
       || item.item_id === 'go_stone_black' || !FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)) return;
-    (Array.isArray(item.active_effect_details) ? item.active_effect_details : []).forEach(effect => {
+    functionalProjectionEffectDetails(item.active_effect_details).forEach(effect => {
       const key = String(effect?.key || '').trim();
       if (!key || seen.has(key)) return;
       seen.add(key);
-      const label = isEn() ? (effect.label_en || effect.label || key) : (effect.label || effect.label_en || key);
-      const value = isEn()
-        ? (effect.value_label_en || effect.value_label || effect.value)
-        : (effect.value_label || effect.value_label_en || effect.value);
+      const label = functionalProjectionEffectLabel(effect);
+      const value = functionalProjectionEffectValue(effect);
       chips.push(`<span class="fx-chip functional">${escapeHTML(`${label}${value == null ? '' : ` ${value}`}`)}</span>`);
     });
   });
@@ -5076,15 +5107,6 @@ function renderHeroOverview() {
     : [];
   const equipmentNames = functionalEquipped.map(functionalProjectionName);
   const bonusLabels = [];
-  functionalEquipped.forEach(item => {
-    (Array.isArray(item.active_effect_details) ? item.active_effect_details : []).forEach(effect => {
-      const label = isEn() ? (effect.label_en || effect.label || effect.key) : (effect.label || effect.label_en || effect.key);
-      const value = isEn()
-        ? (effect.value_label_en || effect.value_label || effect.value)
-        : (effect.value_label || effect.value_label_en || effect.value);
-      bonusLabels.push(`${label} ${value}`);
-    });
-  });
   const combatStats = res.combat_stats || {};
   if (Number(combatStats.attack_bonus_pct || 0)) {
     bonusLabels.push(`${isEn() ? 'Attack' : '攻擊'} +${combatStats.attack_bonus_pct}%`);
