@@ -236,6 +236,7 @@
       "tools/community_leaderboard_rewards_export_entries.py",
       "tools/community_leaderboard_rewards_real_grant_preview.py",
       "tools/community_leaderboard_rewards_real_grant_commit.py",
+      "tools/historical_leaderboard_restoration.py",
       "tools/community_leaderboard_rewards_exact_period.py"
     ],
     "external_content_boundary": {
@@ -405,6 +406,7 @@
     "/app/lord_trial_answer_service.py",
     "/app/newebpay.py",
     "/app/paypal_api.py",
+    "/app/tools/historical_leaderboard_restoration.py",
     "/app/migrations/__init__.py",
     "/app/migrations/sgf_admin_workbench_v1.py",
     "/app/migrations/sgf_human_review_v2a.py",
