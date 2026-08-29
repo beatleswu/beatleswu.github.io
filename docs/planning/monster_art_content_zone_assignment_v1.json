@@ -1,0 +1,1661 @@
+{
+  "contract_version": "MONSTER_ART_CONTENT_ZONE_ASSIGNMENT_V1",
+  "status": "DETERMINISTIC_PROPOSAL_WITH_EXPLICIT_OWNER_DECISIONS",
+  "owner_approved_count_contract": true,
+  "scope": "ART_CONTENT_PLANNING_ONLY",
+  "zone_counts": {
+    "Z1": 14,
+    "Z2": 14,
+    "Z3": 13,
+    "Z4": 12,
+    "Z5": 12,
+    "Z6": 12,
+    "Z7": 12,
+    "Z8": 11,
+    "Z9": 10,
+    "Z10": 10
+  },
+  "zone_count_sum": 120,
+  "source": {
+    "current_origin_master": "6829c4c528adf4800326e90534585a32e390ebec",
+    "f033_head": "214fd1961c60c2325ce4d906af2bf01ee0787798",
+    "art002_reference_head": "3e7034ef71c27ca00acf456d03f95301f30b8c64",
+    "art002_old_distribution": {
+      "Z1": 10,
+      "Z2": 11,
+      "Z3": 12,
+      "Z4": 12,
+      "Z5": 12,
+      "Z6": 13,
+      "Z7": 13,
+      "Z8": 14,
+      "Z9": 14,
+      "Z10": 9
+    },
+    "art002_old_distribution_status": "SUPERSEDED_FOR_ART_CONTENT_PLANNING"
+  },
+  "authority_boundary": {
+    "gameplay_authority_changed": false,
+    "combat_authority_changed": false,
+    "runtime_mapping_changed": false,
+    "art_content_count_used_for_combat": false,
+    "exact_id_assignment_owner_approved": false,
+    "exact_id_assignment_status": "PENDING_CONTENT_RECONCILIATION",
+    "boss_included_in_120_count": false,
+    "lord_included_in_120_count": false,
+    "f009_enabled": false,
+    "rarity_used_for_zone_assignment": false,
+    "scope_marker": "scope=ART_CONTENT_PLANNING_ONLY"
+  },
+  "art003": {
+    "may_use_count_targets": true,
+    "may_use_exact_planning_assignment_for_batch_planning": true,
+    "may_infer_gameplay_zone_from_count_or_assignment": false,
+    "may_renumber_ids": false,
+    "b01_ids": [
+      "M002",
+      "M003",
+      "M004",
+      "M005",
+      "M006",
+      "M007",
+      "M008",
+      "M009",
+      "M010",
+      "M012"
+    ],
+    "b01_asset_mutations": 0
+  },
+  "runtime_monsters": [
+    {
+      "monster_id": "M001",
+      "planning_zone": "Z1",
+      "runtime_zone": "Z1",
+      "runtime_key": "k26_30",
+      "runtime_identity": "legacy_bf_01_normal"
+    },
+    {
+      "monster_id": "M011",
+      "planning_zone": "Z2",
+      "runtime_zone": "Z2",
+      "runtime_key": "k21_25",
+      "runtime_identity": "legacy_bf_02_normal"
+    },
+    {
+      "monster_id": "M022",
+      "planning_zone": "Z3",
+      "runtime_zone": "Z3",
+      "runtime_key": "k16_20",
+      "runtime_identity": "legacy_bf_03_normal"
+    },
+    {
+      "monster_id": "M034",
+      "planning_zone": "Z4",
+      "runtime_zone": "Z4",
+      "runtime_key": "k11_15",
+      "runtime_identity": "legacy_bf_04_normal"
+    },
+    {
+      "monster_id": "M046",
+      "planning_zone": "Z5",
+      "runtime_zone": "Z5",
+      "runtime_key": "k6_10",
+      "runtime_identity": "legacy_bf_05_normal"
+    },
+    {
+      "monster_id": "M058",
+      "planning_zone": "Z6",
+      "runtime_zone": "Z6",
+      "runtime_key": "k1_5",
+      "runtime_identity": "legacy_bf_06_normal"
+    },
+    {
+      "monster_id": "M071",
+      "planning_zone": "Z7",
+      "runtime_zone": "Z7",
+      "runtime_key": "d1_2",
+      "runtime_identity": "legacy_bf_07_normal"
+    },
+    {
+      "monster_id": "M084",
+      "planning_zone": "Z8",
+      "runtime_zone": "Z8",
+      "runtime_key": "d3_4",
+      "runtime_identity": "legacy_bf_08_normal"
+    },
+    {
+      "monster_id": "M098",
+      "planning_zone": "Z9",
+      "runtime_zone": "Z9",
+      "runtime_key": "d5_6",
+      "runtime_identity": "legacy_bf_09_normal"
+    },
+    {
+      "monster_id": "M112",
+      "planning_zone": "Z10",
+      "runtime_zone": "Z10",
+      "runtime_key": "d7_plus",
+      "runtime_identity": "legacy_bf_10_normal"
+    }
+  ],
+  "zone_themes": {
+    "Z1": "Terraced village and garden welcome: readable, friendly field ecology.",
+    "Z2": "Open plains, ponds, meadow motion, insects and small water-edge life.",
+    "Z3": "Cave and ore ecology: goblin, fungus, stone and subterranean craft.",
+    "Z4": "Mist forest: sprites, woodland animals, vines, moss and flowers.",
+    "Z5": "Tribal frontier and clay camp: herd, drum, banner and campfire motifs.",
+    "Z6": "Sky-and-fire dragon valley: wyverns, lava, crystal and aerial motion.",
+    "Z7": "Tower/library alchemy: spellcraft, constructs, observatory and arcane familiars.",
+    "Z8": "Fortified frontier under pressure: gates, siege forms, scouts and armor.",
+    "Z9": "Mythic storm and celestial weather: aurora, stars, thunder and sky fauna.",
+    "Z10": "Ancient relic finale: temple, timeworn stone, gates, ruins and old roots."
+  },
+  "assignments": [
+    {
+      "monster_id": "M001",
+      "name": "新手史萊姆 / Beginner Slime",
+      "concept": "village slime",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M001 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M002",
+      "name": "村口豆芽 / Gate Sprout",
+      "concept": "garden sprout",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M002].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M003",
+      "name": "木桶小咕 / Barrel Bouncer",
+      "concept": "village scavenger",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M003].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M004",
+      "name": "草帽鼴鼠 / Strawhat Mole",
+      "concept": "garden burrower",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M004].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M005",
+      "name": "風鈴小鳥 / Chime Chick",
+      "concept": "dojo songbird",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M005].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M006",
+      "name": "石子甲蟲 / Pebble Beetle",
+      "concept": "path beetle",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M006].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M007",
+      "name": "井邊水泡 / Well Bubble",
+      "concept": "well sprite",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M007].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M008",
+      "name": "稻田蹦蹦 / Paddy Hopper",
+      "concept": "field hopper",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M008].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M009",
+      "name": "木牌狐仔 / Signpost Fox",
+      "concept": "roadside fox",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M009].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M010",
+      "name": "糰子地精 / Dumpling Gnome",
+      "concept": "village helper",
+      "art002_candidate_zone": "Z1",
+      "planning_zone": "Z1",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M010].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M011",
+      "name": "洞窟蝙蝠 / Cave Bat",
+      "concept": "plains cave bat",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M011 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M012",
+      "name": "泥球水獺 / Mudball Otter",
+      "concept": "puddle otter",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M012].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; ART003 B01 art is protected and unchanged."
+    },
+    {
+      "monster_id": "M013",
+      "name": "泡泡蛙 / Bubble Frog",
+      "concept": "pond frog",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M013].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M014",
+      "name": "風箏蜻蜓 / Kite Dragonfly",
+      "concept": "field insect",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M014].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M015",
+      "name": "草籽羊 / Grassseed Lamb",
+      "concept": "meadow grazer",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M015].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M016",
+      "name": "水窪蟹 / Puddle Crab",
+      "concept": "water-edge crab",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M016].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M017",
+      "name": "彈簧蚱蜢 / Spring Grasshopper",
+      "concept": "meadow insect",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M017].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M018",
+      "name": "果凍魚 / Jellyfish",
+      "concept": "rain jelly",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M018].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M019",
+      "name": "彩傘菇獸 / Parasol Funglet",
+      "concept": "field fungus",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M019].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M020",
+      "name": "旋風田鼠 / Whirl Vole",
+      "concept": "wind vole",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M020].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M021",
+      "name": "水珠鹿 / Dewdrop Fawn",
+      "concept": "morning grazer",
+      "art002_candidate_zone": "Z2",
+      "planning_zone": "Z2",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M021].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M022",
+      "name": "洞穴獸人小兵 / Cave Orc Grunt",
+      "concept": "cave faction",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M022 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M023",
+      "name": "銅帽哥布林 / Coppercap Goblin",
+      "concept": "goblin scavenger",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M023].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M024",
+      "name": "回音蝠 / Echo Bat",
+      "concept": "cave bat",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M024].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M025",
+      "name": "礦鎬鼴工 / Pickaxe Moleworker",
+      "concept": "ore burrower",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M025].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M026",
+      "name": "菌燈小鬼 / Fungus Lantern Imp",
+      "concept": "fungus goblin",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M026].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M027",
+      "name": "繩梯蜥 / Rope-Ladder Lizard",
+      "concept": "cave lizard",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M027].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M028",
+      "name": "鐵桶甲蟲 / Ironbucket Beetle",
+      "concept": "ore beetle",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M028].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M029",
+      "name": "石縫蛇 / Crevice Snake",
+      "concept": "stone snake",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M029].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M030",
+      "name": "蘑菇推車怪 / Cartcap Crawler",
+      "concept": "fungus carrier",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M030].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M031",
+      "name": "晶礦咕 / Crystal Ore Gob",
+      "concept": "brittle goblin",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M031].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M032",
+      "name": "洞穴投石手 / Cavern Slinger",
+      "concept": "goblin scout",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M032].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M033",
+      "name": "鐘乳石龜 / Stalactite Tortoise",
+      "concept": "stone tortoise",
+      "art002_candidate_zone": "Z3",
+      "planning_zone": "Z3",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M033].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M034",
+      "name": "霧林精靈 / Mosswood Sprite",
+      "concept": "forest sprite",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M034 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M035",
+      "name": "霧尾狐 / Mist-tail Fox",
+      "concept": "forest fox",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M035].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M036",
+      "name": "月葉蛾 / Moonleaf Moth",
+      "concept": "forest moth",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M036].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M037",
+      "name": "藤蔓爪獸 / Vineclaw Beast",
+      "concept": "vine beast",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M037].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M038",
+      "name": "苔背龜 / Mossback Turtle",
+      "concept": "moss tortoise",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M038].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M039",
+      "name": "露珠蜘蛛 / Dewdrop Spider",
+      "concept": "dew spider",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M039].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M040",
+      "name": "枯枝鹿 / Twig Deer",
+      "concept": "twig grazer",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M040].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M041",
+      "name": "霧笛蛙 / Fogwhistle Frog",
+      "concept": "mist frog",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M041].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M042",
+      "name": "花冠毛蟲 / Bloomcrown Caterpillar",
+      "concept": "flower caterpillar",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M042].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M043",
+      "name": "影步貓 / Shadowstep Cat",
+      "concept": "moss cat",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M043].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M044",
+      "name": "樹洞熊芽 / Hollowtree Cub",
+      "concept": "tree hollow bear",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M044].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M045",
+      "name": "蘚帽小樹 / Mosscap Sapling",
+      "concept": "forest sapling",
+      "art002_candidate_zone": "Z4",
+      "planning_zone": "Z4",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M045].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M046",
+      "name": "部落獸人 / Tribal Orc",
+      "concept": "clan frontier",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M046 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M047",
+      "name": "炭鼓獸 / Ember Drum Brute",
+      "concept": "drum clan",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M047].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M048",
+      "name": "皮盾犀童 / Hide-shield Rhino",
+      "concept": "herd guard",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M048].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M049",
+      "name": "紅土角羊 / Redclay Ram",
+      "concept": "clay herd",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M049].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M050",
+      "name": "戰鼓蜥 / War Drum Lizard",
+      "concept": "drum lizard",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M050].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M051",
+      "name": "羽飾獵犬 / Feathercrest Hound",
+      "concept": "clan hound",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M051].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M052",
+      "name": "石臼巨鼴 / Mortar Mole",
+      "concept": "clan hauler",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M052].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M053",
+      "name": "銅環野豬 / Copperring Boar",
+      "concept": "clan boar",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M053].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M054",
+      "name": "篝火蜥蜴 / Campfire Skink",
+      "concept": "camp reptile",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M054].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M055",
+      "name": "旗尾牛 / Banner-tail Bison",
+      "concept": "banner herd",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M055].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M056",
+      "name": "泥甲犰狳 / Mudplate Armadillo",
+      "concept": "clay burrower",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M056].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M057",
+      "name": "鼓面龜 / Drumface Tortoise",
+      "concept": "clan tortoise",
+      "art002_candidate_zone": "Z5",
+      "planning_zone": "Z5",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M057].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M058",
+      "name": "飛龍 / Wyvern",
+      "concept": "valley wyvern",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M058 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M059",
+      "name": "熔岩翼蜥 / Lava-wing Drake",
+      "concept": "lava drake",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M059].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M060",
+      "name": "晶角蜥 / Crystalhorn Lizard",
+      "concept": "crystal lizard",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M060].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M061",
+      "name": "雲爪獅鷲 / Cloudclaw Gryphon",
+      "concept": "sky gryphon",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M061].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M062",
+      "name": "火花蜥蜴 / Sparkscale Gecko",
+      "concept": "spark gecko",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M062].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M063",
+      "name": "玄岩甲獸 / Basalt Shellbeast",
+      "concept": "basalt beast",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M063].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M064",
+      "name": "風脊飛蛇 / Windspine Serpent",
+      "concept": "wind serpent",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z3",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z6 -> Z3; Serpent/crawler ecology has a plausible cave adjacency, but the existing ART002 Z6 wind/sky assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M065",
+      "name": "焰尾狐龍 / Ember-tail Foxdragon",
+      "concept": "foxdragon",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M065].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M066",
+      "name": "巖跳山羊 / Cliffskip Goat",
+      "concept": "cliff goat",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M066].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M067",
+      "name": "硫磺蠑螈 / Sulfur Salamander",
+      "concept": "sulfur salamander",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M067].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M068",
+      "name": "龍巢小暴龍 / Nestling Raptor",
+      "concept": "nest raptor",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M068].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M069",
+      "name": "星火翼蝠 / Starflame Bat",
+      "concept": "sky bat",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M069].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M070",
+      "name": "熔金蜈蚣 / Molten Gold Centipede",
+      "concept": "lava crawler",
+      "art002_candidate_zone": "Z6",
+      "planning_zone": "Z6",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M070].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M071",
+      "name": "塔影亡靈術士 / Tower Shade Caster",
+      "concept": "tower shade",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M071 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M072",
+      "name": "書頁狐 / Pagefox",
+      "concept": "library fox",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M072].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M073",
+      "name": "黃銅魔像 / Brass Golem",
+      "concept": "tower construct",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z10",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z7 -> Z10; Construct identity has a plausible ancient-relic adjacency, but the existing ART002 Z7 tower-magic assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M074",
+      "name": "星屑蛾 / Stardust Moth",
+      "concept": "spell moth",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M074].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M075",
+      "name": "墨池章魚 / Inkwell Octopus",
+      "concept": "ink familiar",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M075].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M076",
+      "name": "浮空鐘蟲 / Floating Bell Bug",
+      "concept": "tower bell bug",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M076].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M077",
+      "name": "符文貓頭鷹 / Rune Owl",
+      "concept": "rune owl",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M077].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M078",
+      "name": "藥瓶咕 / Potion Gob",
+      "concept": "alchemy goblin",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M078].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M079",
+      "name": "棱鏡蜥 / Prism Gecko",
+      "concept": "prism gecko",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M079].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M080",
+      "name": "重力蟹 / Gravity Crab",
+      "concept": "gravity crustacean",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M080].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M081",
+      "name": "卷軸龜 / Scrollback Turtle",
+      "concept": "scroll tortoise",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M081].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M082",
+      "name": "天文蟲 / Astrolabe Beetle",
+      "concept": "observatory beetle",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M082].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M083",
+      "name": "雲階羊 / Cloudstep Ram",
+      "concept": "tower ram",
+      "art002_candidate_zone": "Z7",
+      "planning_zone": "Z7",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M083].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M084",
+      "name": "前線鐵甲騎 / Frontline Iron Knight",
+      "concept": "frontier armor beast",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M084 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M085",
+      "name": "黑門獵犬 / Blackgate Hound",
+      "concept": "gate hound",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M085].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M086",
+      "name": "破盾甲蟲 / Breakshield Beetle",
+      "concept": "siege beetle",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z2",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z8 -> Z2; Beetle/crawler identity can fit early field ecology, but the existing ART002 Z8 siege/frontier assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M087",
+      "name": "斷旗石獸 / Bannerbreak Stonebeast",
+      "concept": "fort stonebeast",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M087].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M088",
+      "name": "弦翼蝠 / Stringwing Bat",
+      "concept": "scout bat",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z2",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z8 -> Z2; Bat identity can fit the open-land/cave edge ecology, but the existing ART002 Z8 scout/frontier assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M089",
+      "name": "鋼齒鬣狗 / Steelfang Hyena",
+      "concept": "frontier hyena",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M089].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M090",
+      "name": "城垛蜥 / Battlement Lizard",
+      "concept": "wall lizard",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M090].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M091",
+      "name": "煙幕鼬 / Smokescreen Weasel",
+      "concept": "scout weasel",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M091].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M092",
+      "name": "鐵輪犀 / Ironwheel Rhino",
+      "concept": "siege rhino",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M092].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M093",
+      "name": "烽火蠍 / Beacon Scorpion",
+      "concept": "signal scorpion",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M093].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M094",
+      "name": "盾殼蟹 / Shieldshell Crab",
+      "concept": "moat crab",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z2",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z8 -> Z2; Crab/water-edge identity can fit the early puddle ecology, but the existing ART002 Z8 moat/fortification assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M095",
+      "name": "黑曜傀儡 / Obsidian Automaton",
+      "concept": "frontier construct",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M095].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M096",
+      "name": "裂牆熊 / Wallbreak Bear",
+      "concept": "gate bear",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M096].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M097",
+      "name": "斥候鷹獸 / Scout Hawkbeast",
+      "concept": "frontier hawk",
+      "art002_candidate_zone": "Z8",
+      "planning_zone": "Z8",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M097].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M098",
+      "name": "風暴祈鳥 / Stormpray Bird",
+      "concept": "storm bird",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M098 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M099",
+      "name": "極光蛇 / Aurora Serpent",
+      "concept": "aurora serpent",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z1",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z9 -> Z1; Small serpent silhouette and luminous color could support readable early content, but the existing ART002 Z9 aurora/mythic assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M100",
+      "name": "雷冠鹿 / Thundercrown Stag",
+      "concept": "storm grazer",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M100].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M101",
+      "name": "雲穹鯨 / Skyvault Whale",
+      "concept": "cloud whale",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M101].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M102",
+      "name": "星環猿 / Star-ring Ape",
+      "concept": "orbit ape",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z1",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z9 -> Z1; A fast biped silhouette can add playful early variety, but the existing ART002 Z9 orbit/mythic assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M103",
+      "name": "裂虹鷹 / Riftbow Eagle",
+      "concept": "storm eagle",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M103].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M104",
+      "name": "月蝕蟲 / Moon-eclipse Mantis",
+      "concept": "eclipse mantis",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z1",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z9 -> Z1; Small insect silhouette can support early readability, but the existing ART002 Z9 eclipse/mythic assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M105",
+      "name": "天鼓龜 / Skydrum Tortoise",
+      "concept": "storm tortoise",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M105].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M106",
+      "name": "星砂狼 / Starsand Wolf",
+      "concept": "star wolf",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M106].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M107",
+      "name": "浮碑甲蟲 / Monolith Beetle",
+      "concept": "monument beetle",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M107].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M108",
+      "name": "雷晶螳螂 / Thundercrystal Mantis",
+      "concept": "crystal mantis",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M108].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M109",
+      "name": "蒼穹水母 / Firmament Jelly",
+      "concept": "sky jelly",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z1",
+      "evidence_class": "AMBIGUOUS",
+      "evidence_reference": "F034 count-preserving proposal: Z9 -> Z1; Blob identity can support readable early variety, but the existing ART002 Z9 firmament/mythic assignment is a materially competing record.",
+      "owner_decision_required": true,
+      "notes": "Planning-only proposal; competing ART002 assignment is retained as evidence. Not Owner-approved exact placement and not gameplay mapping."
+    },
+    {
+      "monster_id": "M110",
+      "name": "曙光翼蛇 / Dawnwing Serpent",
+      "concept": "dawn serpent",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M110].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M111",
+      "name": "碎星犀 / Starshard Rhino",
+      "concept": "star rhino",
+      "art002_candidate_zone": "Z9",
+      "planning_zone": "Z9",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M111].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M112",
+      "name": "古殿碑靈 / Ancient Temple Idol",
+      "concept": "relic construct",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "RUNTIME_IDENTITY",
+      "evidence_reference": "ART002.existing_runtime_monsters.M112 + current master monster_identity.py",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M113",
+      "name": "時痕石龜 / Timeworn Stone Turtle",
+      "concept": "time tortoise",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M113].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M114",
+      "name": "終焉門獸 / Endgate Beast",
+      "concept": "gate beast",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M114].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M115",
+      "name": "古鐘巨蟲 / Ancient Bell Crawler",
+      "concept": "relic crawler",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M115].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M116",
+      "name": "白曜甲蟲 / Ivorylight Beetle",
+      "concept": "ivory beetle",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M116].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M117",
+      "name": "黑砂獵犬 / Blacksand Hound",
+      "concept": "relic hound",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M117].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M118",
+      "name": "遺跡殼獸 / Relic Shellbeast",
+      "concept": "ruin beast",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M118].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M119",
+      "name": "靜默碑靈 / Silent Tabletling",
+      "concept": "tablet construct",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M119].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    },
+    {
+      "monster_id": "M120",
+      "name": "萬年根獸 / Evergreen Rootbeast",
+      "concept": "ancient root beast",
+      "art002_candidate_zone": "Z10",
+      "planning_zone": "Z10",
+      "evidence_class": "HISTORICAL_ART002",
+      "evidence_reference": "ART002.roster[M120].ZONE_ID",
+      "owner_decision_required": false,
+      "notes": "Historical planning assignment preserved; no identity, asset or runtime reference mutation."
+    }
+  ],
+  "owner_decision_packet": [
+    {
+      "item_id": "OD-MID-ZONE-064",
+      "monster_id": "M064",
+      "candidate_zone_a": "Z6",
+      "candidate_zone_b": "Z3",
+      "recommended": "Z3",
+      "rationale": "Serpent/crawler ecology has a plausible cave adjacency, but the existing ART002 Z6 wind/sky assignment is a materially competing record.",
+      "count_impact": "Z6 -1; Z3 +1",
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-073",
+      "monster_id": "M073",
+      "candidate_zone_a": "Z7",
+      "candidate_zone_b": "Z10",
+      "recommended": "Z10",
+      "rationale": "Construct identity has a plausible ancient-relic adjacency, but the existing ART002 Z7 tower-magic assignment is a materially competing record.",
+      "count_impact": "Z7 -1; Z10 +1",
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-086",
+      "monster_id": "M086",
+      "candidate_zone_a": "Z8",
+      "candidate_zone_b": "Z2",
+      "recommended": "Z2",
+      "rationale": "Beetle/crawler identity can fit early field ecology, but the existing ART002 Z8 siege/frontier assignment is a materially competing record.",
+      "count_impact": "Z8 -1; Z2 +1",
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-088",
+      "monster_id": "M088",
+      "candidate_zone_a": "Z8",
+      "candidate_zone_b": "Z2",
+      "recommended": "Z2",
+      "rationale": "Bat identity can fit the open-land/cave edge ecology, but the existing ART002 Z8 scout/frontier assignment is a materially competing record.",
+      "count_impact": "Z8 -1; Z2 +1",
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-094",
+      "monster_id": "M094",
+      "candidate_zone_a": "Z8",
+      "candidate_zone_b": "Z2",
+      "recommended": "Z2",
+      "rationale": "Crab/water-edge identity can fit the early puddle ecology, but the existing ART002 Z8 moat/fortification assignment is a materially competing record.",
+      "count_impact": "Z8 -1; Z2 +1",
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-099",
+      "monster_id": "M099",
+      "candidate_zone_a": "Z9",
+      "candidate_zone_b": "Z1",
+      "recommended": "Z1",
+      "rationale": "Small serpent silhouette and luminous color could support readable early content, but the existing ART002 Z9 aurora/mythic assignment is a materially competing record.",
+      "count_impact": "Z9 -1; Z1 +1",
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-102",
+      "monster_id": "M102",
+      "candidate_zone_a": "Z9",
+      "candidate_zone_b": "Z1",
+      "recommended": "Z1",
+      "rationale": "A fast biped silhouette can add playful early variety, but the existing ART002 Z9 orbit/mythic assignment is a materially competing record.",
+      "count_impact": "Z9 -1; Z1 +1",
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-104",
+      "monster_id": "M104",
+      "candidate_zone_a": "Z9",
+      "candidate_zone_b": "Z1",
+      "recommended": "Z1",
+      "rationale": "Small insect silhouette can support early readability, but the existing ART002 Z9 eclipse/mythic assignment is a materially competing record.",
+      "count_impact": "Z9 -1; Z1 +1",
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-109",
+      "monster_id": "M109",
+      "candidate_zone_a": "Z9",
+      "candidate_zone_b": "Z1",
+      "recommended": "Z1",
+      "rationale": "Blob identity can support readable early variety, but the existing ART002 Z9 firmament/mythic assignment is a materially competing record.",
+      "count_impact": "Z9 -1; Z1 +1",
+      "owner_decision_required": true
+    }
+  ],
+  "count_preserving_swap_plan": {
+    "status": "EXPLICIT_MINIMAL_NINE_ID_PROPOSAL",
+    "moves": [
+      {
+        "monster_id": "M064",
+        "from": "Z6",
+        "to": "Z3"
+      },
+      {
+        "monster_id": "M073",
+        "from": "Z7",
+        "to": "Z10"
+      },
+      {
+        "monster_id": "M086",
+        "from": "Z8",
+        "to": "Z2"
+      },
+      {
+        "monster_id": "M088",
+        "from": "Z8",
+        "to": "Z2"
+      },
+      {
+        "monster_id": "M094",
+        "from": "Z8",
+        "to": "Z2"
+      },
+      {
+        "monster_id": "M099",
+        "from": "Z9",
+        "to": "Z1"
+      },
+      {
+        "monster_id": "M102",
+        "from": "Z9",
+        "to": "Z1"
+      },
+      {
+        "monster_id": "M104",
+        "from": "Z9",
+        "to": "Z1"
+      },
+      {
+        "monster_id": "M109",
+        "from": "Z9",
+        "to": "Z1"
+      }
+    ],
+    "alternate_candidates": {
+      "Z1_from_Z9": [
+        "M100",
+        "M106",
+        "M110"
+      ],
+      "Z2_from_Z8": [
+        "M090",
+        "M091",
+        "M093"
+      ],
+      "Z3_from_Z6": [
+        "M067",
+        "M070"
+      ],
+      "Z10_from_Z7": [
+        "M081",
+        "M082"
+      ]
+    },
+    "hidden_cascade": false
+  },
+  "integrity": {
+    "assigned_m_id_count": 120,
+    "unassigned_m_id_count": 0,
+    "duplicate_zone_assignments": 0,
+    "m_id_count": 120,
+    "m_id_unique": 120,
+    "m_id_duplicates": 0,
+    "m_id_missing": 0,
+    "proposed_zone_counts": {
+      "Z1": 14,
+      "Z2": 14,
+      "Z3": 13,
+      "Z4": 12,
+      "Z5": 12,
+      "Z6": 12,
+      "Z7": 12,
+      "Z8": 11,
+      "Z9": 10,
+      "Z10": 10
+    },
+    "no_unlabeled_assignments": true,
+    "deterministic_rerun": true
+  }
+}
