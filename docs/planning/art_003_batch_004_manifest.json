@@ -12,6 +12,9 @@
     "REJECT_COUNT": 0
   },
   "authoritative_lineage": {
+    "B04_SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+    "B04_BRANCH": "codex/art003-b04-m035-m044-canonical-monster-art-production",
+    "B04_REMOTE_HEAD_EXACT": "YES",
     "ART003_B03_R1_HEAD": "701d4de5992ccf008b4071ee0de0c0cfcbc1382d",
     "B03_R1_HEAD_AVAILABLE": "YES",
     "B03_R1_REMOTE_HEAD_EXACT": "YES",

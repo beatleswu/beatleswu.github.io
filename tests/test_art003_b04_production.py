@@ -119,6 +119,9 @@ def test_b04_exact_id_set_and_manifest_completeness() -> None:
     assert all(row["IDENTITY_SOURCE"] == "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE" for row in rows)
     assert all(row["EXISTING_REFERENCE_SOURCE"] == "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE" for row in rows)
     assert data["authoritative_lineage"]["F036_HEAD"] == F036_HEAD
+    assert data["authoritative_lineage"]["B04_SOURCE_HEAD"] == B04_SOURCE_HEAD
+    assert data["authoritative_lineage"]["B04_BRANCH"] == "codex/art003-b04-m035-m044-canonical-monster-art-production"
+    assert data["authoritative_lineage"]["B04_REMOTE_HEAD_EXACT"] == "YES"
     assert data["authoritative_lineage"]["F035_HEAD"] == F035_HEAD
     assert data["authoritative_lineage"]["F035_ASSIGNMENT_HASH"] == F035_ASSIGNMENT_HASH
 
