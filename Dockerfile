@@ -226,6 +226,9 @@ COPY js/game/game_bootstrap.js ./js/game/game_bootstrap.js
 # Zone 1-10 generic cinematic replay is a narrow browser runtime module; keep
 # the copy explicit for the same reason as the modules above.
 COPY js/game/cinematic_replay.js ./js/game/cinematic_replay.js
+# A041 Hero legacy-cache guard is a narrow browser runtime module referenced by
+# the server-owned Hero shell; keep the release copy explicit.
+COPY js/hero_legacy_cache_guard.js ./js/hero_legacy_cache_guard.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog
