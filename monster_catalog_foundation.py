@@ -127,6 +127,11 @@ class MonsterCatalogEntry:
     """One stable identity and its context-specific profile references."""
 
     monster_id: str
+    # The server-owned Battlefield slot is explicit catalog metadata.  It is
+    # not a presentation/index authority; it is the durable binding used to
+    # validate the pre-existing battlefield_monster state without consulting
+    # the legacy F003 resolver during the active cutover path.
+    roster_slot: int
     display_name_key: str
     family_id: str
     zone_eligibility: tuple[str, ...]
@@ -211,6 +216,7 @@ def _build_entries(
         entries.append(
             MonsterCatalogEntry(
                 monster_id=canonical.monster_id,
+                roster_slot=int(canonical.roster_slot),
                 display_name_key=canonical.display_key,
                 family_id=canonical.taxonomy_family,
                 zone_eligibility=(canonical.zone_key,),
