@@ -142,6 +142,9 @@ from review_contracts import (
 from review_service import MapBattleReviewHandoff, ReviewService, ReviewServiceStatus
 from event_outbox import DuplicateOutboxEvent, append_event, get_event_by_idempotency_key
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
+from migrations.historical_leaderboard_evidence_v1 import (
+    upgrade as upgrade_historical_leaderboard_evidence_schema,
+)
 from migrations.question_capacity_lineage_v1 import (
     OPERATION_ID_COLUMN as CAPACITY_OPERATION_ID_COLUMN,
     SOURCE_ITEM_COLUMN as CAPACITY_SOURCE_ITEM_COLUMN,
@@ -5586,6 +5589,13 @@ def init_db():
     from community_leaderboard_rewards import ensure_leaderboard_reward_tables
     with get_db() as conn:
         ensure_leaderboard_reward_tables(conn)
+
+    # B071A: dedicated, server-only sink for Owner-approved historical
+    # leaderboard reconciliation evidence.  This migration is schema-only;
+    # the controlled runner is the only writer and no request path can emit
+    # this source.
+    with get_db() as conn:
+        upgrade_historical_leaderboard_evidence_schema(conn)
 
     # ── Map Battle v1: additive schema only, feature default-off ─────────
     from map_battle_persistence import ensure_map_battle_tables

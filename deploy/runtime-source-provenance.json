@@ -160,15 +160,15 @@
     },
     {
       "path": "community_leaderboard_rewards.py",
-      "source_commit": "a44aa7e2a82ef308233ae5cc97e100a23c6c827d",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "B050: close public SRS authority gap",
-      "source_date": "2026-08-28",
-      "content_sha256": "a8f9c8d249441f5e9f6b89323b4506f1cc28f43e53154d0d54b276ff6bfb465e",
-      "content_size_bytes": 91836,
+      "source_commit": "11eaf65af35808bb1356a2a80f9544c201f93075",
+      "source_branch_or_local_ref": "codex/b071a-canonical-historical-leaderboard-evidence-v2",
+      "source_commit_subject": "feat: add canonical historical leaderboard evidence path",
+      "source_date": "2026-08-30",
+      "content_sha256": "4c2c0aabad746b416da185a50b3c646b986f6219ab4e4b11bc789fc9fbfe696c",
+      "content_size_bytes": 94906,
       "line_ending_policy": "LF",
       "runtime_role": "app.py deferred/function-body imports only (lines 3699, 12170, 12183, 12202) -- not required at app startup, only when community-leaderboard-rewards code paths are invoked. Required by all five tools/community_leaderboard_rewards_*.py CLI scripts at their own module level. Content verified byte-identical (LF-normalized) to the file running in the Production container at the time of this audit. Contains reward-granting/database-write functions (e.g. grant_leaderboard_reward_claims, mark_leaderboard_claim_granted) -- not executed as part of this Sprint's verification.",
-      "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "accepted B071A source provenance -- source_commit is byte-identical to the candidate content; deployment remains separately gated"
     },
     {
       "path": "login.html",

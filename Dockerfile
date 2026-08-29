@@ -157,6 +157,9 @@ COPY migrations/quest_claim_v1.py ./migrations/quest_claim_v1.py
 COPY migrations/quest_progress_v2.py ./migrations/quest_progress_v2.py
 COPY migrations/question_capacity_lineage_v1.py ./migrations/question_capacity_lineage_v1.py
 COPY migrations/review_log_submission_idempotency_v1.py ./migrations/review_log_submission_idempotency_v1.py
+# B071A: app.py installs this additive server-only historical leaderboard
+# evidence schema during startup; keep the migration explicitly packaged.
+COPY migrations/historical_leaderboard_evidence_v1.py ./migrations/historical_leaderboard_evidence_v1.py
 COPY migrations/spirit_evolution_events_v1.py ./migrations/spirit_evolution_events_v1.py
 # PAY-PLANS-500 hotfix: lazily imported inside _newebpay()/_paypal() (only on
 # first payment-route access, not at app startup) -- restored after being
@@ -173,6 +176,9 @@ COPY tools/community_leaderboard_rewards_manual.py /app/tools/community_leaderbo
 COPY tools/community_leaderboard_rewards_export_entries.py /app/tools/community_leaderboard_rewards_export_entries.py
 COPY tools/community_leaderboard_rewards_real_grant_preview.py /app/tools/community_leaderboard_rewards_real_grant_preview.py
 COPY tools/community_leaderboard_rewards_real_grant_commit.py /app/tools/community_leaderboard_rewards_real_grant_commit.py
+# B071A: controlled historical restoration tooling; never exposed as a
+# public client endpoint.
+COPY tools/historical_leaderboard_restoration.py /app/tools/historical_leaderboard_restoration.py
 COPY tools/community_leaderboard_rewards_exact_period.py /app/tools/community_leaderboard_rewards_exact_period.py
 COPY sgf_engine ./sgf_engine
 
