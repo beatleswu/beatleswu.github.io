@@ -1,0 +1,386 @@
+{
+  "contract_version": "MONSTER_ART_CONTENT_ZONE_ASSIGNMENT_R2_Z9_TO_Z1_OWNER_DECISION_PACKET",
+  "status": "OWNER_DECISION_PACKET_ONLY",
+  "scope": "ART_CONTENT_PLANNING_ONLY",
+  "current_origin_master": "6829c4c528adf4800326e90534585a32e390ebec",
+  "base_sha": "6829c4c528adf4800326e90534585a32e390ebec",
+  "f034_head": "ea6458318e73f9ef81ce0b6083a0a4729a05f994",
+  "f034_r1_head": "62e060961dfed0766763240bdea044a686c8d232",
+  "f034_artifact": "docs/planning/monster_art_content_zone_assignment_v1.json",
+  "f034_r1_artifact": "docs/planning/monster_art_content_zone_assignment_r1_owner_decision_packet.json",
+  "owner_approved_locked_moves": [
+    {
+      "id": "M073",
+      "name": "Brass Golem",
+      "from": "Z7",
+      "to": "Z10"
+    },
+    {
+      "id": "M088",
+      "name": "Stringwing Bat",
+      "from": "Z8",
+      "to": "Z2"
+    },
+    {
+      "id": "M094",
+      "name": "Shieldshell Crab",
+      "from": "Z8",
+      "to": "Z2"
+    },
+    {
+      "id": "M060",
+      "name": "Crystalhorn Lizard",
+      "from": "Z6",
+      "to": "Z3"
+    },
+    {
+      "id": "M091",
+      "name": "Smokescreen Weasel",
+      "from": "Z8",
+      "to": "Z2"
+    }
+  ],
+  "owner_rejected_existing_moves": [
+    {
+      "id": "M064",
+      "name": "Windspine Serpent",
+      "concept": "wind serpent",
+      "keep_zone": "Z6"
+    },
+    {
+      "id": "M086",
+      "name": "Breakshield Beetle",
+      "concept": "siege beetle",
+      "keep_zone": "Z8"
+    },
+    {
+      "id": "M099",
+      "name": "Aurora Serpent",
+      "concept": "aurora serpent",
+      "keep_zone": "Z9"
+    },
+    {
+      "id": "M102",
+      "name": "Star-ring Ape",
+      "concept": "orbit ape",
+      "keep_zone": "Z9"
+    },
+    {
+      "id": "M104",
+      "name": "Moon-eclipse Mantis",
+      "concept": "eclipse mantis",
+      "keep_zone": "Z9"
+    },
+    {
+      "id": "M109",
+      "name": "Firmament Jelly",
+      "concept": "sky jelly",
+      "keep_zone": "Z9"
+    }
+  ],
+  "remaining_owner_decision_count": 4,
+  "z9_to_z1_eligible_candidates": [
+    {
+      "rank": 1,
+      "id": "M107",
+      "name": "Monolith Beetle",
+      "concept": "monument beetle",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Grounded beetle with a stone/monument visual cue.",
+      "name_theme": "Monolith/monument; ancient relic language.",
+      "current_z9_fit": "Fits Z9's monument and celestial-weather finale as a relic-associated insect.",
+      "target_z1_fit": "Beetle is an ordinary garden/grass-edge creature and its grounded silhouette fits village outskirts.",
+      "cost": "MEDIUM",
+      "readability": "HIGH: familiar insect ecology plus a clear grounded silhouette; not based on size alone.",
+      "recommendation": "RECOMMENDED"
+    },
+    {
+      "rank": 2,
+      "id": "M106",
+      "name": "Starsand Wolf",
+      "concept": "star wolf",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Terrestrial wolf with a star-sand accent.",
+      "name_theme": "Star/sand; one explicit celestial cue.",
+      "current_z9_fit": "Fits Z9's star and sky-fauna language.",
+      "target_z1_fit": "Wolf is a familiar terrestrial animal that can fit grassland or village-edge ecology.",
+      "cost": "MEDIUM",
+      "readability": "HIGH: familiar terrestrial predator and grassland ecology, with the star cue retained as the main cost.",
+      "recommendation": "RECOMMENDED"
+    },
+    {
+      "rank": 3,
+      "id": "M100",
+      "name": "Thundercrown Stag",
+      "concept": "storm grazer",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Stag/grazer with storm and crown motifs.",
+      "name_theme": "Thunder/crown; elevated mythic authority.",
+      "current_z9_fit": "Strong Z9 fit through storm, crown and celestial-grazer language.",
+      "target_z1_fit": "Stag and grazer identity directly fits grassland, woodland edge and ordinary early fauna.",
+      "cost": "MEDIUM_HIGH",
+      "readability": "HIGH: familiar grazer ecology and readable woodland identity; the name remains elevated.",
+      "recommendation": "RECOMMENDED"
+    },
+    {
+      "rank": 4,
+      "id": "M105",
+      "name": "Skydrum Tortoise",
+      "concept": "storm tortoise",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Grounded tortoise with a sky/drum motif.",
+      "name_theme": "Sky/storm/drum; late-zone weather signal.",
+      "current_z9_fit": "Fits Z9's storm and sky-fauna set.",
+      "target_z1_fit": "Grounded tortoise can fit a stream, grass or village-outskirts ecology.",
+      "cost": "MEDIUM_HIGH",
+      "readability": "HIGH: familiar grounded reptile and stream-edge ecology; not justified only by readability.",
+      "recommendation": "RECOMMENDED"
+    },
+    {
+      "rank": 5,
+      "id": "M110",
+      "name": "Dawnwing Serpent",
+      "concept": "dawn serpent",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Serpent with a dawn/wing accent.",
+      "name_theme": "Dawn/wing; elevated sky-fauna language.",
+      "current_z9_fit": "Fits Z9's dawn and aerial-serpent imagery.",
+      "target_z1_fit": "Serpent can fit grass or small-stream ecology, but the wing cue weakens the fit.",
+      "cost": "HIGH",
+      "readability": "MEDIUM_HIGH: familiar serpent ecology, offset by aerial styling.",
+      "recommendation": "FIRST_ALTERNATE"
+    },
+    {
+      "rank": 6,
+      "id": "M111",
+      "name": "Starshard Rhino",
+      "concept": "star rhino",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Heavy rhino with starshard/elite cues.",
+      "name_theme": "Starshard; explicit celestial and endgame rarity signal.",
+      "current_z9_fit": "Fits Z9's starshard and mythic fauna language.",
+      "target_z1_fit": "Rhino is terrestrial, but its heavy elite-normal identity is a poor village-edge fit.",
+      "cost": "HIGH",
+      "readability": "MEDIUM: familiar animal identity, but mass and elite framing conflict with ordinary early ecology.",
+      "recommendation": "SECOND_ALTERNATE"
+    },
+    {
+      "rank": 7,
+      "id": "M103",
+      "name": "Riftbow Eagle",
+      "concept": "storm eagle",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Aerial eagle with rift/bow and storm motifs.",
+      "name_theme": "Rift/bow/storm; dramatic sky-combat language.",
+      "current_z9_fit": "Strong Z9 storm and sky-fauna fit.",
+      "target_z1_fit": "Eagle is familiar wild fauna, but aerial/rift identity conflicts with simple village-edge ecology.",
+      "cost": "VERY_HIGH",
+      "readability": "MEDIUM: familiar species, but aerial dramatic identity dominates.",
+      "recommendation": ""
+    },
+    {
+      "rank": 8,
+      "id": "M108",
+      "name": "Thundercrystal Mantis",
+      "concept": "crystal mantis",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Mantis with thunder/crystal treatment.",
+      "name_theme": "Thunder/crystal; overt high-tier elemental cue.",
+      "current_z9_fit": "Strong Z9 elemental and crystal-storm fit.",
+      "target_z1_fit": "Mantis can fit garden ecology, but the thundercrystal treatment is too strongly late-game.",
+      "cost": "VERY_HIGH",
+      "readability": "MEDIUM_HIGH: familiar garden insect, outweighed by elemental identity conflict.",
+      "recommendation": ""
+    },
+    {
+      "rank": 9,
+      "id": "M101",
+      "name": "Skyvault Whale",
+      "concept": "cloud whale",
+      "current_zone": "Z9",
+      "target_zone": "Z1",
+      "visual_theme": "Large cloud/sky whale.",
+      "name_theme": "Skyvault/cloud; monumental celestial scale.",
+      "current_z9_fit": "Very strong Z9 sky and mythic-scale fit.",
+      "target_z1_fit": "Whale and skyvault scale do not fit village outskirts, grassland or small-stream content.",
+      "cost": "VERY_HIGH",
+      "readability": "LOW: identity is legible but not compatible with ordinary early ecology.",
+      "recommendation": ""
+    }
+  ],
+  "z9_to_z1_full_ranking": [
+    {
+      "rank": 1,
+      "id": "M107"
+    },
+    {
+      "rank": 2,
+      "id": "M106"
+    },
+    {
+      "rank": 3,
+      "id": "M100"
+    },
+    {
+      "rank": 4,
+      "id": "M105"
+    },
+    {
+      "rank": 5,
+      "id": "M110"
+    },
+    {
+      "rank": 6,
+      "id": "M111"
+    },
+    {
+      "rank": 7,
+      "id": "M103"
+    },
+    {
+      "rank": 8,
+      "id": "M108"
+    },
+    {
+      "rank": 9,
+      "id": "M101"
+    }
+  ],
+  "z9_to_z1_recommended_four": [
+    "M107",
+    "M106",
+    "M100",
+    "M105"
+  ],
+  "first_alternate": "M110",
+  "second_alternate": "M111",
+  "excluded_z9_inventory": [
+    {
+      "id": "M098",
+      "name": "Stormpray Bird",
+      "concept": "storm bird",
+      "current_zone": "Z9",
+      "reason": "Existing runtime identity anchor; excluded to preserve the runtime/planning firewall."
+    },
+    {
+      "id": "M099",
+      "name": "Aurora Serpent",
+      "concept": "aurora serpent",
+      "current_zone": "Z9",
+      "reason": "Owner-rejected prior move; fixed in Z9 and must not be reproposed."
+    },
+    {
+      "id": "M102",
+      "name": "Star-ring Ape",
+      "concept": "orbit ape",
+      "current_zone": "Z9",
+      "reason": "Owner-rejected prior move; fixed in Z9 and must not be reproposed."
+    },
+    {
+      "id": "M104",
+      "name": "Moon-eclipse Mantis",
+      "concept": "eclipse mantis",
+      "current_zone": "Z9",
+      "reason": "Owner-rejected prior move; fixed in Z9 and must not be reproposed."
+    },
+    {
+      "id": "M109",
+      "name": "Firmament Jelly",
+      "concept": "sky jelly",
+      "current_zone": "Z9",
+      "reason": "Owner-rejected prior move; fixed in Z9 and must not be reproposed."
+    }
+  ],
+  "recommended_move_justification": {
+    "M107": {
+      "why_z1_fits": "Beetle/garden-edge ecology is ordinary and grounded.",
+      "what_z9_theme_is_lost": "Monolith/monument relic framing.",
+      "why_loss_is_acceptable": "The relic cue is less central than the explicit celestial cues retained by the rest of Z9; no runtime anchor is moved."
+    },
+    "M106": {
+      "why_z1_fits": "Wolf is familiar terrestrial grassland/edge fauna.",
+      "what_z9_theme_is_lost": "Star/sand celestial accent.",
+      "why_loss_is_acceptable": "Only one explicit celestial prefix is lost while Z9 keeps its stronger sky/mythic identities."
+    },
+    "M100": {
+      "why_z1_fits": "Stag/grazer directly fits grassland and woodland-edge ecology.",
+      "what_z9_theme_is_lost": "Thunder/crown storm authority.",
+      "why_loss_is_acceptable": "Its base ecology is materially better for Z1 than aerial/rift/skyvault alternatives."
+    },
+    "M105": {
+      "why_z1_fits": "Grounded tortoise can inhabit stream, grass and village outskirts.",
+      "what_z9_theme_is_lost": "Sky/storm/drum framing.",
+      "why_loss_is_acceptable": "The grounded species identity reduces the move cost and preserves count without touching runtime."
+    }
+  },
+  "protected_exclusions": {
+    "do_not_repropose": [
+      "M064",
+      "M086",
+      "M099",
+      "M102",
+      "M104",
+      "M109"
+    ],
+    "runtime_anchor_excluded": [
+      "M098"
+    ]
+  },
+  "projected_count_contract": {
+    "based_on_art002_old_distribution": {
+      "Z1": 10,
+      "Z2": 11,
+      "Z3": 12,
+      "Z4": 12,
+      "Z5": 12,
+      "Z6": 13,
+      "Z7": 13,
+      "Z8": 14,
+      "Z9": 14,
+      "Z10": 9
+    },
+    "approved_moves_plus_recommended_z9_to_z1": {
+      "Z1": 14,
+      "Z2": 14,
+      "Z3": 13,
+      "Z4": 12,
+      "Z5": 12,
+      "Z6": 12,
+      "Z7": 12,
+      "Z8": 11,
+      "Z9": 10,
+      "Z10": 10
+    },
+    "projected_total": 120,
+    "count_contract_preserved": true
+  },
+  "decision_state": {
+    "r1_recommendation_reevaluated": true,
+    "alternate_names_resolved": true,
+    "new_owner_approved_z9_to_z1": 0,
+    "exact_assignment_freeze": false,
+    "f035_started": false
+  },
+  "authority_firewall": {
+    "art_content_planning_only": true,
+    "gameplay_authority_changed": false,
+    "runtime_mapping_changed": false,
+    "monster_stats_changed": false,
+    "art_assets_changed": false,
+    "app_py_changed": false,
+    "a043_scope_touched": false,
+    "b057_scope_touched": false,
+    "c050_scope_touched": false,
+    "e046_scope_touched": false,
+    "art003_scope_touched": false,
+    "lc015_scope_touched": false
+  }
+}
