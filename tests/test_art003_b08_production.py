@@ -10,6 +10,8 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_SHA = "786b9f2335b42f777c03a0c6e604d4784dc7ec5b"
+SOURCE_BRANCH = "codex/art003-b08-m078-m088-canonical-monster-art-production"
+SOURCE_HEAD = "95e0119af9a0ab02275b5db4f3b38eedca9cc2ab"
 IDS = ["M078", "M079", "M080", "M081", "M082", "M083", "M085", "M086", "M087", "M088"]
 NAMES = {
     "M078": "Potion Gob",
@@ -90,8 +92,11 @@ def test_b08_manifest_identity_and_zone_contract():
         assert entry["planning_zone"] == ZONES[monster_id]
         assert entry["asset_path"] == ASSETS[monster_id]
         assert entry["identity_source"] == "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE"
-        assert entry["production_status"] == "PRODUCTION_CANDIDATE"
-        assert entry["owner_visual_review_status"] == "PENDING"
+        assert entry["production_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+        assert entry["review_status"] == "PASS"
+        assert entry["owner_visual_review_status"] == "PASS"
+        assert entry["canonical_art_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+        assert entry["publication_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
     assert load_manifest()["planning_semantics"]["zone_distribution"] == {"Z2": 1, "Z7": 6, "Z8": 3}
     assert load_manifest()["authoritative_lineage"]["f035_head"] == "195f3376e107559817e054476b076e471c211731"
     assert load_manifest()["authoritative_lineage"]["f036_head"] == "36eec98e972e5ed5e40acda83795ac1569e6eb1e"
@@ -127,14 +132,32 @@ def test_b08_assets_readable_and_hash_unique():
     assert len(set(observed_hashes)) == 10
 
 
-def test_b08_review_pack_exact_order_and_pending_gate():
+def test_owner_approved_hash_lock_and_source_identity():
+    manifest = load_manifest()
+    assert manifest["source_branch"] == SOURCE_BRANCH
+    assert manifest["source_head"] == SOURCE_HEAD
+    assert manifest["authoritative_lineage"]["source_branch"] == SOURCE_BRANCH
+    assert manifest["authoritative_lineage"]["source_head"] == SOURCE_HEAD
+    for entry in manifest_entries():
+        monster_id = entry["monster_id"]
+        assert entry["owner_approved_sha256"] == HASHES[monster_id]
+        assert entry["published_sha256"] == HASHES[monster_id]
+        assert entry["sha256"] == entry["owner_approved_sha256"] == entry["published_sha256"]
+        source_bytes = subprocess.check_output(["git", "cat-file", "blob", f"{SOURCE_HEAD}:{ASSETS[monster_id]}"], cwd=ROOT)
+        assert source_bytes == (ROOT / ASSETS[monster_id]).read_bytes()
+    assert manifest["qa_summary"]["owner_approved_hash_match_count"] == 10
+    assert manifest["qa_summary"]["owner_approved_byte_drift_count"] == 0
+
+
+def test_b08_review_pack_exact_order_and_pass_state():
     pack = PACK_PATH.read_text(encoding="utf-8")
     headings = [line.split(" — ", 1)[0].split(". ", 1)[1] for line in pack.splitlines() if line.startswith("### ")]
     assert headings == IDS
     assert "M084 —" not in pack
-    assert "Owner visual review status: **PENDING** (`0/10`)" in pack
+    assert "Owner visual review status: **PASS** (`10/10`)" in pack
+    assert "Owner revision required: **NONE**" in pack
     assert "Review-pack bytes equal final candidate assets: **YES**" in pack
-    assert pack.count("Owner review: **PENDING**") == 10
+    assert pack.count("Owner review: **PASS**") == 10
     for monster_id, asset_path in ASSETS.items():
         assert f"../../{asset_path}" in pack
         assert HASHES[monster_id] in pack
@@ -170,10 +193,14 @@ def test_protected_lineage_and_result_state():
     manifest = load_manifest()
     protected = manifest["protected_lineages"]
     assert all(value == "NO" for value in protected.values())
-    assert manifest["owner_visual_review_status"] == "PENDING"
-    assert manifest["owner_pass_count"] == "0/10"
-    assert manifest["result"]["ready_for_owner_visual_review"] == "YES"
-    assert manifest["result"]["next_task"] == "OWNER_VISUAL_REVIEW_ART003_B08"
+    assert manifest["owner_visual_review_status"] == "PASS"
+    assert manifest["owner_pass_count"] == "10/10"
+    assert manifest["owner_revision_required"] == "NO"
+    assert manifest["redraw_required"] == "NONE"
+    assert manifest["result"]["ready_for_next_art_batch"] == "YES"
+    assert manifest["result"]["next_task"] == "ART003_B09_M089_M099_CANONICAL_MONSTER_ART_PRODUCTION_001"
+    assert manifest["result"]["canonical_art_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+    assert manifest["result"]["canonical_art_published_count"] == 10
     assert manifest["result"]["master_merge"] == "NO"
     assert manifest["result"]["deploy"] == "NO"
 
