@@ -7,6 +7,7 @@
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/i18n.js?v=20260710a"></script>
 <script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0381"></script>
+<script src="/js/hero_legacy_cache_guard.js?v=20260829a0401"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3844,14 +3845,11 @@ function cosmeticUnlocked(group, key) {
   return { unlocked: msMetric(cond.metric) >= gate, label };
 }
 let _combatGear = (() => {
-  let g;
   const _def = { character:'apprentice', armor:'cloth', cape:'none', weapon:'none', offhand:'none', hat:'none', pet:'none', aura:'none', acc:'none' };
-  try { g = { ..._def, ...JSON.parse(localStorage.getItem(COMBAT_STORAGE_KEY) || '{}') }; }
-  catch { g = { ..._def }; }
-  // 舊存檔的角色 key 不在新名冊 → 退回見習生
-  if (!CHARACTER_KEYS.includes(g.character)) g.character = 'apprentice';
-  g.pet = 'none';
-  return g;
+  // A040: do not read the global legacy cache before authentication. It is
+  // unscoped and may contain another user's old equipment. Server appearance
+  // and inventory snapshots hydrate character and functional equipment.
+  return { ..._def };
 })();
 // The accepted Loadout activation proposal remains HOLD.  Legacy controls
 // stay visible only as disabled compatibility markup while Backpack owns
@@ -4479,7 +4477,6 @@ function selectCombatGear(slot, key) {
     if (g.locked) { showToast('🔒 ' + g.hint); return; }
   }
   _combatGear[slot] = nextKey;
-  if (slot !== 'character') localStorage.setItem(COMBAT_STORAGE_KEY, JSON.stringify(_combatGear));
   applyCombatGearVisuals();
   renderCombatGearControls();
   const picked = COMBAT_GEAR[slot].find(i => i.key === nextKey);
@@ -4499,7 +4496,9 @@ function selectCombatGear(slot, key) {
         return;
       }
       _characterAuthorityKey = nextKey;
-      localStorage.setItem(COMBAT_STORAGE_KEY, JSON.stringify(_combatGear));
+      GoOdysseyLegacyHeroCache.discardFunctionalEquipment(
+        localStorage, COMBAT_STORAGE_KEY, nextKey, CHARACTER_KEYS,
+      );
       renderCombatGearControls();
     });
   }
@@ -5225,6 +5224,11 @@ async function hydrateAuthoritativeHeroPresentation() {
       const normalized = normalizeHeroFunctionalEquipment(inventory);
       _functionalEquipmentItems = normalized.items;
       _functionalEquipmentState = normalized.status;
+      // A server inventory snapshot is the cutover point: retain only a
+      // bounded character compatibility hint and discard every old gear key.
+      GoOdysseyLegacyHeroCache.discardFunctionalEquipment(
+        localStorage, COMBAT_STORAGE_KEY, serverCharacter, CHARACTER_KEYS,
+      );
     } else {
       _functionalEquipmentState = 'unavailable';
     }

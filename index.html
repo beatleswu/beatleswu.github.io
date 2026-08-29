@@ -8075,6 +8075,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     </div>
 </div>
 
+<script src="/js/hero_legacy_cache_guard.js?v=20260829a0401"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 // ─── 玩家小頭像 & Toast ────────────────────────────────────────
@@ -8089,6 +8090,7 @@ const HERO_GEAR_ROOT = '/assets/hero/gear_v2/';
 const HERO_ACCESSORY_ROOT = '/assets/hero/accessories/';
 const HERO_ARMOR_ROOT = '/assets/hero/armor/';
 const HERO_COMBAT_STORAGE_KEY = 'hero_combat_gear_v1';
+let _serverHeroCharacter = 'apprentice';
 const HERO_ARMOR_CHARACTER_VARIANTS = {
     hero_male: 'hero_male',
     woman: 'woman',
@@ -8141,18 +8143,10 @@ const HERO_COMBAT_GEAR = {
 
 function heroCombatState() {
     const fallback = { character:'apprentice', armor:'cloth', cape:'none', weapon:'none', offhand:'none', hat:'none', pet:'none', aura:'none' };
-    try {
-        const state = {
-            ...fallback,
-            ...JSON.parse(localStorage.getItem(HERO_COMBAT_STORAGE_KEY) || '{}')
-        };
-        const validKeys = new Set((HERO_COMBAT_GEAR.character || []).map(g => g.key));
-        state.character = LEGACY_HERO_CHARACTER_KEY_MAP[state.character] || state.character;
-        if (!validKeys.has(state.character)) state.character = fallback.character;
-        return state;
-    } catch {
-        return fallback;
-    }
+    // A040: old global storage is never read for avatar equipment. The
+    // authenticated appearance snapshot updates _serverHeroCharacter below;
+    // legacy equipment fields remain neutral compatibility defaults.
+    return { ...fallback, character: _serverHeroCharacter };
 }
 
 function normalizeHeroCharacterKey(key) {
@@ -8298,16 +8292,14 @@ function applyHeroCombatAvatarToIndex() {
 
 function syncHeroCharacterFromAppearance(characterKey) {
     if (!characterKey) return;
-    const state = heroCombatState();
     const nextCharacter = normalizeHeroCharacterKey(characterKey);
-    if (state.character !== nextCharacter) {
-        try {
-            localStorage.setItem(HERO_COMBAT_STORAGE_KEY, JSON.stringify({
-                ...state,
-                character: nextCharacter
-            }));
-        } catch(e) {}
-    }
+    _serverHeroCharacter = nextCharacter;
+    try {
+        GoOdysseyLegacyHeroCache.discardFunctionalEquipment(
+            localStorage, HERO_COMBAT_STORAGE_KEY, nextCharacter,
+            new Set((HERO_COMBAT_GEAR.character || []).map(g => g.key)),
+        );
+    } catch (_) {}
 }
 
 // 載入並渲染玩家外觀（頁面啟動時呼叫一次）
@@ -21384,8 +21376,13 @@ window.addEventListener('appinstalled', () => {
 
         function saveCharacterChoice() {
             if (!creatorAllowedCharacters.has(selectedCharacter)) selectedCharacter = 'apprentice';
-            const state = { ...heroCombatState(), character: selectedCharacter };
-            localStorage.setItem(HERO_COMBAT_STORAGE_KEY, JSON.stringify(state));
+            _serverHeroCharacter = selectedCharacter;
+            try {
+                GoOdysseyLegacyHeroCache.discardFunctionalEquipment(
+                    localStorage, HERO_COMBAT_STORAGE_KEY, selectedCharacter,
+                    new Set((HERO_COMBAT_GEAR.character || []).map(g => g.key)),
+                );
+            } catch(e) {}
             try { applyHeroCombatToBattle(); } catch(e) {}
             // 同步寫入後端，讓 maybeAutoTour 的 character_key 檢查不會重複觸發
             fetch('/api/skills/character', {
