@@ -126,6 +126,11 @@ def test_b07_assets_are_readable_unique_and_manifest_complete() -> None:
         digest = hashlib.sha256(path.read_bytes()).hexdigest().upper()
         hashes.append(digest)
         assert row["sha256"] == digest
+        assert row["OWNER_APPROVED_SHA256"] == digest
+        assert row["PUBLISHED_SHA256"] == digest
+        assert row["source_head"] == "9bd33b9a0628f5983ec9b12afa1a882d4b1b6e69"
+        assert row["owner_visual_review_status"] == "PASS"
+        assert row["canonical_art_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
         with Image.open(path) as image:
             assert image.format == "PNG"
             assert image.mode == "RGBA"
@@ -142,20 +147,26 @@ def test_b07_assets_are_readable_unique_and_manifest_complete() -> None:
     assert data["qa_summary"]["NO_DUPLICATE_FILE_BYTES"] == "YES"
 
 
-def test_owner_gate_remains_pending() -> None:
+def test_owner_gate_is_published() -> None:
     data = _manifest()
-    assert data["status"] == "READY_FOR_OWNER_VISUAL_REVIEW"
-    assert data["owner_visual_review_status"] == "PENDING"
-    assert data["owner_pass_count"] == "0/10"
-    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PENDING"
-    assert data["owner_review"]["OWNER_PASS_COUNT"] == "0/10"
+    assert data["status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+    assert data["canonical_art_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+    assert data["owner_visual_review_status"] == "PASS"
+    assert data["owner_pass_count"] == "10/10"
+    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PASS"
+    assert data["owner_review"]["OWNER_PASS_COUNT"] == "10/10"
+    assert data["owner_review"]["OWNER_REVISION_REQUIRED"] == "NO"
     assert data["owner_review"]["OWNER_REVIEW_PACK_ENTRY_COUNT"] == 10
     assert data["owner_review"]["OWNER_REVIEW_PACK_ID_SET_EXACT"] == "YES"
-    assert data["result"]["classification"] == "PASS_ART003_B07_CANONICAL_MONSTER_ART_PRODUCTION"
-    assert data["result"]["READY_FOR_OWNER_VISUAL_REVIEW"] == "YES"
-    assert data["result"]["NEXT_TASK"] == "OWNER_VISUAL_REVIEW_ART003_B07"
-    assert all(row["production_status"] == "PRODUCTION_CANDIDATE" for row in data["assets"])
-    assert all(row["review_status"] == "PENDING_OWNER_VISUAL_REVIEW" for row in data["assets"])
+    assert data["result"]["classification"] == "PASS_ART003_B07_R1_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION"
+    assert data["result"]["OWNER_APPROVED_HASH_MATCH_COUNT"] == 10
+    assert data["result"]["OWNER_APPROVED_BYTES_MATCH"] == "YES"
+    assert data["result"]["CANONICAL_ART_PUBLISHED_COUNT"] == 10
+    assert data["result"]["CANONICAL_ART_ID_SET_EXACT"] == "YES"
+    assert data["result"]["READY_FOR_NEXT_ART_BATCH"] == "YES"
+    assert data["result"]["NEXT_TASK"] == "ART003_B08_M078_M088_CANONICAL_MONSTER_ART_PRODUCTION_001"
+    assert all(row["production_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED" for row in data["assets"])
+    assert all(row["review_status"] == "PASS" for row in data["assets"])
 
 
 def test_f035_f036_zone_lock_and_visual_contract() -> None:
@@ -215,7 +226,7 @@ def test_runtime_release_economy_and_lc_firewalls() -> None:
         "COMBAT_MAPPING_CHANGED", "HP_CHANGED", "ATK_CHANGED", "DROP_CHANGED", "REWARD_CHANGED",
         "MONSTER_CATALOG_RUNTIME_MAPPING_CHANGED", "MONSTER_CATALOG_GAMEPLAY_AUTHORITY_CHANGED",
         "F009_ENABLED", "F009_CHANGED", "BOSS_INCLUDED", "LORD_INCLUDED", "B071_SCOPE_TOUCHED",
-        "B071A_SCOPE_TOUCHED", "B071C_SCOPE_TOUCHED", "LC_SCOPE_TOUCHED", "LC019_SCOPE_TOUCHED",
+        "B071A_SCOPE_TOUCHED", "B071C_SCOPE_TOUCHED", "B071D_SCOPE_TOUCHED", "LC_SCOPE_TOUCHED", "LC019_SCOPE_TOUCHED",
         "GENESIS_BOOTSTRAP_EXECUTED", "BOOTSTRAP_HOT_CHANGED", "B063_SCOPE_TOUCHED", "B064_SCOPE_TOUCHED",
         "B065_SCOPE_TOUCHED", "A049_SCOPE_TOUCHED", "E053_SCOPE_TOUCHED", "SHOP_ENABLED", "LOADOUT_ENABLED",
         "PAYMENTS_CHANGED", "NEWEBPAY_CHANGED", "PAYPAL_CHANGED", "SCHEMA_CHANGED", "DATA_CHANGED",
@@ -229,8 +240,8 @@ def test_runtime_release_economy_and_lc_firewalls() -> None:
 def test_review_pack_is_complete_and_in_exact_order() -> None:
     data = _manifest()
     pack = REVIEW_PACK_PATH.read_text(encoding="utf-8")
-    assert "Owner visual review status: **PENDING** (`0/10`)" in pack
-    assert "These are review candidates only" in pack
+    assert "Owner visual review status: **PASS** (`10/10`)" in pack
+    assert "The exact reviewed bytes are frozen and" in pack
     headings = re.findall(r"### (M\d+) — [^\n]+", pack)
     assert headings == IDS
     image_paths = re.findall(r"!\[[^\]]+\]\((\.\./\.\./art/monsters/[^)]+\.png)\)", pack)
@@ -241,7 +252,7 @@ def test_review_pack_is_complete_and_in_exact_order() -> None:
         assert f"![{row['monster_id']} {row['canonical_name']}]" in pack
         assert row["sha256"] in pack
         assert f"| {row['monster_id']} | {row['canonical_name']} | {row['planning_zone']} |" in pack
-        assert "| PENDING |" in pack
+        assert "| PASS |" in pack
 
 
 def test_only_b07_scope_changed_and_no_secret() -> None:
