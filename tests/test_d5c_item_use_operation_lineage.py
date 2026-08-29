@@ -30,6 +30,7 @@ from migrations.domain_event_outbox_v1 import (
     upgrade as upgrade_outbox,
     validate_schema as validate_outbox_schema,
 )
+from migrations.coin_purchase_operations_v1 import upgrade as upgrade_purchase_operations
 from migrations.item_use_operations_v1 import (
     downgrade_for_isolated_test as downgrade_item_use_schema,
     upgrade as upgrade_item_use_schema,
@@ -91,6 +92,10 @@ def _create_sqlite_runtime(path):
                 qty INTEGER NOT NULL,
                 PRIMARY KEY(user_id, item_key)
             );
+            CREATE TABLE daily_shop(
+                shop_date TEXT PRIMARY KEY,
+                slots TEXT NOT NULL
+            );
             CREATE TABLE active_effects(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -124,6 +129,7 @@ def _create_sqlite_runtime(path):
             """
         )
         upgrade_outbox(conn)
+        upgrade_purchase_operations(conn)
         upgrade_item_use_schema(conn)
 
 
@@ -400,12 +406,18 @@ def test_cosmetic_purchase_emits_scoped_acquisition_evidence_without_owning_from
     client = _logged_client()
     first = client.post(
         "/api/cosmetic-commerce/purchase",
-        json={"product_id": "cosmetic.outfit.robe_plain"},
+        json={
+            "product_id": "cosmetic.outfit.robe_plain",
+            "purchase_operation_id": "d5c-cosmetic-first",
+        },
     )
     assert first.status_code == 200
     second = client.post(
         "/api/cosmetic-commerce/purchase",
-        json={"product_id": "cosmetic.outfit.robe_plain"},
+        json={
+            "product_id": "cosmetic.outfit.robe_plain",
+            "purchase_operation_id": "d5c-cosmetic-second",
+        },
     )
     assert second.status_code == 200
     assert second.get_json()["status"] == "already_owned"

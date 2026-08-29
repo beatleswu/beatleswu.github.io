@@ -46,6 +46,7 @@ def _create_db(
     post_b033: bool = False,
     purchase_schema: bool = False,
     include_wardrobe: bool = True,
+    include_appearance: bool = False,
     include_shop_inventory: bool = True,
     coins: int = 1000,
 ) -> None:
@@ -82,6 +83,12 @@ def _create_db(
                 "user_id INTEGER NOT NULL, item_id TEXT NOT NULL, "
                 "obtained_at TEXT NOT NULL, source TEXT NOT NULL, "
                 "PRIMARY KEY(user_id,item_id))"
+            )
+        if include_appearance:
+            conn.execute(
+                "CREATE TABLE player_appearance ("
+                "user_id INTEGER PRIMARY KEY, outfit_id TEXT, "
+                "updated_at TEXT)"
             )
         conn.execute(
             "CREATE TABLE daily_shop ("
@@ -357,7 +364,13 @@ def test_canonical_shop_stackable_purchase_uses_server_facts_and_replays_once(tm
 
 def test_canonical_shop_wardrobe_purchase_uses_d024_result(tmp_path, monkeypatch):
     path = tmp_path / "shop-wardrobe.sqlite"
-    _create_db(path, purchase_schema=True, include_shop_inventory=False, coins=500)
+    _create_db(
+        path,
+        purchase_schema=True,
+        include_shop_inventory=False,
+        include_appearance=True,
+        coins=500,
+    )
     _seed_daily_slots(
         path,
         [{
