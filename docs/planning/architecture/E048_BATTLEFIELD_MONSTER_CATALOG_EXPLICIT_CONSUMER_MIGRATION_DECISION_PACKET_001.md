@@ -39,7 +39,8 @@ E044_OWNER_DECISIONS_PRESERVED=YES
 
 The original E045/E046/E047 SHAs are retained as accepted lineage references;
 the fresh-base materializations are the immutable evidence inputs for this
-packet.  No unrelated lane was merged.
+packet.  LC016 (including its LC015 artifacts) is inherited from the fresh
+`origin/master` context; E048 did not edit or stage any LC file.
 
 ## Decision in one sentence
 
