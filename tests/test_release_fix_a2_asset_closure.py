@@ -185,6 +185,7 @@ def _copy_required_flat_generation_sources(source):
     for filename in (
         "index.html",
         "inventory.html",
+        "item_journal.html",
         "i18n.js",
         "sw.js",
         "site-nav.js",

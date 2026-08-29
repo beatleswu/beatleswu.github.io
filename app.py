@@ -25754,6 +25754,12 @@ def serve_icons(filename): return _serve_live_static_or_baked_subpath(filename, 
 # _resolve_live_static_path). Extension is explicitly allowlisted here since no
 # existing helper restricts by extension -- these three routes must only ever
 # serve .js / .css / .html respectively, never arbitrary repo files.
+@app.route('/js/hero_legacy_cache_guard.js')
+def serve_hero_legacy_cache_guard_js():
+    return _serve_live_static_or_baked_subpath(
+        'hero_legacy_cache_guard.js', 'js', 'js'
+    )
+
 @app.route('/js/map_battle_v1_adapter.js')
 def serve_map_battle_v1_adapter():
     return _serve_live_static_or_baked_subpath(
