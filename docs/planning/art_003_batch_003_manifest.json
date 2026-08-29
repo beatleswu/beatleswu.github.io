@@ -1,0 +1,460 @@
+{
+  "task": "ART003_B03_M024_M033_CANONICAL_MONSTER_ART_PRODUCTION_001",
+  "track": "ART",
+  "batch_id": "ART003_B03",
+  "mode": "ART_PRODUCTION_ONLY_NO_RUNTIME_MAPPING_NO_GAMEPLAY_AUTHORITY",
+  "status": "READY_FOR_OWNER_VISUAL_REVIEW",
+  "authoritative_planning": {
+    "F035_HEAD": "195f3376e107559817e054476b076e471c211731",
+    "F035_ASSIGNMENT_HASH": "49e704f0c9935056c5614e91feff28d4775c6f98d4b38f1b068639f7d72d5e00",
+    "F035_ASSIGNMENT_AUTHORITY": "OWNER_APPROVED_CANONICAL_ART_CONTENT_PLANNING",
+    "F036_HEAD": "36eec98e972e5ed5e40acda83795ac1569e6eb1e",
+    "identity_source": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+    "existing_reference_source": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE"
+  },
+  "fresh_master_reconciliation": {
+    "CURRENT_ORIGIN_MASTER": "3f98c204a2b249763ad3d8d0730e5d3a0764622b",
+    "BASE_SHA": "3f98c204a2b249763ad3d8d0730e5d3a0764622b",
+    "FRESH_MASTER_RECONCILIATION": "PASS",
+    "task_issuance_master": "3f98c204a2b249763ad3d8d0730e5d3a0764622b",
+    "relevant_lineage_changed_since_issuance": "NO"
+  },
+  "id_set": {
+    "ART003_B03_ID_SET": [
+      "M024",
+      "M025",
+      "M026",
+      "M027",
+      "M028",
+      "M029",
+      "M030",
+      "M031",
+      "M032",
+      "M033"
+    ],
+    "ART003_B03_ID_COUNT": 10,
+    "ART003_B03_ID_SET_EXACT": "YES",
+    "UNKNOWN_IDENTITY_COUNT": 0,
+    "DUPLICATE_ID_COUNT": 0
+  },
+  "zone_semantics": {
+    "B03_F035_ZONE_DISTRIBUTION": {
+      "Z3": 10
+    },
+    "F035_ZONE_USED_FOR_GAMEPLAY": "NO",
+    "RUNTIME_ZONE_MAPPING_CHANGED": "NO",
+    "COMBAT_ZONE_AUTHORITY_CHANGED": "NO",
+    "F035_ZONE_ASSIGNMENT_MUTATED": "NO"
+  },
+  "continuity": {
+    "visual_family": "ART003 B01/B02 established polished high-detail fantasy RPG monster family",
+    "transparent_background": "YES",
+    "full_body_identity": "YES",
+    "embedded_text_labels": "NO",
+    "baked_ui_frame": "NO",
+    "unnecessary_scenery": "NO",
+    "DISTINCT_IDENTITY_COUNT": 10
+  },
+  "assets": [
+    {
+      "M_ID": "M024",
+      "CANONICAL_NAME": "Echo Bat",
+      "F035_ZONE": "Z3",
+      "concept": "cave bat",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M024_echo_bat.png",
+      "SHA256": "3990A6BADF07EE720A5EAF5F18A434B9442F4552D909FCA948E9E3DAD5B78920",
+      "WIDTH": 1536,
+      "HEIGHT": 1024,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Charcoal-indigo cave bat with enormous echo-sensitive ears, broad crystalline resonance-marked wings, and a pale throat ruff.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M025",
+      "CANONICAL_NAME": "Pickaxe Moleworker",
+      "F035_ZONE": "Z3",
+      "concept": "ore burrower",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M025_pickaxe_moleworker.png",
+      "SHA256": "4A57F144E79EAE94D2C372F5D913E7673F61E1813D2D593D42ABD1D456D60CC9",
+      "WIDTH": 1199,
+      "HEIGHT": 1312,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Stocky umber mole with oversized digging claws, patched miner apron, leather cap, and an unmistakable stone-headed pickaxe.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M026",
+      "CANONICAL_NAME": "Fungus Lantern Imp",
+      "F035_ZONE": "Z3",
+      "concept": "fungus goblin",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M026_fungus_lantern_imp.png",
+      "SHA256": "7E6789D2964026A7424A627D7AC21D290F493C9A03D12619C33C1B2DB4B44EBF",
+      "WIDTH": 1024,
+      "HEIGHT": 1536,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Lanky mossy imp with pointed ears and short horns, dominated by a warm amber mushroom lantern cap and a fungus-covered satchel.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M027",
+      "CANONICAL_NAME": "Rope-Ladder Lizard",
+      "F035_ZONE": "Z3",
+      "concept": "cave lizard",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M027_rope_ladder_lizard.png",
+      "SHA256": "5A6186946F8987C323090E634C7C597495696A96EE6CF5F89563D7BDFEBB9C49",
+      "WIDTH": 1536,
+      "HEIGHT": 1024,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Slate-blue and ochre cave lizard with a long tail, splayed gecko feet, and a compact wooden-rung rope ladder rig across its back.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M028",
+      "CANONICAL_NAME": "Ironbucket Beetle",
+      "F035_ZONE": "Z3",
+      "concept": "ore beetle",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M028_ironbucket_beetle.png",
+      "SHA256": "D1225D8DBE29AB96C66B9C4A0CA1C6E65D1C475EFA11465DD071E1C2C2B262E4",
+      "WIDTH": 1536,
+      "HEIGHT": 1024,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Squat six-legged beetle with glossy bronze-black armor, jewel eyes, ore fragments, and a raised dented iron bucket forming its shell.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M029",
+      "CANONICAL_NAME": "Crevice Snake",
+      "F035_ZONE": "Z3",
+      "concept": "stone snake",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M029_crevice_snake.png",
+      "SHA256": "8A9D99D1B2CA98B6223B3FB3EBFBD340E9B5C0A5C0456221062B42D3DA6E7E50",
+      "WIDTH": 1217,
+      "HEIGHT": 1292,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Long shale-plated cave snake in a clear S-curve, with a wedge viper head, mineral seams, and small pale crystal plates along its spine.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M030",
+      "CANONICAL_NAME": "Cartcap Crawler",
+      "F035_ZONE": "Z3",
+      "concept": "fungus carrier",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M030_cartcap_crawler.png",
+      "SHA256": "BF68D5C6204B9CCB4E02C117D21C0E5C6621524E655B9F3D7EC420284AAFE2C3",
+      "WIDTH": 1536,
+      "HEIGHT": 1024,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Low pillbug-centipede crawler with many legs, iridescent armor, and a broad wagon-like mushroom cap carrying a woven fungus tray.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M031",
+      "CANONICAL_NAME": "Crystal Ore Gob",
+      "F035_ZONE": "Z3",
+      "concept": "brittle goblin",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M031_crystal_ore_gob.png",
+      "SHA256": "36C2792F9F5FD4E76C9058271B3B6F634AC01CF7645990E81CC118F293C95E74",
+      "WIDTH": 1024,
+      "HEIGHT": 1536,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Wiry ash-green goblin with an angular brittle frame and asymmetrical blue-and-amber crystal ore growths breaking through shoulder, arms, and legs.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M032",
+      "CANONICAL_NAME": "Cavern Slinger",
+      "F035_ZONE": "Z3",
+      "concept": "goblin scout",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M032_cavern_slinger.png",
+      "SHA256": "E584E5B56119EC877D5515E37493B8BFC307BD967AA65575AE9EDAD61E798F87",
+      "WIDTH": 1199,
+      "HEIGHT": 1312,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Lean dusky goblin scout in a charcoal hood and leather harness, posed low with a braided sling and a pouch of smooth stones.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    },
+    {
+      "M_ID": "M033",
+      "CANONICAL_NAME": "Stalactite Tortoise",
+      "F035_ZONE": "Z3",
+      "concept": "stone tortoise",
+      "IDENTITY_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "EXISTING_REFERENCE_SOURCE": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE",
+      "FINAL_ASSET_PATH": "art/monsters/M033_stalactite_tortoise.png",
+      "SHA256": "A1A6BCB629359C5D780817BDD55D002F2CEE32D8C2EB81C35FADFC0C8B850F30",
+      "WIDTH": 1536,
+      "HEIGHT": 1024,
+      "COLOR_MODE": "RGBA",
+      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
+      "OWNER_REVIEW_STATUS": "PENDING",
+      "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
+      "VISUAL_IDENTITY_SUMMARY": "Heavy limestone tortoise with layered stone shell plates, hanging stalactites, mineral veins, thick clawed feet, and an amber eye.",
+      "technical_qa": {
+        "PNG_READABLE": "PASS",
+        "NON_EMPTY_IMAGE": "PASS",
+        "EXPECTED_COLOR_MODE": "PASS",
+        "DIMENSION_POLICY": "PASS",
+        "ALPHA_POLICY": "PASS",
+        "NO_CORRUPT_ASSET": "PASS",
+        "NO_DUPLICATE_FILE_HASH": "PASS"
+      },
+      "visual_qa": {
+        "SILHOUETTE_READABILITY": "PASS",
+        "STYLE_CONTINUITY": "PASS"
+      }
+    }
+  ],
+  "qa_summary": {
+    "FINAL_ASSET_COUNT": 10,
+    "FINAL_M_ID_COUNT": 10,
+    "DISTINCT_IDENTITY_COUNT": 10,
+    "UNIQUE_SHA256_COUNT": 10,
+    "TECHNICAL_QA": "PASS",
+    "PNG_READABLE": "PASS",
+    "NON_EMPTY_IMAGE": "PASS",
+    "EXPECTED_COLOR_MODE": "PASS",
+    "DIMENSION_POLICY": "PASS",
+    "ALPHA_POLICY": "PASS",
+    "NO_CORRUPT_ASSET": "PASS",
+    "NO_DUPLICATE_FILE_HASH": "PASS",
+    "dimension_rule": "min(width,height) >= 1024 and max(width,height) <= 1536; alpha bbox above threshold 16 has at least 8 pixels of clearance on every side"
+  },
+  "owner_visual_review": {
+    "OWNER_VISUAL_REVIEW_ASSET_COUNT": 10,
+    "OWNER_REVIEW_STATUS": "PENDING",
+    "review_matrix": "docs/planning/art_003_batch_003_owner_visual_review_pack.md",
+    "REVIEW_PACK_EQUALS_STAGED_ASSET_BYTES": "YES",
+    "selection_locked_after_qa": "YES",
+    "owner_decision_values": [
+      "PASS",
+      "REVISE",
+      "REJECT"
+    ]
+  },
+  "firewalls": {
+    "GAMEPLAY_AUTHORITY_CHANGED": "NO",
+    "MONSTER_STATS_CHANGED": "NO",
+    "HP_CHANGED": "NO",
+    "ATK_CHANGED": "NO",
+    "DROP_CHANGED": "NO",
+    "REWARD_CHANGED": "NO",
+    "COMBAT_MAPPING_CHANGED": "NO",
+    "MONSTER_CATALOG_RUNTIME_MAPPING_CHANGED": "NO",
+    "E049_SCOPE_TOUCHED": "NO",
+    "F009_ENABLED": "NO",
+    "F009_CHANGED": "NO",
+    "BOSS_INCLUDED": "NO",
+    "LORD_INCLUDED": "NO",
+    "APP_PY_CHANGED": "NO",
+    "RUNTIME_SOURCE_CHANGED": "NO",
+    "GAMEPLAY_SOURCE_CHANGED": "NO",
+    "SCHEMA_CHANGED": "NO",
+    "MIGRATION_CHANGED": "NO",
+    "DATA_CHANGED": "NO",
+    "B063_SCOPE_TOUCHED": "NO",
+    "ART003_B03_INCLUDED_IN_B063": "NO",
+    "RPG_V1_RELEASE_ARTIFACT_SCOPE_TOUCHED": "NO",
+    "PRODUCTION_QUERY": "NO",
+    "PRODUCTION_MUTATION": "NO",
+    "PRODUCTION_DB_MIGRATION": "NO",
+    "DEPLOY": "NO"
+  },
+  "protected_lineages": {
+    "B01_ASSETS_CHANGED": "NO",
+    "B02_ASSETS_CHANGED": "NO",
+    "M022_CHANGED": "NO",
+    "M022_REGENERATED": "NO",
+    "M022_RUNTIME_REFERENCE_CHANGED": "NO",
+    "F035_ZONE_USED_FOR_GAMEPLAY": "NO",
+    "RUNTIME_MAPPED_NEW_ART": 0,
+    "canonical_art_publication": "NOT_YET_OWNER_APPROVED"
+  },
+  "scope_and_git": {
+    "allowed_changes": [
+      "B03 final art assets",
+      "B03 production manifest/report",
+      "B03-specific validation test"
+    ],
+    "SECRET_KEY_TOUCHED": "NO",
+    "MASTER_MERGE": "NO",
+    "force_push": "NO",
+    "destructive_git_operation": "NO",
+    "UNEXPECTED_FILES": 0
+  },
+  "validation": {
+    "B03_EXACT_ID_SET_TEST": "PASS",
+    "B03_10_ASSET_COVERAGE_TEST": "PASS",
+    "NO_DUPLICATE_ID_TEST": "PASS",
+    "NO_DUPLICATE_HASH_TEST": "PASS",
+    "F035_ZONE_LOCK_TEST": "PASS",
+    "B01_PROTECTION_TEST": "PASS",
+    "B02_PROTECTION_TEST": "PASS",
+    "M022_PROTECTION_TEST": "PASS",
+    "RUNTIME_FIREWALL_TEST": "PASS",
+    "MONSTER_CATALOG_FIREWALL_TEST": "PASS",
+    "B063_RELEASE_FIREWALL_TEST": "PASS",
+    "MANIFEST_COMPLETENESS_TEST": "PASS",
+    "TASK_INTRODUCED_FAILURES": 0
+  },
+  "result": {
+    "classification": "PASS_ART003_B03_M024_M033_CANONICAL_MONSTER_ART_PRODUCTION_READY_FOR_OWNER_VISUAL_REVIEW",
+    "READY_FOR_OWNER_VISUAL_REVIEW": "YES",
+    "OWNER_REVIEW_STATUS": "PENDING",
+    "READY_FOR_COORDINATOR_ART003_B03_REVIEW": "YES",
+    "NEXT_TASK": "ART003_B03_R1_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION_001",
+    "DO_NOT_START_NEXT_TASK_BEFORE_OWNER_DECISIONS": "YES"
+  }
+}
