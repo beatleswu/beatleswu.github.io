@@ -3,7 +3,14 @@
   "track": "ART",
   "batch_id": "ART003_B04",
   "mode": "CANONICAL_MONSTER_ART_PRODUCTION_ONLY",
-  "status": "READY_FOR_OWNER_VISUAL_REVIEW",
+  "status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+  "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+  "owner_authorization": {
+    "OWNER_VISUAL_REVIEW_STATUS": "PASS",
+    "OWNER_PASS_COUNT": "10/10",
+    "REVISE_COUNT": 0,
+    "REJECT_COUNT": 0
+  },
   "authoritative_lineage": {
     "ART003_B03_R1_HEAD": "701d4de5992ccf008b4071ee0de0c0cfcbc1382d",
     "B03_R1_HEAD_AVAILABLE": "YES",
@@ -15,11 +22,11 @@
     "F036_AUTHORITY": "AUTHORITATIVE_DOWNSTREAM_ART003_BATCH_PLAN"
   },
   "fresh_master_reconciliation": {
-    "CURRENT_ORIGIN_MASTER": "c4568d5664f632d1cfa1e77ba39b00efa437f8a5",
-    "CURRENT_ORIGIN_MASTER_TREE": "4046fdd9efcbab9db1b21b95478b17886cd60da0",
+    "CURRENT_ORIGIN_MASTER": "3ace7c748b5f2b5b8b4d4ebb65827b6987ad1e6a",
+    "CURRENT_ORIGIN_MASTER_TREE": "377afa276cc09a8c5786bdc5eecf4bf7d3201814",
     "PRODUCTION_BASE_SHA": "701d4de5992ccf008b4071ee0de0c0cfcbc1382d",
     "FRESH_MASTER_RECONCILIATION": "PASS",
-    "MASTER_ADVANCE_RECONCILIATION": "UNRELATED_MONSTERCATALOG_RUNTIME_LANE_ONLY",
+    "MASTER_ADVANCE_RECONCILIATION": "UNRELATED_A043_A046_RUNTIME_LANE_ONLY",
     "ART_GOVERNANCE_CONFLICT": "NO",
     "PRIOR_ART003_CANONICAL_ASSET_COLLISION": "NO"
   },
@@ -69,6 +76,8 @@
   "assets": [
     {
       "M_ID": "M035",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Mist-tail Fox",
       "CONCEPT": "forest fox",
       "PLANNING_ZONE": "Z4",
@@ -80,8 +89,10 @@
       "WIDTH": 1536,
       "HEIGHT": 1024,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Russet forest fox with a cream chest, alert ears, slender legs, moss accents, and an oversized plume tail dissolving into pale mist.",
       "technical_qa": {
@@ -102,6 +113,8 @@
     },
     {
       "M_ID": "M036",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Moonleaf Moth",
       "CONCEPT": "forest moth",
       "PLANNING_ZONE": "Z4",
@@ -113,8 +126,10 @@
       "WIDTH": 1536,
       "HEIGHT": 1024,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Nocturnal moth with rounded indigo leaf-pattern wings, moon-crescent markings, feathery antennae, and a soft fuzzy body.",
       "technical_qa": {
@@ -135,6 +150,8 @@
     },
     {
       "M_ID": "M037",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Vineclaw Beast",
       "CONCEPT": "vine beast",
       "PLANNING_ZONE": "Z4",
@@ -146,8 +163,10 @@
       "WIDTH": 1536,
       "HEIGHT": 1024,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Broad quadrupedal woodland beast with shaggy umber fur, leafy mane, bark shoulder growth, and oversized foreclaws wrapped in living vines.",
       "technical_qa": {
@@ -168,6 +187,8 @@
     },
     {
       "M_ID": "M038",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Mossback Turtle",
       "CONCEPT": "moss tortoise",
       "PLANNING_ZONE": "Z4",
@@ -179,8 +200,10 @@
       "WIDTH": 1536,
       "HEIGHT": 1024,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Low sturdy turtle with a rounded domed shell carpeted in layered moss, fern shoots, woodland leaves, and warm olive-brown skin.",
       "technical_qa": {
@@ -201,6 +224,8 @@
     },
     {
       "M_ID": "M039",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Dewdrop Spider",
       "CONCEPT": "dew spider",
       "PLANNING_ZONE": "Z4",
@@ -212,8 +237,10 @@
       "WIDTH": 1536,
       "HEIGHT": 1024,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Eight-legged orb-weaver with charcoal-violet chitin, pearly rounded abdomen, fine hairs, and luminous dew beads along its body and legs.",
       "technical_qa": {
@@ -234,6 +261,8 @@
     },
     {
       "M_ID": "M040",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Twig Deer",
       "CONCEPT": "twig grazer",
       "PLANNING_ZONE": "Z4",
@@ -245,8 +274,10 @@
       "WIDTH": 1024,
       "HEIGHT": 1536,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Graceful tawny deer with a cream chest, slender legs, bark-textured lower limbs, and branching budding twig antlers.",
       "technical_qa": {
@@ -267,6 +298,8 @@
     },
     {
       "M_ID": "M041",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Fogwhistle Frog",
       "CONCEPT": "mist frog",
       "PLANNING_ZONE": "Z4",
@@ -278,8 +311,10 @@
       "WIDTH": 1312,
       "HEIGHT": 1199,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Plump teal-olive frog with webbed feet, golden eyes, pebbled skin, and a pale fog curl billowing from its throat pouch.",
       "technical_qa": {
@@ -300,6 +335,8 @@
     },
     {
       "M_ID": "M042",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Bloomcrown Caterpillar",
       "CONCEPT": "flower caterpillar",
       "PLANNING_ZONE": "Z4",
@@ -311,8 +348,10 @@
       "WIDTH": 1536,
       "HEIGHT": 1024,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Plump segmented yellow-green caterpillar with many prolegs, soft fuzz, leaf details, and a colorful ring of woodland blossoms around its head.",
       "technical_qa": {
@@ -333,6 +372,8 @@
     },
     {
       "M_ID": "M043",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Shadowstep Cat",
       "CONCEPT": "moss cat",
       "PLANNING_ZONE": "Z4",
@@ -344,8 +385,10 @@
       "WIDTH": 1536,
       "HEIGHT": 1024,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Sleek blue-black wildcat with a low stalking posture, tall tufted ears, oversized paws, violet eyes, and fading charcoal shadow stripes.",
       "technical_qa": {
@@ -366,6 +409,8 @@
     },
     {
       "M_ID": "M044",
+      "SOURCE_HEAD": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
+      "source_head": "d9502a1bb13c7ef2f711827e6c75cd0af24b0977",
       "CANONICAL_NAME": "Hollowtree Cub",
       "CONCEPT": "tree hollow bear",
       "PLANNING_ZONE": "Z4",
@@ -377,8 +422,10 @@
       "WIDTH": 1230,
       "HEIGHT": 1278,
       "COLOR_MODE": "RGBA",
-      "PRODUCTION_STATUS": "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW",
-      "OWNER_REVIEW_STATUS": "PENDING",
+      "PRODUCTION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "PUBLICATION_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "OWNER_REVIEW_STATUS": "PASS",
       "RUNTIME_MAPPING_STATUS": "NOT_MAPPED",
       "VISUAL_IDENTITY_SUMMARY": "Warm brown bear cub with rounded ears, four sturdy paws, and a natural bark-textured hollow-tree mantle with a visible dark opening and leafy shoots.",
       "technical_qa": {
@@ -415,8 +462,10 @@
   "owner_review": {
     "OWNER_REVIEW_PACK_ENTRY_COUNT": 10,
     "OWNER_REVIEW_PACK_ID_SET_EXACT": "YES",
-    "OWNER_VISUAL_REVIEW_STATUS": "PENDING",
-    "OWNER_PASS_COUNT": 0,
+    "OWNER_VISUAL_REVIEW_STATUS": "PASS",
+    "OWNER_PASS_COUNT": 10,
+    "REVISE_COUNT": 0,
+    "REJECT_COUNT": 0,
     "REVIEW_PACK_BYTES_EQUAL_FINAL_ASSETS": "YES",
     "review_matrix": "docs/planning/art_003_batch_004_owner_visual_review_pack.md",
     "owner_decision_values": [
@@ -447,19 +496,25 @@
     "LORD_INCLUDED": "NO",
     "B063_SCOPE_TOUCHED": "NO",
     "B064_SCOPE_TOUCHED": "NO",
+    "B065_SCOPE_TOUCHED": "NO",
     "ART003_B04_INCLUDED_IN_CURRENT_RPG_V1_DEPLOYMENT": "NO",
     "A043_SCOPE_TOUCHED": "NO",
     "A046_SCOPE_TOUCHED": "NO",
     "A047_SCOPE_TOUCHED": "NO",
+    "A048_SCOPE_TOUCHED": "NO",
+    "A049_SCOPE_TOUCHED": "NO",
     "LC_SCOPE_TOUCHED": "NO",
+    "LC_IDENTITY_WIRING_CHANGED": "NO",
     "GENESIS_BOOTSTRAP_EXECUTED": "NO",
+    "BOOTSTRAP_HOT_CHANGED": "NO",
     "SCHEMA_CHANGED": "NO",
     "MIGRATION_CHANGED": "NO",
     "DATA_CHANGED": "NO",
     "PRODUCTION_QUERY": "NO",
     "PRODUCTION_MUTATION": "NO",
     "PRODUCTION_DB_MIGRATION": "NO",
-    "DEPLOY": "NO"
+    "DEPLOY": "NO",
+    "ROLLBACK": "NO"
   },
   "protected_lineages": {
     "B01_ASSETS_CHANGED": "NO",
@@ -471,7 +526,12 @@
     "F035_ZONE_ASSIGNMENT_MUTATED": "NO",
     "F035_ZONE_USED_FOR_GAMEPLAY": "NO",
     "F036_BATCH_PLAN_MUTATED": "NO",
-    "RUNTIME_MAPPED_NEW_ART": 0
+    "RUNTIME_MAPPED_NEW_ART": 0,
+    "OWNER_APPROVED_HASH_MATCH_COUNT": 10,
+    "OWNER_APPROVED_BYTES_MATCH": "YES",
+    "CANONICAL_ART_PUBLISHED_COUNT": 10,
+    "CANONICAL_ART_ID_SET_EXACT": "YES",
+    "canonical_art_publication": "OWNER_PASS_FROZEN_AND_PUBLISHED"
   },
   "scope_and_git": {
     "allowed_changes": [
@@ -498,16 +558,20 @@
     "F036_BATCH_PLAN_PROTECTION_TEST": "PASS",
     "RUNTIME_FIREWALL_TEST": "PASS",
     "MONSTER_CATALOG_FIREWALL_TEST": "PASS",
-    "B063_B064_FIREWALL_TEST": "PASS",
+    "B063_B064_B065_FIREWALL_TEST": "PASS",
+    "RELEASE_FIREWALL_TEST": "PASS",
+    "OWNER_APPROVED_HASH_LOCK_TEST": "PASS",
+    "OWNER_APPROVED_BYTE_IDENTITY_TEST": "PASS",
     "REVIEW_PACK_BYTE_IDENTITY_TEST": "PASS",
     "MANIFEST_COMPLETENESS_TEST": "PASS",
     "TASK_INTRODUCED_FAILURES": 0
   },
   "result": {
-    "classification": "PASS_ART003_B04_M035_M044_CANONICAL_MONSTER_ART_PRODUCTION_READY_FOR_OWNER_VISUAL_REVIEW",
-    "READY_FOR_OWNER_VISUAL_REVIEW": "YES",
-    "OWNER_VISUAL_REVIEW_STATUS": "PENDING",
-    "NEXT_TASK": "ART003_B04_R1_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION_001",
+    "classification": "PASS_ART003_B04_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION",
+    "ART003_B04_CANONICAL_ART_STATUS": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+    "READY_FOR_NEXT_ART_BATCH": "YES",
+    "OWNER_VISUAL_REVIEW_STATUS": "PASS",
+    "NEXT_TASK": "ART003_B05_M045_M055_CANONICAL_MONSTER_ART_PRODUCTION_001",
     "READY_FOR_COORDINATOR_ART003_B04_REVIEW": "YES"
   }
 }

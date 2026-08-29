@@ -16,8 +16,9 @@ MANIFEST_PATH = ROOT / "docs" / "planning" / "art_003_batch_004_manifest.json"
 REVIEW_PACK_PATH = ROOT / "docs" / "planning" / "art_003_batch_004_owner_visual_review_pack.md"
 BASE_SHA = "701d4de5992ccf008b4071ee0de0c0cfcbc1382d"
 B03_R1_HEAD = BASE_SHA
-CURRENT_ORIGIN_MASTER = "c4568d5664f632d1cfa1e77ba39b00efa437f8a5"
-CURRENT_ORIGIN_MASTER_TREE = "4046fdd9efcbab9db1b21b95478b17886cd60da0"
+CURRENT_ORIGIN_MASTER = "3ace7c748b5f2b5b8b4d4ebb65827b6987ad1e6a"
+CURRENT_ORIGIN_MASTER_TREE = "377afa276cc09a8c5786bdc5eecf4bf7d3201814"
+B04_SOURCE_HEAD = "d9502a1bb13c7ef2f711827e6c75cd0af24b0977"
 F035_HEAD = "195f3376e107559817e054476b076e471c211731"
 F035_ASSIGNMENT_HASH = "49e704f0c9935056c5614e91feff28d4775c6f98d4b38f1b068639f7d72d5e00"
 F036_HEAD = "36eec98e972e5ed5e40acda83795ac1569e6eb1e"
@@ -133,6 +134,8 @@ def test_b04_assets_are_valid_unique_and_manifest_bound() -> None:
         hashes.append(digest)
         assert digest == row["SHA256"]
         assert digest == OWNER_EXPECTED_HASHES[row["M_ID"]]
+        assert row["SOURCE_HEAD"] == B04_SOURCE_HEAD
+        assert row["source_head"] == B04_SOURCE_HEAD
         with Image.open(path) as image:
             assert image.format == "PNG"
             image.load()
@@ -154,8 +157,10 @@ def test_b04_assets_are_valid_unique_and_manifest_bound() -> None:
             assert image.height - bottom >= 8
         assert row["F035_ZONE"] == "Z4"
         assert row["PLANNING_ZONE"] == "Z4"
-        assert row["PRODUCTION_STATUS"] == "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW"
-        assert row["OWNER_REVIEW_STATUS"] == "PENDING"
+        assert row["PRODUCTION_STATUS"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+        assert row["CANONICAL_ART_STATUS"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+        assert row["PUBLICATION_STATUS"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+        assert row["OWNER_REVIEW_STATUS"] == "PASS"
         assert row["RUNTIME_MAPPING_STATUS"] == "NOT_MAPPED"
         assert row["technical_qa"] == {
             "PNG_READABLE": "PASS",
@@ -172,6 +177,25 @@ def test_b04_assets_are_valid_unique_and_manifest_bound() -> None:
     assert data["qa_summary"]["UNIQUE_SHA256_COUNT"] == 10
     assert data["qa_summary"]["DUPLICATE_HASH_COUNT"] == 0
     assert data["continuity"]["DISTINCT_IDENTITY_COUNT"] == 10
+
+
+def test_owner_pass_publication_lock() -> None:
+    data = _manifest()
+    assert data["status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+    assert data["canonical_art_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+    assert data["owner_authorization"] == {
+        "OWNER_VISUAL_REVIEW_STATUS": "PASS",
+        "OWNER_PASS_COUNT": "10/10",
+        "REVISE_COUNT": 0,
+        "REJECT_COUNT": 0,
+    }
+    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PASS"
+    assert data["owner_review"]["OWNER_PASS_COUNT"] == 10
+    assert data["protected_lineages"]["OWNER_APPROVED_HASH_MATCH_COUNT"] == 10
+    assert data["protected_lineages"]["OWNER_APPROVED_BYTES_MATCH"] == "YES"
+    assert data["protected_lineages"]["CANONICAL_ART_PUBLISHED_COUNT"] == 10
+    assert data["protected_lineages"]["CANONICAL_ART_ID_SET_EXACT"] == "YES"
+    assert data["protected_lineages"]["canonical_art_publication"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
 
 
 def test_fresh_master_and_b03_lineage_are_locked() -> None:
@@ -235,22 +259,24 @@ def test_runtime_catalog_gameplay_and_release_firewalls() -> None:
         "MONSTER_CATALOG_GAMEPLAY_AUTHORITY_CHANGED", "E049_SCOPE_TOUCHED",
         "E051_SCOPE_TOUCHED", "E052_SCOPE_TOUCHED", "E053_SCOPE_TOUCHED",
         "F009_ENABLED", "F009_CHANGED", "BOSS_INCLUDED", "LORD_INCLUDED",
-        "B063_SCOPE_TOUCHED", "B064_SCOPE_TOUCHED",
+        "B063_SCOPE_TOUCHED", "B064_SCOPE_TOUCHED", "B065_SCOPE_TOUCHED",
         "ART003_B04_INCLUDED_IN_CURRENT_RPG_V1_DEPLOYMENT", "A043_SCOPE_TOUCHED",
-        "A046_SCOPE_TOUCHED", "A047_SCOPE_TOUCHED", "LC_SCOPE_TOUCHED",
-        "GENESIS_BOOTSTRAP_EXECUTED", "SCHEMA_CHANGED", "MIGRATION_CHANGED",
-        "DATA_CHANGED", "PRODUCTION_QUERY", "PRODUCTION_MUTATION", "DEPLOY",
+        "A046_SCOPE_TOUCHED", "A047_SCOPE_TOUCHED", "A048_SCOPE_TOUCHED",
+        "A049_SCOPE_TOUCHED", "LC_SCOPE_TOUCHED", "LC_IDENTITY_WIRING_CHANGED",
+        "GENESIS_BOOTSTRAP_EXECUTED", "BOOTSTRAP_HOT_CHANGED", "SCHEMA_CHANGED",
+        "MIGRATION_CHANGED", "DATA_CHANGED", "PRODUCTION_QUERY",
+        "PRODUCTION_MUTATION", "PRODUCTION_DB_MIGRATION", "DEPLOY", "ROLLBACK",
     ):
         assert data["firewalls"][key] == "NO"
 
 
-def test_owner_review_pack_is_exact_and_still_pending() -> None:
+def test_owner_review_pack_is_exact_and_published() -> None:
     data = _manifest()
     pack = REVIEW_PACK_PATH.read_text(encoding="utf-8")
     assert data["owner_review"]["OWNER_REVIEW_PACK_ENTRY_COUNT"] == 10
     assert data["owner_review"]["OWNER_REVIEW_PACK_ID_SET_EXACT"] == "YES"
-    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PENDING"
-    assert data["owner_review"]["OWNER_PASS_COUNT"] == 0
+    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PASS"
+    assert data["owner_review"]["OWNER_PASS_COUNT"] == 10
     assert data["owner_review"]["REVIEW_PACK_BYTES_EQUAL_FINAL_ASSETS"] == "YES"
     for row in data["assets"]:
         assert f"{row['M_ID']} — {row['CANONICAL_NAME']}" in pack
@@ -258,8 +284,8 @@ def test_owner_review_pack_is_exact_and_still_pending() -> None:
         assert row["FINAL_ASSET_PATH"] in pack
         assert row["SHA256"] in pack
         assert f"| {row['M_ID']} | {row['CANONICAL_NAME']} | Z4 |" in pack
-        assert "| PASS | PENDING |" in pack
-        assert row["OWNER_REVIEW_STATUS"] == "PENDING"
+        assert "| PASS | PASS | OWNER_PASS_FROZEN_AND_PUBLISHED |" in pack
+        assert row["OWNER_REVIEW_STATUS"] == "PASS"
     image_paths = set(re.findall(r"!\[[^\]]+\]\((\.\./\.\./art/monsters/[^)]+\.png)\)", pack))
     expected_paths = {f"../../{row['FINAL_ASSET_PATH']}" for row in data["assets"]}
     assert image_paths == expected_paths
