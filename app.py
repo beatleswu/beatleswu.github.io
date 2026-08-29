@@ -173,6 +173,12 @@ from migrations.question_capacity_lineage_v1 import (
 from migrations.review_log_submission_idempotency_v1 import (
     upgrade as upgrade_review_log_submission_schema,
 )
+# LC019-W2: the already-canonical bootstrap-gated identity reader (LC011-LC017,
+# extended to grimoire_api by LC019-W1).  Read-only.  While bootstrap_state().hot
+# is False -- every environment today, genesis is not authorised -- every
+# group_key is ("legacy", str(question_id)) and the resolver is never queried,
+# so the aggregate readers below stay byte-identical to their raw-integer form.
+from identity_read_adapter import BootstrapGatedIdentityReader
 from question_idempotency import (
     IdempotencyIdentityError,
     canonical_payload_digest,
@@ -3203,6 +3209,99 @@ def warmup_katago():
 def get_db():
     from db import get_db as _get_db
     return _get_db()
+
+
+# ── LC019-W2: canonical-identity folding for app.py aggregate readers ─────────
+def _identity_tables_present(conn) -> bool:
+    """Catalog probe for the (candidate) puzzle-identity tables.
+
+    Uses ``sqlite_master`` / ``information_schema`` so it never issues a query
+    that could abort the caller's transaction when the tables are absent -- the
+    case in every environment today, the identity migration being a candidate
+    that is not applied to the runtime DB.  Absent -> the caller keeps the raw
+    integer ``question_id`` path unchanged and never constructs a resolver.
+    """
+    try:
+        raw = getattr(conn, "_conn", conn)
+        if raw.__class__.__module__.lower().startswith("sqlite3"):
+            row = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='puzzle_identity_alias'"
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema='public' AND table_name='puzzle_identity_alias'"
+            ).fetchone()
+        return row is not None
+    except Exception:
+        return False
+
+
+def _identity_group_key_map(conn, question_ids):
+    """``{str(question_id): group_key}`` for the given ids.
+
+    Empty dict when the puzzle-identity tables are absent OR bootstrap is cold
+    (every environment today): callers then fall back to ``("legacy", str(id))``
+    -- a bijection with the raw id, hence byte-identical aggregate output and
+    ``HOT_FALSE_TOTAL_RESOLVER_QUERY_COUNT == 0``.  When bootstrap is hot, two
+    legacy ids that resolve to the same ``source_record_uuid`` share a
+    group_key; an AMBIGUOUS id keeps its own ``("unresolved", id)`` bucket
+    (fail closed, never merged).
+    """
+    ids = {q for q in question_ids if q is not None}
+    if not ids or not _identity_tables_present(conn):
+        return {}
+    reader = BootstrapGatedIdentityReader(conn)
+    if not reader.hot:
+        # tables present but genesis not applied: every group_key would be
+        # ("legacy", str(id)); skip building the map and never touch the resolver.
+        return {}
+    return reader.group_keys_for(ids)
+
+
+def _identity_group_key(gk_map, qid):
+    """group_key for one id, defaulting to the legacy bucket."""
+    return gk_map.get(str(qid), ("legacy", str(qid)))
+
+
+class _IdentityKeyedSet:
+    """A set whose membership / intersection compares ``question_id`` by the
+    canonical identity ``group_key``.
+
+    When the identity tables are absent or bootstrap is cold (every environment
+    today) the group_key of id ``N`` is ``("legacy", str(N))`` -- a bijection
+    with the raw id -- so this behaves byte-identically to a plain ``set`` of
+    question ids and issues zero resolver queries.  When bootstrap is hot, two
+    legacy ids that resolve to the same ``source_record_uuid`` collapse to one
+    member.  LC019-W2 (read-only; never mints or writes identity).
+    """
+
+    __slots__ = ("_map", "_keys")
+
+    def __init__(self, question_ids, gk_map):
+        self._map = gk_map
+        self._keys = {_identity_group_key(gk_map, q) for q in question_ids}
+
+    def add(self, qid):
+        self._keys.add(_identity_group_key(self._map, qid))
+
+    def __contains__(self, qid):
+        return _identity_group_key(self._map, qid) in self._keys
+
+    def __and__(self, other):
+        return self._keys & {_identity_group_key(self._map, x) for x in other}
+
+    __rand__ = __and__
+
+    def __iter__(self):
+        return iter(self._keys)
+
+    def __len__(self):
+        return len(self._keys)
+
+    def __bool__(self):
+        return bool(self._keys)
 
 
 def _quest_v2_server_now():
@@ -10817,12 +10916,25 @@ def recommend_questions():
             'SELECT question_id, wrong_count FROM mistake_log WHERE user_id=?',
             (uid,)
         ).fetchall()
+        # LC019-W2: key the per-question SRS / mistake lookups by canonical
+        # identity so a candidate that is the content-duplicate of a card the
+        # player already holds sees that card's state.  Cold (today): _gk of id
+        # N is ("legacy", str(N)), so this is identical to keying by str(id).
+        _gkm = _identity_group_key_map(
+            conn,
+            {q['id'] for q in qs}
+            | {r['question_id'] for r in srs_rows}
+            | {r['question_id'] for r in mistake_rows},
+        )
 
-    srs_map     = {r['question_id']: r for r in srs_rows}
-    mistake_map = {r['question_id']: r['wrong_count'] for r in mistake_rows}
+    def _gk(qid):
+        return _identity_group_key(_gkm, qid)
+
+    srs_map     = {_gk(r['question_id']): r for r in srs_rows}
+    mistake_map = {_gk(r['question_id']): r['wrong_count'] for r in mistake_rows}
 
     def is_mastered(qid):
-        r = srs_map.get(qid)
+        r = srs_map.get(_gk(qid))
         return r and r['ease_factor'] >= 2.5 and r['repetitions'] >= 3
 
     # ── 候選題目評分 ─────────────────────────────────────────────
@@ -10847,12 +10959,12 @@ def recommend_questions():
             score += 5
 
         # 使用者曾答錯過此題加分（需要補強）
-        wc = mistake_map.get(qid, 0)
+        wc = mistake_map.get(_gk(qid), 0)
         if wc > 0:
             score += min(wc * 3, 12)
 
         # SRS 間隔短（不熟）加分
-        sr = srs_map.get(qid)
+        sr = srs_map.get(_gk(qid))
         if sr and sr['repetitions'] < 2:
             score += 5
 
@@ -10870,7 +10982,7 @@ def recommend_questions():
             'display_name': _question_display_name(q),
             'topic':        q.get('topic', ''),
             'level':        q.get('level', ''),
-            'wrong_count':  mistake_map.get(qid, 0),
+            'wrong_count':  mistake_map.get(_gk(qid), 0),
             'tags':         sorted(_skill_tags_of(q)),
         })
 
@@ -10939,7 +11051,7 @@ def training_daily():
             stored = None
 
         # ── 今日已作答（用來判斷一輪是否完成，也避免下一輪重複出題）──
-        done_today = {
+        done_today_raw = {
             r['question_id']
             for r in conn.execute(
                 'SELECT DISTINCT question_id FROM review_log '
@@ -10947,6 +11059,14 @@ def training_daily():
                 (uid, today)
             ).fetchall()
         }
+        # LC019-W2: compare the "already answered / already queued" sets by
+        # canonical identity.  Cold (today): _gk of id N is ("legacy", str(N)),
+        # a bijection, so every membership test and intersection below is
+        # byte-identical to the raw-integer form and no resolver is queried.
+        _gkm = _identity_group_key_map(
+            conn, set(enabled) | done_today_raw
+        )
+        done_today = _IdentityKeyedSet(done_today_raw, _gkm)
 
         if stored and force_next_round:
             conn.execute(
@@ -10988,7 +11108,7 @@ def training_daily():
             ]
 
             # 已掌握（ease>=2.5 且 repetitions>=3）
-            mastered_ids = {
+            mastered_raw = {
                 r['question_id']
                 for r in conn.execute(
                     'SELECT question_id FROM srs_cards '
@@ -10996,6 +11116,23 @@ def training_daily():
                     (uid,)
                 ).fetchall()
             }
+
+            # 歷史上做過的題（排除出「新題」候選池）
+            seen_raw = {
+                r['question_id']
+                for r in conn.execute(
+                    'SELECT DISTINCT question_id FROM review_log WHERE user_id=?',
+                    (uid,)
+                ).fetchall()
+            }
+
+            # LC019-W2: fold the "mastered" / "already seen" exclusion sets by
+            # canonical identity too (same cold-path bijection guarantee).
+            _extra = _identity_group_key_map(conn, mastered_raw | seen_raw)
+            if _extra:
+                _gkm.update(_extra)
+            mastered_ids = _IdentityKeyedSet(mastered_raw, _gkm)
+            seen_ids = _IdentityKeyedSet(seen_raw, _gkm)
 
             # 錯題（wrong_count >= 2，未掌握）
             mistake_ids = [
@@ -11009,15 +11146,6 @@ def training_daily():
                 and r['question_id'] not in mastered_ids
             ]
 
-            # 歷史上做過的題（排除出「新題」候選池）
-            seen_ids = {
-                r['question_id']
-                for r in conn.execute(
-                    'SELECT DISTINCT question_id FROM review_log WHERE user_id=?',
-                    (uid,)
-                ).fetchall()
-            }
-
             # 玩家屬性 + 段位
             stats_row = conn.execute(
                 'SELECT attr_atk, attr_def, attr_vis, attr_prec, go_rank '
@@ -11029,7 +11157,9 @@ def training_daily():
             rng = _rng_mod.Random(f"{uid}-{today}")
 
             selected     = []   # list of {'id': int, 'source': str}
-            selected_set = set()
+            # LC019-W2: dedup this run's picks by canonical identity so a
+            # content-duplicate of an already-picked puzzle is not picked again.
+            selected_set = _IdentityKeyedSet([], _gkm)
 
             def add(qid, source):
                 if qid not in selected_set and qid in enabled and qid not in done_today:
@@ -11731,7 +11861,7 @@ def _adventure_state(uid):
             'SELECT question_id,last_grade,progress_credited FROM srs_cards WHERE user_id=?',
             (uid,)
         ).fetchall()
-        correct_ids = _adventure_correct_question_ids(conn, uid, cards)
+        correct_raw = _adventure_correct_question_ids(conn, uid, cards)
         rows = conn.execute(
             'SELECT * FROM adventure_boss_progress WHERE user_id=?',
             (uid,)
@@ -11747,11 +11877,23 @@ def _adventure_state(uid):
             uid,
             unlock_rows=[dict(r) for r in unlock_rows],
         )
+        # LC019-W2: Adventure Lord progress is "have I cleared this puzzle".
+        # Fold the mastery / attempted / defeat sets by canonical identity so a
+        # content-duplicate counts once.  Cold (today): _gk is the identity
+        # ("legacy", str(id)) bijection -> per-zone counts unchanged, 0 resolver
+        # queries.
+        _adv_gkm = _identity_group_key_map(
+            conn,
+            {q['id'] for q in qs}
+            | set(correct_raw)
+            | {r['question_id'] for r in cards},
+        )
 
-    attempted_ids = {r['question_id'] for r in cards}
+    correct_ids = _IdentityKeyedSet(correct_raw, _adv_gkm)
+    attempted_ids = _IdentityKeyedSet({r['question_id'] for r in cards}, _adv_gkm)
     # ``last_grade`` is public SRS scheduling state, not correctness.  Defeat
     # progress follows the same trusted server-review evidence as mastery.
-    defeated_ids = set(correct_ids)
+    defeated_ids = _IdentityKeyedSet(correct_raw, _adv_gkm)
     zones = []
     previous_cleared = True
 
@@ -12944,10 +13086,27 @@ def curriculum_summary():
             'WHERE user_id=? AND grade>=3 AND source_context LIKE ?',
             (uid, f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}%'),
         ).fetchall()
+        # LC019-W2: fold the per-(discipline x stage) "practiced" / boss-defeated
+        # counters by canonical identity.  Cold (today): _gk of id N is
+        # ("legacy", str(N)), so `_meta_by_gk` is a 1:1 re-key of `qid_meta`,
+        # every group_key first-seen exactly once per srs row, and every count
+        # below is byte-identical to the raw-integer form (0 resolver queries).
+        _cur_gkm = _identity_group_key_map(
+            conn,
+            set(qid_meta)
+            | {r['question_id'] for r in rows}
+            | {r['question_id'] for r in authoritative_rows},
+        )
+    _meta_by_gk = {_identity_group_key(_cur_gkm, qid): m for qid, m in qid_meta.items()}
     cards_count = len(rows)
-    defeated_ids = {r['question_id'] for r in authoritative_rows}
+    defeated_ids = _IdentityKeyedSet(
+        {r['question_id'] for r in authoritative_rows}, _cur_gkm
+    )
+    _practiced_seen = {}   # group key -> set of identity group_keys already counted
+    _boss_seen = {}        # group key -> set of identity group_keys already credited
     for r in rows:
-        meta = qid_meta.get(r['question_id'])
+        _rgk = _identity_group_key(_cur_gkm, r['question_id'])
+        meta = qid_meta.get(r['question_id']) or _meta_by_gk.get(_rgk)
         if not meta:
             continue
         keys, enc = meta
@@ -12956,8 +13115,12 @@ def curriculum_summary():
             d = groups.get(k)
             if not d:
                 continue
+            if _rgk in _practiced_seen.setdefault(k, set()):
+                continue
+            _practiced_seen[k].add(_rgk)
             d['practiced'] += 1
-            if r['question_id'] in defeated_ids:
+            if r['question_id'] in defeated_ids and _rgk not in _boss_seen.setdefault(k, set()):
+                _boss_seen[k].add(_rgk)
                 if enc == 'chapter_boss':
                     d['chapterBossDefeated'] += 1
                 elif enc == 'book_boss':
@@ -15389,8 +15552,18 @@ def srs_due():
         rows = conn.execute(
             'SELECT question_id,interval,ease_factor,due_date FROM srs_cards WHERE user_id=? AND due_date<=?',
             (uid,today)).fetchall()
-    qs   = _load_questions()
-    seen = {r['question_id'] for r in rows}
+        qs   = _load_questions()
+        # LC019-W2: don't synthesize a default card for a question whose
+        # canonical identity already has a real due card.  Cold (today): _gk is
+        # the ("legacy", str(id)) bijection -> `seen` behaves exactly like the
+        # raw id set, so `due` is byte-identical and no resolver is queried.
+        seen = _IdentityKeyedSet(
+            {r['question_id'] for r in rows},
+            _identity_group_key_map(
+                conn,
+                {r['question_id'] for r in rows} | {q['id'] for q in qs},
+            ),
+        )
     due  = [dict(r) for r in rows]
     due += [{'question_id':q['id'],'interval':0,'ease_factor':2.5,'due_date':today}
             for q in qs if q['id'] not in seen]
@@ -15584,12 +15757,31 @@ def _quest_public_meta(seg, practiced_ids=None):
         'href': href,
     }
 
-def _stage_completion_state(uid, conn):
-    """Return segmented guild quest progress; legacy whole-stage keys remain compatible."""
+def _stage_completion_state(uid, conn, *, fold_identity=True):
+    """Return segmented guild quest progress; legacy whole-stage keys remain compatible.
+
+    LC019-W2: the read routes (`/api/quest-board`, `/api/quest-board/progress`)
+    compare "practiced" by canonical identity so a content-duplicate of a
+    practiced puzzle counts.  Cold (today) `_gk` is the ("legacy", str(id))
+    bijection, so `completed` is byte-identical either way and no resolver is
+    queried.  ``fold_identity=False`` keeps the raw-id semantics unconditionally
+    -- the reward-granting caller (`/api/rewards/sync`) passes it so the write
+    path is provably unchanged in every bootstrap state.
+    """
     premium = is_premium(uid)
     segments = _quest_segments(premium)
     rows = conn.execute('SELECT question_id FROM srs_cards WHERE user_id=?', (uid,)).fetchall()
-    practiced_ids = {r['question_id'] for r in rows}
+    practiced_raw = {r['question_id'] for r in rows}
+    if fold_identity:
+        _seg_qids = {
+            qid for seg in segments.values() for qid in (seg.get('question_ids') or [])
+        }
+        practiced_ids = _IdentityKeyedSet(
+            practiced_raw,
+            _identity_group_key_map(conn, practiced_raw | _seg_qids),
+        )
+    else:
+        practiced_ids = practiced_raw
     completed = {
         key for key, seg in segments.items()
         if seg.get('question_ids') and all(qid in practiced_ids for qid in seg['question_ids'])
@@ -15681,7 +15873,14 @@ def quest_board_progress():
                 f'SELECT question_id FROM srs_cards WHERE user_id=? AND question_id IN ({placeholders})',
                 (uid, *qids)
             ).fetchall()
-        practiced_ids = {int(row['question_id']) for row in rows}
+            # LC019-W2: a quest question counts as practiced when its canonical
+            # identity has a card.  Cold (today): ("legacy", str(id)) bijection
+            # -> identical `practiced` count and `next_question_id`, 0 resolver
+            # queries.
+            practiced_ids = _IdentityKeyedSet(
+                {int(row['question_id']) for row in rows},
+                _identity_group_key_map(conn, set(qids) | {int(r['question_id']) for r in rows}),
+            )
     next_question_id = next((qid for qid in qids if qid not in practiced_ids), None)
     return jsonify({
         'ok': True,
@@ -15709,7 +15908,11 @@ def rewards_sync():
     uid = session['user_id']
     now = datetime.datetime.now().isoformat()
     with get_db() as conn:
-        completed, claimed, segments, practiced_ids = _stage_completion_state(uid, conn)
+        # LC019-W2: reward granting stays on raw-id completion semantics in every
+        # bootstrap state (write-path firewall) -- identity folding is read-only.
+        completed, claimed, segments, practiced_ids = _stage_completion_state(
+            uid, conn, fold_identity=False
+        )
         new_keys = [k for k in completed if k not in claimed]
 
         granted = []; tot_c = tot_x = 0
@@ -15781,9 +15984,20 @@ def map_progress():
             'WHERE user_id=? AND grade>=3 AND source_context LIKE ?',
             (uid, f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}%'),
         ).fetchall()
+        # LC019-W2: count map "practiced" / "defeated" by canonical identity.
+        # Cold (today): _gk is the ("legacy", str(id)) bijection -> per-map
+        # counts unchanged, no resolver query.
+        _map_gkm = _identity_group_key_map(
+            conn,
+            {q['id'] for q in qs}
+            | {r['question_id'] for r in rows}
+            | {r['question_id'] for r in authoritative_rows},
+        )
 
-    seen_ids = {r['question_id'] for r in rows}
-    defeated_ids = {r['question_id'] for r in authoritative_rows}
+    seen_ids = _IdentityKeyedSet({r['question_id'] for r in rows}, _map_gkm)
+    defeated_ids = _IdentityKeyedSet(
+        {r['question_id'] for r in authoritative_rows}, _map_gkm
+    )
     maps = {}
     for q in qs:
         map_id = q.get('map_id') or 'map_unknown'
