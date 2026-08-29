@@ -9,6 +9,10 @@ from srs_review_authority import (
     AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES,
     AUTHORITATIVE_REVIEW_SOURCE_PREFIXES,
 )
+from migrations.historical_leaderboard_evidence_v1 import (
+    SOURCE_PREFIX as HISTORICAL_LEADERBOARD_SOURCE_PREFIX,
+    TABLE_NAME as HISTORICAL_LEADERBOARD_TABLE,
+)
 
 WEEKLY_REWARD_MIN_SCORE = 30
 MONTHLY_REWARD_MIN_SCORE = 150
@@ -357,9 +361,82 @@ def is_exact_period_closed(board_type, period_start, period_end, *, now=None, ti
     return current >= bounds["period_end_exclusive_at"]
 
 
+def _historical_leaderboard_table_exists(conn):
+    """Return whether the additive historical sink is installed.
+
+    Direct unit-test fixtures predate B071A and intentionally do not install
+    this table.  Keeping the read path compatible with those fixtures makes a
+    partially upgraded database fail closed to the already accepted
+    trusted-only leaderboard until ``init_db`` installs the sink.
+    """
+    raw = getattr(conn, "_conn", conn)
+    if raw.__class__.__module__.startswith("sqlite3"):
+        row = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (HISTORICAL_LEADERBOARD_TABLE,),
+        ).fetchone()
+    else:
+        row = conn.execute(
+            """SELECT 1 FROM information_schema.tables
+                WHERE table_schema='public' AND table_name=?""",
+            (HISTORICAL_LEADERBOARD_TABLE,),
+        ).fetchone()
+    return row is not None
+
+
+def _historical_period_key(period_start_iso):
+    """Map the requested Taiwan-week boundary to the stored period key.
+
+    Historical rows retain their source event timestamp for auditability, but
+    leaderboard membership is keyed to the reviewed B070 period.  This avoids
+    assigning restored evidence to the migration clock and is robust to the
+    repository's legacy TEXT timestamp representation.
+    """
+    value = str(period_start_iso).replace("Z", "+00:00")
+    parsed = datetime.datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    local = parsed.astimezone(ZoneInfo("Asia/Taipei"))
+    iso_year, iso_week, _ = local.date().isocalendar()
+    return f"{iso_year}-W{iso_week:02d}"
+
+
 def fetch_leaderboard_participant_rows(conn, period_start_iso, period_end_iso=None, *, limit=None):
+    historical_cte = ""
+    historical_params = []
+    if _historical_leaderboard_table_exists(conn):
+        historical_cte = f"""
+, historical_evidence AS (
+    SELECT h.user_id, h.question_id, MIN(h.event_timestamp) AS first_counted_at
+      FROM {HISTORICAL_LEADERBOARD_TABLE} h
+     WHERE h.period_key = ?
+       AND h.source_prefix = ?
+     GROUP BY h.user_id, h.question_id
+), evidence_candidates AS (
+    SELECT user_id, question_id, first_counted_at
+      FROM trusted_evidence
+    UNION ALL
+    SELECT user_id, question_id, first_counted_at
+      FROM historical_evidence
+), qualifying_distinct AS (
+    SELECT user_id, question_id, MIN(first_counted_at) AS first_counted_at
+      FROM evidence_candidates
+     GROUP BY user_id, question_id
+)"""
+        historical_params = [
+            _historical_period_key(period_start_iso),
+            HISTORICAL_LEADERBOARD_SOURCE_PREFIX,
+        ]
+    else:
+        historical_cte = """
+, qualifying_distinct AS (
+    SELECT user_id, question_id, MIN(first_counted_at) AS first_counted_at
+      FROM trusted_evidence
+     GROUP BY user_id, question_id
+)"""
+
     sql = """
-WITH qualifying_distinct AS (
+WITH trusted_evidence AS (
     SELECT rl.user_id, rl.question_id, MIN(rl.reviewed_at) AS first_counted_at
      FROM review_log rl
      WHERE rl.reviewed_at >= ?
@@ -369,8 +446,8 @@ WITH qualifying_distinct AS (
             rl.source_context LIKE ? OR
             rl.source LIKE ?)
      GROUP BY rl.user_id, rl.question_id
-),
-scored AS (
+){historical_cte}
+, scored AS (
     SELECT q.user_id,
            COUNT(*) AS score,
            MAX(q.first_counted_at) AS final_counted_at
@@ -401,19 +478,21 @@ SELECT u.id,
  ORDER BY scored.score DESC, scored.final_counted_at ASC, u.id ASC
 {limit_clause}
 """.format(
+        historical_cte=historical_cte,
         period_end_clause="AND rl.reviewed_at < ?" if period_end_iso else "",
         limit_clause=(" LIMIT ?" if limit is not None else ""),
     )
     params = [period_start_iso]
     if period_end_iso:
         # The period-end placeholder occurs before the authority placeholders
-        # in the CTE WHERE clause.
+        # in the trusted CTE WHERE clause.
         params.append(period_end_iso)
     params.extend([
         f"{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES[0]}%",
         f"{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES[1]}%",
         f"{AUTHORITATIVE_REVIEW_SOURCE_PREFIXES[0]}%",
     ])
+    params.extend(historical_params)
     if limit is not None:
         params.append(limit)
     return conn.execute(sql, tuple(params)).fetchall()
