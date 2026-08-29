@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_outbox
+from migrations.coin_purchase_operations_v1 import upgrade as upgrade_purchase_operations
 
 
 TEST_SECRET = "test-only-r4a-cosmetic-commerce-secret"
@@ -30,6 +31,9 @@ class _DbContext:
 
     def execute(self, sql, params=()):
         return self._conn.execute(sql, params)
+
+    def cursor(self):
+        return self._conn.cursor()
 
     def commit(self):
         self._conn.commit()
@@ -107,12 +111,23 @@ def cosmetic_app(tmp_path, monkeypatch):
                 seen INTEGER NOT NULL DEFAULT 0,
                 UNIQUE(user_id, badge_id)
             );
+            CREATE TABLE shop_inventory (
+                user_id INTEGER NOT NULL,
+                item_key TEXT NOT NULL,
+                qty INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(user_id, item_key)
+            );
+            CREATE TABLE daily_shop (
+                shop_date TEXT PRIMARY KEY,
+                slots TEXT NOT NULL
+            );
             INSERT INTO users(id, plan) VALUES (1, 'free'), (2, 'free');
             INSERT INTO user_stats(user_id, coins) VALUES (1, 500), (2, 0);
         """)
         # D5C acquisition evidence is caller-transactional and therefore
         # belongs in the same disposable fixture as the existing ownership
         # authority. This is a candidate schema setup only, never Production.
+        upgrade_purchase_operations(conn)
         upgrade_outbox(conn)
 
     app = _load_app(monkeypatch)
@@ -196,7 +211,7 @@ def test_server_price_purchase_idempotency_failed_grant_and_persistence(cosmetic
 
     purchased = client.post(
         "/api/cosmetic-commerce/purchase",
-        json={"product_id": plain, "price": 1},
+        json={"product_id": plain, "purchase_operation_id": "r4a-plain-1", "price": 1},
     )
     assert purchased.status_code == 200
     assert purchased.get_json()["price_charged"] == 200
@@ -207,7 +222,7 @@ def test_server_price_purchase_idempotency_failed_grant_and_persistence(cosmetic
 
     duplicate = client.post(
         "/api/cosmetic-commerce/purchase",
-        json={"product_id": plain, "price": 9999},
+        json={"product_id": plain, "purchase_operation_id": "r4a-plain-2", "price": 9999},
     )
     assert duplicate.status_code == 200
     assert duplicate.get_json()["status"] == "already_owned"
@@ -217,7 +232,7 @@ def test_server_price_purchase_idempotency_failed_grant_and_persistence(cosmetic
 
     failed = client.post(
         "/api/cosmetic-commerce/purchase",
-        json={"product_id": bamboo, "price": -1},
+        json={"product_id": bamboo, "purchase_operation_id": "r4a-bamboo-1", "price": -1},
     )
     assert failed.status_code == 400
     assert failed.get_json()["error"] == "insufficient_coins"
@@ -326,48 +341,53 @@ def test_spend_coins_rejects_negative_amount(cosmetic_app):
     assert _scalar(path, "SELECT COUNT(*) FROM currency_log WHERE user_id=1") == 0
 
 
-def test_existing_shop_and_gacha_endpoints_smoke_shared_spend(cosmetic_app, monkeypatch):
+def test_existing_shop_and_retired_gacha_endpoints_smoke(cosmetic_app, monkeypatch):
     app, path = cosmetic_app
     client = _client_for(app, 1)
     item_key = next(iter(app.SHOP_ITEMS))
     appearance = next(
         item for item in app.APPEARANCE_DEFS
-        if item.get("rarity") in ("common", "uncommon")
+        if item.get("id") in app._COSMETIC_PRODUCT_BY_COSMETIC_ID
+        and app._COSMETIC_PRODUCT_BY_COSMETIC_ID[item["id"]]["unlock_type"] == "coins"
     )
 
     with sqlite3.connect(path) as conn:
         conn.execute("UPDATE user_stats SET coins=10000 WHERE user_id=1")
 
-    monkeypatch.setattr(app, "_daily_shop_slots", lambda conn: [])
+    monkeypatch.setattr(app, "_daily_shop_slots", lambda conn, persist=True: [])
     monkeypatch.setattr(
         app,
         "_grant_shop_purchase",
         lambda conn, uid, item, qty=1: ([{"item_key": item["key"], "qty": qty}], []),
     )
     shop_buy = client.post(
-        "/api/shop/buy", json={"item_key": item_key, "qty": 1}
+        "/api/shop/buy",
+        json={"item_key": item_key, "qty": 1, "purchase_operation_id": "r4a-shop-1"},
     )
     assert shop_buy.status_code == 200
 
     monkeypatch.setattr(
         app,
         "_daily_shop_slots",
-        lambda conn: [{
+        lambda conn, persist=True: [{
             "type": "appearance",
             "item_key": appearance["id"],
             "price": 200,
         }],
     )
     buy_appearance = client.post(
-        "/api/shop/buy_appearance", json={"item_id": appearance["id"]}
+        "/api/shop/buy_appearance",
+        json={"item_id": appearance["id"], "purchase_operation_id": "r4a-appearance-1"},
     )
     assert buy_appearance.status_code == 200
+    coins_before_gacha = _scalar(path, "SELECT coins FROM user_stats WHERE user_id=1")
 
-    monkeypatch.setattr(app.random, "random", lambda: 0.0)
-    monkeypatch.setattr(app.random, "choice", lambda values: values[0])
     gacha = client.post("/api/shop/gacha", json={})
-    assert gacha.status_code == 200
-    assert gacha.get_json()["ok"] is True
-    assert _scalar(path, "SELECT COUNT(*) FROM gacha_log WHERE user_id=1") == 1
-    assert _scalar(path, "SELECT COUNT(*) FROM currency_log WHERE user_id=1") == 3
-    assert _scalar(path, "SELECT coins FROM user_stats WHERE user_id=1") >= 0
+    assert gacha.status_code == 409
+    assert gacha.get_json() == {
+        "error": "shop_offer_unavailable",
+        "code": "LEGACY_PURCHASE_RETIRED",
+    }
+    assert _scalar(path, "SELECT COUNT(*) FROM gacha_log WHERE user_id=1") == 0
+    assert _scalar(path, "SELECT COUNT(*) FROM currency_log WHERE user_id=1") == 2
+    assert _scalar(path, "SELECT coins FROM user_stats WHERE user_id=1") == coins_before_gacha

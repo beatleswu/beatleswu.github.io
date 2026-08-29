@@ -10248,6 +10248,8 @@ def admin_set_equipment(uid):
 @admin_required
 def admin_set_appearance(uid):
     body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return jsonify({'error': 'invalid_request'}), 400
     action = str(body.get('action') or '')
     if action == 'grant':
         item_id = str(body.get('item_id') or '')
@@ -10262,7 +10264,12 @@ def admin_set_appearance(uid):
                 conn.commit()
         _admin_audit('appearance', uid, f'grant {item_id}')
     elif action == 'remove':
-        inv_id = int(body.get('inv_id') or 0)
+        try:
+            inv_id = int(body.get('inv_id') or 0)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'invalid_inv_id'}), 400
+        if inv_id <= 0:
+            return jsonify({'error': 'invalid_inv_id'}), 400
         with get_db() as conn:
             conn.execute('DELETE FROM player_wardrobe WHERE id=? AND user_id=?', (inv_id, uid))
             conn.commit()
@@ -17427,8 +17434,13 @@ def get_appearance():
 def equip_appearance():
     """穿上某件外觀物品（自動卸下同槽舊品）。"""
     uid     = session['user_id']
-    data    = request.get_json()
+    data    = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'invalid_request'}), 400
     item_id = data.get('item_id')
+    if not isinstance(item_id, str) or not item_id.strip():
+        return jsonify({'error': 'invalid_item_id'}), 400
+    item_id = item_id.strip()
 
     item = _APPEAR_MAP.get(item_id)
     if not item:
@@ -17461,8 +17473,13 @@ def equip_appearance():
 def unequip_appearance():
     """卸下某槽外觀（slot: outfit / hat / back / title）。"""
     uid  = session['user_id']
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'invalid_request'}), 400
     slot = data.get('slot')
+    if not isinstance(slot, str):
+        return jsonify({'error': 'invalid_slot'}), 400
+    slot = slot.strip()
 
     if slot not in ('outfit', 'hat', 'back', 'title', 'accessory', 'pet', 'aura'):
         return jsonify({'error': '無效槽位'}), 400
@@ -17934,13 +17951,20 @@ def skills_character():
     """儲存玩家選的全身角色基座到 player_appearance。Body: { "character_key": "hero_male" }"""
     uid  = session['user_id']
     data = request.get_json() or {}
-    ckey = (data.get('character_key') or '').strip()
+    if not isinstance(data, dict):
+        return jsonify({'error': 'invalid request'}), 400
+    ckey_value = data.get('character_key')
+    if not isinstance(ckey_value, str):
+        return jsonify({'error': 'invalid character_key'}), 400
+    ckey = ckey_value.strip()
     if ckey not in VALID_CHARACTER_KEYS:
         return jsonify({'error': 'invalid character_key'}), 400
 
     # 戰鬥裝備四件＋配件（可選；只更新「有送來」的欄位，避免只送 character_key 的呼叫把裝備清掉）
     def _clean(v):
-        v = (v or '').strip()
+        if not isinstance(v, str):
+            return ''
+        v = v.strip()
         return v[:24]
     combat_in = {}
     for col in ('combat_armor', 'combat_weapon', 'combat_cape', 'combat_offhand',
@@ -17997,7 +18021,12 @@ def skills_stone_skin():
     """儲存玩家選的棋子皮膚。Body: { "stone_skin": "jade" }（空字串=預設）"""
     uid  = session['user_id']
     data = request.get_json() or {}
-    skin = (data.get('stone_skin') or '').strip()
+    if not isinstance(data, dict):
+        return jsonify({'error': 'invalid stone_skin'}), 400
+    skin_value = data.get('stone_skin')
+    if skin_value is not None and not isinstance(skin_value, str):
+        return jsonify({'error': 'invalid stone_skin'}), 400
+    skin = (skin_value or '').strip()
     if skin and skin not in STONE_SKINS:
         return jsonify({'error': 'invalid stone_skin'}), 400
     is_prem = is_premium(uid)
@@ -18034,7 +18063,12 @@ def skills_board_skin():
     """儲存玩家選的棋盤皮膚。Body: { "board_skin": "jade" }（空字串=預設）"""
     uid  = session['user_id']
     data = request.get_json() or {}
-    skin = (data.get('board_skin') or '').strip()
+    if not isinstance(data, dict):
+        return jsonify({'error': 'invalid board_skin'}), 400
+    skin_value = data.get('board_skin')
+    if skin_value is not None and not isinstance(skin_value, str):
+        return jsonify({'error': 'invalid board_skin'}), 400
+    skin = (skin_value or '').strip()
     if skin and skin not in BOARD_SKINS:
         return jsonify({'error': 'invalid board_skin'}), 400
     is_prem = is_premium(uid)
@@ -18066,11 +18100,14 @@ def skills_equip():
       { "slotId": "badge", "itemId": "xxx" }  ← inventory 路徑
     """
     uid  = session['user_id']
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'invalid_request'}), 400
     item_id = data.get('id') or data.get('itemId')
 
-    if not item_id:
+    if not isinstance(item_id, str) or not item_id.strip():
         return jsonify({'error': '缺少 item_id'}), 400
+    item_id = item_id.strip()
 
     item = _APPEAR_MAP.get(item_id)
     if not item:
@@ -22781,48 +22818,26 @@ def _cosmetic_equipped(conn, uid, product):
     return bool(row and row['outfit_id'] == product['cosmetic_id'])
 
 
-def _purchase_cosmetic(conn, uid, product, *, price_override=None,
-                       premium_entitled=False):
-    """Purchase/unlock one mapped cosmetic exactly once.
+def _grant_premium_cosmetic(conn, uid, product, *, premium_entitled=False):
+    """Hydrate one existing Premium entitlement into wardrobe ownership.
 
-    The caller supplies only a product mapping and, for the legacy daily
-    rotation adapter, a server-computed price override.  Client prices never
-    enter this function.  Ownership is inserted before spending so the
-    UNIQUE(user_id, item_id) constraint is the idempotency gate; an
-    insufficient balance removes that provisional row in the same transaction.
+    Premium entitlement hydration is deliberately separate from Coins Shop
+    purchasing.  Coins products use the C019 durable purchase path and never
+    call this helper.
     """
+    if product['unlock_type'] != 'premium':
+        raise ValueError('only Premium entitlement products use this helper')
     item_id = product['cosmetic_id']
-    if product['unlock_type'] == 'premium':
-        if not premium_entitled:
-            return {'status': 'premium_required', 'granted': False}
-        inserted = conn.execute(
-            'INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) '
-            'VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO NOTHING',
-            (uid, item_id, _now_iso(), 'cosmetic_shop'))
-        granted = getattr(inserted, 'rowcount', 0) == 1
-        return {
-            'status': 'unlocked' if granted else 'already_owned',
-            'granted': granted,
-            'price': None,
-        }
-
-    price = product['price'] if price_override is None else price_override
-    if isinstance(price, bool) or not isinstance(price, int) or price <= 0:
-        raise ValueError('cosmetic price must be a positive server-side integer')
+    if not premium_entitled:
+        return {'status': 'premium_required', 'granted': False, 'price': None}
 
     inserted = conn.execute(
         'INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) '
         'VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO NOTHING',
         (uid, item_id, _now_iso(), 'cosmetic_shop'))
     if getattr(inserted, 'rowcount', 0) != 1:
-        return {'status': 'already_owned', 'granted': False, 'price': price}
-
-    if not _spend_coins(conn, uid, price, f'cosmetic_purchase:{product["product_id"]}'):
-        conn.execute(
-            'DELETE FROM player_wardrobe WHERE user_id=? AND item_id=?',
-            (uid, item_id))
-        return {'status': 'insufficient_coins', 'granted': False, 'price': price}
-    return {'status': 'purchased', 'granted': True, 'price': price}
+        return {'status': 'already_owned', 'granted': False, 'price': None}
+    return {'status': 'unlocked', 'granted': True, 'price': None}
 
 
 def _append_cosmetic_acquisition_event(conn, uid, product):
@@ -22877,6 +22892,73 @@ def _cosmetic_payload_for_user(conn, uid, product):
     )
 
 
+def _canonical_cosmetic_purchase_response(uid, body, product, *, appearance_only=False):
+    """Adapt the C019 Shop result to the established cosmetic API shape.
+
+    The offer, price, debit, wardrobe acquisition, operation identity, and
+    lineage all remain owned by the canonical Shop/C019 path.  This adapter
+    only adds the existing cosmetic presentation projection after the durable
+    transaction has committed.
+    """
+    canonical_body = {'product_id': product['product_id']}
+    for field in ('purchase_operation_id', 'operation_id'):
+        if field in body:
+            canonical_body[field] = body[field]
+    response = _canonical_shop_purchase_response(
+        uid,
+        canonical_body,
+        appearance_only=appearance_only,
+    )
+    response_body = response[0] if isinstance(response, tuple) else response
+    response_status = response[1] if isinstance(response, tuple) else response.status_code
+    canonical_payload = response_body.get_json(silent=True) or {}
+    if response_status != 200:
+        # C019 rolls back an acquisition race.  If another request won the
+        # wardrobe uniqueness race, expose the canonical already-owned state
+        # without creating an operation or charging a second time.
+        if canonical_payload.get('error') == 'acquisition_failed':
+            with get_db() as conn:
+                if _cosmetic_owned(conn, uid, product):
+                    offer = _canonical_shop_offer_for_request(
+                        conn,
+                        canonical_body,
+                        appearance_only=appearance_only,
+                    )
+                    payload = _cosmetic_payload_for_user(conn, uid, product)
+                    return jsonify({
+                        'ok': True,
+                        'status': 'already_owned',
+                        'granted': False,
+                        'price_charged': offer.server_price,
+                        'coins': _coin_balance(conn, uid),
+                        'product_id': product['product_id'],
+                        'cosmetic_id': product['cosmetic_id'],
+                        'product': payload,
+                    })
+        return response
+
+    with get_db() as conn:
+        cosmetic_payload = _cosmetic_payload_for_user(conn, uid, product)
+        coins = _coin_balance(conn, uid)
+    charged = canonical_payload.get('coins_spent')
+    if not isinstance(charged, int) or isinstance(charged, bool):
+        charged = None
+    after = canonical_payload.get('coins_after')
+    if not isinstance(after, int) or isinstance(after, bool):
+        after = coins
+    return jsonify({
+        **canonical_payload,
+        'ok': True,
+        'status': 'purchased',
+        'granted': bool(canonical_payload.get('is_new')),
+        'price_charged': charged,
+        'coins': after,
+        'product_id': product['product_id'],
+        'cosmetic_id': product['cosmetic_id'],
+        'product': cosmetic_payload,
+    })
+
+
 @app.route('/api/cosmetic-commerce/catalog')
 @login_required
 def cosmetic_commerce_catalog():
@@ -22925,17 +23007,22 @@ def cosmetic_commerce_preview(product_id):
 @app.route('/api/cosmetic-commerce/purchase', methods=['POST'])
 @login_required
 def cosmetic_commerce_purchase():
-    """Purchase a Coins product or unlock an existing Premium entitlement."""
+    """Purchase a canonical Coins product or hydrate Premium entitlement."""
     body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return jsonify({'error': 'invalid_request'}), 400
     product_id = str(body.get('product_id') or '').strip()
     product = _COSMETIC_PRODUCT_BY_ID.get(product_id)
     if not product:
         return jsonify({'error': 'unknown_product'}), 400
 
     uid = session['user_id']
+    if product['unlock_type'] == 'coins':
+        return _canonical_cosmetic_purchase_response(uid, body, product)
+
     premium_entitled = is_premium(uid)
     with get_db() as conn:
-        result = _purchase_cosmetic(
+        result = _grant_premium_cosmetic(
             conn, uid, product, premium_entitled=premium_entitled)
         if result['status'] == 'premium_required':
             return jsonify({'error': 'premium_required'}), 403
@@ -22965,6 +23052,8 @@ def cosmetic_commerce_purchase():
 def cosmetic_commerce_equip():
     """Equip an owned mapped outfit and persist the visible hero state."""
     body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return jsonify({'error': 'invalid_request'}), 400
     product_id = str(body.get('product_id') or '').strip()
     product = _COSMETIC_PRODUCT_BY_ID.get(product_id)
     if not product:
@@ -23016,6 +23105,8 @@ def premium_v1_claim():
     if not c013_claim_route_enabled():
         return jsonify({'error': 'premium_v1_disabled', 'default_off': True}), 404
     body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return jsonify({'error': 'invalid_request'}), 400
     requested_cosmetic_id = str(body.get('cosmetic_id') or '').strip()
     if requested_cosmetic_id not in C013_LAUNCH_COSMETIC_IDS:
         return jsonify({'error': 'cosmetic_not_in_launch_pool'}), 400
@@ -23836,63 +23927,35 @@ def _daily_shop_slots(conn, *, persist=True):
 @app.route('/api/shop/buy_appearance', methods=['POST'])
 @login_required
 def shop_buy_appearance():
-    """購買每日輪換中的外觀（只能買今日輪換出現的）。"""
+    """Canonical compatibility route for today's mapped appearance offers."""
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
-    if _canonical_coin_shop_purchase_enabled():
-        with get_db() as conn:
-            dispatch = _classify_shop_request(
-                conn,
-                body,
-                appearance_only=True,
-            )
-        if dispatch['classification'] == CANONICAL_SHOP_DISPATCH:
-            return _canonical_shop_purchase_response(
+    with get_db() as conn:
+        dispatch = _classify_shop_request(conn, body, appearance_only=True)
+    if dispatch['classification'] == CANONICAL_SHOP_DISPATCH:
+        item_id = str(body.get('item_id') or '').strip()
+        product = _COSMETIC_PRODUCT_BY_COSMETIC_ID.get(item_id)
+        if product and product.get('unlock_type') == 'coins':
+            return _canonical_cosmetic_purchase_response(
                 uid,
                 body,
+                product,
                 appearance_only=True,
             )
-        if dispatch['classification'] == INVALID_SHOP_DISPATCH:
-            status = 503 if dispatch.get('error_code') == 'SHOP_DISPATCH_UNAVAILABLE' else 400
-            return jsonify({
-                'error': 'shop_offer_unavailable',
-                'code': dispatch.get('error_code', 'UNKNOWN_OFFER'),
-            }), status
-        # LEGACY_ONLY falls through to the existing daily-rotation route.
-    item_id = str(body.get('item_id') or '')
-    with get_db() as conn:
-        slot = next((s for s in _daily_shop_slots(conn)
-                     if s['type'] == 'appearance' and s['item_key'] == item_id), None)
-        if not slot:
-            return jsonify({'error': 'not_in_rotation'}), 400
-        # Lane C products use the canonical product mapping even when reached
-        # through the existing daily-rotation compatibility route.
-        product = _COSMETIC_PRODUCT_BY_COSMETIC_ID.get(item_id)
-        if product:
-            result = _purchase_cosmetic(
-                conn, uid, product, price_override=slot['price'])
-            if result['status'] == 'insufficient_coins':
-                return jsonify({'error': 'insufficient_coins',
-                                'coins': _coin_balance(conn, uid)}), 400
-            payload = _cosmetic_payload_for_user(conn, uid, product)
-            return jsonify({'ok': True, 'status': result['status'],
-                            'granted': result['granted'],
-                            'price_charged': result['price'],
-                            'coins': _coin_balance(conn, uid),
-                            'product_id': product['product_id'],
-                            'cosmetic_id': product['cosmetic_id'],
-                            'product': payload})
-        owned = conn.execute('SELECT id FROM player_wardrobe WHERE user_id=? AND item_id=?',
-                             (uid, item_id)).fetchone()
-        if owned:
-            return jsonify({'error': 'already_owned'}), 400
-        if not _spend_coins(conn, uid, slot['price'], f'buy_appearance:{item_id}'):
-            return jsonify({'error': 'insufficient_coins', 'coins': _coin_balance(conn, uid)}), 400
-        conn.execute('INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) VALUES(?,?,?,?)',
-                     (uid, item_id, _now_iso(), 'shop'))
-        conn.commit()
-        bal = _coin_balance(conn, uid)
-    return jsonify({'ok': True, 'coins': bal, 'item_id': item_id})
+        return _canonical_shop_purchase_response(uid, body, appearance_only=True)
+    if dispatch['classification'] == INVALID_SHOP_DISPATCH:
+        status = 503 if dispatch.get('error_code') == 'SHOP_DISPATCH_UNAVAILABLE' else 400
+        return jsonify({
+            'error': 'shop_offer_unavailable',
+            'code': dispatch.get('error_code', 'UNKNOWN_OFFER'),
+        }), status
+    # The historical route can name arbitrary APPEARANCE_DEFS entries, but it
+    # has no C019 offer authority for those entries.  Retire that mutation
+    # path explicitly rather than falling back to direct spend + wardrobe.
+    return jsonify({
+        'error': 'shop_offer_unavailable',
+        'code': 'LEGACY_PURCHASE_RETIRED',
+    }), 409
 
 # ── 扭蛋 ─────────────────────────────────────────────────────
 
@@ -23907,102 +23970,17 @@ def _gacha_pity_count(conn, uid) -> int:
 @app.route('/api/shop/gacha', methods=['POST'])
 @login_required
 def shop_gacha():
-    """金幣扭蛋：道具 60% / 寵物食物 25% / Common 外觀 12% / Uncommon 外觀 3%。
-    30 抽保底 Uncommon；已擁有的外觀重複時轉為金幣回饋（Common 80 / Uncommon 180）。"""
-    uid = session['user_id']
-    with get_db() as conn:
-        if not _spend_coins(conn, uid, _GACHA_COST, 'gacha'):
-            return jsonify({'error': 'insufficient_coins', 'coins': _coin_balance(conn, uid)}), 400
+    """Retired legacy randomized Coin-to-appearance mutation surface.
 
-        pity = _gacha_pity_count(conn, uid)
-        force_uncommon = (pity + 1 >= _GACHA_PITY)
-
-        r = random.random()
-        if force_uncommon:
-            bucket = 'uncommon'
-        elif r < 0.60:
-            bucket = 'item'
-        elif r < 0.85:
-            bucket = 'pet_food'
-        elif r < 0.97:
-            bucket = 'common'
-        else:
-            bucket = 'uncommon'
-
-        result = {'bucket': bucket}
-        rarity = None
-        if bucket == 'item':
-            gacha_items = _shop_gacha_items()
-            k = random.choice([item['key'] for item in gacha_items]) if gacha_items else None
-            if not k:
-                _grant_coins(conn, uid, 100, 'gacha:fallback')
-                result.update({'type': 'coins', 'qty': 100})
-                rarity = None
-                new_pity = 0 if rarity == 'uncommon' else pity + 1
-                conn.execute('INSERT INTO gacha_log(user_id,pool,result_key,result_type,rarity,pity_count,created_at) '
-                             'VALUES(?,?,?,?,?,?,?)',
-                             (uid, 'koin', result.get('key', result.get('type', '')),
-                              result.get('type', ''), rarity, new_pity, _now_iso()))
-                conn.commit()
-                bal = _coin_balance(conn, uid)
-                result.update({'ok': True, 'coins': bal,
-                               'pity_count': new_pity, 'pity_max': _GACHA_PITY})
-                return jsonify(result)
-            it = SHOP_ITEMS[k]
-            granted_items, granted_food = _grant_shop_purchase(conn, uid, it, 1)
-            result.update({'type': 'item', 'key': k, 'name': it['name'],
-                           'name_en': it['name_en'], 'icon': it['icon'],
-                           'granted_items': granted_items, 'granted_food': granted_food})
-        elif bucket == 'pet_food':
-            foods = list(PET_FOOD_CATALOG.keys())
-            k = random.choice(foods)
-            _grant_pet_food(conn, uid, k, 2)
-            f = PET_FOOD_CATALOG[k]
-            result.update({'type': 'pet_food', 'key': k, 'qty': 2,
-                           'name': f.get('name'), 'name_en': f.get('name_en')})
-        else:
-            rarity = bucket
-            pool = [
-                a for a in APPEARANCE_DEFS
-                if a.get('rarity') == rarity
-                and not _is_hidden_unreleased_appearance(a['id'])
-            ]
-            pick = random.choice(pool) if pool else None
-            if pick is None:
-                _grant_coins(conn, uid, 100, 'gacha:fallback')
-                result.update({'type': 'coins', 'qty': 100})
-            else:
-                owned = conn.execute(
-                    'SELECT id FROM player_wardrobe WHERE user_id=? AND item_id=?',
-                    (uid, pick['id'])).fetchone()
-                if owned:
-                    refund = 80 if rarity == 'common' else 180
-                    # 重複轉金幣不受每日上限影響（是抽獎成本的部分返還）
-                    conn.execute('UPDATE user_stats SET coins=COALESCE(coins,0)+? WHERE user_id=?',
-                                 (refund, uid))
-                    conn.execute('INSERT INTO currency_log(user_id,delta,balance_after,reason,created_at) '
-                                 'VALUES(?,?,?,?,?)',
-                                 (uid, refund, _coin_balance(conn, uid), f'gacha:dup:{pick["id"]}', _now_iso()))
-                    result.update({'type': 'dup_coins', 'qty': refund,
-                                   'key': pick['id'], 'name': pick['name'],
-                                   'icon': pick.get('emoji', '🎽'), 'rarity': rarity})
-                else:
-                    conn.execute('INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) '
-                                 'VALUES(?,?,?,?)', (uid, pick['id'], _now_iso(), 'gacha'))
-                    result.update({'type': 'appearance', 'key': pick['id'], 'name': pick['name'],
-                                   'name_en': pick.get('name_en', pick['name']),
-                                   'icon': pick.get('emoji', '🎽'), 'rarity': rarity})
-
-        new_pity = 0 if rarity == 'uncommon' else pity + 1
-        conn.execute('INSERT INTO gacha_log(user_id,pool,result_key,result_type,rarity,pity_count,created_at) '
-                     'VALUES(?,?,?,?,?,?,?)',
-                     (uid, 'koin', result.get('key', result.get('type', '')),
-                      result.get('type', ''), rarity, new_pity, _now_iso()))
-        conn.commit()
-        bal = _coin_balance(conn, uid)
-    result.update({'ok': True, 'coins': bal,
-                   'pity_count': new_pity, 'pity_max': _GACHA_PITY})
-    return jsonify(result)
+    The historical gacha mixed direct Coin spending with randomized wardrobe
+    grants and had no C019 durable operation identity.  Keep the endpoint
+    reachable for an explicit compatibility response, but fail closed until a
+    separately approved durable gacha product is designed.
+    """
+    return jsonify({
+        'error': 'shop_offer_unavailable',
+        'code': 'LEGACY_PURCHASE_RETIRED',
+    }), 409
 
 
 @app.route('/api/user/coins')

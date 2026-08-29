@@ -60,14 +60,9 @@ def test_known_legacy_only_products_fail_closed_without_canonical_adapter(tmp_pa
         ).fetchone()[0] == 0
 
 
-def test_known_legacy_only_appearance_uses_existing_route(tmp_path, monkeypatch):
+def test_known_legacy_only_appearance_fails_closed_without_canonical_adapter(tmp_path, monkeypatch):
     path = tmp_path / "legacy-appearance.sqlite"
     _create_db(path, purchase_schema=False, coins=500)
-    with sqlite3.connect(path) as conn:
-        # The current legacy route reads the historical row id.  Keep this
-        # disposable fixture faithful to that route without changing the
-        # shared E030 fixture or production schema.
-        conn.execute("ALTER TABLE player_wardrobe ADD COLUMN id INTEGER")
     _seed_daily_slots(
         path,
         [{"type": "appearance", "item_key": "hat_cloth", "price": 200}],
@@ -80,13 +75,19 @@ def test_known_legacy_only_appearance_uses_existing_route(tmp_path, monkeypatch)
         json={"item_id": "hat_cloth"},
     )
 
-    assert response.status_code == 200
-    assert response.get_json()["item_id"] == "hat_cloth"
+    assert response.status_code == 409
+    assert response.get_json() == {
+        "error": "shop_offer_unavailable",
+        "code": "LEGACY_PURCHASE_RETIRED",
+    }
     with sqlite3.connect(path) as conn:
         assert conn.execute(
             "SELECT COUNT(*) FROM player_wardrobe "
             "WHERE user_id=1 AND item_id='hat_cloth'"
-        ).fetchone()[0] == 1
+        ).fetchone()[0] == 0
+        assert conn.execute(
+            "SELECT coins FROM user_stats WHERE user_id=1"
+        ).fetchone()[0] == 500
 
 
 @pytest.mark.parametrize(
