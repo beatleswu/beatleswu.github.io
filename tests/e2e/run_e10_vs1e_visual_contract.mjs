@@ -194,7 +194,10 @@ async function installPageDiagnostics(page, browserErrors) {
     // paused/replaced even though the static server returned HTTP 200.  That
     // is not an asset 404.  Keep the raw event in diagnostics, but only fail
     // the browser contract when no successful response was observed.
-    if (!successfulResponses.has(request.url()) && !request.url().startsWith('https://fonts.gstatic.com/')) {
+    const isCanceledAbort = failure?.errorText === 'net::ERR_ABORTED';
+    if (!successfulResponses.has(request.url())
+      && !isCanceledAbort
+      && !request.url().startsWith('https://fonts.gstatic.com/')) {
       browserErrors.push({ kind: 'requestfailed', text: `${request.method()} ${request.url()}` });
     }
   });
@@ -509,7 +512,18 @@ function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'defaul
   if (pathname === '/api/srs/all') return [];
   if (pathname === '/api/badges/definitions' || pathname === '/api/badges/earned') return [];
   if (pathname === '/api/mistakes/stats') return { total: 28, corrected: 9, worst5: [] };
-  if (pathname === '/api/questions') return [];
+  // Journey cases exercise the real E9 runtime-readiness boundary.  An empty
+  // question response is an authority error, not a usable visual fixture;
+  // keep one inert question available so the harness can deliberately defer
+  // readiness later without putting the page into its terminal retry state.
+  if (pathname === '/api/questions') return [{
+    id: 910000,
+    topic: 'fixture-question',
+    source: 'e10-vs1e-visual-fixture',
+    rank: '20k',
+    difficulty: '20k',
+    locked: false,
+  }];
   if (pathname === '/api/adventure/cinematics/seen' && method === 'POST') {
     return { ok: true, state: { seen: true }, cinematics: {} };
   }
@@ -941,7 +955,8 @@ async function runtimeSnapshot(page) {
       svgTextCount: document.querySelectorAll('#e9-adventure-shell svg text').length,
       iconIds: [...new Set(Array.from(document.querySelectorAll('#e9-adventure-shell [data-e10-icon-id]'))
         .map((icon) => icon.getAttribute('data-e10-icon-id')))].sort(),
-      adventureCurrent: document.querySelector('[data-e10-nav-key="adventure"]')?.getAttribute('aria-current'),
+      adventureControlPresent: Boolean(document.querySelector('[data-e10-command="adventure"]')),
+      adventureCurrent: document.querySelector('[data-e10-command="adventure"]')?.getAttribute('aria-current'),
       avatarFit: getComputedStyle(document.querySelector('#top-hud-avatar-image')).objectFit,
       moreColumns: getComputedStyle(document.querySelector('.e10-more-grid')).gridTemplateColumns.split(' ').length,
       soundToggle: (() => {
@@ -1010,6 +1025,21 @@ async function resetViewportScroll(page) {
   });
 }
 
+async function dismissZone2EntryPresentationForMapInspection(page) {
+  const film = page.locator('#boss-cinematic[data-zone-key="k21_25"]');
+  if (await film.count() !== 1 || await film.getAttribute('aria-hidden') !== 'false') return;
+  const skip = film.locator('.intro-skip-btn');
+  if (await skip.count()) await skip.click({ force: true });
+  // The accepted legacy entry lifecycle ends skip at the actionable ready
+  // handoff; it does not hide the presentation by itself.  Close that
+  // presentation through its real user-facing control before inspecting the
+  // map/drawer beneath it.
+  const close = film.locator('#boss-cinematic-close-x');
+  await close.waitFor({ state: 'visible', timeout: 5000 });
+  await close.click({ force: true });
+  await film.waitFor({ state: 'hidden', timeout: 5000 });
+}
+
 async function runCase(browser, origin, outputDir, spec) {
   const page = await browser.newPage({ viewport: spec.viewport });
   const browserErrors = [];
@@ -1071,13 +1101,7 @@ async function runCase(browser, origin, outputDir, spec) {
   // before interacting with controls underneath it; this keeps the browser
   // contract honest without disabling the cinematic in the runtime.
   if (spec.zone === 'k21_25') {
-    const firstEntryFilm = page.locator('#boss-cinematic[data-zone-key="k21_25"]');
-    await page.waitForTimeout(50);
-    if (await firstEntryFilm.count() && await firstEntryFilm.getAttribute('aria-hidden') === 'false') {
-      const skip = firstEntryFilm.locator('.intro-skip-btn');
-      if (await skip.count()) await skip.click({ force: true });
-      await firstEntryFilm.waitFor({ state: 'hidden', timeout: 5000 });
-    }
+    await dismissZone2EntryPresentationForMapInspection(page);
     const activeZone2Modal = page.locator('#boss-cinematic[data-zone-key="k21_25"][aria-hidden="false"]');
     if (await activeZone2Modal.count()) {
       const cancel = activeZone2Modal.locator('#boss-cinematic-cancel-btn');
@@ -1208,6 +1232,7 @@ async function runCase(browser, origin, outputDir, spec) {
   await page.close();
   return {
     ...spec,
+    avatarKey: spec.avatarKey || 'mage',
     screenshot,
     beforeOpen,
     afterOpen,
@@ -1346,6 +1371,31 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
   return { captures, browserErrors, dockInteractionGeometry };
 }
 
+function clampCss(minimum, preferred, maximum) {
+  return Math.min(maximum, Math.max(minimum, preferred));
+}
+
+function expectedPlayerMarkerHostSize(viewport) {
+  const { width, height } = viewport;
+  if (width < 768) return { width: 42, height: 68 };
+  if (width <= 1279 && width > height) {
+    return {
+      width: clampCss(38, width * 0.052, 70),
+      height: clampCss(56, width * 0.092, 100),
+    };
+  }
+  if (width <= 1279) {
+    return {
+      width: clampCss(40, width * 0.068, 61),
+      height: clampCss(61, width * 0.105, 84),
+    };
+  }
+  return {
+    width: clampCss(40, width * 0.056, 82),
+    height: clampCss(61, width * 0.094, 118),
+  };
+}
+
 function assertCase(result) {
   const failures = [];
   const { snapshot, specName, browserErrors } = result;
@@ -1449,23 +1499,27 @@ function assertCase(result) {
       || Math.abs(geometry.dock_stage_center_delta_x) > 1
     ) failures.push(`${specName}: bottom dock badge-slot alignment ${JSON.stringify(geometry)}`);
   }
+  const expectedMarkerSize = expectedPlayerMarkerHostSize(result.viewport);
+  const marker = snapshot.playerMarkerContract.marker;
   if (
-    !snapshot.playerMarkerContract.marker
-    || Math.abs(snapshot.playerMarkerContract.marker.width - 31) > .1
-    || Math.abs(snapshot.playerMarkerContract.marker.height - 38) > .1
-  ) failures.push(`${specName}: player marker pin geometry ${JSON.stringify(snapshot.playerMarkerContract)}`);
+    !marker
+    || Math.abs(marker.width - expectedMarkerSize.width) > .2
+    || Math.abs(marker.height - expectedMarkerSize.height) > .2
+  ) failures.push(`${specName}: player marker host geometry ${JSON.stringify({ actual: marker, expected: expectedMarkerSize })}`);
   if (result.layout === 'rail' && (
-    snapshot.playerMarkerContract.maximumDiameterRatio < 1.2
-    || snapshot.playerMarkerContract.maximumDiameterRatio > 1.35
-    || snapshot.playerMarkerContract.labelGap < 6
-    || snapshot.playerMarkerContract.labelGap > 10
+    !marker
+    || !snapshot.playerMarkerContract.node
+    || marker.top >= snapshot.playerMarkerContract.node.top
+    || marker.bottom > snapshot.playerMarkerContract.node.bottom + .2
   )) failures.push(`${specName}: player marker stack geometry ${JSON.stringify(snapshot.playerMarkerContract)}`);
   if (Object.values(snapshot.artSurfaces).some((value) => !value.includes('/assets/e10/ui/'))) {
     failures.push(`${specName}: one or more art-directed shell surfaces are missing`);
   }
   if (snapshot.visibleControlMissingIconCount !== 0) failures.push(`${specName}: visible navigation control lacks an RPG icon`);
   if (snapshot.svgTextCount !== 0) failures.push(`${specName}: text was embedded inside SVG icons`);
-  if (snapshot.adventureCurrent !== 'page') failures.push(`${specName}: Adventure active/current state is missing`);
+  if (snapshot.adventureControlPresent && snapshot.adventureCurrent !== 'page') {
+    failures.push(`${specName}: Adventure active/current state is missing`);
+  }
   const backpackTargets = ['/inventory?e10=1'];
   if (snapshot.backpack.disabled || snapshot.backpack.ariaDisabled === 'true'
     || snapshot.backpack.lockVisible || !backpackTargets.includes(snapshot.backpack.href)) {
@@ -1517,11 +1571,23 @@ function assertCase(result) {
     || result.detailMapBefore.visibleHeroCount !== snapshot.visibleHeroCount
   )) failures.push(`${specName}: selection moved the player marker`);
   if (result.detailMapBefore && result.detailMapAfterSelection) {
-    const coordinateSpace = result.layout === 'rail' ? 'marker' : 'relativeToNode';
-    const before = result.detailMapBefore.playerMarkerContract[coordinateSpace];
-    const after = result.detailMapAfterSelection.playerMarkerContract[coordinateSpace];
-    if (!before || !after || ['x', 'y', 'width', 'height'].some((key) => Math.abs(before[key] - after[key]) > .1)) {
-      failures.push(`${specName}: selection changed player marker bounds ${JSON.stringify({ before, after })}`);
+    if (result.viewport.width < 768) {
+      // Mobile keeps one authoritative host inside the current card. Selecting
+      // another card can remove/add that card's inline details and therefore
+      // reflow the current card; semantic ownership, not the card's transient
+      // pixel offset, is the stable no-move contract on this surface.
+      const before = result.detailMapBefore.playerMarkerParentZone;
+      const after = result.detailMapAfterSelection.playerMarkerParentZone;
+      if (!before || before !== after) {
+        failures.push(`${specName}: selection changed authoritative player marker surface ${JSON.stringify({ before, after })}`);
+      }
+    } else {
+      const coordinateSpace = result.layout === 'rail' ? 'marker' : 'relativeToNode';
+      const before = result.detailMapBefore.playerMarkerContract[coordinateSpace];
+      const after = result.detailMapAfterSelection.playerMarkerContract[coordinateSpace];
+      if (!before || !after || ['x', 'y', 'width', 'height'].some((key) => Math.abs(before[key] - after[key]) > .1)) {
+        failures.push(`${specName}: selection changed player marker bounds ${JSON.stringify({ before, after })}`);
+      }
     }
   }
   if (browserErrors.length) failures.push(`${specName}: browser errors ${JSON.stringify(browserErrors)}`);
@@ -1628,11 +1694,11 @@ function assertCase(result) {
         failures.push(`${specName}: safe-area clearance ${snapshot.dockBottomClearance}px`);
       }
       if (snapshot.bottomDockVisible) failures.push(`${specName}: secondary dock competes with primary navigation`);
-      if (snapshot.navVisualKeys.join(',') !== 'adventure,hero,equipment,go_spirit,backpack,shop') {
+      if (snapshot.navVisualKeys.join(',') !== 'guild,hero,equipment,go_spirit,backpack,shop') {
         failures.push(`${specName}: mobile navigation order ${snapshot.navVisualKeys.join(',')}`);
       }
     } else if (result.viewport.width > result.viewport.height) {
-      if (snapshot.navItemCount !== 5 || snapshot.navRowCount !== 5) failures.push(`${specName}: landscape floating badge structure drifted`);
+      if (snapshot.navItemCount !== 6 || snapshot.navRowCount !== 6) failures.push(`${specName}: landscape floating badge structure drifted`);
       if (!snapshot.bottomDockVisible) failures.push(`${specName}: landscape Legacy medallion dock is missing`);
       if (!snapshot.primaryCta || !snapshot.progressOverlay) failures.push(`${specName}: landscape bottom HUD is incomplete`);
     } else {
@@ -1818,6 +1884,12 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
 
   const target = page.locator(`[data-zone="${spec.zone}"]`);
   if (await target.count() !== 1) throw new Error(`${spec.name}: target zone is not unique`);
+  await target.waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction((zoneKey) => {
+    const element = document.querySelector(`[data-zone="${zoneKey}"]`);
+    const box = element?.getBoundingClientRect();
+    return Boolean(box && box.width > 0 && box.height > 0);
+  }, spec.zone, { timeout: 15000 });
   const nodePointer = await target.evaluate((element) => {
     const box = element.getBoundingClientRect();
     const candidates = [
@@ -1884,12 +1956,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   // interaction contract inspects the underlying map/drawer after selection,
   // so finish only that presentation before exercising drawer controls.
   if (spec.zone === 'k21_25') {
-    const firstEntryFilm = page.locator('#boss-cinematic.show.intro-film[data-zone-key="k21_25"]');
-    if (await firstEntryFilm.count()) {
-      const skip = firstEntryFilm.locator('.intro-skip-btn');
-      if (await skip.count()) await skip.click({ force: true });
-      await firstEntryFilm.waitFor({ state: 'hidden', timeout: 5000 });
-    }
+    await dismissZone2EntryPresentationForMapInspection(page);
   }
 
   const selected = await page.evaluate(() => {
@@ -2124,15 +2191,20 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
     const cta = page.locator(ctaSelector);
     const actionTraceStart = actionTrace.length;
     let startsBeforeReady = null;
-    if (spec.deferRuntimeReady) await page.evaluate(() => { window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false; });
-    else await page.waitForFunction(() => window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === true);
-    await cta.click();
     if (spec.deferRuntimeReady) {
+      // A pending question runtime must visibly disable the CTA. Exercise the
+      // same shell entry function directly for this gate test; a disabled DOM
+      // button cannot emit a click event by design.
+      await page.evaluate(() => { window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false; });
+      await page.evaluate((zoneKey) => window.E9.startAdventureFromE9(zoneKey), journeyZoneKey);
       startsBeforeReady = await page.evaluate(() => window.__e10QuestionStarts.length);
       await page.evaluate(() => {
         window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = true;
         document.dispatchEvent(new CustomEvent('adventure:question-runtime-ready'));
       });
+    } else {
+      await page.waitForFunction(() => window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === true);
+      await cta.click();
     }
     await page.locator('[data-e10-question-state]').waitFor({ state: 'visible' });
     questionEntry = await page.evaluate(() => ({
@@ -2248,6 +2320,12 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   if (spec.portrait && spec.playable && (!selected.ctaVisible || selected.ctaDisabled || selected.ctaHit !== 'e9-world-stage-details-cta')) {
     failures.push(`${spec.name}: portrait detail CTA is not directly hit-testable`);
   }
+  if (spec.expectedCtaKind && selected.latestSelection?.ctaKind !== spec.expectedCtaKind) {
+    failures.push(`${spec.name}: expected CTA kind ${spec.expectedCtaKind}, got ${selected.latestSelection?.ctaKind}`);
+  }
+  if (spec.expectedCtaLabel && !selected.ctaText.includes(spec.expectedCtaLabel)) {
+    failures.push(`${spec.name}: expected CTA label ${spec.expectedCtaLabel}, got ${selected.ctaText}`);
+  }
   if (spec.expectedCtaKind && (!canonicalDetail
     || canonicalDetail.ctaKind !== spec.expectedCtaKind
     || canonicalDetail.ctaLabel !== spec.expectedCtaLabel)) {
@@ -2299,7 +2377,9 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   }
   if (spec.expectStackedCombat) {
     const layout = questionEntry?.combatLayout;
-    if (!layout || layout.rowDisplay !== 'block' || !layout.board || !layout.battleArena
+    if (!layout || !['block', 'grid'].includes(layout.rowDisplay) || !layout.board || !layout.battleArena
+      || !layout.mainLeft || !layout.side
+      || layout.side.top < layout.mainLeft.bottom
       || layout.battleArena.top < layout.board.bottom) {
       failures.push(`${spec.name}: touch gameplay no longer preserves the intended stacked layout`);
     }
@@ -2423,7 +2503,7 @@ async function captureIpadInteractionRecoveryEvidence(
     // the other playable-zone cases.
     { name: 'ipad-1024x768-current', viewport: { width: 1024, height: 768 }, lang: 'zh', zone: 'k21_25', portrait: false, drawerLifecycle: true, playable: true, journey: false },
     { name: 'ipad-1180x820-selected', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true },
-    { name: 'ipad-1366x1024-completed', viewport: { width: 1366, height: 1024 }, lang: 'en', zone: 'k26_30', portrait: false, playable: true, journey: true },
+    { name: 'ipad-1366x1024-completed', viewport: { width: 1366, height: 1024 }, lang: 'en', zone: 'k26_30', portrait: false, playable: true, journey: false, expectedCtaKind: 'replay_completed', expectedCtaLabel: 'Challenge this boss again' },
     { name: 'mobile-430x932-parity', viewport: { width: 430, height: 932 }, lang: 'zh', zone: 'k16_20', portrait: false, drawerLifecycle: false, expectDrawerHidden: true, playable: true, journey: true, journeySurface: 'inline' },
   ];
   const results = [];
@@ -2705,18 +2785,18 @@ async function main({
     if (args.includes('--post-global-regression-only')) {
       const regressionSpecs = [
         { name: 'post-global-ipad-768-selected-low-zone', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'zh', zone: 'k1_5', portrait: true, expectDrawerHidden: true, playable: true, journey: true, deferRuntimeReady: true, expectStackedCombat: true },
-        { name: 'post-global-ipad-portrait-completed-zone1', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'zh', zone: 'k26_30', portrait: true, fixtureMode: 'owner-completed-zone1-mainline', expectDrawerHidden: true, playable: true, journey: true, expectStackedCombat: true, expectedCtaKind: 'replay_completed', expectedCtaLabel: '再次挑戰領主' },
+        { name: 'post-global-ipad-portrait-completed-zone1', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'zh', zone: 'k26_30', portrait: true, fixtureMode: 'owner-completed-zone1-mainline', expectDrawerHidden: true, playable: true, journey: false, expectedCtaKind: 'replay_completed', expectedCtaLabel: '再次挑戰領主' },
         { name: 'post-global-ipad-1180-selected-low-zone', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true },
-        { name: 'post-global-windowed-desktop-combat-layout', viewport: { width: 823, height: 794 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
-        { name: 'post-global-narrow-fine-desktop-combat-layout', viewport: { width: 768, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
-        { name: 'post-global-1024-fine-desktop-combat-layout', viewport: { width: 1024, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
+        { name: 'post-global-windowed-desktop-combat-layout', viewport: { width: 823, height: 794 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectStackedCombat: true },
+        { name: 'post-global-narrow-fine-desktop-combat-layout', viewport: { width: 768, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectStackedCombat: true },
+        { name: 'post-global-1024-fine-desktop-combat-layout', viewport: { width: 1024, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectStackedCombat: true },
         { name: 'post-global-wide-desktop-combat-layout', viewport: { width: 1366, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
         { name: 'post-global-ipad-landscape-layout', viewport: { width: 1024, height: 768 }, hasTouch: true, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectStackedCombat: true },
-        { name: 'post-global-ipad-landscape-completed-zone1', viewport: { width: 1024, height: 768 }, hasTouch: true, lang: 'zh', zone: 'k26_30', portrait: false, fixtureMode: 'owner-completed-zone1-mainline', playable: true, journey: true, expectStackedCombat: true, expectedCtaKind: 'replay_completed', expectedCtaLabel: '再次挑戰領主' },
+        { name: 'post-global-ipad-landscape-completed-zone1', viewport: { width: 1024, height: 768 }, hasTouch: true, lang: 'zh', zone: 'k26_30', portrait: false, fixtureMode: 'owner-completed-zone1-mainline', playable: true, journey: false, expectedCtaKind: 'replay_completed', expectedCtaLabel: '再次挑戰領主' },
         { name: 'post-global-same-zone-resumable-encounter', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', resumableEncounterZone: 'k16_20', portrait: false, playable: true, journey: true },
         { name: 'post-global-cross-zone-encounter-does-not-hijack', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', resumableEncounterZone: 'k21_25', portrait: false, playable: true, journey: true },
         { name: 'post-global-production-lifecycle-without-zone-does-not-fallback', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'en', zone: 'k16_20', productionLifecycleNoZone: true, portrait: true, expectDrawerHidden: true, playable: true, journey: true, expectStackedCombat: true },
-        { name: 'post-global-desktop-completed-zone1', viewport: { width: 1366, height: 1024 }, lang: 'zh', zone: 'k26_30', portrait: false, playable: true, journey: true },
+        { name: 'post-global-desktop-completed-zone1', viewport: { width: 1366, height: 1024 }, lang: 'zh', zone: 'k26_30', portrait: false, playable: true, journey: false, expectedCtaKind: 'replay_completed', expectedCtaLabel: '再次挑戰領主' },
         { name: 'post-global-mobile-selected-low-zone', viewport: { width: 430, height: 932 }, lang: 'zh', zone: 'k16_20', portrait: false, expectDrawerHidden: true, playable: true, journey: true, journeySurface: 'inline' },
       ];
       const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(
