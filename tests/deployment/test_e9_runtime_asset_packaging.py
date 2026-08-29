@@ -42,11 +42,12 @@ E9_JS_FILES = [
     "bottom_dock.js", "component_loader.js", "feature_flags.js",
     "left_nav.js", "right_cards.js", "shell.js", "top_hud.js", "world_stage.js",
     "adapters/player_state.js", "adapters/adventure_state.js", "adapters/activity_state.js",
+    "adventure_spirit_unlock_presentation.js",
 ]
 E9_CSS_FILES = [
     "art_directed_runtime.css", "cards.css", "immersive_rpg.css", "navigation.css",
     "quests.css", "reference_world_map.css", "rwd.css", "shell.css", "top_hud.css",
-    "world_stage.css",
+    "world_stage.css", "adventure_spirit_unlock.css",
 ]
 E9_COMPONENT_FILES = [
     "bottom_dock.html", "left_nav.html", "right_cards.html", "top_hud.html", "world_stage.html",

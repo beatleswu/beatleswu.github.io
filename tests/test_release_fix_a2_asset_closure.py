@@ -60,6 +60,21 @@ PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 # unaffected by this incident (see the audit's Phase 3, Class D).
 NON_ASSET_KNOWN_GOOD = {"/icon-192.png", "/icon-512.png", "/og-image.jpg", "/favicon.ico"}
 
+# These exact references are deliberately outside the release image pack. The
+# six Wave 2 character PNGs are planning/review source masters, while the Go
+# stone overlay is INVENTORY_ONLY with NO_RUNTIME_OVERLAY in the governed
+# wearable registry. Keep this set exact so new runtime image references still
+# fail closed instead of being hidden by a broad planning-path ignore.
+INTENTIONAL_NON_PACKAGED_REFERENCES = {
+    "/assets/hero/characters/wave2_p1/apprentice_p1.png",
+    "/assets/hero/characters/wave2_p1/constellation_apprentice_p1.png",
+    "/assets/hero/characters/wave2_p1/mage_p1.png",
+    "/assets/hero/characters/wave2_p1/night_runner_p1.png",
+    "/assets/hero/characters/wave2_p1/paladin_p1.png",
+    "/assets/hero/characters/wave2_p1/trail_apprentice_p1.png",
+    "/assets/hero/equipment/wearables/overlays/go_stone_black.png",
+}
+
 IMAGE_EXT_PATTERN = re.compile(
     r"""["'(](/[a-zA-Z0-9_./-]+\.(?:png|jpe?g|webp|gif|ico))["')]"""
 )
@@ -121,7 +136,7 @@ def test_every_runtime_image_reference_resolves_to_governed_closure():
     governed |= {"/" + f["path"] for f in lord_trial_manifest["files"]}
     referenced = scan_runtime_image_references()
 
-    unresolved = referenced - governed - NON_ASSET_KNOWN_GOOD
+    unresolved = referenced - governed - NON_ASSET_KNOWN_GOOD - INTENTIONAL_NON_PACKAGED_REFERENCES
     assert not unresolved, (
         f"{len(unresolved)} referenced image path(s) are not covered by the canonical "
         f"active canonical image pack manifest (deploy/canonical-image-pack-manifest.json) or the "
@@ -136,7 +151,7 @@ def test_every_runtime_image_reference_resolves_to_governed_closure():
 
 def test_every_referenced_image_has_a_source_file_in_repo():
     referenced = scan_runtime_image_references()
-    for path in referenced:
+    for path in referenced - INTENTIONAL_NON_PACKAGED_REFERENCES:
         if path == "/favicon.ico":
             # False positive: matches app.py's `@app.route('/favicon.ico')`
             # decorator string, not a file reference. The route intentionally
