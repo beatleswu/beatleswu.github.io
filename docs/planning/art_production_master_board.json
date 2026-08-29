@@ -1,21 +1,21 @@
 {
-  "task": "ART002_120_MONSTER_ROSTER_AND_ZONE_DISTRIBUTION_LOCK_CANDIDATE_001",
+  "task": "ART003_120_MONSTER_PRODUCTION_ART_BATCH_001",
   "track": "ART_PRODUCTION",
   "mode": "DESIGN_ANALYZE_DOCS_COMMIT_PUSH",
-  "generated_from": "origin/master",
+  "generated_from": "origin/master@6829c4c528adf4800326e90534585a32e390ebec",
   "audit_reference": {
-    "current_origin_master": "92127b25ff1570836ce1e8f2dd2c813b893be03a",
-    "base_sha": "92127b25ff1570836ce1e8f2dd2c813b893be03a",
+    "current_origin_master": "6829c4c528adf4800326e90534585a32e390ebec",
+    "base_sha": "3e7034ef71c27ca00acf456d03f95301f30b8c64",
     "design_source_snapshot": "4585bd1a12d179d0810300f047357f2e36c3e851",
     "art001_baseline_commit": "32cb6fe4631c91375094529244395eca202c95b2",
-    "branch": "codex/art002-120-monster-roster-candidate-001",
+    "branch": "codex/art003-120-monster-production-art-batch-001",
     "fetched_before_design": "YES"
   },
   "scope_boundary": {
     "canonical_repo": "D:\\go-website",
     "forbidden_repo_scanned": "NO",
     "protected_files_read_or_hashed": "NO",
-    "new_art_generated": "NO",
+    "new_art_generated": "YES",
     "art_assets_mutated": 0,
     "app_py_writer": "NO",
     "runtime_mutation": "NO",
@@ -25,7 +25,19 @@
       "docs/planning/art_production_master_board.md",
       "docs/planning/art_production_master_board.json",
       "docs/planning/art_120_monster_roster_candidate.md",
-      "docs/planning/art_120_monster_roster_candidate.json"
+      "docs/planning/art_120_monster_roster_candidate.json",
+      "docs/planning/art_003_batch_001_manifest.md",
+      "docs/planning/art_003_batch_001_manifest.json",
+      "art/monsters/M002_gate_sprout.png",
+      "art/monsters/M003_barrel_bouncer.png",
+      "art/monsters/M004_strawhat_mole.png",
+      "art/monsters/M005_chime_chick.png",
+      "art/monsters/M006_pebble_beetle.png",
+      "art/monsters/M007_well_bubble.png",
+      "art/monsters/M008_paddy_hopper.png",
+      "art/monsters/M009_signpost_fox.png",
+      "art/monsters/M010_dumpling_gnome.png",
+      "art/monsters/M012_mudball_otter.png"
     ]
   },
   "art001_baseline": {
@@ -50,13 +62,15 @@
     "BOSS_COUNTED_AS_NORMAL_MONSTER": 0,
     "LORD_COUNTED_AS_NORMAL_MONSTER": 0,
     "SPIRIT_COUNTED_AS_NORMAL_MONSTER": 0,
-    "NEW_ART_GENERATED": "NO",
+    "NEW_ART_GENERATED": "YES",
+    "ART003_B01_ARTWORK_COUNT": 10,
+    "ART003_B01_ARTWORK_QA": "PROVISIONAL_PASS",
     "ART_ASSETS_MUTATED": 0,
     "APP_PY_CHANGED": "NO",
     "RUNTIME_CHANGED": "NO",
     "STATIC_RUNTIME_CHANGED": "NO",
     "TASK_INTRODUCED_FAILURES": 0,
-    "REMOTE_HEAD_EXACT": "YES"
+    "REMOTE_HEAD_EXACT": "PENDING_PUSH"
   },
   "normal_monster": {
     "target": 120,
@@ -65,13 +79,13 @@
     "roster_defined_count": 10,
     "candidate_roster_defined_count": 110,
     "art_brief_count": 120,
-    "art_exists_count": 10,
+    "art_exists_count": 20,
     "owner_approved_count": 0,
     "canonical_asset_count": 10,
     "runtime_mapped_count": 10,
     "visual_qa_passed_count": 0,
     "completely_undefined_count": 0,
-    "new_art_production_required_count": 110,
+    "new_art_production_required_count": 100,
     "authoritative_120_roster_exists_before_art002": "NO",
     "candidate_roster_lock": "PENDING_OWNER",
     "zone_distribution_authority_before_art002": "NO",
@@ -88,7 +102,7 @@
       "Z9": 14,
       "Z10": 9
     },
-    "metric_method": "Candidate identity coverage is 120/120, but only 10/120 have current art and runtime identity evidence. Candidate rows are not treated as locked authority, Owner-approved, canonical or runtime-mapped until separately gated."
+    "metric_method": "Candidate identity coverage is 120/120. ART003 adds ten provisional B01 artwork files, so any-art coverage is 20/120; only the ten pre-existing runtime assets remain canonical/runtime-mapped. Generated B01 files are not Owner-approved or canonical until separately gated, and provisional visual QA is not final cross-surface QA."
   },
   "track_metrics": {
     "MONSTER_ROSTER_PERCENT": "100.00% candidate coverage (120/120; Owner lock pending)",
@@ -278,8 +292,8 @@
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
       "NOTES": "Existing runtime normal identity retained separately from visual approval; current runtime name is LV1 史萊姆 / 哥布林; KEEP_CURRENT_IDENTITY_AND_ART_CANDIDATE."
     },
-    {
-      "MONSTER_ID": "M002",
+  {
+    "MONSTER_ID": "M002",
       "ART_MONSTER_ID": "M002",
       "RUNTIME_ID": null,
       "ZH_NAME": "村口豆芽",
@@ -288,21 +302,21 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M002_gate_sprout.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "MAGIC",
       "DESIGN_CLASS": "UNIQUE_BASE",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
-    {
-      "MONSTER_ID": "M003",
+  {
+    "MONSTER_ID": "M003",
       "ART_MONSTER_ID": "M003",
       "RUNTIME_ID": null,
       "ZH_NAME": "木桶小咕",
@@ -311,21 +325,21 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M003_barrel_bouncer.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "TANK",
       "DESIGN_CLASS": "UNIQUE_BASE",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
-    {
-      "MONSTER_ID": "M004",
+  {
+    "MONSTER_ID": "M004",
       "ART_MONSTER_ID": "M004",
       "RUNTIME_ID": null,
       "ZH_NAME": "草帽鼴鼠",
@@ -334,21 +348,21 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M004_strawhat_mole.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "FAST",
       "DESIGN_CLASS": "VARIANT",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
-    {
-      "MONSTER_ID": "M005",
+  {
+    "MONSTER_ID": "M005",
       "ART_MONSTER_ID": "M005",
       "RUNTIME_ID": null,
       "ZH_NAME": "風鈴小鳥",
@@ -357,21 +371,21 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M005_chime_chick.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "FLYING",
       "DESIGN_CLASS": "UNIQUE_BASE",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
-    {
-      "MONSTER_ID": "M006",
+  {
+    "MONSTER_ID": "M006",
       "ART_MONSTER_ID": "M006",
       "RUNTIME_ID": null,
       "ZH_NAME": "石子甲蟲",
@@ -380,21 +394,21 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M006_pebble_beetle.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "ARMORED",
       "DESIGN_CLASS": "UNIQUE_BASE",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
-    {
-      "MONSTER_ID": "M007",
+  {
+    "MONSTER_ID": "M007",
       "ART_MONSTER_ID": "M007",
       "RUNTIME_ID": null,
       "ZH_NAME": "井邊水泡",
@@ -403,21 +417,21 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M007_well_bubble.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "TRICKSTER",
       "DESIGN_CLASS": "UNIQUE_BASE",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
-    {
-      "MONSTER_ID": "M008",
+  {
+    "MONSTER_ID": "M008",
       "ART_MONSTER_ID": "M008",
       "RUNTIME_ID": null,
       "ZH_NAME": "稻田蹦蹦",
@@ -426,21 +440,21 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M008_paddy_hopper.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "FAST",
       "DESIGN_CLASS": "VARIANT",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
-    {
-      "MONSTER_ID": "M009",
+  {
+    "MONSTER_ID": "M009",
       "ART_MONSTER_ID": "M009",
       "RUNTIME_ID": null,
       "ZH_NAME": "木牌狐仔",
@@ -449,21 +463,21 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M009_signpost_fox.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "TRICKSTER",
       "DESIGN_CLASS": "UNIQUE_BASE",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
-    {
-      "MONSTER_ID": "M010",
+  {
+    "MONSTER_ID": "M010",
       "ART_MONSTER_ID": "M010",
       "RUNTIME_ID": null,
       "ZH_NAME": "糰子地精",
@@ -472,18 +486,18 @@
       "ZONE": "Z1 新手村",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M010_dumpling_gnome.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "BASIC",
       "DESIGN_CLASS": "UNIQUE_BASE",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
     {
       "MONSTER_ID": "M011",
@@ -508,8 +522,8 @@
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
       "NOTES": "Existing runtime normal identity retained separately from visual approval; current runtime name is LV2 哥布林 / 洞窟蝙蝠; KEEP_CURRENT_IDENTITY_AND_ART_CANDIDATE."
     },
-    {
-      "MONSTER_ID": "M012",
+  {
+    "MONSTER_ID": "M012",
       "ART_MONSTER_ID": "M012",
       "RUNTIME_ID": null,
       "ZH_NAME": "泥球水獺",
@@ -518,18 +532,18 @@
       "ZONE": "Z2 史萊姆平原",
       "ROSTER_DEFINED": "CANDIDATE",
       "BRIEF": "YES",
-      "DRAFT": "NO",
+    "DRAFT": "YES",
       "OWNER_APPROVED": "NO",
       "CANONICAL_ASSET": "NO",
-      "ART_EXISTS": "NO",
-      "ASSET_PATH": null,
+    "ART_EXISTS": "YES",
+    "ASSET_PATH": "art/monsters/M012_mudball_otter.png",
       "RUNTIME_MAPPED": "NO",
-      "VISUAL_QA": "NO",
+    "VISUAL_QA": "PROVISIONAL_PASS",
       "PRIMARY_VISUAL_ROLE": "TRICKSTER",
       "DESIGN_CLASS": "UNIQUE_BASE",
       "BATCH_ID": "B01",
       "ART_BRIEF_REFERENCE": "docs/planning/art_120_monster_roster_candidate.json",
-      "NOTES": "Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned."
+    "NOTES": "ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending."
     },
     {
       "MONSTER_ID": "M013",
@@ -3898,10 +3912,12 @@
     "notes": "No orphan assigned. Existing unknown fallback remains a placeholder and is not roster art."
   },
   "file_quality_audit": {
-    "art002_scope": "No image files were generated or mutated by ART002; ART001 raster audit remains the evidence baseline.",
+      "art002_scope": "ART001/ART002 raster audit remains the provenance baseline; no pre-existing asset was overwritten or mutated.",
+      "art003_scope": "Ten new B01 PNG files were generated under art/monsters. No existing runtime asset was replaced, renamed, moved or deleted.",
+      "art003_b01_alpha_check": "All ten B01 target files are PNG RGBA with alpha channel present and corner alpha equal to zero.",
     "flags": [
       "No asset optimization or rewrite performed.",
-      "No candidate row promotes a file by visual quality alone.",
+      "No generated candidate row is Owner-approved or canonical by visual quality alone.",
       "Existing Monster dimensions remain inconsistent; normalization is not part of ART002."
     ]
   },
@@ -3922,15 +3938,15 @@
     ],
     [
       "P0",
-      "W0 representative style lock",
-      "One existing representative per Zone; no art generation in ART002.",
-      "RECOMMENDED_NOT_STARTED"
+      "Owner-locked Monster style system",
+      "Owner style system is recorded as locked for ART003; per-asset approval remains separate.",
+      "OWNER_STYLE_APPROVED"
     ],
     [
       "P1",
       "B01-B11 new Monster illustration waves",
-      "110 new identities after Owner lock; no batch started.",
-      "BLOCKED_ON_OWNER_ROSTER_LOCK"
+      "B01 provisional artwork complete for M002-M010 and M012; Owner review and canonical promotion remain pending.",
+      "B01_PROVISIONAL_ARTWORK_COMPLETE"
     ],
     [
       "P1",
@@ -3952,29 +3968,31 @@
     ]
   ],
   "recommended_production_sequence": [
-    "1. Owner reviews this candidate and locks or revises Zone distribution and all 120 briefs.",
-    "2. W0-STYLE-LOCK reviews one existing identity per Zone to establish representative visual language.",
-    "3. Produce B01-B11 in adjacent Zone/theme order, with batch-level redundancy review.",
-    "4. Record Owner approval, canonical path, runtime mapping and visual QA as separate gates."
+    "1. Keep the ART002 candidate roster, Zone distribution and identity fields unchanged; ART003 treats them as production inputs.",
+    "2. Use the Owner-locked style system and the ten supplied reference images only as style direction; do not copy card text, stats, borders or unrostered identities.",
+    "3. Produce B01 in coherent Z1/Z2 scope, then run style consistency, silhouette differentiation, redundancy, Zone-fit, naming and file-level alpha checks.",
+    "4. Record per-asset Owner approval, canonical promotion, runtime mapping and final cross-surface visual QA as separate gates."
   ],
   "evidence_provenance": [
-    "Final fresh origin/master fetch at 92127b25ff1570836ce1e8f2dd2c813b893be03a; ART002 design source snapshot was 4585bd1a12d179d0810300f047357f2e36c3e851 before origin/master advanced.",
+    "ART003 fresh fetch observed origin/master at 6829c4c528adf4800326e90534585a32e390ebec; ART003 branch starts from ART002 head 3e7034ef71c27ca00acf456d03f95301f30b8c64.",
     "ART001 was preserved as exact baseline commit 32cb6fe4631c91375094529244395eca202c95b2 before ART002 edits.",
-    "Candidate JSON is the source for all 120 briefs, names, Zone assignments, variants and batch IDs.",
-    "No Boss, Lord or Spirit is counted in M001-M120; no runtime/static art wiring was changed."
+    "Candidate JSON remains the source for all 120 briefs, names, Zone assignments, variants and batch IDs; ART003 changed none of those fields.",
+    "The ten supplied JPGs were inspected as visual references. Their embedded names are not treated as roster mappings unless they match the candidate source; no reference image was copied into the repo.",
+    "B01 files were generated one asset per M-ID, then checked for PNG/RGBA mode and transparent corner pixels. No Boss, Lord or Spirit is counted in M001-M120; no runtime/static art wiring was changed."
   ],
   "final_report": {
-    "TASK": "ART002_120_MONSTER_ROSTER_AND_ZONE_DISTRIBUTION_LOCK_CANDIDATE_001",
-    "CURRENT_ORIGIN_MASTER": "92127b25ff1570836ce1e8f2dd2c813b893be03a",
-    "BASE_SHA": "92127b25ff1570836ce1e8f2dd2c813b893be03a",
+    "TASK": "ART003_120_MONSTER_PRODUCTION_ART_BATCH_001",
+    "CURRENT_ORIGIN_MASTER": "6829c4c528adf4800326e90534585a32e390ebec",
+    "BASE_SHA": "3e7034ef71c27ca00acf456d03f95301f30b8c64",
     "ART001_BASELINE_COMMIT": "32cb6fe4631c91375094529244395eca202c95b2",
     "ART001_BASELINE_REMOTE_HEAD_EXACT": "YES",
-    "BRANCH": "codex/art002-120-monster-roster-candidate-001",
-    "ART002_COMMIT": null,
-    "LOCAL_HEAD": "RECORDED_AFTER_ART002_COMMIT",
-    "TRACKING_HEAD": "RECORDED_AFTER_PUSH",
-    "REMOTE_HEAD": "RECORDED_AFTER_PUSH",
-    "REMOTE_HEAD_EXACT": "YES",
+    "BRANCH": "codex/art003-120-monster-production-art-batch-001",
+    "ART002_COMMIT": "3e7034ef71c27ca00acf456d03f95301f30b8c64",
+    "ART003_COMMIT": null,
+    "LOCAL_HEAD": "PENDING_COMMIT",
+    "TRACKING_HEAD": "PENDING_PUSH",
+    "REMOTE_HEAD": "PENDING_PUSH",
+    "REMOTE_HEAD_EXACT": "PENDING_PUSH",
     "NORMAL_MONSTER_TARGET": 120,
     "EXISTING_RUNTIME_MONSTERS": 10,
     "NEW_MONSTER_IDENTITIES_PROPOSED": 110,
@@ -4004,7 +4022,7 @@
     "BOSS_COUNTED_AS_NORMAL_MONSTER": 0,
     "LORD_COUNTED_AS_NORMAL_MONSTER": 0,
     "SPIRIT_COUNTED_AS_NORMAL_MONSTER": 0,
-    "NEW_ART_GENERATED": "NO",
+    "NEW_ART_GENERATED": "YES",
     "ART_ASSETS_MUTATED": 0,
     "APP_PY_CHANGED": "NO",
     "RUNTIME_CHANGED": "NO",
@@ -4013,14 +4031,15 @@
     "DEPLOY": "NO",
     "PRODUCTION_MUTATION": "NO",
     "TASK_INTRODUCED_FAILURES": 0,
-    "WHAT_THE_120_ROSTER_NOW_CONTAINS": "120 candidate normal-Monster identities M001-M120; ten retain exact existing runtime IDs and assets, 110 are new proposed identities; every row has a Zone, bilingual name and art brief.",
+    "WHAT_THE_120_ROSTER_NOW_CONTAINS": "The unchanged ART002 candidate roster contains 120 normal-Monster identities M001-M120; ART003 adds provisional artwork for ten B01 identities (M002-M010 and M012) without changing roster, Zone, identity or runtime authority.",
     "WHY_THE_ZONE_DISTRIBUTION_WAS_CHOSEN": "10/11/12/12/12/13/13/14/14/9 follows encounter breadth and visual escalation through Z9 while keeping the finale compact; it does not force 12 per Zone.",
     "HOW_EXISTING_10_WERE_HANDLED": "Accounted for 10/10, retaining exact runtime IDs and current asset paths. Seven remain art candidates, one is marked redesign-art, and Z3/Z8 require Owner taxonomy decisions. None is Owner-approved by existence alone.",
     "HOW_REDUNDANCY_WAS_PREVENTED": "100 unique base designs and 20 explicit non-palette variants with parent/delta fields; pre-art audit resolved all high-redundancy pairs to zero.",
-    "WHAT_OWNER_MUST_REVIEW": "Zone distribution, all names, all briefs, family/silhouette balance, variant deltas, existing-art decisions, batch order and Boss/Lord/Spirit boundaries.",
-    "RECOMMENDED_FIRST_ART_WAVE": "W0-STYLE-LOCK representatives, then B01; recommendation only, not started.",
-    "RESULT": "PASS_CANDIDATE_READY_FOR_OWNER_REVIEW",
-    "READY_FOR_COORDINATOR_ART002_REVIEW": "YES",
-    "READY_FOR_OWNER_120_MONSTER_ROSTER_REVIEW": "YES"
+    "WHAT_OWNER_MUST_REVIEW": "B01 artwork style consistency, silhouette differentiation, Zone appropriateness, naming alignment, transparency edges and per-asset approval; canonical promotion and runtime mapping remain separate.",
+    "RECOMMENDED_FIRST_ART_WAVE": "B01 provisional artwork is complete for review; next wave should follow the same locked style after Owner feedback.",
+    "RESULT": "B01_PROVISIONAL_ARTWORK_READY_FOR_OWNER_REVIEW",
+    "READY_FOR_COORDINATOR_ART003_REVIEW": "YES",
+    "READY_FOR_OWNER_120_MONSTER_ROSTER_REVIEW": "YES",
+    "READY_FOR_OWNER_B01_ART_REVIEW": "YES"
   }
 }

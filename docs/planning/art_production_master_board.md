@@ -1,13 +1,15 @@
 # Go Odyssey ART Production Master Board
 
-- Task: ART002_120_MONSTER_ROSTER_AND_ZONE_DISTRIBUTION_LOCK_CANDIDATE_001
+- Task: ART003_120_MONSTER_PRODUCTION_ART_BATCH_001
 - Track: ART_PRODUCTION
-- Mode: DESIGN_ANALYZE_DOCS_COMMIT_PUSH
+- Mode: DESIGN_ANALYZE_DOCS_COMMIT_PUSH + IMAGEGEN
 - Candidate status: READY_FOR_OWNER_120_MONSTER_ROSTER_REVIEW
 - Roster lock: NO; this is an Owner-reviewable candidate, not gameplay/database authority.
-- Origin reference: origin/master@92127b25ff1570836ce1e8f2dd2c813b893be03a
+- Origin reference: origin/master@6829c4c528adf4800326e90534585a32e390ebec
 - Design source snapshot used before origin/master advanced: 4585bd1a12d179d0810300f047357f2e36c3e851
 - ART001 immutable baseline: 32cb6fe4631c91375094529244395eca202c95b2
+- ART002 parent: 3e7034ef71c27ca00acf456d03f95301f30b8c64
+- Owner style system: locked and approved for ART003; per-asset approval remains separate.
 
 ## 1. Executive Status
 
@@ -18,13 +20,13 @@ NEW_MONSTER_IDENTITIES_PROPOSED=110
 TOTAL_ROSTER_CANDIDATE_COUNT=120
 MONSTER_ROSTER_DEFINED_COUNT=10 observed runtime identities + 110 candidate identities
 MONSTER_ART_BRIEF_COUNT=120
-MONSTER_ART_EXISTS_COUNT=10
+MONSTER_ART_EXISTS_COUNT=20
 MONSTER_OWNER_APPROVED_COUNT=0
 MONSTER_CANONICAL_ASSET_COUNT=10
 MONSTER_RUNTIME_MAPPED_COUNT=10
 MONSTER_VISUAL_QA_PASSED_COUNT=0
 MONSTER_COMPLETELY_UNDEFINED_COUNT=0 candidate identity gap; ART001 baseline was 110
-NEW_MONSTER_ART_PRODUCTION_REQUIRED_COUNT=110
+NEW_MONSTER_ART_PRODUCTION_REQUIRED_COUNT=100
 MONSTER_ROSTER_PERCENT=100.00% candidate coverage (Owner lock pending)
 MONSTER_ART_APPROVAL_PERCENT=0.00%
 MONSTER_CANONICAL_PERCENT=8.33%
@@ -47,10 +49,12 @@ UNIQUE_BASE_DESIGN_COUNT=100
 VARIANT_DESIGN_COUNT=20
 UNRESOLVED_HIGH_REDUNDANCY_PAIRS=0
 ART_PRODUCTION_BATCH_COUNT=12
+ART003_B01_ARTWORK_COUNT=10
+ART003_B01_ARTWORK_STATUS=PROVISIONAL_PASS
 ORPHAN_POSSIBLE_REUSE_COUNT=0
 ```
 
-The ART001 baseline answer was 10 observed normal runtime identities, 10 current art-bearing paths, zero explicit Monster Owner approvals, and 110 completely undefined target slots. ART002 fills those 110 slots with proposed identities and briefs only. It does not create art, promote files, or wire runtime.
+The ART001 baseline answer was 10 observed normal runtime identities, 10 current art-bearing paths, zero explicit Monster Owner approvals, and 110 completely undefined target slots. ART002 filled those 110 slots with proposed identities and briefs. ART003 B01 now adds ten provisional artwork files for M002-M010 and M012. These files are not Owner-approved, canonical, or runtime-wired.
 
 ```
 ART001_BASELINE_PRESERVED=YES
@@ -61,7 +65,7 @@ ALL_120_HAVE_ZH_EN_NAME=YES
 BOSS_COUNTED_AS_NORMAL_MONSTER=0
 LORD_COUNTED_AS_NORMAL_MONSTER=0
 SPIRIT_COUNTED_AS_NORMAL_MONSTER=0
-NEW_ART_GENERATED=NO
+NEW_ART_GENERATED=YES
 ART_ASSETS_MUTATED=0
 APP_PY_CHANGED=NO
 RUNTIME_CHANGED=NO
@@ -76,20 +80,39 @@ PRODUCTION_MUTATION=NO
 
 Stable production IDs M001-M120 are used only for art-production tracking; they are not silently promoted to gameplay/database authority. The ten existing runtime IDs remain in their own column and are retained unchanged. The full brief fields are in the dedicated candidate document.
 
+### ART003 B01 Production Record
+
+B01 contains M002-M010 and M012. Each asset below is a generated provisional artwork file. `VISUAL_QA=PROVISIONAL_PASS` means the image was reviewed against its locked brief and passed the file-level PNG/RGBA/transparent-corner check; it is not Owner acceptance, canonical promotion, runtime mapping, or final cross-surface QA.
+
+| ART_MONSTER_ID | ZH_NAME | EN_NAME | ZONE | ARTWORK_PATH | STYLE | SILHOUETTE | ALPHA_CHECK | OWNER_APPROVED | CANONICAL_ASSET | RUNTIME_MAPPED | VISUAL_QA |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| M002 | 村口豆芽 | Gate Sprout | Z1 新手村 | art/monsters/M002_gate_sprout.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M003 | 木桶小咕 | Barrel Bouncer | Z1 新手村 | art/monsters/M003_barrel_bouncer.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M004 | 草帽鼴鼠 | Strawhat Mole | Z1 新手村 | art/monsters/M004_strawhat_mole.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M005 | 風鈴小鳥 | Chime Chick | Z1 新手村 | art/monsters/M005_chime_chick.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M006 | 石子甲蟲 | Pebble Beetle | Z1 新手村 | art/monsters/M006_pebble_beetle.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M007 | 井邊水泡 | Well Bubble | Z1 新手村 | art/monsters/M007_well_bubble.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M008 | 稻田蹦蹦 | Paddy Hopper | Z1 新手村 | art/monsters/M008_paddy_hopper.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M009 | 木牌狐仔 | Signpost Fox | Z1 新手村 | art/monsters/M009_signpost_fox.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M010 | 糰子地精 | Dumpling Gnome | Z1 新手村 | art/monsters/M010_dumpling_gnome.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+| M012 | 泥球水獺 | Mudball Otter | Z2 史萊姆平原 | art/monsters/M012_mudball_otter.png | PASS | PASS | PASS | NO | NO | NO | PROVISIONAL_PASS |
+
+The supplied ten JPGs were used only as style references. They are not copied into the asset folder and their embedded names are not treated as roster authority.
+
 | MONSTER_ID | CANONICAL_NAME | ZONE | RUNTIME_ID | ROSTER_DEFINED | BRIEF | DRAFT | OWNER_APPROVED | CANONICAL_ASSET | ASSET_PATH | RUNTIME_MAPPED | VISUAL_QA | NOTES |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | M001 | 新手史萊姆 | Z1 新手村 | legacy_bf_01_normal | YES | YES | YES | UNKNOWN | YES | assets/monsters/slime_chibi.png | YES | UNKNOWN | Existing runtime normal identity retained separately from visual approval; current runtime name is LV1 史萊姆 / 哥布林; KEEP_CURRENT_IDENTITY_AND_ART_CANDIDATE. |
-| M002 | 村口豆芽 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M003 | 木桶小咕 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M004 | 草帽鼴鼠 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M005 | 風鈴小鳥 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M006 | 石子甲蟲 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M007 | 井邊水泡 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M008 | 稻田蹦蹦 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M009 | 木牌狐仔 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M010 | 糰子地精 | Z1 新手村 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
+| M002 | 村口豆芽 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M002_gate_sprout.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
+| M003 | 木桶小咕 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M003_barrel_bouncer.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
+| M004 | 草帽鼴鼠 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M004_strawhat_mole.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
+| M005 | 風鈴小鳥 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M005_chime_chick.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
+| M006 | 石子甲蟲 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M006_pebble_beetle.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
+| M007 | 井邊水泡 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M007_well_bubble.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
+| M008 | 稻田蹦蹦 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M008_paddy_hopper.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
+| M009 | 木牌狐仔 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M009_signpost_fox.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
+| M010 | 糰子地精 | Z1 新手村 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M010_dumpling_gnome.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
 | M011 | 洞窟蝙蝠 | Z2 史萊姆平原 | legacy_bf_02_normal | YES | YES | YES | UNKNOWN | YES | assets/monsters/cave_bat_chibi.png | YES | UNKNOWN | Existing runtime normal identity retained separately from visual approval; current runtime name is LV2 哥布林 / 洞窟蝙蝠; KEEP_CURRENT_IDENTITY_AND_ART_CANDIDATE. |
-| M012 | 泥球水獺 | Z2 史萊姆平原 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
+| M012 | 泥球水獺 | Z2 史萊姆平原 | null | CANDIDATE | YES | YES | NO | NO | art/monsters/M012_mudball_otter.png | NO | PROVISIONAL_PASS | ART003 B01 artwork generated; Owner approval, canonical promotion, runtime mapping and final cross-surface QA remain pending. |
 | M013 | 泡泡蛙 | Z2 史萊姆平原 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
 | M014 | 風箏蜻蜓 | Z2 史萊姆平原 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
 | M015 | 草籽羊 | Z2 史萊姆平原 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
@@ -328,41 +351,45 @@ No orphan was assigned to a roster row. No asset was promoted based on filename 
 | Priority | Work | Status |
 |---|---|---|
 | P0 | Owner review and roster/distribution lock | READY_FOR_OWNER_REVIEW |
-| P0 | W0 representative style lock | RECOMMENDED_NOT_STARTED |
-| P1 | B01-B11 new Monster illustration waves | BLOCKED_ON_OWNER_ROSTER_LOCK |
+| P0 | W0 representative style lock | OWNER_STYLE_SYSTEM_LOCKED |
+| P0 | ART003 B01 artwork review | PROVISIONAL_COMPLETE_OWNER_REVIEW_PENDING |
+| P1 | B02-B12 remaining Monster illustration waves | PENDING_B01_REVIEW |
 | P1 | Canonical asset and runtime mapping closure | NOT_STARTED |
 | P1 | Z3/Z8 existing identity taxonomy decisions | OWNER_DECISION_REQUIRED |
 | P2 | Governed orphan/legacy disposition | NOT_STARTED |
 
 ## 11. Recommended Production Sequence
 
-1. Owner reviews and locks/revises the candidate distribution, identities, names, briefs, family balance, variants and batch order.
-2. Review W0-STYLE-LOCK: one existing representative per Zone; this is a style review and does not make current art Owner-approved.
-3. Produce B01-B11 in adjacent Zone/theme order, reviewing redundancy at each batch.
-4. For accepted art, record Owner approval, canonical asset status, runtime mapping and visual QA as separate gates.
+1. Owner reviews the ART002 candidate distribution, identities, names, briefs, family balance, variants and batch order; ART003 does not alter them.
+2. Preserve the Owner-locked Monster Style System as the production baseline; B01 uses it without changing the style system.
+3. Review ART003 B01 for style consistency, silhouette differentiation, Zone appropriateness, naming consistency and asset alpha quality.
+4. Produce B02-B12 in adjacent Zone/theme batches only after the preceding batch review, recording Owner approval, canonical asset status, runtime mapping and visual QA as separate gates.
 5. Keep Boss, Lord, Spirit, reward and runtime authority boundaries unchanged.
 
-Recommended first art wave: W0-STYLE-LOCK representatives, then B01. ART002 does not start either wave.
+Recommended first art wave: ART003 B01 is the first production batch and is ready for Owner art review; B02 follows only after that review.
 
 ## 12. Evidence / Provenance Notes
 
-- Final fresh git fetch recorded current origin/master=92127b25ff1570836ce1e8f2dd2c813b893be03a; ART002 design source snapshot was 4585bd1a12d179d0810300f047357f2e36c3e851 before that fast-forward merge.
-- ART001 was committed first, with only its two Master Board files, as 32cb6fe4631c91375094529244395eca202c95b2; the remote branch head matched exactly before ART002 edits.
-- Existing normal runtime IDs, exact current names, Zones and asset paths are retained in the candidate JSON; no runtime ID was renamed.
-- The 120 rows are candidate art-production records, not gameplay/database authority. ART_COMPLETE still requires roster definition, brief, explicit Owner approval and canonical asset; runtime completion and visual QA remain separate.
-- Pre-art redundancy review records 100 unique base designs and 20 explicit variants with parent/delta fields; unresolved high-redundancy pairs are zero, subject to Owner illustration review.
-- ART001 orphan scope remains 47; ART002 assigned zero possible reuse and made no file mutations.
-- Protected files and the forbidden C:\go-website tree were not read/scanned. No runtime or static asset wiring was changed.
+- Final fresh git fetch recorded current origin/master=6829c4c528adf4800326e90534585a32e390ebec; ART003 starts from ART002 head 3e7034ef71c27ca00acf456d03f95301f30b8c64.
+- ART001 was committed first, with only its two Master Board files, as 32cb6fe4631c91375094529244395eca202c95b2; the ART002 candidate was subsequently committed as 3e7034ef71c27ca00acf456d03f95301f30b8c64.
+- Existing normal runtime IDs, exact current names, Zones and asset paths are retained in the candidate JSON; no runtime ID was renamed or rewired.
+- ART003 B01 contains ten newly generated provisional PNGs for M002-M010 and M012. They are production artwork candidates with transparent RGBA backgrounds; Owner approval, canonical promotion, runtime mapping and final cross-surface visual QA remain separate pending gates.
+- The ten attached JPGs were used only as style references. Embedded card names, stats, skills, reward text and UI framing are not roster or gameplay authority.
+- The 120 rows remain candidate art-production records, not gameplay/database authority. ART_COMPLETE still requires roster definition, brief, explicit Owner approval and canonical asset; runtime completion and visual QA remain separate.
+- Pre-art redundancy review records 100 unique base designs and 20 explicit variants with parent/delta fields; B01 adds ten distinct silhouettes and has zero unresolved high-redundancy pairs in this batch review.
+- ART001 orphan scope remains 47; ART002 assigned zero possible reuse and ART003 did not assign or mutate any orphan/legacy asset.
+- Protected files and the forbidden C:\go-website tree were not read/scanned. No app.py, runtime, HTML, JS, CSS, service-worker or static runtime wiring was changed.
 
 ## 13. Final Report
 
 ```
-TASK=ART002_120_MONSTER_ROSTER_AND_ZONE_DISTRIBUTION_LOCK_CANDIDATE_001
-CURRENT_ORIGIN_MASTER=92127b25ff1570836ce1e8f2dd2c813b893be03a
+TASK=ART003_120_MONSTER_PRODUCTION_ART_BATCH_001
+CURRENT_ORIGIN_MASTER=6829c4c528adf4800326e90534585a32e390ebec
 ART001_BASELINE_COMMIT=32cb6fe4631c91375094529244395eca202c95b2
 ART001_BASELINE_REMOTE_HEAD_EXACT=YES
-BRANCH=codex/art002-120-monster-roster-candidate-001
-ART002_COMMIT=RECORDED_AFTER_COMMIT
+ART002_COMMIT=3e7034ef71c27ca00acf456d03f95301f30b8c64
+BRANCH=codex/art003-120-monster-production-art-batch-001
+ART003_COMMIT=RECORDED_AFTER_COMMIT
 LOCAL_HEAD=RECORDED_AFTER_COMMIT
 TRACKING_HEAD=RECORDED_AFTER_PUSH
 REMOTE_HEAD=RECORDED_AFTER_PUSH
@@ -372,6 +399,8 @@ NORMAL_MONSTER_TARGET=120
 EXISTING_RUNTIME_MONSTERS=10
 NEW_MONSTER_IDENTITIES_PROPOSED=110
 TOTAL_ROSTER_CANDIDATE_COUNT=120
+ART003_B01_ARTWORK_COUNT=10
+ART003_B01_ARTWORK_STATUS=PROVISIONAL_COMPLETE_OWNER_REVIEW_PENDING
 Z1_NORMAL_MONSTER_COUNT=10
 Z2_NORMAL_MONSTER_COUNT=11
 Z3_NORMAL_MONSTER_COUNT=12
@@ -397,7 +426,7 @@ ART_PRODUCTION_BATCH_COUNT=12
 BOSS_COUNTED_AS_NORMAL_MONSTER=0
 LORD_COUNTED_AS_NORMAL_MONSTER=0
 SPIRIT_COUNTED_AS_NORMAL_MONSTER=0
-NEW_ART_GENERATED=NO
+NEW_ART_GENERATED=YES
 ART_ASSETS_MUTATED=0
 APP_PY_CHANGED=NO
 RUNTIME_CHANGED=NO
@@ -406,7 +435,8 @@ MASTER_MERGE=NO
 DEPLOY=NO
 PRODUCTION_MUTATION=NO
 TASK_INTRODUCED_FAILURES=0
-RESULT=PASS_CANDIDATE_READY_FOR_OWNER_REVIEW
-READY_FOR_COORDINATOR_ART002_REVIEW=YES
+RESULT=B01_PROVISIONAL_ARTWORK_READY_FOR_OWNER_REVIEW
+READY_FOR_COORDINATOR_ART003_REVIEW=YES
 READY_FOR_OWNER_120_MONSTER_ROSTER_REVIEW=YES
+READY_FOR_OWNER_B01_ART_REVIEW=YES
 ```
