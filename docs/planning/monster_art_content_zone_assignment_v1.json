@@ -1,0 +1,1484 @@
+{
+  "contract_version": "MONSTER_ART_CONTENT_ZONE_ASSIGNMENT_V1",
+  "status": "OWNER_APPROVED_CANONICAL_ART_CONTENT_PLANNING",
+  "scope": "ART_CONTENT_PLANNING_ONLY",
+  "exact_m_id_zone_assignment_status": "OWNER_APPROVED_CANONICAL_ART_CONTENT_PLANNING",
+  "owner_approved_exact_assignment": true,
+  "gameplay_authority": false,
+  "runtime_zone_authority": false,
+  "art_content_count_used_for_combat": false,
+  "f009_enabled": false,
+  "rarity_used_for_zone_assignment": false,
+  "boss_included_in_120_count": false,
+  "lord_included_in_120_count": false,
+  "current_origin_master": "574b3eeb9641c48676e95d3744d204dffca1e1fa",
+  "base_sha": "574b3eeb9641c48676e95d3744d204dffca1e1fa",
+  "history": {
+    "f033_count_lock_head": "214fd1961c60c2325ce4d906af2bf01ee0787798",
+    "f034_initial_exact_proposal_head": "ea6458318e73f9ef81ce0b6083a0a4729a05f994",
+    "f034_r1_replacement_packet_head": "62e060961dfed0766763240bdea044a686c8d232",
+    "f034_r2_final_candidate_packet_head": "6447bc965c201042e0023400c324f877cd5bb09e",
+    "art002_reference_head": "3e7034ef71c27ca00acf456d03f95301f30b8c64",
+    "art002_old_distribution_status": "SUPERSEDED_FOR_ART_CONTENT_PLANNING",
+    "decision_lineage_documented": true
+  },
+  "zone_counts": {
+    "Z1": 14,
+    "Z2": 14,
+    "Z3": 13,
+    "Z4": 12,
+    "Z5": 12,
+    "Z6": 12,
+    "Z7": 12,
+    "Z8": 11,
+    "Z9": 10,
+    "Z10": 10
+  },
+  "total": 120,
+  "old_art002_distribution": {
+    "Z1": 10,
+    "Z2": 11,
+    "Z3": 12,
+    "Z4": 12,
+    "Z5": 12,
+    "Z6": 13,
+    "Z7": 13,
+    "Z8": 14,
+    "Z9": 14,
+    "Z10": 9
+  },
+  "owner_approved_moves": [
+    {
+      "monster_id": "M060",
+      "from": "Z6",
+      "to": "Z3",
+      "decision_source": "OWNER_APPROVED_F034_R1"
+    },
+    {
+      "monster_id": "M073",
+      "from": "Z7",
+      "to": "Z10",
+      "decision_source": "OWNER_APPROVED_F034_R1"
+    },
+    {
+      "monster_id": "M088",
+      "from": "Z8",
+      "to": "Z2",
+      "decision_source": "OWNER_APPROVED_F034_R1"
+    },
+    {
+      "monster_id": "M094",
+      "from": "Z8",
+      "to": "Z2",
+      "decision_source": "OWNER_APPROVED_F034_R1"
+    },
+    {
+      "monster_id": "M091",
+      "from": "Z8",
+      "to": "Z2",
+      "decision_source": "OWNER_APPROVED_F034_R1"
+    },
+    {
+      "monster_id": "M107",
+      "from": "Z9",
+      "to": "Z1",
+      "decision_source": "OWNER_APPROVED_F034_R2"
+    },
+    {
+      "monster_id": "M110",
+      "from": "Z9",
+      "to": "Z1",
+      "decision_source": "OWNER_APPROVED_F034_R2"
+    },
+    {
+      "monster_id": "M100",
+      "from": "Z9",
+      "to": "Z1",
+      "decision_source": "OWNER_APPROVED_F034_R2"
+    },
+    {
+      "monster_id": "M105",
+      "from": "Z9",
+      "to": "Z1",
+      "decision_source": "OWNER_APPROVED_F034_R2"
+    }
+  ],
+  "owner_approved_move_count": 9,
+  "owner_rejected_retained": [
+    {
+      "monster_id": "M064",
+      "original_zone": "Z6",
+      "decision_source": "OWNER_REJECTED_F034_R1"
+    },
+    {
+      "monster_id": "M086",
+      "original_zone": "Z8",
+      "decision_source": "OWNER_REJECTED_F034_R1"
+    },
+    {
+      "monster_id": "M099",
+      "original_zone": "Z9",
+      "decision_source": "OWNER_REJECTED_F034_R1"
+    },
+    {
+      "monster_id": "M102",
+      "original_zone": "Z9",
+      "decision_source": "OWNER_REJECTED_F034_R1"
+    },
+    {
+      "monster_id": "M104",
+      "original_zone": "Z9",
+      "decision_source": "OWNER_REJECTED_F034_R1"
+    },
+    {
+      "monster_id": "M109",
+      "original_zone": "Z9",
+      "decision_source": "OWNER_REJECTED_F034_R1"
+    },
+    {
+      "monster_id": "M106",
+      "original_zone": "Z9",
+      "decision_source": "OWNER_REJECTED_F034_R2"
+    }
+  ],
+  "owner_rejected_move_count": 7,
+  "unselected_r2_candidates_moved": false,
+  "unselected_r2_candidates": [
+    {
+      "monster_id": "M111",
+      "zone": "Z9"
+    },
+    {
+      "monster_id": "M103",
+      "zone": "Z9"
+    },
+    {
+      "monster_id": "M108",
+      "zone": "Z9"
+    },
+    {
+      "monster_id": "M101",
+      "zone": "Z9"
+    }
+  ],
+  "runtime_anchors": [
+    {
+      "monster_id": "M001",
+      "planning_zone": "Z1",
+      "runtime_zone": "Z1",
+      "runtime_key": "k26_30",
+      "runtime_identity": "legacy_bf_01_normal"
+    },
+    {
+      "monster_id": "M011",
+      "planning_zone": "Z2",
+      "runtime_zone": "Z2",
+      "runtime_key": "k21_25",
+      "runtime_identity": "legacy_bf_02_normal"
+    },
+    {
+      "monster_id": "M022",
+      "planning_zone": "Z3",
+      "runtime_zone": "Z3",
+      "runtime_key": "k16_20",
+      "runtime_identity": "legacy_bf_03_normal"
+    },
+    {
+      "monster_id": "M034",
+      "planning_zone": "Z4",
+      "runtime_zone": "Z4",
+      "runtime_key": "k11_15",
+      "runtime_identity": "legacy_bf_04_normal"
+    },
+    {
+      "monster_id": "M046",
+      "planning_zone": "Z5",
+      "runtime_zone": "Z5",
+      "runtime_key": "k6_10",
+      "runtime_identity": "legacy_bf_05_normal"
+    },
+    {
+      "monster_id": "M058",
+      "planning_zone": "Z6",
+      "runtime_zone": "Z6",
+      "runtime_key": "k1_5",
+      "runtime_identity": "legacy_bf_06_normal"
+    },
+    {
+      "monster_id": "M071",
+      "planning_zone": "Z7",
+      "runtime_zone": "Z7",
+      "runtime_key": "d1_2",
+      "runtime_identity": "legacy_bf_07_normal"
+    },
+    {
+      "monster_id": "M084",
+      "planning_zone": "Z8",
+      "runtime_zone": "Z8",
+      "runtime_key": "d3_4",
+      "runtime_identity": "legacy_bf_08_normal"
+    },
+    {
+      "monster_id": "M098",
+      "planning_zone": "Z9",
+      "runtime_zone": "Z9",
+      "runtime_key": "d5_6",
+      "runtime_identity": "legacy_bf_09_normal"
+    },
+    {
+      "monster_id": "M112",
+      "planning_zone": "Z10",
+      "runtime_zone": "Z10",
+      "runtime_key": "d7_plus",
+      "runtime_identity": "legacy_bf_10_normal"
+    }
+  ],
+  "runtime_anchor_count": 10,
+  "runtime_anchor_planning_divergence": 0,
+  "art003": {
+    "may_use_exact_assignment_for_planning": true,
+    "may_use_for_gameplay_mapping": false,
+    "b01_ids": [
+      "M002",
+      "M003",
+      "M004",
+      "M005",
+      "M006",
+      "M007",
+      "M008",
+      "M009",
+      "M010",
+      "M012"
+    ],
+    "art_assets_changed": false
+  },
+  "assignments": [
+    {
+      "monster_id": "M001",
+      "identity_name": "Beginner Slime",
+      "concept": "village slime",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M002",
+      "identity_name": "Gate Sprout",
+      "concept": "garden sprout",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M003",
+      "identity_name": "Barrel Bouncer",
+      "concept": "village scavenger",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M004",
+      "identity_name": "Strawhat Mole",
+      "concept": "garden burrower",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M005",
+      "identity_name": "Chime Chick",
+      "concept": "dojo songbird",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M006",
+      "identity_name": "Pebble Beetle",
+      "concept": "path beetle",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M007",
+      "identity_name": "Well Bubble",
+      "concept": "well sprite",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M008",
+      "identity_name": "Paddy Hopper",
+      "concept": "field hopper",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M009",
+      "identity_name": "Signpost Fox",
+      "concept": "roadside fox",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M010",
+      "identity_name": "Dumpling Gnome",
+      "concept": "village helper",
+      "original_art002_zone": "Z1",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M011",
+      "identity_name": "Cave Bat",
+      "concept": "plains cave bat",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M012",
+      "identity_name": "Mudball Otter",
+      "concept": "puddle otter",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M013",
+      "identity_name": "Bubble Frog",
+      "concept": "pond frog",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M014",
+      "identity_name": "Kite Dragonfly",
+      "concept": "field insect",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M015",
+      "identity_name": "Grassseed Lamb",
+      "concept": "meadow grazer",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M016",
+      "identity_name": "Puddle Crab",
+      "concept": "water-edge crab",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M017",
+      "identity_name": "Spring Grasshopper",
+      "concept": "meadow insect",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M018",
+      "identity_name": "Jellyfish",
+      "concept": "rain jelly",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M019",
+      "identity_name": "Parasol Funglet",
+      "concept": "field fungus",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M020",
+      "identity_name": "Whirl Vole",
+      "concept": "wind vole",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M021",
+      "identity_name": "Dewdrop Fawn",
+      "concept": "morning grazer",
+      "original_art002_zone": "Z2",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M022",
+      "identity_name": "Cave Orc Grunt",
+      "concept": "cave faction",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M023",
+      "identity_name": "Coppercap Goblin",
+      "concept": "goblin scavenger",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M024",
+      "identity_name": "Echo Bat",
+      "concept": "cave bat",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M025",
+      "identity_name": "Pickaxe Moleworker",
+      "concept": "ore burrower",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M026",
+      "identity_name": "Fungus Lantern Imp",
+      "concept": "fungus goblin",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M027",
+      "identity_name": "Rope-Ladder Lizard",
+      "concept": "cave lizard",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M028",
+      "identity_name": "Ironbucket Beetle",
+      "concept": "ore beetle",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M029",
+      "identity_name": "Crevice Snake",
+      "concept": "stone snake",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M030",
+      "identity_name": "Cartcap Crawler",
+      "concept": "fungus carrier",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M031",
+      "identity_name": "Crystal Ore Gob",
+      "concept": "brittle goblin",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M032",
+      "identity_name": "Cavern Slinger",
+      "concept": "goblin scout",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M033",
+      "identity_name": "Stalactite Tortoise",
+      "concept": "stone tortoise",
+      "original_art002_zone": "Z3",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M034",
+      "identity_name": "Mosswood Sprite",
+      "concept": "forest sprite",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M035",
+      "identity_name": "Mist-tail Fox",
+      "concept": "forest fox",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M036",
+      "identity_name": "Moonleaf Moth",
+      "concept": "forest moth",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M037",
+      "identity_name": "Vineclaw Beast",
+      "concept": "vine beast",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M038",
+      "identity_name": "Mossback Turtle",
+      "concept": "moss tortoise",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M039",
+      "identity_name": "Dewdrop Spider",
+      "concept": "dew spider",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M040",
+      "identity_name": "Twig Deer",
+      "concept": "twig grazer",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M041",
+      "identity_name": "Fogwhistle Frog",
+      "concept": "mist frog",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M042",
+      "identity_name": "Bloomcrown Caterpillar",
+      "concept": "flower caterpillar",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M043",
+      "identity_name": "Shadowstep Cat",
+      "concept": "moss cat",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M044",
+      "identity_name": "Hollowtree Cub",
+      "concept": "tree hollow bear",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M045",
+      "identity_name": "Mosscap Sapling",
+      "concept": "forest sapling",
+      "original_art002_zone": "Z4",
+      "final_planning_zone": "Z4",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M046",
+      "identity_name": "Tribal Orc",
+      "concept": "clan frontier",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M047",
+      "identity_name": "Ember Drum Brute",
+      "concept": "drum clan",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M048",
+      "identity_name": "Hide-shield Rhino",
+      "concept": "herd guard",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M049",
+      "identity_name": "Redclay Ram",
+      "concept": "clay herd",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M050",
+      "identity_name": "War Drum Lizard",
+      "concept": "drum lizard",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M051",
+      "identity_name": "Feathercrest Hound",
+      "concept": "clan hound",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M052",
+      "identity_name": "Mortar Mole",
+      "concept": "clan hauler",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M053",
+      "identity_name": "Copperring Boar",
+      "concept": "clan boar",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M054",
+      "identity_name": "Campfire Skink",
+      "concept": "camp reptile",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M055",
+      "identity_name": "Banner-tail Bison",
+      "concept": "banner herd",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M056",
+      "identity_name": "Mudplate Armadillo",
+      "concept": "clay burrower",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M057",
+      "identity_name": "Drumface Tortoise",
+      "concept": "clan tortoise",
+      "original_art002_zone": "Z5",
+      "final_planning_zone": "Z5",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M058",
+      "identity_name": "Wyvern",
+      "concept": "valley wyvern",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M059",
+      "identity_name": "Lava-wing Drake",
+      "concept": "lava drake",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M060",
+      "identity_name": "Crystalhorn Lizard",
+      "concept": "crystal lizard",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z3",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M061",
+      "identity_name": "Cloudclaw Gryphon",
+      "concept": "sky gryphon",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M062",
+      "identity_name": "Sparkscale Gecko",
+      "concept": "spark gecko",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M063",
+      "identity_name": "Basalt Shellbeast",
+      "concept": "basalt beast",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M064",
+      "identity_name": "Windspine Serpent",
+      "concept": "wind serpent",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "OWNER_REJECTED_RETAINED",
+      "decision_source": "OWNER_REJECTED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M065",
+      "identity_name": "Ember-tail Foxdragon",
+      "concept": "foxdragon",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M066",
+      "identity_name": "Cliffskip Goat",
+      "concept": "cliff goat",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M067",
+      "identity_name": "Sulfur Salamander",
+      "concept": "sulfur salamander",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M068",
+      "identity_name": "Nestling Raptor",
+      "concept": "nest raptor",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M069",
+      "identity_name": "Starflame Bat",
+      "concept": "sky bat",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M070",
+      "identity_name": "Molten Gold Centipede",
+      "concept": "lava crawler",
+      "original_art002_zone": "Z6",
+      "final_planning_zone": "Z6",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M071",
+      "identity_name": "Tower Shade Caster",
+      "concept": "tower shade",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M072",
+      "identity_name": "Pagefox",
+      "concept": "library fox",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M073",
+      "identity_name": "Brass Golem",
+      "concept": "tower construct",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M074",
+      "identity_name": "Stardust Moth",
+      "concept": "spell moth",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M075",
+      "identity_name": "Inkwell Octopus",
+      "concept": "ink familiar",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M076",
+      "identity_name": "Floating Bell Bug",
+      "concept": "tower bell bug",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M077",
+      "identity_name": "Rune Owl",
+      "concept": "rune owl",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M078",
+      "identity_name": "Potion Gob",
+      "concept": "alchemy goblin",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M079",
+      "identity_name": "Prism Gecko",
+      "concept": "prism gecko",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M080",
+      "identity_name": "Gravity Crab",
+      "concept": "gravity crustacean",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M081",
+      "identity_name": "Scrollback Turtle",
+      "concept": "scroll tortoise",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M082",
+      "identity_name": "Astrolabe Beetle",
+      "concept": "observatory beetle",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M083",
+      "identity_name": "Cloudstep Ram",
+      "concept": "tower ram",
+      "original_art002_zone": "Z7",
+      "final_planning_zone": "Z7",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M084",
+      "identity_name": "Frontline Iron Knight",
+      "concept": "frontier armor beast",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M085",
+      "identity_name": "Blackgate Hound",
+      "concept": "gate hound",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M086",
+      "identity_name": "Breakshield Beetle",
+      "concept": "siege beetle",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "OWNER_REJECTED_RETAINED",
+      "decision_source": "OWNER_REJECTED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M087",
+      "identity_name": "Bannerbreak Stonebeast",
+      "concept": "fort stonebeast",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M088",
+      "identity_name": "Stringwing Bat",
+      "concept": "scout bat",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M089",
+      "identity_name": "Steelfang Hyena",
+      "concept": "frontier hyena",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M090",
+      "identity_name": "Battlement Lizard",
+      "concept": "wall lizard",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M091",
+      "identity_name": "Smokescreen Weasel",
+      "concept": "scout weasel",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M092",
+      "identity_name": "Ironwheel Rhino",
+      "concept": "siege rhino",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M093",
+      "identity_name": "Beacon Scorpion",
+      "concept": "signal scorpion",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M094",
+      "identity_name": "Shieldshell Crab",
+      "concept": "moat crab",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z2",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M095",
+      "identity_name": "Obsidian Automaton",
+      "concept": "frontier construct",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M096",
+      "identity_name": "Wallbreak Bear",
+      "concept": "gate bear",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M097",
+      "identity_name": "Scout Hawkbeast",
+      "concept": "frontier hawk",
+      "original_art002_zone": "Z8",
+      "final_planning_zone": "Z8",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M098",
+      "identity_name": "Stormpray Bird",
+      "concept": "storm bird",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M099",
+      "identity_name": "Aurora Serpent",
+      "concept": "aurora serpent",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "OWNER_REJECTED_RETAINED",
+      "decision_source": "OWNER_REJECTED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M100",
+      "identity_name": "Thundercrown Stag",
+      "concept": "storm grazer",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R2",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M101",
+      "identity_name": "Skyvault Whale",
+      "concept": "cloud whale",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M102",
+      "identity_name": "Star-ring Ape",
+      "concept": "orbit ape",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "OWNER_REJECTED_RETAINED",
+      "decision_source": "OWNER_REJECTED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M103",
+      "identity_name": "Riftbow Eagle",
+      "concept": "storm eagle",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M104",
+      "identity_name": "Moon-eclipse Mantis",
+      "concept": "eclipse mantis",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "OWNER_REJECTED_RETAINED",
+      "decision_source": "OWNER_REJECTED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M105",
+      "identity_name": "Skydrum Tortoise",
+      "concept": "storm tortoise",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R2",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M106",
+      "identity_name": "Starsand Wolf",
+      "concept": "star wolf",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "OWNER_REJECTED_RETAINED",
+      "decision_source": "OWNER_REJECTED_F034_R2",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M107",
+      "identity_name": "Monolith Beetle",
+      "concept": "monument beetle",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R2",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M108",
+      "identity_name": "Thundercrystal Mantis",
+      "concept": "crystal mantis",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M109",
+      "identity_name": "Firmament Jelly",
+      "concept": "sky jelly",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "OWNER_REJECTED_RETAINED",
+      "decision_source": "OWNER_REJECTED_F034_R1",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M110",
+      "identity_name": "Dawnwing Serpent",
+      "concept": "dawn serpent",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z1",
+      "owner_move_status": "OWNER_APPROVED_MOVE",
+      "decision_source": "OWNER_APPROVED_F034_R2",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M111",
+      "identity_name": "Starshard Rhino",
+      "concept": "star rhino",
+      "original_art002_zone": "Z9",
+      "final_planning_zone": "Z9",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M112",
+      "identity_name": "Ancient Temple Idol",
+      "concept": "relic construct",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_RUNTIME_ANCHOR",
+      "decision_source": "RUNTIME_ANCHOR_AND_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M113",
+      "identity_name": "Timeworn Stone Turtle",
+      "concept": "time tortoise",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M114",
+      "identity_name": "Endgate Beast",
+      "concept": "gate beast",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M115",
+      "identity_name": "Ancient Bell Crawler",
+      "concept": "relic crawler",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M116",
+      "identity_name": "Ivorylight Beetle",
+      "concept": "ivory beetle",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M117",
+      "identity_name": "Blacksand Hound",
+      "concept": "relic hound",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M118",
+      "identity_name": "Relic Shellbeast",
+      "concept": "ruin beast",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M119",
+      "identity_name": "Silent Tabletling",
+      "concept": "tablet construct",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    },
+    {
+      "monster_id": "M120",
+      "identity_name": "Evergreen Rootbeast",
+      "concept": "ancient root beast",
+      "original_art002_zone": "Z10",
+      "final_planning_zone": "Z10",
+      "owner_move_status": "UNCHANGED_ART002",
+      "decision_source": "UNCHANGED_ART002",
+      "scope": "ART_CONTENT_PLANNING_ONLY"
+    }
+  ],
+  "validation": {
+    "assigned_m_id_count": 120,
+    "unassigned_m_id_count": 0,
+    "duplicate_assignment_count": 0,
+    "owner_decision_trace_count": 9,
+    "owner_rejected_decision_trace_count": 7,
+    "final_zone_count_test": true,
+    "runtime_anchor_test": true,
+    "authority_boundary_test": true,
+    "deterministic_rerun": true
+  },
+  "change_boundary": {
+    "app_py_changed": false,
+    "runtime_source_changed": false,
+    "runtime_mapping_changed": false,
+    "monster_stats_changed": false,
+    "combat_profile_mapping_changed": false,
+    "art_assets_changed": false,
+    "schema_changed": false,
+    "migration_changed": false,
+    "e047_scope_touched": false,
+    "b058_scope_touched": false,
+    "f035_included_in_b058": false,
+    "a044_scope_touched": false,
+    "lc015_scope_touched": false,
+    "art003_asset_scope_touched": false
+  }
+}
