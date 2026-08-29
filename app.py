@@ -2829,6 +2829,15 @@ APPEARANCE_EFFECTS = {
     'acc_premium':     {'xp_bonus': 0.08,  'label': 'XP +8%'},
 }
 
+# Dormant compatibility storage retained for the temporary social/avatar
+# read window.  These fields are never a source of ownership, equipped state,
+# combat effects, or new writes; functional equipment authority lives in
+# player_inventory and EQUIPMENT_DEFS.
+LEGACY_COMBAT_COMPATIBILITY_FIELDS = (
+    'combat_armor', 'combat_weapon', 'combat_cape', 'combat_offhand',
+    'combat_hat', 'combat_pet', 'combat_aura', 'combat_acc',
+)
+
 
 def _c013_catalog_resolver(owned_ids=()):
     """Build the C013 resolver from canonical appearance registries only."""
@@ -2856,13 +2865,16 @@ def _get_appearance_effects(uid, conn):
     equipment effects are read from ``player_inventory`` and ``EQUIPMENT_DEFS``
     by the server combat consumers; legacy appearance metadata must not be
     folded into review or combat settlement totals.
+
+    ``player_appearance.combat_*`` values are retained for the temporary
+    social/avatar read window only.  They are deliberately not read here for
+    XP or drop modifiers.  This keeps the compatibility response available
+    without allowing dormant legacy fields to grant gameplay effects.
     """
     try:
         eq = conn.execute(
-            'SELECT pa.*, us.go_rank AS _fx_go_rank, us.total_correct AS _fx_total_correct '
-            'FROM player_appearance pa '
-            'LEFT JOIN user_stats us ON us.user_id = pa.user_id '
-            'WHERE pa.user_id=?', (uid,)).fetchone()
+            'SELECT * FROM player_appearance WHERE user_id=?', (uid,)
+        ).fetchone()
     except Exception:
         return {'xp_bonus': 0.0, 'drop_bonus': 0.0}
     if not eq:
@@ -2877,28 +2889,6 @@ def _get_appearance_effects(uid, conn):
             fx = APPEARANCE_EFFECTS[iid]
             xp_b   += fx.get('xp_bonus', 0.0)
             drop_b += fx.get('drop_bonus', 0.0)
-    # Legacy combat-field values remain visible in this compatibility read
-    # model only; they are not consumed by gameplay settlement.
-    rank_tier = _rank_to_tier(eq['_fx_go_rank'] if '_fx_go_rank' in cols else '')
-    total_correct = (eq['_fx_total_correct'] if '_fx_total_correct' in cols else 0) or 0
-    def _tier(key):
-        key = key or ''
-        if '_t' in key:
-            suf = key.rsplit('_t', 1)[-1]
-            t = int(suf) if suf.isdigit() else 0
-            # de-rank / 門檻未達 → 該件不給加成（但不強制卸下，外觀照舊）
-            if t and not _gear_unlocked(key, rank_tier, total_correct):
-                return 0
-            return t
-        return 0
-    if 'combat_weapon'  in cols: xp_b   += _tier(eq['combat_weapon'])  * 0.01    # 武器 +XP
-    if 'combat_cape'    in cols: xp_b   += _tier(eq['combat_cape'])    * 0.005   # 斗篷 +XP
-    if 'combat_armor'   in cols: drop_b += _tier(eq['combat_armor'])   * 0.01    # 防具 +掉寶
-    if 'combat_offhand' in cols: drop_b += _tier(eq['combat_offhand']) * 0.005   # 副手 +掉寶
-    if 'combat_hat'     in cols: xp_b   += _tier(eq['combat_hat'])     * 0.005   # 頭飾 +XP
-    if 'combat_aura'    in cols: xp_b   += _tier(eq['combat_aura'])    * 0.01    # 光環 +XP
-    if 'combat_pet'     in cols: drop_b += _tier(eq['combat_pet'])     * 0.01    # 寵物 +掉寶
-    if 'combat_acc'     in cols: drop_b += _tier(eq['combat_acc'])     * 0.01    # 配飾 +掉寶
     return {'xp_bonus': round(xp_b, 4), 'drop_bonus': round(drop_b, 4)}
 
 # 稀有度掉落機率（外觀獨立於裝備，各自判定）
@@ -17960,29 +17950,22 @@ def skills_character():
     if ckey not in VALID_CHARACTER_KEYS:
         return jsonify({'error': 'invalid character_key'}), 400
 
-    # 戰鬥裝備四件＋配件（可選；只更新「有送來」的欄位，避免只送 character_key 的呼叫把裝備清掉）
-    def _clean(v):
-        if not isinstance(v, str):
-            return ''
-        v = v.strip()
-        return v[:24]
-    combat_in = {}
-    for col in ('combat_armor', 'combat_weapon', 'combat_cape', 'combat_offhand',
-                'combat_hat', 'combat_pet', 'combat_aura', 'combat_acc'):
-        if col in data:
-            combat_in[col] = _clean(data.get(col))
+    # A046: this endpoint is retained for character presentation compatibility
+    # only.  Legacy combat_* payload keys are explicitly rejected and never
+    # enter an INSERT/UPDATE.  Existing dormant values remain untouched;
+    # functional equipment is owned and equipped through player_inventory.
+    rejected_legacy_fields = [
+        col for col in LEGACY_COMBAT_COMPATIBILITY_FIELDS if col in data
+    ]
 
     is_prem = is_premium(uid)
     now = datetime.datetime.now().isoformat()
     with get_db() as conn:
-        # ── 解鎖驗證（伺服器端權威）：未解鎖的欄位靜默丟棄，保留其他有效變更 ──
+        # ── 角色解鎖驗證（伺服器端權威） ──
         metrics   = _compute_title_metrics(uid, conn)
-        rank_tier = _rank_to_tier(metrics.get('go_rank'))
         char_ok   = _cosmetic_unlocked('character', ckey, metrics, is_prem)
-        combat_fields = [(c, v) for c, v in combat_in.items()
-                         if _gear_unlocked(v, rank_tier, metrics.get('total_correct', 0))]   # 段位/累積答對未到 → 丟棄
         rejected = ([] if char_ok else ['character']) + \
-                   [c for c in combat_in if c not in dict(combat_fields)]
+                   rejected_legacy_fields
 
         existing = conn.execute(
             'SELECT user_id FROM player_appearance WHERE user_id=?', (uid,)
@@ -17991,15 +17974,13 @@ def skills_character():
             sets, vals = ['updated_at=?'], [now]
             if char_ok:
                 sets.insert(0, 'character_key=?'); vals.insert(0, ckey)
-            for col, v in combat_fields:
-                sets.append(f'{col}=?'); vals.append(v)
             vals.append(uid)
             conn.execute(
                 f"UPDATE player_appearance SET {', '.join(sets)} WHERE user_id=?", vals)
         else:
             eff_char = ckey if char_ok else 'apprentice'   # 新列且角色未解鎖 → 退回預設
-            cols = ['user_id', 'character_key', 'updated_at'] + [c for c, _ in combat_fields]
-            vals = [uid, eff_char, now] + [v for _, v in combat_fields]
+            cols = ['user_id', 'character_key', 'updated_at']
+            vals = [uid, eff_char, now]
             ph = ','.join('?' * len(cols))
             conn.execute(
                 f"INSERT INTO player_appearance({','.join(cols)}) VALUES({ph})", vals)
