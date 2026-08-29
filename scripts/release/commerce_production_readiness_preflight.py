@@ -996,13 +996,16 @@ def _shop_pre_mutation_dispatch_check(
                     "classifier": "_classify_shop_request" in called_names,
                     "canonical_dispatch": "_canonical_shop_purchase_response" in called_names,
                 }
-    complete = all(
-        evidence.get(route) == {
-            "gate": True,
-            "classifier": True,
-            "canonical_dispatch": True,
-        }
-        for route in required_routes
+    # C048 closes the default /api/shop/buy legacy mutation seam, and C049
+    # closes the separate appearance compatibility fallback.  Both routes
+    # must classify and dispatch canonically regardless of the Shop UI gate;
+    # keep the evidence shape stable for existing audit consumers while
+    # expressing the two route contracts independently.
+    complete = (
+        evidence.get("shop_buy", {}).get("classifier") is True
+        and evidence.get("shop_buy", {}).get("canonical_dispatch") is True
+        and evidence.get("shop_buy_appearance", {}).get("classifier") is True
+        and evidence.get("shop_buy_appearance", {}).get("canonical_dispatch") is True
     )
     return {"pass": complete, "routes": evidence}
 

@@ -160,14 +160,15 @@
     },
     {
       "path": "community_leaderboard_rewards.py",
-      "source_commit": "094a8230eb3644d10f02ef645c559646153f6383",
-      "source_branch_or_local_ref": "hotfix/community-leaderboard-is-admin-type",
-      "source_commit_subject": "fix/community: restore integer-safe leaderboard admin expression",
-      "source_date": "2026-07-14",
-      "content_sha256": "a03f46ff5eed7682763612b3cfd8d8ada9e948b34f7afea42618c1f5deaebf4e",
+      "source_commit": "a44aa7e2a82ef308233ae5cc97e100a23c6c827d",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "B050: close public SRS authority gap",
+      "source_date": "2026-08-28",
+      "content_sha256": "a8f9c8d249441f5e9f6b89323b4506f1cc28f43e53154d0d54b276ff6bfb465e",
+      "content_size_bytes": 91836,
       "line_ending_policy": "LF",
       "runtime_role": "app.py deferred/function-body imports only (lines 3699, 12170, 12183, 12202) -- not required at app startup, only when community-leaderboard-rewards code paths are invoked. Required by all five tools/community_leaderboard_rewards_*.py CLI scripts at their own module level. Content verified byte-identical (LF-normalized) to the file running in the Production container at the time of this audit. Contains reward-granting/database-write functions (e.g. grant_leaderboard_reward_claims, mark_leaderboard_claim_granted) -- not executed as part of this Sprint's verification.",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin. This file was newly resolved in DEPLOY-GOV-2B-FIX; it was not part of PR #52's original 12-file candidate set and was previously entirely absent from this repository."
+      "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "login.html",
@@ -195,16 +196,16 @@
     },
     {
       "path": "index.html",
-      "source_commit": "6decd4ccfd65e69117023db0cf2b22fc830768f1",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge PR #419: A032-R1 board-first Go Combat responsive visual closure",
-      "source_date": "2026-08-26",
-      "content_sha256": "f115d2964a0b342cf794ff6ab61b334100b93fbd16b1cfc283fed12c8711339c",
-      "content_size_bytes": 1037071,
+      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
+      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
+      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
+      "source_date": "2026-08-29",
+      "content_sha256": "fb50739d17052b4f783e88e20c45ce5a03451fd645119491e07bcb567c8097a9",
+      "content_size_bytes": 1046424,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "terms.html",
@@ -244,15 +245,16 @@
     },
     {
       "path": "bot.html",
-      "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: complete canonical image source closure",
-      "source_date": "2026-07-11",
-      "content_sha256": "c6cebe240a26f796b380eff80fe7d9c4f338176cc34f14614e2131730b8e6fde",
+      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
+      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
+      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
+      "source_date": "2026-08-29",
+      "content_sha256": "311671421c88d1299c6c6ea7710f577e023ce749a62a9955001757612ee77d54",
+      "content_size_bytes": 91858,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "daily_challenge.html",
@@ -316,27 +318,29 @@
     },
     {
       "path": "curriculum.html",
-      "source_commit": "c6521c2163eda4ddd4bee5ee0231865229fe4f9a",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: unify Daily Bounty player-facing naming",
-      "source_date": "2026-07-16",
-      "content_sha256": "b7702a86a08b601fe7804edc56527041201f9bace2ba0abadaaa673fb0903ffd",
+      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
+      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
+      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
+      "source_date": "2026-08-29",
+      "content_sha256": "e56cb62a902eca9ee88cb840f4e21719cee54e179fc3687496f0f8f6a80481e2",
+      "content_size_bytes": 136414,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "hero.html",
-      "source_commit": "9ae3cedcf4902bc792c17db4757c478d41d636a2",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat: adopt player presentation for hero overview",
-      "source_date": "2026-08-25",
-      "content_sha256": "b5b0be2d189c8afd403a0e1da26a3aa3a0c672b1ea55d548d79a0a9ebb6438ab",
+      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
+      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
+      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
+      "source_date": "2026-08-29",
+      "content_sha256": "899dafbaf99c21028a725fb968e7db14bc3cf4b944780cecee02d5466fd8b18d",
+      "content_size_bytes": 284136,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "rating_test.html",
@@ -352,27 +356,29 @@
     },
     {
       "path": "shop.html",
-      "source_commit": "03ba70ea9edacab07a06f0fa879ab6ad5d6fce10",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: close E030 Shop and loadout cutover blockers",
-      "source_date": "2026-08-26",
-      "content_sha256": "5a12fd7c7d2fdeb92c6d6901f6bdec041cb0456a4a6fb3b6fa7cd13c8f8c27fe",
+      "source_commit": "d86e72089ff3a776b3bd47572c3c03ef6f0d7d01",
+      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
+      "source_commit_subject": "fix: close appearance commerce mutation bypasses",
+      "source_date": "2026-08-29",
+      "content_sha256": "3eadfe7a2b218b4979d67fed2ed2ba504f5522266fd11893aaabaf416b815491",
+      "content_size_bytes": 163429,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "profile.html",
-      "source_commit": "e7b6dcb7674c171efe0854eeb72d1d569f3559fc",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge commit '7aa370228370629dbec2fc3ee91e05d6b161934c' into codex/go-odyssey-wave2-integration-candidate-002",
-      "source_date": "2026-08-21",
-      "content_sha256": "8188b0c0f41277fde92553792783dd234cc40565d2bf6bf7c4b5f1a5443c4635",
+      "source_commit": "4b52286c88bdc08484abf9f8acafcce3978ec28a",
+      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
+      "source_commit_subject": "fix(shop): close default purchase authority split",
+      "source_date": "2026-08-29",
+      "content_sha256": "51ba6eecb9596419f01fc062982fea7da356918b9ae112041e5678bdf00d2fc7",
+      "content_size_bytes": 27662,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
+      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "premium_weekly.html",
@@ -424,15 +430,16 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "e1212944f7a6ee4b0d8e04c2a03e5215620b89fb",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: refine backpack category filter plaques",
-      "source_date": "2026-08-26",
-      "content_sha256": "b9ac972d3e1b7e959bc5295ee363361fc9f83e25c723c74f44a95fde74d0b87c",
+      "source_commit": "4b52286c88bdc08484abf9f8acafcce3978ec28a",
+      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
+      "source_commit_subject": "fix(shop): close default purchase authority split",
+      "source_date": "2026-08-29",
+      "content_sha256": "e611ef8c14feb92598058119ddc119b5bdf5299a5b585968d6544264ebac1566",
+      "content_size_bytes": 75418,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "badges.html",
@@ -460,11 +467,12 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "88fb1f83e3d35324d874496fb8447bf88f3b0da8",
+      "source_commit": "a7381ab698f433a90147d47072224c1161527bb5",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Close Revenue V1 cosmetic i18n leaks",
-      "source_date": "2026-08-22",
-      "content_sha256": "76cc3458525a9a254ff65e67fd840166ffb013ef855f6902cd2f773e41510064",
+      "source_commit_subject": "feat(e10): consume battlefield boss reward result",
+      "source_date": "2026-08-28",
+      "content_sha256": "94cad1ce6acd0f214fc411928344667cb9f0ace0e80783e3e4f23fd0291523f7",
+      "content_size_bytes": 370769,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
@@ -472,15 +480,16 @@
     },
     {
       "path": "components/adventure/world_stage.html",
-      "source_commit": "0a5270af7d7f5c67bae7a72a94b14d5a6e903c37",
-      "source_branch_or_local_ref": "codex/e10-lord-trial-owner-acceptance-hotfix-001",
-      "source_commit_subject": "fix(e10): restore Lord Trial answer and replay entry",
-      "source_date": "2026-08-14",
-      "content_sha256": "1f40e6fababf1c6d32800187da792ee00109b7d3b24ce712b0a219fcfc79ba2e",
+      "source_commit": "2a9f6cb111c942ec41b4e10178671ca7bb667021",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix(e10): close partial player journey blockers",
+      "source_date": "2026-08-28",
+      "content_sha256": "e37d46dc4c46325291a0822e0d3dc7369919616bcb32b06aeb5ed9b4dc18c4ae",
+      "content_size_bytes": 5738,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage component markup; served by app.py static route",
       "production_hash_status": "candidate on the Owner acceptance hotfix branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Owner acceptance hotfix commit and raw-byte-verified against current content"
+      "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "css/e9/world_stage.css",
@@ -508,15 +517,16 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "f37185e1a22cab8f2280380b62a61efcf2bd5bc5",
-      "source_branch_or_local_ref": "codex/go-odyssey-wave2-release-recon-006",
-      "source_commit_subject": "fix(e10): require an authoritative clear for Replay Story",
-      "source_date": "2026-08-21",
-      "content_sha256": "79071cc5c8dc4bcb60bcdc43b156bd0f64fe5d915428ee24431491d390e6cd64",
+      "source_commit": "a4385d148b210e24f3e607a49c5675837dd5867c",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix(e10): close cleared-zone replay CTA",
+      "source_date": "2026-08-28",
+      "content_sha256": "3ef442349559a316672700497dad18570750a285bae795981e895ce182be865a",
+      "content_size_bytes": 89340,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
       "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "candidate integration provenance -- source_commit is byte-identical to current release-reconciliation content; Owner merge remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "sw.js",
@@ -570,28 +580,29 @@
     },
     {
       "path": "js/game/lord_trial_controller.js",
-      "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
-      "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
-      "source_commit_subject": "fix(e10): adapt frozen lord review contracts",
-      "source_date": "2026-08-15",
-      "content_sha256": "320967b79e470e4f9e527e305f98a3a3b3e875629157428d6174b7ab03311121",
+      "source_commit": "2e614f74e29002194f0a4154eaf5bb7e512d00cf",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "B051 wire authoritative Lord Trial judging",
+      "source_date": "2026-08-28",
+      "content_sha256": "b3b1fcadbe5b37a67066b393a786fef132113fe9334ab34835b14374ee3c1f4c",
+      "content_size_bytes": 9908,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required Lord Trial review authority browser module (governed static subpath asset)",
       "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
+      "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "js/game/review_transport.js",
-      "source_commit": "eb19218b9542dbb33ec956a09082b89630d24286",
+      "source_commit": "2e614f74e29002194f0a4154eaf5bb7e512d00cf",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "integrate D5 chain onto current master",
-      "source_date": "2026-08-22",
-      "content_sha256": "46469f6754ea2d9e4e9369eb95ece98ab8c5e4d22104667feb6fa4d767f2ae58",
-      "content_size_bytes": 8370,
+      "source_commit_subject": "B051 wire authoritative Lord Trial judging",
+      "source_date": "2026-08-28",
+      "content_sha256": "24127a7721fa1d5313b5d21ed48ecc3fb79f63e0d4024aea824c9b8c5ea5c5d5",
+      "content_size_bytes": 8516,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (ReviewTransport browser module; governed static subpath asset)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "js/game/game_session.js",
@@ -667,6 +678,19 @@
       "runtime_role": "startup-required static page/script (zone-agnostic cinematic replay order/unlock browser module; governed static subpath asset)",
       "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
       "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded E10 generic cinematic replay implementation commit and raw-byte-verified against current content"
+    },
+    {
+      "path": "js/hero_legacy_cache_guard.js",
+      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
+      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
+      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
+      "source_date": "2026-08-29",
+      "content_sha256": "ccff3438a9765cda2f25625449833ba73eec00137f6f009cd84e3a86b513d16e",
+      "content_size_bytes": 2029,
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required static page/script (server-owned Hero/Backpack legacy-cache guard referenced by hero.html and index.html; governed static asset)",
+      "production_hash_status": "candidate RC content; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
       "path": "monster_trash.js",

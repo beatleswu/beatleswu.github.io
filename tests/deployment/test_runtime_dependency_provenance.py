@@ -91,6 +91,9 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 adds the zone-agnostic
         # cinematic replay model as a governed runtime file.
         "js/game/cinematic_replay.js",
+        # A041 adds the server-owned Hero legacy-cache guard referenced by
+        # hero.html and index.html; B057 closes its release packaging gap.
+        "js/hero_legacy_cache_guard.js",
     }
 )
 CURRENT_EXPECTED_COUNT = B1_PRESENT_EXPECTED_COUNT + len(POST_B1_GOVERNED_RUNTIME_PATHS)

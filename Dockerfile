@@ -89,6 +89,19 @@ COPY spirit_combat_policy.py ./
 COPY spirit_combat_runtime.py ./
 COPY spirit_lineage.py ./
 COPY spirit_runtime.py ./
+# B056: these ten modules are production-reachable from app.py (directly or
+# through its module-scope dependencies). Keep the runtime dependency closure
+# explicit; do not replace this list with a wildcard or broad root copy.
+COPY srs_review_authority.py ./
+COPY battlefield_boss_reward_service.py ./
+COPY mapping_a_wardrobe_runtime.py ./
+COPY equipment_shop_offer_authority.py ./
+COPY equipment_shop_starter_catalog.py ./
+COPY equipment_commerce_service.py ./
+COPY adventure_boss_finish_response.py ./
+COPY adventure_spirit_unlock_transport.py ./
+COPY spirit_adventure_milestone.py ./
+COPY lord_trial_answer_service.py ./
 # Backend Architecture V1 Wave2 (V1A2 ReviewService / V1A3 transaction and
 # MapBattle-handoff boundaries): app.py now imports review_service.py and
 # review_contracts.py at startup; review_service.py itself imports
@@ -174,7 +187,7 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
      share_view.html mistakes.html curriculum.html hero.html \
      rating_test.html shop.html profile.html premium_weekly.html \
      stats.html upgrade.html play.html inventory.html badges.html \
-     games.html ./
+     item_journal.html games.html ./
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
      community_reward_rules.js pwa.js sgf_answer_review.js \
@@ -213,6 +226,9 @@ COPY js/game/game_bootstrap.js ./js/game/game_bootstrap.js
 # Zone 1-10 generic cinematic replay is a narrow browser runtime module; keep
 # the copy explicit for the same reason as the modules above.
 COPY js/game/cinematic_replay.js ./js/game/cinematic_replay.js
+# A041 Hero legacy-cache guard is a narrow browser runtime module referenced by
+# the server-owned Hero shell; keep the release copy explicit.
+COPY js/hero_legacy_cache_guard.js ./js/hero_legacy_cache_guard.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog

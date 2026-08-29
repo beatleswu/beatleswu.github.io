@@ -2429,8 +2429,7 @@ const STAGE_LABELS = {
   LV10: 'LV10 高段',
 };
 
-// ── HERO 戰鬥外觀（與 hero.html 同一套 gear_v2 名冊 / localStorage）──
-const GUILD_COMBAT_STORAGE_KEY = 'hero_combat_gear_v1';
+// ── HERO 戰鬥外觀（與 hero.html 同一套 gear_v2 名冊）──
 const GUILD_HERO_CHARACTER_ROOT = 'assets/hero/characters/';
 const GUILD_HERO_GEAR_ROOT = 'assets/hero/gear_v2/';
 const GUILD_HERO_ACCESSORY_ROOT = 'assets/hero/accessories/';
@@ -2449,14 +2448,12 @@ const GUILD_CHARACTER_ART = {
 };
 const GUILD_CHAR_FALLBACK_ART = 'chibi_reference_normalized.webp';
 const GUILD_ACCESSORY_SLOTS = ['hat', 'pet', 'aura', 'acc'];
+let _guildServerCharacter = 'apprentice';
 
 function getGuildCombatGear() {
   const def = { character:'apprentice', armor:'cloth', cape:'none', weapon:'none', offhand:'none', hat:'none', pet:'none', aura:'none', acc:'none' };
-  let g;
-  try { g = { ...def, ...JSON.parse(localStorage.getItem(GUILD_COMBAT_STORAGE_KEY) || '{}') }; }
-  catch { g = { ...def }; }
-  if (!GUILD_CHARACTER_ART[g.character]) g.character = 'apprentice';   // 舊存檔的角色 key → 退回見習生
-  return g;
+  // A040: this compatibility surface never reads the unscoped legacy cache.
+  return { ...def, character: GUILD_CHARACTER_ART[_guildServerCharacter] ? _guildServerCharacter : 'apprentice' };
 }
 
 // 裝備/配件 key 形如 'armor_t3' / 'hat_t2'；預設階(cloth/none)無圖檔
@@ -2499,9 +2496,6 @@ function renderGuildHeroAvatar() {
   setGuildHeroLayer('guild-hero-pet',     'pet',     gear.pet);
 }
 
-window.addEventListener('storage', (event) => {
-  if (event.key === GUILD_COMBAT_STORAGE_KEY) renderGuildHeroAvatar();
-});
 window.addEventListener('focus', renderGuildHeroAvatar);
 
 function isWholeBoardTrialQuestion(q) {
@@ -3412,6 +3406,10 @@ async function loadNavAvatar() {
 
     const eq   = appearRes.equipped || {};
     const byId = Object.fromEntries((appearRes.wardrobe||[]).map(a=>[a.id,a]));
+    if (GUILD_CHARACTER_ART[appearRes.character_key]) {
+      _guildServerCharacter = appearRes.character_key;
+      renderGuildHeroAvatar();
+    }
 
     const base = document.getElementById('nav-avatar-base');
     const outfitItem = eq.outfit_id ? byId[eq.outfit_id] : null;

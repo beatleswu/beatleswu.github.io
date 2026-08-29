@@ -13,6 +13,7 @@ checks are exactly what let the original drift go undetected.
 """
 import json
 import re
+import shutil
 import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -92,6 +93,9 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 adds the zone-agnostic
         # cinematic replay model as a governed static subpath asset.
         "js/game/cinematic_replay.js",
+        # A041 adds the server-owned Hero legacy-cache guard referenced by
+        # hero.html and index.html; B057 closes its release packaging gap.
+        "js/hero_legacy_cache_guard.js",
     }
 )
 STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)
@@ -176,8 +180,13 @@ def _ps_array(values):
 def _run_powershell(tmp_path, body):
     script = tmp_path / "release_tooling_test.ps1"
     script.write_text(body, encoding="utf-8")
+    # The development image provides PowerShell 7 as pwsh. Windows PowerShell
+    # 5.1 is retained as the fallback for hosts where pwsh is unavailable,
+    # but this harness must use the runtime that exposes Get-FileHash when
+    # executing a generated -File script in the isolated test process.
+    executable = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
     return subprocess.run(
-        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+        [executable, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
         capture_output=True, text=True, timeout=120,
     )
 

@@ -1917,20 +1917,6 @@ function normalizeBotHeroCharacter(key) {
 function botHeroAvatarSrc(characterKey) {
   return HERO_CHARACTER_ROOT + BOT_HERO_CHARACTER_ART[normalizeBotHeroCharacter(characterKey)];
 }
-function localBotHeroGear() {
-  try {
-    const state = JSON.parse(localStorage.getItem('hero_combat_gear_v1') || '{}');
-    return {
-      character: state.character ? normalizeBotHeroCharacter(state.character) : null,
-      armor: state.armor || null,
-      cape: state.cape || null,
-      weapon: state.weapon || null,
-      offhand: state.offhand || null,
-    };
-  } catch(e) {
-    return { character:null, armor:null, cape:null, weapon:null, offhand:null };
-  }
-}
 function botGearAssetSrc(slot, key) {
   const item = (BOT_HERO_GEAR[slot] || []).find(g => g.key === key);
   return item?.art ? BOT_HERO_GEAR_ROOT + item.art : '';
@@ -1942,12 +1928,11 @@ function botGearLayer(slot, key) {
 function setMyPcAvatar(playerColor) {
   const el = document.getElementById('me-avatar');
   if (!el) return;
-  const localGear = localBotHeroGear();
   const gear = {
-    armor: (_meInfo.gear && _meInfo.gear.armor) || localGear.armor || 'cloth',
-    cape: (_meInfo.gear && _meInfo.gear.cape) || localGear.cape || 'none',
-    weapon: (_meInfo.gear && _meInfo.gear.weapon) || localGear.weapon || 'none',
-    offhand: (_meInfo.gear && _meInfo.gear.offhand) || localGear.offhand || 'none',
+    armor: (_meInfo.gear && _meInfo.gear.armor) || 'cloth',
+    cape: (_meInfo.gear && _meInfo.gear.cape) || 'none',
+    weapon: (_meInfo.gear && _meInfo.gear.weapon) || 'none',
+    offhand: (_meInfo.gear && _meInfo.gear.offhand) || 'none',
   };
   const character = normalizeBotHeroCharacter(_meInfo.character || gear.character || 'apprentice');
   const src = botHeroAvatarSrc(character);
@@ -2100,13 +2085,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     _meInfo.name = me.nickname || me.username || '玩家';
     _meInfo.rank = me.go_rank || '30k';
-    const localGear = localBotHeroGear();
-    _meInfo.character = normalizeBotHeroCharacter(localGear.character || appear.character_key || 'apprentice');
+    _meInfo.character = normalizeBotHeroCharacter(appear.character_key || 'apprentice');
     _meInfo.gear = {
-      armor: localGear.armor || appear.combat_armor || 'cloth',
-      cape: localGear.cape || appear.combat_cape || 'none',
-      weapon: localGear.weapon || appear.combat_weapon || 'none',
-      offhand: localGear.offhand || appear.combat_offhand || 'none',
+      // Compatibility appearance fields are cosmetic fallbacks only; the
+      // unscoped legacy browser cache is never a source for this surface.
+      armor: appear.combat_armor || 'cloth',
+      cape: appear.combat_cape || 'none',
+      weapon: appear.combat_weapon || 'none',
+      offhand: appear.combat_offhand || 'none',
     };
   } catch(e) {
     fetch('/api/auth/me',{credentials:'include'}).then(r=>r.json()).then(me=>{
@@ -2122,4 +2108,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 <script src="/site-nav.js?v=20260625presence1"></script>
 </body>
 </html>
-

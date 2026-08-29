@@ -2286,16 +2286,24 @@ function previewVisualCandidate(cosmeticId) {
 }
 async function purchaseCosmetic(productId) {
   setMerchant('talk', 'talk');
-  const res = await api('/api/cosmetic-commerce/purchase', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ product_id: productId })
-  });
-  if (res.error) { setMerchant('idle', 'idle'); showToast(errorMessage(res.error)); return; }
-  setMerchant('happy', 'happy');
+  let res;
+  try {
+    res = await requestShopPurchase('/api/cosmetic-commerce/purchase', productId, { product_id: productId });
+  } catch (_) {
+    setMerchant('idle', 'idle');
+    showToast(isEn() ? 'Network error. Retry the same purchase.' : '網路連線異常，請重試同一筆購買。');
+    return;
+  }
+  if (res.error) { setMerchant('idle', 'idle'); showToast(errorMessage(res.error, res.message)); return; }
   await loadCosmeticCommerce();
-  showToast(res.status === 'already_owned'
-    ? (isEn() ? 'Already in your wardrobe.' : '這件外觀已在衣櫃中。')
-    : (isEn() ? 'Cosmetic unlocked.' : '外觀已解鎖並收入衣櫃。'));
+  const replayed = res.replayed === true || res.canonical_acquisition_result?.replayed === true;
+  if (replayed || res.status === 'already_owned') {
+    setMerchant('idle', 'idle');
+    showToast(isEn() ? 'Purchase already recorded; wardrobe refreshed.' : '購買結果已記錄，衣櫃已更新。');
+    return;
+  }
+  setMerchant('happy', 'happy');
+  showToast(isEn() ? 'Cosmetic unlocked.' : '外觀已解鎖並收入衣櫃。');
 }
 async function equipCosmetic(productId) {
   const res = await api('/api/cosmetic-commerce/equip', {
@@ -3156,9 +3164,15 @@ async function buyAppearance(itemId) {
     showToast(errorMessage(res.error, res.message));
     return;
   }
+  await loadCatalog();
+  const replayed = res.replayed === true || res.canonical_acquisition_result?.replayed === true;
+  if (replayed || res.status === "already_owned") {
+    setMerchant("idle", "idle");
+    showToast(isEn() ? "Purchase already recorded; wardrobe refreshed." : "購買結果已記錄，衣櫃已更新。");
+    return;
+  }
   setMerchant("happy", "happy");
   showToast(isEn() ? "Appearance added to wardrobe." : "外觀已收入衣櫃。");
-  await loadCatalog();
 }
 
 async function doGacha() {
