@@ -53,6 +53,26 @@ from monster_combat_profiles import (
     build_map_battle_compatibility_overrides,
     resolve_monster_combat_profile,
 )
+from battlefield_monster_catalog_shadow_runtime import (
+    BATTLEFIELD_BOSS as BATTLEFIELD_SHADOW_BOSS,
+    BATTLEFIELD_NORMAL as BATTLEFIELD_SHADOW_NORMAL,
+    PATH_ROLE_MUTATION as BATTLEFIELD_SHADOW_MUTATION,
+    PATH_ROLE_NONE as BATTLEFIELD_SHADOW_NONE,
+    PATH_ROLE_SETTLEMENT as BATTLEFIELD_SHADOW_SETTLEMENT,
+    PHASE_BOSS_BATTLEFIELD_CONSUMERS,
+    PHASE_MUTATION_AND_SETTLEMENT,
+    PHASE_NORMAL_BATTLEFIELD_CONSUMERS,
+    PHASE_STATUS_READ_ONLY_PROJECTION,
+    append_battlefield_shadow_observation,
+)
+from battlefield_monster_catalog_authority import (
+    BattlefieldCatalogAuthorityError,
+    BattlefieldCatalogAuthorityProfile,
+    battlefield_catalog_binding_source,
+    battlefield_catalog_identity_payload,
+    read_battlefield_state_max_hp,
+    resolve_battlefield_catalog_profile,
+)
 from spirit_combat_runtime import apply_spirit_combat_effect
 from monster_encounter_selector import build_legacy_selector_candidates
 from monster_encounter_selector_runtime import (
@@ -7073,7 +7093,11 @@ _BATTLEFIELD_IDENTITY_REGISTRY = build_battlefield_identity_registry(
 
 
 def _battlefield_identity_payload(battlefield):
-    """Return canonical identity fields without changing legacy fields."""
+    """Return legacy identity fields for rollback/Map Battle compatibility.
+
+    Active Battlefield callers use ``battlefield_catalog_identity_payload``;
+    this helper remains only as explicitly retained reference material.
+    """
 
     identity = canonical_battlefield_identity(
         _BATTLEFIELD_IDENTITY_REGISTRY,
@@ -7088,6 +7112,66 @@ def _battlefield_identity_payload(battlefield):
             'monster_identity_error': 'unresolved_legacy_identity',
         }
     return identity.runtime_fields()
+
+
+def _battlefield_shadow_context(profile):
+    """Map an already-resolved Catalog class to an explicit shadow context."""
+
+    encounter_kind = getattr(profile, 'legacy_encounter_kind', None)
+    if encounter_kind == 'boss':
+        return BATTLEFIELD_SHADOW_BOSS
+    if encounter_kind == 'normal':
+        return BATTLEFIELD_SHADOW_NORMAL
+    return None
+
+
+def _observe_battlefield_catalog_shadow(
+    profile,
+    *,
+    phase,
+    path_role=BATTLEFIELD_SHADOW_NONE,
+    sink=None,
+):
+    """Record a bounded observation for the resolved Catalog definition.
+
+    The sink is request-local and intentionally never reaches a response,
+    database writer, reward settlement, or telemetry path.  The profile and
+    identity are supplied by the active E051 Catalog resolver; no client or
+    presentation field is consulted.  The observation remains diagnostic and
+    cannot replace the active profile or mutate the combat result.
+    """
+
+    context = _battlefield_shadow_context(profile) or 'UNKNOWN_BATTLEFIELD'
+    runtime = {
+        'monster_id': getattr(profile, 'canonical_monster_id', None),
+        'roster_slot': getattr(profile, 'roster_slot', None),
+        'current_hp': getattr(profile, 'max_hp', None),
+        'current_atk': getattr(profile, 'attack', None),
+    }
+    return append_battlefield_shadow_observation(
+        sink,
+        runtime,
+        context=context,
+        phase=phase,
+        path_role=path_role,
+        zone=getattr(profile, 'zone_key', None),
+        current_profile=profile,
+    )
+
+
+def _publish_battlefield_shadow_records(records):
+    """Keep bounded evidence request-local without exposing or persisting it."""
+
+    if records is None:
+        return
+    try:
+        flask_g._e049_battlefield_shadow_records = tuple(
+            dict(record) for record in records
+        )
+    except RuntimeError:
+        # Direct unit callers may not have a Flask request context.  Shadow
+        # evidence remains available through the caller-owned sink instead.
+        return
 
 _BATTLEFIELD_NAME_EN = {
     'LV1 史萊姆 / 哥布林': 'LV1 Slime / Goblin',
@@ -7175,14 +7259,15 @@ def _get_or_create_battlefield(conn, uid, today_str):
         # 舊玩家今天可能還留著舊版怪物名稱；第一次讀取時重置到新版 RPG 族群。
         if not str(data.get('monster_name') or '').startswith('LV'):
             m = _BATTLEFIELD_ROSTER[0]
-            m_profile = resolve_monster_combat_profile(
+            m_profile = resolve_battlefield_catalog_profile(
                 {
                     'monster_idx': 0,
                     'monster_type': m[0],
                     'monster_name': m[1],
                     'encounter_kind': m[4],
+                    'max_hp': m[2],
                 },
-                context='LEGACY_BATTLEFIELD',
+                context=BATTLEFIELD_SHADOW_NORMAL,
             )
             conn.execute(
                 'UPDATE battlefield_monster SET '
@@ -7205,18 +7290,25 @@ def _get_or_create_battlefield(conn, uid, today_str):
                 'UPDATE battlefield_monster SET monster_avatar=? WHERE user_id=? AND bf_date=?',
                 (data['monster_avatar'], uid, today_str)
             )
-        data.update(_battlefield_identity_payload(data))
+        data.update(
+            battlefield_catalog_identity_payload(
+                resolve_battlefield_catalog_profile(
+                    battlefield_catalog_binding_source(data)
+                )
+            )
+        )
         return data
     # 初始化第一隻怪物
     m = _BATTLEFIELD_ROSTER[0]
-    m_profile = resolve_monster_combat_profile(
+    m_profile = resolve_battlefield_catalog_profile(
         {
             'monster_idx': 0,
             'monster_type': m[0],
             'monster_name': m[1],
             'encounter_kind': m[4],
+            'max_hp': m[2],
         },
-        context='LEGACY_BATTLEFIELD',
+        context=BATTLEFIELD_SHADOW_NORMAL,
     )
     conn.execute(
         'INSERT INTO battlefield_monster'
@@ -7229,7 +7321,7 @@ def _get_or_create_battlefield(conn, uid, today_str):
         'monster_type': m[0], 'monster_name': m[1], 'monster_avatar': _battlefield_avatar(m[0], m[1]),
         'max_hp': m_profile.max_hp, 'current_hp': m_profile.max_hp, 'defeated': 0, 'kill_count': 0,
     }
-    data.update(_battlefield_identity_payload(data))
+    data.update(battlefield_catalog_identity_payload(m_profile))
     return data
 
 _COMBAT_ATTACK_BONUS_CAP = 0.75
@@ -7437,41 +7529,58 @@ def _settle_monster_defeat_in_tx(
     hp_before,
     hp_after,
     loot_bonus=0.0,
+    battlefield_authority: BattlefieldCatalogAuthorityProfile | None = None,
 ):
     """Close one server-owned Monster defeat inside the caller transaction.
 
-    Combat remains owned by the existing operation.  This adapter only binds
-    the committed HP transition to the F004/F005 profile registries and the
-    existing inventory, wardrobe, Coins, and D5A writers.
+    Combat remains owned by the existing operation.  The active Battlefield
+    path supplies the already-resolved E045 catalog authority explicitly;
+    this function only binds the committed HP transition to the existing
+    inventory, wardrobe, Coins, and D5A writers.  The legacy identity branch
+    remains solely for the separate Map Battle compatibility caller.
     """
 
     source = dict(battlefield or {})
-    # The active battlefield row's roster index is server-owned.  Resolve it
-    # first without trusting stale legacy type/name fields; those fields are
-    # retained for response compatibility, never as identity authority.
-    identity = None
-    if source.get('monster_idx') is not None:
-        identity = canonical_battlefield_identity(
-            _BATTLEFIELD_IDENTITY_REGISTRY,
-            source.get('monster_idx'),
-        )
-    if identity is None:
-        identity = resolve_monster_identity(
-            source,
-            registry=_BATTLEFIELD_IDENTITY_REGISTRY,
-        )
-    if identity is None:
-        raise MonsterSettlementRejected(
-            'server Monster identity did not resolve for settlement'
-        )
+    if battlefield_authority is not None:
+        # E051 active Battlefield settlement identity is already bound to the
+        # explicit catalog entry.  No legacy identity/profile resolver is
+        # consulted and this branch has no player-state write capability.
+        settlement_monster_id = battlefield_authority.monster_id
+        settlement_zone_id = battlefield_authority.zone_key
+        settlement_roster_slot = battlefield_authority.roster_slot
+        settlement_encounter_class = battlefield_authority.encounter_class
+        settlement_family_id = battlefield_authority.entry.family_id
+    else:
+        # Separate Map Battle compatibility path.  It is not a Battlefield
+        # catalog authority caller and remains available for that contract.
+        identity = None
+        if source.get('monster_idx') is not None:
+            identity = canonical_battlefield_identity(
+                _BATTLEFIELD_IDENTITY_REGISTRY,
+                source.get('monster_idx'),
+            )
+        if identity is None:
+            identity = resolve_monster_identity(
+                source,
+                registry=_BATTLEFIELD_IDENTITY_REGISTRY,
+            )
+        if identity is None:
+            raise MonsterSettlementRejected(
+                'server Monster identity did not resolve for settlement'
+            )
+        settlement_monster_id = identity.monster_id
+        settlement_zone_id = identity.zone_id
+        settlement_roster_slot = identity.roster_slot
+        settlement_encounter_class = identity.encounter_class
+        settlement_family_id = identity.family_id
     event = build_monster_defeated_event(
         settlement_id=settlement_id,
         user_id=uid,
-        monster_id=identity.monster_id,
-        zone_id=identity.zone_id,
-        roster_slot=identity.roster_slot,
-        encounter_class=identity.encounter_class,
-        family_id=identity.family_id,
+        monster_id=settlement_monster_id,
+        zone_id=settlement_zone_id,
+        roster_slot=settlement_roster_slot,
+        encounter_class=settlement_encounter_class,
+        family_id=settlement_family_id,
         hp_before=hp_before,
         hp_after=hp_after,
     )
@@ -7585,7 +7694,8 @@ def _equipment_aware_legacy_combat(operation):
     @wraps(operation)
     def wrapped(conn, uid, qid, grade, q_info, combo_streak, today_str,
                 should_grant_progress=True, shadow_events=None,
-                settlement_id=None, legacy_daily_enabled=True):
+                settlement_id=None, legacy_daily_enabled=True,
+                battlefield_shadow_events=None, battlefield_catalog_profile=None):
         row = conn.execute(
             'SELECT monster_type FROM battlefield_monster WHERE user_id=? AND bf_date=?',
             (uid, today_str),
@@ -7600,6 +7710,8 @@ def _equipment_aware_legacy_combat(operation):
                 should_grant_progress=should_grant_progress,
                 shadow_events=shadow_events,
                 settlement_id=settlement_id,
+                battlefield_shadow_events=battlefield_shadow_events,
+                battlefield_catalog_profile=battlefield_catalog_profile,
             )
             if isinstance(result, dict):
                 result['combat_stats'] = combat_stats
@@ -7614,24 +7726,31 @@ def _equipment_aware_legacy_combat(operation):
 @_equipment_aware_legacy_combat
 def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                                today_str, should_grant_progress=True,
-                               shadow_events=None, settlement_id=None):
+                               shadow_events=None, settlement_id=None,
+                               battlefield_shadow_events=None,
+                               battlefield_catalog_profile=None):
     # Historical source marker retained for the Lane B source contract only;
     # this expression is not evaluated and never supplies combat authority:
     # monster_atk = q_info.get('monster_atk', 8)
 
     bf = _get_or_create_battlefield(conn, uid, today_str)
-    monster_profile = resolve_monster_combat_profile(
-        bf,
-        context='LEGACY_BATTLEFIELD',
-        trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
-        compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
-        compatibility_reason='preserve the existing persisted Battlefield HP state',
-        compatibility_source='server_persisted_battlefield_state',
+    monster_profile = battlefield_catalog_profile or resolve_battlefield_catalog_profile(
+        battlefield_catalog_binding_source(bf)
+    )
+    _observe_battlefield_catalog_shadow(
+        monster_profile,
+        phase=PHASE_MUTATION_AND_SETTLEMENT,
+        path_role=BATTLEFIELD_SHADOW_MUTATION,
+        sink=battlefield_shadow_events,
     )
     monster_atk = monster_profile.attack
     monster_type = bf['monster_type']
     monster_name = bf['monster_name']
-    max_hp       = monster_profile.max_hp
+    # Catalog owns the versioned profile; an already-running encounter keeps
+    # its persisted battle-state max HP so the source cutover does not rewrite
+    # an in-flight combat.  This state value is read strictly and never
+    # resolved through F003/F004/F008 or a fallback profile.
+    max_hp       = read_battlefield_state_max_hp(bf)
     current_hp   = bf['current_hp']
     monster_hp_before = current_hp
     kill_count   = bf['kill_count']
@@ -7673,7 +7792,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                 conn,
                 uid,
                 answer_correct=authoritative_answer_correct,
-                encounter_class=monster_profile.encounter_class,
+                encounter_class=monster_profile.spirit_encounter_class,
                 monster_hp_before=int(monster_hp_before),
                 monster_max_hp=int(max_hp),
                 incoming_damage_after_armor=0,
@@ -7700,14 +7819,14 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             )
             if next_index is None or nm is None:
                 raise MonsterSettlementRejected('empty or invalid battlefield roster')
-            next_profile = resolve_monster_combat_profile(
+            next_profile = resolve_battlefield_catalog_profile(
                 {
                     'monster_idx': next_index,
                     'monster_type': nm[0],
                     'monster_name': nm[1],
                     'encounter_kind': nm[4],
+                    'profile_max_hp': nm[2],
                 },
-                context='LEGACY_BATTLEFIELD',
             )
             next_monster = {
                 'monster_idx': next_index,
@@ -7715,12 +7834,9 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                 'avatar': _battlefield_avatar(nm[0], nm[1]),
                 'max_hp': next_profile.max_hp, 'hp': next_profile.max_hp,
             }
-            next_monster.update(_battlefield_identity_payload({
-                'monster_idx': next_monster['monster_idx'],
-                'monster_type': nm[0],
-                'monster_name': nm[1],
-                'encounter_kind': nm[4],
-            }))
+            next_monster.update(
+                battlefield_catalog_identity_payload(next_profile)
+            )
             # 寫入戰場，等下一次 review 時正式生效
             conn.execute(
                 'UPDATE battlefield_monster SET '
@@ -7762,7 +7878,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                     conn,
                     uid,
                     answer_correct=authoritative_answer_correct,
-                    encounter_class=monster_profile.encounter_class,
+                    encounter_class=monster_profile.spirit_encounter_class,
                     monster_hp_before=int(monster_hp_before),
                     monster_max_hp=int(max_hp),
                     incoming_damage_after_armor=int(player_dmg),
@@ -7824,6 +7940,12 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
         settlement_key = settlement_id or (
             f'legacy-review:{uid}:{today_str}:{qid}:{kill_count}'
         )
+        _observe_battlefield_catalog_shadow(
+            monster_profile,
+            phase=PHASE_MUTATION_AND_SETTLEMENT,
+            path_role=BATTLEFIELD_SHADOW_SETTLEMENT,
+            sink=battlefield_shadow_events,
+        )
         settlement = _settle_monster_defeat_in_tx(
             conn,
             uid,
@@ -7832,6 +7954,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             hp_before=monster_hp_before,
             hp_after=current_hp,
             loot_bonus=loot_bonus,
+            battlefield_authority=monster_profile,
         )
         monster_settlement = {
             'event_type': settlement.quest_event['event_type'],
@@ -7873,7 +7996,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             'next_wave_num': kill_count + 2 if monster_defeated else None,
             'next_wave_hp':  next_monster['max_hp'] if next_monster else None,
             'next_monster':  next_monster,
-            **_battlefield_identity_payload(bf),
+            **battlefield_catalog_identity_payload(monster_profile),
         },
         'player': {
             'hp':        player_hp,
@@ -7896,15 +8019,25 @@ def monster_status():
     """前端初始化時取得當前戰場怪物狀態（含玩家 HP + 已裝備技能）。"""
     uid   = session['user_id']
     today = datetime.date.today().isoformat()
+    battlefield_shadow_events = []
     with get_db() as conn:
-        bf = _get_or_create_battlefield(conn, uid, today)
-        bf_profile = resolve_monster_combat_profile(
-            bf,
-            context='LEGACY_BATTLEFIELD',
-            trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
-            compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
-            compatibility_reason='preserve the existing persisted Battlefield HP state',
-            compatibility_source='server_persisted_battlefield_state',
+        try:
+            bf = _get_or_create_battlefield(conn, uid, today)
+            bf_profile = resolve_battlefield_catalog_profile(
+                battlefield_catalog_binding_source(bf)
+            )
+            battlefield_state_max_hp = read_battlefield_state_max_hp(bf)
+        except BattlefieldCatalogAuthorityError as error:
+            conn.rollback()
+            return jsonify({
+                'error': 'battlefield_catalog_authority_unavailable',
+                'code': error.code,
+                'retryable': True,
+            }), 503
+        _observe_battlefield_catalog_shadow(
+            bf_profile,
+            phase=PHASE_STATUS_READ_ONLY_PROJECTION,
+            sink=battlefield_shadow_events,
         )
         s  = conn.execute('SELECT player_hp, player_max_hp, rank_level, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
         equipped_rows = conn.execute(
@@ -7914,6 +8047,7 @@ def monster_status():
         equip_bonus = _get_equip_effect(conn, uid, 'sp_bonus')   # 必須在 conn 關閉前呼叫
         combat_stats = _get_authoritative_combat_stats(conn, uid, bf['monster_type'])
         conn.commit()
+    _publish_battlefield_shadow_records(battlefield_shadow_events)
 
     _bf_xp        = (s['xp'] or 0) if s else 0
     _bf_lv        = xp_to_lv(_bf_xp)
@@ -7951,11 +8085,11 @@ def monster_status():
         'avatar':     _battlefield_avatar(bf['monster_type'], bf['monster_name'])
                       if str(bf.get('monster_avatar') or '').endswith('.svg')
                       else (bf.get('monster_avatar') or _battlefield_avatar(bf['monster_type'], bf['monster_name'])),
-        'max_hp':     bf_profile.max_hp,
+        'max_hp':     battlefield_state_max_hp,
         'hp':         bf['current_hp'],
         'stage':      bf_profile['stage'],
         'encounter_kind': bf_profile['encounter_kind'],
-        **_battlefield_identity_payload(bf),
+        **battlefield_catalog_identity_payload(bf_profile),
         'retaliation': {
             'attack': bf_profile['attack'],
             'encounter_kind': bf_profile['encounter_kind'],
@@ -7978,7 +8112,7 @@ def monster_status():
 def _lane_b_monster_update_with_authoritative_profile(
     conn, uid, qid, grade, q_info, combo_streak, today_str,
     should_grant_progress=True, shadow_events=None, settlement_id=None,
-    legacy_daily_enabled=True,
+    legacy_daily_enabled=True, battlefield_shadow_events=None,
 ):
     """Route combat retaliation through the server-owned roster profile.
 
@@ -7989,13 +8123,17 @@ def _lane_b_monster_update_with_authoritative_profile(
     """
 
     bf = _get_or_create_battlefield(conn, uid, today_str)
-    profile = resolve_monster_combat_profile(
-        bf,
-        context='LEGACY_BATTLEFIELD',
-        trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
-        compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
-        compatibility_reason='preserve the existing persisted Battlefield HP state',
-        compatibility_source='server_persisted_battlefield_state',
+    profile = resolve_battlefield_catalog_profile(
+        battlefield_catalog_binding_source(bf)
+    )
+    _observe_battlefield_catalog_shadow(
+        profile,
+        phase=(
+            PHASE_BOSS_BATTLEFIELD_CONSUMERS
+            if profile.legacy_encounter_kind == 'boss'
+            else PHASE_NORMAL_BATTLEFIELD_CONSUMERS
+        ),
+        sink=battlefield_shadow_events,
     )
     server_q_info = dict(q_info or {})
     server_q_info['monster_atk'] = profile['attack']
@@ -8005,6 +8143,8 @@ def _lane_b_monster_update_with_authoritative_profile(
         shadow_events=shadow_events,
         settlement_id=settlement_id,
         legacy_daily_enabled=legacy_daily_enabled,
+        battlefield_shadow_events=battlefield_shadow_events,
+        battlefield_catalog_profile=profile,
     )
     if isinstance(result, dict) and isinstance(result.get('monster'), dict):
         result['monster']['stage'] = profile.stage
@@ -8017,9 +8157,8 @@ def _lane_b_monster_update_with_authoritative_profile(
         if isinstance(next_monster, dict):
             next_index = next_monster.get('monster_idx')
             if next_index is not None:
-                next_profile = resolve_monster_combat_profile(
-                    next_monster,
-                    context='LEGACY_BATTLEFIELD',
+                next_profile = resolve_battlefield_catalog_profile(
+                    battlefield_catalog_binding_source(next_monster)
                 )
                 next_monster['stage'] = next_profile.stage
                 next_monster['encounter_kind'] = next_profile.legacy_encounter_kind
@@ -14830,6 +14969,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
         monster_data = {}
         quest_shadow_events = [] if xp_shadow_enabled() else None
+        battlefield_shadow_events = []
         try:
             legacy_daily_token = _QUEST_LEGACY_DAILY_ENABLED.set(
                 not quest_v2_runtime_enabled()
@@ -14887,6 +15027,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                         shadow_events=quest_shadow_events,
                         settlement_id=f'review:{submission_id}',
                         legacy_daily_enabled=not quest_v2_runtime_enabled(),
+                        battlefield_shadow_events=battlefield_shadow_events,
                     )
             finally:
                 _QUEST_LEGACY_DAILY_ENABLED.reset(legacy_daily_token)
@@ -14920,9 +15061,28 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 }
             conn.commit()
             quest_shadow_inputs = monster_data.pop('_xp_shadow_inputs', [])
+            _publish_battlefield_shadow_records(battlefield_shadow_events)
+        except BattlefieldCatalogAuthorityError as error:
+            # The core answer was committed above, but the affected
+            # Battlefield operation must stop when the active Catalog cannot
+            # resolve its definition.  In particular, do not let the generic
+            # optional-runtime handler turn this into a silent legacy path.
+            conn.rollback()
+            quest_shadow_inputs = []
+            _publish_battlefield_shadow_records(battlefield_shadow_events)
+            app.logger.warning(
+                'battlefield_catalog_authority_blocked code=%s',
+                error.code,
+            )
+            return jsonify({
+                'error': 'battlefield_catalog_authority_unavailable',
+                'code': error.code,
+                'retryable': True,
+            }), 503
         except Exception:
             conn.rollback()
             quest_shadow_inputs = []
+            _publish_battlefield_shadow_records(battlefield_shadow_events)
             app.logger.exception('optional monster/quest update failed after answer %s for user %s', qid, uid)
             if quest_v2_runtime_enabled():
                 return jsonify({
