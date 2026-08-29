@@ -1,20 +1,32 @@
 {
-  "task": "ART003_B01_R1_TARGETED_VISUAL_REVISION_AND_PASSSET_FREEZE_001",
+  "task": "ART003_B01_R2_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION_001",
+  "previous_task": "ART003_B01_R1_TARGETED_VISUAL_REVISION_AND_PASSSET_FREEZE_001",
+  "b01_r1_head": "2c25f2f423f672023a919abaf35f6c975bcf3d65",
+  "current_origin_master": "6829c4c528adf4800326e90534585a32e390ebec",
+  "fresh_art_reconciliation": "PASS",
   "batch_id": "B01",
-  "status": "PASS_ART003_B01_R1_TARGETED_REVISION_READY_FOR_OWNER_REVIEW",
+  "status": "PASS_ART003_B01_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION",
   "parent_art003_b01_head": "fb59e554a5daf2849a7f15f9467ff572d6138397",
-  "branch": "codex/art003-b01-r1-targeted-visual-revision",
+  "branch": "codex/art003-b01-r2-owner-pass-freeze",
   "owner_style_system_locked": true,
   "roster_source": "docs/planning/art_120_monster_roster_candidate.json",
   "roster_mutated": false,
   "zone_distribution_mutated": false,
   "runtime_mutated": false,
   "app_py_changed": false,
-  "new_revision_candidates": 2,
+  "new_revision_candidates": 0,
   "authorized_replacements": ["M008", "M010"],
+  "owner_acceptance": {
+    "task": "ART003_B01_R2_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION_001",
+    "visual_status": "PASS",
+    "approved_ids": ["M002", "M003", "M004", "M005", "M006", "M007", "M008", "M009", "M010", "M012"],
+    "rejected_ids": [],
+    "revision_ids": [],
+    "evidence": "Explicit Owner visual acceptance supplied in the ART003 B01-R2 task for M008 and M010; the eight prior Owner-PASS decisions remain frozen."
+  },
   "owner_passset_freeze": {
-    "count": 8,
-    "ids": ["M002", "M003", "M004", "M005", "M006", "M007", "M009", "M012"],
+    "count": 10,
+    "ids": ["M002", "M003", "M004", "M005", "M006", "M007", "M008", "M009", "M010", "M012"],
     "pixel_mutations": 0,
     "id_renames": 0,
     "regeneration": 0,
@@ -26,7 +38,9 @@
       "M005": "F243D7B6CBB926379C9B44305C49AFA31CCF1E1FF9545A0A9DB06752C41B3B16",
       "M006": "4C72B3B2D5ED3022B3E352FE453A19D395511C91B0A73187257E7ED7C86AF2B9",
       "M007": "06D217B0156F93144244ED93CD50872CA959450B14CF861E19DF67B0E1C78B44",
+      "M008": "12463A8C63C99E92C35E1CCEEE6E145C55079DBB7570C2C6EFBD7EBA56AC4C85",
       "M009": "49BE99FC1823D6C7E1EAB110A47BB26A14716B077AF61C37BE8EA68BCEF49038",
+      "M010": "3F65FAFD0FC9DCDF7EF12DFE6C9299829F0585D91B7922429C205859AE63D342",
       "M012": "8CB0DE9AC6075552EE8075A8A5EB04AE494B49134D205C1E9BB982C4C3FAC473"
     }
   },
@@ -39,10 +53,10 @@
     "format": "PNG",
     "required_mode": "RGBA",
     "transparent_background_required": true,
-    "owner_approved": false,
-    "canonical_asset": false,
+    "owner_approved": true,
+    "canonical_asset": true,
     "runtime_mapped": false,
-    "visual_qa_status_definition": "PROVISIONAL_PASS means the locked brief, silhouette, Zone fit, naming, single-subject composition and file-level RGBA/corner-alpha checks passed; R1_TECH_PASS is the same technical gate for M008/M010 after targeted revision; neither status is final cross-surface QA."
+    "visual_qa_status_definition": "PASS means the locked brief, silhouette, Zone fit, naming, single-subject composition and file-level PNG/RGBA/alpha checks passed and the Owner accepted the production-art identity; canonical art is not runtime or gameplay authority."
   },
   "qa_gates": {
     "style_consistency": "PASS",
@@ -51,6 +65,8 @@
     "zone_appropriateness": "PASS",
     "naming_consistency": "PASS",
     "file_level_alpha_check": "PASS",
+    "b01_technical_qa": "PASS",
+    "b01_final_visual_qa": "PASS",
     "owner_passset_freeze": "PASS",
     "m008_r1_tech_qa": "PASS",
     "m010_r1_tech_qa": "PASS",
@@ -72,10 +88,11 @@
       "draft": true,
       "owner_approved": true,
       "owner_visual_status": "PASS",
-      "production_status": "OWNER_PASS",
-      "canonical_asset": false,
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE",
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "PROVISIONAL_PASS"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS"
     },
     {
       "art_monster_id": "M003",
@@ -91,10 +108,11 @@
       "draft": true,
       "owner_approved": true,
       "owner_visual_status": "PASS",
-      "production_status": "OWNER_PASS",
-      "canonical_asset": false,
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE",
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "PROVISIONAL_PASS"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS"
     },
     {
       "art_monster_id": "M004",
@@ -110,10 +128,11 @@
       "draft": true,
       "owner_approved": true,
       "owner_visual_status": "PASS",
-      "production_status": "OWNER_PASS",
-      "canonical_asset": false,
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE",
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "PROVISIONAL_PASS"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS"
     },
     {
       "art_monster_id": "M005",
@@ -129,10 +148,11 @@
       "draft": true,
       "owner_approved": true,
       "owner_visual_status": "PASS",
-      "production_status": "OWNER_PASS",
-      "canonical_asset": false,
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE",
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "PROVISIONAL_PASS"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS"
     },
     {
       "art_monster_id": "M006",
@@ -148,10 +168,11 @@
       "draft": true,
       "owner_approved": true,
       "owner_visual_status": "PASS",
-      "production_status": "OWNER_PASS",
-      "canonical_asset": false,
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE",
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "PROVISIONAL_PASS"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS"
     },
     {
       "art_monster_id": "M007",
@@ -167,10 +188,11 @@
       "draft": true,
       "owner_approved": true,
       "owner_visual_status": "PASS",
-      "production_status": "OWNER_PASS",
-      "canonical_asset": false,
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE",
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "PROVISIONAL_PASS"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS"
     },
     {
       "art_monster_id": "M008",
@@ -186,12 +208,13 @@
       "file": {"format": "PNG", "mode": "RGBA", "width": 1122, "height": 1402, "bytes": 1480600, "alpha_extrema": [0, 255], "corner_alpha": [0, 0, 0, 0], "bounding_box": [145, 24, 981, 1329], "nonzero_alpha_pixels": 293483, "sha256": "12463A8C63C99E92C35E1CCEEE6E145C55079DBB7570C2C6EFBD7EBA56AC4C85"},
       "art_exists": true,
       "draft": true,
-      "owner_approved": false,
-      "canonical_asset": false,
+      "owner_approved": true,
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "R1_TECH_PASS",
-      "owner_visual_status": "REVISION_CANDIDATE_PENDING_REVIEW",
-      "production_status": "R1_OWNER_REVIEW_PENDING"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS",
+      "owner_visual_status": "PASS",
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE"
     },
     {
       "art_monster_id": "M009",
@@ -207,10 +230,11 @@
       "draft": true,
       "owner_approved": true,
       "owner_visual_status": "PASS",
-      "production_status": "OWNER_PASS",
-      "canonical_asset": false,
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE",
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "PROVISIONAL_PASS"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS"
     },
     {
       "art_monster_id": "M010",
@@ -226,12 +250,13 @@
       "file": {"format": "PNG", "mode": "RGBA", "width": 1024, "height": 1536, "bytes": 1476538, "alpha_extrema": [0, 255], "corner_alpha": [0, 0, 0, 0], "bounding_box": [44, 260, 983, 1288], "nonzero_alpha_pixels": 515151, "sha256": "3F65FAFD0FC9DCDF7EF12DFE6C9299829F0585D91B7922429C205859AE63D342"},
       "art_exists": true,
       "draft": true,
-      "owner_approved": false,
-      "canonical_asset": false,
+      "owner_approved": true,
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "R1_TECH_PASS",
-      "owner_visual_status": "REVISION_CANDIDATE_PENDING_REVIEW",
-      "production_status": "R1_OWNER_REVIEW_PENDING"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS",
+      "owner_visual_status": "PASS",
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE"
     },
     {
       "art_monster_id": "M012",
@@ -247,30 +272,37 @@
       "draft": true,
       "owner_approved": true,
       "owner_visual_status": "PASS",
-      "production_status": "OWNER_PASS",
-      "canonical_asset": false,
+      "production_status": "OWNER_APPROVED_CANONICAL_ART_COMPLETE",
+      "canonical_asset": true,
       "runtime_mapped": false,
-      "visual_qa": "PROVISIONAL_PASS"
+      "visual_qa": "PASS",
+      "final_visual_qa_status": "PASS"
     }
   ],
   "summary": {
     "batch_target_count": 10,
     "art_exists_count": 10,
-    "owner_approved_count": 8,
-    "canonical_asset_count": 0,
+    "owner_approved_count": 10,
+    "canonical_asset_count": 10,
     "runtime_mapped_count": 0,
     "technical_qa_pass_count": 10,
     "provisional_visual_qa_pass_count": 10,
-    "new_art_generated": true,
-    "new_revision_candidates": 2,
-    "existing_assets_mutated": 2,
+    "final_visual_qa_pass_count": 10,
+    "new_art_generated": false,
+    "r1_history_new_art_generated": true,
+    "new_revision_candidates": 0,
+    "existing_assets_mutated": 0,
+    "r1_history_existing_assets_mutated": 2,
     "passset_pixel_mutations": 0
   },
   "owner_review": {
-    "required": true,
+    "required": false,
     "review_items": ["M008 structural clarity", "M010 NPC-to-monster correction", "style consistency", "silhouette differentiation", "Zone appropriateness", "naming consistency", "alpha edges", "per-asset approval"],
-    "pending_ids": ["M008", "M010"],
-    "approved_ids": ["M002", "M003", "M004", "M005", "M006", "M007", "M009", "M012"],
+    "pending_ids": [],
+    "approved_ids": ["M002", "M003", "M004", "M005", "M006", "M007", "M008", "M009", "M010", "M012"],
+    "rejected_ids": [],
+    "decision_task": "ART003_B01_R2_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION_001",
+    "decision": "PASS",
     "canonical_promotion_allowed_before_owner_approval": false,
     "runtime_mapping_allowed_in_ART003": false
   }
