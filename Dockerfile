@@ -62,6 +62,11 @@ COPY monster_identity.py ./
 COPY monster_profiles.py ./
 COPY monster_reward_profiles.py ./
 COPY monster_settlement.py ./
+COPY battlefield_monster_catalog_authority.py ./
+COPY monster_catalog_foundation.py ./
+COPY battlefield_monster_catalog_shadow_runtime.py ./
+COPY battlefield_monster_catalog_shadow_caller.py ./
+COPY monster_catalog_shadow_adapter.py ./
 COPY player_presentation_api_contract.py ./
 COPY player_presentation_read_service.py ./
 COPY player_state_read_model.py ./
