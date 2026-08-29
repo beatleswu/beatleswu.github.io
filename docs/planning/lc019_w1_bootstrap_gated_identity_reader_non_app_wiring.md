@@ -19,6 +19,27 @@ Mode: `NON_APP_RUNTIME_READER_WIRING_HOT_FALSE_SAFE_LANDING`.
 | `BASE_SHA` | `c4568d5664f632d1cfa1e77ba39b00efa437f8a5` |
 | branch | `claude/lc019-w1-bootstrap-gated-non-app-reader-wiring` |
 
+### 1.1 R1 — post-A049 fresh-master re-anchor
+
+`LC019_W1_R1_POST_A049_FRESH_MASTER_RECONCILIATION_AND_MERGE_CANDIDATE_001`.
+After the LC019-W1 source landed on its own branch, `origin/master` advanced
+again: `c4568d5` → **`3ace7c748b5f2b5b8b4d4ebb65827b6987ad1e6a`** (tree
+`377afa276cc09a8c5786bdc5eecf4bf7d3201814`) via A049-R1 — two commits
+(`1862ce65d` "close disabled legacy equipment equip fallback", `3ace7c748`
+"retire legacy appearance combat authority"). Those touch `app.py` and the
+hero-equipment / legacy-appearance-combat authority path only.
+
+| field | value |
+|---|---|
+| `INTEGRATION_BASE_SHA` | `3ace7c748b5f2b5b8b4d4ebb65827b6987ad1e6a` (fresh `origin/master`) |
+| `INTEGRATION_METHOD` | `git cherry-pick` of LC019-W1 head `401f14dc9` onto fresh master — 0 conflicts |
+| `LC019_W1_PATCH_EQUIVALENCE` | `EXACT` — the cherry-pick commit `git range-diff 401f14dc9~1..401f14dc9  <cherry-pick>~1..<cherry-pick>` reports `=`; the runtime + test payload (`grimoire_api.py`, `tests/test_lc019_w1_grimoire_bootstrap_gated_reader.py`) is byte-identical to `401f14dc9`. Only this doc carries an extra commit (this §1.1 R1 note) on top — no code delta. |
+| `GRIMOIRE_API_MASTER_ADVANCE_CHANGED` | `NO` — `git diff c4568d5..3ace7c748 -- grimoire_api.py` is EMPTY |
+| `IDENTITY_READER_FOUNDATION_CHANGED` | `NO` — `puzzle_identity_read_window.py` / `identity_read_adapter.py` / `puzzle_identity_store.py` / `puzzle_identity_genesis_bootstrap.py` / `migrations/puzzle_identity_registry_v1.py` byte-identical fresh-master ↔ `401f14dc9` (LC017 merge `3f98c204a` is an ancestor of `3ace7c748`, so the whole LC011–LC016 foundation is already on master) |
+| branch | `claude/lc019-w1-r1-post-a049-fresh-master-reconciliation` |
+
+W1 semantics are unchanged by R1. `MASTER_MERGE = NO`, `GO_MERGE_GRANTED = NO`.
+
 ## 2. Wired
 
 `WIRED_FILE_COUNT = 1` — `grimoire_api.py` only (71 insertions / 11 deletions).
