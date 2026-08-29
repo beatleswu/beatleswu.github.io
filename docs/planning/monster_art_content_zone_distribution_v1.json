@@ -1,0 +1,114 @@
+{
+  "version": "MONSTER_ART_CONTENT_ZONE_COUNTS_V1",
+  "status": "OWNER_APPROVED_CANONICAL_ART_CONTENT_PLANNING",
+  "owner_approved": true,
+  "owner_approval": {
+    "source_task": "F032_MONSTER_120_ROSTER_ZONE_DISTRIBUTION_OWNER_DECISION_CLOSURE_001",
+    "approved_model": "MODEL_C",
+    "scope": "ART_CONTENT_PLANNING_ONLY",
+    "not_authorized": [
+      "GAMEPLAY_ZONE_AUTHORITY",
+      "MONSTER_ENCOUNTER_SELECTION",
+      "COMBAT_PROFILE_ASSIGNMENT",
+      "HP_ATK_TTK",
+      "RARITY_CLASSIFICATION",
+      "BOSS_LORD_CLASSIFICATION",
+      "RUNTIME_MONSTER_CATALOG_MEMBERSHIP"
+    ]
+  },
+  "scope": "NORMAL_MONSTER_ART_CONTENT_PLANNING",
+  "zone_counts": {
+    "Z1": 14,
+    "Z2": 14,
+    "Z3": 13,
+    "Z4": 12,
+    "Z5": 12,
+    "Z6": 12,
+    "Z7": 12,
+    "Z8": 11,
+    "Z9": 10,
+    "Z10": 10
+  },
+  "total": 120,
+  "gameplay_authority": false,
+  "combat_authority": false,
+  "art_content_count_used_for_combat": false,
+  "art002_reconciliation": {
+    "reference_head": "3e7034ef71c27ca00acf456d03f95301f30b8c64",
+    "old_zone_counts": {
+      "Z1": 10,
+      "Z2": 11,
+      "Z3": 12,
+      "Z4": 12,
+      "Z5": 12,
+      "Z6": 13,
+      "Z7": 13,
+      "Z8": 14,
+      "Z9": 14,
+      "Z10": 9
+    },
+    "old_distribution_status": "SUPERSEDED_FOR_ART_CONTENT_PLANNING",
+    "roster_ids_preserved": true,
+    "art_assets_preserved": true,
+    "existing_runtime_mappings_preserved": true
+  },
+  "roster_identity": {
+    "id_prefix": "M",
+    "first_id": "M001",
+    "last_id": "M120",
+    "count": 120,
+    "unique": 120,
+    "duplicates": 0,
+    "missing": 0,
+    "owner_approved_exact_id_reassignment": false,
+    "exact_id_zone_assignment_status": "PENDING_CONTENT_RECONCILIATION",
+    "id_zone_moves_performed": 0
+  },
+  "art003": {
+    "may_use_count_targets": true,
+    "may_infer_gameplay_zone_from_count": false,
+    "may_renumber_ids": false,
+    "b01_art_invalidated_by_distribution": false,
+    "b01_ids": [
+      "M002",
+      "M003",
+      "M004",
+      "M005",
+      "M006",
+      "M007",
+      "M008",
+      "M009",
+      "M010",
+      "M012"
+    ]
+  },
+  "boundaries": {
+    "f009_enabled": false,
+    "rarity_used_to_assign_zone_counts": false,
+    "boss_included_in_120_count": false,
+    "lord_included_in_120_count": false,
+    "roster_classification_reconciliation_required": false,
+    "e045_scope_touched": false
+  },
+  "zone_count_delta": {
+    "Z1": 4,
+    "Z2": 3,
+    "Z3": 1,
+    "Z4": 0,
+    "Z5": 0,
+    "Z6": -1,
+    "Z7": -1,
+    "Z8": -3,
+    "Z9": -4,
+    "Z10": 1,
+    "net": 0
+  },
+  "authority": {
+    "gameplay_authority_changed": false,
+    "combat_authority_changed": false,
+    "runtime_mapping_changed": false,
+    "app_py_changed": false,
+    "schema_changed": false,
+    "migration_changed": false
+  }
+}
