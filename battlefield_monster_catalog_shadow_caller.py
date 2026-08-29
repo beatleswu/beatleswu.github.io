@@ -68,6 +68,7 @@ MISSING_PROFILE_FAIL_CLOSED = True
 MATCH = "MATCH"
 IDENTITY_DRIFT = "IDENTITY_DRIFT"
 PROFILE_REF_DRIFT = "PROFILE_REF_DRIFT"
+PROFILE_VERSION_DRIFT = "PROFILE_VERSION_DRIFT"
 HP_DRIFT = "HP_DRIFT"
 ATK_DRIFT = "ATK_DRIFT"
 MISSING_PROFILE = "MISSING_PROFILE"
@@ -79,6 +80,7 @@ SHADOW_DRIFT_TYPES = (
     MATCH,
     IDENTITY_DRIFT,
     PROFILE_REF_DRIFT,
+    PROFILE_VERSION_DRIFT,
     HP_DRIFT,
     ATK_DRIFT,
     MISSING_PROFILE,
@@ -88,6 +90,13 @@ SHADOW_DRIFT_TYPES = (
 )
 SHADOW_DRIFT_TYPES_EXPLICIT = True
 _BATTLEFIELD_CONTEXTS = frozenset((BATTLEFIELD_NORMAL, BATTLEFIELD_BOSS))
+
+# F008 and E045 identify two different, explicit registries.  This pair is
+# the only accepted cross-registry version mapping for the current shadow
+# window.  Any other pair is a version drift; it is never silently normalized.
+PROFILE_VERSION_COMPATIBILITY = frozenset({
+    ("f008.v1", "e045.profile.v1"),
+})
 
 
 @dataclass(frozen=True)
@@ -208,6 +217,8 @@ def classify_shadow_drift(
     shadow_context: str | None,
     current_profile_id: str | None,
     shadow_profile_id: str | None,
+    current_profile_version: str | None = None,
+    shadow_profile_version: str | None = None,
     current_hp: int | None,
     shadow_hp: int | None,
     current_atk: int | None,
@@ -223,6 +234,18 @@ def classify_shadow_drift(
         return MISSING_PROFILE
     if current_profile_id != shadow_profile_id:
         return PROFILE_REF_DRIFT
+    if (current_profile_version is None) != (shadow_profile_version is None):
+        return PROFILE_VERSION_DRIFT
+    if (
+        current_profile_version is not None
+        and shadow_profile_version is not None
+        and current_profile_version != shadow_profile_version
+        and (
+            current_profile_version,
+            shadow_profile_version,
+        ) not in PROFILE_VERSION_COMPATIBILITY
+    ):
+        return PROFILE_VERSION_DRIFT
     if current_hp != shadow_hp:
         return HP_DRIFT
     if current_atk != shadow_atk:
@@ -235,6 +258,7 @@ def observe_battlefield_encounter(
     *,
     context: Any,
     zone: str | None = None,
+    current_profile: Any | None = None,
     catalog: MonsterCatalog = CANONICAL_MONSTER_CATALOG,
 ) -> BattlefieldShadowDiagnostic:
     """Evaluate one current Battlefield result beside the E046 adapter.
@@ -286,12 +310,16 @@ def observe_battlefield_encounter(
         )
 
     try:
-        # F008 remains the current runtime stat authority.  This call is read
-        # only and uses the explicit canonical ID, never presentation fields.
-        current_profile = resolve_monster_combat_profile(
-            {"monster_id": reported_id},
-            context="LEGACY_BATTLEFIELD",
-        )
+        # F008 remains the current runtime stat authority.  A caller may pass
+        # the already-resolved, server-owned F008 profile when a governed
+        # compatibility override is active; otherwise resolve it here.  Both
+        # paths are read-only and use the explicit canonical ID, never
+        # presentation fields.
+        if current_profile is None:
+            current_profile = resolve_monster_combat_profile(
+                {"monster_id": reported_id},
+                context="LEGACY_BATTLEFIELD",
+            )
     except MonsterCombatProfileError as error:
         return _failure(
             context=context_key,
@@ -337,6 +365,8 @@ def observe_battlefield_encounter(
             shadow_context=comparison.foundation_context,
             current_profile_id=current_profile.profile_id,
             shadow_profile_id=comparison.foundation_profile_id,
+            current_profile_version=current_profile.profile_version,
+            shadow_profile_version=comparison.foundation_profile_version,
             current_hp=current_profile.max_hp,
             shadow_hp=comparison.foundation_hp,
             current_atk=current_profile.attack,
@@ -464,6 +494,8 @@ __all__ = [
     "MISSING_PROFILE",
     "PRODUCTION_TELEMETRY_ADDED",
     "PROFILE_REF_DRIFT",
+    "PROFILE_VERSION_COMPATIBILITY",
+    "PROFILE_VERSION_DRIFT",
     "SHADOW_CALLER_ACTIVE_GAMEPLAY_AUTHORITY",
     "SHADOW_CALLER_CONSUMER",
     "SHADOW_CALLER_MUTATION_CAPABLE",

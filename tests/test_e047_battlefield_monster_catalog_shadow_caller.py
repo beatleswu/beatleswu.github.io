@@ -30,6 +30,8 @@ from battlefield_monster_catalog_shadow_caller import (
     MATCH,
     MISSING_PROFILE,
     PROFILE_REF_DRIFT,
+    PROFILE_VERSION_DRIFT,
+    PROFILE_VERSION_COMPATIBILITY,
     SHADOW_CALLER_ACTIVE_GAMEPLAY_AUTHORITY,
     SHADOW_CALLER_MUTATION_CAPABLE,
     SHADOW_CALLER_PLAYER_VISIBLE,
@@ -172,6 +174,13 @@ def test_drift_taxonomy_is_explicit_and_ordered():
         ({"shadow_context": BATTLEFIELD_BOSS}, CONTEXT_MISMATCH),
         ({"shadow_profile_id": "other"}, PROFILE_REF_DRIFT),
         ({"shadow_profile_id": None}, MISSING_PROFILE),
+        (
+            {
+                "current_profile_version": "f009.v1",
+                "shadow_profile_version": "e045.profile.v1",
+            },
+            PROFILE_VERSION_DRIFT,
+        ),
         ({"shadow_hp": 81}, HP_DRIFT),
         ({"shadow_atk": 3}, ATK_DRIFT),
     )
@@ -183,6 +192,7 @@ def test_drift_taxonomy_is_explicit_and_ordered():
             MATCH,
             IDENTITY_DRIFT,
             PROFILE_REF_DRIFT,
+            PROFILE_VERSION_DRIFT,
             HP_DRIFT,
             ATK_DRIFT,
             MISSING_PROFILE,
@@ -192,6 +202,7 @@ def test_drift_taxonomy_is_explicit_and_ordered():
         )
     ) == set(SHADOW_DRIFT_TYPES)
     assert SHADOW_DRIFT_TYPES_EXPLICIT is True
+    assert ("f008.v1", "e045.profile.v1") in PROFILE_VERSION_COMPATIBILITY
 
 
 def test_unknown_identity_is_a_typed_failure_without_active_result_change():
