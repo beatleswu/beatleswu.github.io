@@ -1,0 +1,406 @@
+{
+  "contract_version": "MONSTER_ART_CONTENT_ZONE_ASSIGNMENT_R1_OWNER_DECISION_PACKET",
+  "status": "OWNER_DECISION_PACKET_ONLY",
+  "scope": "ART_CONTENT_PLANNING_ONLY",
+  "current_origin_master": "6829c4c528adf4800326e90534585a32e390ebec",
+  "base_sha": "6829c4c528adf4800326e90534585a32e390ebec",
+  "f034_head": "ea6458318e73f9ef81ce0b6083a0a4729a05f994",
+  "f034_artifact": "docs/planning/monster_art_content_zone_assignment_v1.json",
+  "art002_reference_head": "3e7034ef71c27ca00acf456d03f95301f30b8c64",
+  "owner_approved_existing_moves": [
+    {
+      "id": "M073",
+      "from": "Z7",
+      "to": "Z10",
+      "name": "Brass Golem"
+    },
+    {
+      "id": "M088",
+      "from": "Z8",
+      "to": "Z2",
+      "name": "Stringwing Bat"
+    },
+    {
+      "id": "M094",
+      "from": "Z8",
+      "to": "Z2",
+      "name": "Shieldshell Crab"
+    }
+  ],
+  "owner_rejected_existing_moves": [
+    {
+      "id": "M064",
+      "keep_zone": true
+    },
+    {
+      "id": "M086",
+      "keep_zone": true
+    },
+    {
+      "id": "M099",
+      "keep_zone": true
+    },
+    {
+      "id": "M102",
+      "keep_zone": true
+    },
+    {
+      "id": "M104",
+      "keep_zone": true
+    },
+    {
+      "id": "M109",
+      "keep_zone": true
+    }
+  ],
+  "replacement_candidate_pools": {
+    "Z6_TO_Z3": [
+      {
+        "id": "M060",
+        "name": "Crystalhorn Lizard",
+        "concept": "crystal lizard",
+        "current": "Z6",
+        "target": "Z3",
+        "fit": "Crystal/mineral identity plus lizard form fits Z3 ore and cave ecology.",
+        "lost": "Z6 crystal-valley association.",
+        "conflict": "Crystal remains a Z6-adjacent visual cue, but no wind/sky encoding.",
+        "rank": 1,
+        "recommended": true
+      },
+      {
+        "id": "M070",
+        "name": "Molten Gold Centipede",
+        "concept": "lava crawler",
+        "current": "Z6",
+        "target": "Z3",
+        "fit": "Crawler form and mineral/gold surface fit underground ore ecology.",
+        "lost": "Z6 lava-dragon-valley association.",
+        "conflict": "Molten/lava language keeps a strong Z6 fire signature.",
+        "rank": 2,
+        "recommended": false
+      },
+      {
+        "id": "M067",
+        "name": "Sulfur Salamander",
+        "concept": "sulfur salamander",
+        "current": "Z6",
+        "target": "Z3",
+        "fit": "Sulfur and salamander ecology can plausibly inhabit a dark mineral interior.",
+        "lost": "Z6 fire-valley association.",
+        "conflict": "Sulfur/fire palette still carries volcanic rather than ordinary cave tone.",
+        "rank": 3,
+        "recommended": false
+      },
+      {
+        "id": "M063",
+        "name": "Basalt Shellbeast",
+        "concept": "basalt beast",
+        "current": "Z6",
+        "target": "Z3",
+        "fit": "Basalt/rock identity directly fits stone and underground ecology.",
+        "lost": "Z6 basalt valley association.",
+        "conflict": "Heavy shellbeast silhouette reads as a later, tougher identity.",
+        "rank": 4,
+        "recommended": false
+      }
+    ],
+    "Z8_TO_Z2": [
+      {
+        "id": "M091",
+        "name": "Smokescreen Weasel",
+        "concept": "scout weasel",
+        "current": "Z8",
+        "target": "Z2",
+        "fit": "Weasel form fits field, lowland or small-woodland ecology and is not intrinsically military.",
+        "lost": "Z8 scout/frontier pressure identity.",
+        "conflict": "Smokescreen/scout naming still carries a tactical residue.",
+        "rank": 1,
+        "recommended": true
+      },
+      {
+        "id": "M093",
+        "name": "Beacon Scorpion",
+        "concept": "signal scorpion",
+        "current": "Z8",
+        "target": "Z2",
+        "fit": "Scorpion can fit dry field or lowland edge ecology.",
+        "lost": "Z8 signal/beacon frontier identity.",
+        "conflict": "Beacon/signal language is strongly fortification-coded.",
+        "rank": 2,
+        "recommended": false
+      },
+      {
+        "id": "M085",
+        "name": "Blackgate Hound",
+        "concept": "gate hound",
+        "current": "Z8",
+        "target": "Z2",
+        "fit": "Hound can fit village outskirts or ordinary terrestrial ecology.",
+        "lost": "Z8 gate/frontier identity.",
+        "conflict": "Blackgate/gate naming is an explicit fortress cue.",
+        "rank": 3,
+        "recommended": false
+      },
+      {
+        "id": "M089",
+        "name": "Steelfang Hyena",
+        "concept": "frontier hyena",
+        "current": "Z8",
+        "target": "Z2",
+        "fit": "Hyena is a plausible lowland scavenger.",
+        "lost": "Z8 frontier pressure identity.",
+        "conflict": "Steelfang/frontier naming gives a strong hostile-war tone.",
+        "rank": 4,
+        "recommended": false
+      }
+    ],
+    "Z9_TO_Z1": [
+      {
+        "id": "M107",
+        "name": "Monolith Beetle",
+        "concept": "monument beetle",
+        "current": "Z9",
+        "target": "Z1",
+        "fit": "Beetle is an ordinary readable creature form that can fit village-edge grass or garden ecology.",
+        "lost": "Z9 monument/storm-celestial framing.",
+        "conflict": "Monolith/monument still implies an ancient relic.",
+        "rank": 1,
+        "recommended": true
+      },
+      {
+        "id": "M100",
+        "name": "Thundercrown Stag",
+        "concept": "storm grazer",
+        "current": "Z9",
+        "target": "Z1",
+        "fit": "Stag/grazer is the strongest woodland and ordinary early-fauna fit among the remaining Z9 pool.",
+        "lost": "Z9 storm and crown mythic framing.",
+        "conflict": "Thunder/crown remains overtly elevated.",
+        "rank": 2,
+        "recommended": true
+      },
+      {
+        "id": "M106",
+        "name": "Starsand Wolf",
+        "concept": "star wolf",
+        "current": "Z9",
+        "target": "Z1",
+        "fit": "Wolf is a familiar terrestrial predator suitable for an early readable ecology.",
+        "lost": "Z9 star-sand mythic framing.",
+        "conflict": "Star language remains celestial-coded.",
+        "rank": 3,
+        "recommended": true
+      },
+      {
+        "id": "M105",
+        "name": "Skydrum Tortoise",
+        "concept": "storm tortoise",
+        "current": "Z9",
+        "target": "Z1",
+        "fit": "Grounded tortoise form can fit stream, grass or village-outskirts content.",
+        "lost": "Z9 sky/storm framing.",
+        "conflict": "Sky/drum naming remains a late-zone signal.",
+        "rank": 4,
+        "recommended": true
+      },
+      {
+        "id": "M110",
+        "name": "Dawnwing Serpent",
+        "concept": "dawn serpent",
+        "current": "Z9",
+        "target": "Z1",
+        "fit": "Serpent can fit grass or stream edge ecology.",
+        "lost": "Z9 dawn/sky fauna framing.",
+        "conflict": "Winged serpent reads as elevated and aerial.",
+        "rank": 5,
+        "recommended": false
+      },
+      {
+        "id": "M108",
+        "name": "Thundercrystal Mantis",
+        "concept": "crystal mantis",
+        "current": "Z9",
+        "target": "Z1",
+        "fit": "Mantis is a small insect form.",
+        "lost": "Z9 thunder/crystal framing.",
+        "conflict": "Both thunder and crystal are strong high-tier visual signals.",
+        "rank": 6,
+        "recommended": false
+      },
+      {
+        "id": "M103",
+        "name": "Riftbow Eagle",
+        "concept": "storm eagle",
+        "current": "Z9",
+        "target": "Z1",
+        "fit": "Eagle is a familiar wild creature.",
+        "lost": "Z9 storm/rift framing.",
+        "conflict": "Aerial eagle plus rift language strongly conflicts with Z1.",
+        "rank": 7,
+        "recommended": false
+      },
+      {
+        "id": "M111",
+        "name": "Starshard Rhino",
+        "concept": "star rhino",
+        "current": "Z9",
+        "target": "Z1",
+        "fit": "Rhino is terrestrial and readable.",
+        "lost": "Z9 starshard/elite framing.",
+        "conflict": "Starshard and elite-normal framing create the highest remaining endgame cost.",
+        "rank": 8,
+        "recommended": false
+      }
+    ]
+  },
+  "recommended_replacements": [
+    {
+      "id": "M060",
+      "from": "Z6",
+      "to": "Z3"
+    },
+    {
+      "id": "M091",
+      "from": "Z8",
+      "to": "Z2"
+    },
+    {
+      "id": "M107",
+      "from": "Z9",
+      "to": "Z1"
+    },
+    {
+      "id": "M100",
+      "from": "Z9",
+      "to": "Z1"
+    },
+    {
+      "id": "M106",
+      "from": "Z9",
+      "to": "Z1"
+    },
+    {
+      "id": "M105",
+      "from": "Z9",
+      "to": "Z1"
+    }
+  ],
+  "owner_decision_groups": [
+    {
+      "item_id": "OD-MID-ZONE-R1-Z6Z3",
+      "source_zone": "Z6",
+      "target_zone": "Z3",
+      "required_selections": 1,
+      "candidate_ids": [
+        "M060",
+        "M070",
+        "M067",
+        "M063"
+      ],
+      "recommended_ids": [
+        "M060"
+      ],
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-R1-Z8Z2",
+      "source_zone": "Z8",
+      "target_zone": "Z2",
+      "required_selections": 1,
+      "candidate_ids": [
+        "M091",
+        "M093",
+        "M085",
+        "M089"
+      ],
+      "recommended_ids": [
+        "M091"
+      ],
+      "owner_decision_required": true
+    },
+    {
+      "item_id": "OD-MID-ZONE-R1-Z9Z1",
+      "source_zone": "Z9",
+      "target_zone": "Z1",
+      "required_selections": 4,
+      "candidate_ids": [
+        "M107",
+        "M100",
+        "M106",
+        "M105",
+        "M110",
+        "M108",
+        "M103",
+        "M111"
+      ],
+      "recommended_ids": [
+        "M107",
+        "M100",
+        "M106",
+        "M105"
+      ],
+      "owner_decision_required": true
+    }
+  ],
+  "protected_exclusions": {
+    "do_not_repropose": [
+      "M064",
+      "M086",
+      "M099",
+      "M102",
+      "M104",
+      "M109"
+    ],
+    "runtime_anchor_excluded": [
+      "M098"
+    ],
+    "high_thematic_cost_not_shortlisted": [
+      "M101"
+    ]
+  },
+  "projected_count_contract": {
+    "based_on_art002_old_distribution": {
+      "Z1": 10,
+      "Z2": 11,
+      "Z3": 12,
+      "Z4": 12,
+      "Z5": 12,
+      "Z6": 13,
+      "Z7": 13,
+      "Z8": 14,
+      "Z9": 14,
+      "Z10": 9
+    },
+    "projected_zone_counts": {
+      "Z1": 14,
+      "Z2": 14,
+      "Z3": 13,
+      "Z4": 12,
+      "Z5": 12,
+      "Z6": 12,
+      "Z7": 12,
+      "Z8": 11,
+      "Z9": 10,
+      "Z10": 10
+    },
+    "projected_total": 120,
+    "count_contract_preserved": true
+  },
+  "decision_state": {
+    "total_new_replacement_candidates": 6,
+    "new_owner_approved_replacements": 0,
+    "exact_assignment_freeze": false,
+    "f035_not_started": true
+  },
+  "authority_firewall": {
+    "gameplay_authority_changed": false,
+    "runtime_mapping_changed": false,
+    "monster_stats_changed": false,
+    "art_assets_changed": false,
+    "app_py_changed": false,
+    "art_content_planning_only": true,
+    "e046_scope_touched": false,
+    "art003_scope_touched": false,
+    "b057_scope_touched": false
+  }
+}
