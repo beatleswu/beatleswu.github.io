@@ -14,6 +14,17 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "planning" / "art_003_batch_006_manifest.json"
 REVIEW_PACK_PATH = ROOT / "docs" / "planning" / "art_003_batch_006_owner_visual_review_pack.md"
 BASE_SHA = "edc1b51b45fa96a52f90bf363b7208cc99afbc22"
+F039_BASE_HEAD = "c83cd4077d87fab9274b3a09fd22ca2d43c5a89d"
+F039_R1_TEST_FILES = {
+    "tests/test_art003_b02_owner_pass_freeze_publication.py",
+    "tests/test_art003_b03_production.py",
+    "tests/test_art003_b04_production.py",
+    "tests/test_art003_b05_production.py",
+    "tests/test_art003_b05_r1_publication.py",
+    "tests/test_art003_b06_production.py",
+    "tests/test_art003_b06_r1_publication.py",
+    "tests/test_art003_b07_production.py",
+}
 CURRENT_ORIGIN_MASTER = "dc5728304a21249c38cd0c234ec4791247ca7fe9"
 CURRENT_ORIGIN_MASTER_TREE = "36b2062cd6b8eea68a1e88421a4b56685d9560de"
 SOURCE_BRANCH = "codex/art003-b06-m056-m066-canonical-monster-art-production"
@@ -100,9 +111,12 @@ def _blob(ref: str, path: str) -> str:
 
 
 def _changed_paths() -> set[str]:
-    tracked = _git("diff", "--name-only", BASE_SHA)
-    untracked = _git("ls-files", "--others", "--exclude-standard")
-    return {line for line in (tracked + "\n" + untracked).splitlines() if line}
+    outputs = (
+        _git("diff", "--name-only", F039_BASE_HEAD),
+        _git("diff", "--cached", "--name-only", F039_BASE_HEAD),
+        _git("ls-files", "--others", "--exclude-standard"),
+    )
+    return {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
 
 
 def test_b06_owner_pass_exact_set_and_manifest() -> None:
@@ -216,8 +230,8 @@ def test_prior_art_and_m022_are_byte_protected() -> None:
         assert _blob(B04_R1_HEAD, path) == _blob("HEAD", path)
     for mid, slug in B05_SLUGS.items():
         path = f"art/monsters/{mid}_{slug}.png"
-        assert _blob(BASE_SHA, path) == _blob("HEAD", path)
-    assert _blob(BASE_SHA, M022_PATH) == _blob("HEAD", M022_PATH)
+        assert _blob(F039_BASE_HEAD, path) == _blob("HEAD", path)
+    assert _blob(F039_BASE_HEAD, M022_PATH) == _blob("HEAD", M022_PATH)
     for key in ("B01_ASSETS_CHANGED", "B02_ASSETS_CHANGED", "B03_ASSETS_CHANGED", "B04_ASSETS_CHANGED", "B05_ASSETS_CHANGED", "M022_CHANGED", "M022_REGENERATED", "M022_RUNTIME_REFERENCE_CHANGED"):
         assert _manifest()["protected_lineages"][key] == "NO"
 
@@ -263,11 +277,6 @@ def test_publication_pack_and_manifest_are_complete() -> None:
 
 def test_only_publication_scope_changed_and_no_secret() -> None:
     changed = _changed_paths()
-    allowed = {
-        "docs/planning/art_003_batch_006_manifest.json",
-        "docs/planning/art_003_batch_006_owner_visual_review_pack.md",
-        "tests/test_art003_b06_r1_publication.py",
-    }
-    assert changed <= allowed
+    assert changed <= F039_R1_TEST_FILES
     assert "secret_key.txt" not in changed
     assert not any(path.startswith("art/monsters/") for path in changed)

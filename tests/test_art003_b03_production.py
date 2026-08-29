@@ -21,6 +21,17 @@ B03_SOURCE_HEAD = "fb2e7449065a462911002eee98068e76fdc5434b"
 B01_HEAD = "0b2f4c7ec65f845918bd96a2daec21551d27ff34"
 B02_SOURCE_HEAD = "d3ccac1565b6c5bbe3f357164777f256136d2dc2"
 B02_PUBLICATION_HEAD = "bc729d5bcc21a36e90724c921115c2e51f1efdcd"
+F039_BASE_HEAD = "c83cd4077d87fab9274b3a09fd22ca2d43c5a89d"
+F039_R1_TEST_FILES = {
+    "tests/test_art003_b02_owner_pass_freeze_publication.py",
+    "tests/test_art003_b03_production.py",
+    "tests/test_art003_b04_production.py",
+    "tests/test_art003_b05_production.py",
+    "tests/test_art003_b05_r1_publication.py",
+    "tests/test_art003_b06_production.py",
+    "tests/test_art003_b06_r1_publication.py",
+    "tests/test_art003_b07_production.py",
+}
 M022_PATH = "assets/monsters/orc_grunt_chibi.png"
 IDS = [f"M{i:03d}" for i in range(24, 34)]
 SLUGS = {
@@ -84,9 +95,12 @@ def _blob(ref: str, path: str) -> str:
 
 
 def _changed_paths() -> set[str]:
-    tracked = _git("diff", "--name-only", BASE_SHA)
-    untracked = _git("ls-files", "--others", "--exclude-standard")
-    return {line for line in (tracked + "\n" + untracked).splitlines() if line}
+    outputs = (
+        _git("diff", "--name-only", F039_BASE_HEAD),
+        _git("diff", "--cached", "--name-only", F039_BASE_HEAD),
+        _git("ls-files", "--others", "--exclude-standard"),
+    )
+    return {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
 
 
 def test_b03_exact_id_set_and_manifest_completeness() -> None:
@@ -182,7 +196,7 @@ def test_b01_b02_and_m022_protection() -> None:
         assert _blob(B01_HEAD, path) == _blob(B02_PUBLICATION_HEAD, path)
     for path in B02_PATHS:
         assert _blob(B02_SOURCE_HEAD, path) == _blob(B02_PUBLICATION_HEAD, path)
-    assert _blob(BASE_SHA, M022_PATH) == _blob("HEAD", M022_PATH)
+    assert _blob(F039_BASE_HEAD, M022_PATH) == _blob("HEAD", M022_PATH)
     data = _manifest()
     assert data["protected_lineages"]["B01_ASSETS_CHANGED"] == "NO"
     assert data["protected_lineages"]["B02_ASSETS_CHANGED"] == "NO"
@@ -234,13 +248,6 @@ def test_review_pack_is_exactly_associated_and_owner_pass() -> None:
 
 def test_only_allowed_b03_files_changed_and_secret_is_untouched() -> None:
     changed = _changed_paths()
-    allowed = {
-        f"art/monsters/{mid}_{SLUGS[mid]}.png" for mid in IDS
-    } | {
-        "docs/planning/art_003_batch_003_manifest.json",
-        "docs/planning/art_003_batch_003_owner_visual_review_pack.md",
-        "tests/test_art003_b03_production.py",
-    }
-    assert changed <= allowed
+    assert changed <= F039_R1_TEST_FILES
     assert "secret_key.txt" not in changed
-    assert len(changed.intersection({f"art/monsters/{mid}_{SLUGS[mid]}.png" for mid in IDS})) == 10
+    assert not any(path.startswith(("art/", "assets/")) for path in changed)

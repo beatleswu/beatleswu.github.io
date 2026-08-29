@@ -16,6 +16,17 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "planning" / "art_003_batch_005_manifest.json"
 REVIEW_PACK_PATH = ROOT / "docs" / "planning" / "art_003_batch_005_owner_visual_review_pack.md"
 BASE_SHA = "acdeed171dc49f0eacae9c49cd9a2db299bd0125"
+F039_BASE_HEAD = "c83cd4077d87fab9274b3a09fd22ca2d43c5a89d"
+F039_R1_TEST_FILES = {
+    "tests/test_art003_b02_owner_pass_freeze_publication.py",
+    "tests/test_art003_b03_production.py",
+    "tests/test_art003_b04_production.py",
+    "tests/test_art003_b05_production.py",
+    "tests/test_art003_b05_r1_publication.py",
+    "tests/test_art003_b06_production.py",
+    "tests/test_art003_b06_r1_publication.py",
+    "tests/test_art003_b07_production.py",
+}
 B04_R1_HEAD = BASE_SHA
 CURRENT_ORIGIN_MASTER = "3ace7c748b5f2b5b8b4d4ebb65827b6987ad1e6a"
 CURRENT_ORIGIN_MASTER_TREE = "377afa276cc09a8c5786bdc5eecf4bf7d3201814"
@@ -137,9 +148,12 @@ def _blob(ref: str, path: str) -> str:
 
 
 def _changed_paths() -> set[str]:
-    tracked = _git("diff", "--name-only", BASE_SHA)
-    untracked = _git("ls-files", "--others", "--exclude-standard")
-    return {line for line in (tracked + "\n" + untracked).splitlines() if line}
+    outputs = (
+        _git("diff", "--name-only", F039_BASE_HEAD),
+        _git("diff", "--cached", "--name-only", F039_BASE_HEAD),
+        _git("ls-files", "--others", "--exclude-standard"),
+    )
+    return {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
 
 
 def test_b05_exact_id_set_and_manifest_completeness() -> None:
@@ -198,9 +212,9 @@ def test_b05_assets_are_valid_unique_and_manifest_bound() -> None:
             assert image.width - right >= 8
             assert image.height - bottom >= 8
         assert row["PLANNING_ZONE"] == ZONES[row["M_ID"]]
-        assert row["review_status"] == "PENDING_OWNER_VISUAL_REVIEW"
-        assert row["OWNER_REVIEW_STATUS"] == "PENDING"
-        assert row["PRODUCTION_STATUS"] == "FINAL_PRODUCTION_CANDIDATE_READY_FOR_OWNER_REVIEW"
+        assert row["review_status"] == "PASS"
+        assert row["OWNER_REVIEW_STATUS"] == "PASS"
+        assert row["PRODUCTION_STATUS"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
         assert row["RUNTIME_MAPPING_STATUS"] == "NOT_MAPPED"
         assert row["technical_qa"] == {
             "PNG_READABLE": "PASS",
@@ -219,15 +233,15 @@ def test_b05_assets_are_valid_unique_and_manifest_bound() -> None:
     assert data["continuity"]["DISTINCT_IDENTITY_COUNT"] == 10
 
 
-def test_owner_gate_is_pending() -> None:
+def test_owner_gate_is_published() -> None:
     data = _manifest()
-    assert data["status"] == "READY_FOR_OWNER_VISUAL_REVIEW"
-    assert data["canonical_art_status"] == "PRODUCTION_CANDIDATES_PENDING_OWNER_REVIEW"
-    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PENDING"
-    assert data["owner_review"]["OWNER_PASS_COUNT"] == "0/10"
+    assert data["status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+    assert data["canonical_art_status"] == "OWNER_PASS_FROZEN_AND_PUBLISHED"
+    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PASS"
+    assert data["owner_review"]["OWNER_PASS_COUNT"] == "10/10"
     assert data["owner_review"]["REVISE_COUNT"] == 0
     assert data["owner_review"]["REJECT_COUNT"] == 0
-    assert all(row["OWNER_REVIEW_STATUS"] == "PENDING" for row in data["assets"])
+    assert all(row["OWNER_REVIEW_STATUS"] == "PASS" for row in data["assets"])
 
 
 def test_fresh_master_and_b04_lineage_are_locked() -> None:
@@ -305,23 +319,23 @@ def test_runtime_catalog_gameplay_release_and_lane_firewalls() -> None:
         assert data["firewalls"][key] == "NO"
 
 
-def test_owner_review_pack_is_exact_and_pending() -> None:
+def test_owner_review_pack_is_exact_and_published() -> None:
     data = _manifest()
     pack = REVIEW_PACK_PATH.read_text(encoding="utf-8")
     assert data["owner_review"]["OWNER_REVIEW_PACK_ENTRY_COUNT"] == 10
     assert data["owner_review"]["OWNER_REVIEW_PACK_ID_SET_EXACT"] == "YES"
-    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PENDING"
-    assert data["owner_review"]["OWNER_PASS_COUNT"] == "0/10"
+    assert data["owner_review"]["OWNER_VISUAL_REVIEW_STATUS"] == "PASS"
+    assert data["owner_review"]["OWNER_PASS_COUNT"] == "10/10"
     assert data["owner_review"]["REVIEW_PACK_BYTES_EQUAL_FINAL_ASSETS"] == "YES"
-    assert "Owner visual review status: **PENDING** (`0/10`)." in pack
-    assert "OWNER_PASS_FROZEN_AND_PUBLISHED" not in pack
+    assert "OWNER_VISUAL_REVIEW_STATUS=PASS" in pack
+    assert "OWNER_PASS_COUNT=10/10" in pack
     for row in data["assets"]:
         assert f"### {row['M_ID']} — {row['CANONICAL_NAME']}" in pack
         assert f"![{row['M_ID']} {row['CANONICAL_NAME']}]" in pack
         assert row["FINAL_ASSET_PATH"] in pack
         assert row["SHA256"] in pack
         assert f"| {row['M_ID']} | {row['CANONICAL_NAME']} | {row['F035_ZONE']} |" in pack
-        assert f"| PASS | PENDING |" in pack
+        assert f"| PASS | PASS |" in pack
     image_paths = set(re.findall(r"!\[[^\]]+\]\((\.\./\.\./art/monsters/[^)]+\.png)\)", pack))
     expected_paths = {f"../../{row['FINAL_ASSET_PATH']}" for row in data["assets"]}
     assert image_paths == expected_paths
@@ -331,11 +345,6 @@ def test_owner_review_pack_is_exact_and_pending() -> None:
 
 def test_only_allowed_b05_files_changed_and_secret_is_untouched() -> None:
     changed = _changed_paths()
-    allowed = {f"art/monsters/{mid}_{SLUGS[mid]}.png" for mid in IDS} | {
-        "docs/planning/art_003_batch_005_manifest.json",
-        "docs/planning/art_003_batch_005_owner_visual_review_pack.md",
-        "tests/test_art003_b05_production.py",
-    }
-    assert changed <= allowed
+    assert changed <= F039_R1_TEST_FILES
     assert "secret_key.txt" not in changed
-    assert len(changed.intersection({f"art/monsters/{mid}_{SLUGS[mid]}.png" for mid in IDS})) == 10
+    assert not any(path.startswith(("art/", "assets/")) for path in changed)

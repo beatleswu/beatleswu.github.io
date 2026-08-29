@@ -14,6 +14,17 @@ ROOT = Path(__file__).resolve().parents[1]
 B01_HEAD = "0b2f4c7ec65f845918bd96a2daec21551d27ff34"
 B02_HEAD = "d3ccac1565b6c5bbe3f357164777f256136d2dc2"
 BASE_SHA = "574b3eeb9641c48676e95d3744d204dffca1e1fa"
+F039_BASE_HEAD = "c83cd4077d87fab9274b3a09fd22ca2d43c5a89d"
+F039_R1_TEST_FILES = {
+    "tests/test_art003_b02_owner_pass_freeze_publication.py",
+    "tests/test_art003_b03_production.py",
+    "tests/test_art003_b04_production.py",
+    "tests/test_art003_b05_production.py",
+    "tests/test_art003_b05_r1_publication.py",
+    "tests/test_art003_b06_production.py",
+    "tests/test_art003_b06_r1_publication.py",
+    "tests/test_art003_b07_production.py",
+}
 B02_IDS = ("M013", "M014", "M015", "M016", "M017", "M018", "M019", "M020", "M021", "M023")
 B01_IDS = ("M002", "M003", "M004", "M005", "M006", "M007", "M008", "M009", "M010", "M012")
 B02_HASHES = {
@@ -47,6 +58,10 @@ def _git_blob(ref: str, path: str) -> str:
     return subprocess.check_output(
         ["git", "rev-parse", f"{ref}:{path}"], cwd=ROOT, text=True
     ).strip()
+
+
+def _git(*args: str) -> str:
+    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
 
 
 def _worktree_blob(path: str) -> str:
@@ -172,13 +187,10 @@ def test_board_counts_and_authority_firewall():
 
 def test_m022_is_unchanged_and_no_runtime_scope_is_in_diff():
     assert _sha256(ROOT / "assets/monsters/orc_grunt_chibi.png") == M022_SHA256
-    changed = set(
-        subprocess.check_output(["git", "diff", "--name-only", BASE_SHA], cwd=ROOT, text=True).splitlines()
-    )
-    changed.update(
-        subprocess.check_output(["git", "diff", "--cached", "--name-only", BASE_SHA], cwd=ROOT, text=True).splitlines()
-    )
-    changed = {path.replace("\\", "/") for path in changed}
+    changed = set(_git("diff", "--name-only", F039_BASE_HEAD).splitlines())
+    changed.update(_git("diff", "--cached", "--name-only", F039_BASE_HEAD).splitlines())
+    changed.update(_git("ls-files", "--others", "--exclude-standard").splitlines())
+    changed = {path.replace("\\", "/") for path in changed if path}
+    assert changed <= F039_R1_TEST_FILES
     assert "app.py" not in changed
-    assert not any(path.startswith(prefix) for path in changed for prefix in ("MonsterCatalog", "runtime/", "migrations/", "schema/"))
     assert "assets/monsters/orc_grunt_chibi.png" not in changed
