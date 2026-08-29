@@ -12,6 +12,7 @@ from pathlib import Path
 
 os.environ.setdefault("SECRET_KEY", "rpg-wave2-lane-b-functional-presentation-test-secret")
 import app as app_module  # noqa: E402
+from migrations.equipment_canonical_slot_v1 import upgrade as upgrade_b033  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,7 +70,7 @@ class _DbContext:
         self.conn.close()
 
 
-def _create_inventory_db(path):
+def _create_inventory_db(path, *, post_b033=False):
     rows = [
         (index, 1, item_id, 0, f"2026-08-{index:02d}", "drop")
         for index, item_id in enumerate(sorted(FULL_BODY_IDS), start=1)
@@ -87,14 +88,34 @@ def _create_inventory_db(path):
             )
             """
         )
-        conn.executemany(
-            """
-            INSERT INTO player_inventory(
-                id,user_id,equip_id,equipped,obtained_at,source
-            ) VALUES(?,?,?,?,?,?)
-            """,
-            rows,
-        )
+        if post_b033:
+            upgrade_b033(conn, equipment_defs=app_module.EQUIPMENT_DEFS)
+            conn.executemany(
+                """
+                INSERT INTO player_inventory(
+                    id,user_id,equip_id,equipped,canonical_slot,obtained_at,source
+                ) VALUES(?,?,?,?,?,?,?)
+                """,
+                [
+                    (
+                        row[0], row[1], row[2], row[3],
+                        app_module._EQUIP_MAP.get(row[2], {}).get("slot")
+                        if row[3]
+                        else None,
+                        row[4], row[5],
+                    )
+                    for row in rows
+                ],
+            )
+        else:
+            conn.executemany(
+                """
+                INSERT INTO player_inventory(
+                    id,user_id,equip_id,equipped,obtained_at,source
+                ) VALUES(?,?,?,?,?,?)
+                """,
+                rows,
+            )
 
 
 def _client_for(path, monkeypatch):
@@ -192,7 +213,8 @@ def test_hero_preview_projection_is_server_driven_and_fail_closed():
 
 def test_reload_rehydrates_each_equipped_item_and_restores_same_presentation(tmp_path, monkeypatch):
     path = tmp_path / "functional-presentation.sqlite"
-    _create_inventory_db(path)
+    _create_inventory_db(path, post_b033=True)
+    monkeypatch.setenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, "1")
     client = _client_for(path, monkeypatch)
     registry = app_module.FUNCTIONAL_EQUIPMENT_PRESENTATION_REGISTRY
 

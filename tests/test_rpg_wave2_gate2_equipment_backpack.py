@@ -14,6 +14,7 @@ import pytest
 os.environ.setdefault("SECRET_KEY", "rpg-wave2-gate2-equipment-test-secret")
 import app as app_module  # noqa: E402
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_outbox  # noqa: E402
+from migrations.equipment_canonical_slot_v1 import upgrade as upgrade_b033  # noqa: E402
 import monster_settlement  # noqa: E402
 
 
@@ -53,7 +54,7 @@ class _DbContext:
         self.conn.close()
 
 
-def _create_inventory_db(path, rows=()):
+def _create_inventory_db(path, rows=(), *, post_b033=False):
     with sqlite3.connect(path) as conn:
         conn.execute(
             """
@@ -67,14 +68,34 @@ def _create_inventory_db(path, rows=()):
             )
             """
         )
-        conn.executemany(
-            """
-            INSERT INTO player_inventory(
-                id,user_id,equip_id,equipped,obtained_at,source
-            ) VALUES(?,?,?,?,?,?)
-            """,
-            rows,
-        )
+        if post_b033:
+            upgrade_b033(conn, equipment_defs=app_module.EQUIPMENT_DEFS)
+            conn.executemany(
+                """
+                INSERT INTO player_inventory(
+                    id,user_id,equip_id,equipped,canonical_slot,obtained_at,source
+                ) VALUES(?,?,?,?,?,?,?)
+                """,
+                [
+                    (
+                        row[0], row[1], row[2], row[3],
+                        app_module._EQUIP_MAP.get(row[2], {}).get("slot")
+                        if row[3]
+                        else None,
+                        row[4], row[5],
+                    )
+                    for row in rows
+                ],
+            )
+        else:
+            conn.executemany(
+                """
+                INSERT INTO player_inventory(
+                    id,user_id,equip_id,equipped,obtained_at,source
+                ) VALUES(?,?,?,?,?,?)
+                """,
+                rows,
+            )
 
 
 def _client_for(path, monkeypatch):
@@ -264,7 +285,9 @@ def test_equip_unequip_uses_owned_inventory_and_ignores_client_effect_forgery(tm
             (2, 1, "iron_sword", 0, "2026-08-13", "drop"),
             (3, 2, "dragon_claw", 0, "2026-08-13", "drop"),
         ],
+        post_b033=True,
     )
+    monkeypatch.setenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, "1")
     client = _client_for(path, monkeypatch)
 
     response = client.post(
@@ -278,12 +301,11 @@ def test_equip_unequip_uses_owned_inventory_and_ignores_client_effect_forgery(tm
         },
     )
     assert response.status_code == 200
-    assert response.get_json() == {
-        "ok": True,
-        "item_id": "iron_sword",
-        "inv_id": 2,
-        "equipped": True,
-    }
+    assert response.get_json()["ok"] is True
+    assert response.get_json()["item_id"] == "iron_sword"
+    assert response.get_json()["inv_id"] == 2
+    assert response.get_json()["equipped"] is True
+    assert response.get_json()["canonical_slot"] == "weapon"
     with sqlite3.connect(path) as conn:
         assert conn.execute(
             "SELECT equipped FROM player_inventory WHERE id=1"

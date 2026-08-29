@@ -254,14 +254,15 @@ def test_duplicate_equip_request_is_idempotent(tmp_path, monkeypatch):
 
     first = client.post("/api/player/inventory/equip", json={"inv_id": 2, "action": "equip"})
     second = client.post("/api/player/inventory/equip", json={"inv_id": 2, "action": "equip"})
-    assert first.status_code == second.status_code == 200
+    assert first.status_code == second.status_code == 409
+    assert first.get_json() == second.get_json() == {"error": "LOADOUT_DISABLED"}
     with sqlite3.connect(path) as conn:
         assert conn.execute(
             "SELECT COUNT(*) FROM player_inventory WHERE user_id=1 AND equipped=1"
         ).fetchone()[0] == 1
         assert conn.execute(
             "SELECT equipped FROM player_inventory WHERE id=2"
-        ).fetchone()[0] == 1
+        ).fetchone()[0] == 0
 
 
 def test_legacy_player_without_equipment_is_safe(tmp_path, monkeypatch):
