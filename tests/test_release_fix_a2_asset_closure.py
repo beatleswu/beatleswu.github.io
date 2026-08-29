@@ -168,10 +168,13 @@ def test_every_referenced_image_has_a_source_file_in_repo():
 # ---------------------------------------------------------------------------
 
 def _run_pwsh(script):
-    if shutil.which("powershell") is None:
-        pytest.skip("powershell not available in this environment")
+    # Prefer PowerShell 7 when present: on this Windows host the legacy
+    # powershell.exe wrapper can launch without the FileHash provider, which
+    # turns a deterministic staging assertion into an environment failure.
+    # Keep Windows PowerShell as the portable fallback for CI.
+    executable = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
     result = subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        [executable, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True,
     )
     return result
@@ -179,13 +182,25 @@ def _run_pwsh(script):
 
 def _copy_required_flat_generation_sources(source):
     """Build the smallest source fixture accepted by the live inventory."""
-    for filename in ("index.html", "inventory.html", "i18n.js", "sw.js", "site-nav.js"):
+    for filename in (
+        "index.html",
+        "inventory.html",
+        "i18n.js",
+        "sw.js",
+        "site-nav.js",
+    ):
         shutil.copy(REPO_ROOT / filename, source / filename)
     adapter_target = source / "js"
     adapter_target.mkdir(parents=True, exist_ok=True)
     shutil.copy(
         REPO_ROOT / "js" / "map_battle_v1_adapter.js",
         adapter_target / "map_battle_v1_adapter.js",
+    )
+    # A041's legacy-cache guard is a required generated runtime asset, not an
+    # image-pack file, so include it in the minimal source fixture too.
+    shutil.copy(
+        REPO_ROOT / "js" / "hero_legacy_cache_guard.js",
+        adapter_target / "hero_legacy_cache_guard.js",
     )
     # deploy/live-static-asset-inventory.json's required_in_generation.entries
     # governs the whole js/game/ family (lord_trial_controller.js through the

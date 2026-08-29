@@ -976,7 +976,7 @@ def test_normal_srs_review_stays_on_canonical_route_and_reserved_marker_is_serve
     ).fetchone()[0] == 0
 
 
-def test_boss_review_context_is_server_bound_and_practice_rows_do_not_resume_boss(
+def test_client_grade_cannot_submit_boss_review_and_practice_rows_do_not_resume_boss(
     api_env, app_module, monkeypatch
 ):
     client, conn = api_env
@@ -993,22 +993,24 @@ def test_boss_review_context_is_server_bound_and_practice_rows_do_not_resume_bos
             "attempt_mode": "first_clear",
         }
 
-    valid = client.post(
+    forged_boss_review = client.post(
         "/api/srs/review",
         json={"question_id": QUESTION["id"], "grade": 5,
               "source_context": source_context},
     )
-    assert valid.status_code == 200, valid.get_json()
+    # B051 owns the Boss answer seam.  A legacy review grade is scheduling
+    # input only and cannot manufacture a Boss answer or persisted Boss
+    # evidence, even when a matching-looking session marker is present.
+    assert forged_boss_review.status_code == 400, forged_boss_review.get_json()
+    assert forged_boss_review.get_json()["error"] == "boss_answer_required"
     assert conn.execute(
-        "SELECT source_context FROM review_log WHERE question_id=?",
+        "SELECT COUNT(*) FROM review_log WHERE question_id=?",
         (QUESTION["id"],),
-    ).fetchone()[0] == source_context
+    ).fetchone()[0] == 0
 
     # A normal-practice review is still a valid ordinary review, but it is not
-    # evidence for the active Boss attempt because the server filters the exact
-    # reserved marker.  The Boss marker binds an attempt but does not prove
-    # correctness; B050 therefore fails closed until a server-owned Boss judge
-    # exists.
+    # evidence for the active Boss attempt.  The Boss marker binds an attempt
+    # but does not prove correctness; the legacy path therefore fails closed.
     ordinary = client.post(
         "/api/srs/review",
         json={"question_id": QUESTION["id"], "grade": 5, "source_context": "practice"},
