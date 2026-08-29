@@ -118,6 +118,12 @@ COPY review_compatibility.py ./
 COPY legacy_review_serializer.py ./
 COPY review_service.py ./
 COPY grimoire_api.py ./
+# LC019 current-master compatibility: grimoire_api.py imports the
+# bootstrap-gated identity read stack. Keep each existing runtime dependency
+# explicit; do not copy the identity modules or migrations directory broadly.
+COPY identity_read_adapter.py ./
+COPY puzzle_identity_read_window.py ./
+COPY puzzle_identity_store.py ./
 COPY question_taxonomy.py ./
 COPY monster_taxonomy.py ./
 COPY chapter_i18n.py ./
@@ -165,6 +171,9 @@ COPY migrations/review_log_submission_idempotency_v1.py ./migrations/review_log_
 # B071A: app.py installs this additive server-only historical leaderboard
 # evidence schema during startup; keep the migration explicitly packaged.
 COPY migrations/historical_leaderboard_evidence_v1.py ./migrations/historical_leaderboard_evidence_v1.py
+# LC019 current-master compatibility: the read-only identity adapter reaches
+# this storage foundation module; packaging does not execute the migration.
+COPY migrations/puzzle_identity_registry_v1.py ./migrations/puzzle_identity_registry_v1.py
 COPY migrations/spirit_evolution_events_v1.py ./migrations/spirit_evolution_events_v1.py
 # PAY-PLANS-500 hotfix: lazily imported inside _newebpay()/_paypal() (only on
 # first payment-route access, not at app startup) -- restored after being
