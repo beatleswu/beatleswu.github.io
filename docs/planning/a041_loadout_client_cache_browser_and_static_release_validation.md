@@ -46,6 +46,11 @@ console errors. The Index service worker registered normally. A clean request
 log recorded zero static 404s and HTTP 200 for the guard requests:
 `/js/hero_legacy_cache_guard.js?v=20260829a0401`.
 
+On the same browser tab, a second Hero navigation and subsequent Backpack
+navigation preserved the exact same server-owned equipment summary and
+equipped-card counts, proving reload consistency without relying on legacy
+cache state.
+
 ## Static-release result
 
 A040's source references are present exactly twice, in `hero.html` and
