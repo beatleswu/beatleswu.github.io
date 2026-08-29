@@ -63,6 +63,29 @@ def test_runtime_rows_and_ambiguous_packet():
     assert all(row["owner_decision_required"] is True for row in contract["owner_decision_packet"])
 
 
+def test_deterministic_count_preserving_move_set():
+    contract = load_contract()
+    expected_moves = {
+        "M064": ("Z6", "Z3"),
+        "M073": ("Z7", "Z10"),
+        "M086": ("Z8", "Z2"),
+        "M088": ("Z8", "Z2"),
+        "M094": ("Z8", "Z2"),
+        "M099": ("Z9", "Z1"),
+        "M102": ("Z9", "Z1"),
+        "M104": ("Z9", "Z1"),
+        "M109": ("Z9", "Z1"),
+    }
+    actual_moves = {
+        row["monster_id"]: (row["art002_candidate_zone"], row["planning_zone"])
+        for row in contract["assignments"]
+        if row["art002_candidate_zone"] != row["planning_zone"]
+    }
+    assert actual_moves == expected_moves
+    assert contract["count_preserving_swap_plan"]["hidden_cascade"] is False
+    assert len(contract["count_preserving_swap_plan"]["moves"]) == 9
+
+
 def test_boss_lord_and_rarity_exclusion():
     contract = load_contract()
     boundary = contract["authority_boundary"]
@@ -70,4 +93,3 @@ def test_boss_lord_and_rarity_exclusion():
     assert boundary["rarity_used_for_zone_assignment"] is False
     assert boundary["boss_included_in_120_count"] is False
     assert boundary["lord_included_in_120_count"] is False
-
