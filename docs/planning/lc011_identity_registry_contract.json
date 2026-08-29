@@ -1,0 +1,706 @@
+{
+  "authority": "LC011_IMMUTABLE_PUZZLE_IDENTITY_FOUNDATION_ADR_AND_REGISTRY_CONTRACT_001",
+  "backfill_algorithm_design": {
+    "owner_gate": "OWNER_IDENTITY_FOUNDATION_APPROVAL_REQUIRED = YES — no mint begins until the owner ratifies the identity model, namespace, canonicalisation ADR, genesis key spec, registry contract, new-record policy, and the SGF source-tree freeze artifact.",
+    "step_1_input_validation": "sha256(questions.json) == GENESIS_SNAPSHOT_SHA256 exactly; record_count == 42804; the live SGF tree reproduces SGF_SOURCE_TREE_GENESIS_MANIFEST exactly (GENESIS_INPUT_EXACT_MATCH). Any mismatch -> STOP, mint nothing.",
+    "step_2_manifest_build": "canonicalise every source; fail closed on any SOURCE_NOT_RECOVERABLE; mint the genesis UUID for each; assert 42804 distinct UUIDs (collision detection) -> abort on collision.",
+    "step_3_existing_uuid_detection": "for each record consult the registry via the resolver; EXACT match to the proposed UUID -> skip (idempotent); a DIFFERENT existing uuid -> STOP (drift), human.",
+    "step_4_dry_run": "emit the full plan (N to mint / 0 to change / M already present) with per-record before/after; NO writes.",
+    "step_5_apply": "OWNER-GATED, separate step (NOT LC011): insert-only into the registry; write source_record_uuid into a NEW canonical read-model (NOT questions.json — that stays the frozen genesis input); append a GENESIS lineage marker per record.",
+    "step_6_idempotent_rerun": "same frozen input -> step 3 finds all present -> 0 mint, 0 change.",
+    "step_7_rollback_recovery": "registry is additive/insert-only; rollback = drop the read-model overlay; rows from a failed run are identifiable by minted_batch_id and are TOMBSTONED (never hard-deleted) by an owner-gated recovery step."
+  },
+  "backfill_dry_run": {
+    "already_present_count": 0,
+    "backfill_idempotency_design": "PASS",
+    "conflict_count": 0,
+    "conflicts": [],
+    "fail_closed": false,
+    "plan_kind": "DRY_RUN__NO_MUTATION",
+    "proposed_uuid_collisions_within_batch": [],
+    "source_not_recoverable_count": 0,
+    "to_mint_count": 42804
+  },
+  "canonicalisation_rules": {
+    "case_policy": "PRESERVE (source FS case-sensitivity unproven; never casefold)",
+    "collection_name_policy": "first path segment; preserved verbatim under the global rules",
+    "duplicate_separator": "collapsed ('/'+ -> '/')",
+    "file_extension_policy": "the check is a LITERAL '.sgf' suffix test (no splitext / last-dot). kept verbatim; '.SGF' -> fail closed. 327 folder segments contain '.' (chapter prefixes / 'Vol. 2') and are preserved (LC11-A).",
+    "leading_separator": "stripped",
+    "path_separator": "/ (every '\\\\' -> '/')",
+    "reject_control_chars": "any C0/C1 control, BOM, or the field separator -> SOURCE_NOT_RECOVERABLE",
+    "reject_segments": "empty, '.', '..', or ending in ' ' or '.'  -> SOURCE_NOT_RECOVERABLE (fail closed)",
+    "relative_root_policy": "collection-relative; the SGF題庫 tree root is NOT in the key (pinned separately by SGF_SOURCE_TREE_GENESIS_MANIFEST)",
+    "trailing_separator": "stripped",
+    "unicode_normalization": "NFC",
+    "whitespace": "whole-string leading/trailing stripped; internal preserved verbatim"
+  },
+  "canonicalisation_rules_version": "canon-source-v1",
+  "canonicality": "CONTRACT_AND_PROTOTYPE__NO_MUTATION__NO_BACKFILL__OWNER_RATIFICATION_REQUIRED",
+  "content_hash_as_identity": "FORBIDDEN",
+  "corpus_mutated": false,
+  "dual_id_migration_window": {
+    "admin_tools": "key edits by source_record_uuid where present; the 11 legacy-collision groups are editable ONLY via source_record_uuid or the (record_index, legacy_question_id) audit locator",
+    "api_serialization": "emit both source_record_uuid (or null) and question_id; question_id is non-unique",
+    "logging": "log source_record_uuid where present, else legacy_question_id + canonical_identity_missing=true",
+    "read_authority": "the canonical read-model; source_record_uuid preferred, legacy_question_id as a labelled alias",
+    "test_fixtures": "may carry a clearly-fake PROTOTYPE_ONLY source_record_uuid or none",
+    "write_authority": "the offline genesis backfill + the future authoring flow are the ONLY writers of source_record_uuid; nothing at request time"
+  },
+  "genesis_bootstrap_once_only": "the snapshot SHA is NOT in the UUIDv5 name; it is immutable registry provenance + a hard once-only gate (a second genesis bootstrap against a different corpus/snapshot is REFUSED, not silently reassigned) — LC11-A",
+  "genesis_input_gate": {
+    "genesis_bootstrap_not_yet_done": true,
+    "genesis_input_exact_match": true,
+    "record_count_ok": true,
+    "safe_to_bootstrap": true,
+    "snapshot_sha_ok": true,
+    "tree_manifest_ok": true
+  },
+  "genesis_key_spec_example": "gk1\u001fsgf-source-file\u001fv1\u001f<collection>/<...>/<n>.sgf",
+  "genesis_key_spec_version": "genesis-key-v1",
+  "genesis_manifest": {
+    "canonicalisation_fail_closed_counts": {},
+    "canonicalisation_rules_version": "canon-source-v1",
+    "distinct_proposed_uuids": 42804,
+    "genesis_key_spec_version": "genesis-key-v1",
+    "namespace_uuid": "c70b30f4-b745-5585-b5c3-64021901ad76",
+    "owner_ratification_required": true,
+    "proposed_uuid_collision_count": 0,
+    "record_count": 42804,
+    "record_count_match": true,
+    "record_sample_first25_last25": [
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/1.sgf",
+        "content_sha256": "4dccada65fef63abba766d55c3e5dcf284e582f841218b0361c5c68b845aeaa0",
+        "legacy_question_id": 48126,
+        "proposed_source_record_uuid": "f9a55bc8-c506-537d-9356-62d75793f987",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\1.sgf",
+        "record_index": 0
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/2.sgf",
+        "content_sha256": "a0ab97dd5d4d868df92fe48c50dc20e7921c218df86e87e82d5fd212b26afe36",
+        "legacy_question_id": 48256,
+        "proposed_source_record_uuid": "7f8b2eea-0138-5146-9a97-52dd55034642",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\2.sgf",
+        "record_index": 1
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/3.sgf",
+        "content_sha256": "70f1a62a4e552c22a8e6dcd6daf5bcc27a6c6c7305c3f098ad7a264e32f12f10",
+        "legacy_question_id": 48367,
+        "proposed_source_record_uuid": "ef4cbd86-7b6f-5f25-8a2c-d3a79bc581f1",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\3.sgf",
+        "record_index": 2
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/4.sgf",
+        "content_sha256": "141fc4891ac41eb3241f79269763ab7220823239cb8e73e7b250da365c9c2194",
+        "legacy_question_id": 48478,
+        "proposed_source_record_uuid": "60684d6e-14de-5c06-9ff0-5c4fd56b725f",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\4.sgf",
+        "record_index": 3
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/5.sgf",
+        "content_sha256": "1573bc4d8c5465bddb29d5eecdb759c644d1ff015b94e143c5c74d92ae026cd0",
+        "legacy_question_id": 48589,
+        "proposed_source_record_uuid": "7b14408c-99d3-5257-8b08-fb8d83ff519f",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\5.sgf",
+        "record_index": 4
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/6.sgf",
+        "content_sha256": "dd0640d11eb0e02e2212cf8da4667bcffc3d22b29b1eee65811440b1bce8fd1d",
+        "legacy_question_id": 48700,
+        "proposed_source_record_uuid": "d56fb067-a11e-58ae-bc72-961042749634",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\6.sgf",
+        "record_index": 5
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/7.sgf",
+        "content_sha256": "1d247b39cd86a3f631c3125c5f525f9976e0ae9df5daca1868445ffd34d66654",
+        "legacy_question_id": 48811,
+        "proposed_source_record_uuid": "43d955ba-e3b5-5cb6-85de-01600f07c1d2",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\7.sgf",
+        "record_index": 6
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/8.sgf",
+        "content_sha256": "3788df1bcbb16f2f4ddb7039e160d623d6e3469bbdcd2c2bb73fe5786e900dda",
+        "legacy_question_id": 48922,
+        "proposed_source_record_uuid": "e0370526-160c-558f-ac9a-c7d322227f4e",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\8.sgf",
+        "record_index": 7
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/9.sgf",
+        "content_sha256": "39ed1b9c0759e0388c8fb409dce63cd136c73c5aeebe9e2389460c69f06c3b61",
+        "legacy_question_id": 49033,
+        "proposed_source_record_uuid": "14799f51-c826-53b9-a809-82cd95083165",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\9.sgf",
+        "record_index": 8
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/10.sgf",
+        "content_sha256": "18b56821dbd8c595ccd36ba0ff6bf6be10c7e91c3ea38004de344299e84f9a40",
+        "legacy_question_id": 48127,
+        "proposed_source_record_uuid": "8783a959-1eea-5c9f-8655-e1bb6c819274",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\10.sgf",
+        "record_index": 9
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/11.sgf",
+        "content_sha256": "d842e460791f9c408051e60a62768150b73e17729dbba0c9a2676d2ca0db5a75",
+        "legacy_question_id": 48157,
+        "proposed_source_record_uuid": "63b8d1ab-7b98-5cae-8f0d-d93e91f7f548",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\11.sgf",
+        "record_index": 10
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/12.sgf",
+        "content_sha256": "24e1bde8953eaa7c35d7c8ea250cd8bd6a6625856aeeff4c329d6498824f74d4",
+        "legacy_question_id": 48168,
+        "proposed_source_record_uuid": "ea0a2064-fabd-5183-b22c-714873c9c66d",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\12.sgf",
+        "record_index": 11
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/13.sgf",
+        "content_sha256": "d8321f8ce70eb0ce845b87a2a2c3a336677b62a8007b23461df2aede9cd908be",
+        "legacy_question_id": 48179,
+        "proposed_source_record_uuid": "98b8e47c-10c3-538b-b077-c55e31007653",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\13.sgf",
+        "record_index": 12
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/14.sgf",
+        "content_sha256": "96bae1d7a2fd300303912d056a4bc8af8763b5f58dc036ccd38cadcc62f70b97",
+        "legacy_question_id": 48190,
+        "proposed_source_record_uuid": "fe39886c-9aaf-579f-bde6-cefb50c13d0a",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\14.sgf",
+        "record_index": 13
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/15.sgf",
+        "content_sha256": "26bc289e8b386a13081a0832f5e041d9dc293992176fd0c86afb8ffe04de2e85",
+        "legacy_question_id": 48201,
+        "proposed_source_record_uuid": "29dc4d67-507c-5018-b99d-cc7d1a871943",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\15.sgf",
+        "record_index": 14
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/16.sgf",
+        "content_sha256": "db7dcbfcc11cfd8040d10a375d51c706b348707c8ce581782119d6e791ee9cc9",
+        "legacy_question_id": 48212,
+        "proposed_source_record_uuid": "a121ad98-7582-52d2-870c-34dc43d2ffce",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\16.sgf",
+        "record_index": 15
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/17.sgf",
+        "content_sha256": "3bb11263819b931c86f4988bb3af0fe9efd493c81a0a0253ce6604c5e81acf2c",
+        "legacy_question_id": 48223,
+        "proposed_source_record_uuid": "2f8f8238-e17d-536d-b774-c4aeec82e543",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\17.sgf",
+        "record_index": 16
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/18.sgf",
+        "content_sha256": "a8ae34f2cb50022e706644959dbfe0ebeba7ae90fb6463529778ad283a6af1a4",
+        "legacy_question_id": 48234,
+        "proposed_source_record_uuid": "d394479b-1d15-54b6-82c1-3bbb6e44856c",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\18.sgf",
+        "record_index": 17
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/19.sgf",
+        "content_sha256": "b4470bda0a0b6b697eeba8734d0dc2aa0e3414623a6a6f7f8d6df56df9ef2932",
+        "legacy_question_id": 48245,
+        "proposed_source_record_uuid": "9e6dddda-5a6c-5656-b562-b64b21035eb0",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\19.sgf",
+        "record_index": 18
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/20.sgf",
+        "content_sha256": "5f9e21e01a5f6cef79f559284f630f4b0704078f9b1f6e2140169f2d5e7c0fca",
+        "legacy_question_id": 48257,
+        "proposed_source_record_uuid": "1ead75e6-57be-599e-98ac-8f756b890174",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\20.sgf",
+        "record_index": 19
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/21.sgf",
+        "content_sha256": "1f984514a9b634fe8521d027d87924653149c29cde5d2508eeefe8b7a8953ae8",
+        "legacy_question_id": 48268,
+        "proposed_source_record_uuid": "97f02bda-4c0e-5551-a059-e70b398436ae",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\21.sgf",
+        "record_index": 20
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/22.sgf",
+        "content_sha256": "65d1e3f22e7d0bfb70b348778bb91bda3ac937e1b2d5ee99a779737fc9a9e9b8",
+        "legacy_question_id": 48279,
+        "proposed_source_record_uuid": "c3242e9f-a8eb-5788-8299-4318f93bd45a",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\22.sgf",
+        "record_index": 21
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/23.sgf",
+        "content_sha256": "0a0b02041d09163f30cdd407fa584a584d1e78b2f923ce3d36dfdaeedb49c5e8",
+        "legacy_question_id": 48290,
+        "proposed_source_record_uuid": "f5f7ecb6-e918-56ea-a490-f898bbad0a76",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\23.sgf",
+        "record_index": 22
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/24.sgf",
+        "content_sha256": "2ccf98d910703dd5923fc70c8b05a3e50fa73c0164bf039b5c1d95cc1434d642",
+        "legacy_question_id": 48301,
+        "proposed_source_record_uuid": "21775657-cef7-51cc-8409-9ea60580a7d8",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\24.sgf",
+        "record_index": 23
+      },
+      {
+        "canonical_source": "10獸人角鬥場 ｜ Go - Orc Arena/25.sgf",
+        "content_sha256": "fa2ca8dcbd814f83f6de6cc3f0ec09390b9c2150beb453f55c50faf103e73ae8",
+        "legacy_question_id": 48312,
+        "proposed_source_record_uuid": "3a9a0448-3c4a-51a6-8bea-644a24feb6c3",
+        "raw_source": "10獸人角鬥場 ｜ Go - Orc Arena\\25.sgf",
+        "record_index": 24
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/16.sgf",
+        "content_sha256": "1e8e3b8cade3fc3dabae585936c23b7059847421f4fef9affb31e29f19b6a7f3",
+        "legacy_question_id": 73621,
+        "proposed_source_record_uuid": "b574d348-14e9-559b-9cc5-9ddeb48f8c63",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\16.sgf",
+        "record_index": 42779
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/17.sgf",
+        "content_sha256": "250e456b560dde880a3c1b1e37ca4f84d06c71cde1e9b7aef7566d68fe08139c",
+        "legacy_question_id": 73622,
+        "proposed_source_record_uuid": "94d85a8c-88c2-5854-af63-6ebc2fee90ab",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\17.sgf",
+        "record_index": 42780
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/18.sgf",
+        "content_sha256": "6ad86dbf9a9d8b5e0b2aacfff41f27f234b1b6883a25d0ae4d09ef6d5b8d7be4",
+        "legacy_question_id": 73623,
+        "proposed_source_record_uuid": "4a73dbb2-351f-5142-9044-67be8bd5cd72",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\18.sgf",
+        "record_index": 42781
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/19.sgf",
+        "content_sha256": "6ae0fb0f8fdaf576b9bb1d801361bca458aab7b03d596caecf5fff84ce961a97",
+        "legacy_question_id": 73624,
+        "proposed_source_record_uuid": "6ae6b5e7-403f-5135-a9a6-0c9fd58ff1f3",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\19.sgf",
+        "record_index": 42782
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/20.sgf",
+        "content_sha256": "8a9d62ede3bfc5a85aac1c1b900d68d8f4c813f79df7fef165ef60d9dadcfed8",
+        "legacy_question_id": 73626,
+        "proposed_source_record_uuid": "3851b17d-f61c-5615-86f3-c4e6d0a738dd",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\20.sgf",
+        "record_index": 42783
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/21.sgf",
+        "content_sha256": "364488a110a256c7985aa7e1d60cb5e2982849d257d95762d8fdc2d3da936558",
+        "legacy_question_id": 73627,
+        "proposed_source_record_uuid": "8f6c1734-e1fc-5920-bb59-fa643edbd9bb",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\21.sgf",
+        "record_index": 42784
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/22.sgf",
+        "content_sha256": "0fe53471d3108e9ddedabbf0cdda8386ae9d995a593145638309ded34de7a824",
+        "legacy_question_id": 73628,
+        "proposed_source_record_uuid": "fb75be03-757e-536c-85f1-50e18791ee9a",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\22.sgf",
+        "record_index": 42785
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/23.sgf",
+        "content_sha256": "649a4b92377fdabb2d0f3047edf97f675a3e0feba5329f14437f7ea9382883c4",
+        "legacy_question_id": 73629,
+        "proposed_source_record_uuid": "2fcf6861-1ed2-5f7a-ac22-77a856047aa5",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\23.sgf",
+        "record_index": 42786
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/24.sgf",
+        "content_sha256": "b4c045394ecba4ee894b14d0e9d510b4b0abab2b4f6f223c5181a9f01c19b9d7",
+        "legacy_question_id": 73630,
+        "proposed_source_record_uuid": "3aca6019-4870-5029-80ff-1bc1d7536ca3",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\24.sgf",
+        "record_index": 42787
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/25.sgf",
+        "content_sha256": "f632cc77343129b858337995c02a54c61f4e1c5fe964458967bd021ba027ceff",
+        "legacy_question_id": 73631,
+        "proposed_source_record_uuid": "128555bc-7b11-5810-b55b-c85be8b7a47b",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\25.sgf",
+        "record_index": 42788
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/26.sgf",
+        "content_sha256": "f744bd055978e1ccbde06a5b0b71150a851438b312b404dcd3bd9e986bbfd0b6",
+        "legacy_question_id": 73632,
+        "proposed_source_record_uuid": "f6c9ba37-5023-5eef-bb81-187a2abe8f3a",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\26.sgf",
+        "record_index": 42789
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/27.sgf",
+        "content_sha256": "2830aabb9582cf4c13558887aca35fb8acfa03fe7adea6458f8c7382e0d2f92f",
+        "legacy_question_id": 73633,
+        "proposed_source_record_uuid": "ad81399f-529e-59d6-9cae-68ebe47ad6f1",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\27.sgf",
+        "record_index": 42790
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/28.sgf",
+        "content_sha256": "3ead62e92ece2426358bdea5418ac7259b3de7ec3d3ab695f1c6f516c15122f1",
+        "legacy_question_id": 73634,
+        "proposed_source_record_uuid": "a7b8c455-dd01-54e3-b2c4-d9a70b94abb3",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\28.sgf",
+        "record_index": 42791
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/29.sgf",
+        "content_sha256": "f95272d677e058b996a22c48c999bb78a374ac3d1ec3e31228a4ca7fdc713b96",
+        "legacy_question_id": 73635,
+        "proposed_source_record_uuid": "256c4731-9287-519e-af18-924bd42dc19c",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\29.sgf",
+        "record_index": 42792
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/30.sgf",
+        "content_sha256": "1f72e5442e1fe57fa1665d80a59b6e0b9ca9374734bf68c0c981af148a05ff0a",
+        "legacy_question_id": 73637,
+        "proposed_source_record_uuid": "1e6c7e10-073c-5703-8bd8-b30beb1ffe8b",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\30.sgf",
+        "record_index": 42793
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/31.sgf",
+        "content_sha256": "761581b29cc000ab1dcf56e808caec54d0802243dea8a454af7925e6d76eb5b9",
+        "legacy_question_id": 73638,
+        "proposed_source_record_uuid": "d3f1f04e-80cb-5b4d-a436-239dd8a622c4",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\31.sgf",
+        "record_index": 42794
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/32.sgf",
+        "content_sha256": "91d00070e52ec702ace58e411f9f8280ebf7d488bda60d7d6447652c8c73efc3",
+        "legacy_question_id": 73639,
+        "proposed_source_record_uuid": "76341adc-8930-5ed7-af59-b4cb196f5eed",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\32.sgf",
+        "record_index": 42795
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/33.sgf",
+        "content_sha256": "5415c9a404672b242e6bde8a41da48e282de89f89126827a504df8cf31c14c65",
+        "legacy_question_id": 73640,
+        "proposed_source_record_uuid": "964fe0a3-bdc6-5d26-ac6b-672856319446",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\33.sgf",
+        "record_index": 42796
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/34.sgf",
+        "content_sha256": "ed896e13145e42bf2dc83da0ba4fb401ba8adc319e15a78cc02b4c52390d35d9",
+        "legacy_question_id": 73641,
+        "proposed_source_record_uuid": "3a6f02ef-de80-517e-bcd8-c0c389429065",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\34.sgf",
+        "record_index": 42797
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/35.sgf",
+        "content_sha256": "2da06ac3873e06a5251c3c5a557e252c417fe8a16279ff3a854fe8eae7b8e07a",
+        "legacy_question_id": 73642,
+        "proposed_source_record_uuid": "40d4425d-94c1-53ac-9692-8fb65c9499eb",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\35.sgf",
+        "record_index": 42798
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/36.sgf",
+        "content_sha256": "87951ae37fe5960ee6b2cc55b977480af36e072dfbf5cbfae0e06e443bda2150",
+        "legacy_question_id": 73643,
+        "proposed_source_record_uuid": "199f4da7-cae2-55cf-accd-b43ac1d7bb20",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\36.sgf",
+        "record_index": 42799
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/37.sgf",
+        "content_sha256": "5f02cd300f79c42a3fc3ab3144234cc8b59e571e9fe990d748e58271ea31d774",
+        "legacy_question_id": 73644,
+        "proposed_source_record_uuid": "b04dcfbf-46f2-5d16-b9ad-2f4493a90af6",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\37.sgf",
+        "record_index": 42800
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/38.sgf",
+        "content_sha256": "c0f41e67449515b2cee9592962830c58f37c68c4cb934c6e30d806d05998eed3",
+        "legacy_question_id": 73645,
+        "proposed_source_record_uuid": "11643c8b-9849-511a-9662-6d2d12b854f1",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\38.sgf",
+        "record_index": 42801
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/39.sgf",
+        "content_sha256": "9b032be8ffd37be2beb94e1e02d51d80dbef448f0dc39106782e97db57b858a3",
+        "legacy_question_id": 73646,
+        "proposed_source_record_uuid": "89d82f03-9c79-57e2-b6cb-b710c0750da9",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\39.sgf",
+        "record_index": 42802
+      },
+      {
+        "canonical_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook/29、金柜角与类似形/40.sgf",
+        "content_sha256": "09a93f421a92c1982b2ebb3aa75413b9a4b16c8c32b7ad302daeb6a10d2b2bcf",
+        "legacy_question_id": 73648,
+        "proposed_source_record_uuid": "07b30de7-077c-5477-b98d-ddeeef1af4c8",
+        "raw_source": "魔界禁咒大全 ｜ Go - Demonic Spellbook\\29、金柜角与类似形\\40.sgf",
+        "record_index": 42803
+      }
+    ],
+    "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff"
+  },
+  "genesis_name_option": "C — namespace + 'sgf-source-file' + 'v1' + canonical_source (NO snapshot sha in the name)",
+  "genesis_uuid_version": "UUIDv5",
+  "lc009_semantics_changed": false,
+  "lc010_prototype_namespace_uuid_not_promoted": "892f7446-c0ca-5320-806f-798d5acc3c27",
+  "lc011_tool_version": "lc011-identity-registry-prototype-v1",
+  "legacy_id_unique_authority": false,
+  "lifecycle_states": {
+    "ACTIVE": "well-formed identity in use; the ONLY state runtime may consume as canonical identity",
+    "AMBIGUOUS": "resolver could not uniquely resolve; runtime MUST fall back to compatibility mode",
+    "NEEDS_REVIEW": "queued for MANUAL_IDENTITY_RECONCILIATION; not consumable as identity",
+    "RETIRED": "deleted / split-parent / merge-loser; audit only; runtime treats as canonical_identity_missing",
+    "SOURCE_MISSING": "source file absent (delete pending restore); identity preserved; runtime = compatibility mode"
+  },
+  "lineage_event_fields": {
+    "authority": "AUTHORITY (RESOLVER_AUTO | OWNER_REVIEW | ADMIN)",
+    "child_uuids": "AUDIT (split children)",
+    "event_type": "AUTHORITY (one of LINEAGE_EVENT_TYPES)",
+    "evidence": "AUDIT ({resolver_class, corroborating_fields})",
+    "new_provenance": "AUDIT ({canonical_source?, content_sha256?})",
+    "occurred_at": "OPTIONAL (caller-supplied ISO string; never generated in tooling)",
+    "old_provenance": "AUDIT ({canonical_source?, content_sha256?})",
+    "parent_uuids": "AUDIT (split parent / merge retired)",
+    "reason": "AUDIT (free text)",
+    "sequence": "AUTHORITY (monotonic per registry; ordering, not wall-clock)",
+    "source_record_uuid": "AUTHORITY (subject identity; null for split/merge which use parent/child)"
+  },
+  "lineage_event_types": [
+    "SOURCE_RENAME",
+    "SOURCE_MOVE",
+    "SOURCE_COLLECTION_RENAME",
+    "SOURCE_CASE_ONLY_RENAME",
+    "CANONICALISATION_RULE_CHANGE",
+    "CONTENT_CORRECTION",
+    "METADATA_CORRECTION",
+    "DELETE",
+    "RESTORE",
+    "SOURCE_SPLIT",
+    "SOURCE_MERGE",
+    "SOURCE_REPLACED",
+    "MANUAL_IDENTITY_RECONCILIATION"
+  ],
+  "live_source_path_is_canonical_identity": false,
+  "new_native_uuid_version": "UUIDv4 (persisted once)",
+  "new_record_identity_policy": {
+    "hybrid_note": "historical external-SGF records use UUIDv5 genesis; new native records use UUIDv4. Both obey one registry contract: mint once, persist, never recompute, resolver+lineage carry forward. A consumer must treat the UUID as opaque and MUST NOT branch on uuid.version.",
+    "mechanism": "the authoring flow mints ONE random UUIDv4, writes it to the registry (mint_method=NEW_RECORD_UUIDV4, created_identity_kind=NEW_NATIVE, genesis_*=null) and persists it on the record. Never recomputed. Never request-time regenerated.",
+    "new_native_storage_requirement": "a v4 exists only in the registry (unlike a v5, which is recomputable), so the identity registry + lineage MUST be append-only and replicated storage.",
+    "policy": "REGISTRY_MINTED_PERSISTED_UUIDV4",
+    "rejected_alternative": "UUIDv5(author + counter + content_sha256) — none of those is a stable SOURCE ENTITY (author can be wrong, counter is an allocation-order = record_index analog, content can change).",
+    "v4_to_v5_upgrade_forbidden": "if a NEW_NATIVE record later acquires a real `source`, the source becomes a current_source_alias — it NEVER triggers a re-mint to a v5. The v4 is permanent.",
+    "when": "at authoritative creation of a hand-authored canonical question (source == '')"
+  },
+  "owner_namespace_ratification_required": true,
+  "post_genesis_uuid_recomputation": "FORBIDDEN",
+  "proposed_canonical_namespace_uuid": "c70b30f4-b745-5585-b5c3-64021901ad76",
+  "prototype_only": true,
+  "recommended_final_model": "MODEL_D_persistent_identity_registry_frozen_genesis_bootstrap",
+  "record_index_identity_authority": false,
+  "registry_field_authority": {
+    "canonicalisation_rules_version": "AUDIT",
+    "created_identity_kind": "DERIVED",
+    "current_source_alias": "ALIAS",
+    "genesis_content_sha256": "AUDIT",
+    "genesis_key_spec_version": "AUDIT",
+    "genesis_snapshot_sha256": "AUDIT",
+    "genesis_source_canonical": "ALIAS",
+    "genesis_source_raw": "AUDIT",
+    "historical_source_aliases": "ALIAS",
+    "identity_status": "AUTHORITY",
+    "legacy_question_id": "ALIAS",
+    "lineage_parent_uuids": "AUDIT",
+    "mint_method": "AUTHORITY",
+    "minted_at": "AUDIT",
+    "minted_batch_id": "AUDIT",
+    "minted_by": "AUDIT",
+    "namespace_uuid": "AUDIT",
+    "retired_reason": "AUDIT",
+    "review_note": "OPTIONAL",
+    "source_collection": "DERIVED",
+    "source_record_uuid": "AUTHORITY",
+    "superseded_by_uuid": "AUDIT"
+  },
+  "request_time_uuid_generation": false,
+  "resolver_auto_preserve_classes": [
+    "EXACT",
+    "HIGH_CONFIDENCE_UNIQUE"
+  ],
+  "resolver_priority_ladder": [
+    {
+      "auto_preserve": true,
+      "evidence": "incoming canonical_source == a record's current OR historical alias (exactly 1 ACTIVE) AND incoming content matches genesis_content_sha256 (or no content supplied)",
+      "rank": 1.0,
+      "result": "EXACT"
+    },
+    {
+      "auto_preserve": true,
+      "evidence": "same alias match, content CHANGED, a CONTENT_CORRECTION lineage event exists for it",
+      "rank": 1.1,
+      "result": "HIGH_CONFIDENCE_UNIQUE"
+    },
+    {
+      "auto_preserve": false,
+      "evidence": "same alias match, content CHANGED, NO correction event",
+      "note": "content-correction vs 'different puzzle at same filename' — human decides",
+      "rank": 1.2,
+      "result": "AMBIGUOUS"
+    },
+    {
+      "auto_preserve": false,
+      "evidence": ">1 ACTIVE record claims that alias",
+      "note": "registry integrity error — fail closed, human",
+      "rank": 1.9,
+      "result": "COLLISION"
+    },
+    {
+      "auto_preserve": true,
+      "evidence": "genesis_source_canonical AND genesis_content_sha256 both match (exactly 1; retired incl. -> restore)",
+      "rank": 2.0,
+      "result": "EXACT"
+    },
+    {
+      "auto_preserve": true,
+      "evidence": "content_sha256 matches exactly 1 ACTIVE record, no path relationship",
+      "rank": 3.0,
+      "result": "HIGH_CONFIDENCE_UNIQUE"
+    },
+    {
+      "auto_preserve": false,
+      "evidence": "content_sha256 shared by >1 ACTIVE record (the 404 duplicate groups)",
+      "note": "CONTENT_HASH_AS_IDENTITY = FORBIDDEN (ADR §14)",
+      "rank": 3.1,
+      "result": "AMBIGUOUS"
+    },
+    {
+      "auto_preserve": true,
+      "evidence": "legacy_question_id maps to exactly 1 ACTIVE record",
+      "rank": 4.0,
+      "result": "HIGH_CONFIDENCE_UNIQUE"
+    },
+    {
+      "auto_preserve": false,
+      "evidence": "legacy_question_id maps to >1 ACTIVE record (the 11 collision groups)",
+      "rank": 4.1,
+      "result": "AMBIGUOUS"
+    },
+    {
+      "auto_preserve": false,
+      "evidence": "no evidence matches",
+      "note": "mint a NEW identity — correct for a genuinely new source file",
+      "rank": 9.0,
+      "result": "MISSING"
+    }
+  ],
+  "runtime_contract": {
+    "consumes": "source_record_uuid from the canonical persisted read-model, identity_status == ACTIVE only",
+    "migration_fallback": "if source_record_uuid absent -> use legacy_question_id as a LABELLED non-canonical compatibility key and emit canonical_identity_missing=true (mirrors the LC003/LC004 canonical_puzzle_id=null / invalid_identity=true pattern)",
+    "must_not": [
+      "recompute identity (no canonicalise-at-runtime)",
+      "inspect a filesystem path to mint identity",
+      "generate a request-time UUID",
+      "fall back to content_sha256 as identity"
+    ]
+  },
+  "schema_version": "1.0",
+  "sgf_source_tree_genesis_manifest_contract": {
+    "gate": "the backfill refuses to run unless the live tree reproduces this manifest exactly",
+    "per_file": [
+      "relative_path (collection-relative, pre-canonicalisation raw)",
+      "content_sha256 (SGF bytes on disk)",
+      "collection (first path segment)"
+    ],
+    "purpose": "pin the external SGF題庫 tree so a genesis backfill is reproducible and drift is detectable",
+    "status": "CONTRACT ONLY — LC011 cannot BUILD it (the SGF tree is external / not present); producing it is a gated prerequisite step before any backfill",
+    "storage": "checked into the repo as a path+hash list (a few MB) OR a hashed/compressed form; the raw SGF corpus is NOT copied into the repo unless separately authorized",
+    "tree_level": [
+      "file_count (must == 42804)",
+      "tree_manifest_sha256 (sha256 of the canonically-sorted manifest body)"
+    ]
+  },
+  "source_mutation_semantics": {
+    "canonicalisation_rule_change": {
+      "how": "CANONICALISATION_RULE_CHANGE event; a new canon-source-vN; genesis UUIDs are NEVER re-minted — the registry maps old canonical key -> uuid",
+      "same_uuid": true
+    },
+    "case_only_rename": {
+      "how": "SOURCE_CASE_ONLY_RENAME event; case is preserved in the alias, UUID unchanged",
+      "same_uuid": true
+    },
+    "collection_rename": {
+      "how": "SOURCE_COLLECTION_RENAME event; every affected record's alias rewritten; UUIDs unchanged",
+      "same_uuid": true
+    },
+    "content_correction_same_entity": {
+      "how": "CONTENT_CORRECTION event attested by OWNER_REVIEW; resolver rank 4",
+      "same_uuid": true
+    },
+    "delete_then_restore": {
+      "how": "DELETE -> RETIRED; RESTORE reactivates the SAME uuid only if the resolver returns EXACT/HIGH_CONFIDENCE; weak evidence -> new mint; never a request-time fresh UUID",
+      "same_uuid": "only on EXACT / HIGH_CONFIDENCE_UNIQUE"
+    },
+    "different_puzzle_same_filename": {
+      "how": "SOURCE_REPLACED event; old identity RETIRED or moved; new file gets a MISSING -> new mint; resolver fails closed (AMBIGUOUS) without an explicit event",
+      "same_uuid": false
+    },
+    "folder_move": {
+      "how": "same as rename (SOURCE_MOVE event)",
+      "same_uuid": true
+    },
+    "merge_many_to_one": {
+      "how": "one survivor kept; others RETIRED with superseded_by_uuid = survivor; all histories preserved",
+      "same_uuid": false
+    },
+    "reimport_identical_frozen_corpus": {
+      "how": "genesis key = f(canonical_source) re-derives identically (Option C); the GENESIS_BOOTSTRAP_ONCE_ONLY gate then refuses a second write — the re-derive is for audit/recovery only",
+      "same_uuid": true
+    },
+    "reimport_under_new_snapshot_sha": {
+      "how": "a second genesis bootstrap is REFUSED by the once-only gate; the new corpus's records go through the resolver (current alias / genesis source+content) -> same uuid for the same entity, MANUAL_IDENTITY_RECONCILIATION for anything ambiguous, a new mint only for a genuinely new file",
+      "same_uuid": true
+    },
+    "rename_only": {
+      "how": "registry rename_or_move; old path -> historical_source_aliases; UUID never recomputed",
+      "same_uuid": true
+    },
+    "split_one_to_many": {
+      "how": "parent RETIRED (reason SPLIT); each child gets a fresh identity; parent kept for audit; child.lineage_parent_uuids = [parent]",
+      "same_uuid": false
+    }
+  },
+  "source_path_role": "GENESIS_SEED_AND_RESOLVER_ALIAS_ONLY",
+  "source_record_uuid_backfill": false
+}

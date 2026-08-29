@@ -1,0 +1,59 @@
+{
+  "canonicalisation_rules_version": "canon-source-v1",
+  "corpus_mutated": false,
+  "corpus_record_count": 42804,
+  "corpus_side": {
+    "canonical_path_collision_count": 0,
+    "canonical_path_collisions": [],
+    "canonicalisation_fail_closed_counts": {},
+    "canonicalisation_rules_version": "canon-source-v1",
+    "corpus_record_count": 42804,
+    "distinct_canonical_sources": 42804,
+    "distinct_uuid_count": 42804,
+    "duplicate_content_group_count": 404,
+    "duplicate_content_groups_separable": 404,
+    "genesis_key_spec_version": "genesis-key-v1",
+    "legacy_collision_records": 13,
+    "legacy_collision_records_separable": true,
+    "namespace_uuid": "c70b30f4-b745-5585-b5c3-64021901ad76",
+    "proposed_uuid_count": 42804,
+    "source_not_recoverable": 0,
+    "uuid_collision_count": 0,
+    "uuid_collisions": [],
+    "uuid_list_sha256": "cb47e9d63d2e44f06b24772436380a8e1ce4f199ae64455bfc3891da446da2f2"
+  },
+  "genesis_bootstrap_once_only_gate": {
+    "reason": "no prior bootstrap",
+    "required_keys": [
+      "canonicalisation_rules_version",
+      "corpus_id",
+      "genesis_key_spec_version",
+      "namespace_uuid",
+      "record_count",
+      "sgf_tree_manifest_sha256",
+      "snapshot_sha256"
+    ],
+    "safe_to_bootstrap": false,
+    "static_inputs_valid": false
+  },
+  "genesis_key_spec_version": "genesis-key-v1",
+  "genesis_record_manifest": {
+    "reason": "§21 — a genesis record manifest is produced ONLY if all source-tree reconciliation gates pass; ACTUAL_SOURCE_TREE_TRACED = NO",
+    "status": "NOT_GENERATED"
+  },
+  "lc009_semantics_changed": false,
+  "lc012_tool_version": "lc012-sgf-source-tree-freeze-v1",
+  "namespace_uuid": "c70b30f4-b745-5585-b5c3-64021901ad76",
+  "prototype_only": true,
+  "result": "STOP_AND_REPORT: SOURCE_TREE_AUTHORITY_UNRESOLVED",
+  "sgf_content_mutated": false,
+  "sgf_source_files_mutated": 0,
+  "snapshot_hash_match": true,
+  "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+  "source_record_uuid_backfill": false,
+  "tree_side": {
+    "actual_source_tree_traced": false,
+    "note": "no authoritative SGF source tree for the 42,804 frozen snapshot was located; see lc012_sgf_source_tree_genesis_freeze_report.md",
+    "status": "TREE_AUTHORITY_UNRESOLVED"
+  }
+}
