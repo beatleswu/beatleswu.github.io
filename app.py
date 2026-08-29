@@ -22116,10 +22116,12 @@ def _canonical_shop_offer_facts(conn, *, appearance_only=False):
     """Resolve current server Shop facts without trusting request fields.
 
     Only already-supported single-grant Coin products enter this adapter.
-    Legacy bundles/effects/pet grants remain on the existing route until a
-    separate approved destination/grant adapter exists.  C046 contributes
-    static functional Equipment facts from its server-owned offer authority;
-    the definitions are not copied into ``SHOP_ITEMS``. Tests may inject a
+    Legacy bundles/effects/pet grants remain classified as compatibility
+    products until a separate approved destination/grant adapter exists; the
+    default ``/api/shop/buy`` route fails those products closed instead of
+    invoking the historical mutation path. C046 contributes static
+    functional Equipment facts from its server-owned offer authority; the
+    definitions are not copied into ``SHOP_ITEMS``. Tests may inject a
     synthetic server-owned fact through this helper.
     """
 
@@ -22317,8 +22319,9 @@ def _classify_shop_request(conn, body, *, appearance_only=False):
     """Classify a Shop request before any purchase or legacy mutation.
 
     The result is deliberately based on server catalog/rotation facts.  A
-    known legacy product is allowed to retain its existing route, but a
-    request that partially identifies a canonical offer or supplies
+    known legacy product remains explicitly classified for caller policy, but
+    the default purchase route fails it closed until a durable adapter exists.
+    A request that partially identifies a canonical offer or supplies
     conflicting selectors is invalid rather than being tried twice.
     """
 
@@ -23273,41 +23276,28 @@ def shop_catalog():
 def shop_buy():
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
-    if _canonical_coin_shop_purchase_enabled():
-        with get_db() as conn:
-            dispatch = _classify_shop_request(conn, body)
-        if dispatch['classification'] == CANONICAL_SHOP_DISPATCH:
-            return _canonical_shop_purchase_response(uid, body)
-        if dispatch['classification'] == INVALID_SHOP_DISPATCH:
-            status = 503 if dispatch.get('error_code') == 'SHOP_DISPATCH_UNAVAILABLE' else 400
-            return jsonify({
-                'error': 'shop_offer_unavailable',
-                'code': dispatch.get('error_code', 'UNKNOWN_OFFER'),
-            }), status
-        # LEGACY_ONLY intentionally falls through to the unchanged legacy
-        # mutation implementation below.  This branch was selected before
-        # any canonical operation reservation or Coin/ownership mutation.
-    item_key = str(body.get('item_key') or '')
-    qty      = max(1, min(10, int(body.get('qty') or 1)))
-    item = SHOP_ITEMS.get(item_key)
-    if not item:
-        return jsonify({'error': 'unknown_item'}), 400
-    price = item['price']
-    # 每日輪換折扣
+    # C048 closes the default authority split: /api/shop/buy always performs
+    # server-fact classification before any mutation. The compatibility flag
+    # remains scoped to catalog projection and the separate appearance route;
+    # it is not a purchase-safety gate and must not expose Shop UI.
     with get_db() as conn:
-        slots = _daily_shop_slots(conn)
-        for s in slots:
-            if s['item_key'] == item_key:
-                price = s['price']
-                break
-        total = price * qty
-        if not _spend_coins(conn, uid, total, f'buy:{item_key}x{qty}'):
-            return jsonify({'error': 'insufficient_coins', 'coins': _coin_balance(conn, uid)}), 400
-        granted_items, granted_food = _grant_shop_purchase(conn, uid, item, qty)
-        conn.commit()
-        bal = _coin_balance(conn, uid)
-    return jsonify({'ok': True, 'coins': bal, 'item_key': item_key, 'qty': qty,
-                    'granted_items': granted_items, 'granted_food': granted_food})
+        dispatch = _classify_shop_request(conn, body)
+    if dispatch['classification'] == CANONICAL_SHOP_DISPATCH:
+        return _canonical_shop_purchase_response(uid, body)
+    if dispatch['classification'] == INVALID_SHOP_DISPATCH:
+        status = 503 if dispatch.get('error_code') == 'SHOP_DISPATCH_UNAVAILABLE' else 400
+        return jsonify({
+            'error': 'shop_offer_unavailable',
+            'code': dispatch.get('error_code', 'UNKNOWN_OFFER'),
+        }), status
+    # No default purchase may debit Coins and grant inventory without a C019
+    # durable operation identity/result. Unsupported legacy compatibility
+    # products therefore fail closed until an approved canonical grant
+    # adapter exists; do not fall through to the historical mutation helpers.
+    return jsonify({
+        'error': 'shop_offer_unavailable',
+        'code': 'LEGACY_PURCHASE_RETIRED',
+    }), 409
 
 @app.route('/api/shop/use', methods=['POST'])
 @login_required
