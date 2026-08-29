@@ -296,8 +296,11 @@ def test_packaging_closure_is_exact_and_superseded_eastern_guardian_shield_is_no
     # The canonical image pack now includes the separately closed Wave2
     # runtime assets.  The World NPC delta above remains scoped to this
     # registry; these totals assert the current combined release inventory.
-    assert manifest["total_files"] == 1439
-    assert manifest["total_bytes"] == 788196262
+    # The current combined image pack also contains the nine A021A/D038
+    # runtime Spirit presentation assets. Their release registration is
+    # intentionally separate from this World NPC delta.
+    assert manifest["total_files"] == 1448
+    assert manifest["total_bytes"] == 789091914
     for path in runtime_paths:
         entry = manifest_by_path[path]
         raw = (ROOT / path).read_bytes()

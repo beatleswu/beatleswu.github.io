@@ -17,12 +17,12 @@
       "js/e9/navigation_registry.js", "js/e9/quest_board.js",
       "js/e9/quest_definitions.js", "js/e9/quest_evaluator.js",
       "js/e9/quest_store.js", "js/e9/right_cards.js",
-      "js/e9/top_hud.js", "js/e9/world_stage.js",
+      "js/e9/top_hud.js", "js/e9/world_stage.js", "js/e9/adventure_spirit_unlock_presentation.js",
       "css/e9/art_directed_runtime.css", "css/e9/cards.css",
       "css/e9/immersive_rpg.css", "css/e9/navigation.css",
       "css/e9/quests.css", "css/e9/reference_world_map.css",
       "css/e9/rwd.css", "css/e9/shell.css", "css/e9/top_hud.css",
-      "css/e9/world_stage.css",
+      "css/e9/world_stage.css", "css/e9/adventure_spirit_unlock.css",
       "components/adventure/bottom_dock.html",
       "components/adventure/left_nav.html",
       "components/adventure/right_cards.html",
@@ -35,7 +35,7 @@
       "mistakes.html", "curriculum.html", "hero.html", "rating_test.html",
       "shop.html", "profile.html", "premium_weekly.html", "stats.html",
       "upgrade.html", "play.html", "inventory.html", "badges.html",
-      "games.html"
+      "games.html", "item_journal.html"
     ]
   },
   "required_in_generation": {
