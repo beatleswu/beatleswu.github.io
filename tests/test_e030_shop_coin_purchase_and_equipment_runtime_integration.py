@@ -294,20 +294,24 @@ def test_canonical_loadout_preserves_locked_item_rejections(tmp_path, monkeypatc
     assert response.get_json() == {"error": error}
 
 
-def test_shop_gate_off_preserves_legacy_purchase_behavior(tmp_path, monkeypatch):
+def test_shop_default_purchase_requires_canonical_operation_authority(tmp_path, monkeypatch):
     path = tmp_path / "shop-off.sqlite"
     _create_db(path, include_wardrobe=False, purchase_schema=False, coins=500)
     monkeypatch.delenv(app_module.CANONICAL_COIN_SHOP_PURCHASE_FLAG, raising=False)
     client = _client(path, monkeypatch)
     response = client.post(
-        "/api/shop/buy", json={"item_key": "hint_ticket", "qty": 2}
+        "/api/shop/buy",
+        json={"item_key": "hint_ticket", "qty": 2, "purchase_operation_id": "c048-no-schema"},
     )
-    assert response.status_code == 200
-    assert response.get_json()["qty"] == 2
+    assert response.status_code == 503
+    assert response.get_json() == {
+        "error": "schema_unavailable",
+        "code": "SCHEMA_UNAVAILABLE",
+    }
     with sqlite3.connect(path) as conn:
         assert conn.execute(
             "SELECT qty FROM shop_inventory WHERE user_id=1 AND item_key='hint_ticket'"
-        ).fetchone()[0] == 2
+        ).fetchone() is None
         assert not conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='coin_purchase_operations'"
         ).fetchone()
