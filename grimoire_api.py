@@ -16,6 +16,39 @@ import json, datetime, random
 from flask import Blueprint, jsonify, request, session
 from functools import wraps
 
+# LC019-W1: the already-canonical bootstrap-gated identity reader (merged
+# LC011-LC016).  Read-only.  While bootstrap_state().hot is False — every
+# environment today, genesis is not authorised — key_for(qid) is
+# ("legacy", str(qid)) and never queries the resolver, so the recommendation
+# logic below is byte-identical to its previous raw-integer behaviour.
+from identity_read_adapter import BootstrapGatedIdentityReader
+
+
+def _identity_tables_present(conn) -> bool:
+    """Catalog lookup for the (candidate) puzzle-identity tables.
+
+    Uses ``sqlite_master`` / ``information_schema`` so it NEVER issues a query
+    that could abort the caller's transaction if the tables are absent (which is
+    the case in every environment today — the identity migration is a candidate,
+    not applied to the runtime DB).  When absent, the caller keeps the raw
+    integer ``question_id`` path unchanged.
+    """
+    try:
+        raw = getattr(conn, "_conn", conn)
+        if raw.__class__.__module__.lower().startswith("sqlite3"):
+            row = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='puzzle_identity_alias'"
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema='public' AND table_name='puzzle_identity_alias'"
+            ).fetchone()
+        return row is not None
+    except Exception:
+        return False
+
 # ── Blueprint 宣告 ──────────────────────────────────────────────
 grimoire_bp = Blueprint('grimoire', __name__)
 
@@ -165,6 +198,30 @@ def generate_daily_training(uid: int, total: int = 10) -> list[int]:
         ).fetchall()
         recent_ids = {r['question_id'] for r in answered}
 
+        # LC019-W1: bootstrap-gated identity view for dedup / exclusion.  One
+        # batched lookup for every id we compare below.  Engaged only when the
+        # candidate identity tables exist; hot == False (every environment
+        # today) -> a pure dict, no resolver query, group_key ==
+        # ("legacy", str(id)) -> identical to the previous raw-int behaviour.
+        # hot == True -> two legacy question_ids that resolve to the same
+        # source_record_uuid share a group_key and so count as one puzzle here,
+        # while AMBIGUOUS stays its own ("unresolved", id) bucket (fail closed,
+        # never merged).
+        _gk_map = {}
+        if _identity_tables_present(sdb):
+            _idr = BootstrapGatedIdentityReader(sdb)
+            _gk_map = {
+                k: v.group_key for k, v in _idr.keys_for(
+                    set(due_ids) | set(cont_ids) | set(recent_ids)
+                    | {q['id'] for q in qs_all}
+                ).items()
+            }
+
+    def _gk(qid):
+        return _gk_map.get(str(qid), ("legacy", str(qid)))
+
+    recent_gk = {_gk(x) for x in recent_ids}
+
     # 玩家等級 (1-99)
     rank_lv = 1
     if stats and stats['rank_level']:
@@ -200,15 +257,18 @@ def generate_daily_training(uid: int, total: int = 10) -> list[int]:
             q for q in enabled_qs
             if q.get('discipline') == disc
             and diff_min <= (q.get('grimoire_difficulty') or 5) <= diff_max
-            and q['id'] not in exclude
-            and q['id'] not in recent_ids
+            and _gk(q['id']) not in exclude
+            and _gk(q['id']) not in recent_gk
         ]
         random.shuffle(pool)
         return [q['id'] for q in pool[:limit]]
 
     def pick_srs_review(due_ids: set, cont_ids: set, exclude: set, limit: int) -> list:
         # 優先污染節點，其次 SRS 到期
-        combined = list((cont_ids | due_ids) - exclude - recent_ids)
+        combined = list({
+            x for x in (cont_ids | due_ids)
+            if _gk(x) not in exclude and _gk(x) not in recent_gk
+        })
         random.shuffle(combined)
         return combined[:limit]
 
@@ -217,8 +277,8 @@ def generate_daily_training(uid: int, total: int = 10) -> list[int]:
         pool = [
             q for q in enabled_qs
             if diff_min <= (q.get('grimoire_difficulty') or 5) <= diff_max
-            and q['id'] not in exclude
-            and q['id'] not in recent_ids
+            and _gk(q['id']) not in exclude
+            and _gk(q['id']) not in recent_gk
         ]
         random.shuffle(pool)
         return [q['id'] for q in pool[:limit]]
@@ -228,29 +288,29 @@ def generate_daily_training(uid: int, total: int = 10) -> list[int]:
     n_weak      = max(1, total * 3 // 10)
     n_review    = total - n_challenge - n_weak
 
-    used = set()
+    used = set()   # LC019-W1: holds group_keys (hot=False -> ("legacy", str(id)))
 
     review_ids    = pick_srs_review(due_ids, cont_ids, used, n_review)
-    used.update(review_ids)
+    used.update(_gk(x) for x in review_ids)
 
     # 弱項強化（優先職業加成學科，若沒有則選真弱項）
     target_disc = class_bonus_disc if class_bonus_disc else weak_disc
     weak_ids = pick_by_disc(target_disc, target_diff, used, n_weak)
     # 若不足，補其他學科
     if len(weak_ids) < n_weak:
-        extra = pick_challenge(target_diff, used | set(weak_ids), n_weak - len(weak_ids))
+        extra = pick_challenge(target_diff, used | {_gk(x) for x in weak_ids}, n_weak - len(weak_ids))
         weak_ids += extra
-    used.update(weak_ids)
+    used.update(_gk(x) for x in weak_ids)
 
     challenge_ids = pick_challenge(target_diff, used, n_challenge)
-    used.update(challenge_ids)
+    used.update(_gk(x) for x in challenge_ids)
 
     # 若總數不足，從全部隨機補
     all_picked = review_ids + weak_ids + challenge_ids
     if len(all_picked) < total:
         fallback = [
             q['id'] for q in enabled_qs
-            if q['id'] not in used and q['id'] not in recent_ids
+            if _gk(q['id']) not in used and _gk(q['id']) not in recent_gk
         ]
         random.shuffle(fallback)
         all_picked += fallback[:total - len(all_picked)]
