@@ -12,6 +12,7 @@ import app as app_module  # noqa: E402
 import monster_settlement as monster_settlement_module  # noqa: E402
 from map_battle_persistence import create_map_battle, ensure_map_battle_tables  # noqa: E402
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_outbox  # noqa: E402
+from migrations.equipment_canonical_slot_v1 import upgrade as upgrade_b033  # noqa: E402
 from map_battle_runtime import (  # noqa: E402
     ensure_submission_lifecycle_schema,
     issue_attempt_for_context,
@@ -21,7 +22,7 @@ from map_battle_runtime import (  # noqa: E402
 
 
 def _create_legacy_db(path, *, equipment=(), monster_idx=0, monster_type="caterpillar",
-                      max_hp=1000, current_hp=1000):
+                      max_hp=1000, current_hp=1000, post_b033=False):
     with sqlite3.connect(path) as conn:
         conn.executescript(
             """
@@ -90,6 +91,8 @@ def _create_legacy_db(path, *, equipment=(), monster_idx=0, monster_type="caterp
             );
             """
         )
+        if post_b033:
+            upgrade_b033(conn, equipment_defs=app_module.EQUIPMENT_DEFS)
         conn.execute(
             "INSERT INTO user_stats(user_id,player_hp,player_max_hp) VALUES(1,100,100)"
         )
@@ -106,12 +109,30 @@ def _create_legacy_db(path, *, equipment=(), monster_idx=0, monster_type="caterp
             (monster_idx, monster_type, "LV B021 encounter", "monster.svg", max_hp, current_hp),
         )
         for row_id, equip_id, equipped in equipment:
-            conn.execute(
-                """INSERT INTO player_inventory(
-                     id,user_id,equip_id,equipped,obtained_at,source
-                   ) VALUES(?,?,?,?,?,?)""",
-                (row_id, 1, equip_id, equipped, "2026-08-14", "test"),
-            )
+            if post_b033:
+                conn.execute(
+                    """INSERT INTO player_inventory(
+                         id,user_id,equip_id,equipped,canonical_slot,obtained_at,source
+                       ) VALUES(?,?,?,?,?,?,?)""",
+                    (
+                        row_id,
+                        1,
+                        equip_id,
+                        equipped,
+                        app_module._EQUIP_MAP.get(equip_id, {}).get("slot")
+                        if equipped
+                        else None,
+                        "2026-08-14",
+                        "test",
+                    ),
+                )
+            else:
+                conn.execute(
+                    """INSERT INTO player_inventory(
+                         id,user_id,equip_id,equipped,obtained_at,source
+                       ) VALUES(?,?,?,?,?,?)""",
+                    (row_id, 1, equip_id, equipped, "2026-08-14", "test"),
+                )
 
 
 def _inventory_conn(*equipment_ids):
@@ -489,12 +510,12 @@ def test_inventory_only_go_stone_cannot_be_equipped(tmp_path, monkeypatch):
         "/api/player/inventory/equip",
         json={"inv_id": 1, "action": "equip", "effects": {"first_question_ace": True}},
     )
-    assert response.status_code == 400
+    assert response.status_code == 409
     unknown_response = client.post(
         "/api/player/inventory/equip",
         json={"inv_id": 2, "action": "equip"},
     )
-    assert unknown_response.status_code == 400
+    assert unknown_response.status_code == 409
     with sqlite3.connect(path) as conn:
         assert conn.execute("SELECT equipped FROM player_inventory WHERE id=1").fetchone()[0] == 0
         assert conn.execute("SELECT equipped FROM player_inventory WHERE id=2").fetchone()[0] == 0
@@ -506,11 +527,14 @@ def test_equipped_state_rehydrates_from_server_for_a_new_client(tmp_path, monkey
         conn.execute(
             "CREATE TABLE player_inventory(id INTEGER PRIMARY KEY,user_id INTEGER,equip_id TEXT,equipped INTEGER,obtained_at TEXT,source TEXT)"
         )
+        upgrade_b033(conn, equipment_defs=app_module.EQUIPMENT_DEFS)
         conn.executemany(
-            "INSERT INTO player_inventory VALUES(?,?,?,?,?,?)",
+            "INSERT INTO player_inventory"
+            "(id,user_id,equip_id,equipped,canonical_slot,obtained_at,source)"
+            " VALUES(?,?,?,?,?,?,?)",
             [
-                (1, 1, "wooden_sword", 1, "2026-08-14", "test"),
-                (2, 1, "iron_sword", 0, "2026-08-14", "test"),
+                (1, 1, "wooden_sword", 1, "weapon", "2026-08-14", "test"),
+                (2, 1, "iron_sword", 0, None, "2026-08-14", "test"),
             ],
         )
 
@@ -529,6 +553,7 @@ def test_equipped_state_rehydrates_from_server_for_a_new_client(tmp_path, monkey
     first_client = app_module.app.test_client()
     with first_client.session_transaction() as session:
         session["user_id"] = 1
+    monkeypatch.setenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, "1")
     assert first_client.post(
         "/api/player/inventory/equip", json={"inv_id": 2, "action": "equip"}
     ).status_code == 200
@@ -550,6 +575,7 @@ def test_battle_after_reload_reads_server_equipment_state(tmp_path, monkeypatch)
             (1, "wooden_sword", 0),
             (2, "iron_sword", 0),
         ),
+        post_b033=True,
     )
 
     class _Db:
@@ -567,6 +593,7 @@ def test_battle_after_reload_reads_server_equipment_state(tmp_path, monkeypatch)
     monkeypatch.setattr(app_module, "_gain_sp", lambda conn, uid, amount: amount)
     monkeypatch.setattr(app_module, "_roll_appearance_loot", lambda *args: None)
     monkeypatch.setattr(app_module, "_roll_loot", lambda *args: None)
+    monkeypatch.setenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, "1")
 
     client = app_module.app.test_client()
     with client.session_transaction() as session:

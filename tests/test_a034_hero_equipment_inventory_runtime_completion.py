@@ -15,6 +15,7 @@ import pytest
 
 os.environ.setdefault("SECRET_KEY", "a034-runtime-test-secret")
 import app as app_module  # noqa: E402
+from migrations.equipment_canonical_slot_v1 import upgrade as upgrade_b033  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,7 +54,7 @@ class _DbContext:
         self.conn.close()
 
 
-def _create_db(path: Path) -> None:
+def _create_db(path: Path, *, post_b033: bool = False) -> None:
     with sqlite3.connect(path) as conn:
         conn.execute(
             """
@@ -78,6 +79,8 @@ def _create_db(path: Path) -> None:
             )
             """
         )
+        if post_b033:
+            upgrade_b033(conn, equipment_defs=app_module.EQUIPMENT_DEFS)
         conn.execute(
             "INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) "
             "VALUES(1,'robe_plain','2026-08-28','drop')"
@@ -136,7 +139,8 @@ def test_acquire_backpack_equip_replace_unequip_and_reload_use_one_authority(
     tmp_path: Path, monkeypatch
 ):
     path = tmp_path / "a034-runtime.sqlite"
-    _create_db(path)
+    _create_db(path, post_b033=True)
+    monkeypatch.setenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, "1")
     wooden = _grant(path, "wooden_sword")
     iron = _grant(path, "iron_sword")
     client = _client(path, monkeypatch)
@@ -230,8 +234,8 @@ def test_duplicate_acquisition_is_distinct_owned_rows_and_unknown_fails_closed(
         "/api/player/inventory/equip",
         json={"inv_id": 3, "action": "equip"},
     )
-    assert bad_unknown.status_code == 400
-    assert bad_unknown.get_json()["error"] == "無效的功能裝備"
+    assert bad_unknown.status_code == 409
+    assert bad_unknown.get_json()["error"] == "LOADOUT_DISABLED"
     assert client.post(
         "/api/player/inventory/equip", json={"inv_id": 999, "action": "equip"}
     ).status_code == 404
@@ -254,10 +258,10 @@ def test_locked_items_stay_out_of_new_equip_but_legacy_xp_unequip_recovers(
         "/api/player/inventory/equip",
         json={"inv_id": stone.row_id, "action": "equip"},
     )
-    assert xp_equip.status_code == 400
-    assert xp_equip.get_json()["error"] == "XP_AMULET_HOLD_FOR_AUTHORITY"
-    assert stone_equip.status_code == 400
-    assert stone_equip.get_json()["error"] == "此物品僅供收藏，不能裝備"
+    assert xp_equip.status_code == 409
+    assert xp_equip.get_json()["error"] == "LOADOUT_DISABLED"
+    assert stone_equip.status_code == 409
+    assert stone_equip.get_json()["error"] == "LOADOUT_DISABLED"
 
     with sqlite3.connect(path) as conn:
         conn.execute("UPDATE player_inventory SET equipped=1 WHERE id=?", (xp.row_id,))

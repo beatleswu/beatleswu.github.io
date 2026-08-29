@@ -7,6 +7,7 @@ import pytest
 
 os.environ.setdefault("SECRET_KEY", "b036-xp-amulet-test-secret")
 import app as app_module  # noqa: E402
+from migrations.equipment_canonical_slot_v1 import upgrade as upgrade_b033  # noqa: E402
 
 
 class _DbContext:
@@ -25,7 +26,7 @@ class _DbContext:
         self.conn.close()
 
 
-def _create_inventory_db(path, rows):
+def _create_inventory_db(path, rows, *, b033=False):
     with sqlite3.connect(path) as conn:
         conn.execute(
             """
@@ -39,17 +40,44 @@ def _create_inventory_db(path, rows):
             )
             """
         )
-        conn.executemany(
-            "INSERT INTO player_inventory VALUES(?,?,?,?,?,?)",
-            [
-                (row_id, 1, equip_id, equipped, "2026-08-25", "b036-test")
-                for row_id, equip_id, equipped in rows
-            ],
-        )
+        if b033:
+            upgrade_b033(conn, equipment_defs=app_module.EQUIPMENT_DEFS)
+        if b033:
+            conn.executemany(
+                "INSERT INTO player_inventory"
+                "(id,user_id,equip_id,equipped,canonical_slot,obtained_at,source)"
+                " VALUES(?,?,?,?,?,?,?)",
+                [
+                    (
+                        row_id,
+                        1,
+                        equip_id,
+                        equipped,
+                        app_module._EQUIP_MAP.get(equip_id, {}).get("slot")
+                        if equipped
+                        else None,
+                        "2026-08-25",
+                        "b036-test",
+                    )
+                    for row_id, equip_id, equipped in rows
+                ],
+            )
+        else:
+            conn.executemany(
+                "INSERT INTO player_inventory VALUES(?,?,?,?,?,?)",
+                [
+                    (row_id, 1, equip_id, equipped, "2026-08-25", "b036-test")
+                    for row_id, equip_id, equipped in rows
+                ],
+            )
 
 
-def _client(path, monkeypatch):
+def _client(path, monkeypatch, *, loadout_enabled=False):
     monkeypatch.setattr(app_module, "get_db", lambda: _DbContext(path))
+    if loadout_enabled:
+        monkeypatch.setenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, "1")
+    else:
+        monkeypatch.delenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, raising=False)
     app_module.app.config.update(TESTING=True)
     client = app_module.app.test_client()
     with client.session_transaction() as session:
@@ -76,8 +104,8 @@ def test_xp_amulet_equip_rejected_and_does_not_mutate_or_consume(tmp_path, monke
         json={"inv_id": 2, "action": "equip"},
     )
 
-    assert response.status_code == 400
-    assert response.get_json() == {"error": "XP_AMULET_HOLD_FOR_AUTHORITY"}
+    assert response.status_code == 409
+    assert response.get_json() == {"error": "LOADOUT_DISABLED"}
     assert _inventory(path) == before
 
 
@@ -91,7 +119,7 @@ def test_xp_amulet_rejection_preserves_existing_accessory(tmp_path, monkeypatch)
         json={"inv_id": 2, "action": "equip"},
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert _inventory(path) == [
         (1, "lucky_stone", 1),
         (2, "xp_amulet", 0),
@@ -128,15 +156,15 @@ def test_go_stone_black_equip_remains_rejected(tmp_path, monkeypatch):
         json={"inv_id": 1, "action": "equip"},
     )
 
-    assert response.status_code == 400
-    assert response.get_json() == {"error": "此物品僅供收藏，不能裝備"}
+    assert response.status_code == 409
+    assert response.get_json() == {"error": "LOADOUT_DISABLED"}
     assert _inventory(path) == [(1, "go_stone_black", 0)]
 
 
 def test_normal_accessory_equip_still_succeeds(tmp_path, monkeypatch):
     path = tmp_path / "accessory.sqlite"
-    _create_inventory_db(path, [(1, "lucky_stone", 0)])
-    client = _client(path, monkeypatch)
+    _create_inventory_db(path, [(1, "lucky_stone", 0)], b033=True)
+    client = _client(path, monkeypatch, loadout_enabled=True)
 
     response = client.post(
         "/api/player/inventory/equip",
@@ -150,8 +178,8 @@ def test_normal_accessory_equip_still_succeeds(tmp_path, monkeypatch):
 @pytest.mark.parametrize("equip_id", ["iron_sword", "cloth_robe"])
 def test_normal_weapon_and_armor_equip_still_succeed(tmp_path, monkeypatch, equip_id):
     path = tmp_path / f"{equip_id}.sqlite"
-    _create_inventory_db(path, [(1, equip_id, 0)])
-    client = _client(path, monkeypatch)
+    _create_inventory_db(path, [(1, equip_id, 0)], b033=True)
+    client = _client(path, monkeypatch, loadout_enabled=True)
 
     response = client.post(
         "/api/player/inventory/equip",
@@ -178,8 +206,8 @@ def test_normal_unequip_still_succeeds(tmp_path, monkeypatch):
 
 def test_client_cannot_override_owned_item_identity_or_slot(tmp_path, monkeypatch):
     path = tmp_path / "server-identity.sqlite"
-    _create_inventory_db(path, [(1, "iron_sword", 0)])
-    client = _client(path, monkeypatch)
+    _create_inventory_db(path, [(1, "iron_sword", 0)], b033=True)
+    client = _client(path, monkeypatch, loadout_enabled=True)
 
     response = client.post(
         "/api/player/inventory/equip",
