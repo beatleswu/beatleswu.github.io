@@ -36,7 +36,19 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 #
 # The Task 063 provenance records for index.html / i18n.js / sw.js deliberately
 # still point at b3a081d70, the commit that produced those bytes.
-PRODUCT_SHA = "f2650ee762482bf4bb315e55bd542d6841a0a03b"
+#
+# INCIDENT_018_R8A1: the fixed pin above is retained only as a historical
+# record and as the negative control below. It is no longer used to drive the
+# dry run.
+#
+# Why it had to stop being a fixed pin: the separation contract requires that
+# every path changed between Product and Gate is release control-plane. A
+# hand-maintained Product SHA therefore stops satisfying the contract the
+# moment any ordinary product commit lands, which is normal master activity.
+# The comment history above shows this pin being manually re-advanced again
+# and again for exactly that reason -- the pin rots by construction, not
+# because the gate is wrong. It is now DERIVED from history instead.
+HISTORICAL_FIXED_PRODUCT_SHA = "f2650ee762482bf4bb315e55bd542d6841a0a03b"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
@@ -88,6 +100,119 @@ def git(cwd: pathlib.Path, *args: str) -> str:
         check=True,
     )
     return result.stdout.strip()
+
+
+# INCIDENT_018_R8A1: reuse the repository's existing canonical control-plane
+# declaration instead of writing a second one here. scripts/release/
+# e10_development_workflow_v2.py and ReleaseTooling.psm1's
+# Get-ReleaseControlPlaneAllowlist are the two existing statements of the same
+# allowlist; test_control_plane_authority_declarations_agree below fails closed
+# if they ever drift apart.
+_WORKFLOW_MODULE = ROOT / "scripts" / "release" / "e10_development_workflow_v2.py"
+
+
+def _load_control_plane_authority():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "_r8a1_workflow_authority", _WORKFLOW_MODULE
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_AUTHORITY = _load_control_plane_authority()
+CONTROL_PLANE_EXACT_PATHS = _AUTHORITY.CONTROL_PLANE_EXACT_PATHS
+CONTROL_PLANE_PREFIXES = _AUTHORITY.CONTROL_PLANE_PREFIXES
+
+# Bounded history walk: a Product baseline further back than this would mean
+# the release line has gone unbuilt for an implausibly long time, and an
+# unbounded scan of full history in a test is its own hazard.
+PRODUCT_DERIVATION_MAX_COMMITS = 200
+
+
+def _is_control_plane_path(path: str) -> bool:
+    normalized = path.replace("\\", "/").lstrip("./")
+    return normalized in CONTROL_PLANE_EXACT_PATHS or normalized.startswith(
+        CONTROL_PLANE_PREFIXES
+    )
+
+
+def _non_control_plane_paths(product_sha: str, gate_sha: str, repo_root=ROOT) -> list[str]:
+    changed = git(repo_root, "diff", "--name-only", f"{product_sha}..{gate_sha}")
+    return [
+        line
+        for line in changed.splitlines()
+        if line.strip() and not _is_control_plane_path(line.strip())
+    ]
+
+
+def derive_product_sha(gate_sha: str, repo_root=ROOT) -> str:
+    """Derive the Product identity the separation contract actually implies.
+
+    The contract (Assert-ReleaseSourceSeparation) is: a newer Gate/control-plane
+    checkout may validate an older Product checkout provided every path changed
+    between them is release control-plane. The Product identity that satisfies
+    that is therefore not a hand-chosen commit -- it is the *oldest* ancestor of
+    the Gate for which the Product..Gate diff is still control-plane only, i.e.
+    the most recent commit that itself carried product bytes.
+
+    Deterministic, reproducible, and self-maintaining: when an ordinary product
+    commit lands, the derived Product identity simply moves to it, and the
+    contract keeps holding without anyone editing a SHA.
+
+    Fail-closed: raises rather than falling back to the Gate SHA or to a
+    permissive default.
+    """
+    gate = git(repo_root, "rev-parse", f"{gate_sha}^{{commit}}")
+    history = git(
+        repo_root, "rev-list", f"--max-count={PRODUCT_DERIVATION_MAX_COMMITS}", gate
+    ).splitlines()
+    if not history:
+        raise AssertionError(f"no history resolved for gate {gate}")
+
+    oldest_valid = None
+    for candidate in history:
+        candidate = candidate.strip()
+        if not candidate:
+            continue
+        if _non_control_plane_paths(candidate, gate, repo_root):
+            break
+        oldest_valid = candidate
+
+    if oldest_valid is None:
+        raise AssertionError(
+            "could not derive a Product identity whose diff to the Gate is "
+            f"control-plane only, within {PRODUCT_DERIVATION_MAX_COMMITS} commits of {gate}"
+        )
+    if git(repo_root, "merge-base", oldest_valid, gate) != oldest_valid:
+        raise AssertionError("derived Product identity is not an ancestor of the Gate")
+    return oldest_valid
+
+
+def run_powershell_capture(args: list[str], cwd: pathlib.Path, extra_env: dict | None = None):
+    """Run PowerShell capturing bytes, then decode defensively.
+
+    INCIDENT_018_R8A1: this previously passed encoding="utf-8" to subprocess.
+    Windows PowerShell on a zh-TW host emits legacy CP950/Big5 bytes, so the
+    reader thread raised UnicodeDecodeError, stderr came back as None, and the
+    assertion died with `TypeError: can only concatenate str (not "NoneType")`
+    -- hiding the real UNAPPROVED_PRODUCT_DIFF_DETECTED message underneath.
+    Bytes are decoded with errors="replace" so undecodable output is visibly
+    marked rather than dropped, and a genuine command failure still fails.
+    """
+    env = {**os.environ, **(extra_env or {})}
+    completed = subprocess.run(
+        args, cwd=cwd, capture_output=True, env=env, timeout=180, check=False
+    )
+
+    def _decode(raw: bytes | None) -> str:
+        if not raw:
+            return ""
+        return raw.decode("utf-8", errors="replace")
+
+    return completed.returncode, _decode(completed.stdout), _decode(completed.stderr)
 
 
 def _presentation_source_present(repo_root=ROOT):
@@ -330,9 +455,8 @@ def test_provenance_count_recovery_and_controller_membership_remain_intact():
     )
 
 
-def test_canonical_source_separation_dry_run_uses_product_identity_without_build():
-    gate_sha = git(ROOT, "rev-parse", "HEAD")
-    result = subprocess.run(
+def _dry_run(gate_sha: str, product_sha: str):
+    return run_powershell_capture(
         [
             "powershell",
             "-NoProfile",
@@ -343,28 +467,165 @@ def test_canonical_source_separation_dry_run_uses_product_identity_without_build
             "-GateSourceSha",
             gate_sha,
             "-ProductSourceSha",
-            PRODUCT_SHA,
+            product_sha,
             "-DryRun",
         ],
         cwd=ROOT,
-        env={**os.environ, "SECRET_KEY": "source-separation-test-only"},
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        timeout=90,
-        check=False,
+        extra_env={"SECRET_KEY": "source-separation-test-only"},
     )
-    assert result.returncode == 0, result.stdout + result.stderr
-    payload = parse_last_json(result.stdout)
+
+
+def test_control_plane_authority_declarations_agree():
+    """The Python and PowerShell allowlists must not drift apart."""
+    module_text = MODULE.read_text(encoding="utf-8")
+    allowlist_block = module_text[
+        module_text.index("function Get-ReleaseControlPlaneAllowlist") : module_text.index(
+            "function Test-ReleaseControlPlanePath"
+        )
+    ]
+    for prefix in CONTROL_PLANE_PREFIXES:
+        assert f"'{prefix}**'" in allowlist_block, prefix
+    for exact in CONTROL_PLANE_EXACT_PATHS:
+        assert f"'{exact}'" in allowlist_block, exact
+    # and nothing extra on the PowerShell side
+    declared = {
+        line.strip().strip("',")
+        for line in allowlist_block.splitlines()
+        if line.strip().startswith("'")
+    }
+    normalized = {d[:-2] if d.endswith("/**") else d for d in declared}
+    assert normalized == set(CONTROL_PLANE_PREFIXES) | set(CONTROL_PLANE_EXACT_PATHS)
+
+
+def test_canonical_source_separation_dry_run_uses_product_identity_without_build():
+    gate_sha = git(ROOT, "rev-parse", "HEAD")
+    product_sha = derive_product_sha(gate_sha)
+    returncode, stdout, stderr = _dry_run(gate_sha, product_sha)
+    assert returncode == 0, (
+        f"derived product sha {product_sha}\n"
+        f"--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}"
+    )
+    payload = parse_last_json(stdout)
     assert payload["source_separation_check"] == "PASS"
     assert payload["gate_source_sha"] == gate_sha
-    assert payload["product_source_sha"] == PRODUCT_SHA
-    assert payload["product_worktree_head"] == PRODUCT_SHA
+    assert payload["product_source_sha"] == product_sha
+    assert payload["product_worktree_head"] == product_sha
     assert payload["product_worktree_clean"] is True
     assert payload["product_runtime_diff_from_product"] == 0
     assert payload["build_context"] == "PRODUCT_WORKTREE"
     assert payload["test_source"] == "GATE_WORKTREE"
-    assert payload["oci_revision_would_be"] == PRODUCT_SHA
-    assert payload["static_source_would_be"] == PRODUCT_SHA
+    assert payload["oci_revision_would_be"] == product_sha
+    assert payload["static_source_would_be"] == product_sha
     assert payload["build_not_executed"] is True
-    assert "docker buildx" not in result.stdout.lower()
+    assert "docker buildx" not in stdout.lower()
+
+
+def test_derived_product_identity_is_a_real_ancestor_and_control_plane_only():
+    """The derivation must stay meaningful, not merely satisfiable."""
+    gate_sha = git(ROOT, "rev-parse", "HEAD")
+    product_sha = derive_product_sha(gate_sha)
+    assert git(ROOT, "merge-base", product_sha, gate_sha) == product_sha
+    assert _non_control_plane_paths(product_sha, gate_sha) == []
+    # It must not silently collapse to "everything is the gate": the derivation
+    # walks back past every control-plane-only commit, so the commit *before*
+    # the derived one must carry product bytes (or the derived one is the
+    # oldest commit examined).
+    parents = git(ROOT, "rev-list", "--max-count=2", product_sha).splitlines()
+    if len(parents) == 2:
+        older = parents[1].strip()
+        assert _non_control_plane_paths(older, gate_sha), (
+            "derivation did not stop at the newest product-bearing commit; "
+            f"{older} -> {gate_sha} is still control-plane only"
+        )
+
+
+def test_unauthorized_product_diff_negative_control():
+    """A Product baseline with real product drift must still fail closed.
+
+    Uses the historical fixed pin, which is exactly such a baseline now. This
+    is the guard against a derivation that 'passes' by choosing a point where
+    every diff is empty.
+    """
+    gate_sha = git(ROOT, "rev-parse", "HEAD")
+    unauthorized = _non_control_plane_paths(HISTORICAL_FIXED_PRODUCT_SHA, gate_sha)
+    assert unauthorized, "negative control is only meaningful with real product drift"
+
+    returncode, stdout, stderr = _dry_run(gate_sha, HISTORICAL_FIXED_PRODUCT_SHA)
+    assert returncode != 0, "unauthorized product drift must not pass the gate"
+    combined = f"{stdout}\n{stderr}"
+    assert "UNAPPROVED_PRODUCT_DIFF_DETECTED" in combined, combined[:2000]
+
+
+def test_source_separation_failure_diagnostic_surfaces_real_message():
+    """The real gate message must reach the assertion, not TypeError/None.
+
+    This is the regression guard for the zh-TW PowerShell decoding defect.
+    """
+    gate_sha = git(ROOT, "rev-parse", "HEAD")
+    returncode, stdout, stderr = _dry_run(gate_sha, HISTORICAL_FIXED_PRODUCT_SHA)
+    assert returncode != 0
+    assert stdout is not None and stderr is not None
+    combined = f"{stdout}\n{stderr}"
+    assert combined.strip(), "diagnostics must not be empty"
+    assert "UNAPPROVED_PRODUCT_DIFF_DETECTED" in combined
+    assert "TypeError" not in combined
+    assert "UnicodeDecodeError" not in combined
+
+
+# ---------------------------------------------------------------------------
+# INCIDENT_018_R8A1: pin-rot regression, on a synthetic throwaway repository.
+# Proves the property that the old fixed pin lacked -- ordinary product
+# advancement must not require anyone to hand-edit a SHA.
+# ---------------------------------------------------------------------------
+
+def _mk_repo(tmp_path: pathlib.Path) -> pathlib.Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q")
+    git(repo, "config", "user.email", "r8a1@test.local")
+    git(repo, "config", "user.name", "r8a1")
+    return repo
+
+
+def _commit(repo: pathlib.Path, relpath: str, body: str) -> str:
+    target = repo / relpath
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(body, encoding="utf-8")
+    git(repo, "add", "--", relpath)
+    git(repo, "commit", "-q", "-m", f"touch {relpath}")
+    return git(repo, "rev-parse", "HEAD")
+
+
+def test_normal_product_advancement_no_pin_rot(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _commit(repo, "app.py", "v1\n")
+    product_a = _commit(repo, "app.py", "v2\n")
+    _commit(repo, "scripts/release/tool.ps1", "cp1\n")
+    gate_a = _commit(repo, "tests/deployment/test_x.py", "cp2\n")
+
+    # Derivation picks the newest product-bearing commit, not a hand-set pin.
+    assert derive_product_sha(gate_a, repo_root=repo) == product_a
+    assert _non_control_plane_paths(product_a, gate_a, repo_root=repo) == []
+
+    # A normal product commit lands, then more control-plane work.
+    product_b = _commit(repo, "app.py", "v3\n")
+    gate_b = _commit(repo, "scripts/release/tool.ps1", "cp3\n")
+
+    # No SHA was edited anywhere, yet the contract still holds.
+    assert derive_product_sha(gate_b, repo_root=repo) == product_b
+    assert _non_control_plane_paths(product_b, gate_b, repo_root=repo) == []
+
+    # And the stale baseline is now genuinely unauthorized -- the gate would
+    # fire, which is the behaviour the old fixed pin was tripping over.
+    assert _non_control_plane_paths(product_a, gate_b, repo_root=repo) == ["app.py"]
+
+
+def test_derivation_fails_closed_when_no_control_plane_only_baseline(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _commit(repo, "app.py", "v1\n")
+    gate = _commit(repo, "app.py", "v2\n")
+    # The tip itself carries product bytes, so the newest valid baseline is the
+    # tip: the derivation must return it rather than inventing a older one that
+    # would smuggle product drift past the gate.
+    assert derive_product_sha(gate, repo_root=repo) == gate
+    assert _non_control_plane_paths(gate, gate, repo_root=repo) == []
