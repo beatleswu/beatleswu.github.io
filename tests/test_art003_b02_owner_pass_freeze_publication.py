@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 B01_HEAD = "0b2f4c7ec65f845918bd96a2daec21551d27ff34"
 B02_HEAD = "d3ccac1565b6c5bbe3f357164777f256136d2dc2"
 BASE_SHA = "574b3eeb9641c48676e95d3744d204dffca1e1fa"
-F039_BASE_HEAD = "c83cd4077d87fab9274b3a09fd22ca2d43c5a89d"
+F039_BASE_HEAD = "62cd841a3af78a66c4c5aba16cdfebb7814513da"
 F039_R1_TEST_FILES = {
     "tests/test_art003_b02_owner_pass_freeze_publication.py",
     "tests/test_art003_b03_production.py",
@@ -24,6 +24,21 @@ F039_R1_TEST_FILES = {
     "tests/test_art003_b06_production.py",
     "tests/test_art003_b06_r1_publication.py",
     "tests/test_art003_b07_production.py",
+}
+F041_B08_ADMISSION_FILES = {
+    "art/monsters/M078_potion_gob.png",
+    "art/monsters/M079_prism_gecko.png",
+    "art/monsters/M080_gravity_crab.png",
+    "art/monsters/M081_scrollback_turtle.png",
+    "art/monsters/M082_astrolabe_beetle.png",
+    "art/monsters/M083_cloudstep_ram.png",
+    "art/monsters/M085_blackgate_hound.png",
+    "art/monsters/M086_breakshield_beetle.png",
+    "art/monsters/M087_bannerbreak_stonebeast.png",
+    "art/monsters/M088_stringwing_bat.png",
+    "docs/planning/art_003_batch_008_manifest.json",
+    "docs/planning/art_003_batch_008_owner_visual_review_pack.md",
+    "tests/test_art003_b08_production.py",
 }
 B02_IDS = ("M013", "M014", "M015", "M016", "M017", "M018", "M019", "M020", "M021", "M023")
 B01_IDS = ("M002", "M003", "M004", "M005", "M006", "M007", "M008", "M009", "M010", "M012")
@@ -191,6 +206,7 @@ def test_m022_is_unchanged_and_no_runtime_scope_is_in_diff():
     changed.update(_git("diff", "--cached", "--name-only", F039_BASE_HEAD).splitlines())
     changed.update(_git("ls-files", "--others", "--exclude-standard").splitlines())
     changed = {path.replace("\\", "/") for path in changed if path}
+    changed -= F041_B08_ADMISSION_FILES
     assert changed <= F039_R1_TEST_FILES
     assert "app.py" not in changed
     assert "assets/monsters/orc_grunt_chibi.png" not in changed
