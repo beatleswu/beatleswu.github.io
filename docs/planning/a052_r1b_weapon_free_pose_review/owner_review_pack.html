@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A052-R1B Weapon-Free One-Hand Sword Pose Review Pack</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      color: #eef2ff;
+      background: #111827;
+      font: 15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    h1, h2, h3 { line-height: 1.15; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    h2 { margin: 0 0 12px; font-size: 22px; }
+    h3 { margin: 0 0 8px; font-size: 16px; }
+    p { max-width: 1000px; }
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border: 1px solid #f59e0b;
+      border-radius: 999px;
+      color: #fde68a;
+      background: #3b2505;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .note { color: #cbd5e1; }
+    .character {
+      margin: 28px 0;
+      padding: 18px;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      background: #172033;
+    }
+    .full-grid, .crop-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .panel {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      background: #0f172a;
+    }
+    .panel img.full {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+      background-color: #f8fafc;
+      background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+    }
+    .crop-grid { margin-top: 14px; }
+    .crop-wrap { overflow: hidden; width: 100%; height: 400px; border-radius: 6px; background: #f8fafc; }
+    .crop-wrap img {
+      position: relative;
+      display: block;
+      width: 1056px;
+      max-width: none;
+      height: 1408px;
+      transform: scale(2.15);
+      transform-origin: 0 0;
+    }
+    .crop-wrap.original img { left: -630px; top: -1430px; }
+    .crop-wrap.derived img { left: -630px; top: -1430px; }
+    .meta {
+      margin-top: 8px;
+      color: #cbd5e1;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .links { margin-top: 8px; }
+    a { color: #93c5fd; }
+    @media (max-width: 720px) {
+      body { padding: 12px; }
+      .full-grid, .crop-grid { grid-template-columns: 1fr; }
+      .crop-wrap { height: 360px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>A052-R1B: Weapon-Free ONE_HAND_SWORD Runtime Derivatives</h1>
+  <p><span class="status">PENDING_OWNER_VISUAL_ACCEPTANCE</span></p>
+  <p class="note">Each section compares the immutable Owner-approved source composite (baked generic sword) with its separate weapon-free runtime derivative. The derivative is a candidate for later overlay composition; this pack does not grant runtime approval and does not wire Hero presentation.</p>
+
+  <section class="character">
+    <h2>apprentice</h2>
+    <div class="full-grid">
+      <div class="panel"><h3>BEFORE — approved source</h3><img class="full" src="../rpg_wave2_full_body_weapon_pose_system/variants/apprentice_one_hand_sword_pose.png" alt="Apprentice approved one-hand sword pose with baked generic sword"><div class="meta">source SHA-256: d7c1b2d631da009640972d41d9c9818ac983dd7a3beaf4e51d43249d9d7b3956</div></div>
+      <div class="panel"><h3>AFTER — weapon-free derivative</h3><img class="full" src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/apprentice_one_hand_sword_weapon_free.png" alt="Apprentice weapon-free one-hand sword runtime derivative"><div class="meta">derived SHA-256: deae3f2df02b8bcadc493ca74ebd1896a4849e65f3151572c3e8854f27ea3ae6</div></div>
+    </div>
+    <div class="crop-grid">
+      <div class="panel"><h3>Grip / hand crop — before</h3><div class="crop-wrap original"><img src="../rpg_wave2_full_body_weapon_pose_system/variants/apprentice_one_hand_sword_pose.png" alt="Apprentice hand crop before weapon removal"></div></div>
+      <div class="panel"><h3>Grip / hand crop — after</h3><div class="crop-wrap derived"><img src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/apprentice_one_hand_sword_weapon_free.png" alt="Apprentice hand crop after weapon removal"></div></div>
+    </div>
+  </section>
+
+  <section class="character">
+    <h2>mage</h2>
+    <div class="full-grid">
+      <div class="panel"><h3>BEFORE — approved source</h3><img class="full" src="../rpg_wave2_full_body_weapon_pose_system/variants/mage_one_hand_sword_pose.png" alt="Mage approved one-hand sword pose with baked generic sword"><div class="meta">source SHA-256: f12c9ea4fa362390f319d1fd46a34d6c06fa53aa6e5a2a8aa75b11e5662d260f</div></div>
+      <div class="panel"><h3>AFTER — weapon-free derivative</h3><img class="full" src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/mage_one_hand_sword_weapon_free.png" alt="Mage weapon-free one-hand sword runtime derivative"><div class="meta">derived SHA-256: 59c6cd1a4c4428d7b5d3f655e7541e15e8481f824c6a9201fa21c49790beef1a</div></div>
+    </div>
+    <div class="crop-grid">
+      <div class="panel"><h3>Grip / hand crop — before</h3><div class="crop-wrap original"><img src="../rpg_wave2_full_body_weapon_pose_system/variants/mage_one_hand_sword_pose.png" alt="Mage hand crop before weapon removal"></div></div>
+      <div class="panel"><h3>Grip / hand crop — after</h3><div class="crop-wrap derived"><img src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/mage_one_hand_sword_weapon_free.png" alt="Mage hand crop after weapon removal"></div></div>
+    </div>
+  </section>
+
+  <section class="character">
+    <h2>paladin</h2>
+    <div class="full-grid">
+      <div class="panel"><h3>BEFORE — approved source</h3><img class="full" src="../rpg_wave2_full_body_weapon_pose_system/variants/paladin_one_hand_sword_pose.png" alt="Paladin approved one-hand sword pose with baked generic sword"><div class="meta">source SHA-256: 5d2ed28399d5ceb41655eea98f271e281e201f71b4e3c4db81522045c5a6f291</div></div>
+      <div class="panel"><h3>AFTER — weapon-free derivative</h3><img class="full" src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/paladin_one_hand_sword_weapon_free.png" alt="Paladin weapon-free one-hand sword runtime derivative"><div class="meta">derived SHA-256: 363d99db99a6bc0f769b7caf58274a35f0b2da2a10be49f58385b978fcc74243</div></div>
+    </div>
+    <div class="crop-grid">
+      <div class="panel"><h3>Grip / hand crop — before</h3><div class="crop-wrap original"><img src="../rpg_wave2_full_body_weapon_pose_system/variants/paladin_one_hand_sword_pose.png" alt="Paladin hand crop before weapon removal"></div></div>
+      <div class="panel"><h3>Grip / hand crop — after</h3><div class="crop-wrap derived"><img src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/paladin_one_hand_sword_weapon_free.png" alt="Paladin hand crop after weapon removal"></div></div>
+    </div>
+  </section>
+
+  <section class="character">
+    <h2>trail_apprentice</h2>
+    <div class="full-grid">
+      <div class="panel"><h3>BEFORE — approved source</h3><img class="full" src="../rpg_wave2_full_body_weapon_pose_batch2/variants/trail_apprentice_one_hand_sword_pose.png" alt="Trail apprentice approved one-hand sword pose with baked generic sword"><div class="meta">source SHA-256: 0127c9e325cb4bdfd43a192443b848f1f375897b14c0809c320c20dc20f0d0d3</div></div>
+      <div class="panel"><h3>AFTER — weapon-free derivative</h3><img class="full" src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/trail_apprentice_one_hand_sword_weapon_free.png" alt="Trail apprentice weapon-free one-hand sword runtime derivative"><div class="meta">derived SHA-256: 7fbc61c38e2b1aa2fc5f09e4f56b75b894f1df0f4ef4f87c56cde0689c624cd2</div></div>
+    </div>
+    <div class="crop-grid">
+      <div class="panel"><h3>Grip / hand crop — before</h3><div class="crop-wrap original"><img src="../rpg_wave2_full_body_weapon_pose_batch2/variants/trail_apprentice_one_hand_sword_pose.png" alt="Trail apprentice hand crop before weapon removal"></div></div>
+      <div class="panel"><h3>Grip / hand crop — after</h3><div class="crop-wrap derived"><img src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/trail_apprentice_one_hand_sword_weapon_free.png" alt="Trail apprentice hand crop after weapon removal"></div></div>
+    </div>
+  </section>
+
+  <section class="character">
+    <h2>night_runner</h2>
+    <div class="full-grid">
+      <div class="panel"><h3>BEFORE — approved source</h3><img class="full" src="../rpg_wave2_full_body_weapon_pose_batch2/variants/night_runner_one_hand_sword_pose.png" alt="Night runner approved one-hand sword pose with baked generic sword"><div class="meta">source SHA-256: b07a3da36f26fb1a03a27b466527594831a99b5ea83da92011ecd1f860a56639</div></div>
+      <div class="panel"><h3>AFTER — weapon-free derivative</h3><img class="full" src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/night_runner_one_hand_sword_weapon_free.png" alt="Night runner weapon-free one-hand sword runtime derivative"><div class="meta">derived SHA-256: 591c1c61ff4aaaa2f180658099ec7c0389d1f536a1227918e0214c5e9e299eb8</div></div>
+    </div>
+    <div class="crop-grid">
+      <div class="panel"><h3>Grip / hand crop — before</h3><div class="crop-wrap original"><img src="../rpg_wave2_full_body_weapon_pose_batch2/variants/night_runner_one_hand_sword_pose.png" alt="Night runner hand crop before weapon removal"></div></div>
+      <div class="panel"><h3>Grip / hand crop — after</h3><div class="crop-wrap derived"><img src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/night_runner_one_hand_sword_weapon_free.png" alt="Night runner hand crop after weapon removal"></div></div>
+    </div>
+  </section>
+
+  <section class="character">
+    <h2>constellation_apprentice</h2>
+    <div class="full-grid">
+      <div class="panel"><h3>BEFORE — approved source</h3><img class="full" src="../rpg_wave2_full_body_weapon_pose_batch2/variants/constellation_apprentice_one_hand_sword_pose.png" alt="Constellation apprentice approved one-hand sword pose with baked generic sword"><div class="meta">source SHA-256: 56c42ab7c7d35c48959e0fc41828949547166b8797bd1ee540d7ddd35c5a416b</div></div>
+      <div class="panel"><h3>AFTER — weapon-free derivative</h3><img class="full" src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/constellation_apprentice_one_hand_sword_weapon_free.png" alt="Constellation apprentice weapon-free one-hand sword runtime derivative"><div class="meta">derived SHA-256: 360f195a9277c6956faa9a38047273c6393c4579111e0f5946d83934753bda02</div></div>
+    </div>
+    <div class="crop-grid">
+      <div class="panel"><h3>Grip / hand crop — before</h3><div class="crop-wrap original"><img src="../rpg_wave2_full_body_weapon_pose_batch2/variants/constellation_apprentice_one_hand_sword_pose.png" alt="Constellation apprentice hand crop before weapon removal"></div></div>
+      <div class="panel"><h3>Grip / hand crop — after</h3><div class="crop-wrap derived"><img src="../../../assets/hero/characters/wave2_p1/poses/one_hand_sword/constellation_apprentice_one_hand_sword_weapon_free.png" alt="Constellation apprentice hand crop after weapon removal"></div></div>
+    </div>
+  </section>
+</body>
+</html>
