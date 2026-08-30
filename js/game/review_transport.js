@@ -233,7 +233,13 @@
             if (
                 error &&
                 error.kind === 'REJECTED' &&
-                (error.code === 'premium_required' || error.code === 'daily_limit')
+                (error.code === 'premium_required' ||
+                    error.code === 'daily_limit' ||
+                    // INCIDENT_018: an expired Lord attempt is a server-owned
+                    // gameplay state, not a transport fault.  Hand it back as
+                    // a payload so the caller can say what actually happened
+                    // instead of reporting a write failure.
+                    error.code === 'boss_attempt_expired')
             ) {
                 return error.payload;
             }

@@ -1677,6 +1677,7 @@ const I18n = (() => {
         'index.battle.adventure_encounter': { en: '🗺️ Adventure Encounter', zh: '🗺️ 冒險遭遇' },
         'index.srs.save_fail':  { en: 'Answer not saved — please retry or refresh.', zh: '答題記錄寫入失敗，這題尚未儲存。請稍後重試或重新整理頁面。' },
         'index.srs.save_fail_detail': { en: 'Answer not saved: {e}', zh: '答題記錄寫入失敗：{e}' },
+        'index.srs.boss_attempt_expired': { en: 'This Lord Trial has expired, so this answer was not recorded. Return to the map to start a new trial.', zh: '本次領主試煉已逾時，這題沒有被記錄。請回到地圖重新挑戰。' },
 
         // index.html — boss battle dynamic
         'index.boss.start_fail':  { en: 'Failed to start BOSS challenge', zh: 'BOSS 挑戰啟動失敗' },

@@ -88,5 +88,16 @@ def test_server_active_boss_scope_rejects_expired_or_out_of_queue_questions():
     active = APP[start:end]
     assert "session.get('adventure_boss_exam')" in active
     assert "question_id in question_ids" in active
-    assert "BOSS_ATTEMPT_MAX_MINUTES" in active
-    assert "attempt_id" in active
+    # INCIDENT_018: the attempt window and attempt-id checks now live in the
+    # shared `_adventure_boss_attempt_within_window` helper, so this scope
+    # check and the boss/finish evidence query cannot drift apart.  The scope
+    # check must still be gated on it.
+    assert "_adventure_boss_attempt_within_window(exam)" in active
+
+    window_start = APP.index("def _adventure_boss_attempt_within_window")
+    window = APP[window_start:start]
+    assert "BOSS_ATTEMPT_MAX_MINUTES" in window
+    assert "attempt_id" in window
+    # Exactly two window computations: this helper and the boss/finish
+    # evidence query.  A third would be a drift risk.
+    assert APP.count("datetime.timedelta(minutes=BOSS_ATTEMPT_MAX_MINUTES)") == 2

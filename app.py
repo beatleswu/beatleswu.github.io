@@ -11520,6 +11520,31 @@ def _adventure_first_clear_operation_id(uid, zone_key):
     return f'adventure:first_clear:{int(uid)}:{zone_key}'
 
 
+def _adventure_boss_attempt_within_window(exam):
+    """Return whether *exam*'s evidence window is still open.
+
+    ``BOSS_ATTEMPT_MAX_MINUTES`` bounds "stale answer" replay.  This is the
+    single definition of that window shared by the review scope check and the
+    boss/finish evidence query, so the two can never drift apart.  It is
+    deliberately a replay guard, not a quota: expiry means the attempt is
+    over, never that the player has run out of practice allowance.
+    """
+    if not isinstance(exam, dict):
+        return False
+    started_at_raw = exam.get('started_at')
+    if (
+        not started_at_raw
+        or not _adventure_boss_attempt_id_is_valid(exam.get('attempt_id'))
+    ):
+        return False
+    try:
+        started_at = datetime.datetime.fromisoformat(str(started_at_raw))
+    except (TypeError, ValueError):
+        return False
+    deadline = started_at + datetime.timedelta(minutes=BOSS_ATTEMPT_MAX_MINUTES)
+    return datetime.datetime.now() <= deadline
+
+
 def _adventure_boss_question_is_active(question_id):
     """Return whether *question_id* belongs to the current live boss exam.
 
@@ -11532,20 +11557,15 @@ def _adventure_boss_question_is_active(question_id):
     """
     exam = session.get('adventure_boss_exam') or {}
     question_ids = exam.get('question_ids')
-    started_at_raw = exam.get('started_at')
     if (
         not isinstance(question_ids, list)
-        or not started_at_raw
-        or not _adventure_boss_attempt_id_is_valid(exam.get('attempt_id'))
+        or not _adventure_boss_attempt_within_window(exam)
     ):
         return False
     try:
         question_id = int(question_id)
         question_ids = {int(qid) for qid in question_ids}
-        started_at = datetime.datetime.fromisoformat(str(started_at_raw))
     except (TypeError, ValueError):
-        return False
-    if datetime.datetime.now() > started_at + datetime.timedelta(minutes=BOSS_ATTEMPT_MAX_MINUTES):
         return False
     return question_id in question_ids
 
@@ -14841,6 +14861,39 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         exam = session.get('adventure_boss_exam')
         if not isinstance(exam, dict) or exam.get('attempt_id') != boss_attempt_id:
             return jsonify({'error': 'invalid_boss_attempt_context'}), 400
+        # INCIDENT_018: settle the attempt's own scope *before* the judge runs
+        # and before the ordinary free-practice cap is consulted.
+        #
+        # A Lord answer is only exempt from that cap while its attempt is in
+        # scope.  Deciding scope later meant an out-of-scope Lord answer fell
+        # through to the generic `daily_limit` rejection, which the client
+        # renders as "答題記錄寫入失敗" -- reporting a quota refusal as a
+        # database write failure, for a player whose answer was already judged
+        # and then discarded.  Expiry is a replay guard, not a quota, so it is
+        # reported as itself and the judge is never run for an answer that
+        # cannot be admitted.
+        if not _adventure_boss_attempt_within_window(exam):
+            incident018_log_stage(
+                'BOSS_ATTEMPT_SCOPE',
+                observation=incident018_observation,
+                logger=app.logger,
+                ERROR_CODE_SAFE='boss_attempt_expired',
+                HTTP_STATUS=409,
+            )
+            return jsonify({
+                'error': 'boss_attempt_expired',
+                'code': 'boss_attempt_expired',
+                'retryable': False,
+            }), 409
+        if not _adventure_boss_question_is_active(qid):
+            incident018_log_stage(
+                'BOSS_ATTEMPT_SCOPE',
+                observation=incident018_observation,
+                logger=app.logger,
+                ERROR_CODE_SAFE='invalid_boss_attempt_question',
+                HTTP_STATUS=400,
+            )
+            return jsonify({'error': 'invalid_boss_attempt_question'}), 400
         if boss_answer is None:
             return jsonify({'error': 'boss_answer_required'}), 400
         try:
@@ -14954,6 +15007,11 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             return _review_submission_duplicate_response(existing_submission)
 
     # ── 訂閱牆：免費用戶檢查 ────────────────────────────────
+    # INCIDENT_018: a Lord review that got this far has already been proven in
+    # scope above, so this stays True for it and the cap below can never
+    # reject an answer the judge has already settled.  An out-of-scope Lord
+    # answer never reaches here; it is refused as `boss_attempt_expired` /
+    # `invalid_boss_attempt_question` instead of as a quota failure.
     active_boss_question = (not internal and _adventure_boss_question_is_active(qid))
     if not internal and not is_premium():
         qs_map_check = {q['id']: q for q in _load_questions()}

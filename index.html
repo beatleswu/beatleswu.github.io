@@ -9565,6 +9565,13 @@ async function submitSRS(grade){
         });
         if(data.error==='premium_required'){
             setMsg(I18n.t('index.premium_req'),'err');
+        }else if(data.error==='boss_attempt_expired'){
+            // INCIDENT_018: the Lord attempt's evidence window closed. Nothing
+            // was written, but this is an expired-attempt state, not a failed
+            // database write -- say so, and point at the only action that can
+            // help (start a fresh trial from the map).
+            console.warn('[BOSS] attempt expired; answer not recorded');
+            setMsg(I18n.t('index.srs.boss_attempt_expired'), 'err');
         }else if(data.error==='daily_limit'){
             _dailyLimitMax = data.limit || _dailyLimitMax;
             if (_bossMode) {
