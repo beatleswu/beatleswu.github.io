@@ -1,0 +1,294 @@
+{
+  "task": "LC020_GENESIS_BOOTSTRAP_EXECUTION_PREFLIGHT_AND_RUNBOOK_001",
+  "base_master": "62cd841a3af78a66c4c5aba16cdfebb7814513da",
+  "base_tree": "dc2dcaaad74a29afc3c7da909d84298ea303d0c0",
+  "mode": "READ_ONLY_PREFLIGHT_DISPOSABLE_ONLY",
+  "result": "BLOCKED_LC020_GENESIS_BOOTSTRAP_EXECUTION_PREFLIGHT_AND_RUNBOOK",
+  "genesis_execution_ready": "NO",
+  "next_task": "LC020_GENESIS_IMPLEMENTATION_REPAIR",
+  "gates": {
+    "GO_PRODUCTION_DB_MIGRATION": "NOT_GRANTED",
+    "GO_GENESIS_BOOTSTRAP": "NOT_GRANTED",
+    "GENESIS_GATE_CONSUMED": "NO",
+    "PRODUCTION_DB_MIGRATION_GATE_CONSUMED": "NO"
+  },
+  "firewall": {
+    "APP_PY_CHANGED": "NO",
+    "GRIMOIRE_API_CHANGED": "NO",
+    "COMMUNITY_LEADERBOARD_REWARDS_CHANGED": "NO",
+    "PRODUCTION_QUERY": "NO",
+    "PRODUCTION_MUTATION": "NO",
+    "PRODUCTION_DB_MIGRATION": "NO",
+    "PRODUCTION_GENESIS_APPLY": "NO",
+    "DEPLOY": "NO",
+    "MASTER_MERGE": "NO",
+    "SECRET_KEY_TOUCHED": "NO",
+    "MARKER_POLICY_CHANGED": "NO",
+    "VOCABULARY_BOUNDARY_CHANGED": "NO",
+    "LC019_W1B_IMPLEMENTED": "NO",
+    "POST_GENESIS_NATIVE_UUID_CREATION_IMPLEMENTED": "NO"
+  },
+  "run1_full_regen_and_verify": {
+    "discovery": {
+      "MIGRATION_PATH": "migrations/puzzle_identity_registry_v1.py",
+      "MIGRATION_SHA256": "ad5bd5bc4c3d501df694e5b05835bb0426964ddb4e98bc64d291960823d6f766",
+      "BOOTSTRAP_RECEIPT_PATH": "docs/planning/lc012_p2_genesis_receipt.json",
+      "BOOTSTRAP_RECEIPT_SHA256": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c",
+      "RENAME_MAP_PATH": "docs/planning/lc012_p2_historical_rename_map.json",
+      "RENAME_MAP_SHA256": "473a80a3664517f7c23db9071948d17cc89053f321ae5ace58ae27e94de7923d",
+      "GENESIS_BOOTSTRAP_IMPLEMENTATION_PATH": "puzzle_identity_genesis_bootstrap.py",
+      "FROZEN_CORPUS_PATH": "D:\\go-website\\questions.json",
+      "FROZEN_CORPUS_SHA256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+      "FROZEN_CORPUS_SHA_MATCHES": true,
+      "C_REPO_HEAD_BEFORE": "415a321dbbeacec5941300ac2353bb12d1153a85"
+    },
+    "manifest_regen": {
+      "seconds": 157.4,
+      "IDENTITY_MANIFEST_PATH": "C:\\Users\\beatl\\AppData\\Local\\Temp\\claude\\D--go-website--claude-worktrees-8-20-1-hi-356820\\9fc59e1a-de52-4047-97f1-6d9d7e8d9664\\scratchpad\\lc020-out\\p2out\\genesis_record_manifest_full.json (regenerated, disposable)",
+      "IDENTITY_MANIFEST_ROW_COUNT": 42804,
+      "p2_run_manifest_sha256": "ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e0267e4828"
+    },
+    "receipt_manifest_binding": {
+      "RECEIPT_SHA256_RECOMPUTED": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c",
+      "RECEIPT_SHA_MATCHES_KNOWN": true,
+      "RENAME_MAP_SHA_MATCHES_KNOWN": true,
+      "MANIFEST_ROW_COUNT": 42804,
+      "MANIFEST_UUID_UNIQUE_COUNT": 42804,
+      "DUPLICATE_UUID_COUNT": 0,
+      "MANIFEST_SHA256_RECOMPUTED": "ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e0267e4828",
+      "MANIFEST_SHA_MATCHES_RECEIPT": true,
+      "UUID_LIST_SHA256_RECOMPUTED": "cb47e9d63d2e44f06b24772436380a8e1ce4f199ae64455bfc3891da446da2f2",
+      "UUID_LIST_SHA_MATCHES_RECEIPT": true,
+      "DIRECT_PATH_MATCH_COUNT": 41886,
+      "HISTORICAL_RENAME_MATCH_COUNT": 918,
+      "PER_ROW_GENESIS_KEY_BINDING_MISMATCH": 0,
+      "MISSING_REQUIRED_IDENTITY_COUNT": 0,
+      "AMBIGUOUS_ALIAS_COUNT": 0,
+      "RECEIPT_MANIFEST_BINDING": true
+    },
+    "disposable_migration": {
+      "DISPOSABLE_DB_ONLY": true,
+      "PRODUCTION_DB_USED": false,
+      "MIGRATION_APPLY": "PASS",
+      "TABLES": [
+        "puzzle_identity_alias",
+        "puzzle_identity_bootstrap_receipt",
+        "puzzle_identity_lineage",
+        "puzzle_identity_registry"
+      ],
+      "PARTIAL_UNIQUE_INDEXES": [
+        "uq_pia_current_alias",
+        "uq_pia_one_current_path"
+      ],
+      "VALIDATE_SCHEMA": true,
+      "MIGRATION_REAPPLY_BEHAVIOR": "IDEMPOTENT_OK",
+      "MIGRATION_SCHEMA_DIFF_EXPECTED": "YES (4 additive puzzle_identity_* tables + partial-unique indexes)",
+      "UNEXPECTED_SCHEMA_OBJECTS": "NONE (only puzzle_identity_* objects created)"
+    },
+    "pre_genesis_noop": {
+      "BOOTSTRAP_HOT_BEFORE": false,
+      "bootstrap_state_before": {
+        "tables_present": true,
+        "genesis_applied": false,
+        "identity_count": 0,
+        "hot": false
+      },
+      "GROUP_KEY_BEFORE_GENESIS": [
+        "legacy",
+        "48126"
+      ],
+      "group_key_kind": "legacy",
+      "sample_keys_all_legacy": true,
+      "RESOLVER_LOOKUPS_BEFORE_GENESIS": 0,
+      "PRE_GENESIS_NOOP_SEMANTICS_PRESERVED": true
+    },
+    "genesis_preflight": {
+      "GENESIS_PREFLIGHT": "PASS",
+      "problems_head": [],
+      "EXPECTED_INSERT_COUNT": 42804,
+      "EXPECTED_DIRECT_PATH_MATCH": 41886,
+      "EXPECTED_HISTORICAL_RENAME_MATCH": 918,
+      "EXPECTED_CONFLICT_COUNT": 0,
+      "EXPECTED_MISSING": 0,
+      "EXPECTED_AMBIGUOUS": 0,
+      "uuid_canonical_source_binding_mismatch": 0,
+      "prior_bootstrap": null,
+      "registry_count": 0,
+      "safe_to_run_trusted_without_recompute": false
+    },
+    "genesis_dry_run": {
+      "status": "DRY_RUN",
+      "would_write": 42804,
+      "receipt_sha256": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c"
+    }
+  },
+  "run2_rollback_hotreader_idempotency_failmatrix": {
+    "s8_real_apply": {
+      "PREFLIGHT_OK": true,
+      "PREFLIGHT_PROBLEMS": [],
+      "EXPECTED_INSERT_COUNT": 42804,
+      "APPLY_OUTCOME": "IntegrityError: UNIQUE constraint failed: puzzle_identity_alias.alias_kind, puzzle_identity_alias.alias_value, puzzle_identity_alias.alias_context",
+      "APPLY_COMPLETED": false,
+      "post_registry_rows": 0,
+      "post_alias_rows": 0,
+      "post_lineage_rows": 0,
+      "post_bootstrap_receipt_rows": 0,
+      "BOOTSTRAP_HOT_AFTER_FAILED_APPLY": false,
+      "PARTIAL_APPLY_VISIBLE": "NO"
+    },
+    "defect_legacy_id_collision": {
+      "colliding_legacy_question_id_groups": 11,
+      "colliding_rows_total": 22,
+      "colliding_legacy_question_ids": [
+        40479,
+        40511,
+        40512,
+        40513,
+        62011,
+        63382,
+        70450,
+        70752,
+        71238,
+        71240,
+        71244
+      ],
+      "each_group_has_distinct_source_record_uuid": true,
+      "constraint_violated": "uq_pia_current_alias  ON (alias_kind, alias_value, alias_context) WHERE is_current",
+      "code_path": "GenesisBootstrap.apply() -> PuzzleIdentityStore.create_historical_genesis_identity() -> _insert_alias('LEGACY_QUESTION_ID', str(legacy_question_id), context=DEFAULT_ALIAS_CONTEXT, is_current=True)",
+      "verifier_catches_it": false,
+      "preflight_catches_it": false,
+      "surfaces_as": "raw sqlite3.IntegrityError / psycopg2 UniqueViolation mid-apply()"
+    },
+    "s9_hot_reader": {
+      "reader_hot": true,
+      "HOT_READER_GROUP_COUNT": 8,
+      "EXACT_group_key": [
+        "uuid",
+        "90fa4b3e-a8b9-563b-af8e-db174f930f34"
+      ],
+      "EXACT_is_uuid_and_matches_genesis": true,
+      "EXACT_attachable": true,
+      "AMBIGUOUS_group_key": [
+        "unresolved",
+        "5002"
+      ],
+      "AMBIGUOUS_never_uuid": true,
+      "MISSING_group_key": [
+        "legacy",
+        "888888"
+      ],
+      "HOT_GROUP_KEY_CANONICALIZATION": "PASS",
+      "LEGACY_ALIAS_READ_COMPATIBILITY": "PASS",
+      "AMBIGUITY_FAIL_CLOSED": "PASS",
+      "REQUEST_TIME_UUID_CREATION": "NO"
+    },
+    "s11_idempotency": {
+      "FIRST_APPLY_RESULT": "APPLIED",
+      "SECOND_APPLY_RESULT": "ALREADY_APPLIED",
+      "idempotent_flag": true,
+      "DIFFERENT_RECEIPT_RESULT": "GenesisBootstrapError: a different genesis bootstrap already ran (existing 2aedab56136ced6bc768f467a7c1",
+      "DUPLICATE_IDENTITY_ROWS_CREATED": 0,
+      "DUPLICATE_ALIAS_ROWS_CREATED": 0,
+      "DUPLICATE_LINEAGE_ROWS_CREATED": 0
+    },
+    "s12_fail_closed_matrix": {
+      "all_invalid_inputs_leave_hot_false": true,
+      "all_invalid_inputs_leave_db_unmutated": true,
+      "cases": [
+        {
+          "case": "wrong_manifest_sha_in_receipt",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "wrong_receipt_static_fact_namespace",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "wrong_historical_tree_pin",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "row_count_mismatch",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "duplicate_uuid",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "uuidv4_row",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "tampered_canonical_source_same_uuid",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "missing_canonical_source",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "bad_provenance_relation",
+          "PRECHECK": "FAIL_CLOSED",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "migration_absent",
+          "PRECHECK": "RAISED OperationalError",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "OperationalError"
+        },
+        {
+          "case": "legacy_id_collision_full_corpus (THE DEFECT)",
+          "PRECHECK": "PASS",
+          "APPLY_STARTED": true,
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "IntegrityError"
+        }
+      ]
+    },
+    "c_repo_immutability": {
+      "C_REPO_HEAD_AFTER": "415a321dbbeacec5941300ac2353bb12d1153a85",
+      "C_GO_WEBSITE_MUTATED": "NO",
+      "access": "git archive + git cat-file blob only; no checkout / no ref write"
+    }
+  }
+}
