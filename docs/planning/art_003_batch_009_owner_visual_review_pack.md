@@ -3,7 +3,7 @@
 Task: `ART003_B09_M089_M099_CANONICAL_MONSTER_ART_PRODUCTION_001`
 Batch: `ART003_B09`
 Production branch: `codex/art003-b09-m089-m099-canonical-monster-art-production`
-Production source head: `af179e79407eb563ded840609fd3a7026fc6a09f`
+Production source head: `075d3174bf144ae48a9afa4dac6fba457794cfd5`
 Production base / B08 canonical publication head: `af179e79407eb563ded840609fd3a7026fc6a09f`
 Current origin/master: `81ab0f263bf72614c303199707e5e42d3ae559a4`
 Current origin/master tree: `28c81698dd883720da79517084d0781a8b551e15`
