@@ -8,8 +8,8 @@
   "current_origin_master_tree": "dc2dcaaad74a29afc3c7da909d84298ea303d0c0",
   "fresh_master_reconciliation": "PASS",
   "production_base_sha": "16548803a62c9fc76a459cb247a026187e644c5c",
-  "source_branch": "codex/art003-b10-m100-m109-canonical-monster-art-production",
-  "source_head": "16548803a62c9fc76a459cb247a026187e644c5c",
+  "source_branch": "codex/art003-b11-final-canonical-monster-art-production",
+  "source_head": "8beb9247bc5e3089d411bb7ddc81e87b7101a0e2",
   "f035": {
     "head": "195f3376e107559817e054476b076e471c211731",
     "assignment_sha256": "49e704f0c9935056c5614e91feff28d4775c6f98d4b38f1b068639f7d72d5e00",

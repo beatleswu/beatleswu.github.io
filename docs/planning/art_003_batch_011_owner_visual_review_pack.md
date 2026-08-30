@@ -13,7 +13,7 @@ mapped, gameplay-authoritative, or deployed.
 
 Source branch: `codex/art003-b11-final-canonical-monster-art-production`
 
-Asset-bearing source head: `SOURCE_HEAD_PENDING_FIRST_B11_ASSET_COMMIT`
+Asset-bearing source head: `8beb9247bc5e3089d411bb7ddc81e87b7101a0e2`
 
 ## Review order and matrix
 
