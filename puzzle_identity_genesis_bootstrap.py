@@ -54,7 +54,55 @@ KNOWN_MANIFEST_SHA256 = "ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e
 EXPECTED_DIRECT_PATH_MATCH = 41886
 EXPECTED_HISTORICAL_RENAME_MATCH = 918
 
+# LC020 / LC020-R1 — the frozen 42,804-row manifest carries 11 legitimate
+# ``legacy_question_id`` collision groups (22 records).  Genesis assigns each
+# member a distinct ``source_record_uuid``; the ``LEGACY_QUESTION_ID`` alias for
+# a collided id is written NOT-current so a raw legacy lookup fails closed
+# AMBIGUOUS (LC011 policy) rather than arbitrarily binding one member.  This
+# frozen set lets the verifier/preflight confirm the census has not drifted.
+KNOWN_LEGACY_ID_COLLISION_IDS = frozenset({
+    "40479", "40511", "40512", "40513", "62011", "63382",
+    "70450", "70752", "71238", "71240", "71244",
+})
+KNOWN_LEGACY_ID_COLLISION_GROUP_COUNT = 11
+KNOWN_LEGACY_ID_COLLISION_RECORD_COUNT = 22
+
 _VALID_RELATIONS = {"DIRECT_PATH_MATCH", "HISTORICAL_RENAME_MATCH"}
+
+
+def legacy_id_collision_census(
+    rows: "Sequence[Mapping[str, Any]]",
+) -> dict[str, Any]:
+    """Deterministic manifest-level ``legacy_question_id`` collision census.
+
+    Runs before any identity insert.  A collision is *supported* by the
+    fail-closed-ambiguous policy iff every member of the group carries a
+    **distinct** ``source_record_uuid_proposed`` (which the LC012-R2 manifest
+    guarantees) — otherwise it is an unsupported manifest defect.
+    """
+    counts: dict[str, int] = {}
+    uuids_by_id: dict[str, set[str]] = {}
+    present = 0
+    for r in rows:
+        lq = r.get("legacy_question_id")
+        if lq is None:
+            continue
+        present += 1
+        k = str(lq)
+        counts[k] = counts.get(k, 0) + 1
+        uuids_by_id.setdefault(k, set()).add(str(r.get("source_record_uuid_proposed")))
+    collided = {k for k, n in counts.items() if n > 1}
+    unsupported = sorted(k for k in collided if len(uuids_by_id[k]) != counts[k])
+    return {
+        "legacy_id_present_count": present,
+        "legacy_id_unique_value_count": len(counts),
+        "legacy_id_collision_group_count": len(collided),
+        "legacy_id_collision_record_count": sum(counts[k] for k in collided),
+        "collided_ids": frozenset(collided),
+        "unsupported_collision_ids": tuple(unsupported),
+        "unsupported_collision_count": len(unsupported),
+        "collision_uuid_distinctness_ok": not unsupported,
+    }
 
 # Static receipt facts that MUST equal the frozen constants (canonical mode).
 _CANONICAL_RECEIPT_EXPECT = {
@@ -239,6 +287,35 @@ class GenesisReceiptVerifier:
             "recomputed_uuid_list_sha256": recomputed_uuid_list_sha,
         }
 
+    def _check_legacy_id_collisions(self, problems: list[str]) -> dict[str, Any]:
+        """LC020-R1 — census the legitimate legacy_question_id collisions BEFORE
+        any mutation.  Collisions are expected in the canonical manifest; the
+        genesis writes their LEGACY_QUESTION_ID alias NOT-current so raw legacy
+        lookup fails closed AMBIGUOUS.  A collision is *unsupported* only if its
+        members do not carry distinct source_record_uuids."""
+        census = legacy_id_collision_census(self.rows)
+        if census["unsupported_collision_count"]:
+            problems.append(
+                "unsupported legacy_question_id collision(s) — members share a "
+                f"source_record_uuid: {census['unsupported_collision_ids']}"
+            )
+        if self._require_canonical:
+            if census["collided_ids"] != KNOWN_LEGACY_ID_COLLISION_IDS:
+                problems.append(
+                    "legacy_question_id collision census drifted from the frozen "
+                    f"set: got {sorted(census['collided_ids'])}, "
+                    f"expected {sorted(KNOWN_LEGACY_ID_COLLISION_IDS)}"
+                )
+            if census["legacy_id_collision_record_count"] != KNOWN_LEGACY_ID_COLLISION_RECORD_COUNT:
+                problems.append(
+                    f"collision record count {census['legacy_id_collision_record_count']} "
+                    f"!= {KNOWN_LEGACY_ID_COLLISION_RECORD_COUNT}"
+                )
+        census["collision_policy"] = "FAIL_CLOSED_AMBIGUOUS"
+        census["collision_policy_supported"] = census["unsupported_collision_count"] == 0
+        census["collided_ids"] = sorted(census["collided_ids"])
+        return census
+
     def verify(self) -> dict[str, Any]:
         problems: list[str] = []
         gate = self.receipt.get("genesis_bootstrap_once_only_gate") or {}
@@ -247,12 +324,14 @@ class GenesisReceiptVerifier:
         self._check_static_facts(problems)
         self._check_rename_map(problems)
         stats = self._check_manifest(problems)
+        legacy_collisions = self._check_legacy_id_collisions(problems)
         return {
             "ok": not problems,
             "problems": problems,
             "receipt_sha256": self.receipt_sha256,
             "safe_to_run_flag_recorded": safe_flag,
             "safe_to_run_trusted_without_recompute": False,
+            "legacy_id_collisions": legacy_collisions,
             **stats,
         }
 
@@ -337,6 +416,10 @@ class GenesisBootstrap:
 
         r = self._v.receipt
         rows = self._v.rows
+        # LC020-R1: legacy_question_id values shared by >1 genesis identity get a
+        # NOT-current LEGACY_QUESTION_ID alias (fail-closed AMBIGUOUS on raw
+        # lookup).  Census once, up front — never mid-loop.
+        _collided = legacy_id_collision_census(rows)["collided_ids"]
         with self._store._unit("bootstrap"):
             self._store._exec(
                 "INSERT INTO puzzle_identity_bootstrap_receipt "
@@ -361,11 +444,13 @@ class GenesisBootstrap:
             for row in rows:
                 canonical = row["canonical_source"]
                 historical = row.get("historical_source")
+                lqid = row.get("legacy_question_id")
                 self._store.create_historical_genesis_identity(
                     row["source_record_uuid_proposed"],
                     receipt_sha256=sha,
                     canonical_source=canonical,
-                    legacy_question_id=row.get("legacy_question_id"),
+                    legacy_question_id=lqid,
+                    legacy_question_id_is_current=(str(lqid) not in _collided),
                     historical_source_path=(historical if historical and historical != canonical
                                             else None),
                     creation_reason="LC012-R2 P2 genesis receipt " + sha,
@@ -389,4 +474,8 @@ class GenesisBootstrap:
         return {"status": "APPLIED", "identities_written": len(rows), "receipt_sha256": sha}
 
 
-__all__ = ["GenesisBootstrap", "GenesisBootstrapError", "GenesisReceiptVerifier"]
+__all__ = [
+    "GenesisBootstrap", "GenesisBootstrapError", "GenesisReceiptVerifier",
+    "legacy_id_collision_census", "KNOWN_LEGACY_ID_COLLISION_IDS",
+    "KNOWN_LEGACY_ID_COLLISION_GROUP_COUNT", "KNOWN_LEGACY_ID_COLLISION_RECORD_COUNT",
+]

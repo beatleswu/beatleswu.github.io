@@ -195,14 +195,15 @@ class PuzzleIdentityStore:
     # ---- alias write helpers ----------------------------------------- #
 
     def _insert_alias(self, u: str, kind: str, value: str, *, context: str,
-                      confidence: str, recorded_by: str, when: str) -> None:
+                      confidence: str, recorded_by: str, when: str,
+                      is_current: bool = True) -> None:
         if kind not in ALIAS_KINDS:
             raise PuzzleIdentityError(f"unsupported alias_kind: {kind}")
         self._exec(
             "INSERT INTO puzzle_identity_alias "
             "(source_record_uuid, alias_kind, alias_value, alias_context, confidence, "
             " is_current, recorded_at, recorded_by) VALUES (?,?,?,?,?,?,?,?)",
-            (u, kind, value, context, confidence, True, when, recorded_by),
+            (u, kind, value, context, confidence, bool(is_current), when, recorded_by),
         )
 
     def _current_aliases(self, u: str, kind: str) -> list[tuple[str, str]]:
@@ -249,6 +250,7 @@ class PuzzleIdentityStore:
         receipt_sha256: str,
         canonical_source: str,
         legacy_question_id: str | int | None = None,
+        legacy_question_id_is_current: bool = True,
         historical_source_path: str | None = None,
         created_by_process: str = GENESIS_CREATED_BY,
         creation_reason: str,
@@ -277,9 +279,15 @@ class PuzzleIdentityStore:
                                    context=DEFAULT_ALIAS_CONTEXT, confidence="EXACT",
                                    recorded_by=created_by_process, when=when)
             if legacy_question_id is not None:
+                # LC020-R1: a legacy_question_id shared by >1 genesis identity
+                # (11 known collision groups in the frozen corpus) gets its
+                # LEGACY_QUESTION_ID alias recorded NOT-current, so a raw legacy
+                # lookup fails closed AMBIGUOUS instead of arbitrarily binding one
+                # member.  The unique-current-alias constraint is untouched.
                 self._insert_alias(u, "LEGACY_QUESTION_ID", str(legacy_question_id),
                                    context=DEFAULT_ALIAS_CONTEXT, confidence="EXACT",
-                                   recorded_by=created_by_process, when=when)
+                                   recorded_by=created_by_process, when=when,
+                                   is_current=legacy_question_id_is_current)
             self._append_lineage(u, "GENESIS", actor=created_by_process,
                                  reason=creation_reason, when=when)
         return u
@@ -561,6 +569,23 @@ class PuzzleIdentityStore:
             )
         uuids = sorted({str(self._val(r, 0, "source_record_uuid")) for r in rows})
         if not uuids:
+            # LC020-R1: a genesis legacy_question_id collision id has NO current
+            # LEGACY_QUESTION_ID binding by design, but >1 identity carries it.
+            # That is an ambiguous lookup, not a missing one — fail closed.
+            if alias_kind == "LEGACY_QUESTION_ID":
+                hist = self._all(
+                    "SELECT source_record_uuid FROM puzzle_identity_alias "
+                    "WHERE alias_kind=? AND alias_value=?",
+                    (alias_kind, str(alias_value)),
+                )
+                hu = sorted({str(self._val(r, 0, "source_record_uuid")) for r in hist})
+                if len(hu) > 1:
+                    exc = AmbiguousAliasError(
+                        f"legacy_question_id {alias_value} is a genesis collision id: "
+                        f"{len(hu)} identities carry it, none uniquely current: {hu}"
+                    )
+                    exc.candidates = tuple(hu)
+                    raise exc
             return {"status": "MISSING", "source_record_uuid": None}
         if len(uuids) > 1:
             exc = AmbiguousAliasError(
@@ -615,6 +640,29 @@ class PuzzleIdentityStore:
                           "candidates": tuple(sorted(us))}
             else:
                 statuses[v] = next(iter(us))
+        if alias_kind == "LEGACY_QUESTION_ID":
+            # LC020-R1: values with no current binding but >1 identity carrying
+            # them as a LEGACY_QUESTION_ID alias are genesis collision ids —
+            # report AMBIGUOUS, not MISSING.  Non-collision unknown ids (0 rows)
+            # stay MISSING.
+            unbound = [v for v in wanted if v not in by_value]
+            hist: dict[str, set[str]] = {}
+            for chunk_start in range(0, len(unbound), 400):
+                chunk = unbound[chunk_start:chunk_start + 400]
+                if not chunk:
+                    continue
+                placeholders = ",".join("?" * len(chunk))
+                for r in self._all(
+                    "SELECT alias_value, source_record_uuid FROM puzzle_identity_alias "
+                    f"WHERE alias_kind='LEGACY_QUESTION_ID' AND alias_value IN ({placeholders})",
+                    tuple(chunk),
+                ):
+                    v = str(self._val(r, 0, "alias_value"))
+                    hist.setdefault(v, set()).add(str(self._val(r, 1, "source_record_uuid")))
+            for v, us in hist.items():
+                if len(us) > 1:
+                    out[v] = {"status": "AMBIGUOUS", "source_record_uuid": None,
+                              "candidates": tuple(sorted(us))}
         if statuses:
             uniq = sorted(set(statuses.values()))
             ph = ",".join("?" * len(uniq))
