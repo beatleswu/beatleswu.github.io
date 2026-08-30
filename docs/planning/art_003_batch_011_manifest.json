@@ -3,7 +3,11 @@
   "track": "ART",
   "batch": "ART003_B11",
   "mode": "CANONICAL_MONSTER_ART_PRODUCTION",
-  "status": "READY_FOR_OWNER_VISUAL_REVIEW",
+  "status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+  "owner_visual_review_status": "PASS",
+  "owner_pass_count": "10/10",
+  "owner_rejected_ids": [],
+  "visual_rework_required": "NO",
   "current_origin_master": "62cd841a3af78a66c4c5aba16cdfebb7814513da",
   "current_origin_master_tree": "dc2dcaaad74a29afc3c7da909d84298ea303d0c0",
   "fresh_master_reconciliation": "PASS",
@@ -62,7 +66,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M111",
@@ -78,7 +84,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M113",
@@ -94,7 +102,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M114",
@@ -110,7 +120,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M115",
@@ -126,7 +138,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M116",
@@ -142,7 +156,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M117",
@@ -158,7 +174,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M118",
@@ -174,7 +192,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M119",
@@ -190,7 +210,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     },
     {
       "monster_id": "M120",
@@ -206,7 +228,9 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
     }
   ],
   "continuity": {
@@ -271,11 +295,36 @@
     "asset_hash_uniqueness": "PASS",
     "batch_identity": "PASS",
     "prior_art_protection": "PASS",
-    "task_introduced_failures": 0
+    "task_introduced_failures": 0,
+    "owner_hash_match_count": 10,
+    "owner_hash_drift_count": 0,
+    "art_regenerated": "NO",
+    "art_reencoded": "NO",
+    "art_resized": "NO",
+    "art_pixel_mutation": "NO",
+    "art_byte_drift_count": 0,
+    "canonical_art_published_count": 10,
+    "canonical_art_id_set_exact": "YES"
+  },
+  "publication": {
+    "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+    "canonical_art_published_count": 10,
+    "canonical_art_id_set_exact": "YES",
+    "owner_hash_match_count": 10,
+    "owner_hash_drift_count": 0,
+    "owner_approved_bytes_match": "YES",
+    "pixel_mutation": "NO",
+    "byte_mutation": "NO",
+    "image_regeneration": "NO",
+    "reencoding": "NO",
+    "resizing": "NO",
+    "m112_included": "NO"
   },
   "owner_gate": {
-    "owner_visual_review_status": "PENDING",
-    "owner_pass_count": "0/10",
+    "owner_visual_review_status": "PASS",
+    "owner_pass_count": "10/10",
+    "owner_rejected_ids": [],
+    "visual_rework_required": "NO",
     "ready_for_owner_visual_review": "YES",
     "self_approval": "NO"
   },
