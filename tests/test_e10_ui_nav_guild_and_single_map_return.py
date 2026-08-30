@@ -232,4 +232,4 @@ def test_service_worker_version_was_bumped_for_this_runtime_change():
     assert "v233-e10-question-loader-board-renderer-v1b-b5" not in version_line, (
         "the runtime changed, so the canonical cache version must move"
     )
-    assert "063" in version_line
+    assert "const VERSION     = 'v240-a028-hero-player-presentation-readonly';" in version_line

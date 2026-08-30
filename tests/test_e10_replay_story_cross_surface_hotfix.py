@@ -257,7 +257,7 @@ def test_selection_detail_carries_the_authoritative_clear_flag():
 def test_cache_identity_was_bumped_off_v236():
     version = re.search(r"const VERSION\s*=\s*'([^']+)'", SW).group(1)
     assert version != "v236-e10-replay-story-button-hotfix"
-    assert version == "v237-e10-replay-story-cross-surface-hotfix"
+    assert version == "v240-a028-hero-player-presentation-readonly"
 
 
 def test_changed_runtime_modules_carry_a_new_cache_tag():
