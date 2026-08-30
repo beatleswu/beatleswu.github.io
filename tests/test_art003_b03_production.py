@@ -32,6 +32,21 @@ F039_R1_TEST_FILES = {
     "tests/test_art003_b06_r1_publication.py",
     "tests/test_art003_b07_production.py",
 }
+F041_B08_ADMISSION_FILES = {
+    "art/monsters/M078_potion_gob.png",
+    "art/monsters/M079_prism_gecko.png",
+    "art/monsters/M080_gravity_crab.png",
+    "art/monsters/M081_scrollback_turtle.png",
+    "art/monsters/M082_astrolabe_beetle.png",
+    "art/monsters/M083_cloudstep_ram.png",
+    "art/monsters/M085_blackgate_hound.png",
+    "art/monsters/M086_breakshield_beetle.png",
+    "art/monsters/M087_bannerbreak_stonebeast.png",
+    "art/monsters/M088_stringwing_bat.png",
+    "docs/planning/art_003_batch_008_manifest.json",
+    "docs/planning/art_003_batch_008_owner_visual_review_pack.md",
+    "tests/test_art003_b08_production.py",
+}
 M022_PATH = "assets/monsters/orc_grunt_chibi.png"
 IDS = [f"M{i:03d}" for i in range(24, 34)]
 SLUGS = {
@@ -100,7 +115,10 @@ def _changed_paths() -> set[str]:
         _git("diff", "--cached", "--name-only", F039_BASE_HEAD),
         _git("ls-files", "--others", "--exclude-standard"),
     )
-    return {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
+    return (
+        {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
+        - F041_B08_ADMISSION_FILES
+    )
 
 
 def test_b03_exact_id_set_and_manifest_completeness() -> None:
