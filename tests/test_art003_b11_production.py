@@ -49,7 +49,7 @@ def test_b11_exact_identity_and_manifest():
     for expected, entry in zip(EXPECTED, entries):
         mid, name, zone, path, sha, width, height = expected
         assert (entry["monster_id"], entry["canonical_name"], entry["zone"], entry["asset_path"], entry["sha256"], entry["width"], entry["height"]) == (mid, name, zone, path, sha, width, height)
-        assert entry["owner_visual_review_status"] == "PENDING"
+        assert entry["owner_visual_review_status"] == "PASS"
 
 
 def test_b11_png_technical_qa_and_unique_hashes():
@@ -90,10 +90,10 @@ def test_b11_planning_and_firewalls():
     assert manifest["continuity"]["prior_batch_identity_collision_count"] == 0
 
 
-def test_review_pack_exact_order_and_pending_owner_gate():
+def test_review_pack_exact_order_and_owner_pass_gate():
     pack = PACK_PATH.read_text(encoding="utf-8")
-    assert "OWNER_VISUAL_REVIEW_STATUS=PENDING" in pack
-    assert "Owner pass count: `0/10`" in pack
+    assert "OWNER_VISUAL_REVIEW_STATUS=PASS" in pack
+    assert "Owner pass count: `10/10`" in pack
     assert "SOURCE_HEAD_PENDING_FIRST_B11_ASSET_COMMIT" not in pack
     ids = re.findall(r"^\|\s*\d+\s*\|\s*(M\d+)\s*\|", pack, flags=re.MULTILINE)
     assert ids == EXPECTED_IDS
@@ -114,6 +114,7 @@ def test_exact_git_scope_and_source_head_bytes():
         "docs/planning/art_003_batch_011_manifest.json",
         "docs/planning/art_003_batch_011_owner_visual_review_pack.md",
         "tests/test_art003_b11_production.py",
+        "tests/test_art003_b11_r1_publication.py",
     }
     assert changed == expected_scope
     assert git("status", "--short", "--untracked-files=all") == ""
@@ -122,11 +123,13 @@ def test_exact_git_scope_and_source_head_bytes():
         assert committed == (ROOT / path).read_bytes()
 
 
-def test_owner_gate_is_pending_and_no_m112_asset_exists():
+def test_owner_gate_is_pass_and_no_m112_asset_exists():
     manifest = read_manifest()
     assert manifest["owner_gate"] == {
-        "owner_visual_review_status": "PENDING",
-        "owner_pass_count": "0/10",
+        "owner_visual_review_status": "PASS",
+        "owner_pass_count": "10/10",
+        "owner_rejected_ids": [],
+        "visual_rework_required": "NO",
         "ready_for_owner_visual_review": "YES",
         "self_approval": "NO",
     }
