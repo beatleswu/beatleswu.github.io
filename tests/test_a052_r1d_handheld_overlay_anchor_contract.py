@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 
 from PIL import Image
@@ -207,3 +208,101 @@ def test_no_runtime_registry_wiring_is_active_in_r1d_contract() -> None:
     assert contract["runtime_activation"]["registry_wiring"] == "NOT_YET_IMPLEMENTED"
     registry_text = REGISTRY_PATH.read_text(encoding="utf-8")
     assert "/handheld/" not in registry_text
+
+
+def test_frame_safe_padded_composition_contract_is_explicit() -> None:
+    frame = load_contract()["frame"]
+    assert frame["width"] == 1056
+    assert frame["height"] == 1408
+    assert frame["composition"] == {
+        "mode": "PADDED_CANONICAL_FRAME",
+        "canvas_width": 1264,
+        "canvas_height": 1408,
+        "canonical_frame_offset_px": [104, 0],
+        "padding_px": {"left": 104, "right": 104, "top": 0, "bottom": 0},
+        "shift_character_and_weapon_together": True,
+        "overflow": "FORBIDDEN",
+        "minimum_visual_margin_px": {"x": 20, "y": 39},
+        "coordinate_space": "CANONICAL_FRAME_PIXELS_THEN_PADDED_CANVAS",
+        "responsive_rule": "scale_with_padded_character_container",
+    }
+
+
+def test_all_18_compositions_have_positive_frame_safety_margin() -> None:
+    contract = load_contract()
+    frame = contract["frame"]
+    composition = frame["composition"]
+    canonical_width = frame["width"]
+    canonical_height = frame["height"]
+    canvas_width = composition["canvas_width"]
+    canvas_height = composition["canvas_height"]
+    offset_x, offset_y = composition["canonical_frame_offset_px"]
+    minimum_margin_x = composition["minimum_visual_margin_px"]["x"]
+    minimum_margin_y = composition["minimum_visual_margin_px"]["y"]
+
+    checked = 0
+    observed_margins = []
+    for weapon_id, weapon in contract["supported_weapons"].items():
+        weapon_path = ROOT / weapon["asset_path"].lstrip("/").replace("/", "\\")
+        with Image.open(weapon_path) as image:
+            source = image.convert("RGBA")
+        resized_size = (
+            round(source.width * weapon["base_scale"]),
+            round(source.height * weapon["base_scale"]),
+        )
+        resized = source.resize(resized_size, Image.Resampling.LANCZOS)
+        rotated = resized.rotate(
+            weapon["base_rotation_deg"],
+            resample=Image.Resampling.BICUBIC,
+            expand=True,
+        )
+        weapon_bbox = rotated.getchannel("A").getbbox()
+        assert weapon_bbox is not None
+        grip_x = weapon["weapon_grip_point"][0] * resized.width
+        grip_y = weapon["weapon_grip_point"][1] * resized.height
+        # PIL's expanded rotate uses the inverse-sign coordinate transform for
+        # the point used by the existing R1D static composition evidence.
+        angle = math.radians(-weapon["base_rotation_deg"])
+        source_center = (resized.width / 2, resized.height / 2)
+        rotated_center = (rotated.width / 2, rotated.height / 2)
+        transformed_grip_x = (
+            math.cos(angle) * (grip_x - source_center[0])
+            - math.sin(angle) * (grip_y - source_center[1])
+            + rotated_center[0]
+        )
+        transformed_grip_y = (
+            math.sin(angle) * (grip_x - source_center[0])
+            + math.cos(angle) * (grip_y - source_center[1])
+            + rotated_center[1]
+        )
+
+        for character_id, character in contract["characters"].items():
+            pose_path = ROOT / character["pose_asset"].lstrip("/").replace("/", "\\")
+            with Image.open(pose_path) as image:
+                pose_bbox = image.convert("RGBA").getchannel("A").getbbox()
+            assert pose_bbox is not None
+            anchor_x = character["grip_x"] * canonical_width
+            anchor_y = character["grip_y"] * canonical_height
+            weapon_left = anchor_x - transformed_grip_x
+            weapon_top = anchor_y - transformed_grip_y
+            combined_bbox = (
+                min(offset_x + pose_bbox[0], offset_x + weapon_left + weapon_bbox[0]),
+                min(offset_y + pose_bbox[1], offset_y + weapon_top + weapon_bbox[1]),
+                max(offset_x + pose_bbox[2], offset_x + weapon_left + weapon_bbox[2]),
+                max(offset_y + pose_bbox[3], offset_y + weapon_top + weapon_bbox[3]),
+            )
+            left_margin = combined_bbox[0]
+            top_margin = combined_bbox[1]
+            right_margin = canvas_width - combined_bbox[2]
+            bottom_margin = canvas_height - combined_bbox[3]
+            assert left_margin >= minimum_margin_x
+            assert top_margin >= minimum_margin_y
+            assert right_margin >= minimum_margin_x
+            assert bottom_margin >= minimum_margin_y
+            observed_margins.extend(
+                (left_margin, top_margin, right_margin, bottom_margin)
+            )
+            checked += 1
+
+    assert checked == 18
+    assert min(observed_margins) >= min(minimum_margin_x, minimum_margin_y)

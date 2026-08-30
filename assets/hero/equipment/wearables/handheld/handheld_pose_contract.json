@@ -17,7 +17,27 @@
     "width": 1056,
     "height": 1408,
     "coordinate_space": "normalized_0_to_1",
-    "responsive_rule": "scale_with_character_container"
+    "responsive_rule": "scale_with_character_container",
+    "composition": {
+      "mode": "PADDED_CANONICAL_FRAME",
+      "canvas_width": 1264,
+      "canvas_height": 1408,
+      "canonical_frame_offset_px": [104, 0],
+      "padding_px": {
+        "left": 104,
+        "right": 104,
+        "top": 0,
+        "bottom": 0
+      },
+      "shift_character_and_weapon_together": true,
+      "overflow": "FORBIDDEN",
+      "minimum_visual_margin_px": {
+        "x": 20,
+        "y": 39
+      },
+      "coordinate_space": "CANONICAL_FRAME_PIXELS_THEN_PADDED_CANVAS",
+      "responsive_rule": "scale_with_padded_character_container"
+    }
   },
   "pose_family": "ONE_HAND_SWORD",
   "supported_weapons": {
@@ -221,7 +241,8 @@
   "review_evidence": {
     "status": "PENDING_OWNER_VISUAL_REVIEW",
     "pack": "docs/planning/a052_r1d_handheld_overlay_review/owner_review_pack.html",
-    "composition": "character_base_then_back_weapon_with_base_occluding_hand_contact",
+    "composition": "character_base_then_back_weapon_with_base_occluding_hand_contact_in_padded_frame",
+    "frame_safe_retry": "104px_left_and_right_padding_shifts_character_and_weapon_together_without_anchor_or_rotation_change",
     "mobile_contract": "frame_relative_container_scaling"
   }
 }
