@@ -3,9 +3,19 @@
   "track": "ART",
   "batch": "ART003_B10",
   "mode": "CANONICAL_MONSTER_ART_PRODUCTION",
-  "status": "READY_FOR_OWNER_VISUAL_REVIEW",
-  "owner_visual_review_status": "PENDING",
-  "owner_pass_count": "0/10",
+  "status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+  "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+  "publication_status": "PUBLISHED",
+  "freeze_status": "FROZEN",
+  "owner_visual_review_status": "PASS",
+  "owner_pass_count": "10/10",
+  "owner_rejected_ids": "NONE",
+  "redraw_required": "NONE",
+  "owner_approved_hash_match_count": 10,
+  "owner_approved_bytes_match": "YES",
+  "owner_approved_byte_drift_count": 0,
+  "canonical_art_published_count": 10,
+  "canonical_art_id_set_exact": "YES",
   "expected_id_count": 10,
   "expected_ids": [
     "M100",
@@ -28,7 +38,7 @@
     "production_base_sha": "7d5c9c389561b877896f2b28e4b7db5f67fb97e8",
     "b09_r1_canonical_publication_head": "7d5c9c389561b877896f2b28e4b7db5f67fb97e8",
     "source_branch": "codex/art003-b10-m100-m109-canonical-monster-art-production",
-    "source_head": "b0a5dc8351877c4f38c1a9475f23ae1a7054d2c3",
+    "source_head": "16548803a62c9fc76a459cb247a026187e644c5c",
     "f035_head": "195f3376e107559817e054476b076e471c211731",
     "f035_assignment_sha256": "49e704f0c9935056c5614e91feff28d4775c6f98d4b38f1b068639f7d72d5e00",
     "f036_head": "36eec98e972e5ed5e40acda83795ac1569e6eb1e",
@@ -93,13 +103,19 @@
       "source_description": "Storm grazer: an antlered storm stag with crown-like lightning antlers, wind-swept mane, and blue-white storm accents.",
       "asset_path": "art/monsters/M100_thundercrown_stag.png",
       "sha256": "20C8E3CF6BF9E360111B2A80B358D9D3E5334B6DF808C12D40C7620F830B6ED5",
+      "owner_approved_sha256": "20C8E3CF6BF9E360111B2A80B358D9D3E5334B6DF808C12D40C7620F830B6ED5",
+      "published_sha256": "20C8E3CF6BF9E360111B2A80B358D9D3E5334B6DF808C12D40C7620F830B6ED5",
+      "byte_drift": 0,
       "width": 1230,
       "height": 1278,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M101",
@@ -108,13 +124,19 @@
       "source_description": "Cloud whale: an airborne whale with broad fins, cloud-woven slate-blue skin, and a luminous sky-vault ridge.",
       "asset_path": "art/monsters/M101_skyvault_whale.png",
       "sha256": "0D0EBC962AA976FBB68475A1C79A9B14086CDAAE9A1DF8C23A78A1B08D0CEAF2",
+      "owner_approved_sha256": "0D0EBC962AA976FBB68475A1C79A9B14086CDAAE9A1DF8C23A78A1B08D0CEAF2",
+      "published_sha256": "0D0EBC962AA976FBB68475A1C79A9B14086CDAAE9A1DF8C23A78A1B08D0CEAF2",
+      "byte_drift": 0,
       "width": 1536,
       "height": 1024,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M102",
@@ -123,13 +145,19 @@
       "source_description": "Orbit ape: a stocky dark-furred ape with star-speckled fur and a broken star-metal ring orbiting behind its torso.",
       "asset_path": "art/monsters/M102_star_ring_ape.png",
       "sha256": "B13CF95BBE49DE6EA5436A1A62340F277311506D1EED6623577B0CE82071C779",
+      "owner_approved_sha256": "B13CF95BBE49DE6EA5436A1A62340F277311506D1EED6623577B0CE82071C779",
+      "published_sha256": "B13CF95BBE49DE6EA5436A1A62340F277311506D1EED6623577B0CE82071C779",
+      "byte_drift": 0,
       "width": 1230,
       "height": 1278,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M103",
@@ -138,13 +166,19 @@
       "source_description": "Storm eagle: a sharp-beaked eagle with spread feathered wings and a split bow-shaped storm arc motif.",
       "asset_path": "art/monsters/M103_riftbow_eagle.png",
       "sha256": "7ADCAC9321B63ACCF1CF5E239FFDBE1F600FE35811CC54C416AC7BB4C81A80F8",
+      "owner_approved_sha256": "7ADCAC9321B63ACCF1CF5E239FFDBE1F600FE35811CC54C416AC7BB4C81A80F8",
+      "published_sha256": "7ADCAC9321B63ACCF1CF5E239FFDBE1F600FE35811CC54C416AC7BB4C81A80F8",
+      "byte_drift": 0,
       "width": 1536,
       "height": 1024,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M104",
@@ -153,13 +187,19 @@
       "source_description": "Eclipse mantis: a six-legged obsidian mantis with scythe forearms and a dark moon disk edged by a silver crescent.",
       "asset_path": "art/monsters/M104_moon_eclipse_mantis.png",
       "sha256": "6EBB69384E8B6B9CCB59E98908199A2BB0C45E252964FABD7847200DA8227EF3",
+      "owner_approved_sha256": "6EBB69384E8B6B9CCB59E98908199A2BB0C45E252964FABD7847200DA8227EF3",
+      "published_sha256": "6EBB69384E8B6B9CCB59E98908199A2BB0C45E252964FABD7847200DA8227EF3",
+      "byte_drift": 0,
       "width": 1214,
       "height": 1295,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M105",
@@ -168,13 +208,19 @@
       "source_description": "Storm tortoise: a stout four-legged tortoise with a domed drum-like shell, cloud-blue plates, and restrained lightning accents.",
       "asset_path": "art/monsters/M105_skydrum_tortoise.png",
       "sha256": "088131B2A947259D7199255B023161BE1F854D26855BA7079AAD6966E5ED6732",
+      "owner_approved_sha256": "088131B2A947259D7199255B023161BE1F854D26855BA7079AAD6966E5ED6732",
+      "published_sha256": "088131B2A947259D7199255B023161BE1F854D26855BA7079AAD6966E5ED6732",
+      "byte_drift": 0,
       "width": 1536,
       "height": 1024,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M106",
@@ -183,13 +229,19 @@
       "source_description": "Star wolf: a lean canine with a sand-gold mane, bushy tail, and constellations scattered across midnight fur.",
       "asset_path": "art/monsters/M106_starsand_wolf.png",
       "sha256": "356DF03C08FFF522FF707D8CAF0F17278BF8BA80CFB8479B746C0BE06834F963",
+      "owner_approved_sha256": "356DF03C08FFF522FF707D8CAF0F17278BF8BA80CFB8479B746C0BE06834F963",
+      "published_sha256": "356DF03C08FFF522FF707D8CAF0F17278BF8BA80CFB8479B746C0BE06834F963",
+      "byte_drift": 0,
       "width": 1536,
       "height": 1024,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M107",
@@ -198,13 +250,19 @@
       "source_description": "Monument beetle: a broad six-legged beetle carrying a towering basalt monolith carapace with mineral seams.",
       "asset_path": "art/monsters/M107_monolith_beetle.png",
       "sha256": "BF342DD63A3E7B01601385CCDB8DA760B62DB7E8AEF9AFEA625927634C9FBA10",
+      "owner_approved_sha256": "BF342DD63A3E7B01601385CCDB8DA760B62DB7E8AEF9AFEA625927634C9FBA10",
+      "published_sha256": "BF342DD63A3E7B01601385CCDB8DA760B62DB7E8AEF9AFEA625927634C9FBA10",
+      "byte_drift": 0,
       "width": 1312,
       "height": 1199,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M108",
@@ -213,13 +271,19 @@
       "source_description": "Crystal mantis: a lean six-legged mantis with teal chitin, faceted thunder crystals, and lightning veins.",
       "asset_path": "art/monsters/M108_thundercrystal_mantis.png",
       "sha256": "6B8D34B5039DF82B28FC57BEB4BDED7C47438B2263CD5EF30363EDFF89485DB0",
+      "owner_approved_sha256": "6B8D34B5039DF82B28FC57BEB4BDED7C47438B2263CD5EF30363EDFF89485DB0",
+      "published_sha256": "6B8D34B5039DF82B28FC57BEB4BDED7C47438B2263CD5EF30363EDFF89485DB0",
+      "byte_drift": 0,
       "width": 1536,
       "height": 1024,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     },
     {
       "monster_id": "M109",
@@ -228,13 +292,19 @@
       "source_description": "Sky jelly: a floating jellyfish-like monster with a translucent scalloped bell, ribbon tendrils, and star-speckled cobalt body.",
       "asset_path": "art/monsters/M109_firmament_jelly.png",
       "sha256": "4DF9C8972C15BBB35E894A7AEF62DE6BA3400EA654F81257D09AA351113459E2",
+      "owner_approved_sha256": "4DF9C8972C15BBB35E894A7AEF62DE6BA3400EA654F81257D09AA351113459E2",
+      "published_sha256": "4DF9C8972C15BBB35E894A7AEF62DE6BA3400EA654F81257D09AA351113459E2",
+      "byte_drift": 0,
       "width": 1024,
       "height": 1536,
       "mode": "RGBA",
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_qa": "PASS",
-      "owner_visual_review_status": "PENDING"
+      "owner_visual_review_status": "PASS",
+      "freeze_status": "FROZEN",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "source_head": "16548803a62c9fc76a459cb247a026187e644c5c"
     }
   ],
   "validation": {
@@ -247,16 +317,22 @@
     "b08_structure_test": "NOT_APPLICABLE",
     "b09_structure_test": "NOT_APPLICABLE",
     "b10_structure_test": "PASS",
+    "b10_publication_tests": "PASS",
+    "owner_approved_hash_lock_test": "PASS",
+    "owner_approved_byte_identity_test": "PASS",
+    "prior_art_protection_tests": "PASS",
     "prior_art_protection_test": "PASS",
     "batch_identity_test": "PASS",
     "asset_hash_uniqueness_test": "PASS",
     "task_introduced_failures": 0
   },
   "owner_gate": {
-    "owner_visual_review_status": "PENDING",
-    "owner_pass_count": "0/10",
-    "ready_for_owner_visual_review": "YES",
-    "self_approval": "NO"
+    "owner_visual_review_status": "PASS",
+    "owner_pass_count": "10/10",
+    "ready_for_owner_visual_review": "NO",
+    "self_approval": "NO",
+    "owner_revision_required": "NO",
+    "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED"
   },
   "firewall_summary": {
     "master_merge": "NO",
@@ -268,6 +344,6 @@
     "lc_scope_touched": "NO",
     "release_scope_touched": "NO"
   },
-  "result": "PASS_ART003_B10_M100_M109_CANONICAL_MONSTER_ART_PRODUCTION",
-  "next_task": "OWNER_VISUAL_REVIEW_ART003_B10"
+  "result": "PASS_ART003_B10_R1_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION",
+  "next_task": "GLOBAL_RECONCILIATION_WAIT"
 }
