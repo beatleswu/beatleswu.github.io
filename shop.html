@@ -742,15 +742,15 @@ button:focus-visible {
   <section class="hero" aria-labelledby="shop-title">
     <div class="hero-copy">
       <div class="eyebrow" data-i18n="shop.eyebrow">棋魂廣場</div>
-      <h1 id="shop-title" data-i18n="shop.h1">商城</h1>
-      <p class="lead" data-i18n="shop.lead">用每天做題掙來的金幣，換取強化修煉的道具與外觀。Premium 會員享折扣優惠，每日輪替不容錯過。</p>
+      <h1 id="shop-title" data-i18n="shop.h1">Coins Shop</h1>
+      <p class="lead" data-i18n="shop.lead">使用 Coins 購買功能裝備或純外觀裝扮；外觀不提供戰鬥能力。Premium 與付款不在此頁。</p>
       <div class="wallet-row">
         <div class="wallet-tile">
           <div class="tile-label" data-i18n="shop.coin.label">持有金幣</div>
           <div class="tile-value" id="coin-bal" data-c044-balance="coins" data-c044-balance-state="loading" aria-live="polite" aria-atomic="true">...</div>
           <div class="tile-sub" data-i18n="shop.coin.sub">做題、任務每日賺幣</div>
         </div>
-        <div class="status-tile">
+        <div class="status-tile" id="legacy-gacha-collection-summary" data-c053-option-b-retired="gacha-collection" hidden>
           <div class="tile-label" data-i18n="shop.today.label">今日收入</div>
           <div class="tile-value"><span id="earned-today">0</span>/<span id="daily-cap">500</span></div>
           <div class="tile-sub" data-i18n="shop.today.sub">每日上限金幣</div>
@@ -767,23 +767,23 @@ button:focus-visible {
       <img class="shop-sign" src="/assets/shop/shop_sign.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
       <div class="speech">
         <strong data-i18n="shop.merchant.name">阿狸老闆</strong>
-        <span id="merchant-line">先看每日折扣，再決定要不要出手。</span>
+        <span id="merchant-line">功能裝備進入背包；外觀裝扮進入衣櫃。</span>
       </div>
       <img class="merchant" id="merchant-img" src="/assets/shop/npc_merchant_idle.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
     </div>
   </section>
 
-  <section class="section panel cosmetic-commerce-panel" aria-labelledby="cosmetic-commerce-title">
+  <section class="section panel cosmetic-commerce-panel" data-c053-option-b-surface="cosmetics" data-c053-visibility="hidden" aria-labelledby="cosmetic-commerce-title" hidden>
     <div class="panel-pad">
       <div class="section-head">
         <div>
-          <div class="section-kicker" data-i18n="shop.cosmetic.kicker">外觀商店 · REVENUE V1</div>
-          <div class="section-title" id="cosmetic-commerce-title" data-i18n="shop.cosmetic.title">五件外觀收藏池</div>
+          <div class="section-kicker" data-i18n="shop.cosmetic.kicker">外觀裝扮 · COINS COSMETICS</div>
+          <div class="section-title" id="cosmetic-commerce-title" data-i18n="shop.cosmetic.title">Coins 外觀裝扮</div>
         </div>
-        <div class="section-sub" data-i18n="shop.cosmetic.sub">目錄 → 預覽 → 解鎖 → 擁有 → 裝備 → 看見結果</div>
+        <div class="section-sub" data-i18n="shop.cosmetic.sub">伺服器目錄 → 預覽 → 購買 → 擁有 → 選用</div>
       </div>
       <p class="cosmetic-note" data-i18n="shop.cosmetic.note">
-        外觀商品的攻擊增量與防禦增量固定為 0，且沒有戰鬥權限；現有定義中的非戰鬥 XP／掉落效果仍可能保留。五件 Revenue V1 外觀都是純呈現；購買、擁有與裝備狀態仍由既有 server authority 判定。
+        純外觀，戰鬥力固定為 0；攻擊增量與防禦增量固定為 0，沒有戰鬥權限；非戰鬥 XP／掉落效果仍可能保留。購買後進入衣櫃，需按「選用」才會顯示；購買、擁有與選用狀態仍由既有 server authority 判定。
       </p>
       <div class="cosmetic-grid" id="cosmetic-commerce-grid">
         <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -791,20 +791,20 @@ button:focus-visible {
     </div>
   </section>
 
-  <section class="section panel equipment-commerce-panel" id="equipment-commerce-panel" data-c044-catalog="equipment-offers" aria-labelledby="equipment-commerce-title" hidden>
+  <section class="section panel equipment-commerce-panel" id="equipment-commerce-panel" data-c044-catalog="equipment-offers" data-c053-option-b-surface="equipment" data-c053-visibility="hidden" aria-labelledby="equipment-commerce-title" hidden>
     <div class="panel-pad">
       <div class="section-head">
         <div>
-          <div class="section-kicker" id="equipment-commerce-kicker">FUNCTIONAL EQUIPMENT</div>
-          <div class="section-title" id="equipment-commerce-title">功能裝備商店</div>
+          <div class="section-kicker" id="equipment-commerce-kicker">FUNCTIONAL EQUIPMENT · 戰鬥裝備</div>
+          <div class="section-title" id="equipment-commerce-title">功能裝備</div>
         </div>
         <div class="equipment-catalog-tools">
           <div class="equipment-catalog-status" id="equipment-catalog-status" data-c044-catalog-status="ready" aria-live="polite"></div>
           <button class="btn secondary equipment-catalog-refresh" id="equipment-catalog-refresh" type="button" data-c044-refresh-catalog="1">刷新目錄</button>
         </div>
       </div>
-      <div class="section-sub" id="equipment-commerce-sub">由 server 提供的裝備商品</div>
-      <p class="equipment-commerce-note" id="equipment-commerce-note">購買後裝備會加入背包，不會自動裝備；若 server 標記可裝備，請使用背包既有流程。</p>
+      <div class="section-sub" id="equipment-commerce-sub">伺服器提供的功能裝備商品</div>
+      <p class="equipment-commerce-note" id="equipment-commerce-note">功能裝備會加入背包並依 server 定義影響支援的遊戲數值；購買後不會自動裝備，請使用背包既有流程。</p>
       <div class="equipment-purchase-feedback" id="equipment-purchase-feedback" data-c044-feedback="equipment-purchase" role="status" aria-live="polite" data-state="" hidden>
         <div><strong id="equipment-purchase-feedback-title"></strong><div id="equipment-purchase-feedback-copy"></div></div>
         <a id="equipment-purchase-feedback-backpack" data-c044-backpack-refresh="ownership-reference" hidden>前往背包</a>
@@ -829,7 +829,7 @@ button:focus-visible {
     </div>
   </section>
 
-  <section class="section panel premium-v1-panel" id="premium-v1-panel" aria-labelledby="premium-v1-title" hidden>
+  <section class="section panel premium-v1-panel" id="premium-v1-panel" data-c053-option-b-retired="premium" aria-labelledby="premium-v1-title" hidden>
     <div class="panel-pad">
       <div class="section-head">
         <div>
@@ -856,7 +856,7 @@ button:focus-visible {
   </section>
 
   <div class="quick-board">
-    <section class="panel" aria-labelledby="daily-title">
+    <section class="panel" data-c053-option-b-retired="daily" aria-labelledby="daily-title" hidden>
       <div class="panel-pad">
         <div class="section-head">
           <div>
@@ -871,7 +871,7 @@ button:focus-visible {
       </div>
     </section>
 
-    <section class="panel" aria-labelledby="gacha-title">
+    <section class="panel" data-c053-option-b-retired="gacha" aria-labelledby="gacha-title" hidden>
       <div class="gacha-panel">
         <div>
           <div class="section-kicker">GACHA CHEST</div>
@@ -910,7 +910,7 @@ button:focus-visible {
     </section>
   </div>
 
-  <section class="section panel" aria-labelledby="weekly-title">
+  <section class="section panel" data-c053-option-b-retired="weekly" aria-labelledby="weekly-title" hidden>
     <div class="panel-pad">
       <div class="section-head">
         <div>
@@ -925,7 +925,7 @@ button:focus-visible {
     </div>
   </section>
 
-  <section class="section panel" aria-labelledby="monthly-title">
+  <section class="section panel" data-c053-option-b-retired="monthly" aria-labelledby="monthly-title" hidden>
     <div class="panel-pad">
       <div class="section-head">
         <div>
@@ -940,7 +940,7 @@ button:focus-visible {
     </div>
   </section>
 
-  <section class="section panel" aria-labelledby="items-title">
+  <section class="section panel" data-c053-option-b-retired="items" aria-labelledby="items-title" hidden>
     <div class="panel-pad">
       <div class="section-head">
         <div>
@@ -983,6 +983,10 @@ const c044EquipmentPurchaseInFlight = new Map();
 let premiumV1SelectedCosmeticId = null;
 let cosmeticModalReturnFocus = null;
 let toastTimer = null;
+// C053 Option B keeps the public Shop fail-closed until the server catalog
+// proves that the canonical equipment assortment is available.  This is a
+// presentation latch only; it never creates products, prices, or ownership.
+let c053OptionBVisible = false;
 
 const ASSET = {
   hint_ticket: "/assets/shop/small_hint_scroll.webp",
@@ -1010,48 +1014,18 @@ const ASSET = {
 const MERCHANT_LINES = {
   zh: {
     idle: [
-      "先看每日折扣，再決定要不要出手。",
-      "今天的貨很新，錢包也要跟著精打細算。",
-      "如果要省資源，就先從每日特價開始看。",
-      "不用急，貨我幫你留著，先看看再說。",
-      "每天都有新輪替，今天來對了。",
-      "眼神告訴我你已經看中什麼了。",
-      "好的道具不便宜，但買對了划算。",
-      "保底快到了，今天考慮開一箱嗎？",
-      "學習路上需要補給，這裡都有。",
-      "今日特賣不等人，看好就手快。",
-      "沒有急著買也沒關係，先了解一下價格。",
-      "道具要用在刀口上，不要亂花金幣。",
-      "我的店每天都開，但輪替商品只到今天。",
-      "有什麼想找的嗎？告訴我，我幫你看。",
-      "常客都知道，每日商品才是最划算的。",
-      "今天手頭緊就先逛逛，不買也歡迎。",
-      "積累金幣要有耐心，花金幣要謹慎。",
-      "這道具我自己也用過，效果不錯。",
-      "要搭配著用才有效，別單打獨鬥。",
-      "店裡的每樣東西都是我親自挑的。"
+      "功能裝備會進入背包，外觀裝扮會進入衣櫃。",
+      "先看看 server 目錄，再決定要不要使用 Coins。",
+      "純外觀不提供戰鬥能力；選用後才會顯示在英雄身上。",
+      "不用急，先確認商品、價格和自己的 Coins 餘額。",
+      "買到的是擁有權，裝備或選用要走各自的既有流程。"
     ],
     talk: [
-      "這一件很適合現在的你，考慮一下？",
-      "我幫你算過了，今天買這個不虧。",
-      "要買要快，庫存不等人。",
-      "這個性價比很高，很多人都在問。",
-      "你問的這個，今天有折扣，難得。",
-      "這件道具我推薦，效果立竿見影。",
-      "你現在的段位，買這個很合適。",
-      "考慮一下，買錯我會幫你換。",
-      "這個跟你平常的習慣搭配起來很順。",
-      "這個組合最近很受歡迎，你試試。",
-      "這個價格不高，但效果很實際。",
-      "我也不是要你全買，看需要再說。",
-      "你問的這個賣得很快，建議先拿。",
-      "新進的貨，品質我掛保證。",
-      "這個買了你不會後悔。",
-      "我給你算個帳，今天買划算。",
-      "這件放著遲早會用到。",
-      "想多了就會買，不想就不買，我不催。",
-      "剛進的貨，你是頭一個問的。",
-      "這個搭配護盾一起用效果最好。"
+      "請稍候，我正在向 server 確認這筆購買。",
+      "Coins 價格以 server 目錄為準，不採用瀏覽器傳來的價格。",
+      "確認完成前不會重複扣款，也不會重複取得。",
+      "功能裝備和外觀裝扮是兩種不同的擁有目的。",
+      "購買完成後，請到背包或衣櫃查看取得結果。"
     ],
     happy: [
       "成交，這筆生意漂亮。",
@@ -1144,48 +1118,18 @@ const MERCHANT_LINES = {
   },
   en: {
     idle: [
-      "Check today's discounts before you spend.",
-      "The shop is fresh today, so keep an eye on your wallet.",
-      "If you want to save resources, start with the daily deals.",
-      "No rush, take your time and look around.",
-      "New rotation every day — you came at the right time.",
-      "Your eyes are telling me you've already spotted something.",
-      "Good items don't come cheap, but the right ones are worth it.",
-      "The pity counter is climbing — maybe consider opening a chest.",
-      "This shop has everything you need for the road ahead.",
-      "Today's deals won't last. If you see something, act on it.",
-      "No pressure to buy, just get familiar with the prices.",
-      "Spend your coins wisely — don't burn them on impulse.",
-      "My shop opens every day, but the rotation only lasts until midnight.",
-      "Looking for something specific? I might have it.",
-      "My regulars know the daily deals are the best value here.",
-      "Tight on coins today? Just browse — you're always welcome.",
-      "Building your stash takes patience. Spending it takes judgment.",
-      "I've tried most of these myself. The quality is solid.",
-      "Use items together for the best effect — don't go it alone.",
-      "I hand-pick every item in this shop."
+      "Functional equipment goes to your Backpack; cosmetics go to your Wardrobe.",
+      "Check the server catalog before deciding how to spend Coins.",
+      "Cosmetics have no combat power; select one separately to show it on the Hero.",
+      "No rush. Confirm the item, price, and your authoritative Coins balance.",
+      "Buying grants ownership; equip or select through the existing destination flow."
     ],
     talk: [
-      "This one fits your current progress. Interested?",
-      "I ran the numbers. This purchase makes sense today.",
-      "If you want it, better grab it before stock runs out.",
-      "Great value here — plenty of people have been asking.",
-      "You're asking about this one? It's on discount today. Lucky.",
-      "I'd recommend this. The effect is immediate.",
-      "At your current level, this is the right pick.",
-      "Think it over. I'll help you out if you pick the wrong one.",
-      "This fits well with how you usually play.",
-      "This combo's been popular lately. Give it a try.",
-      "The price is modest, but the value is real.",
-      "I'm not saying buy everything — just what you need.",
-      "This one moves fast. I'd grab it while you can.",
-      "Just came in. I'll vouch for the quality myself.",
-      "You won't regret this one.",
-      "Let me work out the math — buying today makes sense.",
-      "Sooner or later you'll need this. Might as well get it now.",
-      "Take your time. I'm not rushing you.",
-      "You're the first one to ask about this. Fresh batch.",
-      "Pair it with a shield and you'll really feel the difference."
+      "Please wait while the server confirms this purchase.",
+      "The server catalog owns the Coins price; browser-supplied prices are ignored.",
+      "Until confirmation, the same purchase will not deduct or grant twice.",
+      "Functional equipment and cosmetics have separate ownership destinations.",
+      "After confirmation, check your Backpack or Wardrobe for the acquired item."
     ],
     happy: [
       "Deal done. Nice trade.",
@@ -2032,11 +1976,49 @@ function showCosmeticPreview(product) {
   modal.hidden = false;
   requestAnimationFrame(() => document.getElementById('cosmetic-preview-close')?.focus());
 }
+function c053SetOptionBVisibility(visible) {
+  c053OptionBVisible = visible === true;
+  document.querySelectorAll('[data-c053-option-b-surface]').forEach(surface => {
+    surface.hidden = !c053OptionBVisible;
+    surface.dataset.c053Visibility = c053OptionBVisible ? 'visible' : 'hidden';
+  });
+  if (!c053OptionBVisible) {
+    const cosmeticGrid = document.getElementById('cosmetic-commerce-grid');
+    if (cosmeticGrid) cosmeticGrid.innerHTML = '';
+  } else if (cosmeticCatalog && !cosmeticCatalog.error) {
+    renderCosmeticCommerce(cosmeticCatalog);
+  }
+}
+function c053ServerCatalogEnablesOptionB(data) {
+  // The server-owned offer list is the only signal allowed to reveal the
+  // public surface.  Prices, product identities, and the Coins balance remain
+  // server-owned facts; this check only fails closed when the response is
+  // incomplete.
+  return c043EquipmentOffers(data).length === 3
+    && Number.isInteger(data?.coins)
+    && data.coins >= 0;
+}
+function c053CoinCosmeticProducts(data) {
+  return Array.isArray(data?.products)
+    ? data.products.filter(product => c043IsPlainObject(product)
+      && product.unlock_type === 'coins'
+      && String(product.currency || '').trim().toLowerCase() === 'coins'
+      && Number.isInteger(product.price)
+      && product.price > 0)
+    : [];
+}
 function renderCosmeticCommerce(data) {
   cosmeticCatalog = data;
   const grid = document.getElementById('cosmetic-commerce-grid');
   if (!grid) return;
-  const products = Array.isArray(data.products) ? data.products : [];
+  if (!c053OptionBVisible) {
+    grid.innerHTML = '';
+    return;
+  }
+  // Option B admits only server-described Coin cosmetics.  Premium products
+  // and read-only visual candidates remain available to their own authorities
+  // but are not public Shop offers.
+  const products = c053CoinCosmeticProducts(data);
   if (!products.length) {
     grid.innerHTML = `<div class="load-state" role="status"><strong>${uiText('shop.cosmetic.emptyTitle', 'No cosmetics available', '目前沒有可顯示的外觀')}</strong><span>${uiText('shop.cosmetic.emptyCopy', 'Check back after the next release.', '請於下一次內容發布後再回來查看。')}</span></div>`;
     return;
@@ -2085,9 +2067,10 @@ function renderCosmeticCommerce(data) {
   }).join('');
   const visualCandidates = Array.isArray(data.presentation_candidates)
     ? data.presentation_candidates : [];
-  const candidateCards = visualCandidates.length
-    ? `<div class="cosmetic-candidate-heading">${uiText('shop.cosmetic.nextReview', 'NEXT V1 VISUAL REVIEW', '下一階段 V1 視覺審查')}</div>${visualCandidates.map(renderVisualReviewCandidate).join('')}`
-    : '';
+  // C053 intentionally does not render presentation_candidates in the public
+  // Shop.  Keep the read-only renderer/source for its existing review surface.
+  const candidateCards = '';
+  void visualCandidates;
   grid.innerHTML = productCards + candidateCards;
   bindCanonicalCosmeticArt(grid);
   grid.querySelectorAll('[data-cosmetic-preview]').forEach(button => {
@@ -2391,6 +2374,7 @@ async function loadCatalog() {
     if (requestId !== c044EquipmentCatalogRequest) return false;
     if (!c043IsPlainObject(res)) {
       catalog = { error: 'malformed_catalog' };
+      c053SetOptionBVisibility(false);
       c044MarkCatalogBalanceStale();
       renderShopLoadError(uiText('shop.state.malformed', 'Shop returned malformed data. Please retry.', '商城回傳的資料格式錯誤，請重試。'));
       c044RenderEquipmentCatalogFailure(uiText('shop.equipment.catalogMalformed', 'The server catalog could not be verified.', 'server 目錄無法驗證。'));
@@ -2398,12 +2382,14 @@ async function loadCatalog() {
     }
     if (res.error) {
       catalog = res;
+      c053SetOptionBVisibility(false);
       c044MarkCatalogBalanceStale();
       renderShopLoadError(errorMessage(res.error));
       c044RenderEquipmentCatalogFailure(errorMessage(res.error));
       return false;
     }
     catalog = res;
+    c053SetOptionBVisibility(c053ServerCatalogEnablesOptionB(res));
     c044EquipmentCatalogRevision += 1;
     const authoritativeBalance = c044ApplyAuthoritativeCatalogBalance(res);
     if (authoritativeBalance) {
@@ -2457,6 +2443,7 @@ async function loadCatalog() {
   } catch (_) {
     if (requestId !== c044EquipmentCatalogRequest) return false;
     catalog = {error: 'network_error'};
+    c053SetOptionBVisibility(false);
     c044MarkCatalogBalanceStale();
     renderShopLoadError(uiText('shop.state.networkError', 'Network error. Please retry.', '網路連線異常，請重試。'));
     c044RenderEquipmentCatalogFailure(uiText('shop.equipment.catalogNetworkError', 'The server catalog could not be refreshed. Please retry.', 'server 目錄無法刷新，請重試。'));
@@ -2743,6 +2730,15 @@ function renderEquipmentOffers(data) {
   const grid = document.getElementById('equipment-commerce-grid');
   if (!panel || !grid) return;
   equipmentOffers = c043EquipmentOffers(data);
+  if (!c053OptionBVisible) {
+    panel.hidden = true;
+    panel.dataset.c053Visibility = 'hidden';
+    grid.innerHTML = '';
+    const detail = document.getElementById('equipment-commerce-detail');
+    if (detail) detail.hidden = true;
+    c044EquipmentSelectedOfferId = '';
+    return;
+  }
   const feedback = document.getElementById('equipment-purchase-feedback');
   panel.hidden = !equipmentOffers.length && !!feedback?.hidden;
   if (!equipmentOffers.length) {
@@ -2765,18 +2761,18 @@ function renderEquipmentOffers(data) {
     );
   }
   document.getElementById('equipment-commerce-kicker').textContent = uiText(
-    'shop.equipment.kicker', 'FUNCTIONAL EQUIPMENT', '功能裝備',
+    'shop.equipment.kicker', 'FUNCTIONAL EQUIPMENT · BATTLE GEAR', 'FUNCTIONAL EQUIPMENT · 戰鬥裝備',
   );
   document.getElementById('equipment-commerce-title').textContent = uiText(
-    'shop.equipment.title', 'Equipment Shop', '功能裝備商店',
+    'shop.equipment.title', 'Functional Equipment', '功能裝備',
   );
   document.getElementById('equipment-commerce-sub').textContent = uiText(
-    'shop.equipment.sub', 'Server-provided offers', '由 server 提供的裝備商品',
+    'shop.equipment.sub', 'Server-provided functional equipment', '伺服器提供的功能裝備商品',
   );
   document.getElementById('equipment-commerce-note').textContent = uiText(
     'shop.equipment.note',
-    'Purchased equipment is added to your Backpack and is not auto-equipped. Use the existing Backpack flow if the server marks it equipable.',
-    '購買後裝備會加入背包，不會自動裝備；若 server 標記可裝備，請使用背包既有流程。',
+    'Functional equipment is added to your Backpack and follows server-defined gameplay values. It is not auto-equipped; use the existing Backpack flow separately.',
+    '功能裝備會加入背包並依 server 定義影響支援的遊戲數值；購買後不會自動裝備，請使用背包既有流程。',
   );
   grid.innerHTML = equipmentOffers.map(c043EquipmentOfferCardHTML).join('');
   grid.querySelectorAll('[data-equipment-detail]').forEach(button => {
@@ -3250,7 +3246,6 @@ window.onLangChange = () => {
 };
 loadCatalog();
 loadCosmeticCommerce();
-loadPremiumV1Offer();
 </script>
 <script src="/sound.js?v=2"></script>
 <script src="/mobile-nav.js?v=20260603mn"></script>
