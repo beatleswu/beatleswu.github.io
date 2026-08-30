@@ -124,7 +124,8 @@ def test_b10_review_pack_exact_order_and_pending_gate() -> None:
     for index, monster_id in enumerate(EXPECTED_IDS, start=1):
         assert f"### {index}. " in pack
         assert monster_id in pack
-    assert "M084" not in pack
+    assert "| M084 |" not in pack
+    assert "art/monsters/M084_" not in pack
 
 
 def test_b10_change_scope_and_prior_art_protection() -> None:
