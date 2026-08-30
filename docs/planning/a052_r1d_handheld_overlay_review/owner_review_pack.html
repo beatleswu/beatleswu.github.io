@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A052-R1D Handheld Overlay Composition Review</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 1rem; color: #18202a; background: #f4f6f8; }
+    main { max-width: 72rem; margin: 0 auto; }
+    h1 { margin-bottom: .25rem; }
+    h2 { margin-top: 2rem; }
+    .status { padding: .8rem 1rem; border-left: .35rem solid #b7791f; background: #fff8e6; }
+    .note { color: #4a5568; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
+    figure { margin: 0; padding: .75rem; background: white; border: 1px solid #d9e0e7; border-radius: .5rem; }
+    figure img { display: block; width: 100%; height: auto; background: repeating-conic-gradient(#e7ebef 0 25%, #fff 0 50%) 50% / 1rem 1rem; }
+    figcaption { margin-top: .6rem; font-weight: 600; }
+    code { overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { padding: .55rem; text-align: left; vertical-align: top; border: 1px solid #d9e0e7; }
+    th { background: #edf1f5; }
+    @media (max-width: 40rem) {
+      body { padding: .6rem; }
+      h1 { font-size: 1.45rem; }
+      th, td { font-size: .9rem; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>A052-R1D handheld weapon overlay composition</h1>
+  <p class="status"><strong>PENDING_OWNER_VISUAL_REVIEW</strong> — technical composition candidate only. Runtime wiring is not active and Loadout remains OFF.</p>
+  <p class="note">This pack compares the six Owner-approved weapon-free poses with the three candidate weapon-only overlays. It is designed to remain readable on desktop, tablet, and mobile-width screens.</p>
+
+  <h2>Six-character wooden sword composition</h2>
+  <figure>
+    <img src="wooden_sword_all_characters.png" alt="Six approved weapon-free characters composed with the candidate wooden sword overlay">
+    <figcaption>wooden_sword — all six character anchors</figcaption>
+  </figure>
+  <p class="note">Characters shown: <code>apprentice</code>, <code>mage</code>, <code>paladin</code>, <code>trail_apprentice</code>, <code>night_runner</code>, <code>constellation_apprentice</code>.</p>
+
+  <h2>Cross-weapon composition evidence</h2>
+  <div class="grid">
+    <figure>
+      <img src="iron_sword_all_characters.png" alt="Six character compositions with the candidate iron sword overlay">
+      <figcaption>iron_sword — all six character anchors</figcaption>
+    </figure>
+    <figure>
+      <img src="fox_fang_all_characters.png" alt="Six character compositions with the candidate fox fang overlay">
+      <figcaption>fox_fang — all six character anchors</figcaption>
+    </figure>
+  </div>
+
+  <h2>Grip / occlusion inspection</h2>
+  <figure>
+    <img src="wooden_sword_hand_alignment_crops.png" alt="Enlarged wooden sword hand alignment crops for all six characters">
+    <figcaption>wooden_sword — enlarged grip-hand crops</figcaption>
+  </figure>
+
+  <h2>Candidate handheld assets</h2>
+  <table>
+    <thead><tr><th>Weapon</th><th>Candidate asset</th><th>Contract</th></tr></thead>
+    <tbody>
+      <tr><td>wooden_sword</td><td><a href="../../../assets/hero/equipment/wearables/handheld/wooden_sword.png">wooden_sword.png</a></td><td>weapon-only RGBA, pending Owner visual review</td></tr>
+      <tr><td>iron_sword</td><td><a href="../../../assets/hero/equipment/wearables/handheld/iron_sword.png">iron_sword.png</a></td><td>weapon-only RGBA, pending Owner visual review</td></tr>
+      <tr><td>fox_fang</td><td><a href="../../../assets/hero/equipment/wearables/handheld/fox_fang.png">fox_fang.png</a></td><td>weapon-only RGBA, pending Owner visual review</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Governance</h2>
+  <ul>
+    <li>Composition input is server-owned <code>player_inventory.equipped</code>; character poses are visual-only.</li>
+    <li>Rendering uses a back weapon layer so the character base occludes the hand contact; no mask is proposed.</li>
+    <li>Existing waist overlays and <code>wearable_registry.json</code> are unchanged; this is a dormant R1D contract.</li>
+    <li>Dragon claw and celestial blade are deferred from V1. No combat, inventory, app.py, or Loadout behavior is changed.</li>
+    <li>The pre-existing missing <code>go_stone_black.png</code> registry-reference test issue is unrelated and remains unrepaired.</li>
+  </ul>
+  <p><a href="../../../assets/hero/equipment/wearables/handheld/handheld_pose_contract.json">Open the exact handheld pose contract JSON</a></p>
+</main>
+</body>
+</html>

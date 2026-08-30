@@ -1,0 +1,227 @@
+{
+  "$schema": "go-odyssey.handheld-pose-contract.v1",
+  "contract_id": "A052_R1D_ONE_HAND_SWORD_HANDHELD_OVERLAY",
+  "status": "PREPARED_PENDING_OWNER_VISUAL_REVIEW",
+  "runtime_active": false,
+  "owner_visual_acceptance": "NOT_GRANTED",
+  "authority": {
+    "equipment": "server_owned.player_inventory.equipped",
+    "pose": "visual_only",
+    "client_equipment_authority": false,
+    "purchase_does_not_equip": true,
+    "acquire_does_not_equip": true,
+    "combat_effect_source": "server_owned.EQUIPMENT_DEFS"
+  },
+  "frame": {
+    "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "width": 1056,
+    "height": 1408,
+    "coordinate_space": "normalized_0_to_1",
+    "responsive_rule": "scale_with_character_container"
+  },
+  "pose_family": "ONE_HAND_SWORD",
+  "supported_weapons": {
+    "wooden_sword": {
+      "asset_path": "/assets/hero/equipment/wearables/handheld/wooden_sword.png",
+      "sha256": "4b26cd361d2920efc428dcf13fe377257f175da9ad56bac96d1ef0afa18c4b48",
+      "width": 1070,
+      "height": 1087,
+      "color_mode": "RGBA",
+      "alpha_valid": true,
+      "weapon_only": true,
+      "baked_character_pixels": false,
+      "orientation": "GRIP_UPPER_RIGHT_TO_TIP_LOWER_LEFT",
+      "weapon_origin": "top_left",
+      "weapon_grip_point": [0.78, 0.18],
+      "base_rotation_deg": -8.0,
+      "base_scale": 0.48,
+      "source_provenance": {
+        "reference_asset": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "reference_sha256": "12b4bbe4150d05bca39b507787c250f1418c2ad154fafb8d8e2df557186e4523",
+        "derivation": "built_in_imagegen_weapon_only_reference_then_alpha_crop_and_horizontal_mirror"
+      }
+    },
+    "iron_sword": {
+      "asset_path": "/assets/hero/equipment/wearables/handheld/iron_sword.png",
+      "sha256": "ef6b4619f1131ccd087080163261ec047e5a08944d35ef0cd586017feafc1c2f",
+      "width": 737,
+      "height": 1457,
+      "color_mode": "RGBA",
+      "alpha_valid": true,
+      "weapon_only": true,
+      "baked_character_pixels": false,
+      "orientation": "GRIP_UPPER_RIGHT_TO_TIP_LOWER_LEFT",
+      "weapon_origin": "top_left",
+      "weapon_grip_point": [0.75, 0.14],
+      "base_rotation_deg": -8.0,
+      "base_scale": 0.36,
+      "source_provenance": {
+        "reference_asset": "/assets/hero/equipment/wearables/overlays/iron_sword.png",
+        "reference_sha256": "86f111d82da02e85d6dbd5341b9e0f94140123e2b68ca572b246f011e4dcfc45",
+        "derivation": "built_in_imagegen_weapon_only_reference_then_alpha_crop_and_horizontal_mirror"
+      }
+    },
+    "fox_fang": {
+      "asset_path": "/assets/hero/equipment/wearables/handheld/fox_fang.png",
+      "sha256": "3e0b7dc09b4a5924318dc81c85d94db94ebc413b76465c5f5a0f821146e8b676",
+      "width": 1073,
+      "height": 1178,
+      "color_mode": "RGBA",
+      "alpha_valid": true,
+      "weapon_only": true,
+      "baked_character_pixels": false,
+      "orientation": "GRIP_UPPER_RIGHT_TO_TIP_LOWER_LEFT",
+      "weapon_origin": "top_left",
+      "weapon_grip_point": [0.72, 0.15],
+      "base_rotation_deg": -8.0,
+      "base_scale": 0.48,
+      "source_provenance": {
+        "reference_asset": "/assets/hero/equipment/wearables/overlays/fox_fang.png",
+        "reference_sha256": "5c3d3a50f64405b2e8756f1bd36fae0a1a75401c772150ceecc0d1ad23ad3ccd",
+        "derivation": "built_in_imagegen_weapon_only_reference_then_alpha_crop_and_horizontal_mirror"
+      }
+    }
+  },
+  "per_weapon_adjustments": {
+    "wooden_sword": {"offset_x": 0.0, "offset_y": 0.0, "rotation_delta_deg": 0.0, "scale_multiplier": 1.0},
+    "iron_sword": {"offset_x": 0.0, "offset_y": 0.0, "rotation_delta_deg": 0.0, "scale_multiplier": 1.0},
+    "fox_fang": {"offset_x": 0.0, "offset_y": 0.0, "rotation_delta_deg": 0.0, "scale_multiplier": 1.0}
+  },
+  "characters": {
+    "apprentice": {
+      "pose_asset": "/assets/hero/characters/wave2_p1/poses/one_hand_sword/apprentice_one_hand_sword_weapon_free.png",
+      "pose_sha256": "deae3f2df02b8bcadc493ca74ebd1896a4849e65f3151572c3e8854f27ea3ae6",
+      "anchor_coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI_NORMALIZED",
+      "grip_x": 0.407197,
+      "grip_y": 0.536222,
+      "rotation_deg": -8.0,
+      "scale_multiplier": 1.0,
+      "z_order": 10,
+      "render_layer": "BACK_WEAPON",
+      "occlusion": "SIMPLE_BACK_OVERLAY_CHARACTER_BASE_OCCLUDES_HAND_CONTACT",
+      "mask_required": false,
+      "weapon_origin": "normalized_asset_top_left",
+      "weapon_grip_point_by_weapon": {
+        "wooden_sword": [0.78, 0.18],
+        "iron_sword": [0.75, 0.14],
+        "fox_fang": [0.72, 0.15]
+      }
+    },
+    "mage": {
+      "pose_asset": "/assets/hero/characters/wave2_p1/poses/one_hand_sword/mage_one_hand_sword_weapon_free.png",
+      "pose_sha256": "59c6cd1a4c4428d7b5d3f655e7541e15e8481f824c6a9201fa21c49790beef1a",
+      "anchor_coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI_NORMALIZED",
+      "grip_x": 0.373106,
+      "grip_y": 0.515057,
+      "rotation_deg": -8.0,
+      "scale_multiplier": 1.0,
+      "z_order": 10,
+      "render_layer": "BACK_WEAPON",
+      "occlusion": "SIMPLE_BACK_OVERLAY_CHARACTER_BASE_OCCLUDES_HAND_CONTACT",
+      "mask_required": false,
+      "weapon_origin": "normalized_asset_top_left",
+      "weapon_grip_point_by_weapon": {
+        "wooden_sword": [0.78, 0.18],
+        "iron_sword": [0.75, 0.14],
+        "fox_fang": [0.72, 0.15]
+      }
+    },
+    "paladin": {
+      "pose_asset": "/assets/hero/characters/wave2_p1/poses/one_hand_sword/paladin_one_hand_sword_weapon_free.png",
+      "pose_sha256": "363d99db99a6bc0f769b7caf58274a35f0b2da2a10be49f58385b978fcc74243",
+      "anchor_coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI_NORMALIZED",
+      "grip_x": 0.388258,
+      "grip_y": 0.536222,
+      "rotation_deg": -8.0,
+      "scale_multiplier": 1.0,
+      "z_order": 10,
+      "render_layer": "BACK_WEAPON",
+      "occlusion": "SIMPLE_BACK_OVERLAY_CHARACTER_BASE_OCCLUDES_HAND_CONTACT",
+      "mask_required": false,
+      "weapon_origin": "normalized_asset_top_left",
+      "weapon_grip_point_by_weapon": {
+        "wooden_sword": [0.78, 0.18],
+        "iron_sword": [0.75, 0.14],
+        "fox_fang": [0.72, 0.15]
+      }
+    },
+    "trail_apprentice": {
+      "pose_asset": "/assets/hero/characters/wave2_p1/poses/one_hand_sword/trail_apprentice_one_hand_sword_weapon_free.png",
+      "pose_sha256": "7fbc61c38e2b1aa2fc5f09e4f56b75b894f1df0f4ef4f87c56cde0689c624cd2",
+      "anchor_coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI_NORMALIZED",
+      "grip_x": 0.392992,
+      "grip_y": 0.571733,
+      "rotation_deg": -8.0,
+      "scale_multiplier": 1.0,
+      "z_order": 10,
+      "render_layer": "BACK_WEAPON",
+      "occlusion": "SIMPLE_BACK_OVERLAY_CHARACTER_BASE_OCCLUDES_HAND_CONTACT",
+      "mask_required": false,
+      "weapon_origin": "normalized_asset_top_left",
+      "weapon_grip_point_by_weapon": {
+        "wooden_sword": [0.78, 0.18],
+        "iron_sword": [0.75, 0.14],
+        "fox_fang": [0.72, 0.15]
+      }
+    },
+    "night_runner": {
+      "pose_asset": "/assets/hero/characters/wave2_p1/poses/one_hand_sword/night_runner_one_hand_sword_weapon_free.png",
+      "pose_sha256": "591c1c61ff4aaaa2f180658099ec7c0389d1f536a1227918e0214c5e9e299eb8",
+      "anchor_coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI_NORMALIZED",
+      "grip_x": 0.423295,
+      "grip_y": 0.589489,
+      "rotation_deg": -8.0,
+      "scale_multiplier": 1.0,
+      "z_order": 10,
+      "render_layer": "BACK_WEAPON",
+      "occlusion": "SIMPLE_BACK_OVERLAY_CHARACTER_BASE_OCCLUDES_HAND_CONTACT",
+      "mask_required": false,
+      "weapon_origin": "normalized_asset_top_left",
+      "weapon_grip_point_by_weapon": {
+        "wooden_sword": [0.78, 0.18],
+        "iron_sword": [0.75, 0.14],
+        "fox_fang": [0.72, 0.15]
+      }
+    },
+    "constellation_apprentice": {
+      "pose_asset": "/assets/hero/characters/wave2_p1/poses/one_hand_sword/constellation_apprentice_one_hand_sword_weapon_free.png",
+      "pose_sha256": "360f195a9277c6956faa9a38047273c6393c4579111e0f5946d83934753bda02",
+      "anchor_coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI_NORMALIZED",
+      "grip_x": 0.331439,
+      "grip_y": 0.543324,
+      "rotation_deg": -8.0,
+      "scale_multiplier": 1.0,
+      "z_order": 10,
+      "render_layer": "BACK_WEAPON",
+      "occlusion": "SIMPLE_BACK_OVERLAY_CHARACTER_BASE_OCCLUDES_HAND_CONTACT",
+      "mask_required": false,
+      "weapon_origin": "normalized_asset_top_left",
+      "weapon_grip_point_by_weapon": {
+        "wooden_sword": [0.78, 0.18],
+        "iron_sword": [0.75, 0.14],
+        "fox_fang": [0.72, 0.15]
+      }
+    }
+  },
+  "fallbacks": {
+    "no_supported_weapon_equipped": "DEFAULT_POSE_NO_WEAPON_OVERLAY",
+    "unknown_weapon": "DEFAULT_POSE_NO_WEAPON_OVERLAY",
+    "unsupported_character": "DEFAULT_POSE_KEEP_AUTHORITATIVE_EQUIPMENT",
+    "missing_metadata": "DEFAULT_POSE_KEEP_AUTHORITATIVE_EQUIPMENT",
+    "asset_load_failure": "WEAPON_FREE_POSE_NO_WEAPON_OVERLAY",
+    "dragon_claw": "DEFERRED_EXISTING_GOVERNED_PRESENTATION",
+    "celestial_blade": "DEFERRED_EXISTING_GOVERNED_PRESENTATION"
+  },
+  "runtime_activation": {
+    "loadout_default": false,
+    "hero_wiring": "NOT_YET_IMPLEMENTED",
+    "registry_wiring": "NOT_YET_IMPLEMENTED",
+    "server_changes": false
+  },
+  "review_evidence": {
+    "status": "PENDING_OWNER_VISUAL_REVIEW",
+    "pack": "docs/planning/a052_r1d_handheld_overlay_review/owner_review_pack.html",
+    "composition": "character_base_then_back_weapon_with_base_occluding_hand_contact",
+    "mobile_contract": "frame_relative_container_scaling"
+  }
+}
