@@ -220,6 +220,18 @@ from lord_trial_answer_service import (
     persist_lord_trial_verdict,
     summarize_lord_trial_evidence,
 )
+from incident_018_observability import (
+    LORD_FINISH_ENDPOINT as INCIDENT_018_LORD_FINISH_ENDPOINT,
+    LORD_REVIEW_ENDPOINT as INCIDENT_018_LORD_REVIEW_ENDPOINT,
+    LORD_START_ENDPOINT as INCIDENT_018_LORD_START_ENDPOINT,
+    begin_request as incident018_begin_request,
+    end_request as incident018_end_request,
+    current_observation as incident018_current_observation,
+    log_exception as incident018_log_exception,
+    log_stage as incident018_log_stage,
+    observe_lord_endpoint as incident018_observe_lord_endpoint,
+    update_current as incident018_update_current,
+)
 from question_capacity_authority import (
     QuestionCapacityConflict,
     QuestionCapacityError,
@@ -12496,6 +12508,7 @@ def home_report_summary():
 
 @app.route('/api/adventure/boss/start', methods=['POST'])
 @login_required
+@incident018_observe_lord_endpoint(INCIDENT_018_LORD_START_ENDPOINT)
 def adventure_boss_start():
     uid = session['user_id']
     data = request.get_json(silent=True) or {}
@@ -12538,6 +12551,9 @@ def adventure_boss_start():
                         return jsonify({'ok': False, 'error': exc.code}), 400
                 else:
                     session['adventure_boss_exam'] = resume_exam
+                    incident018_update_current(
+                        attempt_id=resume_exam.get('attempt_id'),
+                    )
                     answered_count = evidence['answered_count']
                     return jsonify({
                         'ok': True,
@@ -12581,6 +12597,7 @@ def adventure_boss_start():
     selected = pool[:min(BOSS_EXAM_SIZE, len(pool))]
     qids = [q['id'] for q in selected]
     attempt_id = _new_adventure_boss_attempt_id()
+    incident018_update_current(attempt_id=attempt_id)
     session['adventure_boss_exam'] = {
         'zone_key': zone_key,
         'question_ids': qids,
@@ -12819,6 +12836,7 @@ def _adventure_boss_record_attempt(conn, uid, zone_key, passed, correct,
 
 @app.route('/api/adventure/boss/finish', methods=['POST'])
 @login_required
+@incident018_observe_lord_endpoint(INCIDENT_018_LORD_FINISH_ENDPOINT)
 def adventure_boss_finish():
     uid = session['user_id']
     spirit_unlock_results = None
@@ -12827,6 +12845,7 @@ def adventure_boss_finish():
     # always recomputed server-side from review_log evidence.
     request.get_json(silent=True)
     exam = session.get('adventure_boss_exam') or {}
+    incident018_update_current(attempt_id=exam.get('attempt_id'))
     zone_key = exam.get('zone_key')
     if not zone_key:
         return jsonify({'ok': False, 'error': 'no_active_exam'}), 400
@@ -14620,20 +14639,68 @@ def srs_review():
     durable operation directly; ReviewService does, exactly once.
     """
     data = request.get_json(silent=True) or {}
-    command = ReviewCommand(
-        question_id=data.get('question_id'),
-        grade=data.get('grade'),
-        unit_name=data.get('unit_name'),
-        unit_done=data.get('unit_done', False),
-        response_ms=data.get('response_ms'),
-        source_context=data.get('source_context') or 'practice',
-        boss_answer=data.get('boss_answer'),
-        training_set_id=data.get('training_set_id'),
-        is_scaffolding=bool(data.get('is_scaffolding')),
-        submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
+    observation, observation_token = incident018_begin_request(
+        INCIDENT_018_LORD_REVIEW_ENDPOINT,
+        source_context=data.get('source_context') if isinstance(data, dict) else None,
+        question_id=data.get('question_id') if isinstance(data, dict) else None,
     )
-    outcome = _review_service.review(user_id=session['user_id'], command=command)
-    return jsonify(outcome.payload), outcome.http_status
+    incident018_log_stage(
+        'REQUEST_RECEIVED',
+        observation=observation,
+        logger=app.logger,
+    )
+    incident018_log_stage(
+        'INPUT_VALIDATION',
+        observation=observation,
+        logger=app.logger,
+    )
+    try:
+        command = ReviewCommand(
+            question_id=data.get('question_id'),
+            grade=data.get('grade'),
+            unit_name=data.get('unit_name'),
+            unit_done=data.get('unit_done', False),
+            response_ms=data.get('response_ms'),
+            source_context=data.get('source_context') or 'practice',
+            boss_answer=data.get('boss_answer'),
+            training_set_id=data.get('training_set_id'),
+            is_scaffolding=bool(data.get('is_scaffolding')),
+            submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
+        )
+        outcome = _review_service.review(user_id=session['user_id'], command=command)
+        payload = dict(outcome.payload)
+        if observation is not None:
+            if outcome.http_status >= 400:
+                # This is a safe, non-authoritative reference for the Owner
+                # to correlate the existing generic client error with logs.
+                payload.setdefault('diagnostic_ref', observation.diagnostic_ref)
+            incident018_log_stage(
+                'RESPONSE_BUILD',
+                observation=observation,
+                logger=app.logger,
+                HTTP_STATUS=outcome.http_status,
+                RESPONSE_SERIALIZATION_COMPLETED=True,
+            )
+        response = jsonify(payload)
+        incident018_log_stage(
+            'RESPONSE_SENT',
+            observation=observation,
+            logger=app.logger,
+            HTTP_STATUS=outcome.http_status,
+        )
+        return response, outcome.http_status
+    except Exception as exception:
+        incident018_log_exception(
+            exception,
+            stage='REVIEW_ROUTE',
+            safe_location='app.py:/api/srs/review',
+            http_status=500,
+            observation=observation,
+            logger=app.logger,
+        )
+        raise
+    finally:
+        incident018_end_request(observation_token)
 
 
 def _review_submission_duplicate_response(row):
@@ -14678,6 +14745,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
     uid = int(uid)
     data = dict(data or {})
+    incident018_observation = incident018_current_observation()
     qid       = data.get('question_id')
     grade     = data.get('grade')
     unit      = data.get('unit_name')
@@ -14716,6 +14784,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             return jsonify({'error': 'invalid_boss_answer_context'}), 400
     if internal and boss_answer is not None:
         return jsonify({'error': 'invalid_boss_answer_context'}), 400
+    incident018_update_current(question_id=qid)
     training_set_id = data.get('training_set_id')
     try:
         training_set_id = int(training_set_id) if training_set_id is not None else None
@@ -14775,6 +14844,12 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         if boss_answer is None:
             return jsonify({'error': 'boss_answer_required'}), 400
         try:
+            incident018_log_stage(
+                'JUDGE_ENTER',
+                observation=incident018_observation,
+                logger=app.logger,
+                JUDGE_STAGE_ENTERED=True,
+            )
             boss_canonical, boss_judge = judge_lord_trial_answer(
                 boss_answer, question=q_info, exam=exam
             )
@@ -14784,9 +14859,40 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             # One server identity covers all retries of one attempt/question;
             # a client-proposed identity can never create a second verdict.
             submission_id = lord_trial_submission_id(boss_attempt_id, int(qid))
+            incident018_update_current(
+                attempt_id=boss_attempt_id,
+                question_id=qid,
+                submission_id=submission_id,
+            )
+            incident018_log_stage(
+                'JUDGE_EXIT',
+                observation=incident018_observation,
+                logger=app.logger,
+                JUDGE_STAGE_ENTERED=True,
+                JUDGE_STAGE_COMPLETED=True,
+                JUDGE_RESULT_CLASS=getattr(boss_judge, 'result', None),
+            )
         except LordTrialAnswerError as exc:
+            incident018_log_exception(
+                exc,
+                stage='JUDGE',
+                safe_location='app.py:_srs_review_operation:judge_lord_trial_answer',
+                error_code=exc.code,
+                http_status=exc.status,
+                observation=incident018_observation,
+                logger=app.logger,
+            )
             return jsonify({'error': exc.code}), exc.status
-        except LordTrialVerdictPersistenceError:
+        except LordTrialVerdictPersistenceError as exc:
+            incident018_log_exception(
+                exc,
+                stage='JUDGE',
+                safe_location='app.py:_srs_review_operation:build_lord_trial_verdict',
+                error_code='boss_verdict_unavailable',
+                http_status=503,
+                observation=incident018_observation,
+                logger=app.logger,
+            )
             return jsonify({'error': 'boss_verdict_unavailable'}), 503
 
     try:
@@ -14796,6 +14902,12 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             generate_if_missing=not internal,
         )
     except IdempotencyIdentityError:
+        incident018_log_stage(
+            'INPUT_VALIDATION',
+            observation=incident018_observation,
+            logger=app.logger,
+            ERROR_CODE_SAFE='invalid_submission_identity',
+        )
         return jsonify({'error': 'invalid_submission_identity'}), 400
 
     submission_payload = {
@@ -14827,6 +14939,16 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 (uid, submission_id),
             ).fetchone()
         if existing_submission:
+            incident018_log_stage(
+                'IDEMPOTENCY_CHECK',
+                observation=incident018_observation,
+                logger=app.logger,
+                IDEMPOTENCY_RESULT=(
+                    'IDEMPOTENCY_CONFLICT'
+                    if existing_submission['submission_payload_hash'] != submission_payload_hash
+                    else 'DUPLICATE'
+                ),
+            )
             if existing_submission['submission_payload_hash'] != submission_payload_hash:
                 return _review_submission_conflict_response(submission_id)
             return _review_submission_duplicate_response(existing_submission)
@@ -14970,26 +15092,56 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             if boss_source_context is not None
             else source_context
         )
-        review_insert = insert_review_log_with_identity(
-            conn,
-            user_id=uid,
+        incident018_update_current(
             question_id=qid,
-            grade=grade,
-            topic=q_info.get('topic', ''),
-            level=q_info.get('level', ''),
-            difficulty=q_info.get('difficulty', ''),
-            reviewed_at=now,
-            response_ms=response_ms,
-            discipline=q_info.get('discipline') or 'whole_board',
-            player_rating_snapshot=player_rating_snapshot,
-            question_rating_snapshot=question_rating_snapshot,
-            item_rating_version=ITEM_RATING_VERSION,
-            question_version=str(q_info.get('source') or qid),
-            source_context=review_source_context,
-            is_scaffolding=1 if data.get('is_scaffolding') else 0,
-            training_set_id=training_set_id,
             submission_id=submission_id,
             submission_payload_hash=submission_payload_hash,
+        )
+        incident018_log_stage(
+            'PERSISTENCE_ENTER',
+            observation=incident018_observation,
+            logger=app.logger,
+            PERSISTENCE_STAGE_ENTERED=True,
+        )
+        try:
+            review_insert = insert_review_log_with_identity(
+                conn,
+                user_id=uid,
+                question_id=qid,
+                grade=grade,
+                topic=q_info.get('topic', ''),
+                level=q_info.get('level', ''),
+                difficulty=q_info.get('difficulty', ''),
+                reviewed_at=now,
+                response_ms=response_ms,
+                discipline=q_info.get('discipline') or 'whole_board',
+                player_rating_snapshot=player_rating_snapshot,
+                question_rating_snapshot=question_rating_snapshot,
+                item_rating_version=ITEM_RATING_VERSION,
+                question_version=str(q_info.get('source') or qid),
+                source_context=review_source_context,
+                is_scaffolding=1 if data.get('is_scaffolding') else 0,
+                training_set_id=training_set_id,
+                submission_id=submission_id,
+                submission_payload_hash=submission_payload_hash,
+            )
+        except Exception as exception:
+            incident018_log_exception(
+                exception,
+                stage='PERSISTENCE',
+                safe_location='app.py:_srs_review_operation:insert_review_log_with_identity',
+                error_code='review_record_write_failed',
+                http_status=500,
+                observation=incident018_observation,
+                logger=app.logger,
+            )
+            raise
+        incident018_log_stage(
+            'PERSISTENCE_EXIT',
+            observation=incident018_observation,
+            logger=app.logger,
+            PERSISTENCE_STAGE_COMPLETED=True,
+            PERSISTENCE_RESULT='INSERTED' if review_insert['inserted'] else 'DUPLICATE',
         )
         if not review_insert['inserted']:
             existing_submission = review_insert['existing']
@@ -15003,6 +15155,12 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         row = conn.execute(
             'SELECT * FROM srs_cards WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
         if boss_verdict is not None:
+            incident018_log_stage(
+                'VERDICT_PERSISTENCE_ENTER',
+                observation=incident018_observation,
+                logger=app.logger,
+                PERSISTENCE_STAGE_ENTERED=True,
+            )
             try:
                 persist_lord_trial_verdict(
                     conn,
@@ -15010,9 +15168,25 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     submission_id=submission_id,
                     verdict=boss_verdict,
                 )
-            except LordTrialVerdictPersistenceError:
+            except LordTrialVerdictPersistenceError as exc:
+                incident018_log_exception(
+                    exc,
+                    stage='VERDICT_PERSISTENCE',
+                    safe_location='app.py:_srs_review_operation:persist_lord_trial_verdict',
+                    error_code='boss_verdict_unavailable',
+                    http_status=503,
+                    observation=incident018_observation,
+                    logger=app.logger,
+                )
                 conn.rollback()
                 return jsonify({'error': 'boss_verdict_unavailable'}), 503
+            incident018_log_stage(
+                'VERDICT_PERSISTENCE_EXIT',
+                observation=incident018_observation,
+                logger=app.logger,
+                PERSISTENCE_STAGE_COMPLETED=True,
+                PERSISTENCE_RESULT='VERDICT_BOUND',
+            )
         ef,iv,rp = (row['ease_factor'],row['interval'],row['repetitions']) if row else (2.5,0,0)
         ef,iv,rp,due = sm2_update(ef,iv,rp,grade)
         # Phase 4D anti-farming: computed from the row as it existed BEFORE

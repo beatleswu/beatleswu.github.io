@@ -9543,8 +9543,19 @@ async function submitSRS(grade){
     try {
         data = await SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata);
     } catch(e) {
-        console.warn('[SRS.review] failed; answer was not saved', e);
-        setMsg(I18n.t('index.srs.save_fail'), 'err');
+        const diagnosticRef = e?.payload?.diagnostic_ref || null;
+        console.warn('[SRS.review] failed; answer was not saved', {
+            errorType: e?.name || 'Error',
+            errorCode: e?.code || null,
+            diagnosticRef,
+        });
+        const saveFailureMessage = I18n.t('index.srs.save_fail');
+        setMsg(
+            diagnosticRef
+                ? `${saveFailureMessage} 診斷碼：${diagnosticRef}`
+                : saveFailureMessage,
+            'err',
+        );
         return;
     }
     if (data.ok) SRS.markSeen(currentQ.id); // 只在伺服器接受後標記已作答
