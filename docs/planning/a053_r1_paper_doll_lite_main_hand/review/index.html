@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>A053 Paper Doll Lite V1 · apprentice MAIN_HAND</title>
+  <style>
+    :root { color-scheme: light; font-family: Segoe UI, Arial, sans-serif; color: #203047; background: #eef3f7; }
+    body { margin: 0; padding: 18px; }
+    main { max-width: 1080px; margin: 0 auto; }
+    .notice { background: #fff8df; border: 1px solid #dec67d; border-radius: 12px; padding: 14px 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    figure { margin: 0; background: white; border: 1px solid #c5d1dd; border-radius: 12px; padding: 10px; }
+    figure img { display: block; width: 100%; height: auto; }
+    figcaption { padding: 8px 2px 2px; font-weight: 700; }
+    .wide img { max-width: 100%; }
+    code { background: #f1f4f7; padding: 1px 4px; border-radius: 4px; }
+    @media (max-width: 520px) { body { padding: 8px; } h1 { font-size: 22px; } }
+  </style>
+</head>
+<body><main>
+  <h1>A053 Paper Doll Lite V1 · apprentice / MAIN_HAND</h1>
+  <p class="notice"><strong>STATIC PROTOTYPE · PENDING OWNER VISUAL REVIEW</strong><br>
+  This pack is not live Hero runtime wiring. It composes the existing apprentice character with a reusable grip-hand layer and one weapon-only child selected from server-owned <code>player_inventory.equipped</code>. Loadout remains OFF; no app.py, registry, API, schema, data, or combat source was changed.</p>
+  <h2>Primary compositions</h2>
+  <div class="grid">
+    <figure><img src="view_a_default_no_weapon.png" alt="apprentice default pose without weapon"><figcaption>VIEW A · Default Pose / no weapon</figcaption></figure>
+    <figure><img src="view_b_wooden_sword.png" alt="apprentice holding wooden sword"><figcaption>VIEW B · MAIN_HAND / wooden_sword</figcaption></figure>
+    <figure><img src="view_c_iron_sword.png" alt="apprentice holding iron sword"><figcaption>VIEW C · MAIN_HAND / iron_sword</figcaption></figure>
+    <figure><img src="view_d_fox_fang.png" alt="apprentice holding fox fang"><figcaption>VIEW D · MAIN_HAND / fox_fang</figcaption></figure>
+  </div>
+  <h2>Grip inspection</h2>
+  <div class="grid">
+    <figure><img src="wooden_sword_hand_grip_crop.png" alt="wooden sword hand grip crop"><figcaption>wooden_sword · enlarged grip</figcaption></figure>
+    <figure><img src="iron_sword_hand_grip_crop.png" alt="iron sword hand grip crop"><figcaption>iron_sword · enlarged grip</figcaption></figure>
+    <figure><img src="fox_fang_hand_grip_crop.png" alt="fox fang hand grip crop"><figcaption>fox_fang · enlarged grip</figcaption></figure>
+  </div>
+  <h2>Composition and motion-ready contract</h2>
+  <figure class="wide"><img src="exploded_layer_view.png" alt="exploded paper doll layers"><figcaption>CHARACTER_BASE + MAIN_HAND_WEAPON + FRONT_GRIP_HAND = composed character</figcaption></figure>
+  <figure class="wide"><img src="responsive_scaling_proof.png" alt="unit-scaled responsive paper doll proof"><figcaption>One shared local frame · unit scaling only</figcaption></figure>
+  <figure class="wide"><img src="motion_ready_transform_diagram.svg" alt="motion-ready transform hierarchy"><figcaption>Transform hierarchy proof; animation is not implemented</figcaption></figure>
+  <p>Contract: <a href="../paper_doll_lite_contract.json">paper_doll_lite_contract.json</a></p>
+</main></body></html>
