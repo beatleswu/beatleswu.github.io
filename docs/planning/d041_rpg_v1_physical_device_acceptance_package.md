@@ -86,6 +86,22 @@ allowed only where the item is explicitly conditional below.
     Wooden Sword `84`, and Iron Sword `90`; otherwise record `N/A` here and
     rely on the automated same-source proof, without fabricating numbers.
 
+The final candidate adds the following seven E055 Zone 3 checks to the base
+36-item package. Record them as items 37-43, for a final checklist count of
+43:
+
+37. Zone 3 entry opens the server-backed Goblin Cave journey.
+38. The displayed Zone 3 normal-monster art matches the server-authored
+    monster-art binding.
+39. A correct Zone 3 answer completes the accepted answer lifecycle.
+40. An incorrect Zone 3 answer completes the accepted failure lifecycle
+    without freezing or granting a reward.
+41. An ordinary Zone 3 encounter continues normally after its encounter
+    flow completes.
+42. An ordinary Zone 3 encounter does not falsely mark the zone clear.
+43. Zone 3 progression and reward invariants remain server-authoritative:
+    no client-selected state creates a clear, unlock, or duplicate reward.
+
 The Owner must specifically exercise the accepted Adventure Spirit cases when
 the release account/state permits them: Zone 4 → `starpath_antlerling`, Zone 6
 → `fatty`, and Zone 8 → `obsidian_bastion`. A non-eligible clear and a failed

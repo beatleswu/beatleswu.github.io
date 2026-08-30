@@ -54,6 +54,7 @@ ACTIVE_E10_ZONE2_ART_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zo
 ACTIVE_E10_ZONE2_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-audio-pack-manifest.json"
 ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-lord-trial-art-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
+BUILD_MANIFEST = REPO_ROOT / "deploy" / "build-manifest.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 
 # Files known-good outside the assets/** closure -- baked into the image,
@@ -97,6 +98,21 @@ def _load_inventory():
     return json.loads(_read(INVENTORY))
 
 
+def _load_build_input_image_paths():
+    """Return image files explicitly admitted as Docker build inputs.
+
+    E055 serves its Zone 3 art from the image, not from the external
+    ``assets/`` static pack.  The build manifest is the governed source for
+    those repository-relative Docker inputs.
+    """
+    manifest = json.loads(_read(BUILD_MANIFEST))
+    return {
+        "/" + path
+        for path in manifest["build_inputs"]["tracked_in_canonical_branch_this_sprint"]
+        if path.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico"))
+    }
+
+
 def scan_runtime_image_references(repo_root=REPO_ROOT):
     """Re-implements the RELEASE-FIX-A2 audit's Phase 1 scan: every locally
     served image path referenced from tracked HTML/JS/Python/JSON/CSS."""
@@ -118,7 +134,15 @@ def scan_runtime_image_references(repo_root=REPO_ROOT):
             paths.add(m.group(1))
     # node_modules is git-tracked-excluded already via .gitignore in practice,
     # but defensively drop anything under it if ever matched.
-    return {p for p in paths if "node_modules" not in p}
+    # deploy/build-manifest.json also records post-build container paths such
+    # as /app/art/monsters/*.png.  Those are image-internal verification
+    # paths, not public browser URLs; the corresponding public E055 paths are
+    # the /art/monsters/*.png literals from the runtime authority module.
+    return {
+        p
+        for p in paths
+        if "node_modules" not in p and not p.startswith("/app/")
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +158,7 @@ def test_every_runtime_image_reference_resolves_to_governed_closure():
     governed = {"/" + f["path"] for f in manifest["files"]}
     lord_trial_manifest = json.loads(_read(ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST))
     governed |= {"/" + f["path"] for f in lord_trial_manifest["files"]}
+    governed |= _load_build_input_image_paths()
     referenced = scan_runtime_image_references()
 
     unresolved = referenced - governed - NON_ASSET_KNOWN_GOOD - INTENTIONAL_NON_PACKAGED_REFERENCES

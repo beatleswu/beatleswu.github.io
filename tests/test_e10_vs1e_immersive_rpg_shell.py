@@ -110,12 +110,12 @@ def test_i18n_and_cache_versions_are_coupled():
     ):
         assert f"'{key}'" in I18N
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v230-e10-lord-trial-safari-recovery'" in SW
+    assert "const VERSION     = 'v240-a028-hero-player-presentation-readonly'" in SW
     assert "/i18n.js?v=20260801e10art1" in INDEX
     assert "/css/e9/immersive_rpg.css?v=20260801e10art1" in INDEX
     assert "/js/e9/feature_flags.js?v=20260801e10art1" in INDEX
-    assert "/js/e9/right_cards.js?v=20260801e10art1" in INDEX
-    assert "/js/e9/world_stage.js?v=20260801e10art1" in INDEX
+    assert "/js/e9/right_cards.js?v=20260828e040s1" in INDEX
+    assert "/js/e9/world_stage.js?v=20260828e042s1" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():

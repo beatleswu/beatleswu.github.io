@@ -28,7 +28,12 @@ LEGACY_CONTRACTS = {
     ),
     "replay_zero_rewards": (
         "tests/test_adventure_first_clear_reward.py",
-        ("TestReplayGrantsNothing", "zero_coins", "reward"),
+        (
+            "class TestReplayGrantsNothing",
+            "body['reward']['coins'] == 0",
+            "coins, log = _coins_and_log",
+            "assert log == []",
+        ),
     ),
     "daily_limit_exemption": (
         "tests/test_e10_lord_trial_daily_limit_autonext.py",
