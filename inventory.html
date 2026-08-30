@@ -607,6 +607,12 @@ const FUNCTIONAL_SLOT_LABELS = {
   weapon:'武器 / Weapon', armor:'防具 / Armor', accessory:'飾品 / Accessory',
 };
 const FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED = false;
+// Keep the shipped/default UI gate closed.  The two-key override is reserved
+// for an isolated test harness that also enables the server-side canonical
+// Loadout flag; it never grants ownership or changes equipped state locally.
+const FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE =
+  window.__GO_EQUIPMENT_LOADOUT_TEST_MODE__ === true
+  && window.__GO_EQUIPMENT_LOADOUT_TEST_OVERRIDE__ === true;
 const FUNCTIONAL_INVENTORY_ONLY_IDS = new Set(['go_stone_black']);
 let functionalEquipmentItems = [];
 let activeFunctionalEquipmentFilter = 'all';
@@ -834,7 +840,9 @@ function renderFunctionalEquipmentDetail(item) {
   document.getElementById('functional-detail-source').textContent = `${functionalEquipmentIsEn() ? (item.where_to_obtain_en || 'Monster drop') : (item.where_to_obtain || '怪物掉落')} · ${functionalEquipmentIsEn() ? 'Source' : '來源'}: ${item.source || 'drop'}`;
   const action = document.getElementById('functional-detail-action');
   const actionType = item.equipped ? 'unequip' : 'equip';
-  const blockedNewEquip = actionType === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED;
+  const blockedNewEquip = actionType === 'equip'
+    && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED
+    && !FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE;
   action.textContent = item.equipped
     ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下')
     : (blockedNewEquip
@@ -848,7 +856,8 @@ function renderFunctionalEquipmentDetail(item) {
 }
 async function performFunctionalEquipmentAction(item, action, button) {
   if (!item || item.inv_id == null) return;
-  if (action === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED) {
+  if (action === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED
+      && !FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE) {
     showBackpackToast(functionalEquipmentIsEn() ? 'Equip is not available yet.' : '裝備功能尚未開放。');
     return;
   }
