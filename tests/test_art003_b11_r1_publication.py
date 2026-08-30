@@ -119,6 +119,7 @@ def test_publication_scope_has_no_prior_art_or_runtime_changes():
     assert changed == {
         "docs/planning/art_003_batch_011_manifest.json",
         "docs/planning/art_003_batch_011_owner_visual_review_pack.md",
+        "tests/test_art003_b11_production.py",
         "tests/test_art003_b11_r1_publication.py",
     }
     assert git("status", "--porcelain=v1", "--untracked-files=all") == ""
