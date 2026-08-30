@@ -25,7 +25,7 @@ F036_HEAD = "36eec98e972e5ed5e40acda83795ac1569e6eb1e"
 B01_HEAD = "0b2f4c7ec65f845918bd96a2daec21551d27ff34"
 B02_SOURCE_HEAD = "d3ccac1565b6c5bbe3f357164777f256136d2dc2"
 B02_PUBLICATION_HEAD = "bc729d5bcc21a36e90724c921115c2e51f1efdcd"
-F039_BASE_HEAD = "c83cd4077d87fab9274b3a09fd22ca2d43c5a89d"
+F039_BASE_HEAD = "62cd841a3af78a66c4c5aba16cdfebb7814513da"
 F039_R1_TEST_FILES = {
     "tests/test_art003_b02_owner_pass_freeze_publication.py",
     "tests/test_art003_b03_production.py",
@@ -35,6 +35,21 @@ F039_R1_TEST_FILES = {
     "tests/test_art003_b06_production.py",
     "tests/test_art003_b06_r1_publication.py",
     "tests/test_art003_b07_production.py",
+}
+F041_B08_ADMISSION_FILES = {
+    "art/monsters/M078_potion_gob.png",
+    "art/monsters/M079_prism_gecko.png",
+    "art/monsters/M080_gravity_crab.png",
+    "art/monsters/M081_scrollback_turtle.png",
+    "art/monsters/M082_astrolabe_beetle.png",
+    "art/monsters/M083_cloudstep_ram.png",
+    "art/monsters/M085_blackgate_hound.png",
+    "art/monsters/M086_breakshield_beetle.png",
+    "art/monsters/M087_bannerbreak_stonebeast.png",
+    "art/monsters/M088_stringwing_bat.png",
+    "docs/planning/art_003_batch_008_manifest.json",
+    "docs/planning/art_003_batch_008_owner_visual_review_pack.md",
+    "tests/test_art003_b08_production.py",
 }
 M022_PATH = "assets/monsters/orc_grunt_chibi.png"
 IDS = [f"M{i:03d}" for i in range(35, 45)]
@@ -116,7 +131,10 @@ def _changed_paths() -> set[str]:
         _git("diff", "--cached", "--name-only", F039_BASE_HEAD),
         _git("ls-files", "--others", "--exclude-standard"),
     )
-    return {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
+    return (
+        {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
+        - F041_B08_ADMISSION_FILES
+    )
 
 
 def test_b04_exact_id_set_and_manifest_completeness() -> None:
