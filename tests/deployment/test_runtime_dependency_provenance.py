@@ -97,6 +97,12 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         # E055 adds the server-owned Adventure Zone 3 monster binding module
         # imported by app.py and packaged as an explicit runtime dependency.
         "adventure_zone3_monster_authority.py",
+        # INCIDENT_018_R8A: app.py imports this at module level (line 223), so
+        # the image cannot start without it, but it was never packaged or
+        # governed. Governed here together with its Dockerfile COPY and
+        # provenance record. Temporary instrumentation -- retire all three
+        # together, never the boss_attempt_expired control flow.
+        "incident_018_observability.py",
     }
 )
 CURRENT_EXPECTED_COUNT = B1_PRESENT_EXPECTED_COUNT + len(POST_B1_GOVERNED_RUNTIME_PATHS)
