@@ -1,0 +1,538 @@
+{
+  "task": "LC020_R3_GENESIS_REPAIR_CANONICAL_MERGE_PREFLIGHT_001",
+  "lc020_r1_head": "363f76e566e1c939c6dde0ec610cd9a34bb3993f",
+  "lc020_r1_head_exact": true,
+  "lc020_r2_head": "30be85b708a6ee264600927a6524a7888a8307a2",
+  "lc020_r2_head_exact": true,
+  "fresh_origin_master_head": "c1a55daebc411df46ca4bbfef6c0b814c813ec73",
+  "fresh_origin_master_tree": "50c3c74fa8095e02cd507f7745efafcfcde4ae6f",
+  "master_advanced": false,
+  "genesis_relevant_master_delta": "NONE",
+  "semantic_conflict": false,
+  "source_repair_file_count": 2,
+  "test_file_count": 1,
+  "source_files": [
+    "puzzle_identity_store.py",
+    "puzzle_identity_genesis_bootstrap.py"
+  ],
+  "test_files": [
+    "tests/test_lc020_r1_genesis_legacy_id_collision.py"
+  ],
+  "r2_docs_canonical_admission_recommended": "YES",
+  "synthetic_merge_conflicts": 0,
+  "synthetic_post_merge_tree": "cb8ca8524cb2eb7c4c2075527348338f1cb4a1f0",
+  "synthetic_local_commit": "4d93aceaa236170debca1e298763a99694f0e9e3 (LOCAL ONLY, never pushed)",
+  "unexpected_files": 0,
+  "frozen_artifacts": {
+    "migration_sha256": "ad5bd5bc4c3d501df694e5b05835bb0426964ddb4e98bc64d291960823d6f766",
+    "receipt_sha256": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c",
+    "manifest_sha256": "ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e0267e4828",
+    "uuid_list_sha256": "cb47e9d63d2e44f06b24772436380a8e1ce4f199ae64455bfc3891da446da2f2",
+    "rename_map_sha256": "473a80a3664517f7c23db9071948d17cc89053f321ae5ace58ae27e94de7923d",
+    "frozen_questions_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "RECEIPT_CHANGED": "NO",
+    "MANIFEST_IDENTITY_ASSIGNMENTS_CHANGED": "NO",
+    "RENAME_MAP_CHANGED": "NO"
+  },
+  "e055_b08": {
+    "E055_ZONE3_PRESENT": "YES",
+    "E055_APP_PY_PRESERVED": "YES",
+    "E055_RUNTIME_SOURCE_PRESERVED": "YES",
+    "B08_CANONICAL_ART_PRESERVED": "YES",
+    "art003_scope_guard_failures": "3 pre-existing (untracked secret_key.txt worktree-hygiene assertion; reproduced on plain master c1a55daeb with the LC020-R1 delta fully reverted)"
+  },
+  "identity_regression": {
+    "ALL_IDENTITY_TESTS": "PASS",
+    "result": "130 passed, 46 skipped",
+    "py_compile": "PASS",
+    "app_import": "PASS",
+    "TASK_INTRODUCED_FAILURES": 0
+  },
+  "firewall": {
+    "APP_PY_CHANGED": "NO",
+    "GRIMOIRE_API_CHANGED": "NO",
+    "COMMUNITY_LEADERBOARD_REWARDS_CHANGED": "NO",
+    "MIGRATION_CHANGED": "NO",
+    "MARKER_POLICY_CHANGED": "NO",
+    "VOCABULARY_BOUNDARY_CHANGED": "NO",
+    "LC019_W1B_IMPLEMENTED": "NO",
+    "POST_GENESIS_NATIVE_UUID_CREATION_IMPLEMENTED": "NO",
+    "MASTER_MERGE": "NO",
+    "MASTER_PUSHED": "NO",
+    "PRODUCTION_QUERY": "NO",
+    "PRODUCTION_MUTATION": "NO",
+    "PRODUCTION_DB_MIGRATION": "NO",
+    "PRODUCTION_GENESIS_APPLY": "NO",
+    "DEPLOY": "NO",
+    "SECRET_KEY_TOUCHED": "NO",
+    "C_GO_WEBSITE_MUTATED": "NO"
+  },
+  "gates": {
+    "LC020_R1_OWNER_MERGE_GATE": "NOT_GRANTED",
+    "LC020_R1_OWNER_MERGE_GATE_CONSUMED": "NO",
+    "GO_PRODUCTION_DB_MIGRATION": "NOT_GRANTED",
+    "GO_GENESIS_BOOTSTRAP": "NOT_GRANTED"
+  },
+  "lc020_r1_canonical_admission_ready": "YES",
+  "next_task": "LC020_R4_GENESIS_REPAIR_OWNER_MERGE_GATE_PACKET_001",
+  "result": "PASS_LC020_R3_GENESIS_REPAIR_CANONICAL_MERGE_PREFLIGHT",
+  "synthetic_sqlite_revalidation": {
+    "s2_artifacts": {
+      "MIGRATION_SHA256": "ad5bd5bc4c3d501df694e5b05835bb0426964ddb4e98bc64d291960823d6f766",
+      "MIGRATION_SHA_OK": true,
+      "BOOTSTRAP_RECEIPT_SHA256": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c",
+      "RECEIPT_SHA_OK": true,
+      "IDENTITY_MANIFEST_SHA256": "ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e0267e4828",
+      "MANIFEST_SHA_OK": true,
+      "IDENTITY_MANIFEST_ROW_COUNT": 42804,
+      "UUID_LIST_SHA256": "cb47e9d63d2e44f06b24772436380a8e1ce4f199ae64455bfc3891da446da2f2",
+      "UUID_LIST_SHA_OK": true,
+      "RENAME_MAP_SHA256": "473a80a3664517f7c23db9071948d17cc89053f321ae5ace58ae27e94de7923d",
+      "RENAME_MAP_SHA_OK": true,
+      "FROZEN_QUESTIONS_SHA256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+      "FROZEN_SHA_OK": true,
+      "MANIFEST_UUID_UNIQUE_COUNT": 42804,
+      "DUPLICATE_UUID_COUNT": 0,
+      "regen_seconds": 166.2,
+      "RECEIPT_MANIFEST_BINDING": true
+    },
+    "s3_census": {
+      "LEGACY_ID_COLLISION_GROUP_COUNT": 11,
+      "LEGACY_ID_COLLISION_RECORD_COUNT": 22,
+      "LEGACY_ID_UNIQUE_VALUE_COUNT": 42793,
+      "collided_ids": [
+        "40479",
+        "40511",
+        "40512",
+        "40513",
+        "62011",
+        "63382",
+        "70450",
+        "70752",
+        "71238",
+        "71240",
+        "71244"
+      ],
+      "matches_frozen_set": true,
+      "COLLISION_UUID_DISTINCTNESS": "PASS",
+      "UNSUPPORTED_COLLISION_COUNT": 0
+    },
+    "s4_pre_genesis": {
+      "BOOTSTRAP_HOT": false,
+      "group_key": [
+        "legacy",
+        "48126"
+      ],
+      "kind": "legacy",
+      "sample_all_legacy": true,
+      "RESOLVER_LOOKUPS_BEFORE_GENESIS": 0,
+      "PRE_GENESIS_NOOP_SEMANTICS_PRESERVED": true,
+      "REQUEST_TIME_UUID_CREATION": "NO"
+    },
+    "s5_sqlite_migration": {
+      "SQLITE_MIGRATION_APPLY": "PASS",
+      "indexes": [
+        "uq_pia_current_alias",
+        "uq_pia_one_current_path"
+      ],
+      "validate_schema": true,
+      "reapply": "IDEMPOTENT_OK",
+      "UNIQUE_CURRENT_ALIAS_CONSTRAINT_PRESERVED": true
+    },
+    "s6_7_sqlite_genesis": {
+      "GENESIS_PREFLIGHT": "PASS",
+      "preflight_problems": [],
+      "COLLISION_CENSUS_BEFORE_MUTATION": "YES",
+      "EXPECTED_IDENTITY_COUNT": 42804,
+      "LEGACY_COLLISION_POLICY": "FAIL_CLOSED_AMBIGUOUS",
+      "COLLISION_POLICY_SUPPORTED": "YES",
+      "GENESIS_APPLY_SQLITE": "PASS",
+      "apply_seconds": 9.3,
+      "apply_result": {
+        "status": "APPLIED",
+        "identities_written": 42804,
+        "receipt_sha256": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c"
+      },
+      "IDENTITY_INSERT_COUNT": 42804,
+      "ACTIVE_IDENTITY_COUNT": 42804,
+      "CURRENT_LEGACY_ALIAS_COUNT": 42782,
+      "NONCURRENT_COLLISION_ALIAS_COUNT": 22,
+      "GENESIS_LINEAGE_COUNT": 42804,
+      "BOOTSTRAP_RECEIPT_APPLIED_COUNT": 1,
+      "BOOTSTRAP_HOT_BEFORE": false,
+      "BOOTSTRAP_HOT_AFTER": true,
+      "PARTIAL_APPLY_VISIBLE": "NO",
+      "UNIQUE_CURRENT_ALIAS_CONSTRAINT_PRESERVED": true,
+      "duplicate_current_legacy_alias_values": 0,
+      "counts_exact": true
+    },
+    "s9_collision_contract": {
+      "per": {
+        "40479": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "40479"
+          ]
+        },
+        "40511": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "40511"
+          ]
+        },
+        "40512": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "40512"
+          ]
+        },
+        "40513": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "40513"
+          ]
+        },
+        "62011": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "62011"
+          ]
+        },
+        "63382": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "63382"
+          ]
+        },
+        "70450": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "70450"
+          ]
+        },
+        "70752": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "70752"
+          ]
+        },
+        "71238": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "71238"
+          ]
+        },
+        "71240": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "71240"
+          ]
+        },
+        "71244": {
+          "members": 2,
+          "distinct_uuid": 2,
+          "single": "AMBIGUOUS",
+          "single_candidates": 2,
+          "batch": "AMBIGUOUS",
+          "reader_kind": "unresolved",
+          "reader_group_key": [
+            "unresolved",
+            "71244"
+          ]
+        }
+      },
+      "COLLISION_LEGACY_LOOKUP_FAIL_CLOSED": "PASS",
+      "COLLISION_READER_FAIL_CLOSED": "PASS"
+    },
+    "s10_non_collision": {
+      "sample_size": 1000,
+      "exact_matches": 1000,
+      "NON_COLLISION_LEGACY_ALIAS_COMPATIBILITY": "PASS",
+      "unknown_id_missing": true
+    },
+    "s11_hot_readers": {
+      "HOT_READER_GROUP_COUNT": 8,
+      "reader_hot": true,
+      "batch5000_uuid": 5000,
+      "batch5000_unresolved": 0,
+      "spot_noncollision_is_uuid": true,
+      "HOT_GROUP_KEY_CANONICALIZATION": "PASS"
+    },
+    "s12_rewards_sync": {
+      "REWARDS_SYNC_RAW_ID_SEMANTICS_PRESERVED": "YES",
+      "LC019_W1B_IMPLEMENTED": "NO"
+    },
+    "s13_second_run": {
+      "SECOND_APPLY_RESULT": "ALREADY_APPLIED",
+      "DUPLICATE_IDENTITY_ROWS_CREATED": 0,
+      "DUPLICATE_ALIAS_ROWS_CREATED": 0,
+      "DUPLICATE_LINEAGE_ROWS_CREATED": 0,
+      "tampered_receipt": "GenesisBootstrapError"
+    },
+    "s14_failure_matrix": {
+      "INVALID_INPUT_DB_MUTATED": "NO",
+      "INVALID_INPUT_HOT_FLIPPED": "NO",
+      "PARTIAL_APPLY_VISIBLE": "NO",
+      "cases": [
+        {
+          "case": "wrong_manifest_hash",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "wrong_receipt_namespace",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "wrong_historical_pin",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "wrong_uuid_list_sha",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "wrong_canon_version",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "row_count_mismatch",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "duplicate_uuid",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "uuid_canonical_mismatch",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "missing_canonical_source",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "bad_provenance",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "uuidv4_row",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "migration_absent",
+          "PRECHECK": "RAISED OperationalError",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "OperationalError"
+        },
+        {
+          "case": "collision_census_drift",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "collision_uuid_collapse_unsupported",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        },
+        {
+          "case": "forced_mid_apply_exception",
+          "PRECHECK": "FAIL_CLOSED",
+          "DB_MUTATED": false,
+          "HOT_FLIPPED": false,
+          "OUTCOME": "GenesisBootstrapError"
+        }
+      ]
+    },
+    "c_repo": {
+      "HEAD_before": "415a321dbbeacec5941300ac2353bb12d1153a85",
+      "HEAD_after": "415a321dbbeacec5941300ac2353bb12d1153a85",
+      "C_GO_WEBSITE_MUTATED": "NO"
+    }
+  },
+  "synthetic_postgres_full_genesis": {
+    "POSTGRES_VERSION": "16.14",
+    "HOT_BEFORE_MIGRATION": false,
+    "POSTGRES_MIGRATION_APPLY": "PASS",
+    "indexes": [
+      "uq_pia_current_alias",
+      "uq_pia_one_current_path"
+    ],
+    "migration_seconds": 0.8,
+    "GENESIS_PREFLIGHT": "PASS",
+    "preflight_problems": [],
+    "preflight_collisions": {
+      "legacy_id_present_count": 42804,
+      "legacy_id_unique_value_count": 42793,
+      "legacy_id_collision_group_count": 11,
+      "legacy_id_collision_record_count": 22,
+      "collided_ids": [
+        "40479",
+        "40511",
+        "40512",
+        "40513",
+        "62011",
+        "63382",
+        "70450",
+        "70752",
+        "71238",
+        "71240",
+        "71244"
+      ],
+      "unsupported_collision_ids": [],
+      "unsupported_collision_count": 0,
+      "collision_uuid_distinctness_ok": true,
+      "collision_policy": "FAIL_CLOSED_AMBIGUOUS",
+      "collision_policy_supported": true
+    },
+    "apply_seconds": 379.1,
+    "apply_result": {
+      "status": "APPLIED",
+      "identities_written": 42804,
+      "receipt_sha256": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c"
+    },
+    "BOOTSTRAP_HOT_BEFORE": false,
+    "BOOTSTRAP_HOT_AFTER": true,
+    "IDENTITY_COUNT": 42804,
+    "ACTIVE_IDENTITY_COUNT": 42804,
+    "CURRENT_LEGACY_ALIAS_COUNT": 42782,
+    "NONCURRENT_COLLISION_ALIAS_COUNT": 22,
+    "GENESIS_LINEAGE_COUNT": 42804,
+    "BOOTSTRAP_RECEIPT_APPLIED_COUNT": 1,
+    "duplicate_current_legacy_alias_values": 0,
+    "UNIQUE_CURRENT_ALIAS_CONSTRAINT": "PASS",
+    "COLLISION_POLICY": "PASS",
+    "collision_detail_sample": {
+      "40479": {
+        "single": "AMBIGUOUS",
+        "batch": "AMBIGUOUS",
+        "group_key": [
+          "unresolved",
+          "40479"
+        ]
+      },
+      "40511": {
+        "single": "AMBIGUOUS",
+        "batch": "AMBIGUOUS",
+        "group_key": [
+          "unresolved",
+          "40511"
+        ]
+      },
+      "40512": {
+        "single": "AMBIGUOUS",
+        "batch": "AMBIGUOUS",
+        "group_key": [
+          "unresolved",
+          "40512"
+        ]
+      }
+    },
+    "NON_COLLISION_SAMPLE": 600,
+    "NON_COLLISION_EXACT": 600,
+    "NON_COLLISION_LEGACY_ALIAS_COMPATIBILITY": "PASS",
+    "SECOND_APPLY_RESULT": "ALREADY_APPLIED",
+    "SECOND_APPLY_DUP_ROWS": 0,
+    "HOT_AFTER": true,
+    "PARTIAL_APPLY_VISIBLE": "NO",
+    "counts_exact": true,
+    "POSTGRES_GENESIS_APPLY": "PASS"
+  }
+}
