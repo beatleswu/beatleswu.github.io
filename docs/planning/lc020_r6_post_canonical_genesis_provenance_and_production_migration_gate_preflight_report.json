@@ -1,0 +1,343 @@
+{
+  "task": "LC020_R6_POST_CANONICAL_GENESIS_PROVENANCE_AND_PRODUCTION_MIGRATION_GATE_PREFLIGHT_001",
+  "result": "PASS_LC020_R6_POST_CANONICAL_GENESIS_PROVENANCE_AND_PRODUCTION_MIGRATION_GATE_PREFLIGHT",
+  "mode": "READ_ONLY_PREFLIGHT_AND_OWNER_GATE_PACKET_PREP",
+  "generated_for_date": "2026-08-30",
+  "fresh_canonical_state": {
+    "FRESH_ORIGIN_MASTER_HEAD": "89fffca950892d70ca213cae8ded8d164292120f",
+    "FRESH_ORIGIN_MASTER_TREE": "0cc9c5344c4b6240014cdb23cd0c9caf3adf1319",
+    "github_api_master_sha": "89fffca950892d70ca213cae8ded8d164292120f",
+    "MASTER_ADVANCED": false,
+    "LC020_R5_CANONICAL_PRESENT": "YES",
+    "LC020_R5_EXPECTED_TREE_MATCH": "YES"
+  },
+  "publication_provenance": {
+    "MERGE_COMMIT": "89fffca950892d70ca213cae8ded8d164292120f",
+    "MERGE_TREE": "0cc9c5344c4b6240014cdb23cd0c9caf3adf1319",
+    "EXPECTED_PARENT_1": "38d12af38d8e5e667d3b7891853837f32139fd8a",
+    "EXPECTED_PAYLOAD_PROVENANCE": "398afda172418319673c84543248a5244454e8b3",
+    "REMOTE_MASTER_MATCH": "YES",
+    "MERGE_PARENT_MATCH": "YES",
+    "PUBLISHED_DIFF_EXACT_7_FILES": "YES",
+    "CANONICAL_LC020_FILE_COUNT": 7,
+    "CANONICAL_LC020_FILES": [
+      "puzzle_identity_store.py",
+      "puzzle_identity_genesis_bootstrap.py",
+      "tests/test_lc020_r1_genesis_legacy_id_collision.py",
+      "docs/planning/lc020_r2_genesis_bootstrap_execution_preflight_and_runbook_revalidation.md",
+      "docs/planning/lc020_r2_genesis_preflight_revalidation_report.json",
+      "docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight.md",
+      "docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight_report.json"
+    ],
+    "UNEXPECTED_CANONICAL_FILES": 0,
+    "superseded_and_r4_docs_absent_on_master": true
+  },
+  "blob_verification": {
+    "SOURCE_REPAIR_BLOB_MATCH_COUNT": 3,
+    "SOURCE_REPAIR_BLOB_DRIFT_COUNT": 0,
+    "DOC_BLOB_MATCH_COUNT": 4,
+    "DOC_BLOB_DRIFT_COUNT": 0,
+    "blobs": {
+      "puzzle_identity_store.py": "336937f48c4022daddbc46e43a4619e1b7d9f5a7",
+      "puzzle_identity_genesis_bootstrap.py": "2756a87aa0e113228649e0c9f44a11bac54a99cc",
+      "tests/test_lc020_r1_genesis_legacy_id_collision.py": "759e806974fdd909b7155530682ec0543c8f7030",
+      "docs/planning/lc020_r2_genesis_bootstrap_execution_preflight_and_runbook_revalidation.md": "9927539f65f1dff51917c3deca0ad1255a8d1f91",
+      "docs/planning/lc020_r2_genesis_preflight_revalidation_report.json": "067b60dd02cdce74b48fbca978e1dd5733348296",
+      "docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight.md": "9f4f02a6fdceaeee5aa25091c4ee10cc180e7ea3",
+      "docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight_report.json": "1d148bdc51205b426065c77e70d64f1525d21301"
+    }
+  },
+  "frozen_artifact_lock": {
+    "FROZEN_ARTIFACT_HASH_MATCH_COUNT": 6,
+    "FROZEN_ARTIFACT_HASH_DRIFT_COUNT": 0,
+    "hashes": {
+      "migrations/puzzle_identity_registry_v1.py": "ad5bd5bc4c3d501df694e5b05835bb0426964ddb4e98bc64d291960823d6f766",
+      "docs/planning/lc012_p2_genesis_receipt.json": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c",
+      "genesis_record_manifest_sha256": "ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e0267e4828",
+      "proposed_uuid_list_sha256": "cb47e9d63d2e44f06b24772436380a8e1ce4f199ae64455bfc3891da446da2f2",
+      "docs/planning/lc012_p2_historical_rename_map.json": "473a80a3664517f7c23db9071948d17cc89053f321ae5ace58ae27e94de7923d",
+      "questions.json": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff"
+    }
+  },
+  "collision_identity_contract": {
+    "LEGACY_ID_COLLISION_GROUP_COUNT": 11,
+    "LEGACY_ID_COLLISION_RECORD_COUNT": 22,
+    "LEGACY_ID_UNIQUE_VALUE_COUNT": 42793,
+    "CURRENT_LEGACY_ALIAS_COUNT": 42782,
+    "NONCURRENT_COLLISION_ALIAS_COUNT": 22,
+    "collided_ids": [
+      "40479",
+      "40511",
+      "40512",
+      "40513",
+      "62011",
+      "63382",
+      "70450",
+      "70752",
+      "71238",
+      "71240",
+      "71244"
+    ],
+    "LEGACY_COLLISION_POLICY": "FAIL_CLOSED_AMBIGUOUS",
+    "SOURCE_RECORD_UUID_CANONICAL_IDENTITY": "YES",
+    "REQUEST_TIME_UUID_GENERATION": "NO",
+    "AMBIGUITY_FAIL_CLOSED": "YES",
+    "PER_RECORD_ALIAS_CONTEXT_DISAMBIGUATION": "NO",
+    "ARBITRARY_SOURCE_RECORD_UUID_SELECTION": "NO",
+    "COLLISION_CONTRACT_MATCH": "YES",
+    "NONCOLLISION_LEGACY_COMPATIBILITY": "PASS",
+    "canonical_source_enforcement": "GenesisReceiptVerifier fails canonical check if census drifts from KNOWN_LEGACY_ID_COLLISION_IDS / record count 22; apply() runs census once and sets legacy_question_id_is_current=(str(lqid) not in _collided)"
+  },
+  "lc019_reader_reward_invariants": {
+    "LC019_W1_PRESENT": "YES",
+    "LC019_W2_PRESENT": "YES",
+    "LC019_READER_CONTRACT_PRESERVED": "YES",
+    "REWARDS_SYNC_CONTRACT_PRESERVED": "YES",
+    "REWARDS_SYNC_FOLD_IDENTITY_FALSE": "YES",
+    "grimoire_api_w1_refs": 4,
+    "app_py_w2_refs": 26,
+    "app_py_fold_identity_false_occurrences": 2,
+    "request_time_uuid_path_introduced_by_lc020": "NO",
+    "request_time_uuid_note": "the lone _uuid.uuid4() in puzzle_identity_store.py is the pre-existing LC013 create_native_identity() gated write path (present unchanged in pre-LC020 blob ddee1868); the exact LC020-R1 delta (+51/-3 store, +91/-2 bootstrap) touches no uuid-generation line"
+  },
+  "production_state": {
+    "PRODUCTION_READ_ONLY_STATE": "NOT_QUERIED",
+    "reason": "no read-only Production query path has been exercised anywhere in LC011-LC020-R5; all prior work on disposable DBs only; repo governance + every LC020 firewall treat Production as hands-off; opening a live Production DB connection is outside a read-only-preflight's safe scope. Packet built from last authoritative preflight evidence; live read deferred to LC020_R7.",
+    "expected_unverified": {
+      "PRODUCTION_IDENTITY_SCHEMA_PRESENT": "EXPECTED_NO",
+      "PRODUCTION_GENESIS_RECEIPT_PRESENT": "EXPECTED_NO",
+      "PRODUCTION_GENESIS_HOT": "EXPECTED_FALSE",
+      "PRODUCTION_IDENTITY_ROW_COUNT": "EXPECTED_0",
+      "PRODUCTION_CURRENT_ALIAS_COUNT": "EXPECTED_0",
+      "PRODUCTION_NONCURRENT_ALIAS_COUNT": "EXPECTED_0"
+    },
+    "evidence_basis": [
+      "LC013 built migrations/puzzle_identity_registry_v1.py as a candidate file (never applied to a runtime DB)",
+      "LC013-R1 ran the migration only on a disposable PostgreSQL 16.14 container",
+      "LC016/LC017 added it to master as tracked source, not an applied migration",
+      "LC017 BOOTSTRAP_HOT_AFTER_MERGE = FALSE",
+      "LC019-W1 / LC019-W2 / LC019-W2-R2: bootstrap_state().hot FALSE in every environment; runtime reads byte-identical legacy question_id",
+      "LC020 / -R1 / -R2 / -R3: all GenesisBootstrap.apply() on disposable SQLite + disposable PostgreSQL 16.14 only"
+    ],
+    "if_live_state_not_empty": "STOP and require Owner intervention before any migration"
+  },
+  "migration_prerequisites": {
+    "PRODUCTION_MIGRATION_PREREQUISITE_COUNT": 13,
+    "pass_count": 7,
+    "pending_count": 6,
+    "blocked_count": 0,
+    "items": [
+      {
+        "n": 1,
+        "prerequisite": "canonical source == verified LC020-R5-or-later compatible source",
+        "status": "PASS"
+      },
+      {
+        "n": 2,
+        "prerequisite": "six frozen hashes exact",
+        "status": "PASS"
+      },
+      {
+        "n": 3,
+        "prerequisite": "collision contract exact (11/22/42793/42782/22, FAIL_CLOSED_AMBIGUOUS)",
+        "status": "PASS"
+      },
+      {
+        "n": 4,
+        "prerequisite": "Production backup / rollback plan available",
+        "status": "PENDING",
+        "owner": "operator: pre-migration logical snapshot + full-DB restore point + documented clean DROP path"
+      },
+      {
+        "n": 5,
+        "prerequisite": "no concurrent identity writer during the window",
+        "status": "PENDING",
+        "owner": "operator confirm; app.py has no identity writer today"
+      },
+      {
+        "n": 6,
+        "prerequisite": "no open migration transaction",
+        "status": "PENDING",
+        "owner": "operator check at execution time"
+      },
+      {
+        "n": 7,
+        "prerequisite": "no relevant lock wait",
+        "status": "PENDING",
+        "owner": "operator check pg_locks / pg_stat_activity"
+      },
+      {
+        "n": 8,
+        "prerequisite": "current Production Genesis state known",
+        "status": "PENDING",
+        "owner": "LC020_R7 authorized read-only state query"
+      },
+      {
+        "n": 9,
+        "prerequisite": "current Production row counts known",
+        "status": "PENDING",
+        "owner": "LC020_R7"
+      },
+      {
+        "n": 10,
+        "prerequisite": "execution runner identity pinned",
+        "status": "PASS",
+        "value": "migrations/puzzle_identity_registry_v1.upgrade(conn, dry_run=False) via repo migration framework; phase 2 = puzzle_identity_genesis_bootstrap.GenesisBootstrap(store, verifier).apply(...)"
+      },
+      {
+        "n": 11,
+        "prerequisite": "migration identity pinned",
+        "status": "PASS",
+        "value": "migrations/puzzle_identity_registry_v1.py sha256 ad5bd5bc..."
+      },
+      {
+        "n": 12,
+        "prerequisite": "receipt identity pinned",
+        "status": "PASS",
+        "value": "receipt 834eb17f / manifest ee7b1bc4 / uuid-list cb47e9d6 / rename-map 473a80a3 / frozen questions.json 88da3e43"
+      },
+      {
+        "n": 13,
+        "prerequisite": "post-apply verification commands defined",
+        "status": "PASS",
+        "value": "section 11 contract"
+      }
+    ]
+  },
+  "future_migration_action": {
+    "authorizes": "Phase 1 only — apply migrations/puzzle_identity_registry_v1.upgrade() to Production: 4 empty tables (puzzle_identity_registry/_alias/_lineage/_bootstrap_receipt) + indexes (incl. partial-unique uq_pia_current_alias / uq_pia_one_current_path) + immutability/append-only triggers. Zero identity rows. bootstrap_state().hot stays FALSE.",
+    "PRODUCTION_MIGRATION_AND_GENESIS_SAME_GATE": "NO",
+    "SEPARATE_GO_GENESIS_BOOTSTRAP_REQUIRED": "YES",
+    "does_not_imply": [
+      "GO_GENESIS_BOOTSTRAP",
+      "deploy",
+      "app-code rollout",
+      "SHOP_ENABLE",
+      "LOADOUT_ENABLE",
+      "PAYMENTS_ENABLE",
+      "REVENUE_LIVE",
+      "reward re-bucketing",
+      "add_question UUIDv4 rollout",
+      "marker/vocabulary changes"
+    ]
+  },
+  "execution_idempotency_failure_contract": {
+    "FIRST_APPLY_EXPECTED": "Phase 1: upgrade() creates 4 tables + indexes + triggers; validate_schema passes. Phase 2 (later, separate gate): hot FALSE->TRUE, 42804 identities / 42782 current + 22 not-current LEGACY_QUESTION_ID aliases / 42804 GENESIS lineage / 1 bootstrap_receipt.",
+    "SECOND_APPLY_EXPECTED": "Phase 1 re-run = no-op (idempotent / IF NOT EXISTS). Phase 2 same receipt -> ALREADY_APPLIED (0 dup rows); different/tampered receipt -> GenesisBootstrapError fail-closed.",
+    "PARTIAL_APPLY_ALLOWED": "NO",
+    "partial_apply_basis": "one SAVEPOINT/transaction; apply() asserts written count inside the unit before release; LC020-R3 forced mid-apply RuntimeError -> full SAVEPOINT rollback, DB unmutated, hot not flipped",
+    "AMBIGUOUS_ALIAS_POST_APPLY": "11 collision groups (22 records) get is_current=False LEGACY_QUESTION_ID aliases -> resolve_legacy_question_id -> AMBIGUOUS (single + batch); BootstrapGatedIdentityReader -> ('unresolved', id), never merged",
+    "NONCOLLISION_ALIAS_POST_APPLY": "42782 is_current=True LEGACY_QUESTION_ID aliases -> EXACT to manifest source_record_uuid",
+    "CANONICAL_UUID_LOOKUP_POST_APPLY": "resolve by source_record_uuid / CANONICAL_SOURCE_KEY -> EXACT (.attachable)",
+    "reconfirmed_on_current_canonical": "canonical source blobs 336937f48 / 2756a87aa / ad5bd5bc byte-identical to LC020-R3 tested blobs -> R3 full evidence applies unchanged"
+  },
+  "rollback_recovery_contract": {
+    "ROLLBACK_PLAN_READY": "YES",
+    "PARTIAL_STATE_DETECTION_READY": "YES",
+    "OWNER_INTERVENTION_BOUNDARIES_DEFINED": "YES",
+    "backup": "(a) full-DB restore point immediately before Phase 1; (b) logical marker that the 4 puzzle_identity_* tables did NOT exist pre-migration",
+    "rollback_phase1": "caller-owned transaction -> error = transaction rollback (nothing persists). Reverse a completed Phase 1: DROP the 4 tables + indexes + triggers + bootstrap_singleton seed row (safe: additive + empty, no other schema touched).",
+    "rollback_phase2": "apply() writes receipt + all 42804 identities in one SAVEPOINT; any failure -> SAVEPOINT rollback, no partial rows, hot stays FALSE",
+    "receipt_present_rows_incomplete": "cannot occur via apply() (post-write count assertion rejects count != 42804 before release). If observed post-hoc: STOP, Owner intervention, restore from backup - never top up rows.",
+    "rows_present_receipt_absent": "cannot occur via apply() (receipt inserted in same SAVEPOINT). If observed: out-of-band corruption -> STOP, Owner intervention, restore from backup.",
+    "hot_verification": "bootstrap_state().hot == (genesis_bootstrap_applied() AND count_identities() > 0); FALSE after Phase 1 only, TRUE only after successful Phase 2",
+    "partial_state_detection": "tuple (count_identities, current_alias_count, noncurrent_collision_alias_count, lineage_count, bootstrap_receipt_count) must equal (0,0,0,0,0) after Phase 1 and (42804,42782,22,42804,1) after Phase 2; anything else = partial -> STOP",
+    "owner_intervention_boundaries": [
+      "any count mismatch",
+      "any receipt<->row inconsistency",
+      "any trigger/constraint error mid-apply",
+      "hot flips unexpectedly",
+      "any of the 6 frozen hashes drifts at execution time",
+      "any concurrent identity writer detected",
+      "live Production pre-state is not the expected empty/pre-bootstrap state"
+    ]
+  },
+  "post_migration_verification_contract": {
+    "POST_MIGRATION_VERIFICATION_CHECK_COUNT": 12,
+    "POST_MIGRATION_VERIFICATION_CONTRACT_READY": "YES",
+    "expected_counts_after_full_genesis": {
+      "IDENTITY_ROW_COUNT": 42804,
+      "CURRENT_ALIAS_COUNT": 42782,
+      "NONCURRENT_COLLISION_ALIAS_COUNT": 22,
+      "LINEAGE_ROW_COUNT": 42804,
+      "GENESIS_RECEIPT_COUNT": 1
+    },
+    "behavioral_checks": [
+      "HOT=TRUE",
+      "SECOND_APPLY=ALREADY_APPLIED",
+      "COLLISION_LOOKUP=AMBIGUOUS (all 11 ids)",
+      "NONCOLLISION_LEGACY_LOOKUP=COMPATIBLE (EXACT to manifest uuid)",
+      "CANONICAL_UUID_LOOKUP=PASS",
+      "LC019_READERS=PASS",
+      "REWARDS_SYNC_FOLD_IDENTITY_FALSE=PASS"
+    ],
+    "after_phase1_only": "all 5 counts = 0, HOT=FALSE, validate_schema OK, uq_pia_current_alias + uq_pia_one_current_path present, manual duplicate-current-alias insert rejected"
+  },
+  "owner_gate_packet": {
+    "OWNER_GATE_REQUIRED": "YES",
+    "OWNER_GATE_EXACT": "GO_PRODUCTION_DB_MIGRATION LC020_GENESIS_COLLISION_SAFE_IDENTITY_MIGRATION",
+    "READY_FOR_OWNER_PRODUCTION_DB_MIGRATION_GATE": "NO",
+    "why_no": "canonical/provenance/frozen-artifact/collision-contract/LC019-invariant checks all clean and the gate+action+rollback+verification contracts complete, BUT PRODUCTION_READ_ONLY_STATE = NOT_QUERIED (prereq 8 & 9) and prereqs 4-7 are operator-time PENDING. Packet ready for Owner REVIEW; gate must not be GRANTED until LC020_R7 returns the authorized read-only Production state and confirms the execution window.",
+    "gate_authorizes_only": "the exact Phase-1 action (apply puzzle_identity_registry_v1.upgrade() to Production — 4 empty tables + indexes + triggers)",
+    "gate_does_not_authorize": [
+      "GO_GENESIS_BOOTSTRAP",
+      "DEPLOY",
+      "ROLLBACK",
+      "SHOP_ENABLE",
+      "LOADOUT_ENABLE",
+      "PAYMENTS_ENABLE",
+      "REVENUE_LIVE",
+      "reward rebucketing",
+      "post-genesis add_question UUID changes"
+    ],
+    "go_genesis_bootstrap": "separate later Owner gate"
+  },
+  "evidence_reuse": {
+    "R3_FULL_EVIDENCE_REUSABLE": "YES",
+    "basis": "canonical source blobs on 89fffca95 (puzzle_identity_store.py 336937f48, puzzle_identity_genesis_bootstrap.py 2756a87aa, migrations/puzzle_identity_registry_v1.py ad5bd5bc) byte-identical to LC020-R3 tested blobs",
+    "r3_full_evidence": [
+      "SQLite full 42804 = PASS",
+      "PostgreSQL 16.14 full 42804 = PASS",
+      "identity rows 42804 / current aliases 42782 / noncurrent collision aliases 22",
+      "HOT FALSE->TRUE",
+      "partial apply = NO",
+      "second apply = ALREADY_APPLIED",
+      "130 identity tests PASS / 46 skipped (env-gated)"
+    ],
+    "FRESH_FOCUSED_TEST_RESULT": "PY_COMPILE PASS (store + genesis_bootstrap + migration); IMPORT PASS (groups=11 records=22 ids=11); focused SQLite identity+genesis+reader+LC019+LC020 regression 125 passed / 46 skipped / 5 deselected in 13.20s; test_lc020_r1_genesis_legacy_id_collision.py 8 passed / 1 skipped",
+    "TASK_INTRODUCED_FAILURES": 0,
+    "pre_existing_not_lc020_caused": [
+      "disposable-PG D034-R1 readiness race (not run in focused pass)",
+      "ART003 scope-guard tests tripped by app-boot-generated untracked secret_key.txt (reproduced on plain master with whole LC020 delta reverted, LC020-R3 section 8)"
+    ]
+  },
+  "firewall": {
+    "SOURCE_CHANGED": "NO",
+    "APP_PY_CHANGED": "NO",
+    "GRIMOIRE_API_CHANGED": "NO",
+    "TEST_CHANGED": "NO",
+    "SCHEMA_CHANGED": "NO",
+    "MASTER_MERGE": "NO",
+    "MASTER_PUSHED": "NO",
+    "PRODUCTION_MUTATION": "NO",
+    "PRODUCTION_DB_MIGRATION": "NO",
+    "PRODUCTION_GENESIS_APPLY": "NO",
+    "PRODUCTION_QUERY": "NO",
+    "DEPLOY": "NO",
+    "ROLLBACK": "NO",
+    "SHOP_ENABLED": "NO",
+    "LOADOUT_ENABLED": "NO",
+    "PAYMENTS_ENABLED": "NO",
+    "REVENUE_LIVE": "NO",
+    "SECRET_KEY_CONTENT_READ": "NO",
+    "SECRET_KEY_HASHED": "NO",
+    "SECRET_KEY_STAGED": "NO",
+    "SECRET_KEY_TOUCHED": "NO",
+    "C_GO_WEBSITE_ACCESSED": "NO",
+    "OWNER_APPROVAL_INFERRED": "NO",
+    "branch": "claude/lc020-r6-post-canonical-genesis-provenance-preflight",
+    "branch_parent": "89fffca950892d70ca213cae8ded8d164292120f",
+    "commit_scope": "docs/planning/lc020_r6_post_canonical_genesis_provenance_and_production_migration_gate_preflight.md + .../*_report.json only"
+  },
+  "next_task": "LC020_R7_PRODUCTION_IDENTITY_STATE_READONLY_CONFIRMATION_AND_MIGRATION_WINDOW_READINESS_001"
+}
