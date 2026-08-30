@@ -3,11 +3,15 @@
   "track": "ART",
   "batch": "ART003_B09",
   "mode": "CANONICAL_MONSTER_ART_PRODUCTION",
-  "status": "READY_FOR_OWNER_VISUAL_REVIEW",
-  "owner_visual_review_status": "PENDING",
-  "owner_pass_count": "0/10",
+  "status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+  "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+  "owner_visual_review_status": "PASS",
+  "owner_pass_count": "10/10",
+  "owner_rejected_ids": "NONE",
+  "redraw_required": "NONE",
   "source_branch": "codex/art003-b09-m089-m099-canonical-monster-art-production",
-  "source_head": "075d3174bf144ae48a9afa4dac6fba457794cfd5",
+  "source_head": "49daf4d2660ff72e227bb66d0fc317472e45f6d8",
+  "technical_source_head": "075d3174bf144ae48a9afa4dac6fba457794cfd5",
   "authoritative_lineage": {
     "current_origin_master": "81ab0f263bf72614c303199707e5e42d3ae559a4",
     "current_origin_master_tree": "28c81698dd883720da79517084d0781a8b551e15",
@@ -18,6 +22,8 @@
     "f035_head": "195f3376e107559817e054476b076e471c211731",
     "f035_assignment_sha256": "49e704f0c9935056c5614e91feff28d4775c6f98d4b38f1b068639f7d72d5e00",
     "f036_head": "36eec98e972e5ed5e40acda83795ac1569e6eb1e",
+    "source_head": "49daf4d2660ff72e227bb66d0fc317472e45f6d8",
+    "technical_source_head": "075d3174bf144ae48a9afa4dac6fba457794cfd5",
     "identity_source": "F035_ASSIGNMENT_ARTIFACT_AND_ART002_IDENTITY_BASELINE"
   },
   "id_set": {
@@ -88,8 +94,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M090",
@@ -110,8 +119,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M091",
@@ -132,8 +144,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M092",
@@ -154,8 +169,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M093",
@@ -176,8 +194,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M094",
@@ -198,8 +219,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M095",
@@ -220,8 +244,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M096",
@@ -242,8 +269,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M097",
@@ -264,8 +294,11 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     },
     {
       "monster_id": "M099",
@@ -286,12 +319,20 @@
       "format": "PNG",
       "alpha_status": "PASS",
       "technical_validation": "PASS",
-      "production_status": "PRODUCTION_CANDIDATE",
-      "owner_visual_review_status": "PENDING"
+      "production_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "owner_visual_review_status": "PASS",
+      "canonical_art_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "publication_status": "OWNER_PASS_FROZEN_AND_PUBLISHED",
+      "runtime_mapping_status": "NOT_MAPPED"
     }
   ],
   "qa": {
     "final_asset_count": 10,
+    "canonical_art_published_count": 10,
+    "canonical_art_id_set_exact": "YES",
+    "owner_approved_hash_match_count": 10,
+    "owner_approved_bytes_match": "YES",
+    "owner_approved_byte_drift_count": 0,
     "unique_id_count": 10,
     "unique_sha256_count": 10,
     "duplicate_sha256_count": 0,
@@ -304,8 +345,10 @@
     "unexpected_art_files": 0
   },
   "owner_review": {
-    "owner_visual_review_status": "PENDING",
-    "owner_pass_count": "0/10",
+    "owner_visual_review_status": "PASS",
+    "owner_pass_count": "10/10",
+    "owner_rejected_ids": "NONE",
+    "redraw_required": "NONE",
     "review_pack_path": "docs/planning/art_003_batch_009_owner_visual_review_pack.md",
     "review_pack_entry_count": 10,
     "review_pack_id_set_exact": "YES",
@@ -372,8 +415,8 @@
     "runtime_firewall_test": "PASS",
     "task_introduced_failures": 0
   },
-  "result": "PASS_ART003_B09_M089_M099_CANONICAL_MONSTER_ART_PRODUCTION",
-  "ready_for_owner_visual_review": "YES",
-  "next_task": "OWNER_VISUAL_REVIEW_ART003_B09",
+  "result": "PASS_ART003_B09_R1_OWNER_PASS_FREEZE_AND_CANONICAL_ART_PUBLICATION",
+  "ready_for_next_art_batch": "YES",
+  "next_task": "ART003_B10_M100_M109_CANONICAL_MONSTER_ART_PRODUCTION_001",
   "master_merge": "NO"
 }
