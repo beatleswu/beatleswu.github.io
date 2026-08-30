@@ -1,0 +1,339 @@
+{
+  "task": "LC020_R4_GENESIS_REPAIR_OWNER_MERGE_GATE_PACKET_001",
+  "result": "PASS_LC020_R4_GENESIS_REPAIR_OWNER_MERGE_GATE_PACKET",
+  "mode": "OWNER_MERGE_GATE_PACKET_PREP_ONLY",
+  "generated_for_date": "2026-08-30",
+  "heads": {
+    "LC020_R1_HEAD": "363f76e566e1c939c6dde0ec610cd9a34bb3993f",
+    "LC020_R1_HEAD_EXACT": true,
+    "LC020_R2_HEAD": "30be85b708a6ee264600927a6524a7888a8307a2",
+    "LC020_R2_HEAD_EXACT": true,
+    "LC020_R3_HEAD": "6be5bff939f68e337cc346a1a8d7a5da97a3d624",
+    "LC020_R3_HEAD_EXACT": true,
+    "FRESH_ORIGIN_MASTER_HEAD": "38d12af38d8e5e667d3b7891853837f32139fd8a",
+    "FRESH_ORIGIN_MASTER_TREE": "86194f9d1a2eafdd6a17ea21fb0270559e45766f",
+    "MERGE_BASE_R1_MASTER": "8b34994b5e0593fb5081ea6517b1581334b993a4"
+  },
+  "fresh_master": {
+    "MASTER_ADVANCED_SINCE_R3": true,
+    "advance_range": "c1a55daeb..38d12af38",
+    "advance_commits": [
+      "9998eb9eb admit ART003 B09 canonical assets and reconcile scope tests",
+      "38d12af38 merge codex/f043-r2-b09-admission-prepared -> codex/f043-r2-b09-master-publication"
+    ],
+    "GENESIS_RELEVANT_MASTER_DELTA": "NONE",
+    "genesis_relevant_master_delta_detail": "B09 advance touches only art/, tests/, docs/planning/. The 6 identity/genesis/reader files (puzzle_identity_store.py, puzzle_identity_genesis_bootstrap.py, migrations/puzzle_identity_registry_v1.py, identity_read_adapter.py, puzzle_identity_read_window.py, grimoire_api.py) are byte-identical between R1 parent 8b34994b5 and fresh master 38d12af38. app.py unchanged c1a55daeb..38d12af38.",
+    "SEMANTIC_CONFLICT": false,
+    "SEMANTIC_CONFLICT_COUNT": 0
+  },
+  "source_admission_payload": {
+    "SOURCE_REPAIR_FILE_COUNT": 2,
+    "TEST_FILE_COUNT": 1,
+    "LC020_R1_SOURCE_DELTA_EXACT": true,
+    "diff_range": "8b34994b5..363f76e56",
+    "files": [
+      {
+        "path": "puzzle_identity_store.py",
+        "git_blob": "336937f48c4022daddbc46e43a4619e1b7d9f5a7",
+        "sha256": "e54734ab23e24eaff65725d2f3af0a5de9c263bb3e8b40d0e27ae3e18514b1e1",
+        "kind": "M"
+      },
+      {
+        "path": "puzzle_identity_genesis_bootstrap.py",
+        "git_blob": "2756a87aa0e113228649e0c9f44a11bac54a99cc",
+        "sha256": "1a341fcef481f50398489e19b3a90cfc5690f66cb5aa6c484668062168c60b83",
+        "kind": "M"
+      },
+      {
+        "path": "tests/test_lc020_r1_genesis_legacy_id_collision.py",
+        "git_blob": "759e806974fdd909b7155530682ec0543c8f7030",
+        "sha256": "1aadf6e9ec1b4ecbb4043efc0922325b51f79332ca135f0a36a1279315f4d7cb",
+        "kind": "A"
+      }
+    ],
+    "app_py_changed": false,
+    "grimoire_api_changed": false,
+    "community_leaderboard_rewards_changed": false,
+    "migration_file_modified": false
+  },
+  "canonical_doc_payload": {
+    "CANONICAL_DOC_PATH_COUNT": 4,
+    "CANONICAL_DOC_PATHS": [
+      "docs/planning/lc020_r2_genesis_bootstrap_execution_preflight_and_runbook_revalidation.md",
+      "docs/planning/lc020_r2_genesis_preflight_revalidation_report.json",
+      "docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight.md",
+      "docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight_report.json"
+    ],
+    "docs": [
+      {
+        "path": "docs/planning/lc020_r2_genesis_bootstrap_execution_preflight_and_runbook_revalidation.md",
+        "origin_head": "30be85b708a6ee264600927a6524a7888a8307a2",
+        "git_blob": "9927539f65f1dff51917c3deca0ad1255a8d1f91",
+        "sha256": "3cc78735ed233e56d6d123364605c3f84db6cdab2902fe68d11c471394a025de",
+        "purpose": "two-phase Owner runbook (GO_PRODUCTION_DB_MIGRATION -> GO_GENESIS_BOOTSTRAP) + Owner decision packet, against the repaired impl",
+        "required_for_operator_runbook": true,
+        "required_for_canonical_admission": true,
+        "class": "REQUIRED"
+      },
+      {
+        "path": "docs/planning/lc020_r2_genesis_preflight_revalidation_report.json",
+        "origin_head": "30be85b708a6ee264600927a6524a7888a8307a2",
+        "git_blob": "067b60dd02cdce74b48fbca978e1dd5733348296",
+        "sha256": "c8342d1315867bee192fe9564ef812c9bb77f8f7fe1d2a6ba55202a620ef4dc6",
+        "purpose": "machine-readable revalidation evidence (full disposable SQLite + PostgreSQL 16.14 genesis)",
+        "required_for_operator_runbook": false,
+        "required_for_canonical_admission": true,
+        "class": "REQUIRED"
+      },
+      {
+        "path": "docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight.md",
+        "origin_head": "6be5bff939f68e337cc346a1a8d7a5da97a3d624",
+        "git_blob": "9f4f02a6fdceaeee5aa25091c4ee10cc180e7ea3",
+        "sha256": "ecf60ae7522424af827c29b1409a19098674f0a07aa208fd1ff6e0f10ba2b3be",
+        "purpose": "canonical-admission proof (synthetic merge, E055/B08 preservation, identity regression)",
+        "required_for_operator_runbook": false,
+        "required_for_canonical_admission": true,
+        "class": "RECOMMENDED"
+      },
+      {
+        "path": "docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight_report.json",
+        "origin_head": "6be5bff939f68e337cc346a1a8d7a5da97a3d624",
+        "git_blob": "1d148bdc51205b426065c77e70d64f1525d21301",
+        "sha256": "c7455b16be8002ba87abc7d967515a36c675070058c3110261448601ada1ba57",
+        "purpose": "machine report for the admission preflight",
+        "required_for_operator_runbook": false,
+        "required_for_canonical_admission": true,
+        "class": "RECOMMENDED"
+      }
+    ],
+    "excluded_docs": [
+      {
+        "path": "docs/planning/lc020_genesis_bootstrap_execution_preflight_and_runbook.md",
+        "origin_head": "2e6dfa4cb",
+        "class": "EXCLUDE",
+        "reason": "superseded by the R2 runbook; original LC020 BLOCKED report, GENESIS_EXECUTION_READY=NO conclusion obsolete; blocker summarised in R3 doc s1 for provenance"
+      },
+      {
+        "path": "docs/planning/lc020_genesis_preflight_report.json",
+        "origin_head": "2e6dfa4cb",
+        "class": "EXCLUDE",
+        "reason": "superseded machine report for the blocked preflight"
+      }
+    ],
+    "TOTAL_CANONICAL_ADMISSION_PAYLOAD_FILES": 7
+  },
+  "frozen_artifact_lock": {
+    "FROZEN_ARTIFACT_HASH_MATCH_COUNT": 6,
+    "FROZEN_ARTIFACT_HASH_DRIFT_COUNT": 0,
+    "RECEIPT_CHANGED": false,
+    "MANIFEST_IDENTITY_ASSIGNMENTS_CHANGED": false,
+    "RENAME_MAP_CHANGED": false,
+    "hashes": {
+      "migrations/puzzle_identity_registry_v1.py": "ad5bd5bc4c3d501df694e5b05835bb0426964ddb4e98bc64d291960823d6f766",
+      "docs/planning/lc012_p2_genesis_receipt.json": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c",
+      "genesis_record_manifest_sha256": "ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e0267e4828",
+      "proposed_uuid_list_sha256": "cb47e9d63d2e44f06b24772436380a8e1ce4f199ae64455bfc3891da446da2f2",
+      "docs/planning/lc012_p2_historical_rename_map.json": "473a80a3664517f7c23db9071948d17cc89053f321ae5ace58ae27e94de7923d",
+      "questions.json": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff"
+    }
+  },
+  "collision_contract": {
+    "LEGACY_ID_COLLISION_GROUP_COUNT": 11,
+    "LEGACY_ID_COLLISION_RECORD_COUNT": 22,
+    "LEGACY_ID_UNIQUE_VALUE_COUNT": 42793,
+    "collided_ids": [
+      "40479",
+      "40511",
+      "40512",
+      "40513",
+      "62011",
+      "63382",
+      "70450",
+      "70752",
+      "71238",
+      "71240",
+      "71244"
+    ],
+    "CURRENT_LEGACY_ALIAS_COUNT": 42782,
+    "NONCURRENT_COLLISION_ALIAS_COUNT": 22,
+    "LEGACY_COLLISION_POLICY": "FAIL_CLOSED_AMBIGUOUS",
+    "PER_RECORD_ALIAS_CONTEXT_DISAMBIGUATION": false,
+    "collision_member_alias_context": "genesis-v1 (DEFAULT_ALIAS_CONTEXT), is_current=False",
+    "collision_legacy_lookup": "AMBIGUOUS",
+    "collision_reader_group_key": "('unresolved', legacy_id)",
+    "arbitrary_source_record_uuid_selection": false
+  },
+  "canonical_identity_contract": {
+    "SOURCE_RECORD_UUID_CANONICAL_IDENTITY": true,
+    "LEGACY_INTEGER_ALIAS": true,
+    "REQUEST_TIME_UUID_GENERATION": false,
+    "AMBIGUITY_FAIL_CLOSED": true,
+    "LC019_W1_PRESENT": true,
+    "LC019_W2_PRESENT": true,
+    "HOT_READER_GROUP_COUNT": 8,
+    "REWARDS_SYNC_RAW_ID_SEMANTICS_PRESERVED": true,
+    "REWARDS_SYNC_FOLD_IDENTITY_FALSE": true
+  },
+  "out_of_scope_firewall": {
+    "LC019_W1B_IMPLEMENTED": false,
+    "POST_GENESIS_NATIVE_UUID_CREATION_IMPLEMENTED": false,
+    "MARKER_POLICY_CHANGED": false,
+    "VOCABULARY_BOUNDARY_CHANGED": false,
+    "APP_PY_CHANGED": false,
+    "GRIMOIRE_API_CHANGED": false,
+    "COMMUNITY_LEADERBOARD_REWARDS_CHANGED": false,
+    "IDENTITY_SCHEMA_REDESIGN": false,
+    "SOURCE_BEHAVIOR_CHANGED": false
+  },
+  "synthetic_admission_reconfirmation": {
+    "base": "38d12af38d8e5e667d3b7891853837f32139fd8a",
+    "method": "git read-tree 38d12af38 + update-index of the 7 payload blobs + write-tree (temp GIT_INDEX_FILE, no checkout, no commit)",
+    "SYNTHETIC_MERGE_CONFLICTS": 0,
+    "SYNTHETIC_POST_MERGE_TREE": "0cc9c5344c4b6240014cdb23cd0c9caf3adf1319",
+    "diff_vs_base_files": [
+      "M puzzle_identity_genesis_bootstrap.py",
+      "M puzzle_identity_store.py",
+      "A tests/test_lc020_r1_genesis_legacy_id_collision.py",
+      "A docs/planning/lc020_r2_genesis_bootstrap_execution_preflight_and_runbook_revalidation.md",
+      "A docs/planning/lc020_r2_genesis_preflight_revalidation_report.json",
+      "A docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight.md",
+      "A docs/planning/lc020_r3_genesis_repair_canonical_merge_preflight_report.json"
+    ],
+    "UNEXPECTED_FILES": 0,
+    "delta_vs_r3_synthetic_tree": {
+      "r3_source_only_tree": "cb8ca8524cb2eb7c4c2075527348338f1cb4a1f0",
+      "explanation": "(a) base is 38d12af38 (F043-R2 B09 ART003 assets + scope-test reconciliation) rather than c1a55daeb; (b) plus the 4 LC020 planning docs from the doc payload (R3 synthetic tree was source-only). No source-blob difference: the two puzzle_identity_*.py blobs are byte-identical to R1 (336937f48, 2756a87aa), the test blob is R1's (759e8069)."
+    }
+  },
+  "full_genesis_evidence_r3_authoritative": {
+    "rerun_required_by_fresh_master_semantic_change": false,
+    "SQLITE_FULL_GENESIS": "PASS",
+    "SQLITE_FULL_GENESIS_SECONDS": 9.3,
+    "POSTGRES_FULL_GENESIS": "PASS",
+    "POSTGRES_VERSION": "16.14",
+    "POSTGRES_FULL_GENESIS_SECONDS": 379.1,
+    "POSTGRES_ROWS_APPLIED": 42804,
+    "IDENTITY_COUNT": 42804,
+    "CURRENT_LEGACY_ALIAS_COUNT": 42782,
+    "NONCURRENT_COLLISION_ALIAS_COUNT": 22,
+    "GENESIS_LINEAGE_COUNT": 42804,
+    "ACTIVE_IDENTITY_COUNT": 42804,
+    "BOOTSTRAP_RECEIPT_APPLIED_COUNT": 1,
+    "BOOTSTRAP_HOT_BEFORE": false,
+    "BOOTSTRAP_HOT_AFTER": true,
+    "PARTIAL_APPLY_VISIBLE": false,
+    "SECOND_APPLY": "ALREADY_APPLIED",
+    "SECOND_APPLY_DUPLICATE_ROWS": 0,
+    "DIFFERENT_RECEIPT_FAILS_CLOSED": true,
+    "COLLISION_LEGACY_LOOKUP_FAIL_CLOSED": "PASS",
+    "COLLISION_READER_FAIL_CLOSED": "PASS",
+    "NON_COLLISION_LEGACY_ALIAS_COMPATIBILITY": "PASS",
+    "identity_reader_regression": "130 passed / 46 skipped",
+    "ALL_IDENTITY_TESTS": "PASS",
+    "TASK_INTRODUCED_FAILURES": 0
+  },
+  "unique_constraint_protection": {
+    "UNIQUE_CURRENT_ALIAS_CONSTRAINT_PRESERVED": true,
+    "uq_pia_current_alias_changed": false,
+    "uq_pia_one_current_path_changed": false,
+    "DUPLICATE_CURRENT_LEGACY_ALIAS_COUNT": 0,
+    "manual_second_current_alias_insert_rejected_sqlite": true,
+    "manual_second_current_alias_insert_rejected_postgres": true
+  },
+  "master_protection": {
+    "E055_ZONE3_PRESENT": true,
+    "E055_APP_PY_PRESERVED": true,
+    "E055_RUNTIME_SOURCE_PRESERVED": true,
+    "B08_CANONICAL_ART_PRESERVED": true,
+    "B09_ALSO_PRESENT": true,
+    "m0_art_asset_count_on_master": 90,
+    "art_003_batch_008_manifest_present": true,
+    "art_003_batch_009_manifest_present": true,
+    "ART003_SOURCE_MUTATION": false,
+    "MONSTER_CATALOG_AUTHORITY_MUTATION": false
+  },
+  "secret_key_hygiene": {
+    "LC020_CAUSED_SECRET_KEY_TEST_FAILURE": false,
+    "PREEXISTING_TEST_HYGIENE_DEBT": true,
+    "reproduced_on_plain_master_without_lc020_delta": true,
+    "reproduced_ref": "LC020-R3 section 8, plain master c1a55daeb with entire LC020-R1 delta reverted -> same 3 ART003 B07/B08 scope-guard failures",
+    "failing_assertion": "AssertionError: assert not {'secret_key.txt'}",
+    "root_cause": "untracked secret_key.txt auto-generated by app boot code during import app, tripping worktree-hygiene assertion",
+    "SECRET_KEY_CONTENT_READ": false,
+    "SECRET_KEY_HASHED": false,
+    "SECRET_KEY_MOVED": false,
+    "SECRET_KEY_DELETED": false,
+    "SECRET_KEY_STAGED": false,
+    "SECRET_KEY_TOUCHED": false,
+    "fixed_in_lc020": false
+  },
+  "proposed_owner_merge_gate": {
+    "PROPOSED_OWNER_GATE": "GO_MERGE LC020_GENESIS_COLLISION_SAFE_CANONICAL_ADMISSION",
+    "authorized_scope": [
+      "the exact LC020-R1 3-file functional/test delta (source_admission_payload blobs)",
+      "the exact 4 LC020 operator/reference docs (canonical_doc_payload.CANONICAL_DOC_PATHS)",
+      "the merge mechanics to admit them onto fresh canonical master 38d12af38 (a --no-ff merge commit per repo governance, or an equivalent review-preserving mechanism)"
+    ],
+    "not_authorized": [
+      "Production DB migration",
+      "Genesis apply",
+      "app.py changes",
+      "LC019-W1B",
+      "native UUID writer",
+      "marker / vocabulary work",
+      "deployment",
+      "schema / data mutation",
+      "any other branch history"
+    ]
+  },
+  "production_gate_separation": {
+    "CANONICAL_MERGE_IMPLIES_PRODUCTION_DB_MIGRATION": false,
+    "CANONICAL_MERGE_IMPLIES_GENESIS_BOOTSTRAP": false,
+    "GO_PRODUCTION_DB_MIGRATION": "NOT_GRANTED",
+    "GO_GENESIS_BOOTSTRAP": "NOT_GRANTED",
+    "sequence_after_canonical_merge": [
+      "canonical admission",
+      "verify canonical provenance",
+      "final Production DB migration gate packet",
+      "Owner GO_PRODUCTION_DB_MIGRATION",
+      "migration verification",
+      "Owner GO_GENESIS_BOOTSTRAP",
+      "Genesis apply",
+      "Production acceptance"
+    ],
+    "gates_collapsed": false
+  },
+  "owner_decision": {
+    "CANONICAL_ADMISSION_READY": "YES",
+    "REAL_DEFECT_BLOCKER_COUNT": 0,
+    "SEMANTIC_CONFLICT_COUNT": 0,
+    "FROZEN_ARTIFACT_DRIFT_COUNT": 0,
+    "UNEXPECTED_FILE_COUNT": 0,
+    "OWNER_MERGE_GATE_RECOMMENDATION": "GO_MERGE",
+    "EXACT_AUTHORIZATION_STRING": "GO_MERGE LC020_GENESIS_COLLISION_SAFE_CANONICAL_ADMISSION",
+    "GO_PRODUCTION_DB_MIGRATION": "NOT_GRANTED",
+    "GO_GENESIS_BOOTSTRAP": "NOT_GRANTED"
+  },
+  "next_task": {
+    "if_owner_grants_gate": "LC020_R5_OWNER_APPROVED_GENESIS_REPAIR_CANONICAL_MASTER_MERGE_001",
+    "if_owner_holds": "PAUSE_PENDING_OWNER_DECISION",
+    "if_new_fresh_master_semantic_conflict_before_r5": "LC020_R4A_FRESH_MASTER_CONFLICT_RECONCILIATION_001"
+  },
+  "git_firewall": {
+    "MASTER_MERGE": "NO",
+    "MASTER_PUSHED": "NO",
+    "PRODUCTION_QUERY": "NO",
+    "PRODUCTION_MUTATION": "NO",
+    "PRODUCTION_DB_MIGRATION": "NO",
+    "PRODUCTION_GENESIS_APPLY": "NO",
+    "DEPLOY": "NO",
+    "ROLLBACK": "NO",
+    "GATE_CONSUMED": "NO",
+    "C_GO_WEBSITE_MUTATED": "NO",
+    "SECRET_KEY_TOUCHED": "NO",
+    "ADDITIONAL_IMPLEMENTATION": "NO",
+    "branch": "claude/lc020-r4-genesis-repair-owner-merge-gate-packet",
+    "branch_parent": "363f76e566e1c939c6dde0ec610cd9a34bb3993f",
+    "commit_scope": "docs/planning/lc020_r4_genesis_repair_owner_merge_gate_packet.md + docs/planning/lc020_r4_genesis_repair_owner_merge_gate_packet_report.json only"
+  }
+}
