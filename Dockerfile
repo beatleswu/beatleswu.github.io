@@ -60,6 +60,7 @@ COPY monster_encounter_selector.py ./
 COPY monster_encounter_selector_runtime.py ./
 COPY monster_identity.py ./
 COPY monster_profiles.py ./
+COPY adventure_zone3_monster_authority.py ./
 COPY monster_reward_profiles.py ./
 COPY monster_settlement.py ./
 COPY battlefield_monster_catalog_authority.py ./
@@ -266,6 +267,21 @@ COPY blog ./blog
 COPY js/e9 ./js/e9
 COPY css/e9 ./css/e9
 COPY components/adventure ./components/adventure
+# E055 Zone 3 Goblin Cave uses the canonical Wave 2 art files below. Keep
+# each copy explicit; M022 remains on its protected /assets/ path and is not
+# duplicated into the image.
+COPY art/monsters/M023_coppercap_goblin.png ./art/monsters/M023_coppercap_goblin.png
+COPY art/monsters/M024_echo_bat.png ./art/monsters/M024_echo_bat.png
+COPY art/monsters/M025_pickaxe_moleworker.png ./art/monsters/M025_pickaxe_moleworker.png
+COPY art/monsters/M026_fungus_lantern_imp.png ./art/monsters/M026_fungus_lantern_imp.png
+COPY art/monsters/M027_rope_ladder_lizard.png ./art/monsters/M027_rope_ladder_lizard.png
+COPY art/monsters/M028_ironbucket_beetle.png ./art/monsters/M028_ironbucket_beetle.png
+COPY art/monsters/M029_crevice_snake.png ./art/monsters/M029_crevice_snake.png
+COPY art/monsters/M030_cartcap_crawler.png ./art/monsters/M030_cartcap_crawler.png
+COPY art/monsters/M031_crystal_ore_gob.png ./art/monsters/M031_crystal_ore_gob.png
+COPY art/monsters/M032_cavern_slinger.png ./art/monsters/M032_cavern_slinger.png
+COPY art/monsters/M033_stalactite_tortoise.png ./art/monsters/M033_stalactite_tortoise.png
+COPY art/monsters/M060_crystalhorn_lizard.png ./art/monsters/M060_crystalhorn_lizard.png
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 

@@ -9642,8 +9642,8 @@ async function submitSRS(grade){
         } else if (grade >= 3) {
             _zoneWrongStreak = 0;
         }
-        if (isBeginnerVillageAdventureResult()) {
-            showBeginnerVillageEncounterContinuation();
+        if (isBeginnerVillageAdventureResult() || isGoblinCaveAdventureResult()) {
+            showAdventureNormalEncounterContinuation();
             shouldAdvance = false;
         }
     } finally {
@@ -10063,6 +10063,7 @@ function monsterArtKey(monster) {
 function monsterArtSrc(monster, defeated=false) {
     if (defeated || (monster && monster.defeated)) return '/assets/monsters/defeated_chibi.png';
     if (monster && typeof monster.avatar === 'string' && /^\/assets\/[A-Za-z0-9._/-]+\.png$/.test(monster.avatar)) return monster.avatar;
+    if (monster && typeof monster.avatar === 'string' && /^\/art\/monsters\/[A-Za-z0-9._-]+\.png$/.test(monster.avatar)) return monster.avatar;
     return `/assets/monsters/${monsterArtKey(monster)}_chibi.png`;
 }
 function setMonsterAvatar(el, monster, defeated=false) {
@@ -10153,11 +10154,12 @@ function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = nu
         ? Number(response.damage_to_player) : 0;
     const playerHealApplied = renderSettlementDelta && response && Number.isFinite(Number(response.player_heal_applied))
         ? Number(response.player_heal_applied) : 0;
+    const serverMonster = state.adventureMonster;
     updateMonsterUI({
-        type: q.monster_type || 'goblin',
-        name: q.monster_name,
-        name_en: q.monster_name_en,
-        avatar: q.monster_avatar,
+        type: serverMonster?.monsterId || q.monster_type || 'goblin',
+        name: serverMonster?.name || q.monster_name,
+        name_en: serverMonster?.nameEn || q.monster_name_en,
+        avatar: serverMonster?.avatar || q.monster_avatar,
         encounter_type: q.encounter_type,
         encounter_label: q.encounter_label,
         boss_level: q.boss_level,
@@ -10184,6 +10186,7 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
     _mapBattleV1Moves = [];
     _lordTrialAnswerMoves = [];
     _mapBattleV1Context = null;
+    _setGoblinCavePostAnswerControls(false);
     _publishMapBattleV1Lifecycle();
     if (_bossMode) {
         _mapBattleV1Mode = 'disabled';
@@ -10288,7 +10291,13 @@ async function _submitMapBattleV1IfActive(moves) {
                 _mapBattleV1TransitionCount += 1;
                 _publishMapBattleV1Lifecycle();
                 if (response.next_action === 'monster_defeated') {
-                    if (!showBeginnerVillageEncounterContinuation()) returnToAdventureMapAfterEncounter();
+                    const beginnerContinuationShown = showBeginnerVillageEncounterContinuation();
+                    const normalContinuationShown = !beginnerContinuationShown
+                        && typeof showAdventureNormalEncounterContinuation === 'function'
+                        && showAdventureNormalEncounterContinuation();
+                    if (!beginnerContinuationShown && !normalContinuationShown) {
+                        returnToAdventureMapAfterEncounter();
+                    }
                     // Ordinary Map Battle victories are encounter presentation
                     // only. They never clear an Adventure Zone, mark its
                     // POST_CLEAR seen/pending state, or reveal the next zone.
@@ -10379,6 +10388,13 @@ function isBeginnerVillageAdventureResult() {
     return _adventureActiveQuestions.some(q => /新手村|Beginner Village/i.test(String(q?.topic || '')));
 }
 
+function isGoblinCaveAdventureResult() {
+    if (!_isAdventureZonePractice()) return false;
+    const zoneKey = new URLSearchParams(location.search).get('zone') || '';
+    if (zoneKey === 'k16_20') return true;
+    return _adventureActiveQuestions.some(q => /哥布林洞穴|哥布林巡邏隊|Goblin Cave|Goblin Patrol/i.test(String(q?.topic || '')));
+}
+
 function _setBeginnerVillagePostAnswerControls(active) {
     const next = document.querySelector('.btn-row button[onclick="nextQuestion()"]');
     const back = document.getElementById('btn-adventure-return');
@@ -10389,10 +10405,30 @@ function _setBeginnerVillagePostAnswerControls(active) {
     }
 }
 
+function _setGoblinCavePostAnswerControls(active) {
+    const next = document.querySelector('.btn-row button[onclick="nextQuestion()"]');
+    const back = document.getElementById('btn-adventure-return');
+    if (next) next.textContent = active
+        ? I18n.t('adventure.zone3.continue')
+        : I18n.t('index.btn.next');
+    if (back) {
+        back.textContent = I18n.t('adventure.zone3.return_map');
+        back.style.display = active ? 'inline-flex' : 'none';
+    }
+}
+
 function showBeginnerVillageEncounterContinuation() {
     if (!isBeginnerVillageAdventureResult()) return false;
     _setBeginnerVillagePostAnswerControls(true);
     setMsg(I18n.t('adventure.newbie.encounter_complete'), 'ok');
+    return true;
+}
+
+function showAdventureNormalEncounterContinuation() {
+    if (showBeginnerVillageEncounterContinuation()) return true;
+    if (!isGoblinCaveAdventureResult()) return false;
+    _setGoblinCavePostAnswerControls(true);
+    setMsg(I18n.t('adventure.zone3.encounter_complete'), 'ok');
     return true;
 }
 
@@ -10435,7 +10471,9 @@ function _isE10BattleRevealAvailable() {
 
 function _syncE10BattleActions(active) {
     const battleVisible = active === true && _isE10BattleActionState();
-    const revealVisible = battleVisible && _isE10BattleRevealAvailable();
+    const revealVisible = battleVisible
+        && typeof _isE10BattleRevealAvailable === 'function'
+        && _isE10BattleRevealAvailable();
     const explain = document.getElementById('btn-e10-battle-explain');
     const back = document.getElementById('btn-adventure-return');
     if (explain) {
@@ -10460,7 +10498,10 @@ function _syncE10BattleActions(active) {
     // from adventure.newbie.return_map. The guard below leaves that ownership
     // intact, exactly as the previous else-branch did.
     if (back && !isBeginnerVillageAdventureResult()) {
-        back.style.display = 'none';
+        if (typeof isGoblinCaveAdventureResult !== 'function'
+            || !isGoblinCaveAdventureResult()) {
+            back.style.display = 'none';
+        }
     }
 }
 
@@ -10502,6 +10543,7 @@ function renderAdventureZoneMonster(q) {
     if (contextLabel) {
         const zoneKey = new URLSearchParams(location.search).get('zone') || '';
         const isNewbieVillage = zoneKey === 'k26_30';
+        const isGoblinCave = zoneKey === 'k16_20';
         contextLabel.textContent = isNewbieVillage
             ? `${I18n.t('adventure.newbie.encounter_title')} · ${I18n.t('index.battle.adventure_encounter')}`
             : I18n.t('index.battle.adventure_encounter');
@@ -10510,16 +10552,19 @@ function renderAdventureZoneMonster(q) {
         }
         const objective = document.getElementById('battle-adventure-objective');
         if (objective) {
-            objective.textContent = isNewbieVillage ? I18n.t('adventure.newbie.encounter_objective') : '';
-            objective.classList.toggle('hidden', !isNewbieVillage);
+            objective.textContent = isNewbieVillage
+                ? I18n.t('adventure.newbie.encounter_objective')
+                : isGoblinCave ? I18n.t('adventure.zone3.encounter_objective') : '';
+            objective.classList.toggle('hidden', !isNewbieVillage && !isGoblinCave);
         }
     }
     const state = _mapBattleV1State;
+    const serverMonster = state?.adventureMonster;
     updateMonsterUI({
-        type: q.monster_type || 'goblin',
-        name: q.monster_name,
-        name_en: q.monster_name_en,
-        avatar: q.monster_avatar,
+        type: serverMonster?.monsterId || q.monster_type || 'goblin',
+        name: serverMonster?.name || q.monster_name,
+        name_en: serverMonster?.nameEn || q.monster_name_en,
+        avatar: serverMonster?.avatar || q.monster_avatar,
         encounter_type: q.encounter_type,
         encounter_label: q.encounter_label,
         boss_level: q.boss_level,
@@ -11793,7 +11838,7 @@ function onBoardClick(bx,by){
             if(sBtn) sBtn.style.display = 'inline-block';
         });
         showExplanation({x, y});
-        showBeginnerVillageEncounterContinuation();
+        showAdventureNormalEncounterContinuation();
         return;
     }
     if (_mapBattleV1IsActive()) _mapBattleV1Moves.push({x, y});

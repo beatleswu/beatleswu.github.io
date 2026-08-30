@@ -94,6 +94,9 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         # A041 adds the server-owned Hero legacy-cache guard referenced by
         # hero.html and index.html; B057 closes its release packaging gap.
         "js/hero_legacy_cache_guard.js",
+        # E055 adds the server-owned Adventure Zone 3 monster binding module
+        # imported by app.py and packaged as an explicit runtime dependency.
+        "adventure_zone3_monster_authority.py",
     }
 )
 CURRENT_EXPECTED_COUNT = B1_PRESENT_EXPECTED_COUNT + len(POST_B1_GOVERNED_RUNTIME_PATHS)

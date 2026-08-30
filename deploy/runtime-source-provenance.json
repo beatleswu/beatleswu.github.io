@@ -196,16 +196,16 @@
     },
     {
       "path": "index.html",
-      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
-      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
-      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
-      "source_date": "2026-08-29",
-      "content_sha256": "fb50739d17052b4f783e88e20c45ce5a03451fd645119491e07bcb567c8097a9",
-      "content_size_bytes": 1046424,
+      "source_commit": "9bf945e50a2f66bc1ea94b747b30969aee3e356a",
+      "source_branch_or_local_ref": "codex/e055-zone3-goblin-cave-vertical-slice-implementation",
+      "source_commit_subject": "feat(e10): add Zone 3 Goblin Cave vertical slice",
+      "source_date": "2026-08-30",
+      "content_sha256": "620a90e11b21177998df378c5abf99f7567903b74749162d85f379108b2189d4",
+      "content_size_bytes": 1048837,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "production_hash_status": "candidate on the E055 Zone 3 vertical slice branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- source_commit is byte-identical to current candidate content; deployment remains separately gated"
     },
     {
       "path": "terms.html",
@@ -467,16 +467,16 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "a7381ab698f433a90147d47072224c1161527bb5",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(e10): consume battlefield boss reward result",
-      "source_date": "2026-08-28",
-      "content_sha256": "94cad1ce6acd0f214fc411928344667cb9f0ace0e80783e3e4f23fd0291523f7",
-      "content_size_bytes": 370769,
+      "source_commit": "9bf945e50a2f66bc1ea94b747b30969aee3e356a",
+      "source_branch_or_local_ref": "codex/e055-zone3-goblin-cave-vertical-slice-implementation",
+      "source_commit_subject": "feat(e10): add Zone 3 Goblin Cave vertical slice",
+      "source_date": "2026-08-30",
+      "content_sha256": "22026a431fdcc82c7a86b8df2a389a583f7b4cc6b8eb20cd66cb3c3f8faf7060",
+      "content_size_bytes": 371483,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "production_hash_status": "candidate on the E055 Zone 3 vertical slice branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- source_commit is byte-identical to current candidate content; deployment remains separately gated"
     },
     {
       "path": "components/adventure/world_stage.html",
@@ -1027,6 +1027,18 @@
       "runtime_role": "feature-critical static content (SGF board viewer / blog route)",
       "production_hash_status": "not individually byte-verified against Production this Sprint (directory-level size/count match only); sourced from real Git commit",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+    },
+    {
+      "path": "adventure_zone3_monster_authority.py",
+      "source_commit": "9bf945e50a2f66bc1ea94b747b30969aee3e356a",
+      "source_branch_or_local_ref": "codex/e055-zone3-goblin-cave-vertical-slice-implementation",
+      "source_commit_subject": "feat(e10): add Zone 3 Goblin Cave vertical slice",
+      "source_date": "2026-08-30",
+      "content_sha256": "c07a4a3287915cc0264cfe7159a34dd18e399b9d86b539c0bf82f63d540b887f",
+      "content_size_bytes": 14864,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (server-owned Adventure Zone 3 Monster identity/profile/presentation binding)",
+      "source_status": "feature-branch provenance -- source_commit is byte-identical to current candidate content; deployment remains separately gated"
     },
     {
       "path": "db.py",
