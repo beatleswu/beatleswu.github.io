@@ -124,7 +124,13 @@ def _assert_provenance_contract(governed_paths, presentation_present, expected_c
 # rollout mechanism itself and are deliberately left untouched.
 # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 adds js/game/cinematic_replay.js as
 # the eighth post-B1 governed runtime module.
-POST_B1_PROVENANCE_ADDITIONS = 8
+# INCIDENT_018_R8A: two further governed runtime modules had already landed
+# without this count being advanced (E055 adventure_zone3_monster_authority.py
+# and the LC019 identity read stack), and this task adds the eleventh --
+# incident_018_observability.py, which app.py imports at module level but which
+# was never packaged or governed. Advanced to match the real governed set
+# rather than weakening the contract.
+POST_B1_PROVENANCE_ADDITIONS = 11
 CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 

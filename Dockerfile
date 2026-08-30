@@ -125,6 +125,12 @@ COPY grimoire_api.py ./
 COPY identity_read_adapter.py ./
 COPY puzzle_identity_read_window.py ./
 COPY puzzle_identity_store.py ./
+# Incident 018: app.py imports this at module level (line 223), so the image
+# cannot start without it. Temporary verification instrumentation -- when it is
+# retired, remove this COPY together with the module and its provenance record,
+# but never with the boss_attempt_expired / invalid_boss_attempt_question
+# control flow, which is permanent.
+COPY incident_018_observability.py ./
 COPY question_taxonomy.py ./
 COPY monster_taxonomy.py ./
 COPY chapter_i18n.py ./

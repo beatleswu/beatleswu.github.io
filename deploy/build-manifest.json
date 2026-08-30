@@ -84,6 +84,7 @@
       "identity_read_adapter.py",
       "puzzle_identity_read_window.py",
       "puzzle_identity_store.py",
+      "incident_018_observability.py",
       "migrations/__init__.py",
       "migrations/sgf_admin_workbench_v1.py",
       "migrations/sgf_human_review_v2a.py",
@@ -351,6 +352,7 @@
     "/app/identity_read_adapter.py",
     "/app/puzzle_identity_read_window.py",
     "/app/puzzle_identity_store.py",
+    "/app/incident_018_observability.py",
     "/app/sgf_answer_review.html",
     "/app/sgf_answer_review.js",
     "/app/sgf_workbench_v2a.js",
@@ -522,7 +524,7 @@
   },
   "runtime_dependency_provenance": {
     "manifest_path": "deploy/runtime-source-provenance.json",
-      "files_covered": 88,
+      "files_covered": 91,
       "source_status": "local Git provenance -- not previously pushed to canonical origin (Graph A / Codex local branches only)",
       "status": "governed Git provenance outside sgf_engine: 77 recovered or curated runtime files plus the governed shadow_event_storage.py, Lord Trial controller, PresentationDispatcher, B2 presentation-effects, B3 ReviewTransport, B4 GameSession, B5 QuestionLoader/BoardRenderer, B6 ModeContext, and B7 GameBootstrap modules (87 files total)",
     "note": "Most curated HTML/JS files use each file's LATEST known Git commit, which does not always byte-match current Production exactly (e.g. cache-busting version-bump drift); this is documented per-file rather than silently copying Production bytes. Newly-authored governed modules record their first reachable byte-identical source commit. See deploy/runtime-source-provenance.json for exact per-file status."

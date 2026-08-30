@@ -160,15 +160,15 @@
     },
     {
       "path": "community_leaderboard_rewards.py",
-      "source_commit": "11eaf65af35808bb1356a2a80f9544c201f93075",
-      "source_branch_or_local_ref": "codex/b071a-canonical-historical-leaderboard-evidence-v2",
-      "source_commit_subject": "feat: add canonical historical leaderboard evidence path",
+      "source_commit": "f029ce55c3c3c2f149883d23eb05e987f58baec9",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "B077: admit validated Lord Trial evidence to leaderboards",
       "source_date": "2026-08-30",
-      "content_sha256": "4c2c0aabad746b416da185a50b3c646b986f6219ab4e4b11bc789fc9fbfe696c",
-      "content_size_bytes": 94906,
+      "content_sha256": "dbe3a1550d7f6a58ec6ab3b8b6f11fcd4db3ed3519e58519655c43b738af5b18",
+      "content_size_bytes": 98344,
       "line_ending_policy": "LF",
       "runtime_role": "app.py deferred/function-body imports only (lines 3699, 12170, 12183, 12202) -- not required at app startup, only when community-leaderboard-rewards code paths are invoked. Required by all five tools/community_leaderboard_rewards_*.py CLI scripts at their own module level. Content verified byte-identical (LF-normalized) to the file running in the Production container at the time of this audit. Contains reward-granting/database-write functions (e.g. grant_leaderboard_reward_claims, mark_leaderboard_claim_granted) -- not executed as part of this Sprint's verification.",
-      "source_status": "accepted B071A candidate provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "login.html",
@@ -196,16 +196,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "9bf945e50a2f66bc1ea94b747b30969aee3e356a",
-      "source_branch_or_local_ref": "codex/e055-zone3-goblin-cave-vertical-slice-implementation",
-      "source_commit_subject": "feat(e10): add Zone 3 Goblin Cave vertical slice",
+      "source_commit": "c5455923ad9430bdcafaee3cbc59ebea4c2e075e",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix(incident-018): settle Lord attempt scope before quota and before the judge",
       "source_date": "2026-08-30",
-      "content_sha256": "620a90e11b21177998df378c5abf99f7567903b74749162d85f379108b2189d4",
-      "content_size_bytes": 1048837,
+      "content_sha256": "6a8fd37fabfdb0d0accc4c66d4be3fe9ecb6f29187a2f7eb5b2c01fc6154bec4",
+      "content_size_bytes": 1049707,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the E055 Zone 3 vertical slice branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- source_commit is byte-identical to current candidate content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "terms.html",
@@ -356,16 +355,15 @@
     },
     {
       "path": "shop.html",
-      "source_commit": "d86e72089ff3a776b3bd47572c3c03ef6f0d7d01",
-      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
-      "source_commit_subject": "fix: close appearance commerce mutation bypasses",
-      "source_date": "2026-08-29",
-      "content_sha256": "3eadfe7a2b218b4979d67fed2ed2ba504f5522266fd11893aaabaf416b815491",
-      "content_size_bytes": 163429,
+      "source_commit": "799dbf42919946319c5735975a83ecbc38b9d9a2",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat(c053): contain public shop to option b surfaces",
+      "source_date": "2026-08-30",
+      "content_sha256": "2dbd967afcba591b7659eb1bfce8ef1bd467dc646652fbeb68ae236e5e522820",
+      "content_size_bytes": 163127,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "profile.html",
@@ -467,16 +465,15 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "9bf945e50a2f66bc1ea94b747b30969aee3e356a",
-      "source_branch_or_local_ref": "codex/e055-zone3-goblin-cave-vertical-slice-implementation",
-      "source_commit_subject": "feat(e10): add Zone 3 Goblin Cave vertical slice",
+      "source_commit": "799dbf42919946319c5735975a83ecbc38b9d9a2",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat(c053): contain public shop to option b surfaces",
       "source_date": "2026-08-30",
-      "content_sha256": "22026a431fdcc82c7a86b8df2a389a583f7b4cc6b8eb20cd66cb3c3f8faf7060",
-      "content_size_bytes": 371483,
+      "content_sha256": "a3dce265381f6a51a700c8f26619f470758d24fdf3a36a76e1299ed9e35cc278",
+      "content_size_bytes": 371534,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the E055 Zone 3 vertical slice branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- source_commit is byte-identical to current candidate content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "components/adventure/world_stage.html",
@@ -593,16 +590,15 @@
     },
     {
       "path": "js/game/review_transport.js",
-      "source_commit": "2e614f74e29002194f0a4154eaf5bb7e512d00cf",
+      "source_commit": "c5455923ad9430bdcafaee3cbc59ebea4c2e075e",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "B051 wire authoritative Lord Trial judging",
-      "source_date": "2026-08-28",
-      "content_sha256": "24127a7721fa1d5313b5d21ed48ecc3fb79f63e0d4024aea824c9b8c5ea5c5d5",
-      "content_size_bytes": 8516,
+      "source_commit_subject": "fix(incident-018): settle Lord attempt scope before quota and before the judge",
+      "source_date": "2026-08-30",
+      "content_sha256": "a91ae4e60a0309acd2524038ec4f66e6cd85f56f3eca8f44deab2758327ca28d",
+      "content_size_bytes": 8894,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (ReviewTransport browser module; governed static subpath asset)",
-      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "js/game/game_session.js",
@@ -1086,6 +1082,18 @@
       "runtime_role": "PAY-PLANS-500 hotfix: lazily imported inside app.py's _paypal() (app.py:16872), only on first PayPal payment-route access -- app.py itself starts fine without it, but GET /api/pay/plans and every /api/pay/paypal/* route raised an unhandled ModuleNotFoundError/500 without it. Restored byte-identical to the last (and only) commit that touched it on any branch; verified against every current-master call site (is_configured, IS_TEST, create_product, create_plan, create_subscription, get_subscription, cancel_subscription) before restoring.",
       "production_hash_status": "not applicable -- this file was absent from the running Production container's filesystem entirely prior to this Sprint (confirmed via `docker exec ... find / -iname paypal_api*`), so there is no Production copy to hash-compare against",
       "source_status": "canonical origin/master Git provenance -- recorded source_commit is reachable from origin/master and raw-byte-verified against this file"
+    },
+    {
+      "path": "incident_018_observability.py",
+      "source_commit": "ad05148c7e5caefd02ab01e0e842136a6e103879",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat: add incident 018 Lord review observability",
+      "source_date": "2026-08-30",
+      "content_sha256": "38f87c59b1a4d1ab1231347479c3b4aee07e1ef995b3f6af2df0fd10591233a7",
+      "content_size_bytes": 9757,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 223); runtime-critical -- app fails to start without it. Temporary Incident 018 verification instrumentation; scheduled for retirement only after Production acceptance and Incident 018 closure.",
+      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
     }
   ]
 }
