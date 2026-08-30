@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A053-R2 apprentice grip / forearm refinement</title>
+<style>
+:root{font-family:Segoe UI,Arial,sans-serif;color:#203047;background:#eef3f7}body{margin:0;padding:16px}main{max-width:1140px;margin:auto}.notice{background:#fff8df;border:1px solid #dec67d;border-radius:12px;padding:14px 16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px}figure{margin:0;background:white;border:1px solid #c5d1dd;border-radius:12px;padding:10px}figure img{display:block;width:100%;height:auto}figcaption{padding:8px 2px 2px;font-weight:700}.wide img{max-width:100%}code{background:#f1f4f7;padding:1px 4px;border-radius:4px}@media(max-width:520px){body{padding:8px}h1{font-size:22px}}
+</style></head><body><main>
+<h1>A053-R2 · apprentice / MAIN_HAND / wooden_sword</h1>
+<p class="notice"><strong>STATIC VISUAL REFINEMENT · PENDING OWNER VISUAL REVIEW</strong><br>
+R2 reduces the R1 grip-hand scale and adds only a localized sleeve/wrist/forearm continuity patch. It preserves the semantic Paper Doll hierarchy and is not live Hero runtime wiring. The static input contract is server-owned <code>player_inventory.equipped</code>; Loadout remains OFF; Owner visual acceptance is not granted.</p>
+<h2>Before / after</h2><div class="grid">
+<figure><img src="a053_r1_default_pose_reference.png" alt="A053-R1 default apprentice reference"><figcaption>A · Default Pose reference</figcaption></figure>
+<figure><img src="a053_r1_wooden_sword_before.png" alt="A053-R1 wooden sword before refinement"><figcaption>B · A053-R1 BEFORE</figcaption></figure>
+<figure><img src="a053_r2_wooden_sword_after.png" alt="A053-R2 wooden sword after refinement"><figcaption>C · A053-R2 AFTER</figcaption></figure>
+<figure><img src="before_after_full.png" alt="Full character before and after"><figcaption>Full-character comparison</figcaption></figure>
+</div>
+<h2>Hand / wrist acceptance inspection</h2><div class="grid">
+<figure><img src="a053_r1_hand_wrist_before.png" alt="A053-R1 hand wrist before"><figcaption>D · R1 hand / wrist BEFORE</figcaption></figure>
+<figure><img src="a053_r2_hand_wrist_after.png" alt="A053-R2 hand wrist after"><figcaption>E · R2 hand / wrist AFTER</figcaption></figure>
+<figure class="wide"><img src="before_after_hand_proportion.png" alt="Before and after hand proportion"><figcaption>F · Hand proportion and wrist continuity comparison</figcaption></figure>
+<figure class="wide"><img src="continuity_crop.png" alt="Forearm wrist palm handle continuity"><figcaption>H · Forearm → wrist → palm → handle → fingers</figcaption></figure>
+</div>
+<h2>Composition contract</h2><figure class="wide"><img src="exploded_layer_view.png" alt="Exploded Paper Doll layers"><figcaption>G · L10 CHARACTER_BASE + L20 MAIN_HAND_WEAPON + L30 localized FRONT_GRIP_HAND</figcaption></figure>
+<figure class="wide"><img src="responsive_proof.png" alt="Static responsive proof"><figcaption>I · Static frame-relative scaling proof; runtime device acceptance not claimed</figcaption></figure>
+<figure class="wide"><img src="motion_ready_transform_diagram.svg" alt="Motion-ready semantic hierarchy"><figcaption>Motion-ready parent/child relationship; animation is not implemented</figcaption></figure>
+<p>Contract: <a href="../a053_r2_contract.json">a053_r2_contract.json</a></p>
+</main></body></html>

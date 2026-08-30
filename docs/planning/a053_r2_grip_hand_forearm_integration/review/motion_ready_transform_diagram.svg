@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1050" height="620" viewBox="0 0 1050 620">
+  <rect width="1050" height="620" fill="#eef3f7"/>
+  <text x="32" y="44" font-family="Segoe UI,Arial,sans-serif" font-size="28" font-weight="700" fill="#1c2f46">A053-R2 motion-ready proof</text>
+  <text x="32" y="76" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#57697d">Static hierarchy only · no animation implemented · R2 visual patch remains a child of RIGHT_HAND</text>
+  <g font-family="Segoe UI,Arial,sans-serif" font-size="18" text-anchor="middle">
+    <rect x="370" y="106" width="310" height="54" rx="12" fill="#203047"/><text x="525" y="140" fill="#fff">CHARACTER_ROOT</text>
+    <line x1="525" y1="160" x2="525" y2="195" stroke="#2f6f68" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="400" y="198" width="250" height="54" rx="12" fill="#55738e"/><text x="525" y="232" fill="#fff">RIGHT_ARM</text>
+    <line x1="525" y1="252" x2="525" y2="287" stroke="#2f6f68" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="400" y="290" width="250" height="54" rx="12" fill="#55738e"/><text x="525" y="324" fill="#fff">RIGHT_HAND</text>
+    <line x1="525" y1="344" x2="525" y2="379" stroke="#2f6f68" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="365" y="382" width="320" height="54" rx="12" fill="#2f8b7d"/><text x="525" y="416" fill="#fff">GRIP_ANCHOR (760,800)</text>
+    <line x1="525" y1="436" x2="525" y2="471" stroke="#2f6f68" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="350" y="474" width="350" height="54" rx="12" fill="#b87837"/><text x="525" y="508" fill="#fff">MAIN_HAND_WEAPON</text>
+  </g>
+  <g font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#203047">
+    <rect x="742" y="178" width="260" height="168" rx="14" fill="#fff" stroke="#c4d0dc" stroke-width="2"/>
+    <text x="764" y="211" font-weight="700">PARENT TRANSFORM</text><text x="764" y="244">RIGHT_HAND Δx / Δy</text><text x="764" y="273">→ GRIP_ANCHOR follows</text><text x="764" y="302">→ weapon follows</text><text x="764" y="331">local contact preserved</text>
+    <rect x="45" y="178" width="260" height="168" rx="14" fill="#fff" stroke="#c4d0dc" stroke-width="2"/>
+    <text x="67" y="211" font-weight="700">LOCAL CHILD TRANSFORM</text><text x="67" y="244">weapon grip point</text><text x="67" y="273">rotation / scale</text><text x="67" y="302">relative to anchor</text><text x="67" y="331">not viewport CSS</text>
+  </g>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2f6f68"/></marker></defs>
+</svg>
