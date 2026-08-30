@@ -57,6 +57,14 @@ ALLOWED_PATHS = set(ASSETS.values()) | {
     "docs/planning/art_003_batch_008_manifest.json",
     "docs/planning/art_003_batch_008_owner_visual_review_pack.md",
     "tests/test_art003_b08_production.py",
+    "tests/test_art003_b02_owner_pass_freeze_publication.py",
+    "tests/test_art003_b03_production.py",
+    "tests/test_art003_b04_production.py",
+    "tests/test_art003_b05_production.py",
+    "tests/test_art003_b05_r1_publication.py",
+    "tests/test_art003_b06_production.py",
+    "tests/test_art003_b06_r1_publication.py",
+    "tests/test_art003_b07_production.py",
 }
 
 
