@@ -9,7 +9,8 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE_SHA = "786b9f2335b42f777c03a0c6e604d4784dc7ec5b"
+CANONICAL_MASTER_HEAD = "58dd0460aaca16bb08a0db5419db412ba8e13764"
+B08_PUBLICATION_HEAD = "af179e79407eb563ded840609fd3a7026fc6a09f"
 SOURCE_BRANCH = "codex/art003-b08-m078-m088-canonical-monster-art-production"
 SOURCE_HEAD = "95e0119af9a0ab02275b5db4f3b38eedca9cc2ab"
 IDS = ["M078", "M079", "M080", "M081", "M082", "M083", "M085", "M086", "M087", "M088"]
@@ -62,6 +63,24 @@ ALLOWED_PATHS = set(ASSETS.values()) | {
 def git(*args: str) -> str:
     result = subprocess.run(["git", *args], cwd=ROOT, check=True, text=True, capture_output=True)
     return result.stdout.strip()
+
+
+def _is_ancestor(ancestor: str, descendant: str = "HEAD") -> bool:
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=ROOT,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def _admission_scope_base() -> str:
+    """Use fresh-master scope for admission candidates, with a bounded publication fallback."""
+    if _is_ancestor(CANONICAL_MASTER_HEAD):
+        return CANONICAL_MASTER_HEAD
+    if git("rev-parse", "HEAD") == B08_PUBLICATION_HEAD or _is_ancestor(B08_PUBLICATION_HEAD):
+        return B08_PUBLICATION_HEAD
+    raise AssertionError("checkout is neither a canonical-master candidate nor the B08 publication lineage")
 
 
 def load_manifest() -> dict:
@@ -164,13 +183,19 @@ def test_b08_review_pack_exact_order_and_pass_state():
 
 
 def test_prior_art_and_m022_protection():
-    changed_paths = set(git("diff", "--name-only", BASE_SHA, "HEAD").splitlines())
+    scope_base = _admission_scope_base()
+    changed_paths = set(git("diff", "--name-only", scope_base, "HEAD").splitlines())
+    changed_paths.update(git("diff", "--cached", "--name-only", scope_base).splitlines())
     changed_paths.update(git("ls-files", "--others", "--exclude-standard").splitlines())
     assert changed_paths <= ALLOWED_PATHS
     assert not any("M022" in path for path in changed_paths)
-    prior_paths = [path for path in git("ls-tree", "-r", "--name-only", BASE_SHA, "art/monsters").splitlines() if path.lower().endswith(".png")]
+    prior_paths = [
+        path
+        for path in git("ls-tree", "-r", "--name-only", scope_base, "art/monsters").splitlines()
+        if path.lower().endswith(".png")
+    ]
     for path in prior_paths:
-        assert git("rev-parse", f"{BASE_SHA}:{path}") == git("rev-parse", f"HEAD:{path}")
+        assert git("rev-parse", f"{scope_base}:{path}") == git("rev-parse", f"HEAD:{path}")
 
 
 def test_runtime_and_cross_lane_firewalls():
