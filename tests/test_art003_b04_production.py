@@ -25,7 +25,7 @@ F036_HEAD = "36eec98e972e5ed5e40acda83795ac1569e6eb1e"
 B01_HEAD = "0b2f4c7ec65f845918bd96a2daec21551d27ff34"
 B02_SOURCE_HEAD = "d3ccac1565b6c5bbe3f357164777f256136d2dc2"
 B02_PUBLICATION_HEAD = "bc729d5bcc21a36e90724c921115c2e51f1efdcd"
-F039_BASE_HEAD = "62cd841a3af78a66c4c5aba16cdfebb7814513da"
+F039_BASE_HEAD = "c1a55daebc411df46ca4bbfef6c0b814c813ec73"
 F039_R1_TEST_FILES = {
     "tests/test_art003_b02_owner_pass_freeze_publication.py",
     "tests/test_art003_b03_production.py",
@@ -50,6 +50,21 @@ F041_B08_ADMISSION_FILES = {
     "docs/planning/art_003_batch_008_manifest.json",
     "docs/planning/art_003_batch_008_owner_visual_review_pack.md",
     "tests/test_art003_b08_production.py",
+}
+F043_B09_ADMISSION_FILES = {
+    "art/monsters/M089_steelfang_hyena.png",
+    "art/monsters/M090_battlement_lizard.png",
+    "art/monsters/M091_smokescreen_weasel.png",
+    "art/monsters/M092_ironwheel_rhino.png",
+    "art/monsters/M093_beacon_scorpion.png",
+    "art/monsters/M094_shieldshell_crab.png",
+    "art/monsters/M095_obsidian_automaton.png",
+    "art/monsters/M096_wallbreak_bear.png",
+    "art/monsters/M097_scout_hawkbeast.png",
+    "art/monsters/M099_aurora_serpent.png",
+    "docs/planning/art_003_batch_009_manifest.json",
+    "docs/planning/art_003_batch_009_owner_visual_review_pack.md",
+    "tests/test_art003_b09_r1_publication.py",
 }
 M022_PATH = "assets/monsters/orc_grunt_chibi.png"
 IDS = [f"M{i:03d}" for i in range(35, 45)]
@@ -134,6 +149,7 @@ def _changed_paths() -> set[str]:
     return (
         {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
         - F041_B08_ADMISSION_FILES
+        - F043_B09_ADMISSION_FILES
     )
 
 

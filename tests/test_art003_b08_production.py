@@ -9,7 +9,7 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CANONICAL_MASTER_HEAD = "62cd841a3af78a66c4c5aba16cdfebb7814513da"
+CANONICAL_MASTER_HEAD = "c1a55daebc411df46ca4bbfef6c0b814c813ec73"
 B08_PUBLICATION_HEAD = "af179e79407eb563ded840609fd3a7026fc6a09f"
 SOURCE_BRANCH = "codex/art003-b08-m078-m088-canonical-monster-art-production"
 SOURCE_HEAD = "95e0119af9a0ab02275b5db4f3b38eedca9cc2ab"
@@ -65,6 +65,19 @@ ALLOWED_PATHS = set(ASSETS.values()) | {
     "tests/test_art003_b06_production.py",
     "tests/test_art003_b06_r1_publication.py",
     "tests/test_art003_b07_production.py",
+    "art/monsters/M089_steelfang_hyena.png",
+    "art/monsters/M090_battlement_lizard.png",
+    "art/monsters/M091_smokescreen_weasel.png",
+    "art/monsters/M092_ironwheel_rhino.png",
+    "art/monsters/M093_beacon_scorpion.png",
+    "art/monsters/M094_shieldshell_crab.png",
+    "art/monsters/M095_obsidian_automaton.png",
+    "art/monsters/M096_wallbreak_bear.png",
+    "art/monsters/M097_scout_hawkbeast.png",
+    "art/monsters/M099_aurora_serpent.png",
+    "docs/planning/art_003_batch_009_manifest.json",
+    "docs/planning/art_003_batch_009_owner_visual_review_pack.md",
+    "tests/test_art003_b09_r1_publication.py",
 }
 
 
