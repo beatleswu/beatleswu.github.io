@@ -74,6 +74,11 @@
     }
     var battle = response.battle && typeof response.battle === 'object'
       ? response.battle : response;
+    var monsterPresentation = response.adventure_monster
+      && typeof response.adventure_monster === 'object'
+      ? response.adventure_monster
+      : (battle.adventure_monster && typeof battle.adventure_monster === 'object'
+        ? battle.adventure_monster : null);
     if (Number.isFinite(battle.player_hp)) state.playerHp = Number(battle.player_hp);
     if (Number.isFinite(battle.player_hp_max)) state.playerHpMax = Number(battle.player_hp_max);
     if (Number.isFinite(battle.monster_hp)) state.monsterHp = Number(battle.monster_hp);
@@ -84,6 +89,29 @@
     if (Number.isFinite(response.battle_revision)) state.battleRevision = Number(response.battle_revision);
     if (battle.battle_id) state.battleId = String(battle.battle_id);
     if (battle.zone_key) state.zoneKey = String(battle.zone_key);
+    if (monsterPresentation) {
+      // This is a read-only server projection.  It is never copied into a
+      // request and cannot select a Monster, profile, reward, or progression.
+      state.adventureMonster = {
+        monsterId: monsterPresentation.monster_id
+          ? String(monsterPresentation.monster_id) : '',
+        name: typeof monsterPresentation.name === 'string'
+          ? monsterPresentation.name : '',
+        nameEn: typeof monsterPresentation.name_en === 'string'
+          ? monsterPresentation.name_en : '',
+        avatar: typeof monsterPresentation.avatar === 'string'
+          ? monsterPresentation.avatar : '',
+        zoneKey: monsterPresentation.zone_key
+          ? String(monsterPresentation.zone_key) : (state.zoneKey || ''),
+        encounterClass: monsterPresentation.encounter_class
+          ? String(monsterPresentation.encounter_class) : 'NORMAL',
+        role: monsterPresentation.role ? String(monsterPresentation.role) : 'NORMAL',
+        profileId: monsterPresentation.profile_id
+          ? String(monsterPresentation.profile_id) : '',
+        profileVersion: monsterPresentation.profile_version
+          ? String(monsterPresentation.profile_version) : ''
+      };
+    }
     state.monsterDefeated = response.monster_defeated === true || Number(state.monsterHp) === 0;
     state.playerDefeated = response.player_defeated === true || Number(state.playerHp) === 0;
     state.lastResult = response.result || state.lastResult || null;
@@ -132,7 +160,7 @@
       attemptState: String(attempt.state || 'ISSUED'),
       moves: []
     };
-    applyAuthoritativeState(state, data.battle || data);
+    applyAuthoritativeState(state, data);
     return state;
   }
 
@@ -146,7 +174,7 @@
       method: 'GET',
       headers: { 'X-Map-Battle-Client-Protocol': 'v1' }
     });
-    applyAuthoritativeState(state, data.battle || data);
+    applyAuthoritativeState(state, data);
     return state;
   }
 

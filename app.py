@@ -41,6 +41,7 @@ from explain_overrides import get_override as _get_explain_override
 from grimoire_api import grimoire_bp
 from question_taxonomy import get_taxonomy
 from monster_taxonomy import get_monster_taxonomy, mark_encounters
+from monster_profiles import CANONICAL_MONSTER_PROFILE_REGISTRY
 from rpg_wave1_lane_b import build_level_up_rewards
 from monster_identity import (
     build_battlefield_identity_registry,
@@ -72,6 +73,21 @@ from battlefield_monster_catalog_authority import (
     battlefield_catalog_identity_payload,
     read_battlefield_state_max_hp,
     resolve_battlefield_catalog_profile,
+)
+from adventure_zone3_monster_authority import (
+    ZONE3_BINDING_SOURCE,
+    ZONE3_KEY as ADVENTURE_ZONE3_KEY,
+    ZONE3_PRESENTATION_ASSET_FILENAMES,
+    ZONE3_DROP_PROFILE_REGISTRY,
+    ZONE3_MONSTER_PROFILE_REGISTRY,
+    ZONE3_REWARD_PROFILE_REGISTRY,
+    Zone3MonsterAuthorityError,
+    decode_zone3_binding,
+    encode_zone3_binding,
+    resolve_zone3_binding_for_battle,
+    select_zone3_binding,
+    zone3_combat_profile,
+    zone3_presentation_for_battle,
 )
 from spirit_combat_runtime import apply_spirit_combat_effect
 from monster_encounter_selector import build_legacy_selector_candidates
@@ -7629,6 +7645,7 @@ def _settle_monster_defeat_in_tx(
     hp_after,
     loot_bonus=0.0,
     battlefield_authority: BattlefieldCatalogAuthorityProfile | None = None,
+    adventure_authority=None,
 ):
     """Close one server-owned Monster defeat inside the caller transaction.
 
@@ -7640,7 +7657,22 @@ def _settle_monster_defeat_in_tx(
     """
 
     source = dict(battlefield or {})
-    if battlefield_authority is not None:
+    settlement_registry = None
+    settlement_drop_registry = None
+    settlement_reward_registry = None
+    if adventure_authority is not None:
+        # E055 binds Adventure Zone 3 to the exact server-created M-ID.  The
+        # existing settlement writer remains responsible for idempotency,
+        # inventory, wardrobe, Coins, and all player-state mutation.
+        settlement_monster_id = adventure_authority.monster_id
+        settlement_zone_id = adventure_authority.zone_key
+        settlement_roster_slot = adventure_authority.roster_slot
+        settlement_encounter_class = adventure_authority.encounter_class
+        settlement_family_id = adventure_authority.taxonomy_family
+        settlement_registry = ZONE3_MONSTER_PROFILE_REGISTRY
+        settlement_drop_registry = ZONE3_DROP_PROFILE_REGISTRY
+        settlement_reward_registry = ZONE3_REWARD_PROFILE_REGISTRY
+    elif battlefield_authority is not None:
         # E051 active Battlefield settlement identity is already bound to the
         # explicit catalog entry.  No legacy identity/profile resolver is
         # consulted and this branch has no player-state write capability.
@@ -7783,6 +7815,9 @@ def _settle_monster_defeat_in_tx(
         grant_coins=grant_coins,
         grant_functional_item=grant_functional_item,
         grant_wardrobe_item=grant_wardrobe_item,
+        monster_registry=settlement_registry or CANONICAL_MONSTER_PROFILE_REGISTRY,
+        drop_registry=settlement_drop_registry,
+        reward_registry=settlement_reward_registry,
     )
 
 
@@ -14029,6 +14064,44 @@ def _map_battle_f010_profile(conn, user_id, battle_id):
         ) from error
 
 
+def _map_battle_zone3_binding(battle):
+    """Resolve the persisted server-owned Zone 3 binding, or fail closed."""
+
+    if not battle or str(battle.get('zone_key') or '') != ADVENTURE_ZONE3_KEY:
+        return None
+    try:
+        return resolve_zone3_binding_for_battle(battle)
+    except Zone3MonsterAuthorityError as error:
+        raise JudgeUnavailable(
+            'Adventure Zone 3 Monster binding is unavailable'
+        ) from error
+
+
+def _map_battle_monster_profile_resolver(conn, user_id, battle_id):
+    """Resolve the active combat profile without changing legacy callers."""
+
+    battle = load_authoritative_battle_state(
+        conn,
+        user_id=int(user_id),
+        battle_id=str(battle_id),
+    )
+    if battle is None:
+        raise JudgeUnavailable('authoritative Map Battle is unavailable')
+    if str(battle.get('zone_key') or '') == ADVENTURE_ZONE3_KEY:
+        binding = _map_battle_zone3_binding(battle)
+        if binding is None:
+            raise JudgeUnavailable(
+                'Adventure Zone 3 Monster binding is unavailable'
+            )
+        try:
+            return zone3_combat_profile(binding)
+        except Zone3MonsterAuthorityError as error:
+            raise JudgeUnavailable(
+                'Adventure Zone 3 combat profile is unavailable'
+            ) from error
+    return _map_battle_f010_profile(conn, user_id, battle_id)
+
+
 def _map_battle_open_for_zone(conn, user_id, zone_key):
     row = conn.execute(
         """SELECT * FROM map_battles
@@ -14043,7 +14116,7 @@ def _map_battle_open_for_zone(conn, user_id, zone_key):
 def _map_battle_public_state(battle):
     if not battle:
         return None
-    return {
+    state = {
         'battle_id': str(battle['id']),
         'zone_key': battle['zone_key'],
         'state': battle['state'],
@@ -14054,6 +14127,14 @@ def _map_battle_public_state(battle):
         'battle_revision': int(battle['battle_revision']),
         'runtime_service': RUNTIME_SERVICE_ID,
     }
+    if str(battle.get('zone_key') or '') == ADVENTURE_ZONE3_KEY:
+        try:
+            state['adventure_monster'] = zone3_presentation_for_battle(battle)
+        except Zone3MonsterAuthorityError as error:
+            raise JudgeUnavailable(
+                'Adventure Zone 3 Monster presentation is unavailable'
+            ) from error
+    return state
 
 
 def _map_battle_public_attempt(attempt):
@@ -14109,6 +14190,18 @@ def map_battle_v1_prepare_attempt():
             raise RequestRejected('zone_key is required')
         zone_key = zone_key.strip()
         _map_battle_require_question_in_zone(question, zone_key)
+        if zone_key == ADVENTURE_ZONE3_KEY:
+            # The browser may request a question/zone only.  Any attempted
+            # Monster identity or stat claim is rejected; the binding below
+            # is selected from the server-owned question identity.
+            forged_fields = (
+                'monster_id', 'monster_type', 'monster_hp', 'monster_hp_max',
+                'monster_atk', 'monster_attack', 'profile_id',
+            )
+            if any(payload.get(field) not in (None, '') for field in forged_fields):
+                raise RequestRejected(
+                    'Zone 3 Monster identity and combat fields are server-owned'
+                )
         metadata = _map_battle_question_context(question)
         user_id = int(session['user_id'])
         with get_db() as conn:
@@ -14116,7 +14209,28 @@ def map_battle_v1_prepare_attempt():
             battle = _map_battle_open_for_zone(conn, user_id, zone_key)
             if battle is None:
                 player_hp, player_hp_max = _map_battle_player_hp(conn, user_id)
-                if monster_selector_v1_enabled(os.environ):
+                if zone_key == ADVENTURE_ZONE3_KEY:
+                    try:
+                        zone3_binding = select_zone3_binding(question['id'])
+                        zone3_profile = zone3_combat_profile(zone3_binding)
+                    except Zone3MonsterAuthorityError as error:
+                        raise JudgeUnavailable(
+                            'Adventure Zone 3 Monster selection is unavailable'
+                        ) from error
+                    monster_hp = zone3_profile.max_hp
+                    monster_hp_max = zone3_profile.max_hp
+                    battle_id = create_map_battle(
+                        conn,
+                        user_id=user_id,
+                        zone_key=zone_key,
+                        player_hp=player_hp,
+                        player_hp_max=player_hp_max,
+                        monster_hp=monster_hp,
+                        monster_hp_max=monster_hp_max,
+                        migration_source=ZONE3_BINDING_SOURCE,
+                        migration_version=encode_zone3_binding(zone3_binding),
+                    )
+                elif monster_selector_v1_enabled(os.environ):
                     # The validated Map Battle zone is the existing server
                     # encounter context; F010 does not decide progression.
                     selector_zone_key = canonical_selector_zone_key(zone_key)
@@ -14170,6 +14284,8 @@ def map_battle_v1_prepare_attempt():
                         migration_version='map-battle-v1',
                     )
             else:
+                if zone_key == ADVENTURE_ZONE3_KEY:
+                    _map_battle_zone3_binding(battle)
                 battle_id = str(battle['id'])
             issued = issue_attempt_with_submission_nonce(
                 conn,
@@ -14193,9 +14309,12 @@ def map_battle_v1_prepare_attempt():
             )
             if battle is None:
                 raise RequestRejected('battle does not exist for owner', status=404)
+            public_battle = _map_battle_public_state(battle)
         return jsonify({
             'ok': True,
-            'battle': _map_battle_public_state(battle),
+            'battle': public_battle,
+            'adventure_monster': public_battle.get('adventure_monster')
+            if public_battle else None,
             'attempt': _map_battle_public_attempt(attempt),
             'attempt_id': issued['attempt_id'],
             'battle_id': issued['battle_id'],
@@ -14259,10 +14378,13 @@ def map_battle_v1_resume_validation(attempt_id):
             )
             if question_revision_for(question) != str(validated['attempt']['question_revision']):
                 raise RequestRejected('question revision is stale for this attempt', status=409)
+            public_battle = _map_battle_public_state(validated['battle'])
         return jsonify({
             'ok': True,
             'resumable': True,
-            'battle': _map_battle_public_state(validated['battle']),
+            'battle': public_battle,
+            'adventure_monster': public_battle.get('adventure_monster')
+            if public_battle else None,
             'attempt': _map_battle_public_attempt(validated['attempt']),
             'runtime_service': RUNTIME_SERVICE_ID,
         })
@@ -14288,9 +14410,12 @@ def map_battle_v1_battle_state(battle_id):
             )
         if battle is None:
             raise RequestRejected('battle does not exist for owner', status=404)
+        public_battle = _map_battle_public_state(battle)
         return jsonify({
             'ok': True,
-            'battle': _map_battle_public_state(battle),
+            'battle': public_battle,
+            'adventure_monster': public_battle.get('adventure_monster')
+            if public_battle else None,
             'runtime_service': RUNTIME_SERVICE_ID,
         })
     except MapBattleRuntimeError as error:
@@ -14356,7 +14481,7 @@ def map_battle_v1_answers():
                 mode_environ=os.environ,
                 eligibility=eligibility,
                 combat_stats_resolver=_get_authoritative_combat_stats,
-                monster_profile_resolver=_map_battle_f010_profile,
+                monster_profile_resolver=_map_battle_monster_profile_resolver,
                 spirit_projection_resolver=build_b022_active_spirit_projection,
             )
     except MapBattleRuntimeError as error:
@@ -14369,6 +14494,19 @@ def map_battle_v1_answers():
         if error.code == 'map_battle_v1_disabled':
             body['message'] = 'Map Battle v1 暫未開放'
         return jsonify(body), error.status
+    # The validated request already carries the owner-scoped battle identity;
+    # use it only to attach the read-only presentation projection after the
+    # authoritative answer settlement.  It never supplies combat identity.
+    if isinstance(payload, dict) and payload.get('battle_id'):
+        with get_db() as conn:
+            battle = load_authoritative_battle_state(
+                conn,
+                user_id=int(session['user_id']),
+                battle_id=str(payload['battle_id']),
+            )
+        if battle is not None and str(battle.get('zone_key') or '') == ADVENTURE_ZONE3_KEY:
+            public_battle = _map_battle_public_state(battle)
+            result['adventure_monster'] = public_battle.get('adventure_monster')
     try:
         progression, progression_status = _run_map_battle_progression(
             session['user_id'], result
@@ -14404,10 +14542,15 @@ def _map_battle_progression_submission(conn, user_id, submission_id):
 
     raw_conn = getattr(conn, '_conn', conn)
     statement = '''
-        SELECT s.*, a.question_id AS attempt_question_id
+        SELECT s.*, a.question_id AS attempt_question_id,
+               b.zone_key AS battle_zone_key,
+               b.migration_source AS battle_migration_source,
+               b.migration_version AS battle_migration_version
           FROM map_battle_submissions s
           JOIN map_battle_attempts a
             ON a.id=s.attempt_id AND a.battle_id=s.battle_id AND a.user_id=s.user_id
+          JOIN map_battles b
+            ON b.id=s.battle_id AND b.user_id=s.user_id
          WHERE s.id=? AND s.user_id=?
            AND s.settlement_state='SETTLED' AND s.settled_at IS NOT NULL
     '''
@@ -14762,7 +14905,19 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             authoritative_map_battle_monster_defeated = (
                 int(submission['monster_hp_after'] or 0) == 0
             )
-            q_info = _map_battle_question_by_id(qid) or {}
+            q_info = dict(_map_battle_question_by_id(qid) or {})
+            if str(submission['battle_zone_key'] or '') == ADVENTURE_ZONE3_KEY:
+                try:
+                    q_info['_adventure_zone3_binding'] = decode_zone3_binding({
+                        'zone_key': submission['battle_zone_key'],
+                        'migration_source': submission['battle_migration_source'],
+                        'migration_version': submission['battle_migration_version'],
+                    })
+                except Zone3MonsterAuthorityError:
+                    return jsonify({
+                        'error': 'adventure_monster_binding_unavailable',
+                        'code': 'adventure_monster_binding_unavailable',
+                    }), 503
             question_rating_snapshot = rank_to_rating(
                 q_info.get('rank') or q_info.get('difficulty')
             )
@@ -15163,6 +15318,9 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                                 or 0
                             ),
                             loot_bonus=_get_combined_effect(conn, uid, 'loot_bonus'),
+                            adventure_authority=q_info.get(
+                                '_adventure_zone3_binding'
+                            ),
                         )
                     monster_data = _map_battle_noncombat_progression(
                         conn,
@@ -26100,6 +26258,15 @@ def serve_icon192(): return send_from_directory(_BASE,'icon-192.png')
 def serve_assets(subpath):
     """提供題庫相關資源圖（如棋力區封面 assets/tiers/26-30.jpg）"""
     return _serve_live_static_or_baked_subpath(subpath, 'assets', 'assets')
+
+@app.route('/art/monsters/<path:filename>')
+def serve_zone3_monster_art(filename):
+    """Serve only the canonical Wave 2 Zone 3 Monster art allowlist."""
+    if filename not in ZONE3_PRESENTATION_ASSET_FILENAMES:
+        abort(404)
+    return _serve_live_static_or_baked_subpath(
+        filename, 'art/monsters', 'art/monsters'
+    )
 
 @app.route('/favicon.ico')
 def serve_favicon():
