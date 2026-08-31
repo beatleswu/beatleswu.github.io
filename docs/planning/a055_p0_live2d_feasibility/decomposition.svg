@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Apprentice Live2D-ready decomposition map</title>
+  <desc id="desc">Design-only decomposition map showing apprentice identity reference, drawable regions, and the independent right hand weapon socket.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f9fbff"/><stop offset="1" stop-color="#e6eefb"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffd3ae"/><stop offset="1" stop-color="#efa274"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#263858" flood-opacity=".15"/></filter>
+  </defs>
+  <rect width="1200" height="760" rx="28" fill="url(#bg)"/>
+  <text x="48" y="58" font-family="Segoe UI,Arial,sans-serif" font-size="30" font-weight="700" fill="#182a45">APPRENTICE · LIVE2D-READY DECOMPOSITION MAP</text>
+  <text x="48" y="91" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#536987">DESIGN MOCKUP · NOT A CUBISM MODEL · identity art remains unchanged</text>
+  <g filter="url(#shadow)" transform="translate(76 135)">
+    <rect x="0" y="0" width="335" height="550" rx="22" fill="#fff" stroke="#c7d5e8" stroke-width="2"/>
+    <text x="25" y="38" font-family="Segoe UI,Arial,sans-serif" font-size="18" font-weight="700" fill="#2c466b">IDENTITY REFERENCE</text>
+    <image href="../../../assets/hero/characters/wave2_p1/apprentice_p1.webp" x="42" y="58" width="250" height="333" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="24" y="420" width="287" height="90" rx="14" fill="#eef5ff"/>
+    <text x="42" y="451" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#2c466b">Existing apprentice visual identity</text>
+    <text x="42" y="477" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#536987">Reference only; no production art redesign</text>
+  </g>
+  <g font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#182a45">
+    <rect x="503" y="132" width="265" height="54" rx="14" fill="#dcecff" stroke="#7aa7db" stroke-width="2"/>
+    <text x="525" y="165" font-weight="700">HEAD</text><text x="617" y="165" fill="#536987">FACE · EYES · MOUTH</text>
+    <rect x="503" y="202" width="265" height="54" rx="14" fill="#e9e1ff" stroke="#a996dc" stroke-width="2"/>
+    <text x="525" y="235" font-weight="700">HAIR_FRONT</text><text x="653" y="235" fill="#536987">HAIR_BACK</text>
+    <rect x="503" y="272" width="265" height="54" rx="14" fill="#ffe9c9" stroke="#d6a461" stroke-width="2"/>
+    <text x="525" y="305" font-weight="700">TORSO</text>
+    <rect x="503" y="342" width="265" height="54" rx="14" fill="#d9f3e6" stroke="#70b897" stroke-width="2"/>
+    <text x="525" y="375" font-weight="700">LOWER_BODY</text>
+    <rect x="820" y="132" width="302" height="54" rx="14" fill="#ffe1e8" stroke="#d98a9d" stroke-width="2"/>
+    <text x="842" y="165" font-weight="700">RIGHT_UPPER_ARM</text>
+    <rect x="820" y="202" width="302" height="54" rx="14" fill="#ffd6dd" stroke="#d98a9d" stroke-width="2"/>
+    <text x="842" y="235" font-weight="700">RIGHT_FOREARM</text>
+    <rect x="820" y="272" width="302" height="54" rx="14" fill="#ffbdca" stroke="#bd617b" stroke-width="2"/>
+    <text x="842" y="305" font-weight="700">RIGHT_HAND</text>
+    <rect x="820" y="342" width="302" height="70" rx="14" fill="#102e52" stroke="#70c7ff" stroke-width="3"/>
+    <text x="842" y="371" font-weight="700" fill="#fff">RIGHT_HAND_WEAPON_SOCKET</text>
+    <text x="842" y="393" font-size="13" fill="#bde7ff">semantic attachment parent</text>
+    <rect x="820" y="438" width="302" height="54" rx="14" fill="#e4edf7" stroke="#9bb3cd" stroke-width="2"/>
+    <text x="842" y="471" font-weight="700">LEFT_UPPER_ARM</text>
+    <rect x="820" y="508" width="302" height="54" rx="14" fill="#e4edf7" stroke="#9bb3cd" stroke-width="2"/>
+    <text x="842" y="541" font-weight="700">LEFT_FOREARM · LEFT_HAND</text>
+  </g>
+  <g stroke="#58799c" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M420 280 C455 280 465 190 495 160"/>
+    <path d="M420 330 C465 330 470 295 495 295"/>
+    <path d="M420 390 C460 390 470 370 495 370"/>
+    <path d="M770 370 C795 370 800 370 812 370"/>
+  </g>
+  <g transform="translate(480 610)">
+    <rect width="642" height="64" rx="16" fill="#fff" stroke="#c7d5e8"/>
+    <circle cx="28" cy="32" r="9" fill="#70c7ff"/><text x="50" y="38" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#2c466b">Independent RIGHT_HAND + RIGHT_FOREARM + WEAPON layers; socket controls attachment.</text>
+  </g>
+</svg>

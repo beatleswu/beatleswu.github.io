@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A055 isolated apprentice weapon socket and grip feasibility design mockup.">
+  <title>A055 · Apprentice weapon-grip feasibility</title>
+  <link rel="stylesheet" href="./feasibility.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to evidence</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <p class="eyebrow">A055-P0 · LANE A · ISOLATED FEASIBILITY SPIKE</p>
+        <h1>Apprentice weapon-grip rig study</h1>
+        <p class="lede">A Live2D-style socket/deformer design mockup for a natural one-hand sword hold.</p>
+      </div>
+      <div class="status-stack" aria-label="Prototype status">
+        <span class="status status-warn">DESIGN MOCKUP</span>
+        <span class="status status-neutral">ACTUAL RUNTIME OUTPUT: NOT AVAILABLE</span>
+        <span class="status status-neutral">CUBISM SDK/RUNTIME: UNAVAILABLE</span>
+        <span class="status status-safe">FEATURE GATES: OFF · NO ROUTE INTEGRATION</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="shell">
+    <section class="notice-grid" aria-label="Scope and result notice">
+      <article class="notice notice-warn">
+        <strong>Lawful feasibility boundary</strong>
+        <p>No authorized Live2D Cubism SDK/runtime or model binary was found in this environment. This page does not claim to execute Live2D; it records the proposed rig, socket contract, and visual target so an Owner can compare it with Paper Doll/A054.</p>
+      </article>
+      <article class="notice notice-safe">
+        <strong>System isolation</strong>
+        <p>No app.py, route, feature flag, combat/equipment authority, persistence, payment, schema, SW/static release, current Hero renderer, or Production asset was changed. A054 remains a separate experiment.</p>
+      </article>
+    </section>
+
+    <section class="hero-grid" aria-labelledby="hero-title">
+      <article class="card stage-card">
+        <div class="card-heading">
+          <div>
+            <p class="eyebrow">ACTUAL IDENTITY ART + SEPARATE ATTACHMENT MOCK</p>
+            <h2 id="hero-title">Same apprentice rig, swappable weapon</h2>
+          </div>
+          <span id="weapon-chip" class="chip chip-wood">WOODEN_SWORD</span>
+        </div>
+        <div class="stage-wrap">
+          <div class="stage-label stage-label-top">SEPARATE LAYERS · SOCKET-DRIVEN</div>
+          <svg id="rig-stage" class="rig-stage" viewBox="0 0 1056 1408" role="img" aria-labelledby="rig-stage-title rig-stage-desc">
+            <title id="rig-stage-title">Apprentice with a separately attached sword</title>
+            <desc id="rig-stage-desc">The existing apprentice identity reference is layered beneath a separate weapon and closed grip reference. The sword is transformed from the right-hand weapon socket.</desc>
+            <defs>
+              <mask id="open-hand-suppression" maskUnits="userSpaceOnUse" x="0" y="0" width="1056" height="1408">
+                <rect width="1056" height="1408" fill="#fff"></rect>
+                <polygon points="675,690 750,680 870,760 870,875 780,880 675,810" fill="#000"></polygon>
+              </mask>
+              <filter id="stage-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0b1c33" flood-opacity=".16"></feDropShadow>
+              </filter>
+            </defs>
+            <rect x="18" y="18" width="1020" height="1372" rx="42" fill="#f4f8ff" stroke="#d5e1ef" stroke-width="5"></rect>
+            <ellipse cx="527" cy="1335" rx="245" ry="28" fill="#bfd0e2" opacity=".45"></ellipse>
+            <g id="mock-model" filter="url(#stage-shadow)">
+              <image id="character-layer" href="/assets/hero/characters/wave2_p1/apprentice_p1.webp" x="0" y="0" width="1056" height="1408" preserveAspectRatio="none" mask="url(#open-hand-suppression)"></image>
+              <g id="attachment-parent">
+                <image id="weapon-layer" href="/assets/hero/equipment/functional/wooden_sword.svg" x="0" y="0" width="256" height="256" preserveAspectRatio="none"></image>
+                <image id="grip-layer" href="/docs/planning/rpg_wave2_modular_2d_handheld_sword_prototype/pose_layers/apprentice_grip_forearm.png" x="483" y="661" width="396" height="240" preserveAspectRatio="none"></image>
+              </g>
+              <g id="socket-overlay" aria-hidden="true" opacity="0">
+                <circle cx="800" cy="800" r="24" fill="#47b9f2" stroke="#fff" stroke-width="8"></circle>
+                <circle cx="800" cy="800" r="50" fill="none" stroke="#47b9f2" stroke-width="5" stroke-dasharray="12 12"></circle>
+                <path d="M800 800 L800 690" stroke="#47b9f2" stroke-width="8" marker-end="url(#socket-arrow)"></path>
+                <text x="820" y="682" font-family="Segoe UI,Arial,sans-serif" font-size="25" font-weight="700" fill="#17658f">RIGHT_HAND_WEAPON_SOCKET</text>
+              </g>
+            </g>
+            <defs>
+              <marker id="socket-arrow" markerWidth="15" markerHeight="15" refX="12" refY="7" orient="auto"><path d="M0 0 L15 7 L0 14 Z" fill="#47b9f2"></path></marker>
+            </defs>
+          </svg>
+          <div class="stage-label stage-label-bottom">EXISTING APPRENTICE REFERENCE · CLOSED GRIP/FOREARM REFERENCE · WEAPON ART IS NOT BAKED INTO CHARACTER</div>
+        </div>
+        <div class="stage-actions" aria-label="Mockup controls">
+          <button id="swap-weapon" class="button button-primary" type="button">Swap to iron_sword</button>
+          <button id="toggle-idle" class="button button-secondary" type="button" aria-pressed="false">Start mock idle</button>
+          <button id="reset-controls" class="button button-quiet" type="button">Reset parameters</button>
+        </div>
+        <div class="control-grid" aria-label="Semantic parameter controls">
+          <label class="control"><span>PARAM_BODY_ANGLE_X <output id="body-x-value">0°</output></span><input id="body-x" type="range" min="-30" max="30" value="0"></label>
+          <label class="control"><span>PARAM_BODY_ANGLE_Y <output id="body-y-value">0°</output></span><input id="body-y" type="range" min="-20" max="20" value="0"></label>
+          <label class="control"><span>PARAM_RIGHT_ARM_ANGLE <output id="arm-value">0°</output></span><input id="arm" type="range" min="-25" max="25" value="0"></label>
+          <label class="control"><span>PARAM_RIGHT_FOREARM_ANGLE <output id="forearm-value">0°</output></span><input id="forearm" type="range" min="-25" max="25" value="0"></label>
+          <label class="control"><span>PARAM_RIGHT_WRIST_ANGLE <output id="wrist-value">0°</output></span><input id="wrist" type="range" min="-20" max="20" value="0"></label>
+          <label class="control"><span>PARAM_RIGHT_HAND_GRIP <output id="grip-value">1.00</output></span><input id="grip" type="range" min="0" max="1" step="0.01" value="1"></label>
+        </div>
+        <label class="check-row"><input id="show-socket" type="checkbox"> Show socket marker and world axis</label>
+        <div class="identity-strip">
+          <span><b>characterRigId</b> <code id="rig-id">apprentice_live2d_candidate_rig_v0</code></span>
+          <span><b>handRigId</b> <code id="hand-rig-id">apprentice_right_hand_grip_rig_v0</code></span>
+          <span><b>socket</b> <code>RIGHT_HAND_WEAPON_SOCKET</code></span>
+        </div>
+      </article>
+
+      <aside class="stack" aria-label="Rig diagnostics">
+        <article class="card diagnostics-card">
+          <div class="card-heading compact"><h2>Semantic attachment readout</h2><span class="chip chip-blue">CONTRACT</span></div>
+          <p class="small-copy">The mock transform is calculated from the socket plus the weapon metadata below. Absolute placement is not the authority.</p>
+          <dl class="readout-list">
+            <div><dt>Socket parent</dt><dd id="socket-parent">RIGHT_HAND</dd></div>
+            <div><dt>Socket position</dt><dd id="socket-position">(800, 800)</dd></div>
+            <div><dt>Weapon</dt><dd id="weapon-readout">wooden_sword</dd></div>
+            <div><dt>Grip point</dt><dd id="grip-point">(128, 208)</dd></div>
+            <div><dt>Grip axis</dt><dd id="grip-axis">(0.10, 0.995)</dd></div>
+            <div><dt>Grip width</dt><dd id="grip-width">28 px</dd></div>
+            <div><dt>Transform</dt><dd id="transform-readout">socket + grip metadata</dd></div>
+          </dl>
+        </article>
+        <article class="card contract-card">
+          <div class="card-heading compact"><h2>Feasibility checks</h2><span class="chip chip-green">DESIGN TARGET</span></div>
+          <ul class="check-list">
+            <li><span class="check-icon">✓</span><span>Handle enters palm; fingers and thumb are separate grip geometry.</span></li>
+            <li><span class="check-icon">✓</span><span>Right hand and forearm remain independent from weapon artwork.</span></li>
+            <li><span class="check-icon">✓</span><span>Wooden → iron uses the same character and hand rig IDs.</span></li>
+            <li><span class="check-icon">✓</span><span>Motion parent is the socket; weapon follows the wrist test.</span></li>
+            <li><span class="check-icon">!</span><span>Actual mesh deformation and performance remain unverified until an authorized SDK is available.</span></li>
+          </ul>
+        </article>
+      </aside>
+    </section>
+
+    <section class="evidence-grid" aria-label="Grip and rig evidence">
+      <article id="grip-evidence" class="card grip-card">
+        <div class="card-heading"><div><p class="eyebrow">STATIC DESIGN EVIDENCE</p><h2>Natural one-hand grip target</h2></div><span class="chip chip-orange">NOT FINAL ART</span></div>
+        <p class="small-copy">A geometry-level target for the production mesh: handle enters the palm, four fingers wrap around it, and the thumb opposes the finger mass. The blue point is the semantic socket; the orange line is the weapon grip axis.</p>
+        <svg class="grip-diagram" viewBox="0 0 1200 690" role="img" aria-label="Hand grip geometry and semantic socket diagram">
+          <rect width="1200" height="690" rx="28" fill="#fffdf9"></rect>
+          <text x="44" y="52" font-family="Segoe UI,Arial,sans-serif" font-size="29" font-weight="700" fill="#352c2a">RIGHT_HAND_WEAPON_SOCKET · TRUE-GRIP TARGET</text>
+          <text x="44" y="84" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#76675e">DESIGN MOCKUP · handle/palm continuity is the acceptance target</text>
+          <g class="grip-art">
+            <path d="M92 520 C150 436 204 351 308 265 L425 374 C342 468 262 570 240 635 L105 635 C93 602 82 561 92 520Z" fill="#d4b792" stroke="#795f49" stroke-width="7"></path>
+            <path d="M74 521 C130 452 176 381 260 312 L335 378 C275 456 222 529 200 592 L92 592 C79 570 70 544 74 521Z" fill="#f0e0c8" stroke="#795f49" stroke-width="5"></path>
+            <path d="M293 249 C338 213 399 214 448 249 C502 288 530 354 505 421 C488 465 441 508 386 514 C332 521 279 490 262 445 C241 389 255 281 293 249Z" fill="#ffbf99" stroke="#783e32" stroke-width="8"></path>
+            <g fill="#ffc9a7" stroke="#783e32" stroke-width="7" stroke-linejoin="round">
+              <path d="M351 266 C376 242 410 247 420 275 L428 359 C431 383 412 399 389 391 L365 370 C350 355 339 283 351 266Z"></path>
+              <path d="M392 260 C418 236 450 245 457 273 L462 357 C465 380 447 395 426 387 L407 367 C395 350 382 278 392 260Z"></path>
+              <path d="M433 275 C459 256 488 267 491 293 L492 358 C493 378 477 390 458 382 L442 365 C431 346 423 287 433 275Z"></path>
+              <path d="M468 295 C493 283 516 298 515 321 L509 368 C506 387 491 393 476 384 L466 367 C461 348 460 308 468 295Z"></path>
+              <path d="M316 365 C286 359 270 381 282 405 L337 456 C351 469 371 461 376 441 L365 403 C353 384 334 370 316 365Z"></path>
+            </g>
+            <g stroke="#9b5546" stroke-width="5" fill="none" stroke-linecap="round"><path d="M373 304 C379 332 381 354 389 370"></path><path d="M414 299 C420 329 424 351 429 367"></path><path d="M454 310 C461 334 464 351 468 365"></path><path d="M489 326 C491 343 490 355 487 367"></path></g>
+            <g transform="rotate(-20 395 359)">
+              <rect x="374" y="106" width="42" height="320" rx="18" fill="#6e452e" stroke="#33251e" stroke-width="7"></rect>
+              <path d="M374 136 H416 M374 171 H416 M374 206 H416 M374 241 H416 M374 276 H416" stroke="#bf8050" stroke-width="5" opacity=".8"></path>
+              <path d="M354 105 H436 L453 127 H337 Z" fill="#b77842" stroke="#33251e" stroke-width="7"></path>
+              <path d="M396 426 L363 473 L429 473 Z" fill="#dceeff" stroke="#263b58" stroke-width="7"></path>
+            </g>
+          </g>
+          <circle cx="401" cy="363" r="18" fill="#4cb8f1" stroke="#fff" stroke-width="6"></circle><circle cx="401" cy="363" r="34" fill="none" stroke="#4cb8f1" stroke-width="3" stroke-dasharray="7 8"></circle>
+          <path d="M438 364 H630" stroke="#2796cf" stroke-width="4" stroke-dasharray="10 8"></path><text x="650" y="359" font-family="Segoe UI,Arial,sans-serif" font-size="20" font-weight="700" fill="#17658f">RIGHT_HAND_WEAPON_SOCKET</text><text x="650" y="386" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#537185">parented under RIGHT_HAND</text>
+          <path d="M408 326 L558 172" stroke="#df7954" stroke-width="4"></path><text x="575" y="164" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" fill="#a44c36">GRIP_AXIS</text><text x="575" y="190" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#765b53">weapon metadata maps source axis to socket</text>
+          <path d="M426 397 L595 473" stroke="#df7954" stroke-width="4"></path><text x="618" y="478" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" fill="#a44c36">GRIP_POINT</text><text x="618" y="504" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#765b53">handle center enters palm</text>
+          <text x="52" y="584" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700" fill="#5d4e45">FINGERS WRAP HANDLE · THUMB OPPOSES</text><text x="52" y="611" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#765b53">wrist/forearm continuity remains a separate deformer responsibility</text>
+          <rect x="652" y="550" width="450" height="70" rx="14" fill="#eef8ff" stroke="#96c9e6" stroke-width="2"></rect><text x="674" y="580" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#2f6686">Transform rule</text><text x="674" y="604" font-family="Segoe UI,Arial,sans-serif" font-size="14" fill="#537185">socket + weapon.gripPoint / gripAxis / gripWidth</text>
+        </svg>
+      </article>
+      <article id="hierarchy-evidence" class="card hierarchy-card">
+        <div class="card-heading"><div><p class="eyebrow">PROPOSED ART PREP</p><h2>Drawable / deformer hierarchy</h2></div><span class="chip chip-purple">RIG CONTRACT</span></div>
+        <p class="small-copy">The production art pass would separate the right hand and forearm from the weapon. This spike keeps the character identity unchanged and records the minimum hierarchy only.</p>
+        <img class="diagram-image" src="../decomposition.svg" alt="Apprentice decomposition map with head, torso, arms, hands, and right-hand weapon socket layers">
+        <p class="image-caption">Full decomposition map · design mockup · no Cubism model included</p>
+        <p class="artifact-link"><a href="../socket-diagram.svg" target="_blank" rel="noreferrer">Open standalone socket / grip-axis diagram</a> <span>· included in the Owner review pack</span></p>
+      </article>
+    </section>
+
+    <section class="two-column" aria-label="Rig contract and weapon swap evidence">
+      <article class="card">
+        <div class="card-heading compact"><h2>Minimum parameter set</h2><span class="chip chip-blue">9 PARAMETERS</span></div>
+        <div id="parameter-table" class="parameter-table" role="table" aria-label="Rig parameters"></div>
+      </article>
+      <article class="card">
+        <div class="card-heading compact"><h2>Weapon swap contract</h2><span class="chip chip-green">SAME RIG</span></div>
+        <div class="swap-proof">
+          <div class="swap-row"><span class="weapon-dot wood"></span><div><strong>wooden_sword</strong><small>gripPoint (128, 208) · width 28</small></div><b>→ socket</b></div>
+          <div class="swap-row"><span class="weapon-dot iron"></span><div><strong>iron_sword</strong><small>gripPoint (128, 208) · width 30</small></div><b>→ socket</b></div>
+          <div class="same-rig-callout"><span>characterRigId</span><code>apprentice_live2d_candidate_rig_v0</code><span>handRigId</span><code>apprentice_right_hand_grip_rig_v0</code></div>
+        </div>
+        <p class="small-copy warning-copy">Maintainability warning: an actual Cubism art pass must validate corrective deformation for different handle widths. The mock does not prove that no bespoke correction art will ever be needed.</p>
+      </article>
+    </section>
+
+    <section class="card metrics-card" aria-labelledby="metrics-title">
+      <div class="card-heading"><div><p class="eyebrow">LOCAL BROWSER MEASUREMENT</p><h2 id="metrics-title">Mock viewer cost / motion readout</h2></div><span class="chip chip-orange">NOT CUBISM METRICS</span></div>
+      <p class="small-copy">Values below are measured by this static design mock when served locally. They are not Live2D model/runtime benchmarks. Memory is reported only when the browser exposes a supported API.</p>
+      <div class="metric-grid">
+        <div class="metric"><span>First render</span><strong id="metric-first-render">measuring…</strong><small>DOM/SVG mock</small></div>
+        <div class="metric"><span>Mock loop FPS</span><strong id="metric-fps">measuring…</strong><small>requestAnimationFrame</small></div>
+        <div class="metric"><span>Design contract bytes</span><strong id="metric-model-bytes">measuring…</strong><small>rig-model.json</small></div>
+        <div class="metric"><span>Referenced art bytes</span><strong id="metric-texture-bytes">measuring…</strong><small>identity + grip + weapons</small></div>
+        <div class="metric"><span>Mock JS bytes</span><strong id="metric-runtime-bytes">measuring…</strong><small>not official runtime</small></div>
+        <div class="metric"><span>Approx memory</span><strong id="metric-memory">not measurable</strong><small>no fabricated estimate</small></div>
+      </div>
+      <p id="metric-detail" class="metric-detail" role="status">Waiting for local measurements…</p>
+    </section>
+
+    <section class="comparison-grid" aria-label="Engineering comparison and scale estimate">
+      <article class="card">
+        <div class="card-heading compact"><h2>Engineering comparison</h2><span class="chip chip-neutral">NARROW SCOPE</span></div>
+        <div class="comparison-table" role="table" aria-label="Live2D versus Paper Doll comparison">
+          <div class="comparison-row head"><b>Dimension</b><b>Live2D candidate</b><b>Paper Doll / A054</b></div>
+          <div class="comparison-row"><span>Grip quality</span><span>High potential with mesh/correctives</span><span>A054 improves attachment; pose/raster bounded</span></div>
+          <div class="comparison-row"><span>Weapon swap</span><span>Socket + metadata</span><span>Universal art/pose composition</span></div>
+          <div class="comparison-row"><span>Motion</span><span>Strong; runtime dependent</span><span>Basic pose/static composition</span></div>
+          <div class="comparison-row"><span>Browser/mobile</span><span>SDK/WebGL/memory risk unverified</span><span>Lower runtime dependency</span></div>
+          <div class="comparison-row"><span>20-character burden</span><span>High art/rig/QA/licensing</span><span>Lower to medium; bounded asset work</span></div>
+          <div class="comparison-row"><span>Project dependency</span><span>Official SDK/license currently blocked</span><span>Existing project assets</span></div>
+        </div>
+      </article>
+      <article class="card scale-card">
+        <div class="card-heading compact"><h2>20-character scale estimate</h2><span class="chip chip-purple">RANGE ONLY</span></div>
+        <ul class="scale-list">
+          <li><b>Art decomposition</b><span>2–5 artist-days/character · 40–100 days</span></li>
+          <li><b>Rig setup + QA</b><span>1–3 days/character · 20–60 days</span></li>
+          <li><b>New one-hand weapon</b><span>0.25–1 day after socket standard</span></li>
+          <li><b>Shared motion setup</b><span>1–3 days initially, then tune per character</span></li>
+          <li><b>Unique exceptions</b><span>0.5–3 days each; unusual poses can exceed</span></li>
+        </ul>
+        <p class="small-copy">Assumes no full lip-sync/facial library, heavy cloth physics, or combat animation suite. SDK licensing, runtime integration, atlas optimization, browser QA, and mobile profiling are additional.</p>
+      </article>
+    </section>
+
+    <footer class="footer-note">
+      <span><b>OWNER_VISUAL_ACCEPTANCE</b> · NOT GRANTED</span>
+      <span><b>DECISION AFTER SPIKE</b> · Owner comparison with A054</span>
+      <span><b>NEXT OPTIONS</b> · KEEP_PAPER_DOLL · ADOPT_SPLIT_WEAPON_PAPER_DOLL · RUN_LIVE2D_PHASE_1 · HYBRID_APPROACH</span>
+    </footer>
+  </main>
+  <script type="module" src="./feasibility.js"></script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+{
+  "prototype": {
+    "task": "A055_P0_LIVE2D_SINGLE_CHARACTER_WEAPON_GRIP_FEASIBILITY_PROTOTYPE_001",
+    "character": "apprentice",
+    "primaryWeapon": "wooden_sword",
+    "secondaryWeapon": "iron_sword",
+    "status": "DESIGN_MOCKUP_NOT_LIVE2D_RUNTIME",
+    "officialRuntimeAvailable": false,
+    "runtimeBlocker": "No authorized Live2D Cubism SDK/runtime was found in the repository or development environment.",
+    "goOdysseyIntegration": false,
+    "featureGatesChanged": false
+  },
+  "characterRig": {
+    "id": "apprentice_live2d_candidate_rig_v0",
+    "sourceIdentityAsset": "/assets/hero/characters/wave2_p1/apprentice_p1.webp",
+    "canvas": [1056, 1408],
+    "sameRigForWeaponSwap": true,
+    "handRigId": "apprentice_right_hand_grip_rig_v0",
+    "decomposition": [
+      "HEAD",
+      "HAIR_FRONT",
+      "HAIR_BACK",
+      "FACE",
+      "EYES",
+      "MOUTH",
+      "TORSO",
+      "RIGHT_UPPER_ARM",
+      "RIGHT_FOREARM",
+      "RIGHT_HAND",
+      "LEFT_UPPER_ARM",
+      "LEFT_FOREARM",
+      "LEFT_HAND",
+      "LOWER_BODY"
+    ],
+    "notes": [
+      "The existing apprentice image is an identity reference only in this spike.",
+      "A production Cubism model would require artist-authored separated layers and mesh/deformer setup.",
+      "RIGHT_HAND and RIGHT_FOREARM remain independent from WEAPON."
+    ]
+  },
+  "parameters": [
+    { "id": "PARAM_BODY_ANGLE_X", "default": 0, "range": [-30, 30], "unit": "degrees", "purpose": "small torso turn" },
+    { "id": "PARAM_BODY_ANGLE_Y", "default": 0, "range": [-20, 20], "unit": "degrees", "purpose": "small torso tilt" },
+    { "id": "PARAM_RIGHT_ARM_ANGLE", "default": 0, "range": [-25, 25], "unit": "degrees", "purpose": "upper-arm pose" },
+    { "id": "PARAM_RIGHT_FOREARM_ANGLE", "default": 0, "range": [-25, 25], "unit": "degrees", "purpose": "forearm pose" },
+    { "id": "PARAM_RIGHT_WRIST_ANGLE", "default": 0, "range": [-20, 20], "unit": "degrees", "purpose": "wrist/socket rotation" },
+    { "id": "PARAM_RIGHT_HAND_GRIP", "default": 1, "range": [0, 1], "unit": "normalized", "purpose": "open-to-closed grip correction" },
+    { "id": "PARAM_BREATH", "default": 0, "range": [-1, 1], "unit": "normalized", "purpose": "subtle idle motion" },
+    { "id": "PARAM_EYE_OPEN_L", "default": 1, "range": [0, 1], "unit": "normalized", "purpose": "optional blink-ready eye state" },
+    { "id": "PARAM_EYE_OPEN_R", "default": 1, "range": [0, 1], "unit": "normalized", "purpose": "optional blink-ready eye state" }
+  ],
+  "hierarchy": {
+    "ROOT": [
+      "LOWER_BODY",
+      "TORSO",
+      "HEAD"
+    ],
+    "TORSO": [
+      "RIGHT_UPPER_ARM",
+      "LEFT_UPPER_ARM"
+    ],
+    "RIGHT_UPPER_ARM": [
+      "RIGHT_FOREARM"
+    ],
+    "RIGHT_FOREARM": [
+      "RIGHT_HAND"
+    ],
+    "RIGHT_HAND": [
+      "RIGHT_HAND_WEAPON_SOCKET"
+    ],
+    "HEAD": [
+      "FACE",
+      "EYES",
+      "MOUTH",
+      "HAIR_BACK",
+      "HAIR_FRONT"
+    ],
+    "LEFT_UPPER_ARM": [
+      "LEFT_FOREARM"
+    ],
+    "LEFT_FOREARM": [
+      "LEFT_HAND"
+    ]
+  },
+  "attachments": {
+    "RIGHT_HAND_WEAPON_SOCKET": {
+      "id": "RIGHT_HAND_WEAPON_SOCKET",
+      "parent": "RIGHT_HAND",
+      "position": [800, 800],
+      "space": "character_canvas",
+      "axis": { "x": 0.10, "y": 0.995 },
+      "role": "semantic_weapon_attachment",
+      "transformRule": "weaponTransform = socket + weapon.gripPoint/gripAxis/gripWidth"
+    }
+  },
+  "weapons": {
+    "wooden_sword": {
+      "id": "wooden_sword",
+      "asset": "/assets/hero/equipment/functional/wooden_sword.svg",
+      "gripPoint": [128, 208],
+      "gripAxis": { "x": 0.10, "y": 0.995, "space": "socket_world" },
+      "gripWidth": 28,
+      "sourceBladeAxis": { "x": 0, "y": -1 },
+      "scale": 2.08,
+      "displayName": "Wooden sword",
+      "swapClass": "one_hand_sword"
+    },
+    "iron_sword": {
+      "id": "iron_sword",
+      "asset": "/assets/hero/equipment/functional/iron_sword.svg",
+      "gripPoint": [128, 208],
+      "gripAxis": { "x": 0.10, "y": 0.995, "space": "socket_world" },
+      "gripWidth": 30,
+      "sourceBladeAxis": { "x": 0, "y": -1 },
+      "scale": 2.08,
+      "displayName": "Iron sword",
+      "swapClass": "one_hand_sword"
+    }
+  },
+  "artPrep": {
+    "requiredProductionFiles": [
+      "separated apprentice drawable layers",
+      "Cubism model3.json",
+      "Cubism .moc3 model",
+      "texture atlas",
+      "optional physics3.json"
+    ],
+    "notIncluded": [
+      "proprietary SDK/runtime",
+      "licensed Cubism model binary",
+      "new production character art",
+      "Go Odyssey route integration"
+    ]
+  }
+}

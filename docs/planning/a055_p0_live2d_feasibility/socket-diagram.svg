@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="690" viewBox="0 0 1200 690" role="img" aria-labelledby="title desc">
+  <title id="title">Right hand weapon socket and grip axis diagram</title>
+  <desc id="desc">Design-only diagram showing a sword handle entering the palm, fingers wrapping around it, thumb opposition, and the semantic socket and grip axis.</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffdf9"/><stop offset="1" stop-color="#fff0d6"/></linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fbff"/><stop offset=".45" stop-color="#8da4bf"/><stop offset="1" stop-color="#334b69"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffd9bd"/><stop offset="1" stop-color="#ee9e7b"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#24364f" flood-opacity=".18"/></filter>
+  </defs>
+  <rect width="1200" height="690" rx="28" fill="url(#paper)"/>
+  <text x="44" y="54" font-family="Segoe UI,Arial,sans-serif" font-size="29" font-weight="700" fill="#352c2a">RIGHT_HAND_WEAPON_SOCKET · ATTACHMENT CONTRACT</text>
+  <text x="44" y="86" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#76675e">GRIP GEOMETRY MOCKUP · NOT FINAL ART · NOT LIVE2D RUNTIME OUTPUT</text>
+  <g filter="url(#shadow)">
+    <path d="M92 520 C150 436 204 351 308 265 L425 374 C342 468 262 570 240 635 L105 635 C93 602 82 561 92 520Z" fill="#d4b792" stroke="#795f49" stroke-width="7"/>
+    <path d="M74 521 C130 452 176 381 260 312 L335 378 C275 456 222 529 200 592 L92 592 C79 570 70 544 74 521Z" fill="#f0e0c8" stroke="#795f49" stroke-width="5"/>
+    <path d="M293 249 C338 213 399 214 448 249 C502 288 530 354 505 421 C488 465 441 508 386 514 C332 521 279 490 262 445 C241 389 255 281 293 249Z" fill="url(#skin)" stroke="#783e32" stroke-width="8"/>
+    <g fill="url(#skin)" stroke="#783e32" stroke-width="7" stroke-linejoin="round">
+      <path d="M351 266 C376 242 410 247 420 275 L428 359 C431 383 412 399 389 391 L365 370 C350 355 339 283 351 266Z"/>
+      <path d="M392 260 C418 236 450 245 457 273 L462 357 C465 380 447 395 426 387 L407 367 C395 350 382 278 392 260Z"/>
+      <path d="M433 275 C459 256 488 267 491 293 L492 358 C493 378 477 390 458 382 L442 365 C431 346 423 287 433 275Z"/>
+      <path d="M468 295 C493 283 516 298 515 321 L509 368 C506 387 491 393 476 384 L466 367 C461 348 460 308 468 295Z"/>
+      <path d="M316 365 C286 359 270 381 282 405 L337 456 C351 469 371 461 376 441 L365 403 C353 384 334 370 316 365Z"/>
+    </g>
+    <g stroke="#9b5546" stroke-width="5" fill="none" stroke-linecap="round">
+      <path d="M373 304 C379 332 381 354 389 370"/>
+      <path d="M414 299 C420 329 424 351 429 367"/>
+      <path d="M454 310 C461 334 464 351 468 365"/>
+      <path d="M489 326 C491 343 490 355 487 367"/>
+    </g>
+    <g transform="rotate(-20 395 359)">
+      <rect x="374" y="106" width="42" height="320" rx="18" fill="#6e452e" stroke="#33251e" stroke-width="7"/>
+      <path d="M374 136 H416 M374 171 H416 M374 206 H416 M374 241 H416 M374 276 H416" stroke="#bf8050" stroke-width="5" opacity=".8"/>
+      <path d="M354 105 H436 L453 127 H337 Z" fill="#b77842" stroke="#33251e" stroke-width="7"/>
+      <path d="M396 426 L363 473 L429 473 Z" fill="url(#steel)" stroke="#263b58" stroke-width="7"/>
+    </g>
+  </g>
+  <g font-family="Segoe UI,Arial,sans-serif">
+    <circle cx="401" cy="363" r="18" fill="#4cb8f1" stroke="#fff" stroke-width="6"/>
+    <circle cx="401" cy="363" r="34" fill="none" stroke="#4cb8f1" stroke-width="3" stroke-dasharray="7 8"/>
+    <path d="M438 364 H630" stroke="#2796cf" stroke-width="4" stroke-dasharray="10 8"/>
+    <text x="650" y="359" font-size="20" font-weight="700" fill="#17658f">RIGHT_HAND_WEAPON_SOCKET</text>
+    <text x="650" y="386" font-size="15" fill="#537185">parented under RIGHT_HAND</text>
+    <path d="M408 326 L558 172" stroke="#df7954" stroke-width="4" marker-end="url(#arrow)"/>
+    <text x="575" y="164" font-size="19" font-weight="700" fill="#a44c36">GRIP_AXIS</text>
+    <text x="575" y="190" font-size="15" fill="#765b53">weapon metadata maps source axis to socket</text>
+    <path d="M426 397 L595 473" stroke="#df7954" stroke-width="4"/>
+    <text x="618" y="478" font-size="19" font-weight="700" fill="#a44c36">GRIP_POINT</text>
+    <text x="618" y="504" font-size="15" fill="#765b53">handle center enters palm</text>
+    <path d="M334 444 C285 490 263 518 244 555" stroke="#886d5a" stroke-width="4" fill="none"/>
+    <text x="52" y="584" font-size="19" font-weight="700" fill="#5d4e45">FINGERS WRAP HANDLE</text>
+    <text x="52" y="611" font-size="15" fill="#765b53">thumb opposes fingers; wrist stays continuous</text>
+    <rect x="652" y="550" width="450" height="70" rx="14" fill="#eef8ff" stroke="#96c9e6" stroke-width="2"/>
+    <text x="674" y="580" font-size="15" font-weight="700" fill="#2f6686">Transform rule</text>
+    <text x="674" y="604" font-size="14" fill="#537185">socket + weapon.gripPoint / gripAxis / gripWidth</text>
+  </g>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#df7954"/></marker>
+  </defs>
+</svg>
