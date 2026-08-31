@@ -1,0 +1,158 @@
+{
+  "task": "INCIDENT_019B_R5A_PRODUCTION_BEFORE_STATE_SNAPSHOT_AND_ADMISSION_BOUNDARY_001",
+  "status": "PARTIAL_INCIDENT019B_R1_SAFE_ACCOUNT_UNRESOLVED",
+  "captured_at_utc": "2026-08-31T07:10:41Z",
+  "fresh_repo": {
+    "remote": "origin",
+    "canonical_branch": "origin/master",
+    "fresh_origin_master_head": "b3d37e22e7471d0429d882c43c3ee16049c68ea1",
+    "fresh_origin_master_tree": "39392e8c0df272fb3b0d3df2ec0c1f4f21ab7a93",
+    "incident019b_r3_remote_branch_exists": true,
+    "incident019b_r3_remote_head": "d24062467100790ce681d926da15e70ab304a2ad",
+    "incident019b_r3_remote_tree": "75dbfdeebd1e2489eea075f8b77b12e7bd8c8176",
+    "r3_remote_head_match": true,
+    "r3_merge_base_with_fresh_master": "6228de020dea513fe33b974a37444537738c0baa"
+  },
+  "production_release": {
+    "observed_at_utc": "2026-08-31T07:10:39Z",
+    "host_identity": "instance-20260609-0051",
+    "production_source_sha": "cc6b7915e4a70677ac7e1bafacff69fc70e33b84",
+    "production_image": "go-odyssey-app:cc6b7915",
+    "production_image_digest": "sha256:0805b6914c67330e596b84fd4992394124d882baae695104b5433efde0ebf422",
+    "production_container_id": "f0563dc20b6fb064f72f2e3d9d3c7ba49966ea4af16b928372fce0dcc24430cc",
+    "production_static_generation": "20260830-000006-cc6b7915-v240-a028-hero-player-presentation-readonly",
+    "production_sw_version": "v240-a028-hero-player-presentation-readonly",
+    "production_sw_sha256": "d468dfb90891b7fdfc4882ec4c9825552b7f847968392ccc4245e602f0f6a64e",
+    "production_app_git_sha_env_and_image_revision_match": true,
+    "production_container_restart_count": 0
+  },
+  "production_schema": {
+    "required_tables": [
+      "adventure_historical_mastery",
+      "adventure_historical_mastery_baseline"
+    ],
+    "present_required_tables": [],
+    "incident019b_schema_present": false,
+    "baseline_version": "INCIDENT019B_B050_COMPAT_V1",
+    "baseline_version_present": false,
+    "baseline_already_executed": false,
+    "backfill_already_executed": false,
+    "observed_state": "required relations absent; no baseline row can exist",
+    "transaction": "BEGIN; SET TRANSACTION READ ONLY; SELECTs; ROLLBACK"
+  },
+  "r1_safe_before_state": {
+    "safe_id": "7167b6214d65",
+    "zone": "d3_4",
+    "resolved": false,
+    "current_visible_numerator": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+    "current_visible_denominator": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+    "trusted_current_numerator": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+    "current_boss_clear": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+    "current_star_count": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+    "current_zone_unlock_state": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+    "current_progression_zone": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+    "current_selected_zone": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+    "resolution_method_checked": "Incident019B reviewed safe pseudonym convention md5(user_id)[:12]; no live match",
+    "blocker": "supplied safe identifier is not present in the current Production account set under the reviewed mapping; no raw account identity was exposed"
+  },
+  "source_table_counts": {
+    "users": 220,
+    "review_log": 211430,
+    "srs_cards": 110804
+  },
+  "mastery_aggregates": {
+    "current_player_count": 220,
+    "current_player_zone_row_count": 418,
+    "current_player_zone_row_count_semantics": "nonempty union of pre-cutoff review, qualifying card, or trusted current evidence, limited to Adventure question IDs",
+    "full_player_zone_grid": 2200,
+    "players_with_current_nonzero_adventure_mastery": 1,
+    "current_trusted_membership_pairs": 228,
+    "current_trusted_visible_numerator_min_nonzero": 228,
+    "current_trusted_visible_numerator_max": 228,
+    "per_zone": {
+      "k26_30": {"denominator_premium_catalog": 1939, "trusted_visible_numerator_sum": 84, "trusted_visible_players_nonzero": 1, "trusted_visible_numerator_min_nonzero": 84, "trusted_visible_numerator_max": 84},
+      "k21_25": {"denominator_premium_catalog": 1737, "trusted_visible_numerator_sum": 56, "trusted_visible_players_nonzero": 1, "trusted_visible_numerator_min_nonzero": 56, "trusted_visible_numerator_max": 56},
+      "k16_20": {"denominator_premium_catalog": 1734, "trusted_visible_numerator_sum": 5, "trusted_visible_players_nonzero": 1, "trusted_visible_numerator_min_nonzero": 5, "trusted_visible_numerator_max": 5},
+      "k11_15": {"denominator_premium_catalog": 1782, "trusted_visible_numerator_sum": 32, "trusted_visible_players_nonzero": 1, "trusted_visible_numerator_min_nonzero": 32, "trusted_visible_numerator_max": 32},
+      "k6_10": {"denominator_premium_catalog": 1783, "trusted_visible_numerator_sum": 23, "trusted_visible_players_nonzero": 1, "trusted_visible_numerator_min_nonzero": 23, "trusted_visible_numerator_max": 23},
+      "k1_5": {"denominator_premium_catalog": 1735, "trusted_visible_numerator_sum": 4, "trusted_visible_players_nonzero": 1, "trusted_visible_numerator_min_nonzero": 4, "trusted_visible_numerator_max": 4},
+      "d1_2": {"denominator_premium_catalog": 1483, "trusted_visible_numerator_sum": 1, "trusted_visible_players_nonzero": 1, "trusted_visible_numerator_min_nonzero": 1, "trusted_visible_numerator_max": 1},
+      "d3_4": {"denominator_premium_catalog": 2287, "trusted_visible_numerator_sum": 23, "trusted_visible_players_nonzero": 1, "trusted_visible_numerator_min_nonzero": 23, "trusted_visible_numerator_max": 23},
+      "d5_6": {"denominator_premium_catalog": 667, "trusted_visible_numerator_sum": 0, "trusted_visible_players_nonzero": 0, "trusted_visible_numerator_min_nonzero": 0, "trusted_visible_numerator_max": 0},
+      "d7_plus": {"denominator_premium_catalog": 683, "trusted_visible_numerator_sum": 0, "trusted_visible_players_nonzero": 0, "trusted_visible_numerator_min_nonzero": 0, "trusted_visible_numerator_max": 0}
+    }
+  },
+  "compatibility_inputs": {
+    "cutoff_literal": "2026-08-29T13:17:30",
+    "trusted_source_context_prefix": "mbv1:",
+    "source_question_id_count": 15830,
+    "current_pre_cutoff_review_membership_count": 83703,
+    "current_qualifying_card_membership_count": 82589,
+    "current_trusted_membership_count": 228,
+    "current_review_card_intersection_count": 82350,
+    "current_card_only_delta": 239,
+    "current_expected_frozen_union": 83942,
+    "zone_denominators_premium_catalog": {
+      "k26_30": 1939,
+      "k21_25": 1737,
+      "k16_20": 1734,
+      "k11_15": 1782,
+      "k6_10": 1783,
+      "k1_5": 1735,
+      "d1_2": 1483,
+      "d3_4": 2287,
+      "d5_6": 667,
+      "d7_plus": 683
+    }
+  },
+  "authority_firewall": {
+    "boss_state_separate": true,
+    "star_state_separate": true,
+    "unlock_state_separate": true,
+    "reward_state_separate": true,
+    "spirit_state_separate": true,
+    "coin_state_separate": true,
+    "equipment_state_separate": true,
+    "evidence": {
+      "boss_and_stars": "adventure_boss_progress.cleared and adventure_boss_progress.stars",
+      "unlock": "adventure_zone_unlocks",
+      "rewards": ["reward_claimed", "currency_log", "coin_purchase_operations"],
+      "spirit": ["spirit_evolution_events", "companion_operations"],
+      "coins": ["user_stats.coins", "currency_log", "coin_purchase_operations"],
+      "equipment": ["player_inventory", "player_wardrobe", "player_appearance"]
+    }
+  },
+  "production_corpus": {
+    "path": "/app/data/questions.json",
+    "record_count": 41591,
+    "enabled_count": 41591,
+    "bytes": 71534621,
+    "sha256": "b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232"
+  },
+  "stability_recheck": {
+    "first_db_observation_utc": "2026-08-31T07:06:23Z",
+    "second_runtime_observation_utc": "2026-08-31T07:10:39Z",
+    "second_db_observation_utc": "2026-08-31T07:10:41Z",
+    "production_runtime_identity_unchanged": true,
+    "production_corpus_unchanged": true,
+    "production_source_counts_unchanged": true,
+    "production_schema_state_unchanged": true,
+    "production_unchanged_verified": true
+  },
+  "boundaries": {
+    "production_query": true,
+    "production_mutation": false,
+    "master_merge": false,
+    "master_push": false,
+    "deploy": false,
+    "owner_gate_consumed": false,
+    "secret_key_touched": false,
+    "baseline_executed": false,
+    "backfill_executed": false,
+    "ready_for_incident019b_canonical_admission": false,
+    "next_task": "RESOLVE_R1_SAFE_IDENTIFIER_MAPPING_OR_OWNER_CONFIRM_ACCOUNT_REPLACEMENT"
+  },
+                "artifact_integrity": {
+                  "hash_scope": "SHA-256 of the exact JSON artifact; the value is reported in the Markdown artifact and final report because embedding a self-hash would be circular"
+                }
+}
