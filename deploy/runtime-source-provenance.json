@@ -428,16 +428,16 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "4b52286c88bdc08484abf9f8acafcce3978ec28a",
-      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
-      "source_commit_subject": "fix(shop): close default purchase authority split",
-      "source_date": "2026-08-29",
-      "content_sha256": "e611ef8c14feb92598058119ddc119b5bdf5299a5b585968d6544264ebac1566",
-      "content_size_bytes": 75418,
+      "source_commit": "3995a87c519f2e38277cf21ac8c48c833d2db1f0",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "preflight: rebase A051 hero equipment presentation",
+      "source_date": "2026-08-31",
+      "content_sha256": "21890153c1799fd69ce7759d3babbee9be847db7a52c7bc19247c3d903c92985",
+      "content_size_bytes": 75923,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is the A051 commit that introduced the current blob and is byte-identical to current content; deployment remains separately gated"
     },
     {
       "path": "badges.html",
