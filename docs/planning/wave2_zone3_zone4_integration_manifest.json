@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "task": "WAVE2_ZONE3_TEMPLATE_EXTRACTION_AND_ZONE4_MISTY_FOREST_VERTICAL_SLICE_FOUNDATION_001",
+  "base": {
+    "canonical_master": "b3d37e22e7471d0429d882c43c3ee16049c68ea1",
+    "mode": "IMPLEMENTATION_ALLOWED_WITH_APP_PY_FIREWALL",
+    "app_py_writer": "CODEX-1_INCIDENT019B",
+    "app_py_write": "FORBIDDEN"
+  },
+  "zone3_template_inventory": {
+    "authority_module": "adventure_zone3_monster_authority.py",
+    "template_module": "adventure_zone_authority_template.py",
+    "profile_authority": "monster_profiles.py",
+    "combat_projection": "monster_combat_profiles.py",
+    "settlement_authority": "monster_settlement.py",
+    "drop_reference": "monster_drop_profiles.py",
+    "reward_reference": "monster_reward_profiles.py",
+    "client_projection_adapter": "js/map_battle_v1_adapter.js",
+    "zone3_binding_count": 13,
+    "zone3_normal_ids": ["M022", "M023", "M024", "M025", "M026", "M027", "M028", "M029", "M030", "M031", "M032", "M033", "M060"],
+    "zone3_lord_id": "goblin_centurion",
+    "zone3_lord_classification": "LORD_ONLY",
+    "runtime_callers": [
+      "app.py::_map_battle_zone3_binding",
+      "app.py::_map_battle_monster_profile_resolver",
+      "app.py::_map_battle_public_state",
+      "app.py::map-battle-v1 attempts",
+      "app.py::map-battle-v1 answers and settlement",
+      "app.py::serve_zone3_monster_art",
+      "index.html::Adventure encounter continuation",
+      "i18n.js::adventure.zone3 bilingual copy",
+      "js/map_battle_v1_adapter.js::state.adventureMonster",
+      "tests/test_e055_zone3_vertical_slice.py"
+    ],
+    "reusable_contracts": [
+      "explicit server-created M-ID binding",
+      "deterministic question identity to normal roster selection",
+      "persisted migration source/version/profile validation",
+      "explicit combat profile projection",
+      "presentation-only payload projection",
+      "existing monster_settlement drop/reward ownership seam"
+    ]
+  },
+  "reusable_zone_authority_modules": [
+    "adventure_zone_authority_template.py"
+  ],
+  "zone3_specific_paths": [
+    "adventure_zone3_monster_authority.py",
+    "tests/test_e055_zone3_vertical_slice.py",
+    "components/adventure/world_stage.html",
+    "js/map_battle_v1_adapter.js",
+    "app.py::ADVENTURE_ZONES[k16_20]",
+    "app.py::ADVENTURE_BOSS_META[k16_20]",
+    "app.py::map-battle-v1 Adventure Zone 3 callers",
+    "index.html",
+    "i18n.js"
+  ],
+  "zone4": {
+    "key": "k11_15",
+    "name": "Misty Forest",
+    "books": ["7迷霧森林", "8迷霧森林深處"],
+    "existing_canonical_row_source": "app.ADVENTURE_ZONES[k11_15].books",
+    "existing_canonical_row_status": "BOOK_BINDING_CANONICAL_QUESTION_DATA_NOT_TRACKED",
+    "monster_ids": ["M034", "M035", "M036", "M037", "M038", "M039", "M040", "M041", "M042", "M043", "M044", "M045"],
+    "monster_binding_count": 12,
+    "normal_count": 12,
+    "elite_count": 0,
+    "boss_count": 0,
+    "lord_id": "misty_phantom_rabbit_king",
+    "lord_classification": "LORD_ONLY",
+    "binding_source": "adventure-zone4-misty-forest-monster-catalog",
+    "binding_version": "wave2.zone4.binding.v1",
+    "profile_version": "wave2.zone4.normal.v1",
+    "drop_reference": "drop_legacy_rabbit",
+    "reward_reference": "reward_battlefield_legacy",
+    "storyboard_available": true,
+    "storyboard_paths": [
+      "assets/storyboards/go_misty_forest_scene_01.webp",
+      "assets/storyboards/go_misty_forest_scene_02.webp",
+      "assets/storyboards/go_misty_forest_scene_03.webp",
+      "assets/storyboards/go_misty_forest_scene_04.webp"
+    ],
+    "vo_available": true,
+    "vo_paths": {
+      "zh": [
+        "assets/storyboards/go_misty_forest_voice_01.mp3",
+        "assets/storyboards/go_misty_forest_voice_02.mp3",
+        "assets/storyboards/go_misty_forest_voice_03.mp3",
+        "assets/storyboards/go_misty_forest_voice_04.mp3"
+      ],
+      "en": [
+        "assets/storyboards/go_misty_forest_voice_en_01.mp3",
+        "assets/storyboards/go_misty_forest_voice_en_02.mp3",
+        "assets/storyboards/go_misty_forest_voice_en_03.mp3",
+        "assets/storyboards/go_misty_forest_voice_en_04.mp3"
+      ]
+    },
+    "new_art_required_count": 0,
+    "new_audio_required_count": 0,
+    "lean_reuse": {
+      "bgm": [
+        "assets/e10/audio/zone2/bgm/zone2_bgm_recovery.mp3",
+        "assets/e10/audio/zone1/bgm/zone1_bgm_main_theme.mp3"
+      ],
+      "ambience": [
+        "assets/e10/audio/zone2/ambience/zone2_ambience_plains_recovery.mp3"
+      ]
+    }
+  },
+  "implementation_files": [
+    "adventure_zone_authority_template.py",
+    "adventure_zone3_monster_authority.py",
+    "adventure_zone4_misty_forest_authority.py",
+    "adventure_zone4_misty_forest_content.py",
+    "tests/test_wave2_zone4_misty_forest_foundation.py",
+    "docs/planning/wave2_zone3_zone4_integration_manifest.json",
+    "docs/planning/wave2_zone3_zone4_integration_manifest.md"
+  ],
+  "authority_invariants": [
+    "monster defeat does not clear the zone",
+    "Battlefield Boss remains distinct from Adventure Lord",
+    "Quest remains distinct from World authority",
+    "selectedZone remains distinct from progressionZone",
+    "drops and rewards remain delegated to existing server settlement",
+    "no replay progression/reward/Spirit/Boss-clear mutation is introduced",
+    "no client-derived progression or historical-question-count inference"
+  ],
+  "app_py_integration_deferred": true,
+  "deferred_app_py_callers": [
+    "top-level import block: import Zone4 authority symbols",
+    "_map_battle_zone3_binding: add parallel _map_battle_zone4_binding fail-closed resolver",
+    "_map_battle_monster_profile_resolver: select Zone4 explicit combat profile",
+    "_map_battle_public_state: expose Zone4 presentation projection",
+    "map-battle-v1 attempts route: select/encode Zone4 binding from server question id",
+    "map-battle-v1 answer/settlement route: decode Zone4 binding and pass Zone4 registries to existing settlement",
+    "serve_zone3_monster_art: extend the allowlist seam for the existing Zone4 presentation assets",
+    "Adventure entry integration: keep existing k11_15 book mapping, Lord metadata, selectedZone/progressionZone split, and clear authority"
+  ],
+  "schema_change_required": false,
+  "owner_decision_required": [
+    "Owner unlock of the Incident019B app.py writer window",
+    "Owner approval for the later app.py integration and player-visible enablement",
+    "Owner approval of any future Zone4 balance or new-art/audio change"
+  ],
+  "ready_for_zone4_integration_after_writer_unlock": "YES_FOUNDATION_ONLY",
+  "controls": {
+    "shared_write_paths": "FORBIDDEN",
+    "production_query": "NO",
+    "production_mutation": "NO",
+    "master_merge": "NO",
+    "deploy": "NO",
+    "secret_key_touched": "NO",
+    "incident019b_paths_altered": false,
+    "art003_b01_b11_paths_altered": false,
+    "app_py_altered": false,
+    "schema_altered": false
+  },
+  "next_task": "ZONE4_APP_PY_INTEGRATION_AFTER_INCIDENT019B_WRITER_UNLOCK_AND_OWNER_GATE"
+}
