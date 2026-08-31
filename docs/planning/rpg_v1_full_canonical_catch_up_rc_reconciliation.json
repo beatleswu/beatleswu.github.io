@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "task": "RPG_V1_FULL_CANONICAL_CATCH_UP_RC_DEPENDENCY_AND_PROVENANCE_RECONCILIATION_001",
+  "role": "RELEASE_GOVERNANCE",
+  "mode": "READ_ONLY_RELEASE_RECONCILIATION",
+  "assignee": "CODEX",
+  "observation_date": "2026-08-31",
+  "preferred_path": "FULL_CANONICAL_CATCH_UP_RC",
+  "fallback": "INCIDENT018_ONLY_HOTFIX",
+  "status": "RECONCILIATION_COMPLETE_FULL_RC_BLOCKED",
+  "result": "EVIDENCE_PUBLISHED_FULL_RC_SOURCE_LOCK_BUILD_AND_DEPLOY_NOT_READY",
+  "canonical": {
+    "origin_master_head": "b3d37e22e7471d0429d882c43c3ee16049c68ea1",
+    "origin_master_tree": "39392e8c0df272fb3b0d3df2ec0c1f4f21ab7a93",
+    "remote_head_verified": true,
+    "shared_checkout": {
+      "path": "D:\\go-website",
+      "branch": "codex/art003-b01-r1-targeted-visual-revision",
+      "head": "2c25f2f423f672023a919abaf35f6c975bcf3d65",
+      "tree": "ca84eac422997d87645a92363559ab71d6494e23",
+      "preserved": true,
+      "mutated": false
+    }
+  },
+  "production": {
+    "source_sha": "cc6b7915e4a70677ac7e1bafacff69fc70e33b84",
+    "source_sha_provenance": "OCI revision label and static manifest; Git object unavailable in current repository",
+    "image": "go-odyssey-app:cc6b7915",
+    "image_digest": "sha256:0805b6914c67330e596b84fd4992394124d882baae695104b5433efde0ebf422",
+    "static_generation": "20260830-000006-cc6b7915-v240-a028-hero-player-presentation-readonly",
+    "sw_version": "v240-a028-hero-player-presentation-readonly",
+    "sw_sha256": "d468dfb90891b7fdfc4882ec4c9825552b7f847968392ccc4245e602f0f6a64e",
+    "baked_sw_sha256": "1e15bf565450b0f3bd78ac0837773e17662cab0be8467b3a0f11b2b04e85d9a8",
+    "public_checks": {"healthz": 200, "login": 200, "homepage": 200, "sw_js": 200},
+    "live_app_sha256": "737462f0c96d319c8e458ec546d6741469d21f37cb9d4bf7899ea4ca8e357256",
+    "missing_live_files": [
+      "incident_018_observability.py",
+      "adventure_progress_compatibility.py",
+      "migrations/adventure_historical_mastery_v1.py",
+      "tools/incident_019b_progression_continuity.py",
+      "identity_read_adapter.py",
+      "puzzle_identity_read_window.py",
+      "puzzle_identity_store.py",
+      "migrations/puzzle_identity_registry_v1.py",
+      "puzzle_identity_genesis_bootstrap.py"
+    ]
+  },
+  "incident018": {
+    "canonical": true,
+    "production_fixed": false,
+    "production_accepted": false,
+    "required_acceptance": "Full 20-question Lord trial including resume before expiry and resume after expiry",
+    "historical_build_preflight": "BLOCKED_BEFORE_DOCKER; 17 failed, 909 passed, 108 skipped"
+  },
+  "incident019b": {
+    "r3_remote_head": "d24062467100790ce681d926da15e70ab304a2ad",
+    "remote_verified": true,
+    "canonical": false,
+    "before_snapshot_status": "WAITING",
+    "production_compatibility_executed": false,
+    "migration_backfill_executed": false,
+    "common_base": "6228de020dea513fe33b974a37444537738c0baa",
+    "synthetic_merge_tree": "f2d3d046c94670c040c24e932a8a36c6d9b41da2",
+    "source_paths": [
+      "adventure_progress_compatibility.py",
+      "app.py",
+      "migrations/adventure_historical_mastery_v1.py",
+      "tests/test_e10_zone2_runtime_foundation.py",
+      "tests/test_incident_019b_progression_compatibility.py",
+      "tools/incident_019b_progression_continuity.py"
+    ]
+  },
+  "lc020": {
+    "db_state": "HOT_APPLIED",
+    "registry_count": 42804,
+    "alias_total": 129330,
+    "alias_current": 129308,
+    "alias_noncurrent": 22,
+    "lineage_count": 42804,
+    "receipt_count": 1,
+    "identity_group": "HISTORICAL_GENESIS ACTIVE GENESIS 42804",
+    "receipt_status": "APPLIED",
+    "frozen_corpus_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "app_source_contains_read_adapter": false,
+    "current_production_compatibility": "ADDITIVE_LEGACY_COEXISTENCE_ONLY_NOT_FULL_RC_COMPATIBLE",
+    "release_blocker": true,
+    "mutation_performed": false
+  },
+  "b11": {
+    "canonical": true,
+    "asset_ids": ["M110", "M111", "M113", "M114", "M115", "M116", "M117", "M118", "M119", "M120"],
+    "asset_bytes_match_source_branch": true,
+    "canonical_docs_and_tests_adapted": true
+  },
+  "production_features": {
+    "shop": "NO",
+    "loadout": "NO",
+    "payments": "YES_PROVIDER_CONFIGURED_LIVE",
+    "revenue": "NO_CANONICAL_CLAIM_ROUTE_DEFAULT_OFF",
+    "community_leaderboard_rewards_env": "true",
+    "premium_weekly_scheduler": "0",
+    "shadow_judging": "true"
+  },
+  "active_slots": [
+    {"slot": "CODEX-1", "classification": "PRODUCTION_READONLY", "safe_after_rc_lock": true, "note": "R5A snapshot prerequisite; do not duplicate or mutate"},
+    {"slot": "CODEX-2", "classification": "PRODUCTION_READONLY", "safe_after_rc_lock": true, "note": "candidate acceptance rerun required"},
+    {"slot": "CODEX-3", "classification": "NON_SOURCE_PLANNING", "safe_after_rc_lock": true},
+    {"slot": "CODEX-4", "classification": "NON_SOURCE_PLANNING", "safe_after_rc_lock": true},
+    {"slot": "CODEX-5", "classification": "PRODUCTION_READONLY", "safe_after_rc_lock": true}
+  ],
+  "global_freeze_required_lanes": [
+    "INCIDENT019B_APP_PY_WRITER_PRIORITY_AT_RC_LOCK"
+  ],
+  "evidence_classification": [
+    {"name": "Committed Incident018/D044/LC020/B11 source lineage", "classification": "REUSABLE_UNCHANGED_IDENTITY", "boundary": "Source lineage only; fresh SHA/tree verification required"},
+    {"name": "B11 ten asset bytes and owner-frozen IDs", "classification": "REUSABLE_UNCHANGED_IDENTITY", "boundary": "Reuse asset hashes; rerun final package closure"},
+    {"name": "D044-R5 exact eight-file admission and historical validation", "classification": "REUSABLE_UNCHANGED_IDENTITY", "boundary": "Historical payload proof only; final candidate re-anchor required"},
+    {"name": "D041 package integrity", "classification": "REQUIRES_RERUN_CANDIDATE_CHANGED", "boundary": "Rerun against locked candidate; physical acceptance was unexecuted"},
+    {"name": "A2/A3/A4 closure, E10 VS1E, hero, Lord, zero-Coins, leaderboard", "classification": "REQUIRES_RERUN_CANDIDATE_CHANGED", "boundary": "Rerun after app/source candidate changes"},
+    {"name": "Incident018 full Lord acceptance", "classification": "REQUIRES_RERUN_CANDIDATE_CHANGED", "boundary": "No current PASS; full 20-question and pre/post-expiry resume required"},
+    {"name": "Static/SW cache identity", "classification": "REQUIRES_RERUN_CANDIDATE_CHANGED", "boundary": "Use release-<LOCKED_FULL_SOURCE_SHA>"},
+    {"name": "LC020 live DB snapshot", "classification": "REUSABLE_UNCHANGED_IDENTITY", "boundary": "Current read-only DB fact only; compatibility rerun required"},
+    {"name": "Old cc6b Production acceptance as candidate approval", "classification": "OBSOLETE", "boundary": "Baseline provenance only"},
+    {"name": "Incident019B migration/backfill proof", "classification": "NOT_APPLICABLE", "boundary": "Explicitly forbidden and not executed"},
+    {"name": "Incident018-only hotfix path", "classification": "NOT_APPLICABLE", "boundary": "Fallback, not preferred full catch-up path"}
+  ],
+  "required_rerun_tests": [
+    "Incident019B progression compatibility and continuity tests",
+    "E10 Zone 2 runtime foundation contract",
+    "Incident018 observability and attempt-lease tests",
+    "Full 20-question Lord trial with resume before expiry and after expiry",
+    "Hero legacy-cache guard and Lord contract matrix",
+    "Zero-Coins Shop/Loadout containment",
+    "E10 VS1E, A2/A3/A4, i18n fallback, leaderboard eligibility/reward safety",
+    "B11 asset/package closure and LC020 post-Genesis application compatibility",
+    "D041 candidate package integrity and release build/package preflight",
+    "Static/SW public, baked, and release namespace hash verification"
+  ],
+  "required_device_acceptance": [
+    "D041 candidate package verification",
+    "Physical Desktop acceptance",
+    "Physical iPad acceptance",
+    "Physical iPhone/browser acceptance",
+    "Full Lord trial/resume flow and release cache namespace checks"
+  ],
+  "readiness": {
+    "ready_to_lock_full_rc_source_sha": false,
+    "ready_for_full_rc_build": false,
+    "ready_for_go_deploy": false
+  },
+  "blockers": {
+    "source": [
+      "Incident019B R3 is not canonical",
+      "CODEX-1 before-state snapshot status is WAITING",
+      "No full-RC source SHA may be locked yet"
+    ],
+    "production": [
+      "Live image/static are the older cc6b baseline",
+      "Live app lacks Incident018, Incident019B, and LC020 read-adapter files",
+      "LC020 DB is HOT_APPLIED while live app is legacy-only",
+      "Community leaderboard rewards are enabled in existing Production",
+      "Payment providers are configured live despite canonical purchase/revenue flags being off"
+    ],
+    "device": [
+      "Full 20-question Lord/resume acceptance unexecuted",
+      "D041 physical Desktop/iPad/iPhone acceptance unexecuted"
+    ],
+    "owner_gate": [
+      "GO_MERGE Incident019B not granted",
+      "GO_DEPLOY explicitly prohibited by task",
+      "DB migration/backfill and feature enablement not authorized"
+    ]
+  },
+  "controls": {
+    "app_py_changed": "NO",
+    "source_changed": "NO",
+    "production_mutation": "NO",
+    "deploy": "NO",
+    "rollback": "NO",
+    "secret_key_touched": "NO"
+  },
+  "next_task": "WAIT_FOR_CODEX1_INCIDENT019B_R5A_BEFORE_SNAPSHOT_THEN_OWNER_GO_MERGE_AND_FRESH_FULL_RC_REANCHOR"
+}
