@@ -196,15 +196,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "c5455923ad9430bdcafaee3cbc59ebea4c2e075e",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(incident-018): settle Lord attempt scope before quota and before the judge",
-      "source_date": "2026-08-30",
-      "content_sha256": "6a8fd37fabfdb0d0accc4c66d4be3fe9ecb6f29187a2f7eb5b2c01fc6154bec4",
-      "content_size_bytes": 1049707,
+      "source_commit": "751f942bd2113ec978720132dc7b694c8fa47d54",
+      "source_branch_or_local_ref": "codex/rpg-v1-legacy-newbie-quest-safe-retirement-hardening-002",
+      "source_commit_subject": "Retire legacy RPG V1 newbie quest flow",
+      "source_date": "2026-08-31",
+      "content_sha256": "1d697d4ee4d64236c32180b2312655ba0021c813e7e34a79ddef6b2335ead606",
+      "content_size_bytes": 1019525,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
+      "source_status": "feature-branch provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "terms.html",
@@ -244,16 +244,16 @@
     },
     {
       "path": "bot.html",
-      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
-      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
-      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
-      "source_date": "2026-08-29",
-      "content_sha256": "311671421c88d1299c6c6ea7710f577e023ce749a62a9955001757612ee77d54",
-      "content_size_bytes": 91858,
+      "source_commit": "751f942bd2113ec978720132dc7b694c8fa47d54",
+      "source_branch_or_local_ref": "codex/rpg-v1-legacy-newbie-quest-safe-retirement-hardening-002",
+      "source_commit_subject": "Retire legacy RPG V1 newbie quest flow",
+      "source_date": "2026-08-31",
+      "content_sha256": "7b8777cd50cb8b569a6195486c2823d1bbdd07cd7fcd3c7e0d6d966ad036a3a8",
+      "content_size_bytes": 89735,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "feature-branch provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "daily_challenge.html",
@@ -317,29 +317,29 @@
     },
     {
       "path": "curriculum.html",
-      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
-      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
-      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
-      "source_date": "2026-08-29",
-      "content_sha256": "e56cb62a902eca9ee88cb840f4e21719cee54e179fc3687496f0f8f6a80481e2",
-      "content_size_bytes": 136414,
+      "source_commit": "751f942bd2113ec978720132dc7b694c8fa47d54",
+      "source_branch_or_local_ref": "codex/rpg-v1-legacy-newbie-quest-safe-retirement-hardening-002",
+      "source_commit_subject": "Retire legacy RPG V1 newbie quest flow",
+      "source_date": "2026-08-31",
+      "content_sha256": "5903a89237c6b0dab4a7db6c41384026d717c75de5645b5dc98ec4bd2dc58e96",
+      "content_size_bytes": 128990,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "feature-branch provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "hero.html",
-      "source_commit": "49aaa3dbb9fbf8d0e11b8256fb98731d8f9a2a7d",
-      "source_branch_or_local_ref": "codex/b057-rpg-v1-final-release-candidate",
-      "source_commit_subject": "fix: bound legacy hero cache to server presentation",
-      "source_date": "2026-08-29",
-      "content_sha256": "899dafbaf99c21028a725fb968e7db14bc3cf4b944780cecee02d5466fd8b18d",
-      "content_size_bytes": 284136,
+      "source_commit": "751f942bd2113ec978720132dc7b694c8fa47d54",
+      "source_branch_or_local_ref": "codex/rpg-v1-legacy-newbie-quest-safe-retirement-hardening-002",
+      "source_commit_subject": "Retire legacy RPG V1 newbie quest flow",
+      "source_date": "2026-08-31",
+      "content_sha256": "9881d5c8d0ef1c88173ecc1c37d948ddb771d963150ee733714cdde77f000a12",
+      "content_size_bytes": 277429,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "candidate RC provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "feature-branch provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "rating_test.html",
@@ -355,15 +355,15 @@
     },
     {
       "path": "shop.html",
-      "source_commit": "799dbf42919946319c5735975a83ecbc38b9d9a2",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(c053): contain public shop to option b surfaces",
-      "source_date": "2026-08-30",
-      "content_sha256": "2dbd967afcba591b7659eb1bfce8ef1bd467dc646652fbeb68ae236e5e522820",
-      "content_size_bytes": 163127,
+      "source_commit": "751f942bd2113ec978720132dc7b694c8fa47d54",
+      "source_branch_or_local_ref": "codex/rpg-v1-legacy-newbie-quest-safe-retirement-hardening-002",
+      "source_commit_subject": "Retire legacy RPG V1 newbie quest flow",
+      "source_date": "2026-08-31",
+      "content_sha256": "7c193b7fc0d935fd8360bc14d277065e574cb216f6aff21da50969dceb918ea8",
+      "content_size_bytes": 155984,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
+      "source_status": "feature-branch provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "profile.html",
