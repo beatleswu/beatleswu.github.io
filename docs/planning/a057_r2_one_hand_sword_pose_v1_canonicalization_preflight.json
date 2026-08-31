@@ -1,0 +1,259 @@
+{
+  "task": "A057_R2_ONE_HAND_SWORD_POSE_V1_CANONICAL_SCOPE_RECONCILIATION_AND_ADMISSION_PREFLIGHT_001",
+  "result": "PASS_A057_R2_CANONICAL_SCOPE_RECONCILIATION_PREFLIGHT",
+  "mode": "CANONICALIZATION_PREFLIGHT",
+  "pose_family": {
+    "pose_id": "ONE_HAND_SWORD_POSE_V1",
+    "pose_family": "ONE_HAND_SWORD",
+    "slot": "MAIN_HAND",
+    "shoulder_action_intent": "right_shoulder_to_main_hand",
+    "elbow_action_intent": "right_elbow_to_main_hand",
+    "forearm_direction": "character_adapter_local",
+    "wrist_orientation": "character_adapter_local",
+    "grip_point_semantics": "weapon_metadata_handle_contact",
+    "grip_axis_semantics": "weapon_metadata_handle_long_axis",
+    "grip_width_semantics": "weapon_metadata_handle_width",
+    "weapon_swap_contract": "one_pose_family_with_independent_weapon_layers",
+    "default_pose_fallback": "character_adapter.fallback_asset"
+  },
+  "character_adapters": {
+    "apprentice": {
+      "metadata_path": "docs/planning/a057_r2_one_hand_sword_pose_v1_canonicalization_preflight.json",
+      "metadata_section": "#/character_adapters/apprentice",
+      "character_id": "apprentice",
+      "full_pose_asset": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/pose/apprentice_one_hand_sword_pose_v1_base.png",
+      "right_hand_socket": [300.0, 650.0],
+      "coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI_1056x1408_PIXELS",
+      "local_scale": 1.0,
+      "local_rotation_degrees": 0.0,
+      "sleeve_armor_clearance": "PASS_NOT_ARMOR_BLOCKED",
+      "occlusion_order": [
+        "L10_CHARACTER_BASE",
+        "L20_WEAPON_BACK",
+        "L30_SWORD_GRIP_HAND",
+        "L40_WEAPON_FRONT"
+      ],
+      "fallback_asset": "assets/hero/characters/wave2_p1/apprentice_p1.png",
+      "review_geometry_fields": {
+        "shoulder_anchor": "not_required_for_precomposed_adapter",
+        "elbow_target": "not_required_for_precomposed_adapter",
+        "forearm_direction": "captured_by_pose_asset_and_generic_intent",
+        "wrist_angle_degrees": "not_required_for_precomposed_adapter",
+        "palm_center": "not_required_when_right_hand_socket_is_authoritative"
+      }
+    },
+    "paladin": {
+      "metadata_path": "docs/planning/a057_r2_one_hand_sword_pose_v1_canonicalization_preflight.json",
+      "metadata_section": "#/character_adapters/paladin",
+      "character_id": "paladin",
+      "full_pose_asset": {
+        "path": "docs/planning/a057_r1_paladin_one_hand_sword_validation/source_reference/paladin_one_hand_sword_pose_v1_weapon_free.png",
+        "status": "REVIEW_ONLY_SOURCE_NOT_RUNTIME_ASSET"
+      },
+      "right_hand_socket": [0.304, 0.426],
+      "coordinate_space": "A057_R1_REVIEW_POSE_CANVAS_1086x1448_NORMALIZED",
+      "local_scale": 1.0,
+      "local_rotation_degrees": 0.0,
+      "sleeve_armor_clearance": "PASS_REVIEW_READY",
+      "occlusion_order": [
+        "CHARACTER_BASE",
+        "WEAPON_BACK",
+        "PALADIN_GRIP_HAND",
+        "WEAPON_FRONT",
+        "EXISTING_CHARACTER_FRONT_LAYERS"
+      ],
+      "fallback_asset": "assets/hero/characters/wave2_p1/paladin_p1.png",
+      "review_geometry_fields": {
+        "shoulder_anchor": [0.382, 0.266],
+        "elbow_target": [0.351, 0.361],
+        "forearm_direction": [-0.405, 0.914],
+        "wrist_angle_degrees": -8.0,
+        "palm_center": [0.304, 0.426]
+      },
+      "canonical_asset_note": "R2 defines the adapter and exact evidence; the R1 weapon-free source remains review-only and is not silently promoted to runtime."
+    }
+  },
+  "weapon_swap_contract": {
+    "supported_weapons": {
+      "wooden_sword": {
+        "pose_id": "ONE_HAND_SWORD_POSE_V1",
+        "slot": "MAIN_HAND",
+        "weapon_family": "ONE_HAND_SWORD",
+        "weapon_specific_character_pose": false,
+        "grip_point_normalized": [0.47, 0.61],
+        "grip_axis": [-0.7, -0.7141428429],
+        "grip_width_px": 39.0,
+        "layer_paths": [
+          "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_full.png",
+          "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_back.png",
+          "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_front.png"
+        ]
+      },
+      "iron_sword": {
+        "pose_id": "ONE_HAND_SWORD_POSE_V1",
+        "slot": "MAIN_HAND",
+        "weapon_family": "ONE_HAND_SWORD",
+        "weapon_specific_character_pose": false,
+        "grip_point_normalized": [0.47, 0.61],
+        "grip_axis": [-0.7, -0.7141428429],
+        "grip_width_px": 41.0,
+        "layer_paths": [
+          "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_full.png",
+          "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_back.png",
+          "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_front.png"
+        ]
+      }
+    },
+    "same_character_pose_for_both_weapons": true,
+    "grip_point_supported": true,
+    "grip_axis_supported": true,
+    "grip_width_supported": true,
+    "excluded_weapons": ["fox_fang"]
+  },
+  "true_grip_contract": {
+    "wooden_sword": {
+      "handle_enters_palm": true,
+      "four_fingers_wrap": true,
+      "thumb_opposes": true,
+      "wrist_continuity": "PASS",
+      "forearm_continuity": "PASS",
+      "shoulder_to_hand_action": "PASS"
+    },
+    "iron_sword": {
+      "handle_enters_palm": true,
+      "four_fingers_wrap": true,
+      "thumb_opposes": true,
+      "wrist_continuity": "PASS",
+      "forearm_continuity": "PASS",
+      "shoulder_to_hand_action": "PASS"
+    }
+  },
+  "registry_decision": {
+    "existing_registry_extension_safe": false,
+    "separate_presentation_metadata_required": true,
+    "new_runtime_registry_required": false,
+    "reason": "The existing registry preserves WAIST_SHEATHED and hand-held-static FORBIDDEN. R2 needs review/provenance metadata only; extending app.py or changing the runtime registry would exceed the app.py firewall and would be a separate runtime task."
+  },
+  "path_reconciliation": {
+    "generic_contract_paths": [
+      "docs/planning/a057_r2_one_hand_sword_pose_v1_canonicalization_preflight.json"
+    ],
+    "apprentice_adapter_paths": [
+      "docs/planning/a057_r2_one_hand_sword_pose_v1_canonicalization_preflight.json#/character_adapters/apprentice"
+    ],
+    "apprentice_asset_paths": [
+      "docs/planning/a056_p0_one_hand_sword_pose_family/assets/pose/apprentice_one_hand_sword_pose_v1_base.png",
+      "docs/planning/a056_p0_one_hand_sword_pose_family/assets/pose/apprentice_one_hand_sword_pose_v1_grip_hand.png",
+      "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_full.png",
+      "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_back.png",
+      "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_front.png",
+      "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_full.png",
+      "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_back.png",
+      "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_front.png"
+    ],
+    "paladin_adapter_paths": [
+      "docs/planning/a057_r2_one_hand_sword_pose_v1_canonicalization_preflight.json#/character_adapters/paladin"
+    ],
+    "paladin_asset_paths": [
+      {
+        "path": "assets/hero/characters/wave2_p1/paladin_p1.png",
+        "status": "EXISTING_CANONICAL_FALLBACK_UNCHANGED"
+      },
+      {
+        "path": "docs/planning/rpg_wave2_full_body_weapon_pose_system/variants/paladin_one_hand_sword_pose.png",
+        "status": "EXISTING_ACCEPTED_REVIEW_EVIDENCE_NOT_RUNTIME"
+      },
+      {
+        "path": "docs/planning/a057_r1_paladin_one_hand_sword_validation/source_reference/paladin_one_hand_sword_pose_v1_weapon_free.png",
+        "status": "R1_REVIEW_ONLY_SOURCE_NOT_RUNTIME"
+      }
+    ],
+    "test_paths": [
+      "tests/test_a056_p0_one_hand_sword_pose_family.py",
+      "tests/test_a057_r1_paladin_one_hand_sword_validation.py",
+      "tests/test_a053_r3_true_handle_grip_anatomy.py",
+      "tests/test_a054_p0_paper_doll_split_weapon_grip.py",
+      "tests/test_rpg_wave2_full_body_weapon_pose_system.py",
+      "tests/test_rpg_wave2_modular_2d_handheld_sword_prototype.py",
+      "tests/test_rpg_wave2_one_hand_sword_pose_batch2.py",
+      "tests/test_rpg_wave2_weapon_pose_armor_compatibility.py",
+      "tests/test_rpg_wave2_lane_b_functional_equipment_presentation_wiring.py",
+      "tests/test_rpg_wave2_master_lane_b_runtime_closure.py",
+      "tests/test_rpg_wave2_gate2_p2b_weapon_carry_fitting.py",
+      "tests/test_rpg_wave2_modular_equipment_production_v2_p1.py",
+      "tests/test_rpg_wave2_gate2_p3_wearable_production_runtime.py"
+    ],
+    "review_evidence_paths": [
+      "docs/planning/a056_p0_one_hand_sword_pose_family/review/",
+      "docs/planning/a056_p0_one_hand_sword_pose_family/source_reference/",
+      "docs/planning/a057_r1_paladin_one_hand_sword_validation/review/",
+      "docs/planning/a057_r1_paladin_one_hand_sword_validation/source_reference/",
+      "docs/planning/rpg_wave2_full_body_weapon_pose_system/variants/paladin_one_hand_sword_pose.png"
+    ],
+    "excluded_source_evidence_paths": [
+      "docs/planning/a056_p0_one_hand_sword_pose_family/a056_p0_contract.json",
+      "docs/planning/a057_r1_paladin_one_hand_sword_validation/a057_r1_contract.json"
+    ],
+    "canonical_candidate_path_count": 12,
+    "source_union_path_count": 37,
+    "source_union_review_path_count": 20,
+    "source_union_excluded_evidence_path_count": 6,
+    "source_union_overlap_count": 0,
+    "total_unexpected_path_count": 0
+  },
+  "source_identity": {
+    "fresh_origin_master_head": "b3d37e22e7471d0429d882c43c3ee16049c68ea1",
+    "fresh_origin_master_tree": "39392e8c0df272fb3b0d3df2ec0c1f4f21ab7a93",
+    "a056_remote_head": "ac4c7ea49945b473a91753b0685dca487955148b",
+    "a056_remote_tree": "47367ab9f910828f9b46f1761af646dffd85806d",
+    "a057_r1_remote_head": "90127f9a4b9eb2055cd9004733d27a9f7b9e8b10",
+    "a057_r1_remote_tree": "787da96569d7b18beaadc093c7ec7dec2f981fa4",
+    "synthetic_base_head": "b3d37e22e7471d0429d882c43c3ee16049c68ea1",
+    "synthetic_base_tree": "39392e8c0df272fb3b0d3df2ec0c1f4f21ab7a93",
+    "synthetic_final_tree": "906360976d6e2e3e46ffa0b297ae436962a4633f",
+    "path_conflict_count": 0,
+    "semantic_conflict_count": 0,
+    "unexpected_path_count": 0
+  },
+  "owner_and_scope": {
+    "a056_owner_visual_pass_verified": true,
+    "a057_r1_owner_visual_pass_locked": true,
+    "same_pose_family_used": true,
+    "character_specific_adapter_required": true,
+    "weapon_specific_pose_required": false,
+    "wooden_sword_scope": "IN_SCOPE",
+    "iron_sword_scope": "IN_SCOPE",
+    "fox_fang_scope": "EXCLUDED",
+    "owner_acceptance_note": "A057-R1's checked-in contract predates the supplied Owner lock and retains its historical NOT_GRANTED field; the task authority supplied for R2 locks both Paladin normal renders as PASS."
+  },
+  "test_summary": {
+    "focused_test_count": 14,
+    "focused_pass": 14,
+    "focused_fail": 0,
+    "focused_skip": 0,
+    "related_test_count": 73,
+    "related_pass": 72,
+    "related_fail": 1,
+    "related_skip": 0,
+    "task_introduced_failures": 0,
+    "baseline_failure": {
+      "test": "tests/test_rpg_wave2_gate2_p3_wearable_production_runtime.py::test_all_runtime_overlays_and_masks_are_true_alpha_and_normalized",
+      "cause": "origin/master wearable_registry.json references go_stone_black.png, which is absent from the fresh master checkout",
+      "introduced_by_a057_r2": false
+    }
+  },
+  "firewall": {
+    "app_py_changed": false,
+    "runtime_changed": false,
+    "combat_authority_changed": false,
+    "equipment_authority_changed": false,
+    "schema_changed": false,
+    "production_query": false,
+    "production_mutation": false,
+    "master_merge": false,
+    "master_push": false,
+    "deploy": false,
+    "secret_key_touched": false
+  },
+  "next_task": "A057_R3_OWNER_CANONICAL_ADMISSION_GATE_PACKET_001"
+}
