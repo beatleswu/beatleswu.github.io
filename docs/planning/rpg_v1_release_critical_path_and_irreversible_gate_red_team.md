@@ -639,3 +639,82 @@ Dependencies that would change conclusions in this document:
 - A star-continuity capture would supply the per-account regression counts §2
   currently reasons about only in aggregate.
 - The §3 corpus-drift query may promote that P1.
+
+---
+
+## 12. Addendum — measured suite health, master vs the deployed baseline
+
+Added after the full-suite run completed. All figures measured on one machine.
+
+### Canonical master `b3d37e22e`, full suite
+
+```
+118 failed, 4595 passed, 182 skipped, 4 errors   (1:40:38)
+```
+
+Largest clusters: 34 `test_community_leaderboard_reward_w28_safe_grant`
+(`no such column: source_context`), 18 `test_f030_battlefield_boss_mapping_a_live_route`
+(route returns 400, expected 200), 9 + 4 errors
+`test_e10_lord_review_real_path_contracts`, 20 across `test_art003_b02`–`b11`
+(§4), 7 `test_community_leaderboard_weekly_scheduler`, 5
+`test_e10_lord_autonext_harness_foundation`, 2
+`test_release_build_working_directory` (PowerShell `git worktree` timeouts),
+plus ~23 singletons.
+
+### Is any of it a regression against what is deployed?
+
+Five largest clusters, run in isolation at both trees:
+
+| Tree | Result |
+| --- | --- |
+| production baseline `cc6b7915` | 45 failed, 75 passed, 13 skipped |
+| canonical master `b3d37e22e` | 54 failed, 75 passed, 0 skipped, 4 errors |
+
+The apparent `+9` is **not** a regression. All 13 baseline skips are in
+`test_e10_lord_review_real_path_contracts.py` with the recorded reason
+`playwright-core unavailable; install tests/e2e dependencies`. The gate shells
+out to `node -e "require.resolve('playwright-core')"` with `cwd=tests/e2e`, and
+Node resolves by walking up the directory tree. The first baseline worktree was
+created under `AppData\Local\Temp`, where the walk finds no `node_modules`, so
+those tests skipped. The master worktree is under `D:\go-website\.claude\worktrees\`,
+where the walk reaches `D:\go-website\node_modules\playwright-core`, so the same
+tests execute. Both resolutions were verified directly.
+
+Re-run at the baseline from a worktree where playwright **does** resolve:
+
+```
+tests/test_e10_lord_review_real_path_contracts.py @ cc6b7915
+->  8 failed, 1 passed, 1 skipped, 4 errors   (25:11)
+```
+
+against 9 failed + 4 errors for the same file on master. The failure mode is
+identical on both sides — `real-path runner failed with exit 1`,
+`page.waitForFunction: Timeout 90000ms exceeded at enterLordTrial`. These E2E
+contracts fail at the **deployed** baseline too. They are pre-existing and
+environment-sensitive, not evidence about Incident018 in production; Incident018
+acceptance is a D041 device procedure against the deployed RC, not this local
+harness.
+
+**Conclusion: no measured regression between the deployed baseline and canonical
+master.** The tree that is running in production today was itself cut against a
+red suite.
+
+### Consequence for the RC gate
+
+An absolute "full suite green" gate is not achievable this cycle, and demanding
+one would either stall the release or push someone to weaken assertions — the
+exact mechanism that produced §5. The workable gate is:
+
+1. **Delta gate.** No test may fail at the locked RC source SHA that passes at
+   `cc6b7915`, measured from equivalent worktree locations.
+2. **Targeted green.** The ART003 admission family (§4) must be repaired to
+   green outright, because it is a class defect that has already masked a real
+   regression.
+3. **Skip triage, not skip counting.** Where skip state differs between the two
+   trees, establish the cause before drawing a conclusion. In this measurement
+   every such difference was environmental. Treating a skip-to-fail transition
+   as an automatic regression would have produced a false finding here — it did,
+   in this lane's first pass, and was corrected.
+
+Both temporary baseline worktrees created for these measurements have been
+removed; `git worktree list` shows none remaining.
