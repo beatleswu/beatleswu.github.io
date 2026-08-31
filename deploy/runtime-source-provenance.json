@@ -514,15 +514,15 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "a4385d148b210e24f3e607a49c5675837dd5867c",
+      "source_commit": "0bbbc6ae40d37df5c94cf9485e33802c7b545f36",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): close cleared-zone replay CTA",
-      "source_date": "2026-08-28",
-      "content_sha256": "3ef442349559a316672700497dad18570750a285bae795981e895ce182be865a",
-      "content_size_bytes": 89340,
+      "source_commit_subject": "fix(incident-019b): restore authoritative zone star progression",
+      "source_date": "2026-08-31",
+      "content_sha256": "749c586d56bee604353901b62c5c2597b751784f5a16cca8aae61d2c566d1f04",
+      "content_size_bytes": 89848,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
+      "production_hash_status": "canonical source updated by Incident 019B R6; Production deployment status is governed separately and is not asserted by this record",
       "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
     },
     {
@@ -1093,6 +1093,30 @@
       "content_size_bytes": 9757,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import (line 223); runtime-critical -- app fails to start without it. Temporary Incident 018 verification instrumentation; scheduled for retirement only after Production acceptance and Incident 018 closure.",
+      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
+    },
+    {
+      "path": "adventure_zone_star_progression.py",
+      "source_commit": "0bbbc6ae40d37df5c94cf9485e33802c7b545f36",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix(incident-019b): restore authoritative zone star progression",
+      "source_date": "2026-08-31",
+      "content_sha256": "1ad6078e025e8f3c2628c84bbe6c29464e5922fb0c01b3ca3c3dc3cb0be7848e",
+      "content_size_bytes": 11129,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 197); runtime-critical -- server-owned Adventure Zone-star authority",
+      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
+    },
+    {
+      "path": "migrations/adventure_zone_star_progression_v1.py",
+      "source_commit": "0bbbc6ae40d37df5c94cf9485e33802c7b545f36",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix(incident-019b): restore authoritative zone star progression",
+      "source_date": "2026-08-31",
+      "content_sha256": "1f8e0fc2f36f449db0b890f13d80a1530316f641378b20a5c3010f0563e2cfc4",
+      "content_size_bytes": 11786,
+      "line_ending_policy": "LF",
+      "runtime_role": "module-scope dependency of adventure_zone_star_progression.py; runtime-critical import dependency for Zone-star table-name constants; explicit migration runner owns DDL and import does not execute it",
       "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
     }
   ]

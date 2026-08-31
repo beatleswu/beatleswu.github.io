@@ -97,6 +97,12 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         # E055 adds the server-owned Adventure Zone 3 monster binding module
         # imported by app.py and packaged as an explicit runtime dependency.
         "adventure_zone3_monster_authority.py",
+        # Incident 019B R6 adds the server-owned Zone-star authority imported
+        # by app.py at process startup; its explicit migration module is also
+        # a module-scope runtime dependency even though DDL remains operator-
+        # owned and is never executed by import.
+        "adventure_zone_star_progression.py",
+        "migrations/adventure_zone_star_progression_v1.py",
         # INCIDENT_018_R8A: app.py imports this at module level (line 223), so
         # the image cannot start without it, but it was never packaged or
         # governed. Governed here together with its Dockerfile COPY and

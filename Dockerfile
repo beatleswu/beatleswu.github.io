@@ -33,6 +33,10 @@ COPY app.py ./
 # Incident 019B: app.py imports the compatibility reader at process startup.
 # Keep this runtime dependency explicit; it does not execute the migration.
 COPY adventure_progress_compatibility.py ./
+# Incident 019B R6: app.py imports the Zone-star authority at process startup.
+# Keep the authority module explicit; its migration import is constants-only at
+# startup and does not execute database DDL.
+COPY adventure_zone_star_progression.py ./
 COPY startup_diagnostics.py ./
 COPY db.py ./
 COPY shadow_judging.py ./
@@ -162,6 +166,10 @@ COPY sgf_workbench_v2a_routes.py ./
 # migrations directory wholesale.
 COPY migrations/__init__.py ./migrations/__init__.py
 COPY migrations/adventure_historical_mastery_v1.py ./migrations/adventure_historical_mastery_v1.py
+# Incident 019B R6: the application authority imports these migration-owned
+# table-name constants at startup. The explicit migration runner still owns
+# DDL execution; do not copy the migrations directory wholesale.
+COPY migrations/adventure_zone_star_progression_v1.py ./migrations/adventure_zone_star_progression_v1.py
 COPY migrations/sgf_admin_workbench_v1.py ./migrations/sgf_admin_workbench_v1.py
 COPY migrations/sgf_human_review_v2a.py ./migrations/sgf_human_review_v2a.py
 # B043: runtime-imported migration helpers are application dependencies, not

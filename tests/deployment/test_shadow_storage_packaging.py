@@ -17,7 +17,9 @@ RELEASE_BUILD_SCRIPT = REPO_ROOT / "scripts" / "release" / "build-release-image.
 # left at the pre-B1 count and never advanced -- named and refreshed here
 # rather than left as an unexplained magic number.
 # +1 for js/game/cinematic_replay.js (E10_ZONE_GENERIC_CINEMATIC_REPLAY_001).
-CURRENT_GOVERNED_PROVENANCE_COUNT = 91
+# +2 for Incident 019B R6's app-start Zone-star authority and its imported
+# migration constants module (DDL remains operator-owned).
+CURRENT_GOVERNED_PROVENANCE_COUNT = 93
 
 
 def _text(path):
