@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<rect width="1200" height="720" fill="#f7f4ec"/>
+<text x="40" y="54" font-family="Arial" font-size="32" font-weight="700" fill="#1b3f49">A056-P0 · motion-ready semantic transform proof</text>
+<text x="40" y="90" font-family="Arial" font-size="18" fill="#8b442f">Technical evidence only · animation is not implemented · Owner visual acceptance required</text>
+<g font-family="Arial" font-size="23" font-weight="700" text-anchor="middle">
+<rect x="390" y="130" width="420" height="62" rx="14" fill="#d4e9df" stroke="#2e7a71" stroke-width="3"/><text x="600" y="169" fill="#214c4d">CHARACTER_ROOT</text>
+<rect x="430" y="250" width="340" height="62" rx="14" fill="#e4eaf7" stroke="#536e9b" stroke-width="3"/><text x="600" y="289" fill="#31486f">RIGHT_ARM</text>
+<rect x="450" y="370" width="300" height="62" rx="14" fill="#f8dfbb" stroke="#ac7049" stroke-width="3"/><text x="600" y="409" fill="#744b32">RIGHT_HAND</text>
+<rect x="400" y="490" width="400" height="62" rx="14" fill="#f1d1ca" stroke="#9e5f54" stroke-width="3"/><text x="600" y="529" fill="#713e38">SOCKET / GRIP_POINT</text>
+<rect x="350" y="610" width="500" height="62" rx="14" fill="#d9e8f5" stroke="#3b76a8" stroke-width="3"/><text x="600" y="649" fill="#24537d">MAIN_HAND_WEAPON</text>
+</g>
+<g stroke="#2e7a71" stroke-width="5" fill="none"><path d="M600 192 V250"/><path d="M600 312 V370"/><path d="M600 432 V490"/><path d="M600 552 V610"/></g>
+<g font-family="Arial" font-size="19" fill="#3e5556"><text x="885" y="220">PARENT TRANSLATION</text><text x="885" y="250">RIGHT_HAND Δx / Δy</text><text x="885" y="280">→ socket follows</text><text x="885" y="310">→ grip follows</text><text x="885" y="340">→ weapon follows</text><text x="885" y="440">PARENT ROTATION</text><text x="885" y="470">RIGHT_HAND θ</text><text x="885" y="500">→ local grip preserved</text><text x="885" y="530">→ weapon orientation preserved</text></g>
+</svg>

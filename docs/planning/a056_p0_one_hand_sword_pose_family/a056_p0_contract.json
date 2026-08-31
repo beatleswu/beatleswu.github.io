@@ -1,0 +1,123 @@
+{
+  "task": "A056_P0_CANONICAL_ONE_HAND_SWORD_POSE_FAMILY_VISUAL_PROTOTYPE_001",
+  "character": "apprentice",
+  "pose_id": "ONE_HAND_SWORD_POSE_V1",
+  "pose_family": "ONE_HAND_SWORD",
+  "slot": "MAIN_HAND",
+  "runtime_active": false,
+  "visual_acceptance": "OWNER_REQUIRED",
+  "character_pose_asset": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/pose/apprentice_one_hand_sword_pose_v1_base.png",
+  "grip_hand_asset": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/pose/apprentice_one_hand_sword_pose_v1_grip_hand.png",
+  "character_pose_source": "docs/planning/a056_p0_one_hand_sword_pose_family/source_reference/apprentice_one_hand_sword_weapon_free_reference.png",
+  "character_pose_source_sha256": "4b3d8403c86cd5a52c7adf6b9986985046bf8ffe313cdff5866a113c9e0192ad",
+  "default_pose_asset": "assets/hero/characters/wave2_p1/apprentice_p1.png",
+  "right_hand_weapon_socket": [
+    300.0,
+    650.0
+  ],
+  "grip_axis": [
+    -0.7,
+    -0.7141428429
+  ],
+  "grip_axis_angle_deg": -134.4,
+  "grip_width_px": 42.0,
+  "layers": [
+    "L10_CHARACTER_BASE",
+    "L20_WEAPON_BACK",
+    "L30_SWORD_GRIP_HAND",
+    "L40_WEAPON_FRONT"
+  ],
+  "weapon_baked_into_character": false,
+  "same_pose_family_used": true,
+  "weapons": {
+    "wooden_sword": {
+      "slot": "MAIN_HAND",
+      "pose_family": "ONE_HAND_SWORD",
+      "grip_point_normalized": [
+        0.47,
+        0.61
+      ],
+      "grip_width_px": 39.0,
+      "local_rotation_deg": 0.0,
+      "scale": 1.0,
+      "independent_layer": {
+        "full": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_full.png",
+        "back": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_back.png",
+        "front": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/wooden_sword/wooden_sword_prototype_front.png",
+        "full_sha256": "24963921fd94abfea00f5335023f55da37aa42518a8fefec0f3e95c47b1e482f",
+        "back_sha256": "ebd70b951eb5877437ff7f522e0b157d77139476090089ba921910791e6a6fb6",
+        "front_sha256": "5ec81554ca87be3be856d5e9c543a89a38ad8885646612689e04e0ad7a8e7ca8"
+      },
+      "compatible": true
+    },
+    "iron_sword": {
+      "slot": "MAIN_HAND",
+      "pose_family": "ONE_HAND_SWORD",
+      "grip_point_normalized": [
+        0.47,
+        0.61
+      ],
+      "grip_width_px": 41.0,
+      "local_rotation_deg": 0.0,
+      "scale": 1.0,
+      "independent_layer": {
+        "full": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_full.png",
+        "back": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_back.png",
+        "front": "docs/planning/a056_p0_one_hand_sword_pose_family/assets/weapons/iron_sword/iron_sword_prototype_front.png",
+        "full_sha256": "d6efab58056947dd5bafc78f00d675aa046175d3318dbe399b351fdd77ef92af",
+        "back_sha256": "e86d0281f8d0d9497109a955d7b818221e1b56034b70b8ba51bbe3390336c365",
+        "front_sha256": "b2ff4036b64c3f1c9296e7f9d12838c8543c423d832cc9990504e168666c2cd2"
+      },
+      "compatible": true
+    }
+  },
+  "transform_proof": {
+    "base_main_hand_weapon": {
+      "x": 300.0,
+      "y": 650.0,
+      "rotation_deg": 0.0,
+      "scale": 1.0
+    },
+    "translated_main_hand_weapon": {
+      "x": 323.0,
+      "y": 633.0,
+      "rotation_deg": 0.0,
+      "scale": 1.0
+    },
+    "rotated_main_hand_weapon": {
+      "x": 300.0,
+      "y": 650.0,
+      "rotation_deg": 19.0,
+      "scale": 1.0
+    },
+    "translation_proof": true,
+    "rotation_proof": true
+  },
+  "authority": {
+    "equipment_authority": "server-owned equipped state",
+    "client_equipment_authority": false,
+    "acquire_triggers_pose": false,
+    "purchase_triggers_pose": false,
+    "owned_but_unequipped_hidden": true,
+    "unsupported_equipment_safe": true
+  },
+  "combat_authority_changed": false,
+  "source_reference_sha256": {
+    "wooden_reference": "2c782e027e9305bdd894596acfdb26fbd441d998c0fde09fedea4f1b27c7aeca",
+    "iron_reference": "d598911235785f07e1aa421e6150acd68a688e642fb9964821af61b883460ec4"
+  },
+  "review_pack": [
+    "01_apprentice_one_hand_sword_wooden_normal.png",
+    "02_apprentice_one_hand_sword_iron_normal.png",
+    "03_wooden_vs_iron_side_by_side.png",
+    "04_true_grip_closeup_wooden.png",
+    "05_true_grip_closeup_iron.png",
+    "06_full_right_arm_pose.png",
+    "07_pose_vs_default_comparison.png",
+    "08_pose_family_swap_proof.png",
+    "09_layer_decomposition.png",
+    "10_grip_semantic_overlay.png",
+    "11_motion_ready_transform_proof.svg",
+    "12_layer_architecture.png"
+  ]
+}
