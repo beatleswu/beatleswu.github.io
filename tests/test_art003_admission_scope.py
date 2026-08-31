@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import pytest
 
 from tests.art003_admission_scope import (
     ART003_B09_SCOPE_TIP,
     ART003_B10_SCOPE_TIP,
     ART003_B11_SCOPE_TIP,
+    CANONICAL_MASTER_SNAPSHOT,
     admission_base,
     changed_paths,
+    is_canonical_line,
 )
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 B09_BASE = "c1a55daebc411df46ca4bbfef6c0b814c813ec73"
@@ -105,6 +113,17 @@ def test_canonical_admissions_use_nonempty_commit_windows():
 
 
 def test_candidate_line_uses_candidate_base_and_preserves_exact_scope():
+    assert not is_canonical_line(
+        canonical_tip=ART003_B10_SCOPE_TIP,
+        canonical_master=ART003_B11_SCOPE_TIP,
+        head_ref="codex/art003-b10-r1-owner-pass-canonical-publication",
+    )
+    assert admission_base(
+        canonical_tip=ART003_B10_SCOPE_TIP,
+        candidate_base=B10_BASE,
+        canonical_master=ART003_B11_SCOPE_TIP,
+        head_ref="codex/art003-b10-r1-owner-pass-canonical-publication",
+    ) == B10_BASE
     assert changed_paths(
         canonical_tip=ART003_B10_SCOPE_TIP,
         candidate_base=B10_BASE,
@@ -114,6 +133,38 @@ def test_candidate_line_uses_candidate_base_and_preserves_exact_scope():
     ) == B10_SCOPE
 
 
+def test_canonical_master_equal_head_uses_historical_parent():
+    assert is_canonical_line(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        canonical_master=ART003_B11_SCOPE_TIP,
+        head_ref=ART003_B11_SCOPE_TIP,
+    )
+    assert admission_base(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        candidate_base=B11_BASE,
+        canonical_master=ART003_B11_SCOPE_TIP,
+        head_ref=ART003_B11_SCOPE_TIP,
+    ) == ART003_B10_SCOPE_TIP
+
+
+def test_fresh_reanchored_candidate_uses_current_master_line():
+    # The repair branch is a direct child of the fetched master snapshot.  Its
+    # candidate base is intentionally not used for the historical ART003
+    # contract; the canonical window remains the recorded B11 admission.
+    assert is_canonical_line(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        canonical_master="HEAD^1",
+        head_ref="HEAD",
+    )
+    assert admission_base(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        candidate_base="HEAD^1",
+        canonical_master="HEAD^1",
+        head_ref="HEAD",
+    ) == ART003_B10_SCOPE_TIP
+    assert CANONICAL_MASTER_SNAPSHOT
+
+
 def test_equal_candidate_base_is_rejected_instead_of_passing_empty_diff():
     with pytest.raises(AssertionError, match="equals HEAD"):
         admission_base(
@@ -121,3 +172,23 @@ def test_equal_candidate_base_is_rejected_instead_of_passing_empty_diff():
             candidate_base="HEAD",
             canonical_master=B10_BASE,
         )
+
+
+def test_negative_control_missing_expected_path_is_rejected():
+    missing = B10_SCOPE - {"tests/test_art003_b10_publication.py"}
+    with pytest.raises(AssertionError):
+        assert missing == B10_SCOPE
+
+
+def test_negative_control_unexpected_path_is_rejected():
+    extra = B10_SCOPE | {"tests/unexpected_art003_scope.py"}
+    with pytest.raises(AssertionError):
+        assert extra == B10_SCOPE
+
+
+def test_negative_control_asset_hash_change_is_rejected():
+    asset = ROOT / "art/monsters/M100_thundercrown_stag.png"
+    expected = hashlib.sha256(asset.read_bytes()).hexdigest().upper()
+    wrong = ("0" if expected[0] != "0" else "1") + expected[1:]
+    with pytest.raises(AssertionError):
+        assert wrong == expected
