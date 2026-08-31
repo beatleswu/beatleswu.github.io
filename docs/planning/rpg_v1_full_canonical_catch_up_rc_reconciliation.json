@@ -160,7 +160,7 @@
   "blockers": {
     "source": [
       "Incident019B R3 is not canonical",
-      "CODEX-1 before-state snapshot status is WAITING",
+      "CODEX-1 before-state snapshot requirement is MISSING because R1 remains unresolved",
       "No full-RC source SHA may be locked yet"
     ],
     "production": [
