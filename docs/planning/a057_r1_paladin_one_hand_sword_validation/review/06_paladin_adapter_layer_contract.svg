@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820">
+  <rect width="1280" height="820" fill="#f4f1ea"/>
+  <text x="640" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#172033">A057-R1 · Paladin adapter and pose-family contract</text>
+  <text x="640" y="72" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#58616d">static review-only prototype · no runtime wiring · Owner visual review required</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="48" y="110" width="270" height="190" rx="16" fill="#ffffff" stroke="#4169a1" stroke-width="3"/>
+    <text x="183" y="145" text-anchor="middle" font-size="21" font-weight="700" fill="#17365d">CHARACTER ADAPTER</text>
+    <text x="70" y="178" font-size="16" fill="#253247">character_id = paladin</text>
+    <text x="70" y="204" font-size="16" fill="#253247">socket = (0.304, 0.426)</text>
+    <text x="70" y="230" font-size="16" fill="#253247">wrist = -8°</text>
+    <text x="70" y="256" font-size="16" fill="#253247">armor clearance = review-ready</text>
+    <text x="70" y="282" font-size="16" fill="#253247">fallback = paladin default</text>
+
+    <rect x="360" y="110" width="270" height="190" rx="16" fill="#ffffff" stroke="#7c5c22" stroke-width="3"/>
+    <text x="495" y="145" text-anchor="middle" font-size="21" font-weight="700" fill="#594116">POSE FAMILY</text>
+    <text x="382" y="178" font-size="16" fill="#253247">pose_id = ONE_HAND_SWORD_POSE_V1</text>
+    <text x="382" y="204" font-size="16" fill="#253247">family = ONE_HAND_SWORD</text>
+    <text x="382" y="230" font-size="16" fill="#253247">slot = MAIN_HAND</text>
+    <text x="382" y="256" font-size="16" fill="#253247">same family for both weapons</text>
+    <text x="382" y="282" font-size="16" fill="#253247">pose-specific full renders = 0</text>
+
+    <rect x="672" y="110" width="270" height="190" rx="16" fill="#ffffff" stroke="#587d58" stroke-width="3"/>
+    <text x="807" y="145" text-anchor="middle" font-size="21" font-weight="700" fill="#315631">WEAPON SWAP</text>
+    <text x="694" y="178" font-size="16" fill="#253247">wooden_sword → grip width 39</text>
+    <text x="694" y="204" font-size="16" fill="#253247">iron_sword → grip width 41</text>
+    <text x="694" y="230" font-size="16" fill="#253247">same socket + grip semantics</text>
+    <text x="694" y="256" font-size="16" fill="#253247">weapon-specific pose = false</text>
+    <text x="694" y="282" font-size="16" fill="#253247">fox_fang = excluded in R1</text>
+
+    <rect x="984" y="110" width="248" height="190" rx="16" fill="#ffffff" stroke="#9c5c50" stroke-width="3"/>
+    <text x="1108" y="145" text-anchor="middle" font-size="21" font-weight="700" fill="#713d34">AUTHORITY</text>
+    <text x="1005" y="181" font-size="16" fill="#253247">server-owned equipped state</text>
+    <text x="1005" y="208" font-size="16" fill="#253247">presentation only</text>
+    <text x="1005" y="235" font-size="16" fill="#253247">acquire ≠ equip</text>
+    <text x="1005" y="262" font-size="16" fill="#253247">purchase ≠ equip</text>
+    <text x="1005" y="289" font-size="16" fill="#253247">runtime = OFF</text>
+  </g>
+
+  <g stroke="#26384f" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M318 205 H352"/>
+    <path d="M630 205 H664"/>
+    <path d="M942 205 H976"/>
+  </g>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#26384f"/>
+    </marker>
+  </defs>
+
+  <rect x="48" y="350" width="1184" height="410" rx="18" fill="#ffffff" stroke="#d5cbb8" stroke-width="3"/>
+  <text x="640" y="387" text-anchor="middle" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#172033">Character adapter → authoritative equipment variant</text>
+  <g font-family="Arial, sans-serif" font-size="18" fill="#253247">
+    <rect x="98" y="438" width="250" height="180" rx="14" fill="#eef4fb" stroke="#4169a1" stroke-width="2"/>
+    <text x="223" y="476" text-anchor="middle" font-weight="700">PALADIN POSE PIXELS</text>
+    <text x="223" y="510" text-anchor="middle">shoulder / elbow / forearm</text>
+    <text x="223" y="540" text-anchor="middle">wrist / palm / grip action</text>
+    <text x="223" y="570" text-anchor="middle">character identity preserved</text>
+    <text x="223" y="602" text-anchor="middle">review-only static base</text>
+
+    <rect x="418" y="438" width="250" height="180" rx="14" fill="#f8f1e5" stroke="#7c5c22" stroke-width="2"/>
+    <text x="543" y="476" text-anchor="middle" font-weight="700">RIGHT-HAND SOCKET</text>
+    <text x="543" y="510" text-anchor="middle">normalized (0.304, 0.426)</text>
+    <text x="543" y="540" text-anchor="middle">grip axis = weapon metadata</text>
+    <text x="543" y="570" text-anchor="middle">one family, two weapon IDs</text>
+    <text x="543" y="602" text-anchor="middle">adapter-local geometry</text>
+
+    <rect x="738" y="438" width="410" height="180" rx="14" fill="#eef7ee" stroke="#587d58" stroke-width="2"/>
+    <text x="943" y="476" text-anchor="middle" font-weight="700">WEAPON VARIANT (REVIEW RENDER)</text>
+    <text x="943" y="510" text-anchor="middle">wooden_sword OR iron_sword</text>
+    <text x="943" y="540" text-anchor="middle">same pose family contract</text>
+    <text x="943" y="570" text-anchor="middle">no weapon-specific hand pose</text>
+    <text x="943" y="602" text-anchor="middle">no runtime activation in A057-R1</text>
+  </g>
+  <g stroke="#26384f" stroke-width="4" fill="none" marker-end="url(#arrow)">
+    <path d="M348 528 H410"/>
+    <path d="M668 528 H730"/>
+  </g>
+  <text x="640" y="706" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" fill="#58616d">Owner review starts with the two unannotated normal-size renders; diagrams explain the contract only after the visual check.</text>
+</svg>

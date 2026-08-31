@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="760" viewBox="0 0 1120 760">
+  <rect width="1120" height="760" fill="#f4f1ea"/>
+  <text x="560" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#172033">Paladin · ONE_HAND_SWORD_POSE_V1 · same pose-family adapter</text>
+  <rect x="34" y="58" width="510" height="674" rx="18" fill="#ffffff" stroke="#d5cbb8" stroke-width="3"/>
+  <rect x="576" y="58" width="510" height="674" rx="18" fill="#ffffff" stroke="#d5cbb8" stroke-width="3"/>
+  <text x="289" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#70451e">WOODEN SWORD</text>
+  <text x="831" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#364555">IRON SWORD</text>
+  <image href="01_paladin_one_hand_sword_wooden_normal.png" x="70" y="108" width="438" height="584" preserveAspectRatio="xMidYMid meet"/>
+  <image href="02_paladin_one_hand_sword_iron_normal.png" x="612" y="108" width="438" height="584" preserveAspectRatio="xMidYMid meet"/>
+  <text x="289" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#58616d">same Paladin arm action · weapon identity changes only</text>
+  <text x="831" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#58616d">same Paladin arm action · weapon identity changes only</text>
+</svg>

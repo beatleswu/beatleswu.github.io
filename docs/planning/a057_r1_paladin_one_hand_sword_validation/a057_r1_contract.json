@@ -1,0 +1,166 @@
+{
+  "task_id": "A057_R1_ONE_HAND_SWORD_POSE_V1_SECOND_CHARACTER_VALIDATION_PROTOTYPE_001",
+  "review_only": true,
+  "runtime_integration": false,
+  "owner_visual_acceptance": "NOT_GRANTED",
+  "base_reference": {
+    "canonical_master_head": "b3d37e22e7471d0429d882c43c3ee16049c68ea1",
+    "canonical_master_tree": "39392e8c0df272fb3b0d3df2ec0c1f4f21ab7a93",
+    "a056_branch": "codex/a056-p0-one-hand-sword-pose-family",
+    "a056_head": "ac4c7ea49945b473a91753b0685dca487955148b",
+    "a056_tree": "47367ab9f910828f9b46f1761af646dffd85806d",
+    "a056_owner_visual_acceptance": "PASS"
+  },
+  "character": {
+    "id": "paladin",
+    "display_name": "Paladin",
+    "canonical_identity_asset": "assets/hero/characters/wave2_p1/paladin_p1.png",
+    "canonical_identity_asset_sha256": "2b98c88adfa66967d2ed48b76a7ed21e81a3fbbcf8d2d0c8ceb3baf31c547b52",
+    "canonical_identity_asset_dimensions": [1056, 1408],
+    "prior_accepted_pose_review_evidence": "docs/planning/rpg_wave2_full_body_weapon_pose_system/variants/paladin_one_hand_sword_pose.png",
+    "prior_accepted_pose_review_evidence_sha256": "5d2ed28399d5ceb41655eea98f271e281e201f71b4e3c4db81522045c5a6f291",
+    "adapter_required": true,
+    "adapter_reason": "Paladin armor, mantle, sleeve, arm length, and broader silhouette require character-local pose geometry and socket metadata."
+  },
+  "pose_family": {
+    "pose_id": "ONE_HAND_SWORD_POSE_V1",
+    "family": "ONE_HAND_SWORD",
+    "slot": "MAIN_HAND",
+    "same_pose_family_used_for_all_prototype_weapons": true,
+    "weapon_specific_full_character_pose_asset_count": 0,
+    "pose_source": "docs/planning/a057_r1_paladin_one_hand_sword_validation/source_reference/paladin_one_hand_sword_pose_v1_weapon_free.png",
+    "pose_source_role": "static review-only weapon-free Paladin pose reference; not a runtime asset",
+    "pose_source_dimensions": [1086, 1448],
+    "pose_source_background_semantics": "checkerboard_preview_not_runtime_alpha",
+    "pose_source_sha256": "3e4403dd28a4898e4d50c228f7f76ca9e11ce6ee76f5b3b65e5122171cdcbe94"
+  },
+  "generic_pose_family_fields": [
+    "pose_id",
+    "pose_family",
+    "slot",
+    "shoulder_action_intent",
+    "elbow_action_intent",
+    "forearm_direction",
+    "wrist_orientation",
+    "grip_point_semantics",
+    "grip_axis_semantics",
+    "grip_width_semantics",
+    "weapon_swap_contract",
+    "default_pose_fallback"
+  ],
+  "paladin_adapter_fields": [
+    "character_id",
+    "full_pose_asset",
+    "shoulder_anchor",
+    "elbow_target",
+    "forearm_direction",
+    "wrist_angle_degrees",
+    "palm_center",
+    "right_hand_socket",
+    "local_scale",
+    "local_rotation_degrees",
+    "sleeve_armor_clearance",
+    "occlusion_order",
+    "fallback_asset"
+  ],
+  "paladin_adapter": {
+    "shoulder_anchor": {"x": 0.382, "y": 0.266},
+    "elbow_target": {"x": 0.351, "y": 0.361},
+    "forearm_direction": {"x": -0.405, "y": 0.914},
+    "wrist_angle_degrees": -8.0,
+    "palm_center": {"x": 0.304, "y": 0.426},
+    "right_hand_socket": {"x": 0.304, "y": 0.426},
+    "anchor_coordinate_space": "normalized_to_review_pose_canvas_1086x1448",
+    "local_scale": 1.0,
+    "local_rotation_degrees": 0.0,
+    "sleeve_armor_clearance": "PASS_REVIEW_READY",
+    "occlusion_order": [
+      "CHARACTER_BASE",
+      "WEAPON_BACK",
+      "PALADIN_GRIP_HAND",
+      "WEAPON_FRONT",
+      "EXISTING_CHARACTER_FRONT_LAYERS"
+    ],
+    "fallback_asset": "assets/hero/characters/wave2_p1/paladin_p1.png"
+  },
+  "weapon_contract": {
+    "authority": "server-owned player_inventory.equipped",
+    "presentation_only": true,
+    "acquire_triggers_pose": false,
+    "purchase_triggers_pose": false,
+    "ownership_alone_triggers_pose": false,
+    "authoritative_equipped_state_triggers_pose": true,
+    "supported_weapons": {
+      "wooden_sword": {
+        "pose_id": "ONE_HAND_SWORD_POSE_V1",
+        "slot": "MAIN_HAND",
+        "weapon_family": "ONE_HAND_SWORD",
+        "weapon_specific_pose": false,
+        "grip_point_normalized": [0.47, 0.61],
+        "grip_axis": [-0.7, -0.7141428429],
+        "grip_width": 39.0,
+        "canonical_runtime_registry_asset": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "prototype_review_render": "docs/planning/a057_r1_paladin_one_hand_sword_validation/review/01_paladin_one_hand_sword_wooden_normal.png",
+        "prototype_review_render_sha256": "37bb758871b1cbc7bc9f47bebe01cd8d60bea4d734994832d46bd0b4027bfa41"
+      },
+      "iron_sword": {
+        "pose_id": "ONE_HAND_SWORD_POSE_V1",
+        "slot": "MAIN_HAND",
+        "weapon_family": "ONE_HAND_SWORD",
+        "weapon_specific_pose": false,
+        "grip_point_normalized": [0.47, 0.61],
+        "grip_axis": [-0.7, -0.7141428429],
+        "grip_width": 41.0,
+        "canonical_runtime_registry_asset": "/assets/hero/equipment/wearables/overlays/iron_sword.png",
+        "prototype_review_render": "docs/planning/a057_r1_paladin_one_hand_sword_validation/review/02_paladin_one_hand_sword_iron_normal.png",
+        "prototype_review_render_sha256": "caa01f7df8d30af4d2caa37420838c0200e6a092234ad83816ad39a2c64944d5"
+      }
+    },
+    "excluded_weapons": ["fox_fang"],
+    "weapon_swap_is_independent_of_character_pose": true
+  },
+  "visual_review": {
+    "normal_size_unannotated_review_order": [
+      "review/01_paladin_one_hand_sword_wooden_normal.png",
+      "review/02_paladin_one_hand_sword_iron_normal.png",
+      "review/03_paladin_wooden_vs_iron.svg",
+      "review/04_paladin_wooden_grip_closeup.svg",
+      "review/05_paladin_iron_grip_closeup.svg",
+      "review/06_paladin_adapter_layer_contract.svg"
+    ],
+    "wooden_sword": {
+      "handle_enters_palm": true,
+      "four_fingers_wrap": true,
+      "thumb_opposes": true,
+      "wrist_continuity": "PASS_REVIEW_READY",
+      "forearm_continuity": "PASS_REVIEW_READY",
+      "shoulder_to_hand_action": "PASS_REVIEW_READY",
+      "armor_clearance": "PASS_REVIEW_READY",
+      "normal_size_reading": "PASS_REVIEW_READY",
+      "owner_review_required": true
+    },
+    "iron_sword": {
+      "handle_enters_palm": true,
+      "four_fingers_wrap": true,
+      "thumb_opposes": true,
+      "wrist_continuity": "PASS_REVIEW_READY",
+      "forearm_continuity": "PASS_REVIEW_READY",
+      "shoulder_to_hand_action": "PASS_REVIEW_READY",
+      "armor_clearance": "PASS_REVIEW_READY",
+      "normal_size_reading": "PASS_REVIEW_READY",
+      "owner_review_required": true
+    }
+  },
+  "authority_and_scope": {
+    "runtime_changed": false,
+    "app_py_changed": false,
+    "combat_authority_changed": false,
+    "equipment_authority_changed": false,
+    "schema_changed": false,
+    "production_query": false,
+    "production_mutation": false,
+    "deploy": false,
+    "fox_fang_implemented": false,
+    "owner_visual_acceptance": "NOT_GRANTED"
+  }
+}
