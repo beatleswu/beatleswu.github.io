@@ -96,6 +96,9 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         # A041 adds the server-owned Hero legacy-cache guard referenced by
         # hero.html and index.html; B057 closes its release packaging gap.
         "js/hero_legacy_cache_guard.js",
+        # B061 promotes the existing item journal page into the required
+        # release generation because the release contract expects it to ship.
+        "item_journal.html",
     }
 )
 STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)
@@ -313,6 +316,7 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
     inventory = _load_inventory()
     entries = inventory["required_in_generation"]["entries"]
     assert entries.count("inventory.html") == 1
+    assert entries.count("item_journal.html") == 1
     expected = _current_expected_required_in_generation(_presentation_source_present())
     assert set(entries) == expected
     assert len(entries) == len(expected)
