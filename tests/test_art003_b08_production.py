@@ -7,10 +7,15 @@ from pathlib import Path
 
 from PIL import Image
 
+from tests.art003_admission_scope import (
+    ART003_B09_SCOPE_TIP,
+    admission_base,
+    changed_paths as admission_changed_paths,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_MASTER_HEAD = "c1a55daebc411df46ca4bbfef6c0b814c813ec73"
-B08_PUBLICATION_HEAD = "af179e79407eb563ded840609fd3a7026fc6a09f"
 SOURCE_BRANCH = "codex/art003-b08-m078-m088-canonical-monster-art-production"
 SOURCE_HEAD = "95e0119af9a0ab02275b5db4f3b38eedca9cc2ab"
 IDS = ["M078", "M079", "M080", "M081", "M082", "M083", "M085", "M086", "M087", "M088"]
@@ -86,22 +91,11 @@ def git(*args: str) -> str:
     return result.stdout.strip()
 
 
-def _is_ancestor(ancestor: str, descendant: str = "HEAD") -> bool:
-    result = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
-        cwd=ROOT,
-        check=False,
-    )
-    return result.returncode == 0
-
-
 def _admission_scope_base() -> str:
-    """Use fresh-master scope for admission candidates, with a bounded publication fallback."""
-    if _is_ancestor(CANONICAL_MASTER_HEAD):
-        return CANONICAL_MASTER_HEAD
-    if git("rev-parse", "HEAD") == B08_PUBLICATION_HEAD or _is_ancestor(B08_PUBLICATION_HEAD):
-        return B08_PUBLICATION_HEAD
-    raise AssertionError("checkout is neither a canonical-master candidate nor the B08 publication lineage")
+    return admission_base(
+        canonical_tip=ART003_B09_SCOPE_TIP,
+        candidate_base=CANONICAL_MASTER_HEAD,
+    )
 
 
 def load_manifest() -> dict:
@@ -205,11 +199,12 @@ def test_b08_review_pack_exact_order_and_pass_state():
 
 def test_prior_art_and_m022_protection():
     scope_base = _admission_scope_base()
-    changed_paths = set(git("diff", "--name-only", scope_base, "HEAD").splitlines())
-    changed_paths.update(git("diff", "--cached", "--name-only", scope_base).splitlines())
-    changed_paths.update(git("ls-files", "--others", "--exclude-standard").splitlines())
-    assert changed_paths <= ALLOWED_PATHS
-    assert not any("M022" in path for path in changed_paths)
+    changed = admission_changed_paths(
+        canonical_tip=ART003_B09_SCOPE_TIP,
+        candidate_base=CANONICAL_MASTER_HEAD,
+    )
+    assert changed <= ALLOWED_PATHS
+    assert not any("M022" in path for path in changed)
     prior_paths = [
         path
         for path in git("ls-tree", "-r", "--name-only", scope_base, "art/monsters").splitlines()

@@ -9,10 +9,16 @@ from pathlib import Path
 
 from PIL import Image
 
+from tests.art003_admission_scope import (
+    ART003_B10_SCOPE_TIP,
+    admission_base,
+    changed_paths as admission_changed_paths,
+    is_canonical_line,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "7d5c9c389561b877896f2b28e4b7db5f67fb97e8"
-CANONICAL_MASTER = "origin/master"
 EXPECTED_IDS = [
     "M100",
     "M101",
@@ -55,33 +61,18 @@ def _git(*args: str, check: bool = True) -> str:
     return result.stdout.strip()
 
 
-def _is_ancestor(ancestor: str, descendant: str = "HEAD") -> bool:
-    result = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-    )
-    return result.returncode == 0
-
-
 def _scoped_changed_paths() -> set[str]:
-    if _is_ancestor(BASE):
-        comparison = f"{BASE}...HEAD"
-    else:
-        parent = _git("rev-parse", "HEAD^")
-        assert _is_ancestor(parent)
-        comparison = f"{parent}...HEAD"
-    return set(filter(None, _git("diff", "--name-only", comparison).splitlines()))
+    return admission_changed_paths(canonical_tip=ART003_B10_SCOPE_TIP, candidate_base=BASE)
 
 
 def _assert_prior_art_unchanged() -> None:
-    prior = set(_git("ls-tree", "-r", "--name-only", CANONICAL_MASTER, "--", "art/monsters").splitlines())
+    scope_base = admission_base(canonical_tip=ART003_B10_SCOPE_TIP, candidate_base=BASE)
+    prior = set(_git("ls-tree", "-r", "--name-only", scope_base, "--", "art/monsters").splitlines())
     candidate = set(_git("ls-tree", "-r", "--name-only", "HEAD", "--", "art/monsters").splitlines())
     assert not (B10_ADMISSION_PATHS & prior)
     for path in sorted(prior & candidate):
-        assert _git("rev-parse", f"{CANONICAL_MASTER}:{path}") == _git("rev-parse", f"HEAD:{path}")
-    if _is_ancestor(CANONICAL_MASTER):
+        assert _git("rev-parse", f"{scope_base}:{path}") == _git("rev-parse", f"HEAD:{path}")
+    if is_canonical_line(canonical_tip=ART003_B10_SCOPE_TIP):
         assert prior <= candidate
 
 
