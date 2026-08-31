@@ -4,6 +4,11 @@ import re
 import subprocess
 from pathlib import Path
 
+from tests.art003_admission_scope import (
+    ART003_B11_SCOPE_TIP,
+    changed_paths as admission_changed_paths,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_HEAD = "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
@@ -36,27 +41,6 @@ def manifest():
 
 def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
-
-
-def git_succeeds(*args):
-    return subprocess.run(
-        ["git", *args],
-        cwd=ROOT,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    ).returncode == 0
-
-
-def admission_base():
-    """Prefer fresh canonical master; retain only the reviewed-branch
-    fallback needed when running this test on the historical publication ref.
-    """
-    if git_succeeds("merge-base", "--is-ancestor", "origin/master", "HEAD"):
-        return "origin/master"
-    if git_succeeds("merge-base", "--is-ancestor", HISTORICAL_BASE, "HEAD"):
-        return HISTORICAL_BASE
-    raise AssertionError("no valid canonical or reviewed B11 admission base")
 
 
 def test_owner_pass_exact_set_and_hash_lock():
@@ -143,12 +127,22 @@ def test_owner_approved_bytes_are_unchanged_from_source_head():
 
 
 def test_publication_scope_has_no_prior_art_or_runtime_changes():
-    changed = set(git("diff", "--name-only", admission_base(), "HEAD").splitlines())
+    changed = admission_changed_paths(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        candidate_base=HISTORICAL_BASE,
+    )
     assert changed == ADMISSION_PATHS
     assert git("status", "--porcelain=v1", "--untracked-files=all") == ""
     assert data_paths_unchanged("art/monsters")
 
 
 def data_paths_unchanged(prefix):
-    changed = set(git("diff", "--name-only", admission_base(), "HEAD", "--", prefix).splitlines())
+    changed = {
+        path
+        for path in admission_changed_paths(
+            canonical_tip=ART003_B11_SCOPE_TIP,
+            candidate_base=HISTORICAL_BASE,
+        )
+        if path.startswith(prefix)
+    }
     return changed <= set(EXPECTED_PATHS)

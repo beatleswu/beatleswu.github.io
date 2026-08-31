@@ -6,6 +6,11 @@ from pathlib import Path
 
 from PIL import Image
 
+from tests.art003_admission_scope import (
+    ART003_B11_SCOPE_TIP,
+    changed_paths as admission_changed_paths,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORICAL_BASE = "16548803a62c9fc76a459cb247a026187e644c5c"
@@ -40,27 +45,6 @@ def read_manifest():
 
 def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
-
-
-def git_succeeds(*args):
-    return subprocess.run(
-        ["git", *args],
-        cwd=ROOT,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    ).returncode == 0
-
-
-def admission_base():
-    """Use fresh canonical master for synthetic admissions, with a narrow
-    historical fallback for validating the reviewed publication branch.
-    """
-    if git_succeeds("merge-base", "--is-ancestor", "origin/master", "HEAD"):
-        return "origin/master"
-    if git_succeeds("merge-base", "--is-ancestor", HISTORICAL_BASE, "HEAD"):
-        return HISTORICAL_BASE
-    raise AssertionError("no valid canonical or reviewed B11 admission base")
 
 
 def test_b11_exact_identity_and_manifest():
@@ -136,7 +120,10 @@ def test_exact_git_scope_and_source_head_bytes():
     source_head = manifest["source_head"]
     assert len(source_head) == 40
     assert git("cat-file", "-e", f"{source_head}^{{commit}}") == ""
-    changed = set(git("diff", "--name-only", admission_base(), "HEAD").splitlines())
+    changed = admission_changed_paths(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        candidate_base=HISTORICAL_BASE,
+    )
     assert changed == ADMISSION_PATHS
     assert git("status", "--short", "--untracked-files=all") == ""
     for _, _, _, path, _, _, _ in EXPECTED:
