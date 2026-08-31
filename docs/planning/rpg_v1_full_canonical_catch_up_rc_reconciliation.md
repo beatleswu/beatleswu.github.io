@@ -14,7 +14,7 @@
 
 `STATUS=RECONCILIATION_COMPLETE_FULL_RC_BLOCKED`
 
-The evidence record is complete and publishable, but the full RC cannot be locked. Fresh `origin/master` is `b3d37e22e7471d0429d882c43c3ee16049c68ea1`; Incident019B R3 is remote and mechanically mergeable but is not canonical; the required Incident019B before-state snapshot is still `WAITING`; and the live database is LC020 `HOT_APPLIED` while the live app image lacks the LC020 read adapter and remains on the legacy question-id path. No deployment, restart, rollback, database mutation, migration/backfill, feature enablement, or source-code change was performed.
+The evidence record is complete and publishable, but the full RC cannot be locked. Fresh `origin/master` is `b3d37e22e7471d0429d882c43c3ee16049c68ea1`; Incident019B R3 is remote and mechanically mergeable but is not canonical; CODEX-1 has published a partial before-state snapshot but the required R1 safe-account mapping is unresolved, so `INCIDENT019B_BEFORE_SNAPSHOT_STATUS=MISSING`; and the live database is LC020 `HOT_APPLIED` while the live app image lacks the LC020 read adapter and remains on the legacy question-id path. No deployment, restart, rollback, database mutation, migration/backfill, feature enablement, or source-code change was performed.
 
 ## Authority and no-mutation boundary
 
@@ -89,7 +89,7 @@ Historical Incident018 source/build evidence remains useful for lineage only. Th
 | canonical | `NO`; current master contains none of the four new R3 paths |
 | merge relationship | current master descends from common base `6228de020dea513fe33b974a37444537738c0baa` |
 | synthetic merge | clean synthetic tree `f2d3d046c94670c040c24e932a8a36c6d9b41da2` |
-| before-state snapshot | `WAITING`; CODEX-1 is active and no R5A evidence branch/artifact was available at observation |
+| before-state snapshot | `MISSING`; CODEX-1 published `codex/incident-019b-r5a-production-before-state` at `e589bcebaa12d3e08da335805097eab6c0047248` with artifact SHA `20ccc76b4b4c5b4dfd68ad0fabb4c92a6249b83b8897a111438189ff9bea7a01`, but R1 safe-account `7167b6214d65` remains unresolved and all R1 state fields are `UNRESOLVED_SAFE_ID_NOT_PRESENT` |
 | production compatibility executed | `NO`; migration/backfill is explicitly forbidden in this task |
 
 The R3 diff is six paths: `adventure_progress_compatibility.py`, `app.py`, `migrations/adventure_historical_mastery_v1.py`, the adapted E10 foundation test, the Incident019B test, and its continuity tool. The app change is additive and keeps restored historical mastery separate from defeated/Boss/stars state, which is consistent with server-authoritative progression, but source correctness does not grant `GO_MERGE`.
@@ -211,8 +211,8 @@ SECRET_KEY_TOUCHED=NO
 
 ## Next task
 
-`NEXT_TASK=WAIT_FOR_CODEX1_INCIDENT019B_R5A_BEFORE_SNAPSHOT_THEN_OWNER_GO_MERGE_AND_FRESH_FULL_RC_REANCHOR`
+`NEXT_TASK=RESOLVE_INCIDENT019B_R1_SAFE_IDENTIFIER_MAPPING_OR_OWNER_CONFIRM_ACCOUNT_REPLACEMENT_THEN_GO_MERGE_AND_FRESH_FULL_RC_REANCHOR`
 
-Inspect CODEX-1’s evidence branch/artifact when it becomes available without duplicating or mutating the snapshot. Then the owner must decide `GO_MERGE` for Incident019B. Only after that admission should a fresh full-RC source re-anchor, focused rerun matrix, build/package gate, device acceptance, and separately authorized deployment review proceed.
+CODEX-1’s evidence branch/artifact was inspected without duplication or mutation. Its R1 safe identifier remains unresolved, so the before-state gate is `MISSING`. Resolve the R1 mapping or obtain the owner’s explicit account-replacement decision, then the owner must decide `GO_MERGE` for Incident019B. Only after that admission should a fresh full-RC source re-anchor, focused rerun matrix, build/package gate, device acceptance, and separately authorized deployment review proceed.
 
 `RESULT=EVIDENCE_PUBLISHED_FULL_RC_SOURCE_LOCK_BUILD_AND_DEPLOY_NOT_READY`

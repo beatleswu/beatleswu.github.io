@@ -56,7 +56,16 @@
     "r3_remote_head": "d24062467100790ce681d926da15e70ab304a2ad",
     "remote_verified": true,
     "canonical": false,
-    "before_snapshot_status": "WAITING",
+    "before_snapshot_status": "MISSING",
+    "before_snapshot": {
+      "branch": "codex/incident-019b-r5a-production-before-state",
+      "head": "e589bcebaa12d3e08da335805097eab6c0047248",
+      "tree": "967588a8d69e03b72951cefae7471c4ee47da1b4",
+      "artifact_sha256": "20ccc76b4b4c5b4dfd68ad0fabb4c92a6249b83b8897a111438189ff9bea7a01",
+      "r1_safe_id": "7167b6214d65",
+      "r1_status": "UNRESOLVED_SAFE_ID_NOT_PRESENT",
+      "required_gate_satisfied": false
+    },
     "production_compatibility_executed": false,
     "migration_backfill_executed": false,
     "common_base": "6228de020dea513fe33b974a37444537738c0baa",
@@ -179,5 +188,5 @@
     "rollback": "NO",
     "secret_key_touched": "NO"
   },
-  "next_task": "WAIT_FOR_CODEX1_INCIDENT019B_R5A_BEFORE_SNAPSHOT_THEN_OWNER_GO_MERGE_AND_FRESH_FULL_RC_REANCHOR"
+  "next_task": "RESOLVE_INCIDENT019B_R1_SAFE_IDENTIFIER_MAPPING_OR_OWNER_CONFIRM_ACCOUNT_REPLACEMENT_THEN_GO_MERGE_AND_FRESH_FULL_RC_REANCHOR"
 }
