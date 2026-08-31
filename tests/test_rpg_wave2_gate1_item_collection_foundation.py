@@ -129,7 +129,7 @@ def test_shop_product_registry_preserves_all_current_products_and_server_price_a
         ))
 
 
-def test_shop_uses_server_price_and_grants_components_without_bundle_ownership(tmp_path, monkeypatch):
+def test_shop_retires_legacy_bundle_without_mutation(tmp_path, monkeypatch):
     app = _load_app(monkeypatch)
     path = tmp_path / "shop-authority.sqlite"
     with sqlite3.connect(path) as conn:
@@ -142,44 +142,36 @@ def test_shop_uses_server_price_and_grants_components_without_bundle_ownership(t
             """
         )
     monkeypatch.setattr(app, "get_db", lambda: _DbContext(path))
-    monkeypatch.setattr(app, "_daily_shop_slots", lambda conn: [])
+    monkeypatch.setattr(app, "_daily_shop_slots", lambda conn, **kwargs: [])
     app.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
 
     client = app.app.test_client()
     with client.session_transaction() as session:
         session["user_id"] = 1
-    purchased = client.post(
+    retired = client.post(
         "/api/shop/buy",
-        json={"item_key": "premium_hint_bundle", "price": 1},
+        json={
+            "item_key": "premium_hint_bundle",
+            "purchase_operation_id": "wave2-legacy-bundle",
+            "price": 1,
+        },
     )
-    assert purchased.status_code == 200
+    assert retired.status_code == 409
+    assert retired.get_json() == {
+        "error": "shop_offer_unavailable",
+        "code": "LEGACY_PURCHASE_RETIRED",
+    }
     with sqlite3.connect(path) as conn:
-        assert conn.execute("SELECT coins FROM user_stats WHERE user_id=1").fetchone()[0] == 370
+        assert conn.execute("SELECT coins FROM user_stats WHERE user_id=1").fetchone()[0] == 500
         assert conn.execute(
             "SELECT qty FROM shop_inventory WHERE user_id=1 AND item_key='hint_ticket'"
-        ).fetchone()[0] == 5
+        ).fetchone() is None
         assert conn.execute(
             "SELECT COUNT(*) FROM shop_inventory WHERE user_id=1 AND item_key='premium_hint_bundle'"
         ).fetchone()[0] == 0
         assert conn.execute(
             "SELECT delta FROM currency_log WHERE user_id=1"
-        ).fetchone()[0] == -130
-
-    with client.session_transaction() as session:
-        session["user_id"] = 2
-    failed = client.post(
-        "/api/shop/buy",
-        json={"item_key": "hint_ticket", "price": -999},
-    )
-    assert failed.status_code == 400
-    with sqlite3.connect(path) as conn:
-        assert conn.execute("SELECT coins FROM user_stats WHERE user_id=2").fetchone()[0] == 0
-        assert conn.execute(
-            "SELECT COUNT(*) FROM shop_inventory WHERE user_id=2"
-        ).fetchone()[0] == 0
-        assert conn.execute(
-            "SELECT COUNT(*) FROM currency_log WHERE user_id=2"
-        ).fetchone()[0] == 0
+        ).fetchone() is None
 
 
 def test_badge_visual_system_covers_existing_static_families(monkeypatch):

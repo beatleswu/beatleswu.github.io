@@ -255,7 +255,9 @@ def _assert_provenance_contract(governed_paths, presentation_present, expected_c
 # incident_018_observability.py, which app.py imports at module level but which
 # was never packaged or governed. Advanced to match the real governed set
 # rather than weakening the contract.
-POST_B1_PROVENANCE_ADDITIONS = 11
+# Incident019B R11 adds the Zone-star runtime module and its explicit
+# migration dependency to the governed set.
+POST_B1_PROVENANCE_ADDITIONS = 13
 CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 
