@@ -189,6 +189,14 @@ from migrations.question_capacity_lineage_v1 import (
 from migrations.review_log_submission_idempotency_v1 import (
     upgrade as upgrade_review_log_submission_schema,
 )
+from migrations.adventure_historical_mastery_v1 import (
+    upgrade as upgrade_adventure_historical_mastery_schema,
+)
+from adventure_progress_compatibility import (
+    TRUSTED_REVIEW_SOURCE_PREFIXES,
+    trusted_current_memberships,
+    visible_adventure_question_ids,
+)
 # LC019-W2: the already-canonical bootstrap-gated identity reader (LC011-LC017,
 # extended to grimoire_api by LC019-W1).  Read-only.  While bootstrap_state().hot
 # is False -- every environment today, genesis is not authorised -- every
@@ -5049,6 +5057,12 @@ def init_db():
             PRIMARY KEY (user_id, zone_key)
         )''')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_adv_unlock_user ON adventure_zone_unlocks(user_id)')
+
+        # Incident 019B: additive, one-time historical Adventure mastery
+        # baseline.  The schema is created here, but the controlled capture
+        # runner is the only writer of baseline memberships.  Request paths
+        # only read the frozen baseline and never fall back to live cards.
+        upgrade_adventure_historical_mastery_schema(conn)
 
         # ── 角色外觀衣櫃（持有清單） ──
         conn.execute('''CREATE TABLE IF NOT EXISTS player_wardrobe (
@@ -11898,25 +11912,33 @@ def _home_report_action(weakness, boss, mistakes_due):
     return {'kind': 'none', 'zone_key': None, 'discipline_key': None}
 
 def _adventure_correct_question_ids(conn, uid, cards):
-    """Return distinct adventure questions with authoritative correct evidence.
+    """Return the visible Adventure mastery set for one authenticated user.
 
-    Adventure Lord progress is historical mastery: one passing answer is
-    enough to credit a question, and a later failing SRS review must not take
-    that credit away.  Public SRS ``grade`` is only a scheduling signal and
-    therefore cannot supply this correctness evidence.  The only accepted
-    review rows are those written by the trusted server-side Map Battle
-    handoff; the sticky card fields are deliberately not used as a fallback
-    because older public rows may have populated them from client claims.
+    The compatibility baseline is a separate, one-time frozen membership
+    table.  Current growth remains restricted to the canonical trusted
+    server-review marker; live ``srs_cards`` are intentionally not consulted
+    as a historical fallback.  ``cards`` remains in the signature for the
+    established caller contract and is used by the adjacent attempted-set
+    calculation.
     """
-    correct_ids = {
-        row['question_id']
-        for row in conn.execute(
-            'SELECT DISTINCT question_id FROM review_log '
-            'WHERE user_id=? AND grade>=3 AND source_context LIKE ?',
-            (uid, f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}%'),
-        ).fetchall()
-    }
-    return correct_ids
+    del cards
+    return visible_adventure_question_ids(
+        conn,
+        uid,
+        trusted_source_prefixes=TRUSTED_REVIEW_SOURCE_PREFIXES,
+    )
+
+
+def _adventure_trusted_question_ids(conn, uid):
+    """Return current trusted Adventure evidence for defeat-only consumers."""
+
+    return set(
+        trusted_current_memberships(
+            conn,
+            source_prefixes=TRUSTED_REVIEW_SOURCE_PREFIXES,
+            user_id=uid,
+        )
+    )
 
 
 def _adventure_state(uid):
@@ -11929,6 +11951,7 @@ def _adventure_state(uid):
             (uid,)
         ).fetchall()
         correct_raw = _adventure_correct_question_ids(conn, uid, cards)
+        trusted_raw = _adventure_trusted_question_ids(conn, uid)
         rows = conn.execute(
             'SELECT * FROM adventure_boss_progress WHERE user_id=?',
             (uid,)
@@ -11953,14 +11976,16 @@ def _adventure_state(uid):
             conn,
             {q['id'] for q in qs}
             | set(correct_raw)
+            | set(trusted_raw)
             | {r['question_id'] for r in cards},
         )
 
     correct_ids = _IdentityKeyedSet(correct_raw, _adv_gkm)
     attempted_ids = _IdentityKeyedSet({r['question_id'] for r in cards}, _adv_gkm)
-    # ``last_grade`` is public SRS scheduling state, not correctness.  Defeat
-    # progress follows the same trusted server-review evidence as mastery.
-    defeated_ids = _IdentityKeyedSet(correct_raw, _adv_gkm)
+    # Historical compatibility membership is only an Adventure mastery read
+    # entitlement.  It must not imply a monster defeat, Boss clear, or star.
+    # Defeat progress therefore remains current trusted server evidence only.
+    defeated_ids = _IdentityKeyedSet(trusted_raw, _adv_gkm)
     zones = []
     previous_cleared = True
 
@@ -11983,14 +12008,9 @@ def _adventure_state(uid):
         unlocked = previous_cleared or cleared or placement_unlocked
         boss_ready = unlocked and pct >= BOSS_UNLOCK_PCT and not cleared and cooldown_left == 0
 
-        stars = 0
-        if cleared:
-            stars = max(stars, 1)
-        if pct >= 60:
-            stars = max(stars, 2)
-        if total and defeated >= total:
-            stars = 3
-        stars = max(stars, int(row.get('stars') or 0))
+        # Stars are Boss-state authority.  Restored question mastery must not
+        # synthesize or raise stars from a percentage/defeat count.
+        stars = max(0, int(row.get('stars') or 0))
 
         zones.append({
             **z,

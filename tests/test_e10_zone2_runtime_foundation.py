@@ -193,8 +193,15 @@ def test_zone1_post_clear_audio_fallback_remains_final_shot_only():
 
 def test_shared_server_gate_remains_historical_correct_mastery_at_thirty_percent():
     state = _block(APP, "def _adventure_correct_question_ids", "\n\ndef _adventure_state")
-    assert "review_log" in state
-    assert "grade>=3" in state
+    # Incident019B keeps the shared server gate, but the historical review
+    # query now lives in the focused compatibility helper so the read path
+    # can union it with the immutable baseline and trusted current evidence.
+    assert "visible_adventure_question_ids" in state
+    assert "TRUSTED_REVIEW_SOURCE_PREFIXES" in state
+    compatibility = (ROOT / "adventure_progress_compatibility.py").read_text(encoding="utf-8")
+    assert "pre_cutoff_review_memberships" in compatibility
+    assert "grade>=3" in compatibility
+    assert "reviewed_at < ?" in compatibility
     adventure = _block(APP, "def _adventure_state(uid):", "\n\n_ADVENTURE_STATE_CACHE")
     assert "seen = len([q for q in zone_qs if q['id'] in correct_ids])" in adventure
     assert "boss_ready = unlocked and pct >= BOSS_UNLOCK_PCT" in adventure
