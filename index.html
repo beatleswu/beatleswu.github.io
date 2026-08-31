@@ -6585,9 +6585,6 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
         font-size: 11px;
         line-height: 1.45;
     }
-    body:not(:has(#welcome-state.hidden)) .home-report .newbie-quest-card {
-        margin-left: -82px;
-    }
     body:not(:has(#welcome-state.hidden)) .home-skill-map {
         padding: 12px !important;
     }
@@ -7333,16 +7330,6 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     </div>
 </div>
 
-<div id="nq-spotlight-overlay" hidden></div>
-<div id="nq-claire-bubble" hidden>
-    <div class="nq-bubble-body">
-        <img class="nq-bubble-avatar" src="/assets/go_rpg_assets/claire_avatar.webp" alt="克萊兒">
-        <div class="nq-bubble-copy">
-            <span class="nq-bubble-text"></span>
-            <button class="nq-bubble-skip" type="button" data-i18n="index.tour.skip">略過引導</button>
-        </div>
-    </div>
-</div>
 
 <!-- HEADER -->
 <header>
@@ -7609,21 +7596,6 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
                         <div class="guild-kicker">Guild Mentor</div>
                         <h2 data-i18n="index.ws.mentor_name">公會導師 · 克萊兒 (Claire)</h2>
                         <p id="elina-line" data-i18n="index.mentor.default_line">今日委託已整理完畢。先處理最亮的卷宗，棋盤會替你打開下一扇門。</p>
-                        <div class="newbie-quest-card hidden" id="newbie-quest-card" aria-live="polite">
-                            <div class="newbie-quest-head">
-                                <strong data-i18n="index.newbie.title">新兵懸賞榜</strong>
-                                <span class="newbie-quest-stage" data-i18n="index.newbie.stage1">Stage 1 · 報到</span>
-                            </div>
-                            <div class="newbie-quest-progress-row">
-                                <span id="newbie-quest-progress-label" data-i18n="index.newbie.progress">今日進度</span>
-                                <span id="newbie-quest-progress-value">0 / 1</span>
-                            </div>
-                            <div class="newbie-quest-track" aria-hidden="true"><div class="newbie-quest-fill" id="newbie-quest-fill"></div></div>
-                            <button class="newbie-quest-action" id="newbie-quest-action" type="button" onclick="handleNewbieQuestAction()">
-                                <span data-i18n="index.newbie.daily_task">完成第一題今日修行委託</span>
-                            </button>
-                            <p class="newbie-quest-bonus" id="newbie-tour-status" data-i18n="index.newbie.tour_optional">選配：開啟新手導覽</p>
-                        </div>
                     </div>
                 </div>
                 <div class="home-section-head">
@@ -9643,9 +9615,6 @@ async function submitSRS(grade){
         return;
     }
     _todayTotal++; if(grade>=3) _todayCorrect++;
-    if (grade >= 3 && window._nqMapActive && _newbieQuestActive) {
-        _nqCheckMapQuiz();
-    }
     updateTodayMini();
     let shouldAdvance = true;
     try {
@@ -14651,7 +14620,6 @@ function _renderBossChallengeCard(zones = _adventureProgress) {
 }
 
 async function startAdventureStage(zoneKey, options = {}) {
-    window._nqMapActive = true;
     // A genuine zone entry is never presentation-only. Clearing here means an
     // abandoned replay (overlay closed by a route change rather than by its own
     // terminator) can never leave the flag set and suppress a later first-entry
@@ -19307,674 +19275,17 @@ function rotateElinaLine() {
     try { localStorage.setItem(key, String(next)); } catch(e) {}
 }
 
+// Historical NQ localStorage keys are intentionally left untouched.  They
+// remain readable by old clients, but the current client no longer resumes or
+// writes the retired quest.
 const NEWBIE_QUEST_STORAGE_KEY = 'cg_newbie_quest_v1';
 const NEWBIE_CHOICE_PENDING_KEY = 'cg_onboarding_choice_pending_v1';
-const NEWBIE_PET_TASK = 'stage1_pet_claim';
-const NEWBIE_MAP_TASK = 'stage2_map_quiz';
-const NEWBIE_DAILY_TASK = 'stage3_daily_training';
-const NEWBIE_CURRICULUM_TASK = 'stage4_curriculum_task';
-const NEWBIE_HERO_TASK = 'stage5_hero_card';
-const NEWBIE_BOT_TASK = 'stage6_bot_game';
-const NEWBIE_SHOP_TASK = 'stage7_shop_purchase';
-const NEWBIE_TOUR_TASK = 'tour_started';
-const LEGACY_NEWBIE_DAILY_TASK = 'stage1_daily_training';
-const LEGACY_NEWBIE_HERO_TASK = 'stage2_hero_card';
-const LEGACY_NEWBIE_BOT_TASK = 'stage3_bot_game';
-const NEWBIE_CHECKPOINT_TASKS = new Set([
-    NEWBIE_PET_TASK,
-    NEWBIE_MAP_TASK,
-    NEWBIE_DAILY_TASK,
-    NEWBIE_CURRICULUM_TASK,
-    NEWBIE_HERO_TASK,
-    NEWBIE_BOT_TASK,
-    NEWBIE_SHOP_TASK,
-]);
-const LEGACY_NEWBIE_PROGRESS_TASKS = new Set([LEGACY_NEWBIE_HERO_TASK, LEGACY_NEWBIE_BOT_TASK]);
-const NEWBIE_TASK_KEYS = [
-    NEWBIE_PET_TASK,
-    NEWBIE_MAP_TASK,
-    NEWBIE_DAILY_TASK,
-    NEWBIE_CURRICULUM_TASK,
-    NEWBIE_HERO_TASK,
-    NEWBIE_BOT_TASK,
-    NEWBIE_SHOP_TASK,
-    NEWBIE_TOUR_TASK,
-    LEGACY_NEWBIE_DAILY_TASK,
-    LEGACY_NEWBIE_HERO_TASK,
-    LEGACY_NEWBIE_BOT_TASK,
-];
-const NEWBIE_TASK_STAGE_AFTER = {
-    [NEWBIE_PET_TASK]: 2,
-    [NEWBIE_MAP_TASK]: 3,
-    [NEWBIE_DAILY_TASK]: 4,
-    [NEWBIE_CURRICULUM_TASK]: 5,
-    [NEWBIE_HERO_TASK]: 6,
-    [NEWBIE_BOT_TASK]: 7,
-    [NEWBIE_SHOP_TASK]: 7,
-    [LEGACY_NEWBIE_DAILY_TASK]: 2,
-    [LEGACY_NEWBIE_HERO_TASK]: 3,
-    [LEGACY_NEWBIE_BOT_TASK]: 4,
-};
-let _newbieQuestActive = false;
-let _newbieQuestState = { stage: 1, completed: [], graduated: false };
+const LEGACY_NEWBIE_QUEST_RETIRED = true;
 let _newbieQuestUserId = null;
-let _newbieDailyDoneSeen = null;
-let _newbieHeroTracked = false;
 
 function _newbieQuestLocalKey(key) {
     return _newbieQuestUserId ? `${key}:u:${_newbieQuestUserId}` : key;
 }
-
-function _readLocalNewbieQuest() {
-    try {
-        const parsed = JSON.parse(localStorage.getItem(_newbieQuestLocalKey(NEWBIE_QUEST_STORAGE_KEY)) || '{}');
-        return {
-            stage: Math.max(1, Number(parsed.stage || 1)),
-            completed: Array.isArray(parsed.completed) ? parsed.completed.filter(k => NEWBIE_TASK_KEYS.includes(k)) : [],
-            graduated: !!parsed.graduated,
-        };
-    } catch(e) {
-        return { stage: 1, completed: [], graduated: false };
-    }
-}
-
-function _saveLocalNewbieQuest(state) {
-    try { localStorage.setItem(_newbieQuestLocalKey(NEWBIE_QUEST_STORAGE_KEY), JSON.stringify(state)); } catch(e) {}
-}
-
-function _mergeNewbieQuestState(localState, serverState) {
-    return {
-        stage: Math.max(Number(localState?.stage || 1), Number(serverState?.stage || 1)),
-        completed: [...new Set([...(localState?.completed || []), ...(serverState?.completed || [])])]
-            .filter(k => NEWBIE_TASK_KEYS.includes(k)),
-        graduated: !!(localState?.graduated || serverState?.graduated),
-    };
-}
-
-function _newbieOptimisticState(taskKey) {
-    if (taskKey === NEWBIE_TOUR_TASK) {
-        return { completed: [taskKey], stage: Number(_newbieQuestState?.stage || 1), graduated: false };
-    }
-    const stage = NEWBIE_TASK_STAGE_AFTER[taskKey];
-    if (stage) {
-        return { completed: [taskKey], stage, graduated: taskKey === NEWBIE_SHOP_TASK || taskKey === LEGACY_NEWBIE_BOT_TASK };
-    }
-    return { completed: [taskKey], stage: Number(_newbieQuestState?.stage || 1), graduated: false };
-}
-
-function _currentNewbieStage() {
-    if (_newbieQuestState.graduated) return 8;
-    return Math.max(1, Math.min(7, Number(_newbieQuestState.stage || 1)));
-}
-
-function _newbieStageMeta() {
-    const stage = _currentNewbieStage();
-    if (stage <= 7) {
-        const info = NQ_STAGE_MAP[stage] || NQ_STAGE_MAP[1];
-        const done = Math.max(0, stage - 1);
-        return {
-            stageKey: info.nameKey,
-            progressKey: info.descKey,
-            actionKey: 'index.newbie.take_me',
-            bonusKey: info.descKey,
-            value: `${done} / 7`,
-            fill: Math.round(done / 7 * 100) + '%',
-            complete: false,
-        };
-    }
-    return {
-        stageKey: 'index.newbie.stage_done',
-        progressKey: 'index.newbie.graduated',
-        actionKey: 'index.newbie.graduated',
-        bonusKey: 'index.newbie.graduated_hint',
-        value: '1 / 1',
-        fill: '100%',
-        complete: true,
-    };
-}
-
-function _newbieTaskRoute(taskKey) {
-    if (NEWBIE_CHECKPOINT_TASKS.has(taskKey)) {
-        return { url: '/api/newbie_quest/checkpoint', body: { task_key: taskKey } };
-    }
-    if (LEGACY_NEWBIE_PROGRESS_TASKS.has(taskKey)) {
-        return { url: '/api/newbie_quest/progress', body: { task: taskKey } };
-    }
-    return { url: '/api/auth/newbie_quest', body: { task_key: taskKey } };
-}
-
-const NQ_STAGE_MAP = {
-    1: { nameKey: 'index.newbie.s1.name', descKey: 'index.newbie.s1.desc' },
-    2: { nameKey: 'index.newbie.s2.name', descKey: 'index.newbie.s2.desc' },
-    3: { nameKey: 'index.newbie.s3.name', descKey: 'index.newbie.s3.desc' },
-    4: { nameKey: 'index.newbie.s4.name', descKey: 'index.newbie.s4.desc' },
-    5: { nameKey: 'index.newbie.s5.name', descKey: 'index.newbie.s5.desc' },
-    6: { nameKey: 'index.newbie.s6.name', descKey: 'index.newbie.s6.desc' },
-    7: { nameKey: 'index.newbie.s7.name', descKey: 'index.newbie.s7.desc' },
-};
-
-function renderNewbieQuestCard() {
-    const card = document.getElementById('newbie-quest-card');
-    if (!card) return;
-    card.classList.toggle('hidden', !_newbieQuestActive);
-    if (!_newbieQuestActive) return;
-
-    const stage     = Number(_newbieQuestState.stage || 1);
-    const graduated = !!_newbieQuestState.graduated;
-    const stageEl   = card.querySelector('.newbie-quest-stage');
-    const labelEl   = document.getElementById('newbie-quest-progress-label');
-    const valueEl   = document.getElementById('newbie-quest-progress-value');
-    const fillEl    = document.getElementById('newbie-quest-fill');
-    const actionEl  = document.getElementById('newbie-quest-action');
-    const bonusEl   = document.getElementById('newbie-tour-status');
-
-    if (graduated || stage > 7) {
-        card.classList.add('is-complete');
-        if (stageEl)  stageEl.textContent  = 'Stage 7 / 7';
-        if (labelEl)  labelEl.textContent  = I18n.t('index.newbie.training_done');
-        if (valueEl)  valueEl.textContent  = '7 / 7';
-        if (fillEl)   fillEl.style.width   = '100%';
-        if (actionEl) { actionEl.disabled = true; actionEl.textContent = I18n.t('index.newbie.graduated_btn'); }
-        if (bonusEl)  bonusEl.textContent  = I18n.t('index.newbie.graduated_claire');
-        return;
-    }
-
-    const info = NQ_STAGE_MAP[stage] || NQ_STAGE_MAP[1];
-    const done = Math.max(0, stage - 1);
-    card.classList.remove('is-complete');
-    if (stageEl)  stageEl.textContent  = `Stage ${stage} / 7`;
-    if (labelEl)  labelEl.textContent  = I18n.t(info.nameKey);
-    if (valueEl)  valueEl.textContent  = `${done} / 7`;
-    if (fillEl)   fillEl.style.width   = Math.round(done / 7 * 100) + '%';
-    if (actionEl) { actionEl.disabled = false; actionEl.textContent = I18n.t('index.newbie.take_me'); }
-    if (bonusEl)  bonusEl.textContent  = I18n.t(info.descKey);
-}
-
-async function syncNewbieQuestTask(taskKey, options = {}) {
-    if (!_newbieQuestActive) return;
-    const optimistic = _mergeNewbieQuestState(
-        _newbieQuestState,
-        _newbieOptimisticState(taskKey)
-    );
-    _newbieQuestState = optimistic;
-    _saveLocalNewbieQuest(optimistic);
-    renderNewbieQuestCard();
-    const route = _newbieTaskRoute(taskKey);
-    try {
-        const res = await fetch(route.url, {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            keepalive: !!options.keepalive,
-            body: JSON.stringify(route.body),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-            if (data.state) {
-                _newbieQuestState = data.state;
-                _saveLocalNewbieQuest(_newbieQuestState);
-                renderNewbieQuestCard();
-            }
-            return;
-        }
-        _newbieQuestState = _mergeNewbieQuestState(_newbieQuestState, data.state);
-        _saveLocalNewbieQuest(_newbieQuestState);
-        renderNewbieQuestCard();
-        if ((data.newly_completed || []).includes(NEWBIE_DAILY_TASK)) {
-            const line = document.getElementById('elina-line');
-            if (line) line.textContent = I18n.t('index.daily.round_done');
-        }
-    } catch(e) {
-        // 保留本地進度；下次 mount 會再次交由後端驗證。
-    }
-}
-
-async function initNewbieQuest(me) {
-    _newbieQuestUserId = me?.user_id || null;
-    _newbieQuestActive = !!me?.newbie_quest_eligible;
-    if (!_newbieQuestActive) {
-        renderNewbieQuestCard();
-        return;
-    }
-    const localState = _readLocalNewbieQuest();
-    _newbieQuestState = localState;
-    renderNewbieQuestCard();
-    try {
-        const res = await fetch('/api/auth/newbie_quest', { credentials: 'include' });
-        const data = await res.json();
-        if (!res.ok || !data.eligible) {
-            _newbieQuestActive = false;
-            renderNewbieQuestCard();
-            return;
-        }
-        _newbieQuestState = _mergeNewbieQuestState(localState, data.state);
-        _saveLocalNewbieQuest(_newbieQuestState);
-        renderNewbieQuestCard();
-        _maybeShowStage1Spotlight();
-        _maybeShowStage2Spotlight();
-        _maybeShowStage3Spotlight();
-        _maybeShowStage5Spotlight();
-        _maybeShowStage6Spotlight();
-        for (const taskKey of localState.completed) {
-            if (!(data.state?.completed || []).includes(taskKey)) await syncNewbieQuestTask(taskKey);
-        }
-        fetch('/api/auth/newbie_quest', {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'view' }),
-        }).catch(() => {});
-    } catch(e) {
-        // 離線時先顯示本機狀態，恢復連線後再驗證。
-        _maybeShowStage1Spotlight();
-        _maybeShowStage2Spotlight();
-        _maybeShowStage3Spotlight();
-        _maybeShowStage5Spotlight();
-        _maybeShowStage6Spotlight();
-    }
-}
-
-function _observeNewbieDailyDone(done, total = 10) {
-    const value = Number(done || 0);
-    const target = Math.max(1, Number(total || 10));
-    if (_newbieDailyDoneSeen === null) {
-        _newbieDailyDoneSeen = value;
-        if (value >= target && _newbieQuestActive && Number(_newbieQuestState.stage || 0) === 3) {
-            _nqCheckDailyTraining();
-        }
-        return;
-    }
-    if (value > _newbieDailyDoneSeen) {
-        _newbieDailyDoneSeen = value;
-        if (value >= target && _newbieQuestActive && Number(_newbieQuestState.stage || 0) === 3) {
-            _nqCheckDailyTraining();
-        }
-    }
-}
-
-const CompletionFX = (() => {
-  function play(onDone) {
-    const done = typeof onDone === 'function' ? onDone : () => {};
-    try {
-      for (let i = 0; i < 10; i++) {
-        const sparkle = document.createElement('span');
-        sparkle.textContent = '✨';
-        sparkle.style.cssText = `position:fixed;font-size:1.4rem;pointer-events:none;z-index:9999;left:${30 + Math.random() * 40}vw;top:50vh;opacity:1;transition:all .9s ease-out;`;
-        document.body.appendChild(sparkle);
-        requestAnimationFrame(() => {
-          sparkle.style.transform = `translateY(-${60 + Math.random() * 80}px)`;
-          sparkle.style.opacity = '0';
-        });
-        setTimeout(() => sparkle.remove(), 1000);
-      }
-      setTimeout(done, 950);
-    } catch(e) {
-      console.warn('[CompletionFX]', e);
-      done();
-    }
-  }
-  return { play };
-})();
-
-const NQ_REWARD_NAME_EN = {
-  '小提示卷': 'Hint Scroll', '高級提示包': 'Premium Hint Bundle',
-  'AI 解說券': 'AI Explanation Ticket', '小型修行令': 'Small Training Pass',
-  '加題券': 'Extra Problem Pass', '小 XP 藥水': 'Small XP Potion',
-  'XP 藥水': 'XP Potion', '連勝護盾': 'Streak Shield',
-  '棋魂糖': 'Go Spirit Candy', '星果': 'Starfruit', '月露': 'Moon Dew'
-};
-const RewardBox = (() => {
-  function show(rewards, onClose) {
-    const done = typeof onClose === 'function' ? onClose : () => {};
-    try {
-      const hasRewards = rewards && (
-        rewards.coins ||
-        (rewards.items && rewards.items.length) ||
-        (rewards.titles && rewards.titles.length)
-      );
-      if (!hasRewards) { done(); return; }
-      let html = '';
-      if (rewards.coins) {
-        html += `<div style="color:#fbbf24;font-size:1.3rem;margin:6px 0">+${rewards.coins} ${I18n.getLang() === 'en' ? 'coins' : '金幣'}</div>`;
-      }
-      (rewards.items || []).forEach(i => {
-        const rewardName = I18n.getLang() === 'en' ? (i.name_en || NQ_REWARD_NAME_EN[i.name] || I18n.localizeName(i.name)) : i.name;
-        html += `<div style="margin:4px 0">${i.icon} ${rewardName} ×${i.qty}</div>`;
-      });
-      (rewards.titles || []).forEach(() => {
-        html += `<div style="color:#a78bfa;margin:4px 0">${I18n.t('index.newbie.title_unlock')}</div>`;
-      });
-      const box = document.createElement('div');
-      box.id = 'nq-reward-box';
-      box.style.cssText = `position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;`;
-      box.innerHTML = `
-        <div style="background:#1e293b;border-radius:16px;padding:32px 40px;text-align:center;color:#f1f5f9;max-width:280px">
-          <div><img src="/assets/shop/newbie_gift_pack.webp?v=1" style="width:96px;height:96px;object-fit:contain"></div>
-          <div style="margin:12px 0 4px;font-size:1.1rem;font-weight:700">${I18n.t('index.newbie.reward_done')}</div>
-          <div style="margin:8px 0">${html}</div>
-          <button id="nq-reward-collect" style="margin-top:16px;padding:8px 24px;background:#0d9488;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:1rem">
-            ${I18n.t('index.newbie.reward_collect')}
-          </button>
-        </div>`;
-      document.body.appendChild(box);
-      document.getElementById('nq-reward-collect').onclick = () => {
-        box.remove();
-        done();
-      };
-    } catch(e) {
-      console.warn('[RewardBox]', e);
-      done();
-    }
-  }
-  return { show };
-})();
-
-let _nqMapQuizPending = false;
-async function _nqCheckMapQuiz() {
-    if (_nqMapQuizPending) return;
-    _nqMapQuizPending = true;
-    try {
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_map_quiz_done'))) return;
-        window._nqMapActive = false;
-        const res = await fetch('/api/newbie_quest/checkpoint', {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task_key: NEWBIE_MAP_TASK })
-        });
-        const d = await res.json();
-        if (!res.ok || !d?.ok) return;
-        try { localStorage.setItem(_newbieQuestLocalKey('nq_map_quiz_done'), '1'); } catch(e) {}
-        _newbieQuestState = _mergeNewbieQuestState(_newbieQuestState, d.state);
-        _saveLocalNewbieQuest(_newbieQuestState);
-        renderNewbieQuestCard();
-        if (!d.newly_completed?.length) return;
-        SpotlightManager.hide();
-        CompletionFX.play(() => RewardBox.show(d.rewards || {}, () => {
-            localStorage.removeItem(_newbieQuestLocalKey('nq_spotlight_s3_shown'));
-            setTimeout(() => _maybeShowStage3Spotlight(), 400);
-        }));
-    } catch(e) {
-        console.warn('[NQ stage2]', e);
-    } finally {
-        _nqMapQuizPending = false;
-    }
-}
-
-let _nqDailyTrainingPending = false;
-async function _nqCheckDailyTraining() {
-    if (_nqDailyTrainingPending) return;
-    _nqDailyTrainingPending = true;
-    try {
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_daily_training_done'))) return;
-        const res = await fetch('/api/newbie_quest/checkpoint', {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task_key: NEWBIE_DAILY_TASK })
-        });
-        const d = await res.json();
-        if (!res.ok || !d?.ok) return;
-        try { localStorage.setItem(_newbieQuestLocalKey('nq_daily_training_done'), '1'); } catch(e) {}
-        _newbieQuestState = _mergeNewbieQuestState(_newbieQuestState, d.state);
-        _saveLocalNewbieQuest(_newbieQuestState);
-        renderNewbieQuestCard();
-        if (!d.newly_completed?.length) return;
-        SpotlightManager.hide();
-        CompletionFX.play(() => RewardBox.show(d.rewards || {}, () => {
-            const bar = document.createElement('div');
-            bar.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#0d9488;color:#fff;padding:12px 24px;border-radius:12px;font-size:.95rem;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;';
-            bar.textContent = I18n.t('index.newbie.next_curriculum');
-            bar.onclick = () => { window.location.href = '/curriculum'; };
-            document.body.appendChild(bar);
-        }));
-    } catch(e) {
-        console.warn('[NQ stage3]', e);
-    } finally {
-        _nqDailyTrainingPending = false;
-    }
-}
-
-async function _newbieQuestProgressRefresh() {
-    if (!_newbieQuestActive) return;
-    try {
-        const res = await fetch('/api/auth/newbie_quest', { credentials: 'include' });
-        const data = await res.json();
-        if (!res.ok || !data.eligible) return;
-        _newbieQuestState = _mergeNewbieQuestState(_newbieQuestState, data.state);
-        _saveLocalNewbieQuest(_newbieQuestState);
-        renderNewbieQuestCard();
-    } catch(e) {
-        console.warn('[NewbieQuest] progress refresh failed', e);
-    }
-}
-
-function highlightAndScroll(selector) {
-    const elements = Array.from(document.querySelectorAll(selector));
-    if (!elements.length) return false;
-    elements.forEach(el => {
-        if (el._newbieGlowTimer) clearTimeout(el._newbieGlowTimer);
-        el.classList.add('newbie-glow');
-        el._newbieGlowTimer = setTimeout(() => {
-            el.classList.remove('newbie-glow');
-            el._newbieGlowTimer = null;
-        }, 3000);
-    });
-    elements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return true;
-}
-
-function handleNewbieQuestAction() {
-    const stage = Number(_newbieQuestState.stage || 1);
-    if (stage === 1) { document.getElementById('entry-pet')?.click(); return; }
-    if (stage === 2) {
-        document.getElementById('adventure-map-shell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-    }
-    if (stage === 3) { document.getElementById('cta-daily-btn')?.click(); return; }
-    if (stage === 4) { window.location.href = '/curriculum'; return; }
-    if (stage === 5) { window.location.href = '/hero'; return; }
-    if (stage === 6) { document.getElementById('entry-bot')?.click(); return; }
-    if (stage === 7) { window.location.href = '/shop'; return; }
-}
-
-const SpotlightManager = (() => {
-    let _raf = null;
-    let _target = null;
-
-    function _calcHole(el) {
-        const r = el.getBoundingClientRect();
-        const pad = 8;
-        return { x: r.left - pad, y: r.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 };
-    }
-
-    function _updateClip() {
-        const overlay = document.getElementById('nq-spotlight-overlay');
-        const bubble = document.getElementById('nq-claire-bubble');
-        if (!overlay || !bubble || !_target) return;
-        const { x, y, w, h } = _calcHole(_target);
-        const W = window.innerWidth;
-        const H = window.innerHeight;
-        overlay.style.clipPath =
-            `polygon(evenodd, 0 0, ${W}px 0, ${W}px ${H}px, 0 ${H}px, 0 0, ` +
-            `${x}px ${y}px, ${x}px ${y + h}px, ${x + w}px ${y + h}px, ${x + w}px ${y}px, ${x}px ${y}px)`;
-        bubble.style.left = `${Math.max(8, Math.min(x, W - 288))}px`;
-        bubble.style.top = `${Math.min(H - 120, y + h + 12)}px`;
-    }
-
-    function _tick() {
-        _updateClip();
-        _raf = requestAnimationFrame(_tick);
-    }
-
-    return {
-        show(targetSelector, text, skipKey, onSkip) {
-            if (typeof skipKey === 'function') {
-                onSkip = skipKey;
-                skipKey = 'nq_spotlight_s1_skipped';
-            } else if (!skipKey) {
-                skipKey = 'nq_spotlight_s1_skipped';
-            }
-            _target = document.querySelector(targetSelector);
-            if (!_target) return;
-            const overlay = document.getElementById('nq-spotlight-overlay');
-            const bubble = document.getElementById('nq-claire-bubble');
-            if (!overlay || !bubble) return;
-            const textEl = bubble.querySelector('.nq-bubble-text');
-            const skipBtn = bubble.querySelector('.nq-bubble-skip');
-            if (textEl) textEl.textContent = text;
-            if (skipBtn) {
-                skipBtn.onclick = () => {
-                    try {
-                        if (skipKey) localStorage.setItem(_newbieQuestLocalKey(skipKey), '1');
-                    } catch(e) {}
-                    SpotlightManager.hide();
-                    if (typeof onSkip === 'function') onSkip();
-                };
-            }
-            overlay.hidden = false;
-            bubble.hidden = false;
-            if (_raf) cancelAnimationFrame(_raf);
-            _raf = requestAnimationFrame(_tick);
-        },
-        hide(onComplete) {
-            if (_raf) {
-                cancelAnimationFrame(_raf);
-                _raf = null;
-            }
-            _target = null;
-            const overlay = document.getElementById('nq-spotlight-overlay');
-            const bubble = document.getElementById('nq-claire-bubble');
-            if (overlay) {
-                overlay.hidden = true;
-                overlay.style.clipPath = '';
-            }
-            if (bubble) {
-                bubble.hidden = true;
-            }
-            if (typeof onComplete === 'function') onComplete();
-        }
-    };
-})();
-
-function _maybeShowStage1Spotlight() {
-    if (!_newbieQuestActive) return;
-    if (_newbieQuestState.completed.includes(NEWBIE_PET_TASK)) return;
-    try {
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s1_shown'))) return;
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s1_skipped'))) return;
-    } catch(e) {}
-    const namingModal = document.getElementById('naming-modal');
-    const target = document.getElementById('entry-pet');
-    if (!namingModal || !namingModal.hidden) return;
-    if (!target || target.getBoundingClientRect().width === 0) return;
-    try { localStorage.setItem(_newbieQuestLocalKey('nq_spotlight_s1_shown'), '1'); } catch(e) {}
-    setTimeout(() => requestAnimationFrame(() => {
-        SpotlightManager.show('#entry-pet', I18n.t('index.newbie.spotlight1'));
-    }), 800);
-}
-
-function _maybeShowStage2Spotlight() {
-    if (!_newbieQuestActive) return;
-    if ((_newbieQuestState.completed || []).includes(NEWBIE_MAP_TASK)) return;
-    if (Number(_newbieQuestState.stage || 0) !== 2) return;
-    try {
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s2_shown'))) return;
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s2_skipped'))) return;
-    } catch(e) {}
-    const target = document.getElementById('adventure-map-shell');
-    if (!target || target.getBoundingClientRect().width === 0) return;
-    try { localStorage.setItem(_newbieQuestLocalKey('nq_spotlight_s2_shown'), '1'); } catch(e) {}
-    setTimeout(() => requestAnimationFrame(() => {
-        SpotlightManager.show(
-            '#adventure-map-shell',
-            I18n.t('index.newbie.spotlight2'),
-            'nq_spotlight_s2_skipped'
-        );
-    }), 800);
-}
-
-function _maybeShowStage3Spotlight() {
-    if (!_newbieQuestActive) return;
-    if ((_newbieQuestState.completed || []).includes(NEWBIE_DAILY_TASK)) return;
-    if (Number(_newbieQuestState.stage || 0) !== 3) return;
-    try {
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s3_shown'))) return;
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s3_skipped'))) return;
-    } catch(e) {}
-    const target = document.getElementById('cta-daily-btn');
-    if (!target || target.getBoundingClientRect().width === 0) return;
-    try { localStorage.setItem(_newbieQuestLocalKey('nq_spotlight_s3_shown'), '1'); } catch(e) {}
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => requestAnimationFrame(() => {
-        SpotlightManager.show(
-            '#cta-daily-btn',
-            I18n.t('index.newbie.spotlight3'),
-            'nq_spotlight_s3_skipped'
-        );
-    }), 600);
-}
-
-function _maybeShowStage5Spotlight() {
-    if (!_newbieQuestActive) return;
-    if ((_newbieQuestState.completed || []).includes(NEWBIE_HERO_TASK)) return;
-    if (Number(_newbieQuestState.stage || 0) !== 5) return;
-    try {
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s5_shown'))) return;
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s5_skipped'))) return;
-    } catch(e) {}
-    const target = document.getElementById('entry-hero');
-    if (!target || target.getBoundingClientRect().width === 0) return;
-    try { localStorage.setItem(_newbieQuestLocalKey('nq_spotlight_s5_shown'), '1'); } catch(e) {}
-    setTimeout(() => requestAnimationFrame(() => {
-        SpotlightManager.show(
-            '#entry-hero',
-            I18n.t('index.newbie.spotlight5'),
-            'nq_spotlight_s5_skipped'
-        );
-    }), 800);
-}
-
-function _maybeShowStage6Spotlight() {
-    if (!_newbieQuestActive) return;
-    if ((_newbieQuestState.completed || []).includes(NEWBIE_BOT_TASK)) return;
-    if (Number(_newbieQuestState.stage || 0) !== 6) return;
-    try {
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s6_shown'))) return;
-        if (localStorage.getItem(_newbieQuestLocalKey('nq_spotlight_s6_skipped'))) return;
-    } catch(e) {}
-    const target = document.getElementById('entry-bot');
-    if (!target || target.getBoundingClientRect().width === 0) return;
-    try { localStorage.setItem(_newbieQuestLocalKey('nq_spotlight_s6_shown'), '1'); } catch(e) {}
-    setTimeout(() => requestAnimationFrame(() => {
-        SpotlightManager.show(
-            '#entry-bot',
-            I18n.t('index.newbie.spotlight6'),
-            'nq_spotlight_s6_skipped'
-        );
-    }), 800);
-}
-
-function _bindPetEntryInteractions() {
-    const entry = document.getElementById('entry-pet');
-    if (entry && !entry.dataset.boundPetEntry) {
-        entry.addEventListener('click', (event) => {
-            event.preventDefault();
-            SpotlightManager.hide();
-            window.location.href = '/hero?tab=pet';
-        });
-        entry.dataset.boundPetEntry = '1';
-    }
-}
-
-function _bindNewbieQuestInteractions() {
-    if (_newbieHeroTracked) return;
-    const heroCard = document.querySelector('.home-player-card');
-    if (!heroCard) return;
-    heroCard.addEventListener('click', () => {
-        if (!_newbieQuestActive) return;
-        if (_currentNewbieStage() !== 5) return;
-        syncNewbieQuestTask(NEWBIE_HERO_TASK, { keepalive: true });
-    }, { capture: true });
-    _newbieHeroTracked = true;
-}
-
 function initDojoBanner() {
     rotateElinaLine();
     // 打招呼
@@ -20107,10 +19418,6 @@ function _showDailyTrainingComplete(done = _dailyTrainingDone, total = _dailyTra
     const completed = Number(done || 0);
     const target = Math.max(1, Number(total || 10));
     if (completed < target) return;
-    if (document.getElementById('nq-reward-box')) {
-        setTimeout(() => _showDailyTrainingComplete(done, total), 1000);
-        return;
-    }
     try {
         const key = _dailySummaryKey();
         if (localStorage.getItem(key)) return;
@@ -20173,7 +19480,6 @@ async function loadDailyTrainingStatus(options = {}) {
         const done  = data.completed || 0;
         _dailyTrainingDone = done;
         _dailyTrainingTotal = total;
-        _observeNewbieDailyDone(done, total);
         const pct   = Math.round(done / total * 100);
         const left  = total - done;
 
@@ -20254,7 +19560,6 @@ async function loadVoidZoneCount() {
 
 // ── 啟動今日星軌修煉 ──────────────────────────────────────────────
 async function startDailyTraining() {
-    window._nqMapActive = false;
     _adventureActiveQuestions = null;
     const contextLabel = document.getElementById('battle-status');
     if (contextLabel) contextLabel.textContent = I18n.t('index.battle.fighting');
@@ -20323,7 +19628,6 @@ function _updateDailyProgressUI() {
     const done     = initDone + _dailyTrainingIdx;
     const total    = _dailyTrainingTotal;
     _dailyTrainingDone = done;
-    _observeNewbieDailyDone(done, total);
     const left     = Math.max(0, total - done);
     const pct      = total > 0 ? Math.round(done / total * 100) : 0;
 
@@ -20596,7 +19900,7 @@ window.onload = async () => {
         // 帳號換了：清掉角色設定 & 教學完成標記，讓新帳號重新走新手流程
         localStorage.removeItem('hero_combat_gear_v1');
         localStorage.removeItem('cg_tour_done_v3');
-        localStorage.removeItem(NEWBIE_QUEST_STORAGE_KEY);
+        // Historical NQ keys are preserved as dormant compatibility data.
         localStorage.removeItem(NEWBIE_CHOICE_PENDING_KEY);
         localStorage.removeItem(ADVENTURE_SELECTED_STAGE_STORAGE_KEY);
     }
@@ -20609,13 +19913,11 @@ if (unameEl) {
 _isPremiumUser=!!(me.is_premium||me.is_admin);
 _isAdmin=!!me.is_admin;
 _currentUserId = me.user_id;
+_newbieQuestUserId = me.user_id;
 if (!_isPremiumUser && _isDailyLimitLockedToday()) _applyDailyLimit();
 // 首頁 HERO 小卡 Premium 尊榮標記（金框＋皇冠）
 document.getElementById('home-player-figure')?.classList.toggle('premium', _isPremiumUser);
 document.querySelector('.home-player-card')?.classList.toggle('premium', _isPremiumUser);
-_bindPetEntryInteractions();
-_bindNewbieQuestInteractions();
-initNewbieQuest(me);
 }catch(e){}
     if (!_isPremiumUser && _isDailyLimitLockedToday()) _applyDailyLimit();
     const e9Flags = resolveInitialE9Flags();
@@ -21447,7 +20749,7 @@ window.addEventListener('appinstalled', () => {
                 );
             } catch(e) {}
             try { applyHeroCombatToBattle(); } catch(e) {}
-            // 同步寫入後端，讓 maybeAutoTour 的 character_key 檢查不會重複觸發
+            // Keep the selected hero authoritative across reloads and devices.
             fetch('/api/skills/character', {
                 method: 'POST', credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
@@ -21608,11 +20910,6 @@ window.addEventListener('appinstalled', () => {
     function _markTourDone() {
         localStorage.setItem(TOUR_KEY, '1');
         fetch('/api/auth/tour_done', { method: 'POST', credentials: 'include' })
-            .then(res => {
-                if (res.ok && typeof syncNewbieQuestTask === 'function') {
-                    syncNewbieQuestTask(NEWBIE_TOUR_TASK);
-                }
-            })
             .catch(() => {});
     }
 
@@ -21788,7 +21085,7 @@ window.addEventListener('appinstalled', () => {
     }
 
     /* ════════════════════════════════════════════════════════════
-       4.  首次訪問自動流程：命名 → 棋力確認 → Tour
+       4.  首次訪問流程：命名 → 棋力確認 → 目前首頁；Driver Tour 僅手動
        ════════════════════════════════════════════════════════════ */
     async function maybeAutoTour() {
         const ws = document.getElementById('welcome-state');
@@ -21809,27 +21106,12 @@ window.addEventListener('appinstalled', () => {
             return;
         }
 
-        /* 教學是否看過以伺服器記錄為準（跨裝置/跨帳號切換都有效），
-           localStorage 只是同裝置的快速擋板 */
-        if (!me.elo_rating) {
-            /* 有暱稱、有角色、無棋力 → 教學導覽 */
-            if (me.tour_done || localStorage.getItem(TOUR_KEY)) return;
-            if (!_newbieQuestActive && !me.newbie_quest_eligible) {
-                launchTour();
-            }
-            return;
-        }
-
-        /* tour_done 只影響教學導覽，不應該跳過命名或棋力測驗。 */
-        if (me.tour_done || localStorage.getItem(TOUR_KEY)) return;
-
-        /* 暱稱 ✓  棋力 ✓  Tour 未跑 → 直接啟動 Tour */
-        if (!_newbieQuestActive && !me.newbie_quest_eligible) {
-            launchTour();
-        }
+        /* Legacy NQ is retired.  The Driver tour remains available only via
+           its explicit manual controls below. */
+        return;
     }
 
-    /* 從棋力確認頁返回時直接啟動 Tour */
+    /* 從棋力確認頁返回時只回到目前的首頁/冒險入口，不啟動舊導覽。 */
     function _initTourFlow() {
         if (window.__GO_E9_ACTIVE_SHELL__ === 'e9') return;
         try {
@@ -21843,13 +21125,7 @@ window.addEventListener('appinstalled', () => {
         if (params.get('after_placement') === '1') {
             sessionStorage.setItem('placement_ritual_pending_v1', '1');
             history.replaceState(null, '', window.location.pathname);
-            setTimeout(() => {
-                if (_newbieQuestActive) {
-                    _maybeShowStage1Spotlight();
-                } else {
-                    launchTour();
-                }
-            }, 1200);
+            return;
         } else {
             setTimeout(maybeAutoTour, 900);
         }

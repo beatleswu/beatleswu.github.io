@@ -1726,47 +1726,8 @@ function showResult(win, score, reason) {
     showFinalScore();
     setTimeout(() => monsterSay(_pick(getMonsterTrash(_talkType).taunt), 5000), 600);
   }
-  fetch('/api/newbie_quest/progress', {
-    method: 'POST',
-    credentials: 'include',
-    keepalive: true,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ task: 'stage3_bot_game' })
-  }).catch(() => {});
-  _nqCheckBotGame();
   stopTurnTimer();
   modal.classList.add('show');
-}
-
-async function _nqCheckBotGame() {
-  try {
-    const res = await fetch('/api/newbie_quest/checkpoint', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task_key: 'stage6_bot_game' })
-    });
-    const d = await res.json();
-    if (!d.ok || !d.newly_completed?.length) return;
-    const items = [...(d.rewards?.items || []), ...(d.rewards?.food || [])];
-    const rewardNameEn = {'小提示卷':'Hint Scroll','AI 解說券':'AI Explanation Ticket','棋魂糖':'Go Spirit Candy','星果':'Starfruit','月露':'Moon Dew'};
-    const lines = [
-      d.rewards?.coins ? `+${d.rewards.coins} ${botText('金幣', 'coins')}` : '',
-      ...items.map(i => `${i.icon} ${botEn() ? (i.name_en || rewardNameEn[i.name] || i.name) : i.name} \u00d7${i.qty}`),
-    ].filter(Boolean).join(' • ');
-    const t = document.createElement('div');
-    t.textContent = `${botText('✅ 任務完成！', '✅ Quest complete!')}${lines}`;
-    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0d9488;color:#fff;padding:10px 20px;border-radius:8px;z-index:9999;font-size:.95rem;white-space:nowrap';
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 4000);
-    const bar = document.createElement('div');
-    bar.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#0d9488;color:#fff;padding:12px 24px;border-radius:12px;font-size:.95rem;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;';
-    bar.textContent = botText('🛒 去商店，完成最後一步！', '🛒 Visit the shop to finish the final step!');
-    bar.onclick = () => { window.location.href = '/shop'; };
-    document.body.appendChild(bar);
-  } catch(e) {
-    console.warn('[NQ stage6]', e);
-  }
 }
 
 function showThinking(show) {
