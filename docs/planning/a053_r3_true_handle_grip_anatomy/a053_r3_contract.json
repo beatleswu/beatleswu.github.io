@@ -1,0 +1,293 @@
+{
+  "task_id": "A053_R3_PAPER_DOLL_TRUE_HANDLE_GRIP_ANATOMY_VISUAL_REFINEMENT_001",
+  "status": "STATIC_VISUAL_REFINEMENT_PENDING_OWNER_VISUAL_REVIEW",
+  "runtime_active": false,
+  "owner_visual_acceptance": "NOT_GRANTED",
+  "base": {
+    "a053_r2_head": "8650b23ee98ae896f44a4dd9544bcd222a999df7",
+    "a053_r2_tree": "3716516d789c58162ab94bb996fa8ff6c9a44014",
+    "fresh_master_head": "f19f57f6c80fc7f3ba9c33817395c06284c879d1",
+    "fresh_master_tree": "aa5f3192c4c5e382dd87f990b39c5e3e789b06b1",
+    "master_advanced": true,
+    "relevant_master_delta": "NONE"
+  },
+  "character": {
+    "character_id": "apprentice",
+    "slot": "MAIN_HAND",
+    "pose_family": "ONE_HAND_SWORD",
+    "default_pose_asset": "assets/hero/characters/wave2_p1/apprentice_p1.png",
+    "grip_anchor": {
+      "node": "GRIP_ANCHOR",
+      "parent": "RIGHT_HAND",
+      "x": 760.0,
+      "y": 800.0,
+      "normalized": [
+        0.7196969696969697,
+        0.5681818181818182
+      ],
+      "one_character_pose_one_grip_anchor": true,
+      "r2_value_preserved": true
+    },
+    "r2_grip_layer": {
+      "path": "docs/planning/a053_r2_grip_hand_forearm_integration/assets/apprentice_grip_forearm_r2.png",
+      "sha256": "5d4f43008c2fd93f66c93918d642b1966a3c2ae95c09c816aaddca2429d5837a",
+      "dimensions": [
+        170,
+        380
+      ]
+    },
+    "r3_grip_layer": {
+      "path": "docs/planning/a053_r3_true_handle_grip_anatomy/assets/apprentice_grip_forearm_r3.png",
+      "sha256": "626eadda512edbea03aebf6ff60702dcfec4689f2fdc740d752d3c07980ada81",
+      "dimensions": [
+        340,
+        380
+      ],
+      "position": [
+        610,
+        570
+      ],
+      "parent": "RIGHT_HAND",
+      "semantic_role": "localized true-handle sleeve wrist forearm and front fingers",
+      "baked_weapon_pixels": 0,
+      "source_provenance": "Owner-directed localized art derivative from A053-R2 grip anatomy; weapon remains independent"
+    },
+    "r2_mask_sha256": "16457367bac70f8585e67f3ed55edf17242d4f7c924ae8eb01b61bceb9daa412",
+    "r3_mask": {
+      "path": "docs/planning/a053_r3_true_handle_grip_anatomy/masks/apprentice_open_hand_suppression_r3.png",
+      "sha256": "16457367bac70f8585e67f3ed55edf17242d4f7c924ae8eb01b61bceb9daa412",
+      "scope": "same small localized original open-hand suppression as R2",
+      "visual_seam": "NONE"
+    }
+  },
+  "layers": [
+    {
+      "order": 10,
+      "layer_id": "CHARACTER_BASE",
+      "parent": "BODY",
+      "asset": "assets/hero/characters/wave2_p1/apprentice_p1.png",
+      "mask": "docs/planning/a053_r3_true_handle_grip_anatomy/masks/apprentice_open_hand_suppression_r3.png"
+    },
+    {
+      "order": 20,
+      "layer_id": "MAIN_HAND_WEAPON",
+      "parent": "GRIP_ANCHOR",
+      "local_origin": "weapon grip point"
+    },
+    {
+      "order": 30,
+      "layer_id": "FRONT_GRIP_HAND",
+      "parent": "RIGHT_HAND",
+      "asset": "docs/planning/a053_r3_true_handle_grip_anatomy/assets/apprentice_grip_forearm_r3.png",
+      "semantic_role": "localized true-handle grip anatomy"
+    }
+  ],
+  "transform_hierarchy": [
+    {
+      "node_id": "CHARACTER_ROOT",
+      "parent": null,
+      "transform_fields": [
+        "x",
+        "y",
+        "rotation_deg",
+        "scale"
+      ]
+    },
+    {
+      "node_id": "BODY",
+      "parent": "CHARACTER_ROOT",
+      "transform_fields": [
+        "x",
+        "y",
+        "rotation_deg",
+        "scale"
+      ]
+    },
+    {
+      "node_id": "RIGHT_ARM",
+      "parent": "BODY",
+      "transform_fields": [
+        "x",
+        "y",
+        "rotation_deg",
+        "scale"
+      ]
+    },
+    {
+      "node_id": "RIGHT_HAND",
+      "parent": "RIGHT_ARM",
+      "transform_fields": [
+        "x",
+        "y",
+        "rotation_deg",
+        "scale"
+      ]
+    },
+    {
+      "node_id": "GRIP_ANCHOR",
+      "parent": "RIGHT_HAND",
+      "transform_fields": [
+        "x",
+        "y",
+        "rotation_deg",
+        "scale"
+      ]
+    },
+    {
+      "node_id": "MAIN_HAND_WEAPON",
+      "parent": "GRIP_ANCHOR",
+      "transform_fields": [
+        "x",
+        "y",
+        "rotation_deg",
+        "scale"
+      ]
+    },
+    {
+      "node_id": "FRONT_GRIP_HAND",
+      "parent": "RIGHT_HAND",
+      "transform_fields": [
+        "x",
+        "y",
+        "rotation_deg",
+        "scale"
+      ]
+    }
+  ],
+  "weapons": {
+    "wooden_sword": {
+      "slot": "MAIN_HAND",
+      "pose_family": "ONE_HAND_SWORD",
+      "asset": "docs/planning/a053_r1_paper_doll_lite_main_hand/sources/weapon_only/wooden_sword.png",
+      "asset_sha256": "4b26cd361d2920efc428dcf13fe377257f175da9ad56bac96d1ef0afa18c4b48",
+      "source_asset": "assets/hero/equipment/wearables/overlays/wooden_sword.png",
+      "grip_point_normalized": [
+        0.78,
+        0.18
+      ],
+      "rotation_deg": -8.0,
+      "scale": 0.48,
+      "weapon_independent_grip_layer": true
+    },
+    "iron_sword": {
+      "slot": "MAIN_HAND",
+      "pose_family": "ONE_HAND_SWORD",
+      "asset": "docs/planning/a053_r1_paper_doll_lite_main_hand/sources/weapon_only/iron_sword.png",
+      "asset_sha256": "ef6b4619f1131ccd087080163261ec047e5a08944d35ef0cd586017feafc1c2f",
+      "source_asset": "assets/hero/equipment/wearables/overlays/iron_sword.png",
+      "grip_point_normalized": [
+        0.75,
+        0.14
+      ],
+      "rotation_deg": -8.0,
+      "scale": 0.36,
+      "weapon_independent_grip_layer": true
+    },
+    "fox_fang": {
+      "slot": "MAIN_HAND",
+      "pose_family": "ONE_HAND_SWORD",
+      "asset": "docs/planning/a053_r1_paper_doll_lite_main_hand/sources/weapon_only/fox_fang.png",
+      "asset_sha256": "3e0b7dc09b4a5924318dc81c85d94db94ebc413b76465c5f5a0f821146e8b676",
+      "source_asset": "assets/hero/equipment/wearables/overlays/fox_fang.png",
+      "grip_point_normalized": [
+        0.72,
+        0.15
+      ],
+      "rotation_deg": -8.0,
+      "scale": 0.48,
+      "weapon_independent_grip_layer": true
+    }
+  },
+  "authority": {
+    "equipment_state": "server-owned player_inventory.equipped + canonical_slot",
+    "presentation_only": true,
+    "client_equipment_authority": false,
+    "acquire_does_not_equip": true,
+    "purchase_does_not_equip": true,
+    "combat_authority_changed": false,
+    "damage": {
+      "baseline": 80,
+      "wooden_sword": 84,
+      "iron_sword": 90
+    },
+    "xp_amulet_new_equip": false,
+    "xp_amulet_legacy_unequip": true,
+    "go_stone_black_combat_power": 0
+  },
+  "visual_self_assessment": {
+    "r2_proportions_preserved": true,
+    "grip_hand_oversized": false,
+    "hand_scale_matches_character": true,
+    "forearm_to_wrist_contour_continuous": true,
+    "wrist_to_hand_direction_natural": true,
+    "detached_replacement_hand_appearance": false,
+    "weapon_handle_enters_palm": true,
+    "front_fingers_occlude_handle": true,
+    "thumb_opposes_fingers": true,
+    "handle_behind_required_fingers": true,
+    "handle_on_back_of_hand": false,
+    "floating_fist_appearance": false,
+    "pasted_handle_appearance": false,
+    "wrist_alignment_plausible": true,
+    "weapon_scale_plausible": true,
+    "character_identity_preserved": true,
+    "frame_clipping": false,
+    "original_hand_suppression_used": true,
+    "suppression_mask_scope": "localized original hand only; R2 scope retained",
+    "mask_visual_seam": "NONE",
+    "wooden_sword_baked_into_hand_asset": false,
+    "character_grip_structure_reusable_for_other_one_hand_weapons": true,
+    "pose_drift": false,
+    "identity_drift": false
+  },
+  "motion_proof": {
+    "translation": {
+      "delta": [
+        17.0,
+        -11.0
+      ],
+      "weapon_before": [
+        760.0,
+        800.0
+      ],
+      "weapon_after": [
+        777.0,
+        789.0
+      ],
+      "pass": true
+    },
+    "rotation": {
+      "right_hand_rotation_deg": 25.0,
+      "weapon_before_rotation_deg": 0.0,
+      "weapon_after_rotation_deg": 25.0,
+      "pass": true
+    }
+  },
+  "review_outputs": {
+    "r1_r2_r3_full": "docs/planning/a053_r3_true_handle_grip_anatomy/review/r3_vs_r1_r2_full.png",
+    "r2_grip_before": "docs/planning/a053_r3_true_handle_grip_anatomy/review/a053_r2_hand_wrist_after.png",
+    "r3_grip_after": "docs/planning/a053_r3_true_handle_grip_anatomy/review/a053_r3_hand_wrist_after.png",
+    "r2_r3_grip_comparison": "docs/planning/a053_r3_true_handle_grip_anatomy/review/r2_vs_r3_grip_comparison.png",
+    "r3_extreme_grip": "docs/planning/a053_r3_true_handle_grip_anatomy/review/r3_extreme_grip_closeup.png",
+    "r3_full": "docs/planning/a053_r3_true_handle_grip_anatomy/review/a053_r3_wooden_sword_after.png",
+    "layer_decomposition": "docs/planning/a053_r3_true_handle_grip_anatomy/review/r3_layer_decomposition.png",
+    "responsive": "docs/planning/a053_r3_true_handle_grip_anatomy/review/r3_responsive_proof.png",
+    "motion_diagram": "docs/planning/a053_r3_true_handle_grip_anatomy/review/r3_motion_ready_transform_diagram.svg",
+    "owner_review_html": "docs/planning/a053_r3_true_handle_grip_anatomy/review/index.html"
+  },
+  "scope": {
+    "paper_doll_architecture_preserved": true,
+    "animation_implemented": false,
+    "minimal_new_art_created": [
+      "docs/planning/a053_r3_true_handle_grip_anatomy/assets/apprentice_grip_forearm_r3.png"
+    ],
+    "app_py_changed": false,
+    "runtime_renderer_changed": false,
+    "registry_changed": false,
+    "combat_authority_changed": false,
+    "schema_changed": false,
+    "data_changed": false,
+    "shop_changed": false,
+    "loadout_enablement_changed": false
+  }
+}

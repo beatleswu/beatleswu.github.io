@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A053-R3 apprentice true-handle grip visual review</title>
+<style>
+:root{font-family:Segoe UI,Arial,sans-serif;color:#203047;background:#eef3f7}body{margin:0;padding:16px}main{max-width:1420px;margin:auto}.notice{background:#fff8df;border:1px solid #dec67d;border-radius:12px;padding:14px 16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px}figure{margin:0;background:white;border:1px solid #c5d1dd;border-radius:12px;padding:10px}figure img{display:block;width:100%;height:auto}figcaption{padding:8px 2px 2px;font-weight:700}.wide img{max-width:100%}code{background:#f1f4f7;padding:1px 4px;border-radius:4px}@media(max-width:520px){body{padding:8px}h1{font-size:22px}}
+</style></head><body><main>
+<h1>A053-R3 · apprentice / MAIN_HAND / wooden_sword</h1>
+<p class="notice"><strong>STATIC LOCAL ART REFINEMENT · PENDING OWNER VISUAL REVIEW</strong><br>
+R3 refines only the localized grip anatomy so the thumb and four fingers visibly clamp the independent wooden-sword handle. R2 compact proportions, wrist/forearm continuity, the three-layer Paper Doll hierarchy, server-owned <code>player_inventory.equipped</code> presentation contract, and Loadout OFF are preserved. <strong>Owner visual acceptance is not granted.</strong></p>
+<h2>R1 → R2 → R3 full-character comparison</h2><figure class="wide"><img src="r3_vs_r1_r2_full.png" alt="A053 R1 R2 R3 full character comparison"><figcaption>R3 changes only the local grip anatomy; no full-character or weapon-specific composite was created.</figcaption></figure>
+<h2>Grip anatomy review</h2><div class="grid">
+<figure><img src="a053_r2_hand_wrist_after.png" alt="A053 R2 hand wrist before R3"><figcaption>R2 · before refinement</figcaption></figure>
+<figure><img src="a053_r3_hand_wrist_after.png" alt="A053 R3 hand wrist after refinement"><figcaption>R3 · after refinement</figcaption></figure>
+<figure class="wide"><img src="r2_vs_r3_grip_comparison.png" alt="R2 versus R3 grip comparison"><figcaption>R2 vs R3 enlarged grip comparison</figcaption></figure>
+<figure class="wide"><img src="r3_extreme_grip_closeup.png" alt="A053 R3 true handle grip close-up"><figcaption>Close-up: continuous forearm → wrist → palm, thumb opposition, four fingers around handle</figcaption></figure>
+<figure><img src="a053_r3_wooden_sword_after.png" alt="A053 R3 final wooden sword composition"><figcaption>Normal-size final character render</figcaption></figure>
+</div>
+<h2>Paper Doll composition</h2><figure class="wide"><img src="r3_layer_decomposition.png" alt="A053 R3 layer decomposition"><figcaption>L10 CHARACTER_BASE + L20 independent MAIN_HAND_WEAPON + L30 FRONT_GRIP_HAND = final</figcaption></figure>
+<figure class="wide"><img src="r3_responsive_proof.png" alt="A053 R3 static responsive proof"><figcaption>Static frame-relative scaling proof; runtime device acceptance is not claimed</figcaption></figure>
+<figure class="wide"><img src="r3_motion_ready_transform_diagram.svg" alt="A053 R3 motion-ready hierarchy"><figcaption>Motion-ready semantic parent/child relationship; animation is not implemented</figcaption></figure>
+<p>Contract: <a href="../a053_r3_contract.json">a053_r3_contract.json</a></p>
+</main></body></html>
