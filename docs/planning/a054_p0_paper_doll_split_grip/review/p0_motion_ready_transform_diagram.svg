@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <rect width="1200" height="720" fill="#f6f3eb"/>
+  <text x="40" y="58" font-family="Arial" font-size="32" font-weight="700" fill="#193643">A054-P0 · motion-ready semantic transform proof</text>
+  <text x="40" y="94" font-family="Arial" font-size="18" fill="#8f452f">Technical diagram only · animation is not implemented · Owner visual acceptance required</text>
+  <g font-family="Arial" font-size="23" font-weight="700" text-anchor="middle">
+    <rect x="390" y="130" width="420" height="60" rx="14" fill="#d2e8df" stroke="#2c7770" stroke-width="3"/><text x="600" y="168" fill="#214c4d">CHARACTER_ROOT</text>
+    <rect x="430" y="250" width="340" height="60" rx="14" fill="#e4eaf7" stroke="#526c9a" stroke-width="3"/><text x="600" y="288" fill="#31486f">RIGHT_ARM</text>
+    <rect x="450" y="370" width="300" height="60" rx="14" fill="#f8dfbb" stroke="#ac7049" stroke-width="3"/><text x="600" y="408" fill="#744b32">RIGHT_HAND</text>
+    <rect x="400" y="490" width="400" height="60" rx="14" fill="#f1d1ca" stroke="#9e5f54" stroke-width="3"/><text x="600" y="528" fill="#713e38">GRIP_POINT / SOCKET</text>
+    <rect x="350" y="610" width="500" height="60" rx="14" fill="#d9e8f5" stroke="#3b76a8" stroke-width="3"/><text x="600" y="648" fill="#24537d">MAIN_HAND_WEAPON (BACK + FRONT)</text>
+  </g>
+  <g stroke="#2c7770" stroke-width="5" fill="none">
+    <path d="M600 190 V250"/><path d="M600 310 V370"/><path d="M600 430 V490"/><path d="M600 550 V610"/>
+  </g>
+  <g font-family="Arial" font-size="18" fill="#3e5556">
+    <text x="875" y="225">PARENT TRANSFORM</text><text x="875" y="255">RIGHT_HAND Δx / Δy</text><text x="875" y="284">→ socket follows</text><text x="875" y="313">→ grip follows</text><text x="875" y="342">→ weapon follows</text>
+    <text x="875" y="445">PARENT ROTATION</text><text x="875" y="475">RIGHT_HAND θ</text><text x="875" y="504">→ local grip preserved</text><text x="875" y="533">→ both weapon pieces rotate</text>
+  </g>
+</svg>

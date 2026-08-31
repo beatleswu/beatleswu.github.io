@@ -1,0 +1,198 @@
+{
+  "task": "A054_P0_PAPER_DOLL_SPLIT_WEAPON_TRUE_GRIP_ARCHITECTURE_PROTOTYPE_001",
+  "base": {
+    "sha": "693b8ec61a039182c6dc57607c6cb17a5e2f0684",
+    "tree": "2a0f20f1f0a500d1d4f2c1eb6de33d6fe7804f72",
+    "fresh_master_head": "f19f57f6c80fc7f3ba9c33817395c06284c879d1",
+    "fresh_master_tree": "aa5f3192c4c5e382dd87f990b39c5e3e789b06b1",
+    "master_advanced": true,
+    "relevant_master_delta": "NONE"
+  },
+  "runtime_active": false,
+  "character": {
+    "id": "apprentice",
+    "pose_id": "ONE_HAND_SWORD_GRIP_POSE",
+    "pose_family": "ONE_HAND_SWORD",
+    "slot": "MAIN_HAND"
+  },
+  "architecture": [
+    "L10 CHARACTER_BASE",
+    "L20 WEAPON_BACK",
+    "L30 SWORD_GRIP_HAND",
+    "L40 WEAPON_FRONT"
+  ],
+  "semantic_hierarchy": {
+    "CHARACTER_ROOT": null,
+    "BODY": "CHARACTER_ROOT",
+    "RIGHT_ARM": "BODY",
+    "RIGHT_HAND": "RIGHT_ARM",
+    "RIGHT_HAND_SOCKET": "RIGHT_HAND",
+    "GRIP_POINT": "RIGHT_HAND_SOCKET",
+    "MAIN_HAND_WEAPON": "GRIP_POINT",
+    "SWORD_GRIP_HAND": "RIGHT_HAND",
+    "WEAPON_BACK": "MAIN_HAND_WEAPON",
+    "WEAPON_FRONT": "MAIN_HAND_WEAPON"
+  },
+  "socket": {
+    "node": "RIGHT_HAND_SOCKET",
+    "grip_point_node": "GRIP_POINT",
+    "coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "x": 760.0,
+    "y": 800.0,
+    "normalized": [
+      0.7196969696969697,
+      0.5681818181818182
+    ],
+    "grip_axis": [
+      0.8637789008984335,
+      -0.5038710255240861
+    ]
+  },
+  "grip_hand": {
+    "asset": "docs/planning/a054_p0_paper_doll_split_grip/assets/apprentice_sword_grip_hand_p0.png",
+    "sha256": "d0c16555d1da460b9c8bf8b352b714c5cb686e869ef368144e397e1c497f5f92",
+    "dimensions": [
+      340,
+      380
+    ],
+    "weapon_pixels": 0,
+    "weapon_specific_hand_asset_created": false,
+    "shared_character_grip_structure": true
+  },
+  "weapons": {
+    "wooden_sword": {
+      "source_asset": "assets/hero/equipment/wearables/overlays/wooden_sword.png",
+      "source_sha256": "4b26cd361d2920efc428dcf13fe377257f175da9ad56bac96d1ef0afa18c4b48",
+      "full_frame": {
+        "width": 1056,
+        "height": 1408
+      },
+      "back_asset": "docs/planning/a054_p0_paper_doll_split_grip/assets/weapon_splits/wooden_sword_weapon_back_p0.png",
+      "back_sha256": "da831dc7c415a39b28021782e0a0e0f43a67f16cbd31eea57f1759ab0b412178",
+      "front_asset": "docs/planning/a054_p0_paper_doll_split_grip/assets/weapon_splits/wooden_sword_weapon_front_p0.png",
+      "front_sha256": "7137732621bef521e25f1f09070398f28a8036fd7ab0dd56352aec03e20b7d3b",
+      "grip_point_normalized": [
+        0.78,
+        0.18
+      ],
+      "grip_axis": [
+        0.8637789008984335,
+        -0.5038710255240861
+      ],
+      "grip_width_px": 80.0,
+      "rotation_deg": -8.0,
+      "scale": 0.48,
+      "front_window_projection_px": [
+        -45.0,
+        35.0
+      ],
+      "weapon_only": true,
+      "baked_into_hand": false
+    },
+    "iron_sword": {
+      "source_asset": "assets/hero/equipment/wearables/overlays/iron_sword.png",
+      "source_sha256": "ef6b4619f1131ccd087080163261ec047e5a08944d35ef0cd586017feafc1c2f",
+      "full_frame": {
+        "width": 1056,
+        "height": 1408
+      },
+      "back_asset": "docs/planning/a054_p0_paper_doll_split_grip/assets/weapon_splits/iron_sword_weapon_back_p0.png",
+      "back_sha256": "2dda4028f9bc12b950b53e612e6d56132235317c3595e391decbfb93c951dd1a",
+      "front_asset": "docs/planning/a054_p0_paper_doll_split_grip/assets/weapon_splits/iron_sword_weapon_front_p0.png",
+      "front_sha256": "7a4c481349e2d74e22ec7c5c34e633939d209afc88e8d5c3ed10d16626613c40",
+      "grip_point_normalized": [
+        0.75,
+        0.14
+      ],
+      "grip_axis": [
+        0.8637789008984335,
+        -0.5038710255240861
+      ],
+      "grip_width_px": 80.0,
+      "rotation_deg": -8.0,
+      "scale": 0.36,
+      "front_window_projection_px": [
+        -45.0,
+        35.0
+      ],
+      "weapon_only": true,
+      "baked_into_hand": false
+    }
+  },
+  "split_policy": {
+    "front_window_projection_px": [
+      -45.0,
+      35.0
+    ],
+    "axis": [
+      0.8637789008984335,
+      -0.5038710255240861
+    ],
+    "pixel_union_preserved": true,
+    "front_is_minimal_contact_handle": true
+  },
+  "authority": {
+    "character_pose": "VISUAL_ONLY",
+    "equipment": "SERVER",
+    "client_equipment_authority": false,
+    "acquire_ne_equip": true,
+    "purchase_ne_equip": true,
+    "combat_changed": false
+  },
+  "visual_candidate": {
+    "handle_enters_palm": true,
+    "fingers_wrap_handle": true,
+    "fingers_occlude_handle": true,
+    "thumb_opposes_fingers": true,
+    "handle_behind_required_fingers": true,
+    "handle_not_on_back_of_hand": true,
+    "floating_fist_appearance": false,
+    "pasted_handle_appearance": false,
+    "detached_wrist": false,
+    "hand_scale_r2_like": true,
+    "wrist_continuity": "PASS",
+    "forearm_continuity": "PASS",
+    "frame_clipping": false,
+    "true_grip_visual_acceptance": "OWNER_REQUIRED",
+    "owner_visual_acceptance": "NOT_GRANTED"
+  },
+  "motion_proof": {
+    "translation": {
+      "delta": [
+        17.0,
+        -11.0
+      ],
+      "pass": true
+    },
+    "rotation": {
+      "delta_deg": 25.0,
+      "pass": true
+    }
+  },
+  "review_outputs": {
+    "failed_r3_reference": "review/a054_r3_failed_approach_reference.png",
+    "wooden_full": "review/p0_wooden_sword_full.png",
+    "iron_full": "review/p0_iron_sword_full.png",
+    "wooden_grip_closeup": "review/p0_wooden_sword_grip_closeup.png",
+    "iron_grip_closeup": "review/p0_iron_sword_grip_closeup.png",
+    "split_architecture": "review/p0_split_layer_architecture.png",
+    "wooden_layers": "review/p0_wooden_layer_decomposition.png",
+    "iron_layers": "review/p0_iron_layer_decomposition.png",
+    "grip_axis_overlay": "review/p0_grip_axis_overlay.png",
+    "same_grip_wooden_iron": "review/p0_wooden_vs_iron_same_grip.png",
+    "before_after": "review/p0_before_after.png",
+    "motion_transform": "review/p0_motion_ready_transform_diagram.svg"
+  },
+  "scope": {
+    "app_py_dependency": false,
+    "runtime_wiring_changed": false,
+    "equipment_authority_changed": false,
+    "combat_authority_changed": false,
+    "schema_changed": false,
+    "production_query": false,
+    "production_mutation": false,
+    "deploy": false,
+    "shop_changed": false,
+    "loadout_enablement_changed": false
+  }
+}
