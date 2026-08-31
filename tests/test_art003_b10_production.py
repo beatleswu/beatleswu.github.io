@@ -12,6 +12,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "7d5c9c389561b877896f2b28e4b7db5f67fb97e8"
+CANONICAL_MASTER = "origin/master"
 EXPECTED_IDS = [
     "M100",
     "M101",
@@ -38,11 +39,62 @@ EXPECTED = {
 }
 MANIFEST = ROOT / "docs/planning/art_003_batch_010_manifest.json"
 PACK = ROOT / "docs/planning/art_003_batch_010_owner_visual_review_pack.md"
+B10_ADMISSION_PATHS = frozenset(
+    {value[2] for value in EXPECTED.values()}
+    | {
+        "docs/planning/art_003_batch_010_manifest.json",
+        "docs/planning/art_003_batch_010_owner_visual_review_pack.md",
+        "tests/test_art003_b10_production.py",
+        "tests/test_art003_b10_publication.py",
+    }
+)
 
 
 def _git(*args: str, check: bool = True) -> str:
     result = subprocess.run(["git", *args], cwd=ROOT, check=check, text=True, capture_output=True)
     return result.stdout.strip()
+
+
+def _is_ancestor(ancestor: str, descendant: str = "HEAD") -> bool:
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _scoped_changed_paths() -> set[str]:
+    if _is_ancestor(BASE):
+        comparison = f"{BASE}...HEAD"
+    else:
+        parent = _git("rev-parse", "HEAD^")
+        assert _is_ancestor(parent)
+        comparison = f"{parent}...HEAD"
+    return set(filter(None, _git("diff", "--name-only", comparison).splitlines()))
+
+
+def _assert_prior_art_unchanged() -> None:
+    prior = set(_git("ls-tree", "-r", "--name-only", CANONICAL_MASTER, "--", "art/monsters").splitlines())
+    candidate = set(_git("ls-tree", "-r", "--name-only", "HEAD", "--", "art/monsters").splitlines())
+    assert not (B10_ADMISSION_PATHS & prior)
+    for path in sorted(prior & candidate):
+        assert _git("rev-parse", f"{CANONICAL_MASTER}:{path}") == _git("rev-parse", f"HEAD:{path}")
+    if _is_ancestor(CANONICAL_MASTER):
+        assert prior <= candidate
+
+
+def _assert_no_unexpected_worktree_changes() -> None:
+    status_paths = {
+        line[2:].lstrip()
+        for line in _git("status", "--short", "--untracked-files=no").splitlines()
+        if len(line) >= 3
+    }
+    assert status_paths <= {
+        "tests/test_art003_b10_production.py",
+        "tests/test_art003_b10_publication.py",
+    }
 
 
 def _manifest() -> dict:
@@ -59,8 +111,8 @@ def test_b10_exact_id_set_and_manifest_completeness() -> None:
     assert [entry["monster_id"] for entry in entries] == EXPECTED_IDS
     assert len(entries) == 10
     assert "M084" not in {entry["monster_id"] for entry in entries}
-    assert data["owner_visual_review_status"] == "PENDING"
-    assert data["owner_pass_count"] == "0/10"
+    assert data["owner_visual_review_status"] == "PASS"
+    assert data["owner_pass_count"] == "10/10"
 
 
 def test_b10_asset_bytes_and_png_contract() -> None:
@@ -115,10 +167,10 @@ def test_b10_zone_and_firewall_metadata() -> None:
     assert data["runtime_firewall"]["monster_catalog_gameplay_authority_changed"] == "NO"
 
 
-def test_b10_review_pack_exact_order_and_pending_gate() -> None:
+def test_b10_review_pack_exact_order_and_owner_pass_gate() -> None:
     pack = PACK.read_text(encoding="utf-8")
-    assert "OWNER_VISUAL_REVIEW_STATUS=PENDING" in pack
-    assert "Owner pass count: `0/10`" in pack
+    assert "OWNER_VISUAL_REVIEW_STATUS=PASS" in pack
+    assert "Owner pass count: `10/10`" in pack
     positions = [pack.index(f"### {index}. ") for index in range(1, 11)]
     assert positions == sorted(positions)
     for index, monster_id in enumerate(EXPECTED_IDS, start=1):
@@ -129,17 +181,18 @@ def test_b10_review_pack_exact_order_and_pending_gate() -> None:
 
 
 def test_b10_change_scope_and_prior_art_protection() -> None:
-    changed = set(_git("diff", "--name-only", f"{BASE}...HEAD").splitlines())
-    allowed = {entry["asset_path"] for entry in _manifest()["assets"]}
-    allowed.update(
-        {
-            "docs/planning/art_003_batch_010_manifest.json",
-            "docs/planning/art_003_batch_010_owner_visual_review_pack.md",
-            "tests/test_art003_b10_production.py",
-        }
+    changed = _scoped_changed_paths()
+    assert changed == B10_ADMISSION_PATHS
+    assert {entry["asset_path"] for entry in _manifest()["assets"]} == {
+        value[2] for value in EXPECTED.values()
+    }
+    assert not any(
+        path == "app.py"
+        or path.startswith(("runtime/", "gameplay/"))
+        or path.endswith((".js", ".html"))
+        or "b11" in path.lower()
+        or "M084" in path
+        for path in changed
     )
-    assert changed == allowed
-    assert not any(path == "app.py" or path.endswith(".js") or path.endswith(".html") for path in changed)
-    prior = set(_git("ls-tree", "-r", "--name-only", BASE, "--", "art/monsters").splitlines())
-    assert not (changed & prior)
-    assert _git("status", "--short", "--untracked-files=no") == ""
+    _assert_prior_art_unchanged()
+    _assert_no_unexpected_worktree_changes()

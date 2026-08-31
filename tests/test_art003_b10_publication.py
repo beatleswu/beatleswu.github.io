@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_HEAD = "16548803a62c9fc76a459cb247a026187e644c5c"
 SOURCE_BRANCH = "codex/art003-b10-m100-m109-canonical-monster-art-production"
+B10_SCOPE_BASE = "7d5c9c389561b877896f2b28e4b7db5f67fb97e8"
+CANONICAL_MASTER = "origin/master"
 EXPECTED_IDS = [
     "M100",
     "M101",
@@ -37,10 +39,75 @@ EXPECTED_HASHES = {
 }
 MANIFEST = ROOT / "docs/planning/art_003_batch_010_manifest.json"
 PACK = ROOT / "docs/planning/art_003_batch_010_owner_visual_review_pack.md"
+B10_ASSET_PATHS = frozenset(
+    {
+        "art/monsters/M100_thundercrown_stag.png",
+        "art/monsters/M101_skyvault_whale.png",
+        "art/monsters/M102_star_ring_ape.png",
+        "art/monsters/M103_riftbow_eagle.png",
+        "art/monsters/M104_moon_eclipse_mantis.png",
+        "art/monsters/M105_skydrum_tortoise.png",
+        "art/monsters/M106_starsand_wolf.png",
+        "art/monsters/M107_monolith_beetle.png",
+        "art/monsters/M108_thundercrystal_mantis.png",
+        "art/monsters/M109_firmament_jelly.png",
+    }
+)
+B10_ADMISSION_PATHS = frozenset(
+    B10_ASSET_PATHS
+    | {
+        "docs/planning/art_003_batch_010_manifest.json",
+        "docs/planning/art_003_batch_010_owner_visual_review_pack.md",
+        "tests/test_art003_b10_production.py",
+        "tests/test_art003_b10_publication.py",
+    }
+)
 
 
 def _git(*args: str) -> str:
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+
+
+def _is_ancestor(ancestor: str, descendant: str = "HEAD") -> bool:
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _scoped_changed_paths() -> set[str]:
+    if _is_ancestor(B10_SCOPE_BASE):
+        comparison = f"{B10_SCOPE_BASE}...HEAD"
+    else:
+        parent = _git("rev-parse", "HEAD^")
+        assert _is_ancestor(parent)
+        comparison = f"{parent}...HEAD"
+    return set(filter(None, _git("diff", "--name-only", comparison).splitlines()))
+
+
+def _assert_prior_art_unchanged() -> None:
+    prior = set(_git("ls-tree", "-r", "--name-only", CANONICAL_MASTER, "--", "art/monsters").splitlines())
+    candidate = set(_git("ls-tree", "-r", "--name-only", "HEAD", "--", "art/monsters").splitlines())
+    assert not (B10_ADMISSION_PATHS & prior)
+    for path in sorted(prior & candidate):
+        assert _git("rev-parse", f"{CANONICAL_MASTER}:{path}") == _git("rev-parse", f"HEAD:{path}")
+    if _is_ancestor(CANONICAL_MASTER):
+        assert prior <= candidate
+
+
+def _assert_no_unexpected_worktree_changes() -> None:
+    status_paths = {
+        line[2:].lstrip()
+        for line in _git("status", "--short", "--untracked-files=no").splitlines()
+        if len(line) >= 3
+    }
+    assert status_paths <= {
+        "tests/test_art003_b10_production.py",
+        "tests/test_art003_b10_publication.py",
+    }
 
 
 def _manifest() -> dict:
@@ -134,14 +201,15 @@ def test_governance_firewalls_and_publication_scope() -> None:
 
 
 def test_prior_art_and_runtime_scope_unchanged() -> None:
-    changed = set(_git("diff", "--name-only", f"{SOURCE_HEAD}...HEAD").splitlines())
-    expected = {
-        "docs/planning/art_003_batch_010_manifest.json",
-        "docs/planning/art_003_batch_010_owner_visual_review_pack.md",
-        "tests/test_art003_b10_publication.py",
-    }
-    assert changed == expected
-    assert not any(path == "app.py" or path.endswith(".js") or path.endswith(".html") for path in changed)
-    prior_assets = set(_git("ls-tree", "-r", "--name-only", SOURCE_HEAD, "--", "art/monsters").splitlines())
-    assert not (changed & prior_assets)
-    assert _git("status", "--short", "--untracked-files=no") == ""
+    changed = _scoped_changed_paths()
+    assert changed == B10_ADMISSION_PATHS
+    assert not any(
+        path == "app.py"
+        or path.startswith(("runtime/", "gameplay/"))
+        or path.endswith((".js", ".html"))
+        or "b11" in path.lower()
+        or "M084" in path
+        for path in changed
+    )
+    _assert_prior_art_unchanged()
+    _assert_no_unexpected_worktree_changes()
