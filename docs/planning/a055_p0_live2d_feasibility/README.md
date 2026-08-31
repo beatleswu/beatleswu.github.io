@@ -74,6 +74,15 @@ was available. Its JS and referenced texture bytes measure the design mock only.
 `APPROX_MEMORY` is not fabricated when the browser does not expose a supported
 memory API.
 
+One local Chromium run on 2026-08-31 measured: `rig-model.json` **4,568 B**;
+mock viewer JS **11,484 B**; referenced identity/grip/weapon art **560,475 B**
+(about **547.3 KiB**); first render **3.9 ms** on the 390x844 run; mock
+`requestAnimationFrame` loop **57.2 FPS**; and exposed JS heap **28.34 MB**.
+The run reported no horizontal overflow at 1440x900, 1024x768, 768x1024, or
+390x844. These values are machine/browser-run observations for this mock only,
+not a Cubism runtime benchmark; the real model, texture atlas, official runtime
+bytes, and physical-device performance remain unmeasured.
+
 ## Existing source references
 
 The prototype references, without modifying, these existing assets:
