@@ -3351,158 +3351,10 @@ async function interactPet(mode, hours) {
           : (action === 'expedition_claim' ? 'expedition_return' : action === 'expedition_start' ? 'expedition_start' : (mode === 'train' ? 'train' : 'pet'));
       _petPendingLine = { sit: action, action, leveled: !!data.leveled, milestone: !!hitMilestone, text: petSay(petKey, speakKey) };
     }
-    if (mode === 'pet') _nqCheckPetClaim();
     await loadPetStatus();
   } catch (e) {
     showToast(e.message || (isEn() ? 'Interaction failed' : '互動失敗'));
     await loadPetStatus();
-  }
-}
-
-const CompletionFX = (() => {
-  function play(onDone) {
-    const done = typeof onDone === 'function' ? onDone : () => {};
-    try {
-      for (let i = 0; i < 10; i++) {
-        const sparkle = document.createElement('span');
-        sparkle.textContent = '✨';
-        sparkle.style.cssText = `position:fixed;font-size:1.4rem;pointer-events:none;z-index:9999;left:${30 + Math.random() * 40}vw;top:50vh;opacity:1;transition:all .9s ease-out;`;
-        document.body.appendChild(sparkle);
-        requestAnimationFrame(() => {
-          sparkle.style.transform = `translateY(-${60 + Math.random() * 80}px)`;
-          sparkle.style.opacity = '0';
-        });
-        setTimeout(() => sparkle.remove(), 1000);
-      }
-      setTimeout(done, 950);
-    } catch(e) {
-      console.warn('[CompletionFX]', e);
-      done();
-    }
-  }
-  return { play };
-})();
-
-const HERO_NQ_REWARD_NAME_EN = {
-  '小提示卷': 'Hint Scroll', 'AI 解說券': 'AI Explanation Ticket',
-  '棋魂糖': 'Go Spirit Candy', '星果': 'Starfruit', '月露': 'Moon Dew'
-};
-const RewardBox = (() => {
-  function show(rewards, onClose) {
-    const done = typeof onClose === 'function' ? onClose : () => {};
-    try {
-      const hasRewards = rewards && (
-        rewards.coins ||
-        (rewards.items && rewards.items.length) ||
-        (rewards.titles && rewards.titles.length)
-      );
-      if (!hasRewards) { done(); return; }
-      let html = '';
-      if (rewards.coins) {
-        html += `<div style="color:#fbbf24;font-size:1.3rem;margin:6px 0">+${rewards.coins} ${I18n.getLang() === 'en' ? 'coins' : '金幣'}</div>`;
-      }
-      (rewards.items || []).forEach(i => {
-        const rewardName = I18n.getLang() === 'en' ? (i.name_en || HERO_NQ_REWARD_NAME_EN[i.name] || I18n.localizeName(i.name)) : i.name;
-        html += `<div style="margin:4px 0">${i.icon} ${rewardName} ×${i.qty}</div>`;
-      });
-      (rewards.titles || []).forEach(() => {
-        html += `<div style="color:#a78bfa;margin:4px 0">${I18n.t('index.newbie.title_unlock')}</div>`;
-      });
-      const box = document.createElement('div');
-      box.id = 'nq-reward-box';
-      box.style.cssText = `position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;`;
-      box.innerHTML = `
-        <div style="background:#1e293b;border-radius:16px;padding:32px 40px;text-align:center;color:#f1f5f9;max-width:280px">
-          <div><img src="/assets/shop/newbie_gift_pack.webp?v=1" style="width:96px;height:96px;object-fit:contain"></div>
-          <div style="margin:12px 0 4px;font-size:1.1rem;font-weight:700">${I18n.t('index.newbie.reward_done')}</div>
-          <div style="margin:8px 0">${html}</div>
-          <button id="nq-reward-collect" style="margin-top:16px;padding:8px 24px;background:#0d9488;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:1rem">
-            ${I18n.t('index.newbie.reward_collect')}
-          </button>
-        </div>`;
-      document.body.appendChild(box);
-      document.getElementById('nq-reward-collect').onclick = () => {
-        box.remove();
-        done();
-      };
-    } catch(e) {
-      console.warn('[RewardBox]', e);
-      done();
-    }
-  }
-  return { show };
-})();
-
-function _nqCheckPetClaim() {
-  try {
-    fetch('/api/newbie_quest/checkpoint', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({task_key: 'stage1_pet_claim'})
-    }).then(r => r.json()).then(d => {
-      if (!d || !d.ok) return;
-      if (!d.newly_completed || !d.newly_completed.length) return;
-      document.getElementById('nq-pet-hint')?.remove();
-      CompletionFX.play(() => {
-        RewardBox.show(d.rewards || {}, () => {
-          const bar = document.createElement('div');
-          bar.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#0d9488;color:#fff;padding:12px 24px;border-radius:12px;font-size:.95rem;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;';
-          bar.textContent = I18n.t('hero.newbie.home_next');
-          bar.onclick = () => { window.location.href = '/'; };
-          document.body.appendChild(bar);
-        });
-      });
-    }).catch(() => {});
-  } catch(e) {}
-}
-
-async function _nqShowPetHint() {
-  try {
-    const res = await fetch('/api/auth/newbie_quest', {credentials:'include'});
-    const data = await res.json();
-    if (!res.ok || !data.eligible) return;
-    if (data.state?.stage !== 1) return;
-    if ((data.state?.completed || []).includes('stage1_pet_claim')) return;
-    await new Promise(r => setTimeout(r, 800));
-    const btn = [...document.querySelectorAll('button')].find(b => b.textContent.includes('\u62cd\u62cd'));
-    if (!btn || !btn.parentElement) return;
-    if (!document.getElementById('nq-pet-hint-style')) {
-      const st = document.createElement('style');
-      st.id = 'nq-pet-hint-style';
-      st.textContent = '@keyframes nq-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(1.03)}}';
-      document.head.appendChild(st);
-    }
-    document.getElementById('nq-pet-hint')?.remove();
-    const hint = document.createElement('div');
-    hint.id = 'nq-pet-hint';
-    hint.textContent = I18n.t('hero.newbie.pet_hint');
-    hint.style.cssText = 'margin-bottom:8px;padding:6px 12px;background:#0d9488;color:#fff;border-radius:8px;font-size:.85rem;text-align:center;animation:nq-pulse 1.5s ease-in-out infinite;';
-    btn.insertAdjacentElement('beforebegin', hint);
-  } catch(e) {}
-}
-
-async function _nqCheckHeroCard() {
-  try {
-    const res = await fetch('/api/newbie_quest/checkpoint', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ task_key: 'stage5_hero_card' })
-    });
-    const d = await res.json();
-    if (!d.ok || !d.newly_completed?.length) return;
-    if (typeof CompletionFX !== 'undefined') {
-      CompletionFX.play(() => RewardBox.show(d.rewards || {}, () => {
-        const bar = document.createElement('div');
-        bar.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#0d9488;color:#fff;padding:12px 24px;border-radius:12px;font-size:.95rem;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;';
-        bar.textContent = '🗡️ 去試煉場，召喚 Bot 對局！';
-        bar.onclick = () => { window.location.href = '/bot'; };
-        document.body.appendChild(bar);
-      }));
-    }
-  } catch(e) {
-    console.warn('[NQ stage5]', e);
   }
 }
 
@@ -5541,8 +5393,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       refreshAuthoritativeHeroPresentation();
     }
   });
-  _nqCheckHeroCard();
-  _nqShowPetHint();
   loadNavAvatar();
   renderCombatGearControls();
 

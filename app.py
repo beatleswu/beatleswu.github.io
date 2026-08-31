@@ -9163,6 +9163,13 @@ _NEWBIE_TASK_KEYS = {
     _NEWBIE_TASK_STAGE7_SHOP,
 }
 
+# RPG V1 retirement policy: the legacy Newbie Quest remains readable only for
+# historical compatibility.  New accounts must not create or enter this
+# state, and an existing incomplete state is graduated without replaying any
+# task or reward.  The tables, task rows, event rows, and endpoints stay in
+# place until the post-Wave2 cleanup decision.
+LEGACY_NEWBIE_QUEST_RETIRED = True
+
 
 def _newbie_daily_completed_count(uid, conn):
     today = datetime.date.today().isoformat()
@@ -9307,24 +9314,31 @@ def _reward_display_item(item_key, qty=1):
     }
 
 
+def _retire_incomplete_legacy_newbie_quest(conn, uid):
+    """Make an old incomplete quest terminal without granting anything.
+
+    This is deliberately idempotent and does not call ``_newbie_complete_task``:
+    retirement must not mint historical stage rewards or manufacture gameplay
+    progression.  The existing stage and task/event rows remain available for
+    compatibility and audit history.
+    """
+    if not LEGACY_NEWBIE_QUEST_RETIRED:
+        return False
+    updated = conn.execute(
+        'UPDATE newbie_quest_state SET graduated=1,updated_at=? '
+        'WHERE user_id=? AND COALESCE(graduated,0)=0',
+        (datetime.datetime.now().isoformat(), uid),
+    )
+    return updated.rowcount > 0
+
+
 def _newbie_quest_snapshot(uid, conn, sync_server_tasks=True):
-    user = conn.execute(
-        'SELECT onboarding_path FROM users WHERE id=?', (uid,)
-    ).fetchone()
-    onboarding_path = user['onboarding_path'] if user else None
+    # A missing state is intentional for post-retirement new accounts.  Do not
+    # recreate it merely because an old page or compatibility endpoint loads.
+    _retire_incomplete_legacy_newbie_quest(conn, uid)
     state = conn.execute(
         'SELECT stage,graduated FROM newbie_quest_state WHERE user_id=?', (uid,)
     ).fetchone()
-    if not state and onboarding_path == 'newbie':
-        now = datetime.datetime.now().isoformat()
-        conn.execute(
-            'INSERT OR IGNORE INTO newbie_quest_state '
-            '(user_id,stage,graduated,created_at,updated_at) VALUES(?,1,0,?,?)',
-            (uid, now, now)
-        )
-        state = conn.execute(
-            'SELECT stage,graduated FROM newbie_quest_state WHERE user_id=?', (uid,)
-        ).fetchone()
     if not state:
         return {
             'user_id': uid,
@@ -9336,7 +9350,7 @@ def _newbie_quest_snapshot(uid, conn, sync_server_tasks=True):
 
     newly_completed = []
     daily_completed = _newbie_daily_completed_count(uid, conn)
-    if sync_server_tasks:
+    if sync_server_tasks and not bool(state['graduated']):
         tour = conn.execute(
             'SELECT tour_done FROM user_stats WHERE user_id=?', (uid,)
         ).fetchone()
@@ -9420,6 +9434,7 @@ def auth_me():
                 and not bool(row2['onboarding_path'])
                 and not bool(session.get('is_admin', False))
             )
+            _retire_incomplete_legacy_newbie_quest(conn, uid)
             quest_state = conn.execute(
                 'SELECT graduated FROM newbie_quest_state WHERE user_id=?', (uid,)
             ).fetchone()
@@ -9608,21 +9623,8 @@ def onboarding_choice():
                     'error': 'onboarding_path_locked',
                     'onboarding_path': final_path,
                 }), 409
-            if final_path in ('newbie', 'test'):
-                now = datetime.datetime.now().isoformat()
-                conn.execute(
-                    'INSERT OR IGNORE INTO newbie_quest_state '
-                    '(user_id,stage,graduated,created_at,updated_at) VALUES(?,1,0,?,?)',
-                    (uid, now, now)
-                )
         else:
             conn.execute('UPDATE users SET onboarding_required=0 WHERE id=?', (uid,))
-            now = datetime.datetime.now().isoformat()
-            conn.execute(
-                'INSERT OR IGNORE INTO newbie_quest_state '
-                '(user_id,stage,graduated,created_at,updated_at) VALUES(?,1,0,?,?)',
-                (uid, now, now)
-            )
         conn.commit()
     return jsonify({'ok': True, 'onboarding_path': path, 'created': created})
 
