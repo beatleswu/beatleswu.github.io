@@ -216,7 +216,9 @@
       return { kind: 'normal_progression', zoneKey: current.key };
     }
     var refill = zones.filter(function (zone) {
-      return !zone.locked && zone.canEnter !== false && zone.stars < 3;
+      var authorityStars = typeof zone.zoneAuthorityStars === 'number'
+        ? zone.zoneAuthorityStars : zone.stars;
+      return !zone.locked && zone.canEnter !== false && authorityStars < 3;
     })[0];
     if (refill) return { kind: 'replenish_stars', zoneKey: refill.key };
     var completed = zones.filter(function (zone) { return zone.cleared && resolveChallengeTargetZoneKey(zone); });
@@ -324,7 +326,17 @@
     // star count as the secondary training surface; the replay eligibility
     // itself remains the server-owned cleared bit above and in the Lord start
     // contract.
+    var authorityStars = typeof zone.zoneAuthorityStars === 'number'
+      ? zone.zoneAuthorityStars : Number(zone.stars || 0);
     if (zone.cleared === true && Number(zone.stars || 0) < 3) {
+      return {
+        enabled: true,
+        targetZoneKey: zone.key,
+        label: actionLabel({ kind: 'replenish_stars', zoneKey: zone.key }, state),
+        kind: 'replenish_stars',
+      };
+    }
+    if (zone.cleared === true && authorityStars < 3) {
       return {
         enabled: true,
         targetZoneKey: zone.key,

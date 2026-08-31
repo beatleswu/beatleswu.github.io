@@ -14,7 +14,15 @@
 
     function emptySnapshot() {
       return {
-        adventure: { maxStars: null, completedZoneCount: null },
+        // maxStars is the Zone-star authority used by quest evaluation.  A
+        // separate visible projection may retain a grandfathered legacy Boss
+        // star, but that projection must not complete a future star quest.
+        adventure: {
+          maxStars: null,
+          authoritativeMaxStars: null,
+          visibleMaxStars: null,
+          completedZoneCount: null
+        },
         dailyChallenge: { userSubmitted: null },
         fetchedAt: Date.now()
       };
@@ -42,6 +50,15 @@
         if (a && a.ok && a.data && Array.isArray(a.data.zones)) {
           next.adventure.maxStars = a.data.zones.reduce(function (max, zone) {
             return Math.max(max, typeof zone.stars === 'number' ? zone.stars : 0);
+          }, 0);
+          next.adventure.visibleMaxStars = a.data.zones.reduce(function (max, zone) {
+            return Math.max(max, typeof zone.stars === 'number' ? zone.stars : 0);
+          }, 0);
+          next.adventure.authoritativeMaxStars = a.data.zones.reduce(function (max, zone) {
+            var authority = typeof zone.zone_authority_stars === 'number'
+              ? zone.zone_authority_stars
+              : (typeof zone.stars === 'number' ? zone.stars : 0);
+            return Math.max(max, authority);
           }, 0);
           next.adventure.completedZoneCount = a.data.zones.reduce(function (count, zone) {
             return count + (zone && zone.cleared === true ? 1 : 0);

@@ -35,6 +35,10 @@
     if (typeof raw.stars === 'number' && !isNaN(raw.stars)) {
       stars = Math.max(0, Math.min(3, Math.round(raw.stars)));
     }
+    var zoneAuthorityStars = stars;
+    if (typeof raw.zone_authority_stars === 'number' && !isNaN(raw.zone_authority_stars)) {
+      zoneAuthorityStars = Math.max(0, Math.min(3, Math.round(raw.zone_authority_stars)));
+    }
 
     var bossAvailable = !!(raw.boss && raw.boss.available === true);
 
@@ -62,6 +66,7 @@
       recommended: raw.recommended === true,
       selected: raw.selected === true,
       stars: stars,
+      zoneAuthorityStars: zoneAuthorityStars,
       bossAvailable: bossAvailable,
       seen: seen,
       total: total,

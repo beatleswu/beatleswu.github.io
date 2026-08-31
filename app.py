@@ -194,6 +194,14 @@ from adventure_progress_compatibility import (
     trusted_current_memberships,
     visible_adventure_question_ids,
 )
+from adventure_zone_star_progression import (
+    ZoneStarSchemaUnavailable,
+    award_zone_star_from_authoritative_answer,
+    award_zone_star_from_boss_clear,
+    legacy_visible_star_entitlement,
+    load_zone_star_rows,
+    zone_star_value,
+)
 # LC019-W2: the already-canonical bootstrap-gated identity reader (LC011-LC017,
 # extended to grimoire_api by LC019-W1).  Read-only.  While bootstrap_state().hot
 # is False -- every environment today, genesis is not authorised -- every
@@ -11947,6 +11955,10 @@ def _adventure_state(uid):
             'SELECT * FROM adventure_boss_progress WHERE user_id=?',
             (uid,)
         ).fetchall()
+        # R6: Zone stars are server-owned in their own authority relation.
+        # An absent explicit migration is an empty future authority, never a
+        # reason to derive stars from question history or Boss progress.
+        zone_star_rows = load_zone_star_rows(conn, uid)
         unlock_rows = conn.execute(
             'SELECT * FROM adventure_zone_unlocks WHERE user_id=?',
             (uid,)
@@ -11999,9 +12011,13 @@ def _adventure_state(uid):
         unlocked = previous_cleared or cleared or placement_unlocked
         boss_ready = unlocked and pct >= BOSS_UNLOCK_PCT and not cleared and cooldown_left == 0
 
-        # Stars are Boss-state authority.  Restored question mastery must not
-        # synthesize or raise stars from a percentage/defeat count.
+        # Keep the exact pre-R6 public projection as a grandfathered,
+        # read-only entitlement.  It is not copied into Zone authority and
+        # cannot be raised by compatibility/mastery counts.
         stars = max(0, int(row.get('stars') or 0))
+        legacy_visible_stars = legacy_visible_star_entitlement(row)
+        zone_stars = zone_star_value(zone_star_rows, z['key'])
+        visible_stars = max(zone_stars, legacy_visible_stars)
 
         zones.append({
             **z,
@@ -12025,7 +12041,12 @@ def _adventure_state(uid):
             'unlock_source': placement_unlocks.get(z['key'], {}).get('source'),
             'placement_start_zone': placement_unlocks.get(z['key'], {}).get('start_zone_key'),
             'effective_start_zone_key': effective_start_zone_key,
-            'stars': stars,
+            # ``stars`` remains the historical visible field.  New quest and
+            # progression consumers must use ``zone_authority_stars``;
+            # ``legacy_visible_stars`` is presentation continuity only.
+            'stars': visible_stars,
+            'zone_authority_stars': zone_stars,
+            'legacy_visible_stars': legacy_visible_stars,
             'attempts': int(row.get('attempts') or 0),
             'best_score': int(row.get('best_score') or 0),
             'last_attempt_at': row.get('last_attempt_at'),
@@ -12059,6 +12080,36 @@ def _adventure_state_cached(uid):
     zones = _adventure_state(uid)
     _set_adventure_state_cache(uid, zones)
     return zones
+
+
+def _adventure_zone_star_from_settled_answer(
+    conn,
+    uid,
+    *,
+    grade,
+    combat_settlement_context,
+    authoritative_submission,
+    submission_id,
+    earned_at,
+):
+    """Bridge one server-settled Adventure answer into Zone-star authority."""
+
+    if (
+        grade < 3
+        or combat_settlement_context != EXTERNAL_AUTHORITATIVE_MAP_BATTLE
+        or authoritative_submission is None
+    ):
+        return None
+    settled_zone_key = str(authoritative_submission['battle_zone_key'] or '')
+    if _zone_by_key(settled_zone_key) is None:
+        return None
+    return award_zone_star_from_authoritative_answer(
+        conn,
+        uid,
+        settled_zone_key,
+        submission_id,
+        earned_at,
+    )
 
 
 def _adventure_recommended_zone_key(zones, placement_start_zone=None):
@@ -12113,28 +12164,28 @@ def _adventure_progress_payload(zone):
     completed_count = max(0, int(zone.get('seen') or 0))
     defeated_count = max(0, int(zone.get('defeated') or 0))
     stars = max(0, int(zone.get('stars') or 0))
-    threshold_star_two = math.ceil(total * 0.6) if total > 0 else 0
+    zone_authority_stars = max(0, int(zone.get('zone_authority_stars') or 0))
     next_star = None
     next_star_threshold = None
     remaining_to_next_star = None
-    stars_complete = stars >= 3
+    # Completion and future-star copy are driven by the new Zone authority,
+    # not by the grandfathered visible projection.  One server-settled
+    # correct Adventure event is the next admissible earning opportunity.
+    stars_complete = zone_authority_stars >= 3
 
     if not stars_complete:
-        if stars <= 0:
+        if zone_authority_stars <= 0:
             next_star = 1
-        elif stars == 1:
-            next_star = 2
-            next_star_threshold = threshold_star_two
-            remaining_to_next_star = max(0, threshold_star_two - completed_count)
-        elif stars == 2:
-            next_star = 3
-            next_star_threshold = total
-            remaining_to_next_star = max(0, total - defeated_count)
+        else:
+            next_star = min(3, zone_authority_stars + 1)
+            remaining_to_next_star = 1
 
     return {
         'completed_count': completed_count,
         'total_count': total,
         'stars': stars,
+        'zone_authority_stars': zone_authority_stars,
+        'legacy_visible_stars': max(0, int(zone.get('legacy_visible_stars') or 0)),
         'next_star': next_star,
         'next_star_threshold': next_star_threshold,
         'remaining_to_next_star': remaining_to_next_star,
@@ -12160,6 +12211,8 @@ def _adventure_zone_stage_payload(zone, status, can_enter, completed, skipped_by
         'recommended': recommended,
         'selected': selected,
         'stars': int(zone.get('stars') or 0),
+        'zone_authority_stars': int(zone.get('zone_authority_stars') or 0),
+        'legacy_visible_stars': int(zone.get('legacy_visible_stars') or 0),
         'best_score': int(zone.get('best_score') or 0),
     }
 
@@ -12264,6 +12317,8 @@ def _adventure_primary_action_payload(zones, current_zone_key):
 
     def _stars(zone):
         try:
+            if 'zone_authority_stars' in zone:
+                return int(zone.get('zone_authority_stars') or 0)
             return int(zone.get('stars') or 0)
         except (TypeError, ValueError):
             return 0
@@ -12287,6 +12342,8 @@ def _adventure_secondary_action_payload(zones, primary_action):
 
     def _stars(zone):
         try:
+            if 'zone_authority_stars' in zone:
+                return int(zone.get('zone_authority_stars') or 0)
             return int(zone.get('stars') or 0)
         except (TypeError, ValueError):
             return 0
@@ -12750,10 +12807,11 @@ def _adventure_boss_record_attempt(conn, uid, zone_key, passed, correct,
     """Atomically record one boss attempt and identify the first-clear winner.
 
     ``adventure_boss_progress(user_id, zone_key)`` remains the authoritative
-    first-clear state.  The read-before-write result is never used to decide
-    the winner: a conditional ``cleared=0`` transition does that inside the
-    caller-owned transaction.  This keeps the existing reward and progress
-    authorities together without introducing a second operation ledger.
+    Boss attempt/clear/reward state.  Its ``stars`` column is Boss-attempt
+    state, not Zone-star authority.  The read-before-write result is never
+    used to decide the winner: a conditional ``cleared=0`` transition does
+    that inside the caller-owned transaction.  Zone stars are settled by the
+    separate server-owned Zone-star ledger.
     """
     operation_id = _adventure_first_clear_operation_id(uid, zone_key)
     existing = conn.execute(
@@ -12956,6 +13014,30 @@ def adventure_boss_finish():
             # successful Boss finish.
             conn.rollback()
             return jsonify({'ok': False, 'error': exc.code}), 400
+
+    # A new Boss clear is an explicit first-star event in the separate Zone
+    # authority.  It is deliberately settled after the Boss transaction so a
+    # missing/temporarily unavailable Zone-star schema cannot roll back the
+    # Boss clear, reward, Spirit, or Incident018-owned result.
+    if passed and is_first_clear:
+        try:
+            with get_db() as zone_star_conn:
+                award_zone_star_from_boss_clear(
+                    zone_star_conn,
+                    uid,
+                    zone_key,
+                    settlement['operation_id'],
+                    now,
+                )
+                zone_star_conn.commit()
+        except ZoneStarSchemaUnavailable:
+            pass
+        except Exception:
+            app.logger.exception(
+                'Zone-star first-clear projection failed for user %s zone %s',
+                uid,
+                zone_key,
+            )
 
     session.pop('adventure_boss_exam', None)
     _clear_adventure_state_cache(uid)
@@ -15655,6 +15737,38 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     'message': 'Answer settlement committed; Quest V2 progress retry required',
                     'retryable': True,
                 }), 503
+
+        # R6 Zone-star authority: only a correct answer from the already
+        # settled, server-owned Map Battle handoff can earn a new Zone star.
+        # Historical mastery, question counts, Boss clear/stars, and client
+        # request fields never reach this writer.  Keep this as a separate
+        # transaction after the core review/optional-runtime commit so a
+        # missing explicit migration cannot roll back the answer settlement.
+        if internal:
+            try:
+                _adventure_zone_star_from_settled_answer(
+                    conn,
+                    uid,
+                    grade=grade,
+                    combat_settlement_context=combat_settlement_context,
+                    authoritative_submission=authoritative_map_battle_submission,
+                    submission_id=submission_id,
+                    earned_at=now,
+                )
+                conn.commit()
+            except ZoneStarSchemaUnavailable:
+                # Source admission and the explicit DB migration are
+                # separate gates.  Until the migration runs, the legacy
+                # visible projection remains readable and no new Zone
+                # authority is inferred or silently fabricated.
+                conn.rollback()
+            except Exception:
+                conn.rollback()
+                app.logger.exception(
+                    'Zone-star authority write failed after answer %s for user %s',
+                    qid,
+                    uid,
+                )
 
         # ── 同步法典純淨度 (grimoire_api 系統) ─────────────────────
         grimoire_id = q_info.get('grimoire_id')

@@ -13,7 +13,7 @@
       id: 'main.complete_three_star_zone', version: 1, category: 'main',
       titleKey: 'e9.quest.main.complete_three_star_zone.title',
       descriptionKey: 'e9.quest.main.complete_three_star_zone.description',
-      progressType: 'numeric', target: 3, source: 'adventure.maxStars', sortOrder: 20,
+      progressType: 'numeric', target: 3, source: 'adventure.authoritativeMaxStars', sortOrder: 20,
       cta: { route: 'adventure' }
     },
     {
