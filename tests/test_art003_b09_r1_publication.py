@@ -7,6 +7,8 @@ import json
 import subprocess
 from pathlib import Path
 
+from tests.art003_admission_scope import ART003_B09_SCOPE_TIP, changed_paths as admission_changed_paths
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "docs" / "planning" / "art_003_batch_009_manifest.json"
@@ -116,8 +118,10 @@ def test_source_head_bytes_are_unchanged_and_exact() -> None:
 
 def test_exact_publication_scope_and_prior_art_protection() -> None:
     manifest = load_manifest()
-    changed = set(git("diff", "--name-only", CANONICAL_MASTER_HEAD).splitlines())
-    changed.update(git("diff", "--cached", "--name-only", CANONICAL_MASTER_HEAD).splitlines())
+    changed = admission_changed_paths(
+        canonical_tip=ART003_B09_SCOPE_TIP,
+        candidate_base=CANONICAL_MASTER_HEAD,
+    )
     untracked = set(git("ls-files", "--others", "--exclude-standard").splitlines())
     assert changed <= ALLOWED_R1_PATHS
     assert untracked == set()

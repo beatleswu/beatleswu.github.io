@@ -9,6 +9,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from tests.art003_admission_scope import ART003_B09_SCOPE_TIP, changed_paths as admission_changed_paths
+
 
 ROOT = Path(__file__).resolve().parents[1]
 B01_HEAD = "0b2f4c7ec65f845918bd96a2daec21551d27ff34"
@@ -217,10 +219,7 @@ def test_board_counts_and_authority_firewall():
 
 def test_m022_is_unchanged_and_no_runtime_scope_is_in_diff():
     assert _sha256(ROOT / "assets/monsters/orc_grunt_chibi.png") == M022_SHA256
-    changed = set(_git("diff", "--name-only", F039_BASE_HEAD).splitlines())
-    changed.update(_git("diff", "--cached", "--name-only", F039_BASE_HEAD).splitlines())
-    changed.update(_git("ls-files", "--others", "--exclude-standard").splitlines())
-    changed = {path.replace("\\", "/") for path in changed if path}
+    changed = admission_changed_paths(canonical_tip=ART003_B09_SCOPE_TIP, candidate_base=F039_BASE_HEAD)
     changed -= F041_B08_ADMISSION_FILES
     changed -= F043_B09_ADMISSION_FILES
     assert changed <= F039_R1_TEST_FILES

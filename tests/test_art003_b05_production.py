@@ -11,6 +11,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from tests.art003_admission_scope import ART003_B09_SCOPE_TIP, changed_paths as admission_changed_paths
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "planning" / "art_003_batch_005_manifest.json"
@@ -178,16 +180,7 @@ def _blob(ref: str, path: str) -> str:
 
 
 def _changed_paths() -> set[str]:
-    outputs = (
-        _git("diff", "--name-only", F039_BASE_HEAD),
-        _git("diff", "--cached", "--name-only", F039_BASE_HEAD),
-        _git("ls-files", "--others", "--exclude-standard"),
-    )
-    return (
-        {line.replace("\\", "/") for output in outputs for line in output.splitlines() if line}
-        - F041_B08_ADMISSION_FILES
-        - F043_B09_ADMISSION_FILES
-    )
+    return admission_changed_paths(canonical_tip=ART003_B09_SCOPE_TIP, candidate_base=F039_BASE_HEAD) - F041_B08_ADMISSION_FILES - F043_B09_ADMISSION_FILES
 
 
 def test_b05_exact_id_set_and_manifest_completeness() -> None:
