@@ -76,6 +76,18 @@ INTENTIONAL_NON_PACKAGED_REFERENCES = {
     "/assets/hero/equipment/wearables/overlays/go_stone_black.png",
 }
 
+# The legacy RPG V1 newbie-quest UI was retired in 751f942bd and merged into
+# the canonical line by fab04a4e6.  The superseded A2 closure manifest remains
+# on disk as a historical recovery record, so these two recovered inputs are
+# the only exact paths that are intentionally no longer runtime-referenced.
+# Keep this allowlist narrow: any other unreferenced manifest path is still a
+# scope-creep failure, and a reintroduced reference to either retired path is
+# also a failure of the retirement contract.
+INTENTIONALLY_RETIRED_HISTORICAL_CLOSURE_PATHS = {
+    "/assets/go_rpg_assets/claire_avatar.webp",
+    "/assets/shop/title_badge_recruit.webp",
+}
+
 IMAGE_EXT_PATTERN = re.compile(
     r"""["'(](/[a-zA-Z0-9_./-]+\.(?:png|jpe?g|webp|gif|ico))["')]"""
 )
@@ -369,7 +381,10 @@ def test_partial_generation_fails_closed_corrupted_hash():
 
 
 def test_no_unreferenced_historical_files_in_closure_manifest():
-    # The manifest must be exactly the 192 previously referenced files plus
+    # The superseded manifest remains the exact 243-file historical A2 record:
+    # the two paths retired with the legacy RPG V1 newbie-quest UI are an
+    # explicit, exact historical exception below.  The manifest must otherwise
+    # be exactly the 192 previously referenced files plus
     # the 41 Owner-authorized E10 runtime UI assets, plus the 10 Owner-approved
     # E10 Zone 1 cinematic runtime derivatives (E10-Z1-PROD-INTEGRATION-001),
     # not the full 757MB historical tree this incident's audit found on the
@@ -385,7 +400,12 @@ def test_no_unreferenced_historical_files_in_closure_manifest():
     ui_inventory = json.loads(_read(REPO_ROOT / "assets" / "e10" / "ui" / "e10-ui-assets.json"))
     referenced.update("/" + asset["path"] for asset in ui_inventory["assets"])
     governed = {"/" + f["path"] for f in manifest["files"]}
-    over_broad = governed - referenced
+    assert INTENTIONALLY_RETIRED_HISTORICAL_CLOSURE_PATHS <= governed
+    assert not INTENTIONALLY_RETIRED_HISTORICAL_CLOSURE_PATHS & referenced, (
+        "retired legacy newbie-quest assets must not regain runtime references: "
+        f"{sorted(INTENTIONALLY_RETIRED_HISTORICAL_CLOSURE_PATHS & referenced)}"
+    )
+    over_broad = governed - referenced - INTENTIONALLY_RETIRED_HISTORICAL_CLOSURE_PATHS
     assert not over_broad, (
         f"closure manifest contains files not referenced by any runtime scan "
         f"(scope creep beyond the confirmed incident): {sorted(over_broad)}"
