@@ -145,6 +145,20 @@ def test_canonical_master_equal_head_uses_historical_parent():
         canonical_master=ART003_B11_SCOPE_TIP,
         head_ref=ART003_B11_SCOPE_TIP,
     ) == ART003_B10_SCOPE_TIP
+    # In the real canonical checkout these two refs resolve to the same
+    # commit.  A supplied candidate_base equal to that commit is still valid
+    # here because the recorded B11 window is the meaningful scope.
+    assert is_canonical_line(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        canonical_master="origin/master",
+        head_ref="origin/master",
+    )
+    assert admission_base(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        candidate_base="origin/master",
+        canonical_master="origin/master",
+        head_ref="origin/master",
+    ) == ART003_B10_SCOPE_TIP
 
 
 def test_fresh_reanchored_candidate_uses_current_master_line():
@@ -154,6 +168,11 @@ def test_fresh_reanchored_candidate_uses_current_master_line():
     assert is_canonical_line(
         canonical_tip=ART003_B11_SCOPE_TIP,
         canonical_master="HEAD^1",
+        head_ref="HEAD",
+    )
+    assert is_canonical_line(
+        canonical_tip=ART003_B11_SCOPE_TIP,
+        canonical_master=CANONICAL_MASTER_SNAPSHOT,
         head_ref="HEAD",
     )
     assert admission_base(
