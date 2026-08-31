@@ -9,6 +9,12 @@ ART003 scope checks run in two different repository states:
 The second form is deliberately commit-specific.  Comparing a canonical
 checkout with ``origin/master`` would produce an empty diff and would turn an
 exact-path assertion into a vacuous check.
+
+The fetched canonical ref is snapshotted once when this helper is imported.
+That keeps a long test process deterministic if another isolated task advances
+the shared local ``origin/master`` ref while the suite is running.  Callers
+must still fetch before starting the suite; the snapshot is not permission to
+use stale history.
 """
 
 from __future__ import annotations
@@ -35,6 +41,14 @@ def _resolve(ref: str) -> str:
     return _git("rev-parse", ref)
 
 
+try:
+    CANONICAL_MASTER_SNAPSHOT = _resolve("origin/master")
+except subprocess.CalledProcessError:
+    # Keep import errors attributable to the caller's missing remote ref while
+    # allowing focused helper tests to provide an explicit canonical_master.
+    CANONICAL_MASTER_SNAPSHOT = "origin/master"
+
+
 def _is_ancestor(ancestor: str, descendant: str) -> bool:
     result = subprocess.run(
         ["git", "merge-base", "--is-ancestor", ancestor, descendant],
@@ -47,13 +61,18 @@ def _is_ancestor(ancestor: str, descendant: str) -> bool:
 
 
 def is_canonical_line(
-    *, canonical_tip: str, canonical_master: str = "origin/master", head_ref: str = "HEAD"
+    *,
+    canonical_tip: str,
+    canonical_master: str = CANONICAL_MASTER_SNAPSHOT,
+    head_ref: str = "HEAD",
 ) -> bool:
     """Return whether ``head_ref`` is on the fetched canonical line.
 
-    ``canonical_tip`` must itself already be reachable from the canonical
-    master ref.  This prevents a stale or unrelated commit from being treated
-    as the canonical admission window.
+    ``canonical_tip`` must itself already be reachable from the snapshotted
+    canonical master ref, and that canonical line must be an ancestor of
+    ``head_ref``.  This prevents a stale or unrelated commit from being treated
+    as the canonical admission window while allowing a fresh test-repair branch
+    based on current master to exercise the same historical contract.
     """
 
     return _is_ancestor(canonical_tip, canonical_master) and _is_ancestor(
@@ -65,7 +84,7 @@ def admission_base(
     *,
     canonical_tip: str,
     candidate_base: str,
-    canonical_master: str = "origin/master",
+    canonical_master: str = CANONICAL_MASTER_SNAPSHOT,
     head_ref: str = "HEAD",
 ) -> str:
     """Resolve the non-empty base for the current admission scope.
@@ -94,7 +113,7 @@ def admission_tip(
     *,
     canonical_tip: str,
     candidate_base: str,
-    canonical_master: str = "origin/master",
+    canonical_master: str = CANONICAL_MASTER_SNAPSHOT,
     head_ref: str = "HEAD",
 ) -> str:
     """Resolve the endpoint paired with :func:`admission_base`."""
@@ -117,7 +136,7 @@ def changed_paths(
     *,
     canonical_tip: str,
     candidate_base: str,
-    canonical_master: str = "origin/master",
+    canonical_master: str = CANONICAL_MASTER_SNAPSHOT,
     head_ref: str = "HEAD",
     include_worktree: bool = True,
 ) -> set[str]:
