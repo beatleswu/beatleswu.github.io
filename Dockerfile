@@ -30,6 +30,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # application modules otherwise retain their ordinary Git lineage. Every COPY
 # here must also stay in sync with deploy/build-manifest.json's tracked inputs.
 COPY app.py ./
+# Incident 019B: app.py imports the compatibility reader at process startup.
+# Keep this runtime dependency explicit; it does not execute the migration.
+COPY adventure_progress_compatibility.py ./
 COPY startup_diagnostics.py ./
 COPY db.py ./
 COPY shadow_judging.py ./
@@ -158,6 +161,7 @@ COPY sgf_workbench_v2a_routes.py ./
 # migration helpers. Keep the package boundary explicit; do not copy the
 # migrations directory wholesale.
 COPY migrations/__init__.py ./migrations/__init__.py
+COPY migrations/adventure_historical_mastery_v1.py ./migrations/adventure_historical_mastery_v1.py
 COPY migrations/sgf_admin_workbench_v1.py ./migrations/sgf_admin_workbench_v1.py
 COPY migrations/sgf_human_review_v2a.py ./migrations/sgf_human_review_v2a.py
 # B043: runtime-imported migration helpers are application dependencies, not
