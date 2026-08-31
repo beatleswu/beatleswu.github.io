@@ -1,0 +1,271 @@
+{
+  "schema": "lc020-r10-post-genesis-production-baseline-v1",
+  "task": "LC020_R10_POST_GENESIS_PRODUCTION_ACCEPTANCE_AND_BASELINE_LOCK_001",
+  "status": "FAIL",
+  "mode": "READ_ONLY_PRODUCTION_ACCEPTANCE",
+  "observed_at_utc": "2026-08-31T07:09:15.3853177Z",
+  "authority": {
+    "production_read_only": true,
+    "production_mutation": false,
+    "owner_write_gate_granted": false,
+    "deploy_authorized": false,
+    "secret_key_touched": false
+  },
+  "repository": {
+    "canonical_remote": "https://github.com/beatleswu/beatleswu.github.io.git",
+    "canonical_ref": "origin/master",
+    "fresh_origin_master_head": "b3d37e22e7471d0429d882c43c3ee16049c68ea1",
+    "fresh_origin_master_tree": "39392e8c0df272fb3b0d3df2ec0c1f4f21ab7a93",
+    "base_verified_before_artifacts": true,
+    "source_changed": false
+  },
+  "locked_source_hashes": {
+    "migrations/puzzle_identity_registry_v1.py": {
+      "sha256": "ad5bd5bc4c3d501df694e5b05835bb0426964ddb4e98bc64d291960823d6f766",
+      "expected_sha256": "ad5bd5bc4c3d501df694e5b05835bb0426964ddb4e98bc64d291960823d6f766",
+      "match": true
+    },
+    "puzzle_identity_genesis_bootstrap.py": {
+      "sha256": "1a341fcef481f50398489e19b3a90cfc5690f66cb5aa6c484668062168c60b83",
+      "expected_sha256": "1a341fcef481f50398489e19b3a90cfc5690f66cb5aa6c484668062168c60b83",
+      "match": true
+    },
+    "puzzle_identity_store.py": {
+      "sha256": "e54734ab23e24eaff65725d2f3af0a5de9c263bb3e8b40d0e27ae3e18514b1e1",
+      "expected_sha256": "e54734ab23e24eaff65725d2f3af0a5de9c263bb3e8b40d0e27ae3e18514b1e1",
+      "match": true
+    },
+    "locked_hash_match": true
+  },
+  "production_runtime_identity": {
+    "ssh_alias": "oracle_godoyssey",
+    "host_name": "instance-20260609-0051",
+    "app_container": "go-odyssey-app",
+    "app_image": "go-odyssey-app:cc6b7915",
+    "app_image_digest": "sha256:0805b6914c67330e596b84fd4992394124d882baae695104b5433efde0ebf422",
+    "app_image_revision_label": "cc6b7915e4a70677ac7e1bafacff69fc70e33b84",
+    "app_container_created_utc": "2026-08-30T00:40:24.460042354Z",
+    "app_image_created_utc": "2026-08-30T00:00:00Z",
+    "app_started_utc": "2026-08-30T00:40:34.899322205Z",
+    "postgres_container": "go-odyssey-postgres",
+    "postgres_image": "postgres:16-alpine",
+    "postgres_image_digest": "sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229",
+    "postgres_started_utc": "2026-07-11T11:04:48.623977193Z",
+    "app_container_started_before_genesis_receipt": true,
+    "live_runtime_source_hashes": {
+      "/app/app.py": "737462f0c96d319c8e458ec546d6741469d21f37cb9d4bf7899ea4ca8e357256",
+      "/app/grimoire_api.py": "f9a57262c0add4805a0c3bbce41abaf329dafe9849d2f6f47ffc5d811490e4d3"
+    },
+    "live_lc020_modules_missing": [
+      "/app/identity_read_adapter.py",
+      "/app/puzzle_identity_read_window.py",
+      "/app/puzzle_identity_store.py",
+      "/app/migrations/puzzle_identity_registry_v1.py",
+      "/app/puzzle_identity_genesis_bootstrap.py"
+    ],
+    "live_runtime_lc020_references_found": false
+  },
+  "production_database": {
+    "database": "go_odyssey",
+    "server": "PostgreSQL 16.14 on aarch64-unknown-linux-musl",
+    "query_mode": "BEGIN TRANSACTION READ ONLY ... ROLLBACK",
+    "identity_table_count": 4,
+    "identity_table_names": [
+      "puzzle_identity_alias",
+      "puzzle_identity_bootstrap_receipt",
+      "puzzle_identity_lineage",
+      "puzzle_identity_registry"
+    ],
+    "identity_registry_count": 42804,
+    "identity_alias_count": 129330,
+    "identity_lineage_count": 42804,
+    "registry_breakdown": {
+      "HISTORICAL_GENESIS_ACTIVE": 42804
+    },
+    "alias_breakdown": {
+      "CANONICAL_SOURCE_KEY_current": 42804,
+      "CURRENT_SOURCE_PATH_current": 42804,
+      "HISTORICAL_SOURCE_PATH_current": 918,
+      "LEGACY_QUESTION_ID_current": 42782,
+      "LEGACY_QUESTION_ID_not_current": 22
+    },
+    "lineage_breakdown": {
+      "GENESIS": 42804
+    },
+    "legacy_collision_group_count": 11,
+    "current_legacy_collision_group_count": 0,
+    "semantic_identity_rows_valid": 42804,
+    "alias_distinct_identity_count": 42804,
+    "lineage_distinct_genesis_identity_count": 42804,
+    "bootstrap_receipt": {
+      "count": 1,
+      "receipt_sha256": "834eb17fb3bedfa303bf510d24a2734348ddda1204c4811ce80d4c9c89c6f54c",
+      "status": "APPLIED",
+      "record_count": 42804,
+      "identities_written": 42804,
+      "frozen_corpus_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+      "namespace_uuid": "c70b30f4-b745-5585-b5c3-64021901ad76",
+      "canonicalisation_rules_version": "canon-source-v1",
+      "genesis_key_spec_version": "genesis-key-v1",
+      "historical_tree_commit": "b162f9e72b93b73c08c1b044f365cb9287efae70",
+      "historical_tree_manifest_sha256": "12fcab4aa372e16828d7bf1f5e06e440897ab4aaa097b2a256ba33db4e935d53",
+      "historical_rename_map_sha256": "473a80a3664517f7c23db9071948d17cc89053f321ae5ace58ae27e94de7923d",
+      "genesis_record_manifest_sha256": "ee7b1bc4a5f8bb339904a957f236c742a48ea68f6ab4285083e089e0267e4828",
+      "proposed_uuid_list_sha256": "cb47e9d63d2e44f06b24772436380a8e1ce4f199ae64455bfc3891da446da2f2",
+      "applied_at_utc": "2026-08-31T05:46:28.900799Z",
+      "applied_by": "LC020_R9_OWNER_APPROVED_ATOMIC_PRODUCTION_GENESIS_EXECUTION_001"
+    },
+    "genesis_applied": true,
+    "identity_count_gt_zero": true,
+    "hot_mode": true,
+    "hot_mode_derivation": "genesis_applied AND identity_count > 0",
+    "hot_mode_derivation_pass": true
+  },
+  "object_inventory": {
+    "table_count": 4,
+    "tables": [
+      "puzzle_identity_alias",
+      "puzzle_identity_bootstrap_receipt",
+      "puzzle_identity_lineage",
+      "puzzle_identity_registry"
+    ],
+    "sequence_count": 2,
+    "sequences": [
+      "puzzle_identity_alias_id_seq",
+      "puzzle_identity_lineage_id_seq"
+    ],
+    "explicit_index_count": 8,
+    "explicit_indexes": [
+      "idx_pia_uuid",
+      "idx_pil_event_type",
+      "idx_pil_related_uuid",
+      "idx_pil_uuid_seq",
+      "idx_pir_receipt_ref",
+      "idx_pir_status_kind",
+      "uq_pia_current_alias",
+      "uq_pia_one_current_path"
+    ],
+    "trigger_count": 5,
+    "triggers": [
+      "trg_pia_binding_immutable",
+      "trg_pibr_append_only",
+      "trg_pil_append_only",
+      "trg_pir_creation_facts_immutable",
+      "trg_pir_uuid_immutable"
+    ],
+    "function_count": 4,
+    "functions": [
+      "puzzle_identity_reject_alias_binding_change",
+      "puzzle_identity_reject_creation_fact_change",
+      "puzzle_identity_reject_uuid_change",
+      "puzzle_identity_reject_write"
+    ],
+    "generated_constraint_indexes": [
+      "puzzle_identity_alias_pkey",
+      "puzzle_identity_alias_source_record_uuid_alias_kind_alias_value_v_key",
+      "puzzle_identity_bootstrap_receipt_bootstrap_singleton_key",
+      "puzzle_identity_bootstrap_receipt_pkey",
+      "puzzle_identity_lineage_pkey",
+      "puzzle_identity_lineage_source_record_uuid_seq_key",
+      "puzzle_identity_registry_pkey"
+    ],
+    "unexpected_lc020_owned_objects": [],
+    "schema_columns_and_foreign_keys_match_migration": true,
+    "object_inventory_pass": true
+  },
+  "read_adapter_acceptance": {
+    "canonical_app_group_key_path_present_in_source": true,
+    "canonical_grimoire_daily_training_path_present_in_source": true,
+    "live_app_group_key_path": "FAIL_UNAVAILABLE_RUNTIME_ADAPTER",
+    "live_grimoire_daily_training_path": "FAIL_UNAVAILABLE_RUNTIME_ADAPTER",
+    "identity_read_adapter_acceptance": "FAIL",
+    "unknown_or_unmapped_fail_open": "FAIL_UNVERIFIED_RUNTIME",
+    "unknown_alias_db_probe_value": "__lc020_r10_unknown__",
+    "unknown_alias_db_probe_current_or_historical_rows": 0,
+    "collision_sample_legacy_id": "40479",
+    "collision_sample_distinct_identities": 2,
+    "collision_sample_current_rows": 0,
+    "collision_database_state_is_fail_closed": true,
+    "unauthenticated_route_smoke": {
+      "/api/grimoire/training/daily": 401,
+      "/api/training/daily": 401,
+      "/healthz": 200
+    },
+    "process_restart_required": false,
+    "cache_invalidation_required": false,
+    "runtime_remediation_requires_separate_image_review": true
+  },
+  "runtime_corpus": {
+    "path": "/app/data/questions.json",
+    "mount_source": "volume:go-odyssey_go-data",
+    "record_count": 41591,
+    "enabled_count": 41591,
+    "bytes": 71534621,
+    "sha256": "b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232",
+    "frozen_genesis_record_count": 42804,
+    "frozen_genesis_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "frozen_genesis_substituted_into_runtime": false,
+    "mutated_by_genesis": false,
+    "mutation_basis": "Genesis receipt and DB counts are DB-only; runtime app container was started before receipt and no deploy/restart was issued by this task. Current runtime hash is independently recorded."
+  },
+  "backup": {
+    "path": "/opt/go-odyssey/ops/backup/lc020_pre_genesis_20260831T050307Z.dump",
+    "exists": true,
+    "bytes_actual": 12430028,
+    "bytes_expected": 12430028,
+    "bytes_match": true,
+    "sha256_actual": "a3f68c89a726619982e449bb99bba6b13a7fdce115dd877ce6cf7d2c74493352",
+    "sha256_expected": "a3f68c89a726619982e449bb99bba6b13a7fdce115dd877ce6cf7d2c74493352",
+    "sha256_match": true,
+    "archive_readable": true,
+    "archive_listing_entries": 823,
+    "mtime": "2026-08-31 05:03:10.025047527 +0000",
+    "restored": false,
+    "deleted": false
+  },
+  "feature_firewall": {
+    "shop_state": "DISABLED; CANONICAL_COIN_SHOP_PURCHASE_ENABLED unset and evaluated false",
+    "loadout_state": "DISABLED; EQUIPMENT_CANONICAL_LOADOUT_ENABLED unset and evaluated false",
+    "payments_state": "LIVE_CONFIGURED; NEWEBPAY_TEST=0 and PAYPAL_TEST=0, both provider configurations present",
+    "revenue_live_state": "DISABLED; GO_REVENUE_V1_PREMIUM_CLAIM_ENABLED unset and evaluated false",
+    "no_unrelated_feature_enablement": true,
+    "basis": "Live container environment and application gate evaluation; payment gateway configuration is reported as existing state and was not changed by Genesis or this task."
+  },
+  "deployment_firewall": {
+    "no_deploy": true,
+    "basis": "No deployment command was issued; live app container/image predates the 2026-08-31T05:46:28.900799Z receipt and was not restarted by this task.",
+    "master_merge": false,
+    "master_push": false,
+    "rollback": false
+  },
+  "acceptance": {
+    "identity_table_count_pass": true,
+    "identity_registry_count_pass": true,
+    "identity_alias_count_pass": true,
+    "identity_lineage_count_pass": true,
+    "bootstrap_receipt_pass": true,
+    "hot_mode_pass": true,
+    "read_adapter_pass": false,
+    "unknown_fail_open_pass": false,
+    "runtime_corpus_unchanged": true,
+    "pre_genesis_backup_retained": true,
+    "object_inventory_pass": true,
+    "no_unrelated_feature_enablement_pass": true,
+    "no_deploy_pass": true,
+    "remote_evidence_artifact": "PENDING_UNTIL_COMMIT_AND_PUSH",
+    "overall": "FAIL",
+    "defect": "Live production image cc6b7915 lacks identity_read_adapter.py, puzzle_identity_read_window.py, puzzle_identity_store.py, the LC020 migration/runner modules, and live app/grimoire references; database HOT state therefore has no accepted live read-adapter consumer.",
+    "next_task": "LC020_R10_RUNTIME_IMAGE_MISSING_LC020_READ_ADAPTER_REVIEW_001"
+  },
+  "publication": {
+    "baseline_artifact_md": "docs/planning/lc020_r10_post_genesis_production_acceptance.md",
+    "baseline_artifact_json": "docs/planning/lc020_r10_post_genesis_production_baseline.json",
+    "baseline_artifact_sha256": "RECORDED_IN_FINAL_TASK_REPORT; NOT_SELF_EMBEDDED",
+    "task_branch": "codex/lc020-r10-post-genesis-acceptance",
+    "task_head": "RECORDED_IN_FINAL_TASK_REPORT_AFTER_COMMIT",
+    "task_tree": "RECORDED_IN_FINAL_TASK_REPORT_AFTER_COMMIT",
+    "remote_head": "RECORDED_IN_FINAL_TASK_REPORT_AFTER_PUSH",
+    "remote_head_verified": false,
+    "worktree_clean": false
+  }
+}
