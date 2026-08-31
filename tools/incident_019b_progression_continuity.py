@@ -1,8 +1,9 @@
 """Controlled Incident 019B compatibility baseline runner and census.
 
 Default mode is read-only preview.  ``--capture-baseline`` is intentionally
-explicit and requires the exact version confirmation; it is the future
-Owner-gated migration/backfill entrypoint and is not run by this task.
+explicit and requires the exact version confirmation, ``--execute``, and the
+exact ``GO_PRODUCTION_DB_MIGRATION`` owner gate; it is the future governed
+migration/backfill entrypoint and is not run by this task.
 
 The output contains only aggregate counts and short deterministic player
 pseudonyms.  It never prints connection details or account identifiers.
@@ -27,6 +28,9 @@ from adventure_progress_compatibility import (
     build_compatibility_census,
     populate_frozen_historical_baseline,
 )
+
+
+MIGRATION_OWNER_GATE = "GO_PRODUCTION_DB_MIGRATION"
 
 
 def _zone_question_ids(app_module: Any) -> dict[str, set[int]]:
@@ -68,11 +72,42 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="required with --capture-baseline; must equal the locked version",
     )
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="allow the explicitly gated baseline capture to commit",
+    )
+    parser.add_argument(
+        "--owner-gate",
+        default=None,
+        help=f"required with --execute; must equal {MIGRATION_OWNER_GATE}",
+    )
     return parser
+
+
+def _validate_execution_gate(args: argparse.Namespace) -> None:
+    """Keep baseline mutation separate from ordinary deployment execution."""
+
+    if args.capture_baseline:
+        if not args.execute:
+            raise SystemExit(
+                "--capture-baseline requires --execute; ordinary deployment cannot capture it"
+            )
+        if args.owner_gate != MIGRATION_OWNER_GATE:
+            raise SystemExit(
+                "--capture-baseline requires --owner-gate "
+                f"{MIGRATION_OWNER_GATE}"
+            )
+        return
+    if args.execute or args.owner_gate:
+        raise SystemExit(
+            "--execute and --owner-gate are only valid with --capture-baseline"
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    _validate_execution_gate(args)
     if args.capture_baseline and args.confirm_baseline_version != BASELINE_VERSION:
         raise SystemExit(
             "--capture-baseline requires --confirm-baseline-version "

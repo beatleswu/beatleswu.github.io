@@ -189,9 +189,6 @@ from migrations.question_capacity_lineage_v1 import (
 from migrations.review_log_submission_idempotency_v1 import (
     upgrade as upgrade_review_log_submission_schema,
 )
-from migrations.adventure_historical_mastery_v1 import (
-    upgrade as upgrade_adventure_historical_mastery_schema,
-)
 from adventure_progress_compatibility import (
     TRUSTED_REVIEW_SOURCE_PREFIXES,
     trusted_current_memberships,
@@ -5057,12 +5054,6 @@ def init_db():
             PRIMARY KEY (user_id, zone_key)
         )''')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_adv_unlock_user ON adventure_zone_unlocks(user_id)')
-
-        # Incident 019B: additive, one-time historical Adventure mastery
-        # baseline.  The schema is created here, but the controlled capture
-        # runner is the only writer of baseline memberships.  Request paths
-        # only read the frozen baseline and never fall back to live cards.
-        upgrade_adventure_historical_mastery_schema(conn)
 
         # ── 角色外觀衣櫃（持有清單） ──
         conn.execute('''CREATE TABLE IF NOT EXISTS player_wardrobe (
