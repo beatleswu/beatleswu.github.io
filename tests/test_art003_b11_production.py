@@ -8,7 +8,7 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = "16548803a62c9fc76a459cb247a026187e644c5c"
+HISTORICAL_BASE = "16548803a62c9fc76a459cb247a026187e644c5c"
 MANIFEST_PATH = ROOT / "docs" / "planning" / "art_003_batch_011_manifest.json"
 PACK_PATH = ROOT / "docs" / "planning" / "art_003_batch_011_owner_visual_review_pack.md"
 
@@ -26,6 +26,12 @@ EXPECTED = [
 ]
 EXPECTED_IDS = [row[0] for row in EXPECTED]
 EXPECTED_PATHS = [row[3] for row in EXPECTED]
+ADMISSION_PATHS = set(EXPECTED_PATHS) | {
+    "docs/planning/art_003_batch_011_manifest.json",
+    "docs/planning/art_003_batch_011_owner_visual_review_pack.md",
+    "tests/test_art003_b11_production.py",
+    "tests/test_art003_b11_r1_publication.py",
+}
 
 
 def read_manifest():
@@ -34,6 +40,27 @@ def read_manifest():
 
 def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+
+
+def git_succeeds(*args):
+    return subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode == 0
+
+
+def admission_base():
+    """Use fresh canonical master for synthetic admissions, with a narrow
+    historical fallback for validating the reviewed publication branch.
+    """
+    if git_succeeds("merge-base", "--is-ancestor", "origin/master", "HEAD"):
+        return "origin/master"
+    if git_succeeds("merge-base", "--is-ancestor", HISTORICAL_BASE, "HEAD"):
+        return HISTORICAL_BASE
+    raise AssertionError("no valid canonical or reviewed B11 admission base")
 
 
 def test_b11_exact_identity_and_manifest():
@@ -109,14 +136,8 @@ def test_exact_git_scope_and_source_head_bytes():
     source_head = manifest["source_head"]
     assert len(source_head) == 40
     assert git("cat-file", "-e", f"{source_head}^{{commit}}") == ""
-    changed = set(git("diff", "--name-only", BASE, "HEAD").splitlines())
-    expected_scope = set(EXPECTED_PATHS) | {
-        "docs/planning/art_003_batch_011_manifest.json",
-        "docs/planning/art_003_batch_011_owner_visual_review_pack.md",
-        "tests/test_art003_b11_production.py",
-        "tests/test_art003_b11_r1_publication.py",
-    }
-    assert changed == expected_scope
+    changed = set(git("diff", "--name-only", admission_base(), "HEAD").splitlines())
+    assert changed == ADMISSION_PATHS
     assert git("status", "--short", "--untracked-files=all") == ""
     for _, _, _, path, _, _, _ in EXPECTED:
         committed = subprocess.check_output(["git", "show", f"{source_head}:{path}"], cwd=ROOT)

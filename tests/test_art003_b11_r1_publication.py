@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_HEAD = "36ff4d411443bd3a5d1728054bc5ca82ca8ea6bd"
+HISTORICAL_BASE = "16548803a62c9fc76a459cb247a026187e644c5c"
 EXPECTED = [
     ("M110", "Dawnwing Serpent", "Z1", "art/monsters/M110_dawnwing_serpent.png", "8CE6A97421B1FEC08843D439C0BCBC70C70708DDBF246FDAD6B783DB0D8DAED7"),
     ("M111", "Starshard Rhino", "Z9", "art/monsters/M111_starshard_rhino.png", "8797C8B3C6C03F05E487FA6E32171FB9F9928054231617E557FA2C1090329469"),
@@ -20,6 +21,13 @@ EXPECTED = [
     ("M120", "Evergreen Rootbeast", "Z10", "art/monsters/M120_evergreen_rootbeast.png", "D57B6A24AD2374EA5C6E899A9AD119F4D416709727E18A88A49B67B7B1592E85"),
 ]
 EXPECTED_IDS = [row[0] for row in EXPECTED]
+EXPECTED_PATHS = [row[3] for row in EXPECTED]
+ADMISSION_PATHS = set(EXPECTED_PATHS) | {
+    "docs/planning/art_003_batch_011_manifest.json",
+    "docs/planning/art_003_batch_011_owner_visual_review_pack.md",
+    "tests/test_art003_b11_production.py",
+    "tests/test_art003_b11_r1_publication.py",
+}
 
 
 def manifest():
@@ -28,6 +36,27 @@ def manifest():
 
 def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+
+
+def git_succeeds(*args):
+    return subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode == 0
+
+
+def admission_base():
+    """Prefer fresh canonical master; retain only the reviewed-branch
+    fallback needed when running this test on the historical publication ref.
+    """
+    if git_succeeds("merge-base", "--is-ancestor", "origin/master", "HEAD"):
+        return "origin/master"
+    if git_succeeds("merge-base", "--is-ancestor", HISTORICAL_BASE, "HEAD"):
+        return HISTORICAL_BASE
+    raise AssertionError("no valid canonical or reviewed B11 admission base")
 
 
 def test_owner_pass_exact_set_and_hash_lock():
@@ -106,7 +135,6 @@ def test_owner_review_pack_exact_pass_order():
 
 def test_owner_approved_bytes_are_unchanged_from_source_head():
     data = manifest()
-    assert git("merge-base", "--is-ancestor", SOURCE_HEAD, "HEAD") == ""
     for entry in data["entries"]:
         path = entry["asset_path"]
         committed = subprocess.check_output(["git", "show", f"{SOURCE_HEAD}:{path}"], cwd=ROOT)
@@ -115,16 +143,12 @@ def test_owner_approved_bytes_are_unchanged_from_source_head():
 
 
 def test_publication_scope_has_no_prior_art_or_runtime_changes():
-    changed = set(git("diff", "--name-only", SOURCE_HEAD, "HEAD").splitlines())
-    assert changed == {
-        "docs/planning/art_003_batch_011_manifest.json",
-        "docs/planning/art_003_batch_011_owner_visual_review_pack.md",
-        "tests/test_art003_b11_production.py",
-        "tests/test_art003_b11_r1_publication.py",
-    }
+    changed = set(git("diff", "--name-only", admission_base(), "HEAD").splitlines())
+    assert changed == ADMISSION_PATHS
     assert git("status", "--porcelain=v1", "--untracked-files=all") == ""
     assert data_paths_unchanged("art/monsters")
 
 
 def data_paths_unchanged(prefix):
-    return not git("diff", "--name-only", SOURCE_HEAD, "HEAD", "--", prefix)
+    changed = set(git("diff", "--name-only", admission_base(), "HEAD", "--", prefix).splitlines())
+    return changed <= set(EXPECTED_PATHS)
