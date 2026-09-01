@@ -257,7 +257,9 @@ def _assert_provenance_contract(governed_paths, presentation_present, expected_c
 # rather than weakening the contract.
 # Incident019B R11 adds the Zone-star runtime module and its explicit
 # migration dependency to the governed set.
-POST_B1_PROVENANCE_ADDITIONS = 13
+# RPG V1 P0 hotfix adds four app-start runtime authorities: Zone 3 legacy
+# compatibility, Zone progression, Guild answer handling, and Lord admission.
+POST_B1_PROVENANCE_ADDITIONS = 17
 CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 
