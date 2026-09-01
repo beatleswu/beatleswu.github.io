@@ -129,6 +129,10 @@
         request.response_ms = value.response_ms == null ? null : value.response_ms;
         request.source_context = value.source_context || 'practice';
         if (value.boss_answer !== undefined) request.boss_answer = value.boss_answer;
+        // Server-judged Guild evidence.  These are answer inputs, not
+        // authority claims: the server re-derives eligibility and correctness.
+        if (value.guild_answer !== undefined) request.guild_answer = value.guild_answer;
+        if (value.guild_quest_key !== undefined) request.guild_quest_key = value.guild_quest_key;
         request.training_set_id = value.training_set_id == null ? null : value.training_set_id;
         request.is_scaffolding = !!value.is_scaffolding;
         // A public caller may reuse a server-validated retry identity.  Do
@@ -221,6 +225,8 @@
             response_ms: value.response_ms,
             source_context: value.source_context,
             boss_answer: value.boss_answer,
+            guild_answer: value.guild_answer,
+            guild_quest_key: value.guild_quest_key,
             training_set_id: value.training_set_id,
             is_scaffolding: value.is_scaffolding,
             submission_id: value.submission_id

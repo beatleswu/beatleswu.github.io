@@ -89,6 +89,10 @@ from adventure_zone3_monster_authority import (
     zone3_combat_profile,
     zone3_presentation_for_battle,
 )
+from adventure_zone3_legacy_compatibility import (
+    legacy_zone3_battle_is_retirable,
+    retire_legacy_zone3_battle,
+)
 from spirit_combat_runtime import apply_spirit_combat_effect
 from monster_encounter_selector import build_legacy_selector_candidates
 from monster_encounter_selector_runtime import (
@@ -232,6 +236,20 @@ from lord_trial_answer_service import (
     lord_trial_submission_id,
     persist_lord_trial_verdict,
     summarize_lord_trial_evidence,
+)
+from lord_trial_admission import (
+    LordTrialAdmissionError,
+    select_admissible_lord_questions,
+)
+from guild_quest_answer_service import (
+    GUILD_QUEST_RESULT_SOURCE_PREFIX,
+    GUILD_QUEST_SOURCE_CONTEXT,
+    GuildQuestAnswerError,
+    GuildQuestVerdictPersistenceError,
+    build_guild_quest_verdict,
+    encode_guild_quest_verdict,
+    judge_guild_quest_answer,
+    normalize_guild_quest_key,
 )
 from incident_018_observability import (
     LORD_FINISH_ENDPOINT as INCIDENT_018_LORD_FINISH_ENDPOINT,
@@ -12682,9 +12700,16 @@ def adventure_boss_start():
     if len(qs) < 1:
         return jsonify({'ok': False, 'error': 'no_questions'}), 400
     rng = random.Random(f"{uid}-{zone_key}-{datetime.datetime.now().isoformat()}")
-    pool = list(qs)
-    rng.shuffle(pool)
-    selected = pool[:min(BOSS_EXAM_SIZE, len(pool))]
+    # A signed Lord attempt may only contain questions the canonical Lord
+    # judge can actually settle.  Admitting an unjudgeable question (most
+    # often one whose canonical SGF carries no PL[B/W]) used to strand the
+    # whole attempt on a 503 at answer time, with no way for the player to
+    # skip or retry past it.  Deciding admissibility here keeps the failure
+    # at attempt creation, where it is recoverable.
+    try:
+        selected = select_admissible_lord_questions(qs, BOSS_EXAM_SIZE, rng=rng)
+    except LordTrialAdmissionError as exc:
+        return jsonify({'ok': False, 'error': exc.code}), exc.status
     qids = [q['id'] for q in selected]
     attempt_id = _new_adventure_boss_attempt_id()
     incident018_update_current(attempt_id=attempt_id)
@@ -14341,6 +14366,16 @@ def map_battle_v1_prepare_attempt():
         with get_db() as conn:
             eligibility = _map_battle_require_enabled(user_id, conn)
             battle = _map_battle_open_for_zone(conn, user_id, zone_key)
+            if zone_key == ADVENTURE_ZONE3_KEY and legacy_zone3_battle_is_retirable(battle):
+                # A pre-E055 OPEN Zone 3 battle carries no Monster binding, and
+                # one of them strands the zone permanently: this lookup finds it
+                # ahead of every new battle, so each request fails closed on the
+                # missing binding.  The legacy row records no Monster identity to
+                # reconcile, so it is retired (settling nothing) rather than
+                # mapped onto an invented one, and the block below then creates a
+                # properly bound E055 battle.
+                if retire_legacy_zone3_battle(conn, user_id=user_id, battle=battle):
+                    battle = None
             if battle is None:
                 player_hp, player_hp_max = _map_battle_player_hp(conn, user_id)
                 if zone_key == ADVENTURE_ZONE3_KEY:
@@ -14866,6 +14901,8 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     unit      = data.get('unit_name')
     unit_done = data.get('unit_done', False)
     boss_answer = data.get('boss_answer')
+    guild_answer = data.get('guild_answer')
+    guild_quest_key = data.get('guild_quest_key')
     combat_settlement_context = data.get('combat_settlement_context')
     if combat_settlement_context is not None and (
         not internal
@@ -14878,6 +14915,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     except (TypeError, ValueError):
         response_ms = None
     boss_source_context = None
+    guild_source_context = False
     if internal:
         submission_id = str(submission_id or '').strip()
         if not submission_id:
@@ -14891,14 +14929,23 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             return jsonify({'error': 'reserved_source_context'}), 400
         if source_context.startswith(LORD_TRIAL_RESULT_SOURCE_PREFIX):
             return jsonify({'error': 'reserved_source_context'}), 400
+        # The judged Guild envelope is a server authority field.  A client may
+        # propose the plain `guild_quest` label, but never the evidence.
+        if source_context.startswith(GUILD_QUEST_RESULT_SOURCE_PREFIX):
+            return jsonify({'error': 'reserved_source_context'}), 400
         if source_context.startswith(BOSS_REVIEW_SOURCE_CONTEXT_PREFIX):
             boss_source_context = source_context
         else:
             source_context = source_context[:40]
+            guild_source_context = source_context == GUILD_QUEST_SOURCE_CONTEXT
         if boss_answer is not None and boss_source_context is None:
             return jsonify({'error': 'invalid_boss_answer_context'}), 400
+        if guild_answer is not None and not guild_source_context:
+            return jsonify({'error': 'invalid_guild_answer_context'}), 400
     if internal and boss_answer is not None:
         return jsonify({'error': 'invalid_boss_answer_context'}), 400
+    if internal and guild_answer is not None:
+        return jsonify({'error': 'invalid_guild_answer_context'}), 400
     incident018_update_current(question_id=qid)
     training_set_id = data.get('training_set_id')
     try:
@@ -15043,6 +15090,42 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             )
             return jsonify({'error': 'boss_verdict_unavailable'}), 503
 
+    guild_canonical = None
+    guild_verdict = None
+    if guild_answer is not None:
+        # Guild leaderboard credit is server-settled or it does not exist.
+        # The `guild_quest` label only selects this path; every fact that
+        # grants credit is re-derived server-side here -- the quest key
+        # against the server-owned quest catalog and this authenticated
+        # user's own accepted-quest rows, and correctness from the same
+        # server-only judge the rest of the product uses.  A request without
+        # a `guild_answer` stays on the untouched legacy practice path and
+        # earns no leaderboard authority, exactly as before.
+        try:
+            guild_quest_key = normalize_guild_quest_key(guild_quest_key)
+        except GuildQuestAnswerError as exc:
+            return jsonify({'error': exc.code}), exc.status
+        with get_db() as guild_conn:
+            guild_eligible = _guild_quest_answer_eligibility(
+                guild_conn, uid, guild_quest_key, qid
+            )
+        if not guild_eligible:
+            return jsonify({'error': 'guild_quest_not_eligible'}), 403
+        try:
+            guild_canonical, guild_judge = judge_guild_quest_answer(
+                guild_answer, question=q_info, quest_key=guild_quest_key
+            )
+            guild_verdict = build_guild_quest_verdict(
+                quest_key=guild_quest_key,
+                question_id=int(qid),
+                judge=guild_judge,
+                guild_eligible=True,
+            )
+        except GuildQuestAnswerError as exc:
+            return jsonify({'error': exc.code}), exc.status
+        except GuildQuestVerdictPersistenceError:
+            return jsonify({'error': 'guild_verdict_unavailable'}), 503
+
     try:
         submission_id, _generated_submission_id = normalize_identity(
             submission_id,
@@ -15071,6 +15154,8 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # Retry identity binds to canonical answer evidence, never to a
         # client correctness claim or raw non-canonical payload spelling.
         submission_payload['boss_answer'] = boss_canonical.payload
+    if guild_canonical is not None:
+        submission_payload['guild_answer'] = guild_canonical.payload
     # Response time is stored as telemetry on the first durable row, but it
     # is not part of the logical answer mutation.  A response-loss retry may
     # legitimately measure a different client latency and must still replay.
@@ -15240,11 +15325,15 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # ON CONFLICT DO NOTHING lets PostgreSQL resolve concurrent retries
         # without aborting the caller transaction; a same-id/different-hash
         # request is an explicit conflict, never a successful retry.
-        review_source_context = (
-            LORD_TRIAL_PENDING_SOURCE
-            if boss_source_context is not None
-            else source_context
-        )
+        if boss_source_context is not None:
+            review_source_context = LORD_TRIAL_PENDING_SOURCE
+        elif guild_verdict is not None:
+            # The judged envelope replaces the client's `guild_quest` label as
+            # the stored evidence.  Only this server-written form carries
+            # leaderboard authority; the bare label never does.
+            review_source_context = encode_guild_quest_verdict(guild_verdict)
+        else:
+            review_source_context = source_context
         incident018_update_current(
             question_id=qid,
             submission_id=submission_id,
@@ -16248,6 +16337,42 @@ def _quest_segment_for_key(key, premium):
         'coins': max(coins, round(coins * scale)),
         'xp': max(xp, round(xp * scale)),
     }
+
+def _guild_quest_answer_eligibility(conn, uid, quest_key, qid):
+    """Return whether *qid* is a Guild answer for *uid*, from server state only.
+
+    Two independent server-owned facts must both hold, and neither is taken
+    from the request beyond the quest key that is validated against them:
+
+    * the quest catalog -- not the client -- decides which question ids the
+      quest identified by *quest_key* contains;
+    * ``quest_accepted`` records that this authenticated user actually took
+      that quest.
+
+    A caller who invents a quest key, points a real quest at someone else's
+    question, or never accepted the quest resolves to ``False`` and can
+    therefore never obtain a Guild verdict envelope.
+    """
+    seg = _quest_segment_for_key(quest_key, is_premium(uid))
+    if not seg:
+        return False
+    try:
+        question_id = int(qid)
+    except (TypeError, ValueError):
+        return False
+    if question_id not in {int(value) for value in (seg.get('question_ids') or [])}:
+        return False
+    # A segmented quest may legitimately have been accepted under either its
+    # segment key or the legacy whole-stage key; both are server-issued.
+    accepted_keys = {str(quest_key), str(seg.get('legacy_key') or '')}
+    accepted_keys.discard('')
+    placeholders = ','.join('?' for _ in accepted_keys)
+    row = conn.execute(
+        f'SELECT 1 FROM quest_accepted WHERE user_id=? AND quest_key IN ({placeholders})',
+        (uid, *sorted(accepted_keys)),
+    ).fetchone()
+    return row is not None
+
 
 def _quest_public_meta(seg, practiced_ids=None):
     practiced_ids = practiced_ids or set()

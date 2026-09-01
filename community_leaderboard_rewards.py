@@ -14,6 +14,11 @@ from lord_trial_answer_service import (
     LORD_TRIAL_RESULT_SOURCE_PREFIX,
     decode_lord_trial_verdict,
 )
+from guild_quest_answer_service import (
+    GUILD_QUEST_JUDGE_VERSION,
+    GUILD_QUEST_RESULT_SOURCE_PREFIX,
+    decode_guild_quest_verdict,
+)
 from migrations.historical_leaderboard_evidence_v1 import (
     SOURCE_PREFIX as HISTORICAL_LEADERBOARD_SOURCE_PREFIX,
     TABLE_NAME as HISTORICAL_LEADERBOARD_TABLE,
@@ -468,6 +473,73 @@ def _fetch_admitted_lord_trial_evidence(conn, period_start_iso, period_end_iso=N
     ]
 
 
+def _fetch_admitted_guild_quest_evidence(conn, period_start_iso, period_end_iso=None):
+    """Return valid Guild Quest PASS evidence for one server-time window.
+
+    Guild answers deliberately do not join the public SRS source allowlist.
+    The bare ``guild_quest`` context is a client label and ``review_log.grade``
+    is a client-supplied scheduling signal, so neither can create leaderboard
+    authority.  Only the ``guild_quest:v1:`` envelope can: the public request
+    parser rejects that prefix outright, so its presence means the server
+    itself judged the answer and confirmed Guild eligibility before writing
+    the row.
+
+    Decode and revalidate before the shared ``(user_id, question_id)``
+    leaderboard dedupe path.  Invalid, failed, mismatched, or unknown-judge
+    envelopes fail closed, exactly as the Lord Trial classifier does.
+    """
+    period_end_clause = " AND reviewed_at < ?" if period_end_iso else ""
+    params = [period_start_iso]
+    if period_end_iso:
+        params.append(period_end_iso)
+    params.append(f"{GUILD_QUEST_RESULT_SOURCE_PREFIX}%")
+    rows = conn.execute(
+        """SELECT user_id, question_id, reviewed_at, source_context
+             FROM review_log
+            WHERE reviewed_at >= ?
+              {period_end_clause}
+              AND source_context LIKE ?""".format(
+            period_end_clause=period_end_clause,
+        ),
+        tuple(params),
+    ).fetchall()
+
+    by_question = {}
+    for row in rows:
+        try:
+            user_id = int(row["user_id"])
+            question_id = int(row["question_id"])
+            reviewed_at = row["reviewed_at"]
+            verdict = decode_guild_quest_verdict(row["source_context"])
+        except (KeyError, IndexError, TypeError, ValueError):
+            continue
+        if user_id <= 0 or question_id <= 0:
+            continue
+        if not isinstance(reviewed_at, str) or not reviewed_at:
+            continue
+        if verdict is None:
+            continue
+        if (
+            verdict.get("verdict") != "AUTHORITATIVE_PASS"
+            or verdict.get("authoritative_grade") != 5
+            or verdict.get("question_id") != question_id
+            or verdict.get("judge_version") != GUILD_QUEST_JUDGE_VERSION
+            or not isinstance(verdict.get("quest_key"), str)
+            or not verdict["quest_key"].strip()
+        ):
+            continue
+
+        key = (user_id, question_id)
+        previous = by_question.get(key)
+        if previous is None or reviewed_at < previous:
+            by_question[key] = reviewed_at
+
+    return [
+        (user_id, question_id, first_counted_at)
+        for (user_id, question_id), first_counted_at in sorted(by_question.items())
+    ]
+
+
 def fetch_leaderboard_participant_rows(conn, period_start_iso, period_end_iso=None, *, limit=None):
     historical_cte = ""
     historical_params = []
@@ -507,6 +579,22 @@ def fetch_leaderboard_participant_rows(conn, period_start_iso, period_end_iso=No
             "SELECT user_id, question_id, first_counted_at FROM lord_evidence"
         )
 
+    guild_evidence = _fetch_admitted_guild_quest_evidence(
+        conn, period_start_iso, period_end_iso
+    )
+    guild_cte = ""
+    guild_params = []
+    if guild_evidence:
+        values = ", ".join("(?, ?, ?)" for _ in guild_evidence)
+        guild_cte = f"""
+, guild_evidence(user_id, question_id, first_counted_at) AS (
+    VALUES {values}
+)"""
+        guild_params = [value for row in guild_evidence for value in row]
+        evidence_sources.append(
+            "SELECT user_id, question_id, first_counted_at FROM guild_evidence"
+        )
+
     if len(evidence_sources) == 1:
         qualifying_cte = """
 , qualifying_distinct AS (
@@ -535,7 +623,7 @@ WITH trusted_evidence AS (
             rl.source_context LIKE ? OR
             rl.source LIKE ?)
      GROUP BY rl.user_id, rl.question_id
-){historical_cte}{lord_cte}{qualifying_cte}
+){historical_cte}{lord_cte}{guild_cte}{qualifying_cte}
 , scored AS (
     SELECT q.user_id,
            COUNT(*) AS score,
@@ -569,6 +657,7 @@ SELECT u.id,
     """.format(
         historical_cte=historical_cte,
         lord_cte=lord_cte,
+        guild_cte=guild_cte,
         qualifying_cte=qualifying_cte,
         period_end_clause="AND rl.reviewed_at < ?" if period_end_iso else "",
         limit_clause=(" LIMIT ?" if limit is not None else ""),
@@ -585,6 +674,7 @@ SELECT u.id,
     ])
     params.extend(historical_params)
     params.extend(lord_params)
+    params.extend(guild_params)
     if limit is not None:
         params.append(limit)
     return conn.execute(sql, tuple(params)).fetchall()

@@ -8975,12 +8975,21 @@ function _currentReviewMetadata(){
     const bossSourceContext = _bossMode && _bossAttemptId
         ? `boss_trial:${_bossAttemptId}`
         : null;
-    return {
+    const metadata = {
         response_ms:_questionStartedAt?Math.round(performance.now()-_questionStartedAt):null,
         source_context:bossSourceContext || (setId?'premium_weekly':(_guildQuestMode?'guild_quest':'practice')),
         training_set_id:setId?Number(setId):null,
         is_scaffolding:params.get('scaffold')==='1'||!!_premiumWeeklyMode?.rescue
     };
+    // Guild leaderboard credit is settled by the server judge, never by the
+    // `guild_quest` label or the client's own grade.  Send the actual move
+    // sequence so the server can judge it; without one the answer stays on
+    // the ordinary practice path and earns no Guild credit.
+    if (!bossSourceContext && _guildQuestMode?.key && _guildQuestAnswerMoves.length) {
+        metadata.guild_answer = { moves:_guildQuestAnswerMoves.map(move => ({...move})) };
+        metadata.guild_quest_key = _guildQuestMode.key;
+    }
+    return metadata;
 }
 let playerColor='B',solved=false,answering=false,currentIndex=-1;
 let allQuestions=[],logicBoard=[],boardSize=19;
@@ -9001,6 +9010,7 @@ let _mapBattleV1State = null;
 let _mapBattleV1Mode = 'disabled';
 let _mapBattleV1Moves = [];
 let _lordTrialAnswerMoves = [];
+let _guildQuestAnswerMoves = [];
 let _mapBattleV1Context = null;
 let _mapBattleV1PrepareSerial = 0;
 let _mapBattleV1TransitionPending = false;
@@ -10172,6 +10182,7 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _lordTrialAnswerMoves = [];
+    _guildQuestAnswerMoves = [];
     _mapBattleV1Context = null;
     _setGoblinCavePostAnswerControls(false);
     _publishMapBattleV1Lifecycle();
@@ -11536,6 +11547,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _lordTrialAnswerMoves = [];
+    _guildQuestAnswerMoves = [];
     _mapBattleV1Context = null;
     _mapBattleV1Mode = (!_bossMode && _isAdventureZonePractice()) ? 'pending' : 'disabled';
     _publishMapBattleV1Lifecycle();
@@ -11780,6 +11792,7 @@ function onBoardClick(bx,by){
 
     if(solved)return;
     if (_bossMode) _lordTrialAnswerMoves.push({action:'play',x,y});
+    else if (_guildQuestMode?.key) _guildQuestAnswerMoves.push({action:'play',x,y});
     const bossAnswer = _bossMode
         ? {moves:_lordTrialAnswerMoves.map(move => ({...move}))}
         : null;

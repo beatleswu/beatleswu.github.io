@@ -617,10 +617,94 @@ def stub_boss_start_state(app_module, monkeypatch):
         'cooldown_left': 0,
     }
     monkeypatch.setattr(app_module, '_adventure_state', lambda uid: [dict(state)])
-    monkeypatch.setattr(app_module, '_load_questions', lambda: [{'id': i, 'enabled': True} for i in range(1, 21)])
+    # These stubs exercise attempt identity, scope and resume, not judging.
+    # They still carry judgeable SGF content because a Lord attempt may only
+    # be created from questions the canonical judge can settle; a contentless
+    # stub is exactly the unjudgeable shape that stranded Production attempts.
+    monkeypatch.setattr(
+        app_module,
+        '_load_questions',
+        lambda: [
+            {
+                'id': i,
+                'enabled': True,
+                'content': '(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dd]C[stub]))',
+            }
+            for i in range(1, 21)
+        ],
+    )
     monkeypatch.setattr(app_module, '_questions_for_adventure_zone', lambda qs, zone, premium: list(qs))
     monkeypatch.setattr(app_module, 'is_premium', lambda *args, **kwargs: True)
     return state
+
+
+# P0-1: the Lord start route itself refuses to sign an attempt it cannot judge.
+_JUDGEABLE_SGF = '(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dd]C[stub]))'
+# The real 31194 defect shape: canonical MultiGo content with no PL[B/W] root
+# property, so the server-only Lord judge cannot establish whose move it is.
+_MISSING_PL_SGF = (
+    '(;CA[gb2312]AB[eb][cf][dg][eg][ff][fe][ed]AW[de][ee][ef][df][fd][gd][fg][gg]'
+    'LB[dd:A][ce:B]AP[MultiGo:4.3.0]SZ[8]AB[fc]MULTIGOGM[1];B[dd];W[ce];B[be])'
+)
+
+
+class TestLordQueueAdmission:
+    """A created attempt must contain only questions the Lord judge can settle."""
+
+    def _stub_pool(self, app_module, monkeypatch, questions):
+        state = {
+            'key': 'k26_30', 'seen': 50, 'pct': 100,
+            'unlocked': True, 'cleared': True, 'cooldown_left': 0,
+        }
+        monkeypatch.setattr(app_module, '_adventure_state', lambda uid: [dict(state)])
+        monkeypatch.setattr(app_module, '_load_questions', lambda: questions)
+        monkeypatch.setattr(
+            app_module, '_questions_for_adventure_zone',
+            lambda qs, zone, premium: list(qs),
+        )
+        monkeypatch.setattr(app_module, 'is_premium', lambda *a, **k: True)
+
+    def test_unjudgeable_questions_are_never_signed_into_an_attempt(
+        self, client, app_module, monkeypatch
+    ):
+        # 20 judgeable questions alongside 40 of the real 31194 defect shape.
+        pool = [
+            {'id': 31194 + i, 'enabled': True, 'content': _MISSING_PL_SGF}
+            for i in range(40)
+        ] + [
+            {'id': 900000 + i, 'enabled': True, 'content': _JUDGEABLE_SGF}
+            for i in range(20)
+        ]
+        self._stub_pool(app_module, monkeypatch, pool)
+        _login(client, 4101)
+
+        response = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert response.status_code == 200
+        body = response.get_json()
+        assert len(body['question_ids']) == 20
+        # None of the 503-producing questions reached the signed queue, so the
+        # attempt cannot strand the way the Production one did at 4/20.
+        assert all(qid >= 900000 for qid in body['question_ids'])
+
+    def test_pool_without_enough_judgeable_questions_fails_closed_at_start(
+        self, client, app_module, monkeypatch
+    ):
+        # The real d7_plus shape: a large eligible pool that is almost entirely
+        # unjudgeable.  Silently building a 1-question Lord Trial there would
+        # hand out a Zone clear, so the attempt is refused instead.
+        pool = [
+            {'id': 31194 + i, 'enabled': True, 'content': _MISSING_PL_SGF}
+            for i in range(60)
+        ] + [{'id': 900001, 'enabled': True, 'content': _JUDGEABLE_SGF}]
+        self._stub_pool(app_module, monkeypatch, pool)
+        _login(client, 4102)
+
+        response = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert response.status_code == 503
+        assert response.get_json()['error'] == 'insufficient_judgeable_questions'
+
+        with client.session_transaction() as sess:
+            assert 'adventure_boss_exam' not in sess
 
 
 class TestLordReplayMode:
