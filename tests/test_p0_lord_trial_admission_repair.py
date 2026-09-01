@@ -147,19 +147,42 @@ def test_filtering_never_silently_shortens_an_attempt():
     assert excinfo.value.status == 503
 
 
-def test_small_healthy_pool_keeps_its_existing_shorter_exam():
-    """Pools that were already shorter than the exam size are unaffected."""
-    pool = [_clone(JUDGEABLE, 900_000 + i) for i in range(3)]
+@pytest.mark.parametrize("judgeable_count", [0, 1, 3, 12, 19])
+def test_pool_below_the_fixed_size_fails_closed(judgeable_count):
+    """A Lord Challenge is exactly 20 questions; anything less is refused.
+
+    A short Lord Trial would be a materially easier Boss clear, so a healthy
+    but too-small pool is refused just as a mostly-unjudgeable one is.
+    """
+    pool = [_clone(JUDGEABLE, 900_000 + i) for i in range(judgeable_count)]
+    with pytest.raises(LordTrialAdmissionError) as excinfo:
+        select_admissible_lord_questions(pool, BOSS_EXAM_SIZE, rng=random.Random(5))
+    assert excinfo.value.code == "insufficient_judgeable_questions"
+
+
+@pytest.mark.parametrize("judgeable_count", [20, 21, 60, 400])
+def test_pool_at_or_above_the_fixed_size_yields_exactly_twenty(judgeable_count):
+    pool = [_clone(JUDGEABLE, 900_000 + i) for i in range(judgeable_count)]
     selected = select_admissible_lord_questions(
         pool, BOSS_EXAM_SIZE, rng=random.Random(5)
     )
-    assert len(selected) == 3
+    assert len(selected) == BOSS_EXAM_SIZE
+    assert len({q["id"] for q in selected}) == BOSS_EXAM_SIZE
+
+
+def test_unjudgeable_questions_never_pad_a_short_pool():
+    """19 judgeable + many malformed is still a refusal, never a filled 20."""
+    pool = [_clone(JUDGEABLE, 900_000 + i) for i in range(19)]
+    pool += [_clone(MISSING_PL, 800_000 + i) for i in range(50)]
+    with pytest.raises(LordTrialAdmissionError) as excinfo:
+        select_admissible_lord_questions(pool, BOSS_EXAM_SIZE, rng=random.Random(9))
+    assert excinfo.value.code == "insufficient_judgeable_questions"
 
 
 def test_empty_pool_reports_no_questions():
     with pytest.raises(LordTrialAdmissionError) as excinfo:
         select_admissible_lord_questions([], BOSS_EXAM_SIZE)
-    assert excinfo.value.code == "no_questions"
+    assert excinfo.value.code == "insufficient_judgeable_questions"
 
 
 def test_admission_introduces_no_fallback_judge():
@@ -219,4 +242,50 @@ def test_real_catalog_admissibility_scan():
         selected = select_admissible_lord_questions(
             pool, BOSS_EXAM_SIZE, rng=random.Random(23)
         )
+        assert len(selected) == BOSS_EXAM_SIZE
         assert all(question_is_lord_judgeable(q) for q in selected)
+
+
+@pytest.mark.skipif(
+    _real_catalog_path() is None,
+    reason="frozen canonical catalog is not present in this environment",
+)
+def test_real_catalog_every_zone_builds_exactly_twenty_or_fails_closed():
+    """Per-zone contract over the real catalog: exactly 20, or no attempt.
+
+    Every canonical Adventure zone is driven through the real zone filter and
+    the real admission selector. A zone either yields exactly 20 judgeable
+    questions or refuses to create an attempt; a short Lord Challenge is
+    never produced for any zone.
+    """
+    app_module = pytest.importorskip("app")
+    if not os.path.isfile(app_module.DATA_FILE):
+        pytest.skip("app is not configured against the frozen canonical catalog")
+
+    questions = app_module._load_questions()
+    assert len(questions) > 40000
+
+    outcomes = {}
+    for zone in app_module.ADVENTURE_ZONES:
+        pool = app_module._questions_for_adventure_zone(questions, zone, True)
+        try:
+            selected = select_admissible_lord_questions(
+                pool, app_module.BOSS_EXAM_SIZE, rng=random.Random(1)
+            )
+        except LordTrialAdmissionError as error:
+            outcomes[zone["key"]] = ("FAIL_CLOSED", error.code, 0)
+            continue
+        assert len(selected) == app_module.BOSS_EXAM_SIZE
+        assert all(question_is_lord_judgeable(q) for q in selected)
+        outcomes[zone["key"]] = ("OK", None, len(selected))
+
+    # Every zone is decided: no zone silently produces a short attempt.
+    assert set(outcomes) == {z["key"] for z in app_module.ADVENTURE_ZONES}
+    for key, (status, _code, count) in outcomes.items():
+        assert count in (0, app_module.BOSS_EXAM_SIZE), (key, count)
+        if status == "OK":
+            assert count == app_module.BOSS_EXAM_SIZE
+
+    # d7_plus is the known content-blocked zone: 1 judgeable of 683 eligible.
+    assert outcomes["d7_plus"][0] == "FAIL_CLOSED"
+    assert outcomes["d7_plus"][1] == "insufficient_judgeable_questions"

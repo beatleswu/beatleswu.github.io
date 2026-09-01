@@ -97,20 +97,24 @@ def partition_lord_admissible(questions: Sequence[Any]) -> tuple[list[Any], list
 
 
 def select_admissible_lord_questions(pool, exam_size, *, rng=None):
-    """Return exactly the questions a Lord attempt may be created from.
+    """Return exactly ``exam_size`` judgeable questions, or refuse the attempt.
 
-    The exam size a caller would have built from the unfiltered pool is the
-    target: filtering must not silently shorten an attempt, because a shorter
-    Lord Trial is an easier Boss clear.  When the judgeable subset cannot
-    reach that target the attempt is refused outright, so the player meets one
-    honest, recoverable error at start instead of a dead attempt at answer N.
+    A Lord Challenge is a fixed 20-question examination passed at 16 correct.
+    The size is part of the product contract, not a function of how much
+    usable content a zone happens to hold, so this never returns a short list:
+    a shorter Lord Trial would be a materially easier Boss clear and would
+    drag the pass threshold down with it.
+
+    When fewer than ``exam_size`` judgeable questions exist the attempt is
+    refused outright, so the player meets one honest, recoverable error at
+    start instead of a dead attempt at answer N or a cheapened clear.
 
     Questions are probed lazily in shuffled order, so an ordinary zone parses
     roughly ``exam_size`` questions rather than its whole pool.
     """
 
     candidates = list(pool or ())
-    target = min(int(exam_size), len(candidates))
+    target = int(exam_size)
     if target <= 0:
         raise LordTrialAdmissionError("no_questions", status=400)
     if rng is not None:

@@ -11553,6 +11553,22 @@ def _adventure_first_clear_operation_id(uid, zone_key):
     return f'adventure:first_clear:{int(uid)}:{zone_key}'
 
 
+def _adventure_boss_exam_size_is_valid(exam):
+    """Return whether *exam* holds exactly the fixed Lord Challenge size.
+
+    The 20-question size is a product contract, not a function of how much
+    judgeable content a zone holds.  A signed exam of any other length is not
+    a Lord Challenge: it is refused at finish and abandoned at start rather
+    than being padded, or settled against a threshold scaled to its length.
+    """
+    if not isinstance(exam, dict):
+        return False
+    question_ids = exam.get('question_ids')
+    if not isinstance(question_ids, list):
+        return False
+    return len(question_ids) == BOSS_EXAM_SIZE
+
+
 def _adventure_boss_attempt_within_window(exam):
     """Return whether *exam*'s evidence window is still open.
 
@@ -12640,6 +12656,15 @@ def adventure_boss_start():
     # such as ordinary cooldown.  The signed question order and review_log
     # evidence, never request-body fields, own the returned cursor/tally.
     existing_exam = session.get('adventure_boss_exam')
+    if isinstance(existing_exam, dict) and not _adventure_boss_exam_size_is_valid(
+        existing_exam
+    ):
+        # A signed exam that is not exactly BOSS_EXAM_SIZE questions predates
+        # the fixed-size contract (or was truncated).  It can never be settled
+        # as a PASS, and its missing questions are never fabricated, so it is
+        # abandoned here and the fresh-attempt gates below apply normally.
+        session.pop('adventure_boss_exam', None)
+        existing_exam = None
     if isinstance(existing_exam, dict):
         existing_zone_key = existing_exam.get('zone_key')
         if existing_zone_key == zone_key:
@@ -12668,7 +12693,7 @@ def adventure_boss_start():
                         'zone': state,
                         'question_ids': list(resume_exam['question_ids']),
                         'total': evidence['total'],
-                        'pass_score': min(BOSS_PASS_SCORE, evidence['total']),
+                        'pass_score': BOSS_PASS_SCORE,
                         'attempt_mode': attempt_mode,
                         'replay': is_replay,
                         'resumed': True,
@@ -12727,7 +12752,7 @@ def adventure_boss_start():
         'zone': state,
         'question_ids': qids,
         'total': len(qids),
-        'pass_score': min(BOSS_PASS_SCORE, len(qids)),
+        'pass_score': BOSS_PASS_SCORE,
         'attempt_mode': attempt_mode,
         'replay': is_replay,
         'resumed': False,
@@ -12974,7 +12999,16 @@ def adventure_boss_finish():
                 session.pop('adventure_boss_exam', None)
             return jsonify({'ok': False, 'error': exc.code}), 400
 
-    pass_score = min(BOSS_PASS_SCORE, total)
+    # A Lord Challenge is a fixed 20-question examination passed at 16 correct.
+    # An attempt that is not exactly that size is not a Lord Challenge: it can
+    # never settle as a PASS, and its threshold is never scaled down to match
+    # its length.  Refusing it (rather than failing it) avoids charging a
+    # retry cooldown for an attempt that was never valid, and clearing the
+    # session lets the player start a real one immediately.
+    if total != BOSS_EXAM_SIZE:
+        session.pop('adventure_boss_exam', None)
+        return jsonify({'ok': False, 'error': 'invalid_attempt_size'}), 400
+    pass_score = BOSS_PASS_SCORE
     passed = correct >= pass_score
     now = datetime.datetime.now().isoformat(timespec='seconds')
     zones = _adventure_state(uid)

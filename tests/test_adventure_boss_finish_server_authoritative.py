@@ -429,6 +429,209 @@ def _set_exam(client, exam):
         sess['adventure_boss_exam'] = exam
 
 
+class TestLordFixedSizeAndThreshold:
+    """The Owner-locked contract: exactly 20 questions, PASS at >= 16 correct.
+
+    The pass threshold is a constant, never scaled to the attempt's length,
+    and an attempt that is not exactly 20 questions is not a Lord Challenge
+    at all -- it is refused rather than settled against a lowered bar.
+    """
+
+    def _finish(self, client, patched_get_db, uid, *, total, correct):
+        qids = list(range(7000 + uid * 100, 7000 + uid * 100 + total))
+        for index, qid in enumerate(qids):
+            _seed_review(
+                patched_get_db, uid=uid, question_id=qid,
+                grade=5 if index < correct else 0,
+                reviewed_at=within_window(index + 1),
+            )
+        _login(client, uid)
+        _set_exam(client, _exam(qids))
+        return client.post('/api/adventure/boss/finish', json={})
+
+    def test_fifteen_of_twenty_fails(
+        self, client, app_module, patched_get_db, stub_adventure_state
+    ):
+        resp = self._finish(client, patched_get_db, 61, total=20, correct=15)
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body['correct'] == 15
+        assert body['total'] == 20
+        assert body['passed'] is False
+
+    def test_sixteen_of_twenty_passes(
+        self, client, app_module, patched_get_db, stub_adventure_state
+    ):
+        resp = self._finish(client, patched_get_db, 62, total=20, correct=16)
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body['correct'] == 16
+        assert body['total'] == 20
+        assert body['passed'] is True
+
+    def test_zero_of_twenty_fails(
+        self, client, app_module, patched_get_db, stub_adventure_state
+    ):
+        resp = self._finish(client, patched_get_db, 63, total=20, correct=0)
+        assert resp.get_json()['passed'] is False
+
+    def test_twenty_of_twenty_passes(
+        self, client, app_module, patched_get_db, stub_adventure_state
+    ):
+        resp = self._finish(client, patched_get_db, 64, total=20, correct=20)
+        assert resp.get_json()['passed'] is True
+
+    @pytest.mark.parametrize(
+        "total,correct", [(3, 3), (12, 12), (19, 15), (19, 19), (1, 1)]
+    )
+    def test_short_attempt_can_never_settle_as_pass(
+        self, client, app_module, patched_get_db, stub_adventure_state,
+        total, correct,
+    ):
+        """A full-marks short attempt is refused, not scaled down to clear.
+
+        Before the fixed-size contract the threshold was
+        ``min(BOSS_PASS_SCORE, total)``, so 3/3 cleared a Zone.
+        """
+        uid = 70 + total
+        resp = self._finish(client, patched_get_db, uid, total=total, correct=correct)
+        assert resp.status_code == 400
+        assert resp.get_json()['error'] == 'invalid_attempt_size'
+
+        # Nothing was minted, and the invalid attempt is not left in session.
+        row = patched_get_db.execute(
+            'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
+            (uid, ZONE_KEY),
+        ).fetchone()
+        assert row is None or (not row['cleared'] and row['stars'] == 0)
+        with client.session_transaction() as sess:
+            assert 'adventure_boss_exam' not in sess
+
+    def test_short_attempt_is_abandoned_at_start_not_resumed(
+        self, client, app_module, monkeypatch, stub_boss_start_state
+    ):
+        """A pre-existing short signed exam is never resumed toward a clear."""
+        _login(client, 79)
+        _set_exam(client, _exam(list(range(8001, 8004))))  # legacy 3-question exam
+        response = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['resumed'] is False
+        assert len(body['question_ids']) == 20
+        assert body['total'] == 20
+        assert body['pass_score'] == 16
+
+    def test_start_reports_the_fixed_threshold(
+        self, client, app_module, stub_boss_start_state
+    ):
+        _login(client, 80)
+        body = client.post(
+            '/api/adventure/boss/start', json={'zone_key': 'k26_30'}
+        ).get_json()
+        assert len(body['question_ids']) == 20
+        assert body['total'] == 20
+        assert body['pass_score'] == 16
+
+
+class TestLordRetryRequiresThirtyMapQuestions:
+    """Owner-locked: after a Lord FAIL the player must answer 30 more Map
+    questions before retrying.  ``cooldown_left`` is derived server-side as
+    ``cooldown_until_seen - seen``; the client never supplies it.
+    """
+
+    def _stub_state(self, app_module, monkeypatch, *, answered_since_fail):
+        remaining = max(0, app_module.BOSS_FAIL_COOLDOWN - answered_since_fail)
+        state = {
+            'key': 'k26_30', 'seen': 50, 'pct': 100,
+            'unlocked': True, 'cleared': False,
+            'cooldown_left': remaining,
+        }
+        monkeypatch.setattr(app_module, '_adventure_state', lambda uid: [dict(state)])
+        monkeypatch.setattr(
+            app_module, '_load_questions',
+            lambda: [
+                {
+                    'id': 950000 + i, 'enabled': True,
+                    'content': _JUDGEABLE_SGF,
+                }
+                for i in range(40)
+            ],
+        )
+        monkeypatch.setattr(
+            app_module, '_questions_for_adventure_zone',
+            lambda qs, zone, premium: list(qs),
+        )
+        monkeypatch.setattr(app_module, 'is_premium', lambda *a, **k: True)
+        return remaining
+
+    @pytest.mark.parametrize("answered_since_fail", [0, 1, 29])
+    def test_retry_before_thirty_map_questions_is_blocked(
+        self, client, app_module, monkeypatch, answered_since_fail
+    ):
+        remaining = self._stub_state(
+            app_module, monkeypatch, answered_since_fail=answered_since_fail
+        )
+        _login(client, 8100 + answered_since_fail)
+        resp = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert body['error'] == 'cooldown'
+        assert body['cooldown_left'] == remaining
+        with client.session_transaction() as sess:
+            assert 'adventure_boss_exam' not in sess
+
+    def test_retry_at_thirty_map_questions_is_allowed(
+        self, client, app_module, monkeypatch
+    ):
+        self._stub_state(app_module, monkeypatch, answered_since_fail=30)
+        _login(client, 8130)
+        resp = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert len(body['question_ids']) == 20
+        assert body['pass_score'] == 16
+
+    def test_client_cannot_forge_past_the_retry_gate(
+        self, client, app_module, monkeypatch
+    ):
+        """Request-body cooldown/replay claims are never consulted."""
+        self._stub_state(app_module, monkeypatch, answered_since_fail=0)
+        _login(client, 8140)
+        for forged in (
+            {'zone_key': 'k26_30', 'cooldown_left': 0},
+            {'zone_key': 'k26_30', 'replay': True},
+            {'zone_key': 'k26_30', 'cooldown_left': 0, 'replay': True,
+             'cleared': True},
+        ):
+            resp = client.post('/api/adventure/boss/start', json=forged)
+            assert resp.status_code == 400
+            assert resp.get_json()['error'] == 'cooldown'
+
+    def test_invalid_short_attempt_does_not_charge_a_retry_cooldown(
+        self, client, app_module, patched_get_db, stub_adventure_state
+    ):
+        """An attempt that was never a valid Lord Challenge is not punished."""
+        uid = 8150
+        qids = list(range(8600, 8603))
+        for index, qid in enumerate(qids):
+            _seed_review(
+                patched_get_db, uid=uid, question_id=qid, grade=5,
+                reviewed_at=within_window(index + 1),
+            )
+        _login(client, uid)
+        _set_exam(client, _exam(qids))
+        resp = client.post('/api/adventure/boss/finish', json={})
+        assert resp.status_code == 400
+        assert resp.get_json()['error'] == 'invalid_attempt_size'
+
+        row = patched_get_db.execute(
+            'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
+            (uid, ZONE_KEY),
+        ).fetchone()
+        # No attempt recorded, so no cooldown was charged and nothing cleared.
+        assert row is None
+
+
 class TestFinishRouteNoActiveSession:
     def test_no_active_boss_session_is_rejected(self, client, app_module, patched_get_db, stub_adventure_state):
         _login(client, 1)
