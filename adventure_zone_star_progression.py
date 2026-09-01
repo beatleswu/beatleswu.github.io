@@ -1,14 +1,17 @@
 """Server-owned Adventure Zone-star authority.
 
-Boss attempts and historical compatibility are intentionally not inputs to
-new Zone-star earning.  A Zone star can only be added by a caller that has
-already received a server-settled Adventure answer identity.  The separate
-event ledger makes retries idempotent and keeps the Zone-star write out of
-``adventure_boss_progress.stars``.
+Boss attempts and historical compatibility are not inputs to normal new
+Zone-star earning.  A Zone star can only be added by a caller that has already
+received a server-settled Adventure answer identity.  The separate event
+ledger makes retries idempotent and keeps the Zone-star write out of
+``adventure_boss_progress.stars``.  A separately Owner-gated catch-up policy
+may project an already-persisted legacy star level without replaying its
+ledger event.
 """
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from migrations.adventure_zone_star_progression_v1 import (
@@ -22,6 +25,45 @@ MAX_ZONE_STARS = 3
 FIRST_MAP_MILESTONE_STAR = 1
 AUTHORITATIVE_ZONE_STAR_SOURCE = "authoritative_adventure_answer"
 AUTHORITATIVE_BOSS_CLEAR_SOURCE = "authoritative_boss_clear"
+
+# Restoring the historical Map baseline is deliberately independent from
+# granting new milestone state.  An Owner must choose the retroactive policy
+# after the dry-run blast radius is reviewed; until then a missing/invalid
+# value is fail-closed.  This is configuration-only and is never read from a
+# request body or a client projection.
+RETROACTIVE_MILESTONE_POLICY_ENV = "GO_ADVENTURE_RETROACTIVE_MILESTONE_POLICY"
+RETROACTIVE_POLICY_HOLD = "hold"
+RETROACTIVE_POLICY_FULL = "full"
+RETROACTIVE_POLICY_LORD_ONLY = "lord_only"
+RETROACTIVE_MILESTONE_POLICIES = frozenset(
+    {
+        RETROACTIVE_POLICY_HOLD,
+        RETROACTIVE_POLICY_FULL,
+        RETROACTIVE_POLICY_LORD_ONLY,
+    }
+)
+
+
+def retroactive_milestone_policy(value: Any = None) -> str:
+    """Return the server-owned policy for restored-history star catch-up.
+
+    ``hold`` is the safe default.  The optional argument is useful to a
+    separately owner-gated policy seam and tests; production callers use the
+    environment value, which is outside client control.  Unknown values
+    intentionally become ``hold`` rather than enabling an irreversible write.
+    """
+
+    raw = os.environ.get(RETROACTIVE_MILESTONE_POLICY_ENV, RETROACTIVE_POLICY_HOLD)
+    if value is not None:
+        raw = value
+    normalized = str(raw or "").strip().lower()
+    return normalized if normalized in RETROACTIVE_MILESTONE_POLICIES else RETROACTIVE_POLICY_HOLD
+
+
+def retroactive_milestones_allowed(value: Any = None) -> bool:
+    """Whether restored historical coverage may drive 2★/3★ writes."""
+
+    return retroactive_milestone_policy(value) == RETROACTIVE_POLICY_FULL
 
 
 class ZoneStarSchemaUnavailable(RuntimeError):
@@ -62,12 +104,13 @@ def _clamp_stars(value: Any) -> int:
 
 
 def legacy_visible_star_entitlement(boss_row: Any) -> int:
-    """Preserve the old public projection without granting Zone authority.
+    """Read the old public projection without treating it as a new award.
 
     Before R6 the public Adventure ``stars`` field was sourced from the Boss
-    row.  The value is retained only as a read-only compatibility entitlement;
-    it is never copied into the Zone authority table and never participates in
-    a future Zone-star award.
+    row.  The value remains a read-only compatibility entitlement.  It is not
+    a normal Zone-star writer input; only the explicit Owner-gated catch-up
+    seam may project its already-earned level without a historical ledger
+    event.
     """
 
     if not boss_row:
@@ -126,6 +169,45 @@ def _select_progress_row(conn: Any, user_id: int, zone_key: str) -> Any:
     return conn.execute(statement, (user_id, zone_key)).fetchone()
 
 
+def _legacy_star_entitlement(conn: Any, user_id: int, zone_key: str) -> int:
+    """Read the persisted legacy star entitlement from server-owned state.
+
+    A legacy Boss row is a read-only compatibility entitlement.  It is not
+    copied during the historical baseline migration, and it is consulted here
+    only when an explicitly Owner-selected retroactive milestone policy asks
+    to let an already-entitled player catch up to 2★/3★.  Missing/invalid
+    legacy state fails closed.  The complete persisted level is returned so an
+    existing legacy 2★/3★ is preserved without replaying its ledger event.
+    """
+
+    try:
+        row = conn.execute(
+            "SELECT stars FROM adventure_boss_progress "
+            "WHERE user_id=? AND zone_key=?",
+            (int(user_id), str(zone_key)),
+        ).fetchone()
+    except Exception:
+        # The compatibility path must remain safe in isolated databases where
+        # the old Boss table is not present.
+        return 0
+    if not row:
+        return 0
+    try:
+        value = row["stars"]
+    except (KeyError, IndexError, TypeError):
+        try:
+            value = row[0]
+        except (IndexError, TypeError):
+            return 0
+    return _clamp_stars(value)
+
+
+def _legacy_first_star_is_server_owned(conn: Any, user_id: int, zone_key: str) -> bool:
+    """Check whether the persisted legacy Boss row owns at least 1★."""
+
+    return _legacy_star_entitlement(conn, user_id, zone_key) >= FIRST_MAP_MILESTONE_STAR
+
+
 def award_zone_star_up_to_map_milestone(
     conn: Any,
     user_id: int,
@@ -134,6 +216,7 @@ def award_zone_star_up_to_map_milestone(
     earned_at: str,
     *,
     milestone_star: int,
+    allow_legacy_first_star_entitlement: bool = False,
 ) -> dict[str, Any]:
     """Raise a Zone to the star level its Map coverage has legitimately earned.
 
@@ -151,7 +234,11 @@ def award_zone_star_up_to_map_milestone(
     ledger row under a derived event id.  The caller is responsible for proving
     that ``submission_id`` belongs to a server-settled correct Adventure
     answer; a client grade, historical count, Boss clear, or reward instruction
-    can never reach this writer.
+  can never reach this writer.  The optional legacy entitlement flag is an
+  internal, server-owned policy seam: when enabled, the persisted legacy
+  Boss ``stars >= 1`` value may seed the separate new authority at its
+  already-persisted level so a later 2★/3★ catch-up does not mint a
+  historical first-, second-, or third-star event.
     """
 
     if not _schema_available(conn):
@@ -177,14 +264,43 @@ def award_zone_star_up_to_map_milestone(
     progress = _select_progress_row(conn, uid, normalized_zone)
     current = _clamp_stars(progress["earned_stars"] if progress else 0)
     if current < FIRST_MAP_MILESTONE_STAR:
-        # No first star yet: the Lord has not been cleared, so Map coverage
-        # earns nothing.  The progress row is not even created here.
-        return {
-            "status": "first_star_required",
-            "zone_key": normalized_zone,
-            "stars": current,
-            "awarded": False,
-        }
+        legacy_stars = (
+            _legacy_star_entitlement(conn, uid, normalized_zone)
+            if allow_legacy_first_star_entitlement
+            else 0
+        )
+        if legacy_stars < FIRST_MAP_MILESTONE_STAR:
+            # No first star yet: the Lord has not been cleared, so Map
+            # coverage earns nothing.  The progress row is not even created
+            # here.
+            return {
+                "status": "first_star_required",
+                "zone_key": normalized_zone,
+                "stars": current,
+                "awarded": False,
+            }
+        # This is a compatibility projection of an already persisted,
+        # server-owned legacy entitlement, not a newly earned star.  Do not
+        # write a ledger event for any already-persisted level; only subsequent
+        # 2★/3★ milestones are eligible for this Owner-selected catch-up path.
+        conn.execute(
+            f"INSERT INTO {PROGRESS_TABLE_NAME} "
+            "(user_id, zone_key, earned_stars, updated_at) VALUES (?,?,?,?) "
+            "ON CONFLICT(user_id, zone_key) DO UPDATE SET "
+            "earned_stars=CASE WHEN earned_stars < excluded.earned_stars "
+            "THEN excluded.earned_stars ELSE earned_stars END, "
+            "updated_at=excluded.updated_at",
+            (uid, normalized_zone, legacy_stars, earned_at),
+        )
+        progress = _select_progress_row(conn, uid, normalized_zone)
+        current = _clamp_stars(progress["earned_stars"] if progress else 0)
+        if current < FIRST_MAP_MILESTONE_STAR:
+            return {
+                "status": "first_star_required",
+                "zone_key": normalized_zone,
+                "stars": current,
+                "awarded": False,
+            }
     if current >= target:
         return {
             "status": "already_earned",
@@ -342,10 +458,17 @@ __all__ = [
     "FIRST_MAP_MILESTONE_STAR",
     "MAX_ZONE_STARS",
     "PROGRESS_TABLE_NAME",
+    "RETROACTIVE_MILESTONE_POLICY_ENV",
+    "RETROACTIVE_MILESTONE_POLICIES",
+    "RETROACTIVE_POLICY_FULL",
+    "RETROACTIVE_POLICY_HOLD",
+    "RETROACTIVE_POLICY_LORD_ONLY",
     "ZoneStarSchemaUnavailable",
     "award_zone_star_from_boss_clear",
     "award_zone_star_up_to_map_milestone",
     "legacy_visible_star_entitlement",
     "load_zone_star_rows",
+    "retroactive_milestone_policy",
+    "retroactive_milestones_allowed",
     "zone_star_value",
 ]

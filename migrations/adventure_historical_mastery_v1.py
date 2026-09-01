@@ -13,6 +13,7 @@ metadata atomically.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any
 
@@ -23,12 +24,23 @@ TABLE_NAME = "adventure_historical_mastery"
 BASELINE_TABLE_NAME = "adventure_historical_mastery_baseline"
 ADVISORY_LOCK_KEY = 773310031
 
-STATUS_CAPTURING = "CAPTURING"
-STATUS_FROZEN = "FROZEN"
+# A missing metadata row is the ABSENT state.  The remaining states are
+# persisted explicitly so a partial/failed capture can never look like a
+# complete read authority.  The old names remain aliases for callers which
+# only used them to describe the pre-R6 capture lifecycle; their values now
+# carry the stricter semantics.
+STATUS_ABSENT = "BASELINE_ABSENT"
+STATUS_BUILDING = "BASELINE_BUILDING"
+STATUS_READY = "BASELINE_READY"
+STATUS_FAILED_OR_INVALID = "BASELINE_FAILED_OR_INVALID"
+STATUS_CAPTURING = STATUS_BUILDING
+STATUS_FROZEN = STATUS_READY
 SOURCE_REVIEW_MASK = 1
 SOURCE_CARD_MASK = 2
 SOURCE_BOTH_MASK = SOURCE_REVIEW_MASK | SOURCE_CARD_MASK
 CUTOFF_LITERAL = "2026-08-29T13:17:30"
+SOURCE_RULE_VERSION = "progress_credited_map_v1"
+TRUSTED_CARD_ENTITLEMENT_SOURCE = "progress_credited_map_snapshot"
 
 INDEX_SPECS: tuple[tuple[str, str, str], ...] = (
     (
@@ -177,6 +189,12 @@ EXPECTED_BASELINE_COLUMNS = {
     "frozen_at": ("text", False),
     "status": ("text", False),
     "membership_count": ("integer", False),
+    "source_rule_version": ("text", False),
+    "expected_membership_count": ("integer", False),
+    "actual_membership_count": ("integer", False),
+    "membership_fingerprint": ("text", False),
+    "ready_at": ("text", True),
+    "failure_reason": ("text", True),
 }
 
 EXPECTED_MEMBERSHIP_COLUMNS = {
@@ -252,6 +270,162 @@ def validate_schema(conn: Any) -> dict[str, Any]:
     }
 
 
+def _membership_fingerprint(conn: Any, *, baseline_version: str) -> str:
+    """Hash the immutable membership relation for an explicit postcheck.
+
+    Normal request reads validate metadata/counts without rebuilding this
+    relation.  The migration pre-publish/postcheck path opts into the full
+    ordered hash so a same-count replacement or partial population cannot be
+    published as READY.
+    """
+
+    rows = conn.execute(
+        f"SELECT user_id, question_id FROM {_table_prefix(conn)}{TABLE_NAME} "
+        "WHERE baseline_version=? ORDER BY user_id, question_id",
+        (baseline_version,),
+    ).fetchall()
+    digest = hashlib.sha256()
+    for row in rows:
+        digest.update(
+            f"{int(_value(row, 0, 'user_id'))}:{int(_value(row, 1, 'question_id'))}\n".encode(
+                "ascii"
+            )
+        )
+    return digest.hexdigest()
+
+
+def baseline_readiness(
+    conn: Any,
+    *,
+    baseline_version: str = BASELINE_VERSION,
+    verify_fingerprint: bool = False,
+) -> dict[str, Any]:
+    """Return the persisted baseline state without treating it as authority.
+
+    ``BASELINE_READY`` is accepted only when the metadata is internally
+    consistent with the candidate's source rule and the membership count.  A
+    missing table/row is ``BASELINE_ABSENT``; an old or malformed schema and
+    any integrity mismatch are ``BASELINE_FAILED_OR_INVALID``.  The migration
+    publication and postcheck pass ``verify_fingerprint=True``.  Request
+    reads keep that expensive immutable-relation hash out of the answer path;
+    they still require READY metadata, exact row count, and constrained
+    membership provenance.  This helper is intentionally read-only and does
+    not repair an invalid state.
+    """
+
+    if not _table_exists(conn, BASELINE_TABLE_NAME) or not _table_exists(conn, TABLE_NAME):
+        return {
+            "status": STATUS_ABSENT,
+            "valid": False,
+            "baseline_version": baseline_version,
+            "reason": "tables_absent",
+        }
+    try:
+        schema = validate_schema(conn)
+    except Exception as exc:
+        return {
+            "status": STATUS_FAILED_OR_INVALID,
+            "valid": False,
+            "baseline_version": baseline_version,
+            "reason": f"schema_invalid:{type(exc).__name__}",
+        }
+    if not schema.get("valid"):
+        return {
+            "status": STATUS_FAILED_OR_INVALID,
+            "valid": False,
+            "baseline_version": baseline_version,
+            "reason": "schema_invalid",
+        }
+    metadata = conn.execute(
+        f"SELECT baseline_version, cutoff_literal, captured_at, frozen_at, status, "
+        f"membership_count, source_rule_version, expected_membership_count, "
+        f"actual_membership_count, membership_fingerprint, ready_at, failure_reason "
+        f"FROM {_table_prefix(conn)}{BASELINE_TABLE_NAME} WHERE baseline_version=?",
+        (baseline_version,),
+    ).fetchone()
+    if metadata is None:
+        return {
+            "status": STATUS_ABSENT,
+            "valid": False,
+            "baseline_version": baseline_version,
+            "reason": "metadata_absent",
+        }
+    status = str(_value(metadata, 4, "status") or "")
+    result = {
+        "status": status,
+        "valid": False,
+        "baseline_version": str(_value(metadata, 0, "baseline_version")),
+        "cutoff_literal": str(_value(metadata, 1, "cutoff_literal")),
+        "captured_at": _value(metadata, 2, "captured_at"),
+        "frozen_at": _value(metadata, 3, "frozen_at"),
+        "source_rule_version": str(_value(metadata, 6, "source_rule_version")),
+        "expected_membership_count": int(_value(metadata, 7, "expected_membership_count") or 0),
+        "actual_membership_count": int(_value(metadata, 8, "actual_membership_count") or 0),
+        "membership_count": int(_value(metadata, 5, "membership_count") or 0),
+        "membership_fingerprint": str(_value(metadata, 9, "membership_fingerprint") or ""),
+        "ready_at": _value(metadata, 10, "ready_at"),
+        "failure_reason": _value(metadata, 11, "failure_reason"),
+    }
+    if status not in (STATUS_BUILDING, STATUS_READY, STATUS_FAILED_OR_INVALID):
+        result["status"] = STATUS_FAILED_OR_INVALID
+        result["reason"] = "unknown_status"
+        return result
+    if status != STATUS_READY:
+        result["reason"] = "not_ready"
+        return result
+    actual = int(
+        conn.execute(
+            f"SELECT COUNT(*) FROM {_table_prefix(conn)}{TABLE_NAME} "
+            "WHERE baseline_version=?",
+            (baseline_version,),
+        ).fetchone()[0]
+    )
+    invalid_memberships = int(
+        conn.execute(
+            f"SELECT COUNT(*) FROM {_table_prefix(conn)}{TABLE_NAME} "
+            "WHERE baseline_version=? AND "
+            "(source_mask <> 2 OR entitlement_source <> ? OR cutoff_literal <> ?)",
+            (baseline_version, TRUSTED_CARD_ENTITLEMENT_SOURCE, CUTOFF_LITERAL),
+        ).fetchone()[0]
+    )
+    valid = (
+        result["cutoff_literal"] == CUTOFF_LITERAL
+        and bool(str(result["captured_at"] or "").strip())
+        and bool(str(result["frozen_at"] or "").strip())
+        and result["source_rule_version"] == SOURCE_RULE_VERSION
+        and result["expected_membership_count"] == actual
+        and result["actual_membership_count"] == actual
+        and result["membership_count"] == actual
+        and bool(result["membership_fingerprint"])
+        and bool(str(result["ready_at"] or "").strip())
+        and result["failure_reason"] in (None, "")
+        and invalid_memberships == 0
+    )
+    result["actual_membership_count_observed"] = actual
+    result["invalid_membership_count"] = invalid_memberships
+    if verify_fingerprint:
+        observed_fingerprint = _membership_fingerprint(
+            conn, baseline_version=baseline_version
+        )
+        result["observed_membership_fingerprint"] = observed_fingerprint
+        fingerprint_matches = observed_fingerprint == result["membership_fingerprint"]
+    else:
+        fingerprint_matches = True
+        result["fingerprint_verified"] = False
+    result["valid"] = bool(valid)
+    if verify_fingerprint:
+        result["fingerprint_verified"] = True
+        result["fingerprint_matches"] = fingerprint_matches
+        result["valid"] = bool(result["valid"] and fingerprint_matches)
+    if not valid:
+        result["status"] = STATUS_FAILED_OR_INVALID
+        result["reason"] = "metadata_or_count_integrity_mismatch"
+    elif verify_fingerprint and not fingerprint_matches:
+        result["status"] = STATUS_FAILED_OR_INVALID
+        result["reason"] = "membership_fingerprint_mismatch"
+    return result
+
+
 def _create_sqlite_sql() -> tuple[str, str]:
     return (
         f"""CREATE TABLE IF NOT EXISTS {BASELINE_TABLE_NAME} (
@@ -259,18 +433,24 @@ def _create_sqlite_sql() -> tuple[str, str]:
             cutoff_literal TEXT NOT NULL,
             captured_at TEXT NOT NULL,
             frozen_at TEXT NOT NULL,
-            status TEXT NOT NULL CHECK (status IN ('CAPTURING','FROZEN')),
-            membership_count INTEGER NOT NULL CHECK (membership_count >= 0)
+            status TEXT NOT NULL CHECK (status IN
+                ('BASELINE_BUILDING','BASELINE_READY','BASELINE_FAILED_OR_INVALID')),
+            membership_count INTEGER NOT NULL CHECK (membership_count >= 0),
+            source_rule_version TEXT NOT NULL,
+            expected_membership_count INTEGER NOT NULL CHECK (expected_membership_count >= 0),
+            actual_membership_count INTEGER NOT NULL CHECK (actual_membership_count >= 0),
+            membership_fingerprint TEXT NOT NULL,
+            ready_at TEXT,
+            failure_reason TEXT
         )""",
         f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
             user_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             baseline_version TEXT NOT NULL
                 REFERENCES {BASELINE_TABLE_NAME}(baseline_version),
-            source_mask INTEGER NOT NULL CHECK (source_mask IN (1,2,3)),
-            entitlement_source TEXT NOT NULL CHECK (entitlement_source IN
-                ('pre_cutoff_review','frozen_card_snapshot',
-                 'pre_cutoff_review+frozen_card_snapshot')),
+            source_mask INTEGER NOT NULL CHECK (source_mask = 2),
+            entitlement_source TEXT NOT NULL CHECK (entitlement_source =
+                'progress_credited_map_snapshot'),
             captured_at TEXT NOT NULL,
             cutoff_literal TEXT NOT NULL,
             PRIMARY KEY (user_id, question_id, baseline_version)
@@ -285,18 +465,24 @@ def _create_postgres_sql() -> tuple[str, str]:
             cutoff_literal TEXT NOT NULL,
             captured_at TEXT NOT NULL,
             frozen_at TEXT NOT NULL,
-            status TEXT NOT NULL CHECK (status IN ('CAPTURING','FROZEN')),
-            membership_count INTEGER NOT NULL CHECK (membership_count >= 0)
+            status TEXT NOT NULL CHECK (status IN
+                ('BASELINE_BUILDING','BASELINE_READY','BASELINE_FAILED_OR_INVALID')),
+            membership_count INTEGER NOT NULL CHECK (membership_count >= 0),
+            source_rule_version TEXT NOT NULL,
+            expected_membership_count INTEGER NOT NULL CHECK (expected_membership_count >= 0),
+            actual_membership_count INTEGER NOT NULL CHECK (actual_membership_count >= 0),
+            membership_fingerprint TEXT NOT NULL,
+            ready_at TEXT,
+            failure_reason TEXT
         )""",
         f"""CREATE TABLE IF NOT EXISTS public.{TABLE_NAME} (
             user_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             baseline_version TEXT NOT NULL
                 REFERENCES public.{BASELINE_TABLE_NAME}(baseline_version),
-            source_mask INTEGER NOT NULL CHECK (source_mask IN (1,2,3)),
-            entitlement_source TEXT NOT NULL CHECK (entitlement_source IN
-                ('pre_cutoff_review','frozen_card_snapshot',
-                 'pre_cutoff_review+frozen_card_snapshot')),
+            source_mask INTEGER NOT NULL CHECK (source_mask = 2),
+            entitlement_source TEXT NOT NULL CHECK (entitlement_source =
+                'progress_credited_map_snapshot'),
             captured_at TEXT NOT NULL,
             cutoff_literal TEXT NOT NULL,
             PRIMARY KEY (user_id, question_id, baseline_version)
@@ -356,10 +542,17 @@ __all__ = [
     "SOURCE_BOTH_MASK",
     "SOURCE_CARD_MASK",
     "SOURCE_REVIEW_MASK",
+    "SOURCE_RULE_VERSION",
+    "STATUS_ABSENT",
+    "STATUS_BUILDING",
+    "STATUS_FAILED_OR_INVALID",
+    "STATUS_READY",
     "STATUS_CAPTURING",
     "STATUS_FROZEN",
     "SchemaMismatch",
     "TABLE_NAME",
+    "TRUSTED_CARD_ENTITLEMENT_SOURCE",
+    "baseline_readiness",
     "downgrade_for_isolated_test",
     "upgrade",
     "validate_schema",

@@ -204,7 +204,8 @@ class ReviewService:
         """The exact field set _srs_review_operation's ``data`` parsing
         reads (app.py:11700-11729): question_id, grade, unit_name,
         unit_done, response_ms, source_context, optional boss_answer,
-        training_set_id, is_scaffolding. ``internal``/``submission_id`` are passed as
+        guild_answer, guild_quest_key, training_set_id, is_scaffolding.
+        ``internal``/``submission_id`` are passed as
         keyword arguments to the operation itself, not through ``data``
         (matching the existing internal call shape at
         ``_run_map_battle_progression``, app.py:12224-12232)."""
@@ -218,6 +219,16 @@ class ReviewService:
             **(
                 {"boss_answer": command.boss_answer}
                 if command.boss_answer is not None
+                else {}
+            ),
+            **(
+                {"guild_answer": command.guild_answer}
+                if command.guild_answer is not None
+                else {}
+            ),
+            **(
+                {"guild_quest_key": command.guild_quest_key}
+                if command.guild_quest_key is not None
                 else {}
             ),
             "training_set_id": command.training_set_id,

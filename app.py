@@ -195,16 +195,20 @@ from migrations.review_log_submission_idempotency_v1 import (
 )
 from adventure_progress_compatibility import (
     TRUSTED_REVIEW_SOURCE_PREFIXES,
+    current_adventure_question_count,
     trusted_current_memberships,
+    visible_adventure_question_count,
     visible_adventure_question_ids,
 )
 from adventure_zone_star_progression import (
     FIRST_MAP_MILESTONE_STAR,
+    RETROACTIVE_POLICY_FULL,
     ZoneStarSchemaUnavailable,
     award_zone_star_from_boss_clear,
     award_zone_star_up_to_map_milestone,
     legacy_visible_star_entitlement,
     load_zone_star_rows,
+    retroactive_milestone_policy,
     zone_star_value,
 )
 from adventure_zone_progression_authority import (
@@ -12183,12 +12187,45 @@ def _adventure_zone_star_from_settled_answer(
     current_stars = zone_star_value(
         load_zone_star_rows(conn, uid), settled_zone_key
     )
-    if current_stars < FIRST_MAP_MILESTONE_STAR:
+    retroactive_policy = retroactive_milestone_policy()
+    legacy_first_star_entitled = False
+    if current_stars < FIRST_MAP_MILESTONE_STAR and retroactive_policy == RETROACTIVE_POLICY_FULL:
+        # Legacy Boss stars are a server-owned, read-only first-star
+        # entitlement.  They may seed the separate Zone-star authority only
+        # under the explicit full catch-up policy; the default policy remains
+        # fail-closed and does not create a compatibility row or ledger event.
+        legacy_row = conn.execute(
+            'SELECT stars FROM adventure_boss_progress '
+            'WHERE user_id=? AND zone_key=?',
+            (uid, settled_zone_key),
+        ).fetchone()
+        try:
+            legacy_first_star_entitled = (
+                legacy_visible_star_entitlement(legacy_row) >= FIRST_MAP_MILESTONE_STAR
+            )
+        except Exception:
+            legacy_first_star_entitled = False
+    if current_stars < FIRST_MAP_MILESTONE_STAR and not legacy_first_star_entitled:
         return None
+    zone_definition = _adventure_zone_question_ids(settled_zone_key, uid=uid)
+    if zone_definition is None:
+        return None
+    zone_ids, _zone_total = zone_definition
     coverage = _adventure_zone_map_coverage(conn, uid, settled_zone_key)
     if coverage is None:
         return None
     correct_count, total = coverage
+    # A restored baseline may legitimately make an existing first-star player
+    # appear to have crossed 60%/100%.  Those irreversible ledger writes stay
+    # behind the separately owner-gated policy seam.  The default (and the
+    # only policy active before that decision) uses current trusted Map facts
+    # for milestone writes while the effective union still drives read-only
+    # progress and the exact 30% Lord gate.
+    if retroactive_policy != RETROACTIVE_POLICY_FULL:
+        current_correct_count = current_adventure_question_count(
+            conn, uid, zone_ids
+        )
+        correct_count = current_correct_count
     milestone = map_milestone_star(
         correct_count, total, has_first_star=True
     )
@@ -12201,6 +12238,7 @@ def _adventure_zone_star_from_settled_answer(
         submission_id,
         earned_at,
         milestone_star=milestone,
+        allow_legacy_first_star_entitlement=legacy_first_star_entitled,
     )
 
 
@@ -12244,6 +12282,20 @@ def _adventure_zone_map_coverage(conn, uid, zone_key):
     milestone a settlement awards always agrees with the displayed progress.
     """
 
+    zone_ids = _adventure_zone_question_ids(zone_key, uid=uid)
+    if zone_ids is None:
+        return None
+    zone_ids, total = zone_ids
+    # Coverage is a bounded aggregate over the single compatibility authority;
+    # do not rebuild the player's complete historical distinct-id set inside
+    # the synchronous answer/settlement path.
+    correct_count = visible_adventure_question_count(conn, uid, zone_ids)
+    return correct_count, total
+
+
+def _adventure_zone_question_ids(zone_key, uid=None):
+    """Return the canonical question-id set and denominator for one Zone."""
+
     zone = _zone_by_key(zone_key)
     if zone is None:
         return None
@@ -12253,19 +12305,14 @@ def _adventure_zone_map_coverage(conn, uid, zone_key):
     # `is_premium` reads the signed session, which only exists inside a
     # request; off-request callers fall back to the widest canonical pool.
     try:
-        premium = is_premium(uid)
+        premium = is_premium(uid) if uid is not None else True
     except RuntimeError:
         premium = True
     zone_qs = _questions_for_adventure_zone(questions, zone, premium)
     total = len(zone_qs)
     if total <= 0:
         return None
-    correct_raw = _adventure_correct_question_ids(conn, uid, None)
-    zone_ids = {q['id'] for q in zone_qs}
-    correct_ids = _IdentityKeyedSet(
-        correct_raw, _identity_group_key_map(conn, zone_ids | set(correct_raw))
-    )
-    return len([qid for qid in zone_ids if qid in correct_ids]), total
+    return {int(q['id']) for q in zone_qs}, total
 
 
 def _adventure_recommended_zone_key(zones, placement_start_zone=None):
@@ -14990,6 +15037,8 @@ def srs_review():
             training_set_id=data.get('training_set_id'),
             is_scaffolding=bool(data.get('is_scaffolding')),
             submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
+            guild_answer=data.get('guild_answer'),
+            guild_quest_key=data.get('guild_quest_key'),
         )
         outcome = _review_service.review(user_id=session['user_id'], command=command)
         payload = dict(outcome.payload)
@@ -15266,6 +15315,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
     guild_canonical = None
     guild_verdict = None
+    guild_progress_projection = None
     if guild_answer is not None:
         # Guild leaderboard credit is server-settled or it does not exist.
         # The `guild_quest` label only selects this path; every fact that
@@ -15875,6 +15925,26 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # grimoire side-effect hits a PostgreSQL compatibility issue.
         conn.commit()
 
+        # The just-committed Guild answer already has a server-owned quest
+        # projection.  Return it with the review response so the browser does
+        # not perform a second blocking progress request before showing the
+        # next question.  This is read-only projection data; the durable
+        # Guild evidence above remains the sole correctness authority.
+        if guild_verdict is not None:
+            try:
+                guild_progress_projection = _guild_quest_progress_projection(
+                    conn, uid, guild_quest_key
+                )
+            except Exception:
+                # A presentation projection failure must not turn a committed
+                # answer into a second write or a false success.  The client
+                # has a safe refresh fallback for this exceptional case.
+                app.logger.exception(
+                    'Guild progress projection unavailable after answer %s for user %s',
+                    qid,
+                    uid,
+                )
+
         monster_data = {}
         quest_shadow_events = [] if xp_shadow_enabled() else None
         battlefield_shadow_events = []
@@ -16136,6 +16206,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         'training': _pet_training_state(pet_row),
         'new_appearance_items': [_APPEAR_MAP[i] for i in new_appearance_items if i in _APPEAR_MAP],
         **({'boss_verdict': boss_verdict} if boss_verdict is not None else {}),
+        **({'guild_progress': guild_progress_projection} if guild_progress_projection is not None else {}),
         **monster_data,
     })
 
@@ -16571,6 +16642,43 @@ def _quest_public_meta(seg, practiced_ids=None):
         'coins': int(seg.get('coins') or 0),
         'xp': int(seg.get('xp') or 0),
         'href': href,
+    }
+
+
+def _guild_quest_progress_projection(conn, uid, quest_key):
+    """Return the committed Guild next-question projection in one review.
+
+    This is a bounded read of the server-owned quest segment immediately after
+    the review/card mutation.  It replaces the client-side critical-path
+    refresh round trip; it never accepts a client count or selects the next
+    question from client state.  Identity folding remains the same as the
+    standalone ``/api/quest-board/progress`` read route.
+    """
+
+    seg = _quest_segment_for_key(quest_key, is_premium(uid))
+    if not seg:
+        return None
+    qids = [int(qid) for qid in (seg.get('question_ids') or [])]
+    practiced_raw = set()
+    if qids:
+        placeholders = ','.join('?' for _ in qids)
+        rows = conn.execute(
+            f'SELECT question_id FROM srs_cards WHERE user_id=? '
+            f'AND question_id IN ({placeholders})',
+            (int(uid), *qids),
+        ).fetchall()
+        practiced_raw = {int(row['question_id']) for row in rows}
+    practiced_ids = _IdentityKeyedSet(
+        practiced_raw,
+        _identity_group_key_map(conn, set(qids) | practiced_raw),
+    )
+    next_question_id = next((qid for qid in qids if qid not in practiced_ids), None)
+    return {
+        'quest_key': str(quest_key),
+        'practiced': len(practiced_ids),
+        'total': len(qids),
+        'completed': bool(qids) and next_question_id is None,
+        'next_question_id': next_question_id,
     }
 
 def _stage_completion_state(uid, conn, *, fold_identity=True):

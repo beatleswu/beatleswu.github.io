@@ -201,7 +201,7 @@ def _full_payload(**overrides):
 
 def test_approved_extensions_include_server_owned_lord_verdict():
     assert set(APPROVED_PRESENTATION_EXTENSION_FIELDS) == {
-        "combat_stats", "level_up_rewards", "boss_verdict"
+        "combat_stats", "level_up_rewards", "boss_verdict", "guild_progress"
     }
 
 

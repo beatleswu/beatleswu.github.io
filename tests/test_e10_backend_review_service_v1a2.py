@@ -116,6 +116,23 @@ def test_full26_compat():
     assert set(outcome.payload.keys()) == set(_full_payload().keys())
 
 
+def test_guild_answer_envelope_crosses_typed_boundary_unchanged():
+    envelope = {"moves": [{"action": "play", "x": 3, "y": 4}]}
+    stub = _StubLegacyOperation(_FlaskLikeResponse(_core_payload()))
+    service = ReviewService(stub)
+
+    service.review(
+        user_id=7,
+        command=_command(
+            guild_answer=envelope,
+            guild_quest_key="whole_board::segment-1",
+        ),
+    )
+
+    assert stub.calls[0]["data"]["guild_answer"] == envelope
+    assert stub.calls[0]["data"]["guild_quest_key"] == "whole_board::segment-1"
+
+
 def test_core20_compat():
     stub = _StubLegacyOperation(_FlaskLikeResponse(_core_payload()))
     service = ReviewService(stub)
@@ -510,7 +527,7 @@ def test_srs_review_operation_owns_d5b_identity_and_response_contract():
 
 def test_review_identity_contract_keeps_incident017_extensions_fail_closed():
     assert set(APPROVED_PRESENTATION_EXTENSION_FIELDS) == {
-        "combat_stats", "level_up_rewards", "boss_verdict"
+        "combat_stats", "level_up_rewards", "boss_verdict", "guild_progress"
     }
     approved = _core_payload()
     approved.update(
@@ -701,6 +718,49 @@ def test_runtime_single_durable_writer_via_public_route(app_module, monkeypatch)
     assert len(calls) == 1
     assert calls[0]["internal"] is False
     assert real_operation is app_module._srs_review_operation  # unwrapped operation itself untouched
+
+
+def test_runtime_public_route_preserves_guild_answer_envelope(app_module, monkeypatch):
+    """The browser Guild payload must reach the real typed route boundary.
+
+    This intentionally stubs only the durable operation: the route and
+    ReviewService are real, while the existing Guild service tests cover the
+    server rejudge/encoding authority after this boundary.
+    """
+    calls = []
+
+    def _counting_operation(uid, data, *, internal=False, submission_id=None):
+        calls.append({"uid": uid, "data": dict(data), "internal": internal})
+        return app_module.jsonify({
+            "ok": True, "ease_factor": 2.5, "interval": 1, "due_date": "2026-08-17",
+            "new_badges": [], "stats": {}, "xp_gain": 0, "combo_mult": 1.0,
+            "pet_xp_added": 0, "pet_xp_ratio": 0.0, "pet_xp_gained": 0,
+            "combo_streak": 0, "shield_used": False, "xp_potion_active": False,
+            "ranked_up": False, "new_rank_level": None, "pet": None,
+            "practice": {}, "training": {}, "new_appearance_items": [],
+        })
+
+    monkeypatch.setattr(app_module, "_review_service", ReviewService(_counting_operation))
+    app_module.app.config["TESTING"] = True
+    client = app_module.app.test_client()
+    with client.session_transaction() as sess:
+        sess["user_id"] = 1
+    envelope = {"moves": [{"action": "play", "x": 3, "y": 4}]}
+    response = client.post(
+        "/api/srs/review",
+        json={
+            "question_id": 101,
+            "grade": 3,
+            "source_context": "guild_quest",
+            "guild_answer": envelope,
+            "guild_quest_key": "whole_board::segment-1",
+        },
+    )
+    assert response.status_code == 200
+    assert len(calls) == 1
+    assert calls[0]["uid"] == 1
+    assert calls[0]["data"]["guild_answer"] == envelope
+    assert calls[0]["data"]["guild_quest_key"] == "whole_board::segment-1"
 
 
 def test_runtime_map_battle_progression_routes_through_handoff(app_module, monkeypatch):
