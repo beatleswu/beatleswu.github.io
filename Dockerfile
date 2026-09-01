@@ -33,6 +33,11 @@ COPY app.py ./
 # Incident 019B: app.py imports the compatibility reader at process startup.
 # Keep this runtime dependency explicit; it does not execute the migration.
 COPY adventure_progress_compatibility.py ./
+# RPG V1 P0 hotfix: app.py imports the Zone 3 legacy compatibility and
+# distinct-correct progression authorities at process startup. Keep both
+# explicit in the curated image boundary.
+COPY adventure_zone3_legacy_compatibility.py ./
+COPY adventure_zone_progression_authority.py ./
 # Incident 019B R6: app.py imports the Zone-star authority at process startup.
 # Keep the authority module explicit; its migration import is constants-only at
 # startup and does not execute database DDL.
@@ -114,6 +119,10 @@ COPY equipment_commerce_service.py ./
 COPY adventure_boss_finish_response.py ./
 COPY adventure_spirit_unlock_transport.py ./
 COPY spirit_adventure_milestone.py ./
+# RPG V1 P0 hotfix: app.py imports the authoritative Guild answer and Lord
+# admission services at process startup; keep both copies explicit.
+COPY guild_quest_answer_service.py ./
+COPY lord_trial_admission.py ./
 COPY lord_trial_answer_service.py ./
 # Backend Architecture V1 Wave2 (V1A2 ReviewService / V1A3 transaction and
 # MapBattle-handoff boundaries): app.py now imports review_service.py and

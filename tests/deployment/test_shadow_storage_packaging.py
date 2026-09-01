@@ -19,7 +19,9 @@ RELEASE_BUILD_SCRIPT = REPO_ROOT / "scripts" / "release" / "build-release-image.
 # +1 for js/game/cinematic_replay.js (E10_ZONE_GENERIC_CINEMATIC_REPLAY_001).
 # +2 for Incident 019B R6's app-start Zone-star authority and its imported
 # migration constants module (DDL remains operator-owned).
-CURRENT_GOVERNED_PROVENANCE_COUNT = 93
+# +4 for the RPG V1 P0 hotfix's app-start Zone 3 compatibility, progression,
+# Guild answer, and Lord admission authorities.
+CURRENT_GOVERNED_PROVENANCE_COUNT = 97
 
 
 def _text(path):

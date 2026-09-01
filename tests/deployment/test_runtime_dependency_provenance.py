@@ -103,6 +103,13 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         # owned and is never executed by import.
         "adventure_zone_star_progression.py",
         "migrations/adventure_zone_star_progression_v1.py",
+        # RPG V1 P0 hotfix: these server-authoritative modules are imported by
+        # app.py at startup. Keep the exact governed set aligned with their
+        # Dockerfile copies, build-manifest entries, and provenance records.
+        "adventure_zone3_legacy_compatibility.py",
+        "adventure_zone_progression_authority.py",
+        "guild_quest_answer_service.py",
+        "lord_trial_admission.py",
         # INCIDENT_018_R8A: app.py imports this at module level (line 223), so
         # the image cannot start without it, but it was never packaged or
         # governed. Governed here together with its Dockerfile COPY and
