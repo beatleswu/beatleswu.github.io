@@ -199,12 +199,21 @@ from adventure_progress_compatibility import (
     visible_adventure_question_ids,
 )
 from adventure_zone_star_progression import (
+    FIRST_MAP_MILESTONE_STAR,
     ZoneStarSchemaUnavailable,
-    award_zone_star_from_authoritative_answer,
     award_zone_star_from_boss_clear,
+    award_zone_star_up_to_map_milestone,
     legacy_visible_star_entitlement,
     load_zone_star_rows,
     zone_star_value,
+)
+from adventure_zone_progression_authority import (
+    is_lord_eligible,
+    lord_eligibility_requirement,
+    map_milestone_star,
+    next_zone_is_unlocked_by,
+    second_star_requirement,
+    third_star_requirement,
 )
 # LC019-W2: the already-canonical bootstrap-gated identity reader (LC011-LC017,
 # extended to grimoire_api by LC019-W1).  Read-only.  While bootstrap_state().hot
@@ -12026,7 +12035,9 @@ def _adventure_state(uid):
     # Defeat progress therefore remains current trusted server evidence only.
     defeated_ids = _IdentityKeyedSet(trusted_raw, _adv_gkm)
     zones = []
-    previous_cleared = True
+    # The first Zone is always open; every later Zone is opened by the
+    # preceding Zone's first star.
+    previous_unlocks_next = True
 
     for z in ADVENTURE_ZONES:
         zone_qs = _questions_for_adventure_zone(qs, z, premium)
@@ -12044,16 +12055,31 @@ def _adventure_state(uid):
         placement_unlocked = z['key'] in placement_unlocks
         cooldown_until = int(row.get('cooldown_until_seen') or 0)
         cooldown_left = max(0, cooldown_until - seen)
-        unlocked = previous_cleared or cleared or placement_unlocked
-        boss_ready = unlocked and pct >= BOSS_UNLOCK_PCT and not cleared and cooldown_left == 0
 
         # Keep the exact pre-R6 public projection as a grandfathered,
         # read-only entitlement.  It is not copied into Zone authority and
-        # cannot be raised by compatibility/mastery counts.
+        # cannot be raised by compatibility/mastery counts.  A legacy Boss
+        # clear always wrote ``stars >= 1``, so the grandfathered value keeps
+        # every historically unlocked Zone unlocked under the star rule below.
         stars = max(0, int(row.get('stars') or 0))
         legacy_visible_stars = legacy_visible_star_entitlement(row)
         zone_stars = zone_star_value(zone_star_rows, z['key'])
         visible_stars = max(zone_stars, legacy_visible_stars)
+
+        # The previous Zone's first star is what opens this one.  Map
+        # coverage, starting a Lord Challenge and failing one all leave the
+        # next Zone locked.
+        unlocked = previous_unlocks_next or cleared or placement_unlocked
+        # Lord eligibility is a ceiling threshold over distinct correct
+        # answers.  The old ``round()``-ed percentage admitted players just
+        # below the stated share (576 of 1939 reads as 30% but is 29.7%).
+        lord_required_correct = lord_eligibility_requirement(total)
+        boss_ready = (
+            unlocked
+            and is_lord_eligible(seen, total)
+            and not cleared
+            and cooldown_left == 0
+        )
 
         zones.append({
             **z,
@@ -12071,6 +12097,15 @@ def _adventure_state(uid):
             'cooldown_required': BOSS_FAIL_COOLDOWN,
             'cooldown_left': cooldown_left,
             'boss_ready': boss_ready,
+            # Server-owned progression thresholds, so the client never has to
+            # recompute a percentage that must agree with settlement.
+            'lord_required_correct': lord_required_correct,
+            'second_star_required_correct': second_star_requirement(total),
+            'third_star_required_correct': third_star_requirement(total),
+            # Presentation only: the path onward from this Zone shines once
+            # its first star is earned.  The actual unlock is the server
+            # ``unlocked`` field on the following Zone, never this flag.
+            'path_shines_to_next': next_zone_is_unlocked_by(visible_stars),
             'cleared': cleared,
             'unlocked': unlocked,
             'placement_unlocked': placement_unlocked,
@@ -12089,7 +12124,7 @@ def _adventure_state(uid):
             'cleared_at': row.get('cleared_at'),
             'updated_at': row.get('updated_at') or now,
         })
-        previous_cleared = cleared
+        previous_unlocks_next = next_zone_is_unlocked_by(visible_stars)
 
     return zones
 
@@ -12139,13 +12174,98 @@ def _adventure_zone_star_from_settled_answer(
     settled_zone_key = str(authoritative_submission['battle_zone_key'] or '')
     if _zone_by_key(settled_zone_key) is None:
         return None
-    return award_zone_star_from_authoritative_answer(
+    # A correct Map answer is no longer a star by itself.  It advances Map
+    # coverage, and only the 60%/100% coverage milestones award a star -- and
+    # only on top of the first star, which a Lord clear alone can grant.
+    # Check the first star before measuring coverage: without it no coverage
+    # can earn anything, and this avoids scanning the Zone pool on every
+    # settled answer in a Zone whose Lord has not been cleared.
+    current_stars = zone_star_value(
+        load_zone_star_rows(conn, uid), settled_zone_key
+    )
+    if current_stars < FIRST_MAP_MILESTONE_STAR:
+        return None
+    coverage = _adventure_zone_map_coverage(conn, uid, settled_zone_key)
+    if coverage is None:
+        return None
+    correct_count, total = coverage
+    milestone = map_milestone_star(
+        correct_count, total, has_first_star=True
+    )
+    if milestone <= FIRST_MAP_MILESTONE_STAR:
+        return None
+    return award_zone_star_up_to_map_milestone(
         conn,
         uid,
         settled_zone_key,
         submission_id,
         earned_at,
+        milestone_star=milestone,
     )
+
+
+ADVENTURE_FIRST_STAR_UNLOCK_SOURCE = 'zone_star_first'
+
+
+def _persist_next_zone_unlock(conn, uid, zone_key, now):
+    """Persist the unlock the first star of *zone_key* grants, if any.
+
+    Only the Zone immediately after *zone_key* is opened, and only ever one
+    step: this never unlocks the whole map and never re-locks anything.  The
+    write is idempotent, so a replayed Lord settlement adds nothing.
+    """
+
+    # `_adventure_zone_index` falls back to 0 for an unknown key, which would
+    # silently unlock the second Zone, so resolve the key explicitly first.
+    if _zone_by_key(zone_key) is None:
+        return None
+    index = _adventure_zone_index(zone_key)
+    if index + 1 >= len(ADVENTURE_ZONES):
+        return None
+    next_zone_key = ADVENTURE_ZONES[index + 1]['key']
+    conn.execute(
+        '''INSERT INTO adventure_zone_unlocks
+               (user_id, zone_key, source, start_zone_key, unlocked_at)
+           VALUES (?,?,?,?,?)
+           ON CONFLICT(user_id, zone_key) DO NOTHING''',
+        (uid, next_zone_key, ADVENTURE_FIRST_STAR_UNLOCK_SOURCE, zone_key, now),
+    )
+    return next_zone_key
+
+
+def _adventure_zone_map_coverage(conn, uid, zone_key):
+    """Return ``(distinct_correct, total)`` Map coverage for one Zone.
+
+    Both halves are server-owned: the denominator is the canonical Zone
+    question pool, and the numerator is the distinct set of questions this
+    user has answered correctly under trusted server-settled review evidence.
+    Neither is a raw review-row count, and neither can be supplied by a
+    client.  This mirrors the numbers ``_adventure_state`` publishes, so the
+    milestone a settlement awards always agrees with the displayed progress.
+    """
+
+    zone = _zone_by_key(zone_key)
+    if zone is None:
+        return None
+    questions = [q for q in _load_questions() if q.get('enabled', True)]
+    # The pool must be filtered exactly as `_adventure_state` filters it, or a
+    # free player's displayed 100% would not match the milestone that settles.
+    # `is_premium` reads the signed session, which only exists inside a
+    # request; off-request callers fall back to the widest canonical pool.
+    try:
+        premium = is_premium(uid)
+    except RuntimeError:
+        premium = True
+    zone_qs = _questions_for_adventure_zone(questions, zone, premium)
+    total = len(zone_qs)
+    if total <= 0:
+        return None
+    correct_raw = _adventure_correct_question_ids(conn, uid, None)
+    zone_ids = {q['id'] for q in zone_qs}
+    correct_ids = _IdentityKeyedSet(
+        correct_raw, _identity_group_key_map(conn, zone_ids | set(correct_raw))
+    )
+    return len([qid for qid in zone_ids if qid in correct_ids]), total
 
 
 def _adventure_recommended_zone_key(zones, placement_start_zone=None):
@@ -13083,13 +13203,19 @@ def adventure_boss_finish():
     if passed and is_first_clear:
         try:
             with get_db() as zone_star_conn:
-                award_zone_star_from_boss_clear(
+                star_result = award_zone_star_from_boss_clear(
                     zone_star_conn,
                     uid,
                     zone_key,
                     settlement['operation_id'],
                     now,
                 )
+                # The first star is the progression event that opens the next
+                # Zone, so persist that unlock here rather than leaving it as
+                # a derived read.  ON CONFLICT DO NOTHING makes a replayed or
+                # concurrent settlement a no-op.
+                if star_result.get('stars', 0) >= FIRST_MAP_MILESTONE_STAR:
+                    _persist_next_zone_unlock(zone_star_conn, uid, zone_key, now)
                 zone_star_conn.commit()
         except ZoneStarSchemaUnavailable:
             pass

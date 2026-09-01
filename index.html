@@ -14173,6 +14173,12 @@ function renderAdventureMap() {
         const routePct = zoneStats.length <= 1 ? 1 : Math.max(0, Math.min(1, highestUnlocked / (zoneStats.length - 1)));
         progressPath.style.strokeDasharray = `${len * routePct} ${len}`;
         progressPath.style.strokeDashoffset = '0';
+        // The shining road is presentation of a server fact: a Zone lights the
+        // path onward once its first star is earned. The unlock itself is the
+        // server `unlocked` flag above, never this attribute.
+        progressPath.dataset.shineZones = String(
+            zoneStats.filter(zone => zone.path_shines_to_next === true).length
+        );
     }
 
     const summary = document.getElementById('adventure-map-summary');

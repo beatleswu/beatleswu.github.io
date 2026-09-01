@@ -15,7 +15,7 @@ from adventure_zone_star_progression import (
     AUTHORITATIVE_BOSS_CLEAR_SOURCE,
     AUTHORITATIVE_ZONE_STAR_SOURCE,
     award_zone_star_from_boss_clear,
-    award_zone_star_from_authoritative_answer,
+    award_zone_star_up_to_map_milestone,
     load_zone_star_rows,
 )
 from migrations.adventure_zone_star_progression_v1 import (
@@ -155,29 +155,50 @@ def test_zone_star_schema_is_explicit_additive_and_idempotent():
 
 
 def test_one_two_three_stars_are_server_event_reachable_and_idempotent():
+    """1/2/3 stars remain reachable, under the Owner-locked progression.
+
+    The first star is the Lord clear; 2 and 3 are Map coverage milestones
+    built on top of it.  Map coverage alone never starts the sequence.
+    """
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     upgrade(conn)
 
-    results = [
-        award_zone_star_from_authoritative_answer(
-            conn, 17, "k26_30", f"submission-{index}",
-            f"2026-09-01T00:00:0{index}",
-        )
-        for index in range(1, 4)
-    ]
-    duplicate = award_zone_star_from_authoritative_answer(
-        conn, 17, "k26_30", "submission-1", "2026-09-01T00:01:00"
+    # Map coverage before any Lord clear earns nothing at all.
+    blocked = award_zone_star_up_to_map_milestone(
+        conn, 17, "k26_30", "submission-0", "2026-09-01T00:00:00",
+        milestone_star=3,
     )
-    saturated = award_zone_star_from_authoritative_answer(
-        conn, 17, "k26_30", "submission-4", "2026-09-01T00:02:00"
+    assert blocked["status"] == "first_star_required"
+    assert blocked["awarded"] is False
+    assert blocked["stars"] == 0
+
+    first = award_zone_star_from_boss_clear(
+        conn, 17, "k26_30", "lord-op-1", "2026-09-01T00:00:01"
+    )
+    second = award_zone_star_up_to_map_milestone(
+        conn, 17, "k26_30", "submission-60", "2026-09-01T00:00:02",
+        milestone_star=2,
+    )
+    third = award_zone_star_up_to_map_milestone(
+        conn, 17, "k26_30", "submission-100", "2026-09-01T00:00:03",
+        milestone_star=3,
+    )
+    duplicate = award_zone_star_up_to_map_milestone(
+        conn, 17, "k26_30", "submission-60", "2026-09-01T00:01:00",
+        milestone_star=2,
+    )
+    saturated = award_zone_star_up_to_map_milestone(
+        conn, 17, "k26_30", "submission-extra", "2026-09-01T00:02:00",
+        milestone_star=3,
     )
 
-    assert [result["stars"] for result in results] == [1, 2, 3]
-    assert all(result["source"] == AUTHORITATIVE_ZONE_STAR_SOURCE for result in results)
-    assert duplicate["status"] == "duplicate"
+    assert [first["stars"], second["stars"], third["stars"]] == [1, 2, 3]
+    assert first["source"] == AUTHORITATIVE_BOSS_CLEAR_SOURCE
+    assert second["source"] == AUTHORITATIVE_ZONE_STAR_SOURCE
+    assert third["source"] == AUTHORITATIVE_ZONE_STAR_SOURCE
     assert duplicate["awarded"] is False
-    assert saturated["status"] == "complete"
+    assert saturated["status"] == "already_earned"
     assert conn.execute(
         f"SELECT earned_stars FROM {PROGRESS_TABLE_NAME} "
         "WHERE user_id=17 AND zone_key='k26_30'"
@@ -185,6 +206,26 @@ def test_one_two_three_stars_are_server_event_reachable_and_idempotent():
     assert conn.execute(
         f"SELECT COUNT(*) FROM {EARNINGS_TABLE_NAME} "
         "WHERE user_id=17 AND zone_key='k26_30'"
+    ).fetchone()[0] == 3
+    conn.close()
+
+
+def test_map_coverage_may_cross_two_milestones_in_one_settlement():
+    """1 star straight to 100% reaches 3 without replaying the 60% step."""
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    upgrade(conn)
+    award_zone_star_from_boss_clear(
+        conn, 31, "k26_30", "lord-op-31", "2026-09-01T00:00:00"
+    )
+    jumped = award_zone_star_up_to_map_milestone(
+        conn, 31, "k26_30", "submission-full", "2026-09-01T00:00:01",
+        milestone_star=3,
+    )
+    assert jumped["stars"] == 3
+    assert jumped["awarded_stars"] == [2, 3]
+    assert conn.execute(
+        f"SELECT COUNT(*) FROM {EARNINGS_TABLE_NAME} WHERE user_id=31"
     ).fetchone()[0] == 3
     conn.close()
 
@@ -226,8 +267,12 @@ def test_zone_awards_never_mutate_boss_progress_or_consume_history():
     ).fetchone())
 
     # This is the only admissible input: a server-owned settlement identity.
-    award_zone_star_from_authoritative_answer(
-        conn, 18, "k26_30", "server-settlement-1", "2026-09-01T00:00:00"
+    award_zone_star_from_boss_clear(
+        conn, 18, "k26_30", "lord-op-18", "2026-09-01T00:00:00"
+    )
+    award_zone_star_up_to_map_milestone(
+        conn, 18, "k26_30", "server-settlement-1", "2026-09-01T00:00:01",
+        milestone_star=2,
     )
     after = tuple(conn.execute(
         "SELECT cleared,stars,attempts,best_score FROM adventure_boss_progress "
@@ -269,7 +314,9 @@ def test_app_bridge_accepts_only_server_settled_adventure_answers(app_module):
     assert ignored is None
     assert load_zone_star_rows(conn, 21) == {}
 
-    awarded = app_module._adventure_zone_star_from_settled_answer(
+    # Even a genuine server-settled Map answer earns no star on its own now:
+    # without a first Lord clear there is nothing for coverage to build on.
+    no_first_star = app_module._adventure_zone_star_from_settled_answer(
         conn,
         21,
         grade=5,
@@ -278,8 +325,8 @@ def test_app_bridge_accepts_only_server_settled_adventure_answers(app_module):
         submission_id="server-map-battle-1",
         earned_at="2026-09-01T00:00:01",
     )
-    assert awarded["status"] == "awarded"
-    assert awarded["stars"] == 1
+    assert no_first_star is None
+    assert load_zone_star_rows(conn, 21) == {}
     conn.close()
 
 

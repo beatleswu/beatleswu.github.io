@@ -1,12 +1,11 @@
-"""Zone-star CURRENT trigger truth, pinned before any Lord contract change.
+"""Zone-star trigger truth under the Owner-locked progression model.
 
-This file deliberately documents what the canonical runtime does today. It
-does not propose or implement a star rule. The Owner has not yet confirmed
-which event should award each of 0->1, 1->2 and 2->3, so the exact20/fixed16
-Lord repair must be provably star-neutral, and that requires the existing
-semantics to be written down and held still.
+An earlier revision of this file pinned the pre-ruling behaviour, in which
+``award_zone_star_from_authoritative_answer`` added one star per settled Map
+answer, so three correct answers reached three stars with no Lord clear at
+all. The Owner has ruled that model incorrect; it is replaced here.
 
-Mechanically traced current model:
+The model these tests hold:
 
 * ``adventure_zone_star_progress.earned_stars`` is the star authority.
 * ``adventure_zone_star_earnings`` is the append-only event ledger; its
@@ -18,16 +17,13 @@ Two, and only two, writers exist:
 
 1. ``award_zone_star_from_boss_clear`` -- reached from
    ``/api/adventure/boss/finish`` only when ``passed and is_first_clear``.
-   It awards star 1 and nothing else: at one or more stars it returns
-   ``already_earned``. So a Lord clear can only ever perform 0->1.
-2. ``award_zone_star_from_authoritative_answer`` -- reached from the internal
-   Map Battle settlement handoff for a correct, server-settled Adventure
-   answer. It awards ``current + 1`` up to three, so it can perform 0->1,
-   1->2 and 2->3.
-
-The consequence worth an explicit Owner ruling (not changed here): stars 2
-and 3 are reachable only through Map answers, and three correct settled Map
-answers reach three stars without a Lord clear ever happening.
+   It awards star 1 and nothing else, so a Lord clear performs 0->1 and a
+   repeated clear performs nothing.
+2. ``award_zone_star_up_to_map_milestone`` -- reached from the internal Map
+   Battle settlement handoff for a correct, server-settled Adventure answer.
+   It raises the Zone to the star its Map coverage has earned (2 at 60%, 3 at
+   100%), and refuses outright while the Zone has no first star, so coverage
+   can never start the sequence.
 """
 
 from __future__ import annotations
@@ -40,10 +36,10 @@ from adventure_zone_star_progression import (
     AUTHORITATIVE_BOSS_CLEAR_SOURCE,
     AUTHORITATIVE_ZONE_STAR_SOURCE,
     MAX_ZONE_STARS,
-    award_zone_star_from_authoritative_answer,
     award_zone_star_from_boss_clear,
-    zone_star_value,
+    award_zone_star_up_to_map_milestone,
     load_zone_star_rows,
+    zone_star_value,
 )
 from migrations.adventure_zone_star_progression_v1 import (
     EARNINGS_TABLE_NAME,
@@ -76,12 +72,11 @@ def _ledger(connection):
 
 
 # --------------------------------------------------------------------------
-# 0 -> 1
+# 0 -> 1 belongs to the Lord alone
 # --------------------------------------------------------------------------
 
 
 def test_lord_first_clear_awards_star_one(conn):
-    """CURRENT_0_TO_1_STAR_TRIGGER includes a first Lord (Boss) clear."""
     result = award_zone_star_from_boss_clear(conn, USER_ID, ZONE, "op-1", AT)
     assert result["awarded"] is True
     assert result["stars"] == 1
@@ -105,7 +100,6 @@ def test_lord_clear_star_award_is_idempotent_per_operation(conn):
 
 
 def test_a_second_distinct_lord_clear_does_not_add_a_second_star(conn):
-    """A Lord clear performs 0->1 only; replaying it never reaches 2."""
     award_zone_star_from_boss_clear(conn, USER_ID, ZONE, "op-1", AT)
     later = award_zone_star_from_boss_clear(conn, USER_ID, ZONE, "op-2", AT)
     assert later["awarded"] is False
@@ -113,32 +107,33 @@ def test_a_second_distinct_lord_clear_does_not_add_a_second_star(conn):
     assert _stars(conn) == 1
 
 
-def test_settled_map_answer_can_also_perform_zero_to_one(conn):
-    """0->1 is not exclusive to Lord: a settled Map answer also reaches it."""
-    result = award_zone_star_from_authoritative_answer(
-        conn, USER_ID, ZONE, "submission-1", AT
+def test_settled_map_answer_cannot_perform_zero_to_one(conn):
+    """Coverage cannot start the sequence, however complete it is."""
+    result = award_zone_star_up_to_map_milestone(
+        conn, USER_ID, ZONE, "submission-1", AT, milestone_star=MAX_ZONE_STARS
     )
-    assert result["awarded"] is True
-    assert result["stars"] == 1
-    assert result["source"] == AUTHORITATIVE_ZONE_STAR_SOURCE
+    assert result["awarded"] is False
+    assert result["status"] == "first_star_required"
+    assert _stars(conn) == 0
+    assert _ledger(conn) == []
 
 
 # --------------------------------------------------------------------------
-# 1 -> 2 and 2 -> 3
+# 1 -> 2 and 2 -> 3 are Map coverage milestones on top of the first star
 # --------------------------------------------------------------------------
 
 
-def test_stars_two_and_three_come_from_settled_map_answers(conn):
+def test_stars_two_and_three_come_from_map_coverage_milestones(conn):
     award_zone_star_from_boss_clear(conn, USER_ID, ZONE, "op-1", AT)
     assert _stars(conn) == 1
 
-    second = award_zone_star_from_authoritative_answer(
-        conn, USER_ID, ZONE, "submission-2", AT
+    second = award_zone_star_up_to_map_milestone(
+        conn, USER_ID, ZONE, "submission-60", AT, milestone_star=2
     )
     assert (second["awarded"], second["stars"]) == (True, 2)
 
-    third = award_zone_star_from_authoritative_answer(
-        conn, USER_ID, ZONE, "submission-3", AT
+    third = award_zone_star_up_to_map_milestone(
+        conn, USER_ID, ZONE, "submission-100", AT, milestone_star=3
     )
     assert (third["awarded"], third["stars"]) == (True, 3)
 
@@ -150,29 +145,27 @@ def test_stars_two_and_three_come_from_settled_map_answers(conn):
     ]
 
 
-def test_three_stars_are_reachable_without_any_lord_clear(conn):
-    """Documented consequence of the current model, pending Owner ruling."""
-    for index in range(1, 4):
-        award_zone_star_from_authoritative_answer(
-            conn, USER_ID, ZONE, f"submission-{index}", AT
+def test_three_stars_are_not_reachable_without_a_lord_clear(conn):
+    for index in range(1, 6):
+        award_zone_star_up_to_map_milestone(
+            conn, USER_ID, ZONE, f"submission-{index}", AT, milestone_star=3
         )
-    assert _stars(conn) == MAX_ZONE_STARS
-    assert all(
-        row["source"] == AUTHORITATIVE_ZONE_STAR_SOURCE for row in _ledger(conn)
-    )
+    assert _stars(conn) == 0
+    assert _ledger(conn) == []
 
 
 def test_stars_are_capped_at_three(conn):
+    award_zone_star_from_boss_clear(conn, USER_ID, ZONE, "op-1", AT)
     for index in range(1, 6):
-        award_zone_star_from_authoritative_answer(
-            conn, USER_ID, ZONE, f"submission-{index}", AT
+        award_zone_star_up_to_map_milestone(
+            conn, USER_ID, ZONE, f"submission-{index}", AT, milestone_star=3
         )
     assert _stars(conn) == MAX_ZONE_STARS
     assert len(_ledger(conn)) == MAX_ZONE_STARS
 
 
 # --------------------------------------------------------------------------
-# Guards the Lord contract repair must not disturb
+# Guards the progression repair must not disturb
 # --------------------------------------------------------------------------
 
 
@@ -195,14 +188,15 @@ def test_boss_progress_is_not_a_star_source(conn):
 
 
 def test_zone_star_award_requires_an_event_identity(conn):
+    award_zone_star_from_boss_clear(conn, USER_ID, ZONE, "op-1", AT)
     for bad_event in ("", "   ", None):
         with pytest.raises(ValueError):
             award_zone_star_from_boss_clear(conn, USER_ID, ZONE, bad_event, AT)
         with pytest.raises(ValueError):
-            award_zone_star_from_authoritative_answer(
-                conn, USER_ID, ZONE, bad_event, AT
+            award_zone_star_up_to_map_milestone(
+                conn, USER_ID, ZONE, bad_event, AT, milestone_star=3
             )
-    assert _stars(conn) == 0
+    assert _stars(conn) == 1
 
 
 def test_star_writers_are_reached_only_from_the_two_traced_call_sites():
@@ -214,10 +208,12 @@ def test_star_writers_are_reached_only_from_the_two_traced_call_sites():
 
     source = inspect.getsource(app_module)
     boss_calls = re.findall(r"award_zone_star_from_boss_clear\(", source)
-    answer_calls = re.findall(r"award_zone_star_from_authoritative_answer\(", source)
+    milestone_calls = re.findall(r"award_zone_star_up_to_map_milestone\(", source)
     # One import line plus one call site each.
     assert len(boss_calls) == 1
-    assert len(answer_calls) == 1
+    assert len(milestone_calls) == 1
+    # The retired per-answer writer must not reappear anywhere.
+    assert "award_zone_star_from_authoritative_answer" not in source
 
     finish = inspect.getsource(app_module.adventure_boss_finish)
     # The Lord star write is gated on a genuine PASS that is also a first

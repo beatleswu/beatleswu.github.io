@@ -139,10 +139,13 @@ def _login(client):
 
 
 def _patch_common_route(app_module, monkeypatch, result=None, passed=True):
+    # A Lord Challenge is a fixed 20-question examination passed at 16, so the
+    # stubbed result must be a valid one; a 1-question attempt is refused at
+    # settlement and would never reach the Spirit transport under test.
     monkeypatch.setattr(
         app_module,
         "_adventure_boss_authoritative_result",
-        lambda _conn, _uid, _exam: (1, 1) if passed else (0, 1),
+        lambda _conn, _uid, _exam: (20, 20) if passed else (0, 20),
     )
     monkeypatch.setattr(
         app_module,
