@@ -18,8 +18,12 @@ import re
 from typing import Any
 
 
-SCHEMA_VERSION = "incident019b_adventure_historical_mastery_v1"
-BASELINE_VERSION = "INCIDENT019B_B050_COMPAT_V1"
+SCHEMA_VERSION = "grandfathered_legacy_continuity_v1"
+# R3 replaces the eb10 ``progress_credited``-only model with a reconstruction
+# of the complete pre-change display predicate.  The baseline version is
+# deliberately new: an older application must not consume an R3 baseline, and
+# an R3 reader must not consume an eb10-era one.
+BASELINE_VERSION = "GRANDFATHERED_LEGACY_CONTINUITY_V1"
 TABLE_NAME = "adventure_historical_mastery"
 BASELINE_TABLE_NAME = "adventure_historical_mastery_baseline"
 ADVISORY_LOCK_KEY = 773310031
@@ -35,12 +39,50 @@ STATUS_READY = "BASELINE_READY"
 STATUS_FAILED_OR_INVALID = "BASELINE_FAILED_OR_INVALID"
 STATUS_CAPTURING = STATUS_BUILDING
 STATUS_FROZEN = STATUS_READY
-SOURCE_REVIEW_MASK = 1
-SOURCE_CARD_MASK = 2
+# The three historical branches of the pre-change display predicate, kept as
+# independent bits so a membership supported by several of them stays fully
+# auditable after deduplication.
+SOURCE_REVIEW_GRADE_MASK = 1
+SOURCE_PROGRESS_CREDITED_MASK = 2
+SOURCE_LAST_GRADE_MASK = 4
+SOURCE_ALL_LEGACY_MASK = (
+    SOURCE_REVIEW_GRADE_MASK | SOURCE_PROGRESS_CREDITED_MASK | SOURCE_LAST_GRADE_MASK
+)
+# Retained aliases: the eb10 code named the review/card branches this way.
+SOURCE_REVIEW_MASK = SOURCE_REVIEW_GRADE_MASK
+SOURCE_CARD_MASK = SOURCE_PROGRESS_CREDITED_MASK
 SOURCE_BOTH_MASK = SOURCE_REVIEW_MASK | SOURCE_CARD_MASK
+
+# Owner-locked continuity boundary.  This is a product/governance boundary in
+# the legacy naive ``reviewed_at`` storage domain -- deliberately NOT a claim
+# about an absolute wall-clock deploy instant, and never converted to UTC or
+# to Asia/Taipei.  Comparisons happen in the same stored naive domain.
 CUTOFF_LITERAL = "2026-08-29T13:17:30"
-SOURCE_RULE_VERSION = "progress_credited_map_v1"
-TRUSTED_CARD_ENTITLEMENT_SOURCE = "progress_credited_map_snapshot"
+CUTOFF_OPERATOR = "<"
+CUTOFF_DOMAIN = "LEGACY_NAIVE_REVIEWED_AT_STORAGE_DOMAIN"
+CUTOFF_TIMEZONE = "NOT_APPLICABLE_TO_NAIVE_STORAGE_DOMAIN"
+CUTOFF_AUTHORITY = "OWNER_LOCKED_GRANDFATHERED_CONTINUITY_V1_BOUNDARY"
+CUTOFF_PRODUCT_EVENT = "GRANDFATHERED_LEGACY_CONTINUITY_V1_POLICY_BOUNDARY"
+
+# Full 40-character identity of the pre-change display predicate this baseline
+# reconstructs.  A short SHA is not an identity.
+PRECHANGE_PREDICATE_REFERENCE_SHA = "4f2547a6defd60a228f77a4457b96f24b916e22c"
+
+SOURCE_RULE_VERSION = "prechange_display_predicate_v1"
+# Tier 1 is continuity entitlement.  The name must never again imply that the
+# membership met today's server-authoritative correctness standard.
+GRANDFATHERED_ENTITLEMENT_SOURCE = "grandfathered_legacy_progress"
+
+# Reconstruction classes.  EXACT means historical evidence establishes the
+# membership on the legacy side of the cutoff.  CONSERVATIVE means an undated
+# orphan compatibility/fallback membership preserved by explicit Owner policy.
+RECONSTRUCTION_CLASS_EXACT = "EXACT_RECONSTRUCTABLE"
+RECONSTRUCTION_CLASS_CONSERVATIVE = "CONSERVATIVE_GRANDFATHERED"
+RECONSTRUCTION_CLASSES = frozenset(
+    {RECONSTRUCTION_CLASS_EXACT, RECONSTRUCTION_CLASS_CONSERVATIVE}
+)
+# Never stored: positively established as arising only after the cutoff.
+RECONSTRUCTION_CLASS_POST_CUTOFF_ONLY = "POST_CUTOFF_ONLY"
 
 INDEX_SPECS: tuple[tuple[str, str, str], ...] = (
     (
@@ -195,6 +237,11 @@ EXPECTED_BASELINE_COLUMNS = {
     "membership_fingerprint": ("text", False),
     "ready_at": ("text", True),
     "failure_reason": ("text", True),
+    "predicate_reference_sha": ("text", False),
+    "cutoff_operator": ("text", False),
+    "cutoff_domain": ("text", False),
+    "exact_membership_count": ("integer", False),
+    "conservative_membership_count": ("integer", False),
 }
 
 EXPECTED_MEMBERSHIP_COLUMNS = {
@@ -205,6 +252,7 @@ EXPECTED_MEMBERSHIP_COLUMNS = {
     "entitlement_source": ("text", False),
     "captured_at": ("text", False),
     "cutoff_literal": ("text", False),
+    "reconstruction_class": ("text", False),
 }
 
 
@@ -298,19 +346,26 @@ def baseline_readiness(
     conn: Any,
     *,
     baseline_version: str = BASELINE_VERSION,
+    verify_integrity: bool = False,
     verify_fingerprint: bool = False,
 ) -> dict[str, Any]:
     """Return the persisted baseline state without treating it as authority.
 
-    ``BASELINE_READY`` is accepted only when the metadata is internally
-    consistent with the candidate's source rule and the membership count.  A
-    missing table/row is ``BASELINE_ABSENT``; an old or malformed schema and
-    any integrity mismatch are ``BASELINE_FAILED_OR_INVALID``.  The migration
-    publication and postcheck pass ``verify_fingerprint=True``.  Request
-    reads keep that expensive immutable-relation hash out of the answer path;
-    they still require READY metadata, exact row count, and constrained
-    membership provenance.  This helper is intentionally read-only and does
-    not repair an invalid state.
+    The default shape is deliberately O(1): two catalog probes and one
+    primary-key metadata lookup.  It performs no ``COUNT(*)``, no provenance
+    aggregate, and no schema reflection, because this runs on the Adventure
+    read and answer-settlement paths -- where the eb10 implementation scanned
+    the entire membership relation of every user on every call.
+
+    Integrity is established where it belongs: a partial or interrupted
+    capture never reaches ``BASELINE_READY`` in the first place, because
+    publication verifies counts and the immutable-relation fingerprint under
+    ``verify_integrity``/``verify_fingerprint`` before flipping the status.
+    Administrative verification may re-run those checks on demand.
+
+    A missing table/row is ``BASELINE_ABSENT``; malformed metadata or any
+    integrity mismatch is ``BASELINE_FAILED_OR_INVALID``.  This helper is
+    read-only and never repairs an invalid state.
     """
 
     if not _table_exists(conn, BASELINE_TABLE_NAME) or not _table_exists(conn, TABLE_NAME):
@@ -320,26 +375,29 @@ def baseline_readiness(
             "baseline_version": baseline_version,
             "reason": "tables_absent",
         }
-    try:
-        schema = validate_schema(conn)
-    except Exception as exc:
-        return {
-            "status": STATUS_FAILED_OR_INVALID,
-            "valid": False,
-            "baseline_version": baseline_version,
-            "reason": f"schema_invalid:{type(exc).__name__}",
-        }
-    if not schema.get("valid"):
-        return {
-            "status": STATUS_FAILED_OR_INVALID,
-            "valid": False,
-            "baseline_version": baseline_version,
-            "reason": "schema_invalid",
-        }
+    if verify_integrity or verify_fingerprint:
+        try:
+            schema = validate_schema(conn)
+        except Exception as exc:
+            return {
+                "status": STATUS_FAILED_OR_INVALID,
+                "valid": False,
+                "baseline_version": baseline_version,
+                "reason": f"schema_invalid:{type(exc).__name__}",
+            }
+        if not schema.get("valid"):
+            return {
+                "status": STATUS_FAILED_OR_INVALID,
+                "valid": False,
+                "baseline_version": baseline_version,
+                "reason": "schema_invalid",
+            }
     metadata = conn.execute(
         f"SELECT baseline_version, cutoff_literal, captured_at, frozen_at, status, "
         f"membership_count, source_rule_version, expected_membership_count, "
-        f"actual_membership_count, membership_fingerprint, ready_at, failure_reason "
+        f"actual_membership_count, membership_fingerprint, ready_at, failure_reason, "
+        f"predicate_reference_sha, cutoff_operator, cutoff_domain, "
+        f"exact_membership_count, conservative_membership_count "
         f"FROM {_table_prefix(conn)}{BASELINE_TABLE_NAME} WHERE baseline_version=?",
         (baseline_version,),
     ).fetchone()
@@ -365,6 +423,13 @@ def baseline_readiness(
         "membership_fingerprint": str(_value(metadata, 9, "membership_fingerprint") or ""),
         "ready_at": _value(metadata, 10, "ready_at"),
         "failure_reason": _value(metadata, 11, "failure_reason"),
+        "predicate_reference_sha": str(_value(metadata, 12, "predicate_reference_sha") or ""),
+        "cutoff_operator": str(_value(metadata, 13, "cutoff_operator") or ""),
+        "cutoff_domain": str(_value(metadata, 14, "cutoff_domain") or ""),
+        "exact_membership_count": int(_value(metadata, 15, "exact_membership_count") or 0),
+        "conservative_membership_count": int(
+            _value(metadata, 16, "conservative_membership_count") or 0
+        ),
     }
     if status not in (STATUS_BUILDING, STATUS_READY, STATUS_FAILED_OR_INVALID):
         result["status"] = STATUS_FAILED_OR_INVALID
@@ -373,36 +438,60 @@ def baseline_readiness(
     if status != STATUS_READY:
         result["reason"] = "not_ready"
         return result
-    actual = int(
-        conn.execute(
-            f"SELECT COUNT(*) FROM {_table_prefix(conn)}{TABLE_NAME} "
-            "WHERE baseline_version=?",
-            (baseline_version,),
-        ).fetchone()[0]
-    )
-    invalid_memberships = int(
-        conn.execute(
-            f"SELECT COUNT(*) FROM {_table_prefix(conn)}{TABLE_NAME} "
-            "WHERE baseline_version=? AND "
-            "(source_mask <> 2 OR entitlement_source <> ? OR cutoff_literal <> ?)",
-            (baseline_version, TRUSTED_CARD_ENTITLEMENT_SOURCE, CUTOFF_LITERAL),
-        ).fetchone()[0]
-    )
+    # O(1) path: the stored counters must agree with each other and with the
+    # locked continuity contract.  The relation itself is only re-counted when
+    # an explicit integrity verification is requested.
+    stored = result["membership_count"]
     valid = (
         result["cutoff_literal"] == CUTOFF_LITERAL
+        and result["cutoff_operator"] == CUTOFF_OPERATOR
+        and result["cutoff_domain"] == CUTOFF_DOMAIN
+        and result["predicate_reference_sha"] == PRECHANGE_PREDICATE_REFERENCE_SHA
         and bool(str(result["captured_at"] or "").strip())
         and bool(str(result["frozen_at"] or "").strip())
         and result["source_rule_version"] == SOURCE_RULE_VERSION
-        and result["expected_membership_count"] == actual
-        and result["actual_membership_count"] == actual
-        and result["membership_count"] == actual
+        and result["expected_membership_count"] == stored
+        and result["actual_membership_count"] == stored
+        and (
+            result["exact_membership_count"]
+            + result["conservative_membership_count"]
+            == stored
+        )
         and bool(result["membership_fingerprint"])
         and bool(str(result["ready_at"] or "").strip())
         and result["failure_reason"] in (None, "")
-        and invalid_memberships == 0
     )
-    result["actual_membership_count_observed"] = actual
-    result["invalid_membership_count"] = invalid_memberships
+    if verify_integrity or verify_fingerprint:
+        actual = int(
+            conn.execute(
+                f"SELECT COUNT(*) FROM {_table_prefix(conn)}{TABLE_NAME} "
+                "WHERE baseline_version=?",
+                (baseline_version,),
+            ).fetchone()[0]
+        )
+        invalid_memberships = int(
+            conn.execute(
+                f"SELECT COUNT(*) FROM {_table_prefix(conn)}{TABLE_NAME} "
+                "WHERE baseline_version=? AND "
+                "(entitlement_source <> ? OR cutoff_literal <> ? "
+                "OR source_mask <= 0 OR source_mask > ? "
+                "OR reconstruction_class NOT IN (?, ?))",
+                (
+                    baseline_version,
+                    GRANDFATHERED_ENTITLEMENT_SOURCE,
+                    CUTOFF_LITERAL,
+                    SOURCE_ALL_LEGACY_MASK,
+                    RECONSTRUCTION_CLASS_EXACT,
+                    RECONSTRUCTION_CLASS_CONSERVATIVE,
+                ),
+            ).fetchone()[0]
+        )
+        result["actual_membership_count_observed"] = actual
+        result["invalid_membership_count"] = invalid_memberships
+        result["integrity_verified"] = True
+        valid = bool(valid and actual == stored and invalid_memberships == 0)
+    else:
+        result["integrity_verified"] = False
     if verify_fingerprint:
         observed_fingerprint = _membership_fingerprint(
             conn, baseline_version=baseline_version
@@ -441,18 +530,28 @@ def _create_sqlite_sql() -> tuple[str, str]:
             actual_membership_count INTEGER NOT NULL CHECK (actual_membership_count >= 0),
             membership_fingerprint TEXT NOT NULL,
             ready_at TEXT,
-            failure_reason TEXT
+            failure_reason TEXT,
+            predicate_reference_sha TEXT NOT NULL,
+            cutoff_operator TEXT NOT NULL,
+            cutoff_domain TEXT NOT NULL,
+            exact_membership_count INTEGER NOT NULL
+                CHECK (exact_membership_count >= 0),
+            conservative_membership_count INTEGER NOT NULL
+                CHECK (conservative_membership_count >= 0)
         )""",
         f"""CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
             user_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             baseline_version TEXT NOT NULL
                 REFERENCES {BASELINE_TABLE_NAME}(baseline_version),
-            source_mask INTEGER NOT NULL CHECK (source_mask = 2),
+            source_mask INTEGER NOT NULL
+                CHECK (source_mask > 0 AND source_mask <= 7),
             entitlement_source TEXT NOT NULL CHECK (entitlement_source =
-                'progress_credited_map_snapshot'),
+                'grandfathered_legacy_progress'),
             captured_at TEXT NOT NULL,
             cutoff_literal TEXT NOT NULL,
+            reconstruction_class TEXT NOT NULL CHECK (reconstruction_class IN
+                ('EXACT_RECONSTRUCTABLE','CONSERVATIVE_GRANDFATHERED')),
             PRIMARY KEY (user_id, question_id, baseline_version)
         )""",
     )
@@ -473,18 +572,28 @@ def _create_postgres_sql() -> tuple[str, str]:
             actual_membership_count INTEGER NOT NULL CHECK (actual_membership_count >= 0),
             membership_fingerprint TEXT NOT NULL,
             ready_at TEXT,
-            failure_reason TEXT
+            failure_reason TEXT,
+            predicate_reference_sha TEXT NOT NULL,
+            cutoff_operator TEXT NOT NULL,
+            cutoff_domain TEXT NOT NULL,
+            exact_membership_count INTEGER NOT NULL
+                CHECK (exact_membership_count >= 0),
+            conservative_membership_count INTEGER NOT NULL
+                CHECK (conservative_membership_count >= 0)
         )""",
         f"""CREATE TABLE IF NOT EXISTS public.{TABLE_NAME} (
             user_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             baseline_version TEXT NOT NULL
                 REFERENCES public.{BASELINE_TABLE_NAME}(baseline_version),
-            source_mask INTEGER NOT NULL CHECK (source_mask = 2),
+            source_mask INTEGER NOT NULL
+                CHECK (source_mask > 0 AND source_mask <= 7),
             entitlement_source TEXT NOT NULL CHECK (entitlement_source =
-                'progress_credited_map_snapshot'),
+                'grandfathered_legacy_progress'),
             captured_at TEXT NOT NULL,
             cutoff_literal TEXT NOT NULL,
+            reconstruction_class TEXT NOT NULL CHECK (reconstruction_class IN
+                ('EXACT_RECONSTRUCTABLE','CONSERVATIVE_GRANDFATHERED')),
             PRIMARY KEY (user_id, question_id, baseline_version)
         )""",
     )
@@ -542,6 +651,21 @@ __all__ = [
     "SOURCE_BOTH_MASK",
     "SOURCE_CARD_MASK",
     "SOURCE_REVIEW_MASK",
+    "SOURCE_REVIEW_GRADE_MASK",
+    "SOURCE_PROGRESS_CREDITED_MASK",
+    "SOURCE_LAST_GRADE_MASK",
+    "SOURCE_ALL_LEGACY_MASK",
+    "CUTOFF_OPERATOR",
+    "CUTOFF_DOMAIN",
+    "CUTOFF_TIMEZONE",
+    "CUTOFF_AUTHORITY",
+    "CUTOFF_PRODUCT_EVENT",
+    "PRECHANGE_PREDICATE_REFERENCE_SHA",
+    "GRANDFATHERED_ENTITLEMENT_SOURCE",
+    "RECONSTRUCTION_CLASS_EXACT",
+    "RECONSTRUCTION_CLASS_CONSERVATIVE",
+    "RECONSTRUCTION_CLASS_POST_CUTOFF_ONLY",
+    "RECONSTRUCTION_CLASSES",
     "SOURCE_RULE_VERSION",
     "STATUS_ABSENT",
     "STATUS_BUILDING",
@@ -551,7 +675,6 @@ __all__ = [
     "STATUS_FROZEN",
     "SchemaMismatch",
     "TABLE_NAME",
-    "TRUSTED_CARD_ENTITLEMENT_SOURCE",
     "baseline_readiness",
     "downgrade_for_isolated_test",
     "upgrade",

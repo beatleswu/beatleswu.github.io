@@ -1,9 +1,20 @@
-"""Controlled Incident 019B compatibility baseline runner and census.
+"""Grandfathered legacy continuity baseline runner, census and comparison.
+
+This tool builds and reports ``GRANDFATHERED_LEGACY_PROGRESS`` (Tier 1): the
+reconstruction of the complete pre-change player-facing display predicate at
+``4f2547a6defd60a228f77a4457b96f24b916e22c``.  Tier 1 is continuity
+entitlement.  It is never trusted correctness, never server-judged evidence,
+and never an input to Guild, leaderboard or reward settlement.
+
+Every membership is reported under its reconstruction class -- exact versus
+conservative -- so the two can never be conflated in an evidence claim.
 
 Default mode is read-only preview.  ``--capture-baseline`` is intentionally
 explicit and requires the exact version confirmation, ``--execute``, and the
-exact ``GO_PRODUCTION_DB_MIGRATION`` owner gate; it is the future governed
-migration/backfill entrypoint and is not run by this task.
+exact ``GO_PRODUCTION_DB_MIGRATION`` owner gate.
+
+``--compare-account --username <name>`` is a generic read-only comparison for
+any single account.  No account is hard-coded.
 
 The output contains only aggregate counts and short deterministic player
 pseudonyms.  It never prints connection details or account identifiers.
@@ -26,9 +37,16 @@ if str(_REPOSITORY_ROOT) not in sys.path:
 from adventure_progress_compatibility import (
     BASELINE_VERSION,
     CUTOFF_LITERAL,
+    PRECHANGE_PREDICATE_REFERENCE_SHA,
+    RECONSTRUCTION_CLASS_CONSERVATIVE,
+    RECONSTRUCTION_CLASS_EXACT,
     TRUSTED_REVIEW_SOURCE_PREFIXES,
     build_progression_milestone_dry_run,
     build_compatibility_census,
+    last_grade_fallback_memberships,
+    post_cutoff_review_memberships,
+    pre_cutoff_review_memberships,
+    prechange_display_reconstruction,
     qualifying_card_memberships,
     trusted_current_memberships,
     populate_frozen_historical_baseline,
@@ -194,7 +212,11 @@ def build_global_dry_run(
     """
 
     all_question_ids = set().union(*zone_question_ids.values()) if zone_question_ids else set()
-    baseline = qualifying_card_memberships(conn, question_ids=all_question_ids)
+    # Tier 1 is the full pre-change display predicate, not one column.
+    reconstruction = prechange_display_reconstruction(
+        conn, question_ids=all_question_ids, cutoff_literal=cutoff_literal
+    )
+    baseline = reconstruction["memberships"]
     current = trusted_current_memberships(conn, question_ids=all_question_ids)
     assert isinstance(baseline, dict)
     assert isinstance(current, dict)
@@ -256,27 +278,51 @@ def build_global_dry_run(
         "migration_owner_gate": MIGRATION_OWNER_GATE,
         "migration_publish_order": [
             "BASELINE_BUILDING",
-            "populate_trusted_progress_credited_memberships",
+            "reconstruct_prechange_display_predicate",
+            "classify_exact_and_conservative_memberships",
             "verify_count_and_fingerprint",
             "BASELINE_READY",
         ],
+        "predicate_reference_sha": PRECHANGE_PREDICATE_REFERENCE_SHA,
+        "exact_reconstructable_memberships": reconstruction["exact_count"],
+        "conservative_grandfathered_memberships": reconstruction["conservative_count"],
+        "post_cutoff_only_excluded": reconstruction["post_cutoff_only_count"],
+        "review_grade_branch_memberships": sum(
+            1 for mask in reconstruction["masks"].values() if mask & 1
+        ),
+        "progress_credited_branch_memberships": sum(
+            1 for mask in reconstruction["masks"].values() if mask & 2
+        ),
+        "last_grade_branch_memberships": sum(
+            1 for mask in reconstruction["masks"].values() if mask & 4
+        ),
+        "multi_source_memberships": sum(
+            1
+            for mask in reconstruction["masks"].values()
+            if bin(mask).count("1") > 1
+        ),
         "failure_recovery": "rollback_or_leave_non_ready_then_rerun_same_version",
-        "users_with_trusted_baseline_candidates": len(baseline),
-        "trusted_baseline_memberships_total": baseline_total,
+        "users_with_grandfathered_candidates": len(baseline),
+        "grandfathered_memberships_total": baseline_total,
         "duplicates_eliminated": max(0, raw_progress_rows - baseline_total),
         "unverifiable_memberships_excluded": len(
             (last_grade_only | non_client_unverifiable_pairs) - baseline_pairs - client_pairs
         ),
         "client_originated_memberships_excluded": len(client_pairs - baseline_pairs),
-        "owner_trusted_baseline_distinct": len(owner_baseline),
+        "owner_grandfathered_distinct": len(owner_baseline),
         "owner_current_mbv1_distinct": len(owner_current),
         "owner_baseline_mbv1_overlap": len(owner_overlap),
         "owner_effective_union_distinct": len(owner_baseline | owner_current),
         "owner_effective_zone_projection": owner_projection,
         "progression_blast_radius": progression_report,
         "raw_progress_rows_observed": raw_progress_rows,
-        "historical_source_rule": "srs_cards.progress_credited only",
-        "client_grade_source_used": False,
+        "historical_source_rule": (
+            "prechange display predicate: review_log.grade>=3 "
+            "| srs_cards.progress_credited | srs_cards.last_grade>=3"
+        ),
+        "historical_tier": "GRANDFATHERED_LEGACY_PROGRESS",
+        "historical_is_trusted_correctness": False,
+        "client_grade_source_used_as_correctness_authority": False,
         "cutoff_literal": cutoff_literal,
     }
 
@@ -294,9 +340,125 @@ def _zone_question_ids(app_module: Any) -> dict[str, set[int]]:
     }
 
 
+def resolve_user_id_by_username(conn: Any, username: str) -> int | None:
+    """Resolve one account id from a username, without printing either.
+
+    Deliberately generic: the tool must be able to compare any account, so no
+    Owner account name is compiled into the migration logic.
+    """
+
+    name = str(username or "").strip()
+    if not name:
+        return None
+    row = conn.execute(
+        "SELECT id FROM users WHERE username=?", (name,)
+    ).fetchone()
+    if row is None:
+        return None
+    try:
+        return int(row["id"])
+    except (KeyError, IndexError, TypeError):
+        return int(row[0])
+
+
+def build_account_comparison(
+    conn: Any,
+    zone_question_ids: dict[str, set[int]],
+    *,
+    user_id: int,
+    cutoff_literal: str = CUTOFF_LITERAL,
+) -> dict[str, Any]:
+    """Read-only per-account comparison of the old and new continuity models.
+
+    Answers the question this whole repair turns on: does reconstructing the
+    complete pre-change predicate differ materially from the earlier
+    ``progress_credited``-only estimate, and how much of the raw legacy set is
+    still renderable against the *current* canonical catalog?
+
+    Emits counts only.  The account identifier is never echoed.
+    """
+
+    all_ids: set[int] = set()
+    for ids in zone_question_ids.values():
+        all_ids |= set(ids)
+
+    reconstruction = prechange_display_reconstruction(
+        conn, question_ids=all_ids, cutoff_literal=cutoff_literal
+    )
+    classes = reconstruction["classes"]
+    masks = reconstruction["masks"]
+    mine = {
+        question_id
+        for (owner, question_id) in classes
+        if owner == int(user_id)
+    }
+    exact = {
+        question_id
+        for (owner, question_id), value in classes.items()
+        if owner == int(user_id) and value == RECONSTRUCTION_CLASS_EXACT
+    }
+    conservative = {
+        question_id
+        for (owner, question_id), value in classes.items()
+        if owner == int(user_id) and value == RECONSTRUCTION_CLASS_CONSERVATIVE
+    }
+    post_cutoff_only = {
+        question_id
+        for (owner, question_id) in reconstruction["post_cutoff_only"]
+        if owner == int(user_id)
+    }
+    credited_only = set(
+        qualifying_card_memberships(conn, question_ids=all_ids, user_id=int(user_id))
+    )
+    trusted_now = set(
+        trusted_current_memberships(
+            conn,
+            source_prefixes=TRUSTED_REVIEW_SOURCE_PREFIXES,
+            question_ids=all_ids,
+            user_id=int(user_id),
+        )
+    )
+
+    per_zone = {}
+    for zone_key, ids in sorted(zone_question_ids.items()):
+        zone_ids = set(ids)
+        per_zone[zone_key] = {
+            "canonical_denominator": len(zone_ids),
+            "grandfathered_raw": len(mine & zone_ids),
+            "exact": len(exact & zone_ids),
+            "conservative": len(conservative & zone_ids),
+            "currently_renderable": len((mine | trusted_now) & zone_ids),
+            "progress_credited_only_model": len(credited_only & zone_ids),
+        }
+
+    return {
+        "predicate_reference_sha": PRECHANGE_PREDICATE_REFERENCE_SHA,
+        "cutoff_literal": cutoff_literal,
+        "old_predicate_raw_set_count": len(mine),
+        "exact_reconstructable_count": len(exact),
+        "conservative_grandfathered_count": len(conservative),
+        "post_cutoff_only_count": len(post_cutoff_only),
+        "progress_credited_only_count": len(credited_only),
+        "old_predicate_minus_progress_credited_model": len(mine - credited_only),
+        "progress_credited_model_minus_old_predicate": len(credited_only - mine),
+        "trusted_current_count": len(trusted_now),
+        "currently_renderable_count": len(mine | trusted_now),
+        "multi_source_memberships": sum(
+            1
+            for (owner, _q), mask in masks.items()
+            if owner == int(user_id) and bin(mask).count("1") > 1
+        ),
+        "per_zone": per_zone,
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Incident 019B Adventure mastery compatibility census"
+        description=(
+            "Grandfathered legacy continuity (Tier 1) baseline runner, census "
+            "and generic per-account comparison. Tier 1 is continuity "
+            "entitlement, never trusted correctness."
+        )
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -334,7 +496,34 @@ def _parser() -> argparse.ArgumentParser:
         "--owner-user-id",
         type=int,
         default=None,
-        help="optional already-resolved Owner account id for one redacted projection; never printed",
+        help="optional already-resolved account id for one redacted projection; never printed",
+    )
+    mode.add_argument(
+        "--compare-account",
+        action="store_true",
+        help="read-only single-account comparison of old predicate vs current model",
+    )
+    parser.add_argument(
+        "--username",
+        default=None,
+        help="account to compare with --compare-account; no account is hard-coded",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=2000,
+        help="user-range batch size for bounded census scans",
+    )
+    parser.add_argument(
+        "--inter-batch-pause",
+        type=float,
+        default=0.0,
+        help="seconds to sleep between census batches to protect a live database",
+    )
+    parser.add_argument(
+        "--checkpoint-file",
+        default=None,
+        help="resumable checkpoint path; a rerun continues after the last batch",
     )
     return parser
 
@@ -342,6 +531,12 @@ def _parser() -> argparse.ArgumentParser:
 def _validate_execution_gate(args: argparse.Namespace) -> None:
     """Keep baseline mutation separate from ordinary deployment execution."""
 
+    if getattr(args, "compare_account", False):
+        if not str(getattr(args, "username", "") or "").strip():
+            raise SystemExit("--compare-account requires --username")
+        if args.execute or args.owner_gate:
+            raise SystemExit("--compare-account is read-only and takes no gate")
+        return
     if args.capture_baseline:
         if not args.execute:
             raise SystemExit(
@@ -374,6 +569,21 @@ def main(argv: list[str] | None = None) -> int:
 
     zone_question_ids = _zone_question_ids(app_module)
     all_question_ids = set().union(*zone_question_ids.values())
+    if args.compare_account:
+        with app_module.get_db() as conn:
+            _configure_read_only_transaction(conn)
+            resolved = resolve_user_id_by_username(conn, args.username)
+            if resolved is None:
+                raise SystemExit("account not found")
+            result = {
+                "mode": "compare_account",
+                "account_resolved": True,
+                "comparison": build_account_comparison(
+                    conn, zone_question_ids, user_id=resolved
+                ),
+            }
+        print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
     if args.capture_baseline:
         with app_module.get_db() as conn:
             result = populate_frozen_historical_baseline(

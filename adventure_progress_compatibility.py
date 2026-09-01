@@ -1,9 +1,19 @@
-"""Incident 019B Adventure mastery compatibility helpers.
+"""Grandfathered legacy continuity helpers for Adventure progress.
 
-The current trusted review path and the historical visible-product baseline
-are intentionally separate sets:
+Two tiers, deliberately never conflated:
 
-``visible = frozen_historical_baseline UNION trusted_current_reviews``
+``GRANDFATHERED_LEGACY_PROGRESS`` (Tier 1)
+    The deduplicated membership set the *pre-change* player-facing display
+    predicate produced, reconstructed from its three historical branches at
+    commit ``4f2547a6defd60a228f77a4457b96f24b916e22c``.  Tier 1 means the old
+    system already treated the membership as player progress.  It does NOT
+    mean the answer was verified to today's server-authoritative standard.
+
+``TRUSTED_SERVER_CORRECT_PROGRESS`` (Tier 2)
+    Current and future progress backed by the canonical server judge.  This is
+    the only correctness authority.
+
+``visible = GRANDFATHERED_LEGACY_PROGRESS UNION TRUSTED_SERVER_CORRECT_PROGRESS``
 
 The baseline is captured once by the controlled runner in
 ``tools/incident_019b_progression_continuity.py``.  No request path writes to
@@ -22,15 +32,23 @@ from typing import Any, Iterable, Mapping, Sequence
 from migrations.adventure_historical_mastery_v1 import (
     BASELINE_TABLE_NAME,
     BASELINE_VERSION,
+    CUTOFF_DOMAIN,
     CUTOFF_LITERAL,
-    SOURCE_CARD_MASK,
-    SOURCE_REVIEW_MASK,
+    CUTOFF_OPERATOR,
+    GRANDFATHERED_ENTITLEMENT_SOURCE,
+    PRECHANGE_PREDICATE_REFERENCE_SHA,
+    RECONSTRUCTION_CLASS_CONSERVATIVE,
+    RECONSTRUCTION_CLASS_EXACT,
+    RECONSTRUCTION_CLASS_POST_CUTOFF_ONLY,
+    SOURCE_ALL_LEGACY_MASK,
+    SOURCE_LAST_GRADE_MASK,
+    SOURCE_PROGRESS_CREDITED_MASK,
+    SOURCE_REVIEW_GRADE_MASK,
     SOURCE_RULE_VERSION,
     STATUS_CAPTURING,
     STATUS_FAILED_OR_INVALID,
     STATUS_FROZEN,
     STATUS_READY,
-    TRUSTED_CARD_ENTITLEMENT_SOURCE,
     TABLE_NAME,
     baseline_readiness,
     upgrade as upgrade_schema,
@@ -151,18 +169,50 @@ def pre_cutoff_review_memberships(
     return result.get(int(user_id), set())
 
 
+def post_cutoff_review_memberships(
+    conn: Any,
+    *,
+    cutoff_literal: str = CUTOFF_LITERAL,
+    question_ids: Iterable[Any] | None = None,
+    user_id: int | None = None,
+) -> dict[int, set[int]] | set[int]:
+    """Qualifying review memberships on the *current* side of the cutoff.
+
+    Used only to positively establish ``POST_CUTOFF_ONLY``: a card flag whose
+    sole qualifying review evidence is later than the boundary did not exist
+    as player progress before it, so it must not be grandfathered.
+    """
+
+    normalized_ids = _normalize_question_ids(question_ids)
+    user_sql = " AND user_id=?" if user_id is not None else ""
+    params_list: list[Any] = [cutoff_literal]
+    if user_id is not None:
+        params_list.append(int(user_id))
+    sql = (
+        "SELECT DISTINCT user_id, question_id FROM review_log "
+        f"WHERE grade>=3 AND reviewed_at >= ?{user_sql}"
+        "{question_filter}"
+    )
+    result = _fetch_memberships(conn, sql, tuple(params_list), normalized_ids)
+    if user_id is None:
+        return result
+    return result.get(int(user_id), set())
+
+
 def qualifying_card_memberships(
     conn: Any,
     *,
     question_ids: Iterable[Any] | None = None,
     user_id: int | None = None,
 ) -> dict[int, set[int]] | set[int]:
-    """Return trusted historical Map progress from ``progress_credited``.
+    """Branch 2 of the historical predicate: the sticky ``progress_credited`` bit.
 
-    ``last_grade`` is a scheduling/display field and may have been populated
-    from a public client grade.  It is intentionally not a continuity
-    authority.  The only historical card predicate admitted to the baseline is
-    the server-owned sticky ``progress_credited`` bit.
+    This is a *continuity* source, not a correctness source.  The ``internal``
+    gate that makes the column server-owned only landed in B050
+    (``a44aa7e2a``, 2026-08-28); values accumulated before that could be set by
+    a public client-reported grade, and the bit carries no timestamp that would
+    let the two be told apart.  It is therefore admitted to Tier 1 only, and
+    never described as server-judged.
     """
 
     normalized_ids = _normalize_question_ids(question_ids)
@@ -177,6 +227,156 @@ def qualifying_card_memberships(
     if user_id is None:
         return result
     return result.get(int(user_id), set())
+
+
+def last_grade_fallback_memberships(
+    conn: Any,
+    *,
+    question_ids: Iterable[Any] | None = None,
+    user_id: int | None = None,
+) -> dict[int, set[int]] | set[int]:
+    """Branch 3 of the historical predicate: the narrow ``last_grade`` fallback.
+
+    The pre-change predicate admitted a card when
+    ``progress_credited OR (last_grade or 0) >= 3``.  ``last_grade`` is mutable
+    and carries no history, so a membership resting on it alone can never be
+    proven to have existed before the cutoff -- it is preserved under the
+    Owner's explicit conservative continuity rule, labelled as such.
+    """
+
+    normalized_ids = _normalize_question_ids(question_ids)
+    user_sql = " AND user_id=?" if user_id is not None else ""
+    params: tuple[Any, ...] = (int(user_id),) if user_id is not None else ()
+    sql = (
+        "SELECT DISTINCT user_id, question_id FROM srs_cards "
+        f"WHERE COALESCE(last_grade, 0) >= 3{user_sql}"
+        "{question_filter}"
+    )
+    result = _fetch_memberships(conn, sql, params, normalized_ids)
+    if user_id is None:
+        return result
+    return result.get(int(user_id), set())
+
+
+def prechange_display_reconstruction(
+    conn: Any,
+    *,
+    question_ids: Iterable[Any] | None = None,
+    cutoff_literal: str = CUTOFF_LITERAL,
+) -> dict[str, Any]:
+    """Reconstruct the pre-change display predicate with provenance and class.
+
+    The historical implementation at
+    ``4f2547a6defd60a228f77a4457b96f24b916e22c`` was::
+
+        correct = {review_log.question_id where grade >= 3}
+                | {card.question_id where progress_credited
+                                       or (last_grade or 0) >= 3}
+
+    with no temporal filter on any branch.  Freezing it therefore requires an
+    explicit rule per branch:
+
+    ``EXACT_RECONSTRUCTABLE``
+        A qualifying review strictly before the cutoff proves the membership
+        existed on the legacy side of the boundary.
+
+    ``CONSERVATIVE_GRANDFATHERED``
+        An orphan card membership -- ``progress_credited`` and/or
+        ``last_grade >= 3`` with no qualifying review row at all.  Undated, so
+        unprovable in either direction; preserved by explicit Owner policy
+        because the old display predicate treated it as player progress.
+
+    ``POST_CUTOFF_ONLY``
+        A card membership whose only qualifying review evidence is at or after
+        the cutoff.  Positively established as later activity, so it is
+        excluded from Tier 1 and left to the normal Tier 2 trusted path.
+
+    Returns provenance masks and classes; performs no writes.
+    """
+
+    normalized_ids = _normalize_question_ids(question_ids)
+    pre = _normalized_membership_map(
+        pre_cutoff_review_memberships(
+            conn, cutoff_literal=cutoff_literal, question_ids=normalized_ids
+        )
+    )
+    post = _normalized_membership_map(
+        post_cutoff_review_memberships(
+            conn, cutoff_literal=cutoff_literal, question_ids=normalized_ids
+        )
+    )
+    credited = _normalized_membership_map(
+        qualifying_card_memberships(conn, question_ids=normalized_ids)
+    )
+    last_grade = _normalized_membership_map(
+        last_grade_fallback_memberships(conn, question_ids=normalized_ids)
+    )
+
+    masks: dict[tuple[int, int], int] = {}
+    classes: dict[tuple[int, int], str] = {}
+    post_cutoff_only: set[tuple[int, int]] = set()
+
+    def _card_mask(key: tuple[int, int]) -> int:
+        user_id, question_id = key
+        mask = 0
+        if question_id in credited.get(user_id, ()):
+            mask |= SOURCE_PROGRESS_CREDITED_MASK
+        if question_id in last_grade.get(user_id, ()):
+            mask |= SOURCE_LAST_GRADE_MASK
+        return mask
+
+    for user_id, question_ids_for_user in pre.items():
+        for question_id in question_ids_for_user:
+            key = (user_id, question_id)
+            masks[key] = SOURCE_REVIEW_GRADE_MASK | _card_mask(key)
+            classes[key] = RECONSTRUCTION_CLASS_EXACT
+
+    for source in (credited, last_grade):
+        for user_id, question_ids_for_user in source.items():
+            for question_id in question_ids_for_user:
+                key = (user_id, question_id)
+                if key in classes:
+                    continue
+                if question_id in post.get(user_id, ()):
+                    # Only qualifying evidence is after the boundary.
+                    post_cutoff_only.add(key)
+                    continue
+                masks[key] = _card_mask(key)
+                classes[key] = RECONSTRUCTION_CLASS_CONSERVATIVE
+
+    # Qualifying evidence that exists only on the current side of the boundary
+    # is recorded explicitly rather than simply not appearing.  Every
+    # membership the historical predicate would have displayed is therefore
+    # either published as Tier 1 or accounted for here -- nothing is dropped
+    # in silence, which is what makes "no legacy progress disappears" auditable.
+    for user_id, question_ids_for_user in post.items():
+        for question_id in question_ids_for_user:
+            key = (user_id, question_id)
+            if key not in classes:
+                post_cutoff_only.add(key)
+
+    memberships: dict[int, set[int]] = defaultdict(set)
+    for user_id, question_id in masks:
+        memberships[user_id].add(question_id)
+    return {
+        "memberships": dict(memberships),
+        "masks": masks,
+        "classes": classes,
+        "post_cutoff_only": post_cutoff_only,
+        "exact_count": sum(
+            1 for value in classes.values() if value == RECONSTRUCTION_CLASS_EXACT
+        ),
+        "conservative_count": sum(
+            1
+            for value in classes.values()
+            if value == RECONSTRUCTION_CLASS_CONSERVATIVE
+        ),
+        "post_cutoff_only_count": len(post_cutoff_only),
+        "predicate_reference_sha": PRECHANGE_PREDICATE_REFERENCE_SHA,
+        "cutoff_literal": cutoff_literal,
+        "cutoff_operator": CUTOFF_OPERATOR,
+        "cutoff_domain": CUTOFF_DOMAIN,
+    }
 
 
 def trusted_current_memberships(
@@ -241,9 +441,14 @@ def frozen_historical_memberships(
         params_list.append(int(user_id))
     rows = conn.execute(
         f"SELECT DISTINCT user_id, question_id FROM {_table_ref(conn, TABLE_NAME)} "
-        f"WHERE baseline_version=? AND source_mask=? "
-        f"AND entitlement_source=?{user_sql}",
-        (baseline_version, SOURCE_CARD_MASK, TRUSTED_CARD_ENTITLEMENT_SOURCE, *params_list[1:]),
+        f"WHERE baseline_version=? AND entitlement_source=? "
+        f"AND source_mask > 0 AND source_mask <= ?{user_sql}",
+        (
+            baseline_version,
+            GRANDFATHERED_ENTITLEMENT_SOURCE,
+            SOURCE_ALL_LEGACY_MASK,
+            *params_list[1:],
+        ),
     ).fetchall()
     result: dict[int, set[int]] = defaultdict(set)
     for row in rows:
@@ -264,8 +469,8 @@ def frozen_source_masks(
         return {}
     rows = conn.execute(
         f"SELECT user_id, question_id, source_mask FROM {_table_ref(conn, TABLE_NAME)} "
-        "WHERE baseline_version=? AND source_mask=? AND entitlement_source=?",
-        (baseline_version, SOURCE_CARD_MASK, TRUSTED_CARD_ENTITLEMENT_SOURCE),
+        "WHERE baseline_version=? AND entitlement_source=?",
+        (baseline_version, GRANDFATHERED_ENTITLEMENT_SOURCE),
     ).fetchall()
     return {
         (
@@ -274,6 +479,77 @@ def frozen_source_masks(
         ): int(_value(row, 2, "source_mask"))
         for row in rows
     }
+
+
+def frozen_reconstruction_classes(
+    conn: Any,
+    *,
+    baseline_version: str = BASELINE_VERSION,
+) -> dict[tuple[int, int], str]:
+    """Return the reconstruction class of each published continuity membership.
+
+    Exists so ``EXACT_RECONSTRUCTABLE`` and ``CONSERVATIVE_GRANDFATHERED``
+    remain separately reportable for the lifetime of the baseline, as the
+    Owner policy requires.
+    """
+
+    if not _frozen_baseline_ready(conn, baseline_version=baseline_version):
+        return {}
+    rows = conn.execute(
+        f"SELECT user_id, question_id, reconstruction_class "
+        f"FROM {_table_ref(conn, TABLE_NAME)} WHERE baseline_version=?",
+        (baseline_version,),
+    ).fetchall()
+    return {
+        (
+            int(_value(row, 0, "user_id")),
+            int(_value(row, 1, "question_id")),
+        ): str(_value(row, 2, "reconstruction_class"))
+        for row in rows
+    }
+
+
+def trusted_correct_count_after(
+    conn: Any,
+    user_id: int,
+    question_ids: Iterable[Any],
+    after_literal: str,
+    *,
+    trusted_source_prefixes: Iterable[str] = TRUSTED_REVIEW_SOURCE_PREFIXES,
+) -> int:
+    """Count distinct Tier 2 questions answered correctly strictly after a moment.
+
+    This is the post-Lord-failure retry measurement.  It reads only trusted
+    current evidence: the grandfathered baseline is never consulted, so no
+    amount of restored historical continuity can satisfy a retry lock, and an
+    undated legacy membership contributes nothing.  ``reviewed_at`` is compared
+    in the same stored naive domain as the failure timestamp.
+    """
+
+    normalized_ids = _normalize_question_ids(question_ids) or ()
+    if not normalized_ids or not str(after_literal or "").strip():
+        return 0
+    prefixes = tuple(str(prefix) for prefix in trusted_source_prefixes if str(prefix))
+    if not prefixes:
+        return 0
+    clauses = " OR ".join("source_context LIKE ?" for _ in prefixes)
+    total = 0
+    for start in range(0, len(normalized_ids), _QUERY_CHUNK_SIZE):
+        batch = normalized_ids[start : start + _QUERY_CHUNK_SIZE]
+        placeholders = ",".join("?" for _ in batch)
+        row = conn.execute(
+            "SELECT COUNT(DISTINCT question_id) FROM review_log "
+            "WHERE user_id=? AND grade>=3 AND reviewed_at > ? "
+            f"AND ({clauses}) AND question_id IN ({placeholders})",
+            (
+                int(user_id),
+                str(after_literal),
+                *[f"{prefix}%" for prefix in prefixes],
+                *batch,
+            ),
+        ).fetchone()
+        total += int(row[0] or 0)
+    return total
 
 
 def visible_adventure_question_ids(
@@ -337,8 +613,8 @@ def visible_adventure_question_count(
             sql = (
                 "SELECT COUNT(*) FROM ("
                 f"SELECT question_id FROM {_table_ref(conn, TABLE_NAME)} "
-                "WHERE user_id=? AND baseline_version=? AND source_mask=? "
-                "AND entitlement_source=? AND question_id IN (" + placeholders + ") "
+                "WHERE user_id=? AND baseline_version=? AND entitlement_source=? "
+                "AND question_id IN (" + placeholders + ") "
                 "UNION "
                 "SELECT question_id FROM review_log WHERE user_id=? AND grade>=3 "
                 "AND (" + current_clauses + ") AND question_id IN (" + placeholders + ")"
@@ -347,8 +623,7 @@ def visible_adventure_question_count(
             params = [
                 int(user_id),
                 baseline_version,
-                SOURCE_CARD_MASK,
-                TRUSTED_CARD_ENTITLEMENT_SOURCE,
+                GRANDFATHERED_ENTITLEMENT_SOURCE,
                 *batch,
                 *current_params,
             ]
@@ -401,11 +676,11 @@ def _source_mask_memberships(
     masks: dict[tuple[int, int], int] = {}
     for user_id, question_ids in review.items():
         for question_id in question_ids:
-            masks[(int(user_id), int(question_id))] = SOURCE_REVIEW_MASK
+            masks[(int(user_id), int(question_id))] = SOURCE_REVIEW_GRADE_MASK
     for user_id, question_ids in cards.items():
         for question_id in question_ids:
             key = (int(user_id), int(question_id))
-            masks[key] = masks.get(key, 0) | SOURCE_CARD_MASK
+            masks[key] = masks.get(key, 0) | SOURCE_PROGRESS_CREDITED_MASK
     return masks
 
 
@@ -424,9 +699,16 @@ def membership_fingerprint(memberships: Mapping[int, Iterable[int]]) -> str:
 
 
 def entitlement_source_for_mask(source_mask: int) -> str:
-    if source_mask == SOURCE_CARD_MASK:
-        return TRUSTED_CARD_ENTITLEMENT_SOURCE
-    raise ValueError(f"unsupported compatibility source mask: {source_mask}")
+    """Every legacy branch rolls up to one continuity entitlement class.
+
+    The detailed branch bits stay in ``source_mask`` for audit; the
+    entitlement name deliberately never claims trusted correctness.
+    """
+
+    mask = int(source_mask)
+    if 0 < mask <= SOURCE_ALL_LEGACY_MASK:
+        return GRANDFATHERED_ENTITLEMENT_SOURCE
+    raise ValueError(f"unsupported continuity source mask: {source_mask}")
 
 
 def _utc_naive_now() -> str:
@@ -471,7 +753,10 @@ def populate_frozen_historical_baseline(
         status = str(_value(existing, 4, "status") or "")
         if status == STATUS_READY:
             readiness = baseline_readiness(
-                conn, baseline_version=baseline_version, verify_fingerprint=True
+                conn,
+                baseline_version=baseline_version,
+                verify_integrity=True,
+                verify_fingerprint=True,
             )
             if not readiness.get("valid"):
                 raise RuntimeError("ready compatibility baseline is inconsistent")
@@ -480,8 +765,11 @@ def populate_frozen_historical_baseline(
                 "already_ready": True,
                 "already_frozen": True,
                 "membership_count": int(readiness["actual_membership_count"]),
-                "review_memberships": 0,
-                "card_memberships": int(readiness["actual_membership_count"]),
+                "exact_membership_count": int(readiness["exact_membership_count"]),
+                "conservative_membership_count": int(
+                    readiness["conservative_membership_count"]
+                ),
+                "predicate_reference_sha": readiness["predicate_reference_sha"],
             }
         if status not in (STATUS_CAPTURING, STATUS_FAILED_OR_INVALID):
             raise RuntimeError(f"unsupported compatibility baseline state: {status}")
@@ -496,6 +784,7 @@ def populate_frozen_historical_baseline(
         conn.execute(
             f"UPDATE {metadata_ref} SET status=?, frozen_at='', membership_count=0, "
             "expected_membership_count=0, actual_membership_count=0, "
+            "exact_membership_count=0, conservative_membership_count=0, "
             "membership_fingerprint='', failure_reason=NULL, ready_at=NULL "
             "WHERE baseline_version=?",
             (STATUS_CAPTURING, baseline_version),
@@ -515,8 +804,10 @@ def populate_frozen_historical_baseline(
             f"INSERT INTO {metadata_ref} "
             "(baseline_version, cutoff_literal, captured_at, frozen_at, status, membership_count, "
             " source_rule_version, expected_membership_count, actual_membership_count, "
-            " membership_fingerprint, ready_at, failure_reason) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            " membership_fingerprint, ready_at, failure_reason, "
+            " predicate_reference_sha, cutoff_operator, cutoff_domain, "
+            " exact_membership_count, conservative_membership_count) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 baseline_version,
                 cutoff_literal,
@@ -530,6 +821,11 @@ def populate_frozen_historical_baseline(
                 "",
                 None,
                 None,
+                PRECHANGE_PREDICATE_REFERENCE_SHA,
+                CUTOFF_OPERATOR,
+                CUTOFF_DOMAIN,
+                0,
+                0,
             ),
         )
 
@@ -539,16 +835,15 @@ def populate_frozen_historical_baseline(
     ).fetchone()
     capture_time = str(captured_at or _value(existing_metadata, 0, "captured_at"))
 
-    # The historical review and public last_grade predicates are intentionally
-    # measured nowhere in the publish set.  They remain available as separate
-    # diagnostics, but cannot become continuity authority.
-    cards = qualifying_card_memberships(conn, question_ids=normalized_ids)
-    assert isinstance(cards, dict)
-    masks = {
-        (int(user_id), int(question_id)): SOURCE_CARD_MASK
-        for user_id, question_ids_for_user in cards.items()
-        for question_id in question_ids_for_user
-    }
+    # Reconstruct the complete pre-change display predicate -- all three
+    # historical branches -- and classify each membership.  Only classified
+    # memberships are published; POST_CUTOFF_ONLY is deliberately dropped.
+    reconstruction = prechange_display_reconstruction(
+        conn, question_ids=normalized_ids, cutoff_literal=cutoff_literal
+    )
+    memberships = reconstruction["memberships"]
+    masks = reconstruction["masks"]
+    classes = reconstruction["classes"]
     values = [
         (
             user_id,
@@ -558,6 +853,7 @@ def populate_frozen_historical_baseline(
             entitlement_source_for_mask(source_mask),
             capture_time,
             cutoff_literal,
+            classes[(user_id, question_id)],
         )
         for (user_id, question_id), source_mask in sorted(masks.items())
     ]
@@ -565,17 +861,32 @@ def populate_frozen_historical_baseline(
         conn.executemany(
             f"INSERT INTO {membership_ref} "
             "(user_id, question_id, baseline_version, source_mask, entitlement_source, "
-            "captured_at, cutoff_literal) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?) "
+            "captured_at, cutoff_literal, reconstruction_class) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
             "ON CONFLICT(user_id, question_id, baseline_version) DO NOTHING",
             values,
         )
     expected_count = len(masks)
-    fingerprint = membership_fingerprint(cards)
+    exact_count = int(reconstruction["exact_count"])
+    conservative_count = int(reconstruction["conservative_count"])
+    fingerprint = membership_fingerprint(memberships)
     conn.execute(
         f"UPDATE {metadata_ref} SET source_rule_version=?, expected_membership_count=?, "
-        "membership_fingerprint=? WHERE baseline_version=? AND status=?",
-        (SOURCE_RULE_VERSION, expected_count, fingerprint, baseline_version, STATUS_CAPTURING),
+        "membership_fingerprint=?, predicate_reference_sha=?, cutoff_operator=?, "
+        "cutoff_domain=?, exact_membership_count=?, conservative_membership_count=? "
+        "WHERE baseline_version=? AND status=?",
+        (
+            SOURCE_RULE_VERSION,
+            expected_count,
+            fingerprint,
+            PRECHANGE_PREDICATE_REFERENCE_SHA,
+            CUTOFF_OPERATOR,
+            CUTOFF_DOMAIN,
+            exact_count,
+            conservative_count,
+            baseline_version,
+            STATUS_CAPTURING,
+        ),
     )
     count = int(
         conn.execute(
@@ -618,7 +929,10 @@ def populate_frozen_historical_baseline(
         ),
     )
     readiness = baseline_readiness(
-        conn, baseline_version=baseline_version, verify_fingerprint=True
+        conn,
+        baseline_version=baseline_version,
+        verify_integrity=True,
+        verify_fingerprint=True,
     )
     if not readiness.get("valid"):
         raise RuntimeError("compatibility baseline did not become integrity-valid")
@@ -627,10 +941,30 @@ def populate_frozen_historical_baseline(
         "already_ready": False,
         "already_frozen": False,
         "membership_count": count,
-        "review_memberships": 0,
-        "card_memberships": sum(len(values_) for values_ in cards.values()),
-        "overlap_memberships": 0,
+        "exact_membership_count": exact_count,
+        "conservative_membership_count": conservative_count,
+        "post_cutoff_only_count": int(reconstruction["post_cutoff_only_count"]),
+        "review_grade_memberships": sum(
+            1
+            for mask in masks.values()
+            if mask & SOURCE_REVIEW_GRADE_MASK
+        ),
+        "progress_credited_memberships": sum(
+            1
+            for mask in masks.values()
+            if mask & SOURCE_PROGRESS_CREDITED_MASK
+        ),
+        "last_grade_memberships": sum(
+            1 for mask in masks.values() if mask & SOURCE_LAST_GRADE_MASK
+        ),
+        "multi_source_memberships": sum(
+            1 for mask in masks.values() if bin(mask).count("1") > 1
+        ),
         "source_rule_version": SOURCE_RULE_VERSION,
+        "predicate_reference_sha": PRECHANGE_PREDICATE_REFERENCE_SHA,
+        "cutoff_literal": cutoff_literal,
+        "cutoff_operator": CUTOFF_OPERATOR,
+        "cutoff_domain": CUTOFF_DOMAIN,
         "expected_membership_count": expected_count,
         "actual_membership_count": count,
         "membership_fingerprint": fingerprint,
@@ -702,11 +1036,15 @@ def build_compatibility_census(
         for (user_id, question_id), source_mask in masks.items():
             if question_id not in allowed_ids:
                 continue
-            if source_mask & SOURCE_REVIEW_MASK:
+            if source_mask & SOURCE_REVIEW_GRADE_MASK:
                 snapshot_review[user_id].add(question_id)
-            if source_mask & SOURCE_CARD_MASK:
+            if source_mask & (
+                SOURCE_PROGRESS_CREDITED_MASK | SOURCE_LAST_GRADE_MASK
+            ):
                 snapshot_cards[user_id].add(question_id)
-            if source_mask == SOURCE_CARD_MASK:
+            if not source_mask & SOURCE_REVIEW_GRADE_MASK:
+                # Card-only: an orphan continuity membership with no
+                # qualifying review row behind it.
                 sticky_only_pairs.add((user_id, question_id))
         review = dict(snapshot_review)
         cards = dict(snapshot_cards)
@@ -955,17 +1293,26 @@ __all__ = [
     "BASELINE_VERSION",
     "CUTOFF_LITERAL",
     "SOURCE_RULE_VERSION",
-    "TRUSTED_CARD_ENTITLEMENT_SOURCE",
+    "GRANDFATHERED_ENTITLEMENT_SOURCE",
+    "PRECHANGE_PREDICATE_REFERENCE_SHA",
+    "RECONSTRUCTION_CLASS_CONSERVATIVE",
+    "RECONSTRUCTION_CLASS_EXACT",
+    "RECONSTRUCTION_CLASS_POST_CUTOFF_ONLY",
     "TRUSTED_REVIEW_SOURCE_PREFIXES",
     "baseline_readiness",
     "build_compatibility_census",
     "build_progression_milestone_dry_run",
     "entitlement_source_for_mask",
     "frozen_historical_memberships",
+    "frozen_reconstruction_classes",
     "frozen_source_masks",
+    "last_grade_fallback_memberships",
     "membership_fingerprint",
     "populate_frozen_historical_baseline",
+    "post_cutoff_review_memberships",
     "pre_cutoff_review_memberships",
+    "prechange_display_reconstruction",
+    "trusted_correct_count_after",
     "qualifying_card_memberships",
     "trusted_current_memberships",
     "current_adventure_question_count",

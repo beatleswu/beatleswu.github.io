@@ -13,6 +13,7 @@ from adventure_progress_compatibility import (
     BASELINE_VERSION,
     build_compatibility_census,
     frozen_historical_memberships,
+    frozen_reconstruction_classes,
     frozen_source_masks,
     populate_frozen_historical_baseline,
     trusted_current_memberships,
@@ -20,9 +21,16 @@ from adventure_progress_compatibility import (
 )
 from migrations.adventure_historical_mastery_v1 import (
     BASELINE_TABLE_NAME,
+    CUTOFF_DOMAIN,
     CUTOFF_LITERAL,
-    SOURCE_CARD_MASK,
-    SOURCE_REVIEW_MASK,
+    CUTOFF_OPERATOR,
+    GRANDFATHERED_ENTITLEMENT_SOURCE,
+    PRECHANGE_PREDICATE_REFERENCE_SHA,
+    RECONSTRUCTION_CLASS_CONSERVATIVE,
+    RECONSTRUCTION_CLASS_EXACT,
+    SOURCE_LAST_GRADE_MASK,
+    SOURCE_PROGRESS_CREDITED_MASK,
+    SOURCE_REVIEW_GRADE_MASK,
     STATUS_CAPTURING,
     TABLE_NAME,
     upgrade,
@@ -90,29 +98,39 @@ def test_additive_schema_is_valid_and_idempotent(conn):
     ).fetchall()
 
 
-def test_capture_uses_strict_server_owned_card_predicate(conn):
+def test_capture_reconstructs_prechange_predicate_with_strict_cutoff(conn):
+    # 10: qualifying review strictly before the cutoff -> exactly reconstructable.
     _review(conn, 1, 10, reviewed_at="2026-08-29T13:17:29")
+    # 11: review lands exactly ON the cutoff.  The operator is strict ``<``, so
+    # this is current-side evidence and the card flag it produced must not be
+    # grandfathered.
     _review(conn, 1, 11, reviewed_at=CUTOFF_LITERAL)
-    _review(conn, 1, 12, reviewed_at="2026-08-29T13:17:31", source_context="mbv1:future")
     _card(conn, 1, 11, last_grade=0, progress_credited=1)
+    # 12: only qualifying evidence is after the cutoff -> POST_CUTOFF_ONLY.
+    _review(conn, 1, 12, reviewed_at="2026-08-29T13:17:31", source_context="mbv1:future")
     _card(conn, 1, 12, last_grade=3, progress_credited=0)
+    # 13: never qualified under any branch.
     _card(conn, 1, 13, last_grade=2, progress_credited=0)
     conn.commit()
 
     result = populate_frozen_historical_baseline(conn, question_ids={10, 11, 12, 13}, captured_at="2026-09-01T00:00:00")
     conn.commit()
 
-    # Public review rows and a card's last_grade are not continuity authority;
-    # only the server-owned sticky progress_credited bit is admitted.
     assert result["membership_count"] == 1
-    assert frozen_historical_memberships(conn, user_id=1) == {11}
+    assert result["exact_membership_count"] == 1
+    assert result["conservative_membership_count"] == 0
+    assert result["post_cutoff_only_count"] == 2
+    assert frozen_historical_memberships(conn, user_id=1) == {10}
     masks = frozen_source_masks(conn)
-    assert masks[(1, 11)] == SOURCE_CARD_MASK
-    assert (1, 10) not in masks
+    assert masks[(1, 10)] == SOURCE_REVIEW_GRADE_MASK
+    assert (1, 11) not in masks
     assert (1, 12) not in masks
+    assert (1, 13) not in masks
+    classes = frozen_reconstruction_classes(conn)
+    assert classes[(1, 10)] == RECONSTRUCTION_CLASS_EXACT
 
 
-def test_overlap_is_deduplicated_and_source_provenance_is_preserved(conn):
+def test_overlap_is_deduplicated_and_every_source_branch_is_preserved(conn):
     _review(conn, 2, 20, reviewed_at="2026-08-01T00:00:00")
     _card(conn, 2, 20, last_grade=3, progress_credited=1)
     conn.commit()
@@ -123,7 +141,34 @@ def test_overlap_is_deduplicated_and_source_provenance_is_preserved(conn):
     assert conn.execute(
         "SELECT COUNT(*) FROM adventure_historical_mastery WHERE user_id=2 AND question_id=20",
     ).fetchone()[0] == 1
-    assert frozen_source_masks(conn)[(2, 20)] == SOURCE_CARD_MASK
+    # Deduplicated to one visible membership, but all three historical branches
+    # remain independently auditable.
+    assert frozen_source_masks(conn)[(2, 20)] == (
+        SOURCE_REVIEW_GRADE_MASK
+        | SOURCE_PROGRESS_CREDITED_MASK
+        | SOURCE_LAST_GRADE_MASK
+    )
+
+
+def test_orphan_card_memberships_are_conservative_not_exact(conn):
+    # No review row at all: undated legacy compatibility state.  Preserved by
+    # explicit Owner continuity policy, but never called exact.
+    _card(conn, 6, 60, last_grade=0, progress_credited=1)
+    _card(conn, 6, 61, last_grade=5, progress_credited=0)
+    conn.commit()
+
+    result = populate_frozen_historical_baseline(conn, question_ids={60, 61}, captured_at="2026-09-01T00:00:00")
+    conn.commit()
+
+    assert result["exact_membership_count"] == 0
+    assert result["conservative_membership_count"] == 2
+    assert frozen_historical_memberships(conn, user_id=6) == {60, 61}
+    classes = frozen_reconstruction_classes(conn)
+    assert classes[(6, 60)] == RECONSTRUCTION_CLASS_CONSERVATIVE
+    assert classes[(6, 61)] == RECONSTRUCTION_CLASS_CONSERVATIVE
+    masks = frozen_source_masks(conn)
+    assert masks[(6, 60)] == SOURCE_PROGRESS_CREDITED_MASK
+    assert masks[(6, 61)] == SOURCE_LAST_GRADE_MASK
 
 
 def test_frozen_runner_is_one_time_and_future_cards_cannot_grow_baseline(conn):
@@ -155,16 +200,21 @@ def test_request_read_path_ignores_incomplete_or_unfrozen_baseline(conn):
         f"INSERT INTO {BASELINE_TABLE_NAME} "
         "(baseline_version, cutoff_literal, captured_at, frozen_at, status, membership_count, "
         "source_rule_version, expected_membership_count, actual_membership_count, "
-        "membership_fingerprint, ready_at, failure_reason) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "membership_fingerprint, ready_at, failure_reason, predicate_reference_sha, "
+        "cutoff_operator, cutoff_domain, exact_membership_count, conservative_membership_count) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (BASELINE_VERSION, CUTOFF_LITERAL, "2026-09-01T00:00:00", "", STATUS_CAPTURING, 0,
-         "progress_credited_map_v1", 0, 0, "", None, None),
+         "prechange_display_predicate_v1", 0, 0, "", None, None,
+         PRECHANGE_PREDICATE_REFERENCE_SHA, CUTOFF_OPERATOR, CUTOFF_DOMAIN, 0, 0),
     )
     conn.execute(
         f"INSERT INTO {TABLE_NAME} "
-        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, cutoff_literal) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (4, 41, BASELINE_VERSION, SOURCE_CARD_MASK, "progress_credited_map_snapshot", "2026-09-01T00:00:00", CUTOFF_LITERAL),
+        "(user_id, question_id, baseline_version, source_mask, entitlement_source, "
+        "captured_at, cutoff_literal, reconstruction_class) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (4, 41, BASELINE_VERSION, SOURCE_PROGRESS_CREDITED_MASK,
+         GRANDFATHERED_ENTITLEMENT_SOURCE, "2026-09-01T00:00:00", CUTOFF_LITERAL,
+         RECONSTRUCTION_CLASS_CONSERVATIVE),
     )
     conn.commit()
 

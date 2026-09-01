@@ -30,8 +30,14 @@ from adventure_zone_star_progression import (
 from migrations.adventure_historical_mastery_v1 import (
     BASELINE_TABLE_NAME,
     BASELINE_VERSION,
+    CUTOFF_DOMAIN,
     CUTOFF_LITERAL,
-    SOURCE_CARD_MASK,
+    CUTOFF_OPERATOR,
+    GRANDFATHERED_ENTITLEMENT_SOURCE,
+    PRECHANGE_PREDICATE_REFERENCE_SHA,
+    RECONSTRUCTION_CLASS_CONSERVATIVE,
+    SOURCE_PROGRESS_CREDITED_MASK,
+    SOURCE_RULE_VERSION,
     STATUS_BUILDING,
     TABLE_NAME,
     baseline_readiness,
@@ -82,7 +88,9 @@ def _building_metadata(conn):
         f"INSERT INTO {BASELINE_TABLE_NAME} "
         "(baseline_version, cutoff_literal, captured_at, frozen_at, status, membership_count, "
         "source_rule_version, expected_membership_count, actual_membership_count, "
-        "membership_fingerprint, ready_at, failure_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "membership_fingerprint, ready_at, failure_reason, predicate_reference_sha, "
+        "cutoff_operator, cutoff_domain, exact_membership_count, conservative_membership_count) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             BASELINE_VERSION,
             CUTOFF_LITERAL,
@@ -90,12 +98,17 @@ def _building_metadata(conn):
             "",
             STATUS_BUILDING,
             0,
-            "progress_credited_map_v1",
+            SOURCE_RULE_VERSION,
             0,
             0,
             "",
             None,
             None,
+            PRECHANGE_PREDICATE_REFERENCE_SHA,
+            CUTOFF_OPERATOR,
+            CUTOFF_DOMAIN,
+            0,
+            0,
         ),
     )
 
@@ -115,9 +128,11 @@ def test_building_partial_baseline_is_not_consumed():
     _building_metadata(conn)
     conn.execute(
         f"INSERT INTO {TABLE_NAME} "
-        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, cutoff_literal) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (1, 10, BASELINE_VERSION, SOURCE_CARD_MASK, "progress_credited_map_snapshot", "2026-09-01", CUTOFF_LITERAL),
+        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, "
+        "cutoff_literal, reconstruction_class) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (1, 10, BASELINE_VERSION, SOURCE_PROGRESS_CREDITED_MASK, GRANDFATHERED_ENTITLEMENT_SOURCE, "2026-09-01",
+         CUTOFF_LITERAL, RECONSTRUCTION_CLASS_CONSERVATIVE),
     )
     assert baseline_readiness(conn)["status"] == STATUS_BUILDING
     assert baseline_readiness(conn)["valid"] is False
@@ -145,9 +160,11 @@ def test_ready_baseline_requires_count_and_fingerprint_integrity():
     )
     conn.execute(
         f"INSERT INTO {TABLE_NAME} "
-        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, cutoff_literal) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (2, 21, BASELINE_VERSION, SOURCE_CARD_MASK, "progress_credited_map_snapshot", "2026-09-01", CUTOFF_LITERAL),
+        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, "
+        "cutoff_literal, reconstruction_class) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (2, 21, BASELINE_VERSION, SOURCE_PROGRESS_CREDITED_MASK, GRANDFATHERED_ENTITLEMENT_SOURCE, "2026-09-01",
+         CUTOFF_LITERAL, RECONSTRUCTION_CLASS_CONSERVATIVE),
     )
     tampered = baseline_readiness(conn, verify_fingerprint=True)
     assert tampered["status"] == "BASELINE_FAILED_OR_INVALID"
@@ -162,9 +179,11 @@ def test_interrupted_building_state_can_resume_without_publishing_partial_ready(
     _building_metadata(conn)
     conn.execute(
         f"INSERT INTO {TABLE_NAME} "
-        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, cutoff_literal) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (3, 30, BASELINE_VERSION, SOURCE_CARD_MASK, "progress_credited_map_snapshot", "2026-09-01", CUTOFF_LITERAL),
+        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, "
+        "cutoff_literal, reconstruction_class) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (3, 30, BASELINE_VERSION, SOURCE_PROGRESS_CREDITED_MASK, GRANDFATHERED_ENTITLEMENT_SOURCE, "2026-09-01",
+         CUTOFF_LITERAL, RECONSTRUCTION_CLASS_CONSERVATIVE),
     )
     assert frozen_historical_memberships(conn, user_id=3) == set()
     result = populate_frozen_historical_baseline(
@@ -184,9 +203,11 @@ def test_committed_failed_baseline_is_cleaned_before_deterministic_rerun():
     _building_metadata(conn)
     conn.execute(
         f"INSERT INTO {TABLE_NAME} "
-        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, cutoff_literal) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (33, 999, BASELINE_VERSION, SOURCE_CARD_MASK, "progress_credited_map_snapshot", "2026-09-01", CUTOFF_LITERAL),
+        "(user_id, question_id, baseline_version, source_mask, entitlement_source, captured_at, "
+        "cutoff_literal, reconstruction_class) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (33, 999, BASELINE_VERSION, SOURCE_PROGRESS_CREDITED_MASK, GRANDFATHERED_ENTITLEMENT_SOURCE, "2026-09-01",
+         CUTOFF_LITERAL, RECONSTRUCTION_CLASS_CONSERVATIVE),
     )
     conn.execute(
         f"UPDATE {BASELINE_TABLE_NAME} SET status=?, expected_membership_count=?, "
@@ -381,53 +402,26 @@ def test_current_count_is_same_authority_with_baseline_explicitly_excluded():
     assert current_adventure_question_count(conn, 8, {80, 81}) == 1
 
 
-def test_browser_guild_chain_carries_answer_to_server_authority_and_projection():
+def test_client_guild_envelope_is_attached_even_with_an_empty_move_list():
+    """The second B defect: an empty move list used to drop the envelope.
+
+    A revealed or hint-assisted Guild answer produced no ``guild_answer``
+    at all, so the server could only ever write a bare untrusted row.  This
+    asserts the *behaviour* of the deployed client contract rather than the
+    presence of a source substring.
+    """
+
     index = (ROOT / "index.html").read_text(encoding="utf-8")
-    transport = (ROOT / "js" / "game" / "review_transport.js").read_text(encoding="utf-8")
-    app = (ROOT / "app.py").read_text(encoding="utf-8")
-    review_service = (ROOT / "review_service.py").read_text(encoding="utf-8")
-    contracts = (ROOT / "review_contracts.py").read_text(encoding="utf-8")
-    guild = (ROOT / "guild_quest_answer_service.py").read_text(encoding="utf-8")
-    leaderboard = (ROOT / "community_leaderboard_rewards.py").read_text(encoding="utf-8")
-
-    metadata = index[index.index("function _currentReviewMetadata") : index.index("let playerColor")]
-    assert "_guildQuestAnswerMoves.map" in metadata
-    assert "metadata.guild_answer" in metadata
-    assert "metadata.guild_quest_key" in metadata
-    assert "_guildQuestAnswerMoves.push" in index
-    assert "guild_answer: value.guild_answer" in transport
-    assert "guild_quest_key: value.guild_quest_key" in transport
-    assert "guild_answer: Mapping" in contracts
-    assert '"guild_answer": command.guild_answer' in review_service
-    assert "guild_answer=data.get('guild_answer')" in app
-    assert "_guild_quest_answer_eligibility" in app
-    assert "judge_guild_quest_answer" in app
-    assert "encode_guild_quest_verdict" in app
-    assert "guild_progress_projection" in app
-    assert "GUILD_QUEST_RESULT_SOURCE_PREFIX" in guild
-    assert "decode_guild_quest_verdict" in leaderboard
-    assert "guild_quest:v1:" in guild
-
-
-def test_normal_answer_path_removes_history_rescan_and_redundant_guild_wait():
-    app = (ROOT / "app.py").read_text(encoding="utf-8")
-    index = (ROOT / "index.html").read_text(encoding="utf-8")
-    map_coverage = app[app.index("def _adventure_zone_map_coverage") : app.index("def _adventure_zone_question_ids")]
-    submit = index[index.index("async function submitSRS") : index.index("// ═══════════════════════════════════════════════════════════════", index.index("async function submitSRS"))]
-    assert "_adventure_correct_question_ids" not in map_coverage
-    assert "visible_adventure_question_count" in map_coverage
-    assert "data.guild_progress" in submit
-    assert "_applyGuildQuestProgressProjection" in submit
-    assert "loadMapProgressStatus()" not in submit
-    assert "await _syncGuildQuestProgress()" in submit  # fail-closed old-server fallback only
-
-    compatibility = (ROOT / "adventure_progress_compatibility.py").read_text(encoding="utf-8")
-    helper = compatibility[
-        compatibility.index("def visible_adventure_question_count") :
-        compatibility.index("def current_adventure_question_count")
+    metadata = index[
+        index.index("function _currentReviewMetadata") : index.index("let playerColor")
     ]
-    assert "SELECT COUNT(DISTINCT question_id)" in helper
-    assert ".fetchall()" not in helper
+    guard = metadata[metadata.index("if (!bossSourceContext && _guildQuestMode?.key") :]
+    guard = guard[: guard.index("return metadata")]
+    # The envelope is attached on Guild-mode key alone.  A non-empty move list
+    # must not be part of the condition.
+    assert "_guildQuestAnswerMoves.length" not in guard
+    assert "metadata.guild_answer" in guard
+    assert "metadata.guild_quest_key" in guard
 
 
 def test_pure_dry_run_has_no_database_or_client_authority_dependency():

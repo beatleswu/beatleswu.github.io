@@ -196,6 +196,7 @@ from migrations.review_log_submission_idempotency_v1 import (
 from adventure_progress_compatibility import (
     TRUSTED_REVIEW_SOURCE_PREFIXES,
     current_adventure_question_count,
+    trusted_correct_count_after,
     trusted_current_memberships,
     visible_adventure_question_count,
     visible_adventure_question_ids,
@@ -213,7 +214,9 @@ from adventure_zone_star_progression import (
 )
 from adventure_zone_progression_authority import (
     is_lord_eligible,
+    is_lord_retry_satisfied,
     lord_eligibility_requirement,
+    lord_retry_requirement,
     map_milestone_star,
     next_zone_is_unlocked_by,
     second_star_requirement,
@@ -12031,6 +12034,26 @@ def _adventure_state(uid):
             | set(trusted_raw)
             | {r['question_id'] for r in cards},
         )
+        # Post-failure Lord retry locks.  Only an uncleared Zone that already
+        # recorded an attempt can owe one, so in practice this measures at
+        # most the Zones the player has actually failed -- and never runs at
+        # all for a player who has not failed a Lord.
+        lord_retry_states = {}
+        for _zone in ADVENTURE_ZONES:
+            _zone_row = progress.get(_zone['key']) or {}
+            if not _zone_row or _zone_row.get('cleared'):
+                continue
+            if int(_zone_row.get('attempts') or 0) <= 0:
+                continue
+            lord_retry_states[_zone['key']] = _adventure_lord_retry_state(
+                conn,
+                uid,
+                _zone['key'],
+                {
+                    int(q['id'])
+                    for q in _questions_for_adventure_zone(qs, _zone, premium)
+                },
+            )
 
     correct_ids = _IdentityKeyedSet(correct_raw, _adv_gkm)
     attempted_ids = _IdentityKeyedSet({r['question_id'] for r in cards}, _adv_gkm)
@@ -12078,11 +12101,19 @@ def _adventure_state(uid):
         # answers.  The old ``round()``-ed percentage admitted players just
         # below the stated share (576 of 1939 reads as 30% but is 29.7%).
         lord_required_correct = lord_eligibility_requirement(total)
+        # A failed Lord owes new *trusted* work before the next attempt.
+        # Grandfathered continuity can open the first attempt, but it can
+        # never pay off a retry lock.
+        lord_retry = lord_retry_states.get(z['key']) or {
+            'locked': False, 'required': 0, 'achieved': 0, 'since': None,
+        }
+        lord_retry_locked = bool(lord_retry.get('locked'))
         boss_ready = (
             unlocked
             and is_lord_eligible(seen, total)
             and not cleared
             and cooldown_left == 0
+            and not lord_retry_locked
         )
 
         zones.append({
@@ -12095,6 +12126,9 @@ def _adventure_state(uid):
             'defeated': defeated,
             'pct': pct,
             'defeat_pct': defeat_pct,
+            'lord_retry_locked': lord_retry_locked,
+            'lord_retry_required_new_correct': int(lord_retry.get('required') or 0),
+            'lord_retry_new_correct': int(lord_retry.get('achieved') or 0),
             'unlock_pct': BOSS_UNLOCK_PCT,
             'boss_exam_size': BOSS_EXAM_SIZE,
             'boss_pass_score': BOSS_PASS_SCORE,
@@ -12210,22 +12244,21 @@ def _adventure_zone_star_from_settled_answer(
     zone_definition = _adventure_zone_question_ids(settled_zone_key, uid=uid)
     if zone_definition is None:
         return None
-    zone_ids, _zone_total = zone_definition
-    coverage = _adventure_zone_map_coverage(conn, uid, settled_zone_key)
-    if coverage is None:
-        return None
-    correct_count, total = coverage
-    # A restored baseline may legitimately make an existing first-star player
-    # appear to have crossed 60%/100%.  Those irreversible ledger writes stay
-    # behind the separately owner-gated policy seam.  The default (and the
-    # only policy active before that decision) uses current trusted Map facts
-    # for milestone writes while the effective union still drives read-only
-    # progress and the exact 30% Lord gate.
-    if retroactive_policy != RETROACTIVE_POLICY_FULL:
-        current_correct_count = current_adventure_question_count(
-            conn, uid, zone_ids
-        )
-        correct_count = current_correct_count
+    zone_ids, total = zone_definition
+    # Restored Tier 1 continuity may legitimately make an existing first-star
+    # player appear to have crossed 60%/100%.  Those irreversible ledger
+    # writes stay behind the separately owner-gated policy seam, so under the
+    # default HOLD policy the milestone is computed from current trusted Map
+    # facts only, while the effective union still drives read-only progress
+    # and the exact 30% Lord gate.
+    #
+    # Only the count the active policy actually uses is queried: computing the
+    # union here and discarding it added a second bounded aggregate to every
+    # settled answer for no effect.
+    if retroactive_policy == RETROACTIVE_POLICY_FULL:
+        correct_count = visible_adventure_question_count(conn, uid, zone_ids)
+    else:
+        correct_count = current_adventure_question_count(conn, uid, zone_ids)
     milestone = map_milestone_star(
         correct_count, total, has_first_star=True
     )
@@ -12271,26 +12304,60 @@ def _persist_next_zone_unlock(conn, uid, zone_key, now):
     return next_zone_key
 
 
-def _adventure_zone_map_coverage(conn, uid, zone_key):
-    """Return ``(distinct_correct, total)`` Map coverage for one Zone.
+def _adventure_lord_retry_state(conn, uid, zone_key, zone_ids):
+    """Return the post-failure Lord retry lock for one Zone.
 
-    Both halves are server-owned: the denominator is the canonical Zone
-    question pool, and the numerator is the distinct set of questions this
-    user has answered correctly under trusted server-settled review evidence.
-    Neither is a raw review-row count, and neither can be supplied by a
-    client.  This mirrors the numbers ``_adventure_state`` publishes, so the
-    milestone a settlement awards always agrees with the displayed progress.
+    After a failed Lord the player owes ``LORD_RETRY_REQUIRED_NEW_CORRECT``
+    distinct *new* trusted correct answers before another attempt.  For an
+    uncleared Zone with at least one attempt, ``last_attempt_at`` is by
+    construction the moment of the most recent failure: every settlement path
+    stamps it, and a pass sets ``cleared``.  Each new failure overwrites it, so
+    one batch of thirty answers can never pay off two different retry locks.
+
+    The measurement is Tier 2 only.  Grandfathered continuity, historical
+    totals and undated legacy memberships contribute nothing here -- restoring
+    a player's old progress must never hand them a free Lord retry.
     """
 
-    zone_ids = _adventure_zone_question_ids(zone_key, uid=uid)
-    if zone_ids is None:
+    try:
+        row = conn.execute(
+            'SELECT attempts, cleared, last_attempt_at FROM adventure_boss_progress '
+            'WHERE user_id=? AND zone_key=?',
+            (uid, zone_key),
+        ).fetchone()
+    except Exception:
+        # A missing legacy table must not silently unlock a retry.
+        return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
+    if not row:
+        return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
+    attempts = int(_row_value(row, 'attempts') or 0)
+    cleared = int(_row_value(row, 'cleared') or 0)
+    since = str(_row_value(row, 'last_attempt_at') or '').strip()
+    if cleared or attempts <= 0:
+        return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
+    if not since:
+        # An attempt was recorded without a usable failure timestamp: fail
+        # closed rather than treating the lock as paid.
+        return {
+            'locked': True,
+            'required': lord_retry_requirement(),
+            'achieved': 0,
+            'since': None,
+        }
+    achieved = trusted_correct_count_after(conn, uid, zone_ids, since)
+    return {
+        'locked': not is_lord_retry_satisfied(achieved),
+        'required': lord_retry_requirement(),
+        'achieved': achieved,
+        'since': since,
+    }
+
+
+def _row_value(row, name):
+    try:
+        return row[name]
+    except (KeyError, IndexError, TypeError):
         return None
-    zone_ids, total = zone_ids
-    # Coverage is a bounded aggregate over the single compatibility authority;
-    # do not rebuild the player's complete historical distinct-id set inside
-    # the synchronous answer/settlement path.
-    correct_count = visible_adventure_question_count(conn, uid, zone_ids)
-    return correct_count, total
 
 
 def _adventure_zone_question_ids(zone_key, uid=None):
@@ -12899,6 +12966,17 @@ def adventure_boss_start():
             'progress': state.get('pct', 0),
             'correct': state.get('seen', 0),
             'required_correct': state.get('lord_required_correct', 0),
+        }), 400
+    # The post-failure retry lock is a separate server-authoritative gate.
+    # ``_adventure_state`` already measured it from trusted post-failure
+    # evidence only; there is deliberately no second authority here, and
+    # grandfathered continuity cannot satisfy it.
+    if not is_replay and state.get('lord_retry_locked'):
+        return jsonify({
+            'ok': False,
+            'error': 'lord_retry_locked',
+            'required_new_correct': state.get('lord_retry_required_new_correct', 0),
+            'new_correct': state.get('lord_retry_new_correct', 0),
         }), 400
 
     premium = is_premium(uid)
