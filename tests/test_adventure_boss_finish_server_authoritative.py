@@ -542,7 +542,7 @@ class TestLordRetryRequiresThirtyMapQuestions:
     def _stub_state(self, app_module, monkeypatch, *, answered_since_fail):
         remaining = max(0, app_module.BOSS_FAIL_COOLDOWN - answered_since_fail)
         state = {
-            'key': 'k26_30', 'seen': 50, 'pct': 100,
+            'key': 'k26_30', 'seen': 50, 'total': 50, 'pct': 100,
             'unlocked': True, 'cleared': False,
             'cooldown_left': remaining,
         }
@@ -814,6 +814,10 @@ def stub_boss_start_state(app_module, monkeypatch):
     state = {
         'key': 'k26_30',
         'seen': 50,
+        # Lord eligibility is ceil(total * 0.30) over distinct correct answers,
+        # so the stub carries the `total` the real state always emits: 50 of
+        # 50 correct is the full coverage the `pct` below already claims.
+        'total': 50,
         'pct': 100,
         'unlocked': True,
         'cleared': True,
@@ -856,7 +860,7 @@ class TestLordQueueAdmission:
 
     def _stub_pool(self, app_module, monkeypatch, questions):
         state = {
-            'key': 'k26_30', 'seen': 50, 'pct': 100,
+            'key': 'k26_30', 'seen': 50, 'total': 50, 'pct': 100,
             'unlocked': True, 'cleared': True, 'cooldown_left': 0,
         }
         monkeypatch.setattr(app_module, '_adventure_state', lambda uid: [dict(state)])

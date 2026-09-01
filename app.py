@@ -12837,8 +12837,22 @@ def adventure_boss_start():
 
     if not is_replay and state.get('cooldown_left', 0) > 0:
         return jsonify({'ok': False, 'error': 'cooldown', 'cooldown_left': state['cooldown_left']}), 400
-    if not is_replay and state.get('pct', 0) < BOSS_UNLOCK_PCT:
-        return jsonify({'ok': False, 'error': 'progress_not_enough', 'progress': state.get('pct', 0)}), 400
+    # Lord eligibility is the ceiling threshold over distinct correct answers,
+    # exactly as `_adventure_state` computes `boss_ready`.  This endpoint used
+    # to re-derive its own gate from the rounded, display-oriented `pct`, which
+    # admitted a player up to nine questions early: 573-581 of Zone 1's 1939
+    # all round to 30% while the requirement is 582.  There is deliberately no
+    # second percentage authority here now.
+    if not is_replay and not is_lord_eligible(
+        state.get('seen', 0), state.get('total', 0)
+    ):
+        return jsonify({
+            'ok': False,
+            'error': 'progress_not_enough',
+            'progress': state.get('pct', 0),
+            'correct': state.get('seen', 0),
+            'required_correct': state.get('lord_required_correct', 0),
+        }), 400
 
     premium = is_premium(uid)
     qs = _questions_for_adventure_zone(_load_questions(), zone, premium)

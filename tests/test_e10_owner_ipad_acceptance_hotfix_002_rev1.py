@@ -112,6 +112,10 @@ def real_server_state(app_module, monkeypatch):
     state = {
         "key": "k26_30",
         "seen": 50,
+        # Lord eligibility is ceil(total * 0.30) over distinct correct answers,
+        # so the stub carries the `total` the real state always emits: 50 of 50
+        # correct is the full coverage the `pct` below already claims.
+        "total": 50,
         "pct": 100,
         "unlocked": True,
         "cleared": False,
