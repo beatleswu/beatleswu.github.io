@@ -95,19 +95,59 @@ def normalize_guild_quest_key(quest_key: Any) -> str:
     return value
 
 
+def _question_player_to_move(content: str) -> str | None:
+    """Resolve whose turn it is, exactly as the canonical judged paths do.
+
+    A ``PL[]`` property is authoritative when the SGF carries one, but most
+    problem SGFs express the turn through their first move instead.  This used
+    to be a ``PL\\[([BW])\\]`` regex with no fallback, so every ordinary Guild
+    question without that literal tag resolved to ``None`` and was reported as
+    ``judge_unavailable`` -- the answer could never be judged, and therefore
+    never written.  Map Battle and Lord Trial have always used the first-move
+    fallback (see ``_map_battle_question_context`` in app.py), which is why the
+    same corpus judges correctly there.
+
+    Ambiguity still fails closed: if the SGF declares no player and its first
+    moves are not a single colour, this returns ``None`` and the caller rejects
+    the answer rather than guessing.
+    """
+
+    try:
+        from sgf_engine.parser.sgf_parser import parse_sgf
+
+        root = parse_sgf(content, strict=True)
+    except Exception:
+        # Unparseable content cannot be judged either way; fall back to the
+        # original literal lookup so nothing previously accepted regresses.
+        match = _PLAYER_RE.search(content)
+        return match.group(1).upper() if match else None
+
+    declared = str(root.metadata.get("player_to_move") or "").upper()
+    if declared in {"B", "W"}:
+        return declared
+    first_colors = {
+        child.move.color
+        for child in getattr(root, "children", ()) or ()
+        if getattr(child, "move", None) is not None
+        and child.move.color in ("B", "W")
+    }
+    if len(first_colors) == 1:
+        return first_colors.pop()
+    return None
+
+
 def _question_board_context(question: Mapping[str, Any]) -> tuple[int, str]:
     content = question.get("content")
     if not isinstance(content, str) or not content.strip():
         raise GuildQuestAnswerError("judge_unavailable", status=503, retryable=True)
     size_match = _SIZE_RE.search(content)
-    player_match = _PLAYER_RE.search(content)
     try:
         board_size = int(size_match.group(1)) if size_match else 19
     except (AttributeError, TypeError, ValueError) as error:
         raise GuildQuestAnswerError(
             "judge_unavailable", status=503, retryable=True
         ) from error
-    player_color = player_match.group(1).upper() if player_match else None
+    player_color = _question_player_to_move(content)
     if not (2 <= board_size <= 25) or player_color not in {"B", "W"}:
         raise GuildQuestAnswerError("judge_unavailable", status=503, retryable=True)
     return board_size, player_color
