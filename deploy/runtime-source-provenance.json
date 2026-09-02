@@ -1169,12 +1169,12 @@
     },
     {
       "path": "tools/incident_019b_progression_continuity.py",
-      "source_commit": "65563fffb27adc2bae6b9d1686fba88bfeac74f4",
+      "source_commit": "5c9783e46676ab82f2e5ff9b49054724d1400bac",
       "source_branch_or_local_ref": "claude/rpg-v1-p0-prechange-display-continuity-r3",
-      "source_commit_subject": "R3: reconstruct the pre-change display predicate as grandfathered Tier 1",
+      "source_commit_subject": "R3: make the census scan plan real rather than declared",
       "source_date": "2026-09-02",
-      "content_sha256": "84a309e8090bd327a9a3e063b63c0463de7e82c8b16bc058d356639e1ed1b23e",
-      "content_size_bytes": 23835,
+      "content_sha256": "487bcc32f71ee3df2ffe02eaf2c1e149ff9aa45e7204bf23a7d62b04ad1e6fd1",
+      "content_size_bytes": 27703,
       "line_ending_policy": "LF",
       "runtime_role": "packaged administrative runner (Dockerfile COPY); the owner-gated grandfathered continuity baseline migration and its read-only preflight are executed from inside the governed image",
       "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
