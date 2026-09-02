@@ -155,6 +155,26 @@ class PostgresConnectionWrapper:
         cursor.execute(sql, parameters)
         return cursor
 
+    def executemany(self, sql, seq_of_parameters):
+        """Connection-level batch execute, mirroring ``execute`` above.
+
+        ``PostgresCursorWrapper`` has always implemented a correct
+        ``executemany`` (placeholder translation included).  Only this
+        connection-level mirror of sqlite3's convenience API was missing, so
+        ``conn.executemany(...)`` fell through ``__getattr__`` to the raw
+        psycopg2 connection -- which has no such method -- and raised
+        ``AttributeError`` at runtime.  Every SQLite-backed test passed because
+        ``sqlite3.Connection`` provides ``executemany`` natively, so the gap was
+        only reachable against PostgreSQL.
+
+        Like ``execute``, this deliberately does not commit: the caller owns the
+        transaction boundary, and the returned cursor exposes ``rowcount``.
+        """
+
+        cursor = self.cursor()
+        cursor.executemany(sql, seq_of_parameters)
+        return cursor
+
     def commit(self):
         self._conn.commit()
 
