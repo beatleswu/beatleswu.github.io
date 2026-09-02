@@ -1173,8 +1173,8 @@
       "source_branch_or_local_ref": "claude/rpg-v1-p0-prechange-display-continuity-r3",
       "source_commit_subject": "R3: make the census scan plan real rather than declared",
       "source_date": "2026-09-02",
-      "content_sha256": "487bcc32f71ee3df2ffe02eaf2c1e149ff9aa45e7204bf23a7d62b04ad1e6fd1",
-      "content_size_bytes": 27703,
+      "content_sha256": "a16889dbac3931e2ab5ab03bdd22b2b29d868ad7433db84044c1d2c9f92ab9a2",
+      "content_size_bytes": 27004,
       "line_ending_policy": "LF",
       "runtime_role": "packaged administrative runner (Dockerfile COPY); the owner-gated grandfathered continuity baseline migration and its read-only preflight are executed from inside the governed image",
       "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
