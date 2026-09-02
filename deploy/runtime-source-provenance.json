@@ -1145,12 +1145,12 @@
     },
     {
       "path": "guild_quest_answer_service.py",
-      "source_commit": "565f9ef10ed8bc735976fa09a38af205b59a4fc0",
+      "source_commit": "f3311904dceaf6fd3252a632bea7cb9fa114b1ae",
       "source_branch_or_local_ref": "claude/guild-answer-write-p0",
-      "source_commit_subject": "fix(guild): resolve the player to move the same way the canonical judge does",
+      "source_commit_subject": "docs(guild): correct false claim that Lord Trial already uses the fallback",
       "source_date": "2026-09-02",
-      "content_sha256": "71c25be532f425dd37e859751af2f131378027d23650ccc4f942c7d9967a8840",
-      "content_size_bytes": 14106,
+      "content_sha256": "38066f025f6d57cb3f2d025ac8babcb60323d5eb5e2323581e9fbddb3bd485a8",
+      "content_size_bytes": 14803,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import (line 253); runtime-critical -- server-authoritative Guild question judging and committed evidence path",
       "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
