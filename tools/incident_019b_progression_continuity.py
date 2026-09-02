@@ -26,6 +26,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import time
 from typing import Any
 
 # Allow the runner to be invoked directly as ``python tools/<runner>.py`` from
@@ -89,19 +90,88 @@ def _configure_read_only_transaction(conn: Any) -> None:
     conn.execute("SET LOCAL lock_timeout = '2s'")
 
 
-def _raw_progress_rows(conn: Any, question_ids: set[int]) -> int:
+class CensusScanPlan:
+    """Bounded scan plan for a later Production integrity preflight.
+
+    A question-id-only predicate spans every account in one statement, so a
+    single chunk can return an unbounded number of rows on a real database.
+    Batching by an indexed ``user_id`` range keeps each statement bounded, lets
+    the run pause between batches to protect a live server, and makes the work
+    resumable from a checkpoint after an interruption.
+    """
+
+    def __init__(
+        self,
+        *,
+        batch_size: int = 2000,
+        inter_batch_pause: float = 0.0,
+        checkpoint_file: str | None = None,
+    ):
+        self.batch_size = max(1, int(batch_size))
+        self.inter_batch_pause = max(0.0, float(inter_batch_pause))
+        self.checkpoint_file = checkpoint_file
+        self.batches_run = 0
+
+    def resume_from(self) -> int:
+        if not self.checkpoint_file:
+            return 0
+        path = Path(self.checkpoint_file)
+        if not path.is_file():
+            return 0
+        try:
+            return int(json.loads(path.read_text(encoding="utf-8"))["last_user_id"])
+        except Exception:
+            return 0
+
+    def record(self, last_user_id: int) -> None:
+        if not self.checkpoint_file:
+            return
+        Path(self.checkpoint_file).write_text(
+            json.dumps({"last_user_id": int(last_user_id)}), encoding="utf-8"
+        )
+
+    def user_ranges(self, conn: Any) -> list[tuple[int, int]]:
+        row = conn.execute(
+            "SELECT MIN(user_id), MAX(user_id) FROM srs_cards"
+        ).fetchone()
+        if not row or row[0] is None:
+            return []
+        low = max(int(row[0]), self.resume_from())
+        high = int(row[1])
+        return [
+            (start, min(start + self.batch_size - 1, high))
+            for start in range(low, high + 1, self.batch_size)
+        ]
+
+    def pause(self) -> None:
+        self.batches_run += 1
+        if self.inter_batch_pause:
+            time.sleep(self.inter_batch_pause)
+
+
+def _raw_progress_rows(
+    conn: Any, question_ids: set[int], plan: CensusScanPlan | None = None
+) -> int:
     if not question_ids:
         return 0
+    plan = plan or CensusScanPlan()
     total = 0
     ordered_ids = sorted(question_ids)
-    for start in range(0, len(ordered_ids), _QUERY_CHUNK_SIZE):
-        batch = ordered_ids[start : start + _QUERY_CHUNK_SIZE]
-        placeholders = ",".join("?" for _ in batch)
-        sql = (
-            "SELECT COUNT(*) FROM srs_cards "
-            f"WHERE progress_credited <> 0 AND question_id IN ({placeholders})"
-        )
-        total += int(conn.execute(sql, tuple(batch)).fetchone()[0])
+    for low, high in plan.user_ranges(conn) or [(None, None)]:
+        for start in range(0, len(ordered_ids), _QUERY_CHUNK_SIZE):
+            batch = ordered_ids[start : start + _QUERY_CHUNK_SIZE]
+            placeholders = ",".join("?" for _ in batch)
+            user_clause = "" if low is None else " AND user_id BETWEEN ? AND ?"
+            params = tuple(batch) if low is None else (*batch, low, high)
+            sql = (
+                "SELECT COUNT(*) FROM srs_cards "
+                f"WHERE progress_credited <> 0 AND question_id IN ({placeholders})"
+                f"{user_clause}"
+            )
+            total += int(conn.execute(sql, params).fetchone()[0])
+        if low is not None:
+            plan.record(high)
+            plan.pause()
     return total
 
 
@@ -202,6 +272,7 @@ def build_global_dry_run(
     *,
     owner_user_id: int | None = None,
     cutoff_literal: str = CUTOFF_LITERAL,
+    scan_plan: "CensusScanPlan | None" = None,
 ) -> dict[str, Any]:
     """Build the global, trust-filtered baseline and milestone dry-run.
 
@@ -211,6 +282,7 @@ def build_global_dry_run(
     are never serialized.
     """
 
+    scan_plan = scan_plan or CensusScanPlan()
     all_question_ids = set().union(*zone_question_ids.values()) if zone_question_ids else set()
     # Tier 1 is the full pre-change display predicate, not one column.
     reconstruction = prechange_display_reconstruction(
@@ -220,7 +292,7 @@ def build_global_dry_run(
     current = trusted_current_memberships(conn, question_ids=all_question_ids)
     assert isinstance(baseline, dict)
     assert isinstance(current, dict)
-    raw_progress_rows = _raw_progress_rows(conn, all_question_ids)
+    raw_progress_rows = _raw_progress_rows(conn, all_question_ids, scan_plan)
     baseline_total = sum(len(values) for values in baseline.values())
     last_grade_only = _last_grade_only_pairs(conn, all_question_ids)
     client_pairs, non_client_unverifiable_pairs = _bounded_non_authoritative_review_pairs(
@@ -324,6 +396,13 @@ def build_global_dry_run(
         "historical_is_trusted_correctness": False,
         "client_grade_source_used_as_correctness_authority": False,
         "cutoff_literal": cutoff_literal,
+        "census_batch_key": "srs_cards.user_id range",
+        "census_batch_size": scan_plan.batch_size,
+        "census_batches_run": scan_plan.batches_run,
+        "census_inter_batch_pause_seconds": scan_plan.inter_batch_pause,
+        "census_resumable_checkpoint": bool(scan_plan.checkpoint_file),
+        "census_parallel_batches": 0,
+        "census_max_connections": 1,
     }
 
 
@@ -603,6 +682,11 @@ def main(argv: list[str] | None = None) -> int:
                 conn,
                 zone_question_ids,
                 owner_user_id=args.owner_user_id,
+                scan_plan=CensusScanPlan(
+                    batch_size=args.batch_size,
+                    inter_batch_pause=args.inter_batch_pause,
+                    checkpoint_file=args.checkpoint_file,
+                ),
             )
             result["compatibility_census"] = build_compatibility_census(
                 conn, zone_question_ids, historical_mode=args.historical_mode

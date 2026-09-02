@@ -327,3 +327,53 @@ def test_old_app_schema_probe_is_unaffected_by_the_additive_columns():
         ("INCIDENT019B_B050_COMPAT_V1",),
     ).fetchone()
     assert row is None  # no row under the old version, and no error raised
+
+
+# ---------------------------------------------------------------------------
+# Section 22 -- the census must be safe to point at a live database later
+# ---------------------------------------------------------------------------
+def test_census_scan_plan_batches_by_user_range_and_is_resumable(tmp_path):
+    from tools.incident_019b_progression_continuity import (
+        CensusScanPlan,
+        _raw_progress_rows,
+    )
+
+    conn = _conn()
+    for uid in range(1, 51):
+        for qid in range(1, 6):
+            conn.execute(
+                "INSERT INTO srs_cards(user_id,question_id,last_grade,progress_credited) "
+                "VALUES (?,?,0,1)",
+                (uid, qid),
+            )
+    conn.commit()
+    question_ids = set(range(1, 6))
+
+    checkpoint = tmp_path / "census.checkpoint"
+    plan = CensusScanPlan(batch_size=10, checkpoint_file=str(checkpoint))
+    ranges = plan.user_ranges(conn)
+    assert ranges == [(1, 10), (11, 20), (21, 30), (31, 40), (41, 50)]
+
+    total = _raw_progress_rows(conn, question_ids, plan)
+    assert total == 250
+    assert plan.batches_run == 5
+    # The checkpoint records progress so an interrupted run can resume.
+    assert checkpoint.is_file()
+
+    resumed = CensusScanPlan(batch_size=10, checkpoint_file=str(checkpoint))
+    assert resumed.resume_from() == 50
+    # Resuming after the final batch does no further whole-table work.
+    assert resumed.user_ranges(conn) == [(50, 50)]
+
+
+def test_census_scan_plan_defaults_are_bounded_and_serial():
+    from tools.incident_019b_progression_continuity import CensusScanPlan
+
+    plan = CensusScanPlan()
+    assert plan.batch_size == 2000
+    assert plan.inter_batch_pause == 0.0
+    assert plan.checkpoint_file is None
+    assert plan.batches_run == 0
+    # Degenerate inputs cannot produce an unbounded or negative plan.
+    assert CensusScanPlan(batch_size=0).batch_size == 1
+    assert CensusScanPlan(inter_batch_pause=-5).inter_batch_pause == 0.0
