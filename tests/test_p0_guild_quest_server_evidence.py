@@ -109,11 +109,33 @@ def test_client_cannot_smuggle_authority_fields_into_the_answer():
         assert excinfo.value.code == "forbidden_answer_field"
 
 
-def test_unjudgeable_question_fails_closed_rather_than_granting_credit():
+@pytest.mark.parametrize(
+    "content",
+    [
+        # No PL[] and no move at all: whose turn it is cannot be resolved.
+        "(;GM[1]SZ[19]AB[dp]AW[pd])",
+        # No PL[] and the first moves disagree on colour: ambiguous, so the
+        # server must refuse rather than guess a player.
+        "(;GM[1]SZ[19]AB[dp](;B[dd])(;W[pq]))",
+        # Board size outside the supported range.
+        "(;GM[1]SZ[99]PL[B]AB[dp](;B[dd]))",
+    ],
+)
+def test_unjudgeable_question_fails_closed_rather_than_granting_credit(content):
+    """A genuinely unresolvable question must never mint Guild credit.
+
+    The previous fixture here was "(;GM[1]SZ[19]AB[dp](;B[dd]))", which is an
+    ordinary judgeable problem -- it declares no PL[] but its single first move
+    states the turn.  It only looked unjudgeable because the Guild player-colour
+    lookup was a PL[]-only regex, which is the defect this fixture change
+    accompanies.  The fail-closed guarantee is unchanged and is now exercised
+    against content that really is unresolvable.
+    """
+
     with pytest.raises(GuildQuestAnswerError) as excinfo:
         judge_guild_quest_answer(
             {"moves": [{"action": "play", "x": 3, "y": 3}]},
-            question={"id": 9, "content": "(;GM[1]SZ[19]AB[dp](;B[dd]))"},
+            question={"id": 9, "content": content},
             quest_key=QUEST_KEY,
         )
     assert excinfo.value.code == "judge_unavailable"

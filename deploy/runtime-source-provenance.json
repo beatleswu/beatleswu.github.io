@@ -1145,12 +1145,12 @@
     },
     {
       "path": "guild_quest_answer_service.py",
-      "source_commit": "a595d29d594556371d070d265cc9a432345e12b1",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(rpg-v1): repair three P0 post-deploy production blockers",
-      "source_date": "2026-09-01",
-      "content_sha256": "a6ef872d4cd7cf4ae34919c6473ee9771b42082a18e869ec6a01814a899228b7",
-      "content_size_bytes": 12444,
+      "source_commit": "565f9ef10ed8bc735976fa09a38af205b59a4fc0",
+      "source_branch_or_local_ref": "claude/guild-answer-write-p0",
+      "source_commit_subject": "fix(guild): resolve the player to move the same way the canonical judge does",
+      "source_date": "2026-09-02",
+      "content_sha256": "71c25be532f425dd37e859751af2f131378027d23650ccc4f942c7d9967a8840",
+      "content_size_bytes": 14106,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import (line 253); runtime-critical -- server-authoritative Guild question judging and committed evidence path",
       "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
