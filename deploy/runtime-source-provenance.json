@@ -1153,7 +1153,7 @@
       "content_size_bytes": 14106,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import (line 253); runtime-critical -- server-authoritative Guild question judging and committed evidence path",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "lord_trial_admission.py",

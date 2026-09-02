@@ -297,6 +297,30 @@ def test_source_status_does_not_overclaim_review():
         assert "reviewed" not in status.lower() or "not" in status.lower()
 
 
+def test_source_status_does_not_overclaim_canonical_master():
+    """A feature-branch entry must not describe itself as canonical-master.
+
+    ``source_status`` is the human-readable half of the attestation an operator
+    reads to answer "where did this runtime blob come from?".  When a record is
+    re-pointed at a feature branch, updating the machine-checkable fields but
+    leaving this sentence saying "canonical origin/master provenance" makes the
+    manifest answer that question two contradictory ways, and a reader trusting
+    the prose would conclude the blob is already on master and skip the merge
+    gate.  The overclaim guard above only rejects the word "reviewed", so that
+    drift survived a green suite until review caught it.
+    """
+
+    for entry in load_manifest()["files"]:
+        label = str(entry["source_branch_or_local_ref"])
+        status = str(entry["source_status"]).lower()
+        if label.startswith("origin/"):
+            continue
+        assert "canonical origin/master provenance" not in status, (
+            f"{entry['path']}: source_branch_or_local_ref is '{label}' but "
+            "source_status claims canonical origin/master provenance"
+        )
+
+
 def test_working_tree_matches_recorded_content_sha256():
     data = load_manifest()
     for entry in data["files"]:
