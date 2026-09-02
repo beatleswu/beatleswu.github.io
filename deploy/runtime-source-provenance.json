@@ -624,15 +624,15 @@
     },
     {
       "path": "js/game/review_transport.js",
-      "source_commit": "a595d29d594556371d070d265cc9a432345e12b1",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(rpg-v1): repair three P0 post-deploy production blockers",
-      "source_date": "2026-09-01",
-      "content_sha256": "c6ecd2a3d552a9a040373dcd3b7b5a7259193b0dcb154578a2b2ff6f40575944",
-      "content_size_bytes": 9330,
+      "source_commit": "eb10b02fcf8a69c3de0b9c78655827b917f4f333",
+      "source_branch_or_local_ref": "claude/rpg-v1-p0-prechange-display-continuity-r3",
+      "source_commit_subject": "RPG V1 P0 repair: restore continuity and Guild latency",
+      "source_date": "2026-09-02",
+      "content_sha256": "d0b42150062b35c0e83b96c2b340aa846972528643f9f5cfa613eb21e3a3e854",
+      "content_size_bytes": 9348,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (ReviewTransport browser module; governed static subpath asset; includes the RPG V1 Guild answer transport)",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "js/hero_legacy_cache_guard.js",
