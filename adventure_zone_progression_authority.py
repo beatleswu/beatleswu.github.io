@@ -81,6 +81,25 @@ def is_lord_eligible(correct_count, total):
     return max(0, int(correct_count)) >= lord_eligibility_requirement(total)
 
 
+def lord_retry_requirement():
+    """Distinct new trusted correct answers required after a Lord failure."""
+
+    return LORD_RETRY_REQUIRED_NEW_CORRECT
+
+
+def is_lord_retry_satisfied(post_failure_trusted_correct):
+    """Return whether the post-failure retry lock has been paid off.
+
+    The input must be a count of *distinct canonical questions* answered
+    correctly under the current server-authoritative Tier 2 path, strictly
+    after the relevant Lord failure.  Grandfathered continuity, total Zone
+    coverage and undated legacy memberships are deliberately not admissible
+    inputs: only new trusted work opens a retry.
+    """
+
+    return max(0, int(post_failure_trusted_correct or 0)) >= LORD_RETRY_REQUIRED_NEW_CORRECT
+
+
 def map_milestone_star(correct_count, total, *, has_first_star):
     """Return the star level Map coverage justifies for this Zone.
 
@@ -125,6 +144,8 @@ __all__ = [
     "THIRD_STAR",
     "THIRD_STAR_PERCENT",
     "is_lord_eligible",
+    "is_lord_retry_satisfied",
+    "lord_retry_requirement",
     "lord_eligibility_requirement",
     "map_milestone_star",
     "next_zone_is_unlocked_by",

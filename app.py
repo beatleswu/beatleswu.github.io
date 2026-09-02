@@ -195,21 +195,28 @@ from migrations.review_log_submission_idempotency_v1 import (
 )
 from adventure_progress_compatibility import (
     TRUSTED_REVIEW_SOURCE_PREFIXES,
+    current_adventure_question_count,
+    trusted_correct_count_after,
     trusted_current_memberships,
+    visible_adventure_question_count,
     visible_adventure_question_ids,
 )
 from adventure_zone_star_progression import (
     FIRST_MAP_MILESTONE_STAR,
+    RETROACTIVE_POLICY_FULL,
     ZoneStarSchemaUnavailable,
     award_zone_star_from_boss_clear,
     award_zone_star_up_to_map_milestone,
     legacy_visible_star_entitlement,
     load_zone_star_rows,
+    retroactive_milestone_policy,
     zone_star_value,
 )
 from adventure_zone_progression_authority import (
     is_lord_eligible,
+    is_lord_retry_satisfied,
     lord_eligibility_requirement,
+    lord_retry_requirement,
     map_milestone_star,
     next_zone_is_unlocked_by,
     second_star_requirement,
@@ -12027,6 +12034,26 @@ def _adventure_state(uid):
             | set(trusted_raw)
             | {r['question_id'] for r in cards},
         )
+        # Post-failure Lord retry locks.  Only an uncleared Zone that already
+        # recorded an attempt can owe one, so in practice this measures at
+        # most the Zones the player has actually failed -- and never runs at
+        # all for a player who has not failed a Lord.
+        lord_retry_states = {}
+        for _zone in ADVENTURE_ZONES:
+            _zone_row = progress.get(_zone['key']) or {}
+            if not _zone_row or _zone_row.get('cleared'):
+                continue
+            if int(_zone_row.get('attempts') or 0) <= 0:
+                continue
+            lord_retry_states[_zone['key']] = _adventure_lord_retry_state(
+                conn,
+                uid,
+                _zone['key'],
+                {
+                    int(q['id'])
+                    for q in _questions_for_adventure_zone(qs, _zone, premium)
+                },
+            )
 
     correct_ids = _IdentityKeyedSet(correct_raw, _adv_gkm)
     attempted_ids = _IdentityKeyedSet({r['question_id'] for r in cards}, _adv_gkm)
@@ -12054,7 +12081,26 @@ def _adventure_state(uid):
         cleared = bool(row.get('cleared'))
         placement_unlocked = z['key'] in placement_unlocks
         cooldown_until = int(row.get('cooldown_until_seen') or 0)
-        cooldown_left = max(0, cooldown_until - seen)
+        # The post-failure retry gate is 30 further distinct correct answers.
+        # It used to be a delta against ``seen`` -- the *visible* union -- so
+        # any growth in visible progress paid it off, and publishing the
+        # grandfathered baseline would have cleared every pending retry lock
+        # for free.  The same 30 is now measured in trusted Tier 2 answers
+        # recorded strictly after the failure, for every locked Zone.
+        #
+        # There is deliberately no union-based fallback: a row that cannot be
+        # measured that way fails closed instead, because falling back to the
+        # old arithmetic is exactly how Tier 1 continuity would buy a retry.
+        lord_retry = lord_retry_states.get(z['key'])
+        if lord_retry:
+            cooldown_left = max(
+                0, int(lord_retry['required']) - int(lord_retry['achieved'])
+            )
+        else:
+            # No recorded attempt for this Zone: nothing is owed.  The legacy
+            # column is still honoured so an untouched historical row cannot
+            # silently lose an outstanding lock.
+            cooldown_left = max(0, cooldown_until - seen)
 
         # Keep the exact pre-R6 public projection as a grandfathered,
         # read-only entitlement.  It is not copied into Zone authority and
@@ -12091,6 +12137,13 @@ def _adventure_state(uid):
             'defeated': defeated,
             'pct': pct,
             'defeat_pct': defeat_pct,
+            'lord_retry_new_correct': int((lord_retry or {}).get('achieved') or 0),
+            'lord_retry_measured_from_failure': bool(
+                lord_retry and lord_retry.get('since')
+            ),
+            'lord_retry_reference_unresolvable': bool(
+                lord_retry and lord_retry.get('unresolvable_failure_reference')
+            ),
             'unlock_pct': BOSS_UNLOCK_PCT,
             'boss_exam_size': BOSS_EXAM_SIZE,
             'boss_pass_score': BOSS_PASS_SCORE,
@@ -12183,12 +12236,44 @@ def _adventure_zone_star_from_settled_answer(
     current_stars = zone_star_value(
         load_zone_star_rows(conn, uid), settled_zone_key
     )
-    if current_stars < FIRST_MAP_MILESTONE_STAR:
+    retroactive_policy = retroactive_milestone_policy()
+    legacy_first_star_entitled = False
+    if current_stars < FIRST_MAP_MILESTONE_STAR and retroactive_policy == RETROACTIVE_POLICY_FULL:
+        # Legacy Boss stars are a server-owned, read-only first-star
+        # entitlement.  They may seed the separate Zone-star authority only
+        # under the explicit full catch-up policy; the default policy remains
+        # fail-closed and does not create a compatibility row or ledger event.
+        legacy_row = conn.execute(
+            'SELECT stars FROM adventure_boss_progress '
+            'WHERE user_id=? AND zone_key=?',
+            (uid, settled_zone_key),
+        ).fetchone()
+        try:
+            legacy_first_star_entitled = (
+                legacy_visible_star_entitlement(legacy_row) >= FIRST_MAP_MILESTONE_STAR
+            )
+        except Exception:
+            legacy_first_star_entitled = False
+    if current_stars < FIRST_MAP_MILESTONE_STAR and not legacy_first_star_entitled:
         return None
-    coverage = _adventure_zone_map_coverage(conn, uid, settled_zone_key)
-    if coverage is None:
+    zone_definition = _adventure_zone_question_ids(settled_zone_key, uid=uid)
+    if zone_definition is None:
         return None
-    correct_count, total = coverage
+    zone_ids, total = zone_definition
+    # Restored Tier 1 continuity may legitimately make an existing first-star
+    # player appear to have crossed 60%/100%.  Those irreversible ledger
+    # writes stay behind the separately owner-gated policy seam, so under the
+    # default HOLD policy the milestone is computed from current trusted Map
+    # facts only, while the effective union still drives read-only progress
+    # and the exact 30% Lord gate.
+    #
+    # Only the count the active policy actually uses is queried: computing the
+    # union here and discarding it added a second bounded aggregate to every
+    # settled answer for no effect.
+    if retroactive_policy == RETROACTIVE_POLICY_FULL:
+        correct_count = visible_adventure_question_count(conn, uid, zone_ids)
+    else:
+        correct_count = current_adventure_question_count(conn, uid, zone_ids)
     milestone = map_milestone_star(
         correct_count, total, has_first_star=True
     )
@@ -12201,6 +12286,7 @@ def _adventure_zone_star_from_settled_answer(
         submission_id,
         earned_at,
         milestone_star=milestone,
+        allow_legacy_first_star_entitlement=legacy_first_star_entitled,
     )
 
 
@@ -12233,16 +12319,108 @@ def _persist_next_zone_unlock(conn, uid, zone_key, now):
     return next_zone_key
 
 
-def _adventure_zone_map_coverage(conn, uid, zone_key):
-    """Return ``(distinct_correct, total)`` Map coverage for one Zone.
+def _lord_retry_evaluation_failed_state():
+    """The conservative retry lock used when retry eligibility is unreadable.
 
-    Both halves are server-owned: the denominator is the canonical Zone
-    question pool, and the numerator is the distinct set of questions this
-    user has answered correctly under trusted server-settled review evidence.
-    Neither is a raw review-row count, and neither can be supplied by a
-    client.  This mirrors the numbers ``_adventure_state`` publishes, so the
-    milestone a settlement awards always agrees with the displayed progress.
+    A database/read failure is not evidence that the player paid off the
+    post-failure debt, so it must never be reported as ``required=0`` (which
+    the caller turns into ``cooldown_left=0`` and the Lord start endpoint
+    reads as "no cooldown").  The full requirement stands with nothing
+    achieved, exactly as it would immediately after the failure.
+
+    ``unresolvable_failure_reference`` is deliberately NOT set: that flag
+    means the failure timestamp itself is missing, which is a different,
+    durable condition from a transient read failure.
     """
+
+    return {
+        'locked': True,
+        'required': lord_retry_requirement(),
+        'achieved': 0,
+        'since': None,
+        'evaluation_failed': True,
+    }
+
+
+def _adventure_lord_retry_state(conn, uid, zone_key, zone_ids):
+    """Return the post-failure Lord retry lock for one Zone.
+
+    After a failed Lord the player owes ``LORD_RETRY_REQUIRED_NEW_CORRECT``
+    distinct *new* trusted correct answers before another attempt.  For an
+    uncleared Zone with at least one attempt, ``last_attempt_at`` is by
+    construction the moment of the most recent failure: every settlement path
+    stamps it, and a pass sets ``cleared``.  Each new failure overwrites it, so
+    one batch of thirty answers can never pay off two different retry locks.
+
+    The measurement is Tier 2 only.  Grandfathered continuity, historical
+    totals and undated legacy memberships contribute nothing here -- restoring
+    a player's old progress must never hand them a free Lord retry.
+    """
+
+    try:
+        row = conn.execute(
+            'SELECT attempts, cleared, last_attempt_at, updated_at '
+            'FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
+            (uid, zone_key),
+        ).fetchone()
+    except Exception:
+        # A read failure must never silently unlock a retry.  This used to
+        # return ``locked=False, required=0``, which the caller turned into
+        # ``cooldown_left=0`` -- a player with a recorded failed Lord attempt
+        # became immediately eligible again the moment this read failed.  The
+        # caller only reaches this function for an uncleared Zone that already
+        # recorded an attempt, and it reads the same table unguarded to build
+        # that row, so a genuinely missing legacy table raises before this
+        # point and can never be locked shut by this branch.
+        return _lord_retry_evaluation_failed_state()
+    if not row:
+        return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
+    attempts = int(_row_value(row, 'attempts') or 0)
+    cleared = int(_row_value(row, 'cleared') or 0)
+    if cleared or attempts <= 0:
+        return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
+    # Every settlement path stamps both columns, so for an uncleared Zone with
+    # a recorded attempt either one marks the most recent failure.  Older rows
+    # may carry only ``updated_at``; that is existing server-owned state, not
+    # an invented timestamp.
+    since = str(_row_value(row, 'last_attempt_at') or '').strip()
+    if not since:
+        since = str(_row_value(row, 'updated_at') or '').strip()
+    if not since:
+        # No failure reference at all: "30 answers after that failure" is not
+        # computable, so fail closed.  Deciding to admit such a row is an
+        # explicit Owner compatibility call, never a silent default -- the
+        # alternative is letting grandfathered continuity pay off the lock.
+        return {
+            'locked': True,
+            'required': lord_retry_requirement(),
+            'achieved': 0,
+            'since': None,
+            'unresolvable_failure_reference': True,
+        }
+    try:
+        achieved = trusted_correct_count_after(conn, uid, zone_ids, since)
+    except Exception:
+        # The post-failure count is the whole measurement.  If it cannot be
+        # read there is no evidence the debt was paid, so the lock stands.
+        return _lord_retry_evaluation_failed_state()
+    return {
+        'locked': not is_lord_retry_satisfied(achieved),
+        'required': lord_retry_requirement(),
+        'achieved': achieved,
+        'since': since,
+    }
+
+
+def _row_value(row, name):
+    try:
+        return row[name]
+    except (KeyError, IndexError, TypeError):
+        return None
+
+
+def _adventure_zone_question_ids(zone_key, uid=None):
+    """Return the canonical question-id set and denominator for one Zone."""
 
     zone = _zone_by_key(zone_key)
     if zone is None:
@@ -12253,19 +12431,14 @@ def _adventure_zone_map_coverage(conn, uid, zone_key):
     # `is_premium` reads the signed session, which only exists inside a
     # request; off-request callers fall back to the widest canonical pool.
     try:
-        premium = is_premium(uid)
+        premium = is_premium(uid) if uid is not None else True
     except RuntimeError:
         premium = True
     zone_qs = _questions_for_adventure_zone(questions, zone, premium)
     total = len(zone_qs)
     if total <= 0:
         return None
-    correct_raw = _adventure_correct_question_ids(conn, uid, None)
-    zone_ids = {q['id'] for q in zone_qs}
-    correct_ids = _IdentityKeyedSet(
-        correct_raw, _identity_group_key_map(conn, zone_ids | set(correct_raw))
-    )
-    return len([qid for qid in zone_ids if qid in correct_ids]), total
+    return {int(q['id']) for q in zone_qs}, total
 
 
 def _adventure_recommended_zone_key(zones, placement_start_zone=None):
@@ -14990,6 +15163,8 @@ def srs_review():
             training_set_id=data.get('training_set_id'),
             is_scaffolding=bool(data.get('is_scaffolding')),
             submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
+            guild_answer=data.get('guild_answer'),
+            guild_quest_key=data.get('guild_quest_key'),
         )
         outcome = _review_service.review(user_id=session['user_id'], command=command)
         payload = dict(outcome.payload)
@@ -15266,6 +15441,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
     guild_canonical = None
     guild_verdict = None
+    guild_progress_projection = None
     if guild_answer is not None:
         # Guild leaderboard credit is server-settled or it does not exist.
         # The `guild_quest` label only selects this path; every fact that
@@ -15875,6 +16051,26 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # grimoire side-effect hits a PostgreSQL compatibility issue.
         conn.commit()
 
+        # The just-committed Guild answer already has a server-owned quest
+        # projection.  Return it with the review response so the browser does
+        # not perform a second blocking progress request before showing the
+        # next question.  This is read-only projection data; the durable
+        # Guild evidence above remains the sole correctness authority.
+        if guild_verdict is not None:
+            try:
+                guild_progress_projection = _guild_quest_progress_projection(
+                    conn, uid, guild_quest_key
+                )
+            except Exception:
+                # A presentation projection failure must not turn a committed
+                # answer into a second write or a false success.  The client
+                # has a safe refresh fallback for this exceptional case.
+                app.logger.exception(
+                    'Guild progress projection unavailable after answer %s for user %s',
+                    qid,
+                    uid,
+                )
+
         monster_data = {}
         quest_shadow_events = [] if xp_shadow_enabled() else None
         battlefield_shadow_events = []
@@ -16136,6 +16332,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         'training': _pet_training_state(pet_row),
         'new_appearance_items': [_APPEAR_MAP[i] for i in new_appearance_items if i in _APPEAR_MAP],
         **({'boss_verdict': boss_verdict} if boss_verdict is not None else {}),
+        **({'guild_progress': guild_progress_projection} if guild_progress_projection is not None else {}),
         **monster_data,
     })
 
@@ -16571,6 +16768,43 @@ def _quest_public_meta(seg, practiced_ids=None):
         'coins': int(seg.get('coins') or 0),
         'xp': int(seg.get('xp') or 0),
         'href': href,
+    }
+
+
+def _guild_quest_progress_projection(conn, uid, quest_key):
+    """Return the committed Guild next-question projection in one review.
+
+    This is a bounded read of the server-owned quest segment immediately after
+    the review/card mutation.  It replaces the client-side critical-path
+    refresh round trip; it never accepts a client count or selects the next
+    question from client state.  Identity folding remains the same as the
+    standalone ``/api/quest-board/progress`` read route.
+    """
+
+    seg = _quest_segment_for_key(quest_key, is_premium(uid))
+    if not seg:
+        return None
+    qids = [int(qid) for qid in (seg.get('question_ids') or [])]
+    practiced_raw = set()
+    if qids:
+        placeholders = ','.join('?' for _ in qids)
+        rows = conn.execute(
+            f'SELECT question_id FROM srs_cards WHERE user_id=? '
+            f'AND question_id IN ({placeholders})',
+            (int(uid), *qids),
+        ).fetchall()
+        practiced_raw = {int(row['question_id']) for row in rows}
+    practiced_ids = _IdentityKeyedSet(
+        practiced_raw,
+        _identity_group_key_map(conn, set(qids) | practiced_raw),
+    )
+    next_question_id = next((qid for qid in qids if qid not in practiced_ids), None)
+    return {
+        'quest_key': str(quest_key),
+        'practiced': len(practiced_ids),
+        'total': len(qids),
+        'completed': bool(qids) and next_question_id is None,
+        'next_question_id': next_question_id,
     }
 
 def _stage_completion_state(uid, conn, *, fold_identity=True):

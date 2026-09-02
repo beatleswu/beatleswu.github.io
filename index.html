@@ -8982,10 +8982,11 @@ function _currentReviewMetadata(){
         is_scaffolding:params.get('scaffold')==='1'||!!_premiumWeeklyMode?.rescue
     };
     // Guild leaderboard credit is settled by the server judge, never by the
-    // `guild_quest` label or the client's own grade.  Send the actual move
-    // sequence so the server can judge it; without one the answer stays on
-    // the ordinary practice path and earns no Guild credit.
-    if (!bossSourceContext && _guildQuestMode?.key && _guildQuestAnswerMoves.length) {
+    // `guild_quest` label or the client's own grade.  A Guild-mode submission
+    // always carries the answer envelope, even when the move list is empty;
+    // the server then rejects an ineligible/revealed path instead of silently
+    // downgrading it to a bare, untrusted practice row.
+    if (!bossSourceContext && _guildQuestMode?.key) {
         metadata.guild_answer = { moves:_guildQuestAnswerMoves.map(move => ({...move})) };
         metadata.guild_quest_key = _guildQuestMode.key;
     }
@@ -9252,21 +9253,27 @@ async function _syncGuildQuestProgress({ notify = true } = {}) {
         const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
         const data = await res.json();
         if (!res.ok || !data.ok) return null;
-        _guildQuestMode.done = Number(data.practiced || 0);
-        _guildQuestMode.total = Number(data.total || _guildQuestMode.total || 0);
-        _guildQuestMode.completed = !!data.completed;
-        _guildQuestMode.nextQuestionId = data.next_question_id == null
-            ? null : Number(data.next_question_id);
-        _renderGuildQuestProgress();
-        if (notify && data.completed && !_guildQuestMode.completionNotified) {
-            _guildQuestMode.completionNotified = true;
-            _showGuildQuestComplete();
-        }
-        return data;
+        return _applyGuildQuestProgressProjection(data, { notify });
     } catch(e) {
         console.warn('[QUEST] 無法同步公會委託進度', e);
         return null;
     }
+}
+
+function _applyGuildQuestProgressProjection(data, { notify = true } = {}) {
+    if (!data || data.ok !== true || !_guildQuestMode?.key) return null;
+    if (String(data.quest_key || '') !== String(_guildQuestMode.key)) return null;
+    _guildQuestMode.done = Number(data.practiced || 0);
+    _guildQuestMode.total = Number(data.total || _guildQuestMode.total || 0);
+    _guildQuestMode.completed = !!data.completed;
+    _guildQuestMode.nextQuestionId = data.next_question_id == null
+        ? null : Number(data.next_question_id);
+    _renderGuildQuestProgress();
+    if (notify && data.completed && !_guildQuestMode.completionNotified) {
+        _guildQuestMode.completionNotified = true;
+        _showGuildQuestComplete();
+    }
+    return data;
 }
 // ─── 戰鬥系統狀態 ──────────────────────────────────────────────
 let _playerHp=0,_playerMaxHp=100,_currentSp=0,_maxSp=100;
@@ -9632,7 +9639,10 @@ async function submitSRS(grade){
             qid: Number(currentQ.id), grade,
         });
         _dispatchCommittedReviewPresentation(data, grade);
-        loadMapProgressStatus();
+        // Map bootstrap reconstructs the full historical compatibility read
+        // model.  It is intentionally not on the ordinary answer critical
+        // path; the next question must render without waiting for a map HUD
+        // refresh whose result is presentation-only.
         if (grade === 0 && _activeBossZone && currentQ && String(currentQ.stage || '') === String(_activeBossZone.stage || '')) {
             _zoneWrongStreak++;
             if (_zoneWrongStreak >= 5) showZoneSoftfallPrompt(_activeBossZone);
@@ -9668,7 +9678,17 @@ async function submitSRS(grade){
             }
         }
         if (shouldAdvance && _guildQuestMode) {
-            const questProgress = await _syncGuildQuestProgress();
+            // The review writer returns this projection after committing the
+            // Guild card/evidence.  It is server-owned and therefore safe to
+            // drive the next question without a second blocking request.
+            // Keep the old endpoint as a fail-closed compatibility fallback
+            // for an older server response, never as an optimistic client
+            // substitute.
+            let questProgress = _applyGuildQuestProgressProjection(
+                data.guild_progress,
+                { notify: true },
+            );
+            if (!questProgress) questProgress = await _syncGuildQuestProgress();
             if (questProgress?.completed) {
                 shouldAdvance = false;
             } else if (grade !== 0 && questProgress?.next_question_id != null) {

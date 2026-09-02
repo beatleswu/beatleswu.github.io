@@ -196,15 +196,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "fe5fada83fec45f55509bb5775ad4f22c188ff8c",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(rpg-v1): Owner-locked Zone progression 30/Lord/60/100 with legacy continuity",
-      "source_date": "2026-09-01",
-      "content_sha256": "783d780a14a091a70134021e9afbc97f6f831dc51ecad399d200bafdb2382630",
-      "content_size_bytes": 1020632,
+      "source_commit": "eb10b02fcf8a69c3de0b9c78655827b917f4f333",
+      "source_branch_or_local_ref": "claude/rpg-v1-p0-prechange-display-continuity-r3",
+      "source_commit_subject": "RPG V1 P0 repair: restore continuity and Guild latency",
+      "source_date": "2026-09-02",
+      "content_sha256": "2d90d07b8d9cf1c743882f8326a8b2b7c78b0121e6b4690887f05203c0697cf8",
+      "content_size_bytes": 1021765,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "terms.html",
@@ -590,15 +590,15 @@
     },
     {
       "path": "js/game/review_transport.js",
-      "source_commit": "a595d29d594556371d070d265cc9a432345e12b1",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(rpg-v1): repair three P0 post-deploy production blockers",
-      "source_date": "2026-09-01",
-      "content_sha256": "c6ecd2a3d552a9a040373dcd3b7b5a7259193b0dcb154578a2b2ff6f40575944",
-      "content_size_bytes": 9330,
+      "source_commit": "eb10b02fcf8a69c3de0b9c78655827b917f4f333",
+      "source_branch_or_local_ref": "claude/rpg-v1-p0-prechange-display-continuity-r3",
+      "source_commit_subject": "RPG V1 P0 repair: restore continuity and Guild latency",
+      "source_date": "2026-09-02",
+      "content_sha256": "d0b42150062b35c0e83b96c2b340aa846972528643f9f5cfa613eb21e3a3e854",
+      "content_size_bytes": 9348,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (ReviewTransport browser module; governed static subpath asset; includes the RPG V1 Guild answer transport)",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "js/game/game_session.js",
@@ -1097,15 +1097,15 @@
     },
     {
       "path": "adventure_zone_star_progression.py",
-      "source_commit": "fe5fada83fec45f55509bb5775ad4f22c188ff8c",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(rpg-v1): Owner-locked Zone progression 30/Lord/60/100 with legacy continuity",
-      "source_date": "2026-09-01",
-      "content_sha256": "0aabe4c579415c1c058ba642960dd1475cacaa4051d723590e60948e441749f1",
-      "content_size_bytes": 12203,
+      "source_commit": "eb10b02fcf8a69c3de0b9c78655827b917f4f333",
+      "source_branch_or_local_ref": "claude/rpg-v1-p0-prechange-display-continuity-r3",
+      "source_commit_subject": "RPG V1 P0 repair: restore continuity and Guild latency",
+      "source_date": "2026-09-02",
+      "content_sha256": "d1e64c4086ff039551b834ed7cb6c64db1693f6eba0f47bc089ca9c6d2cd0e60",
+      "content_size_bytes": 17559,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import (line 197); runtime-critical -- server-owned Adventure Zone-star authority and 30/60/100 progression settlement",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "migrations/adventure_zone_star_progression_v1.py",
@@ -1133,15 +1133,15 @@
     },
     {
       "path": "adventure_zone_progression_authority.py",
-      "source_commit": "fe5fada83fec45f55509bb5775ad4f22c188ff8c",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(rpg-v1): Owner-locked Zone progression 30/Lord/60/100 with legacy continuity",
-      "source_date": "2026-09-01",
-      "content_sha256": "13f14a326adfa7bde35f32ea351a292d59aae85f3b832e62adef5347ffdff265",
-      "content_size_bytes": 4359,
+      "source_commit": "65563fffb27adc2bae6b9d1686fba88bfeac74f4",
+      "source_branch_or_local_ref": "claude/rpg-v1-p0-prechange-display-continuity-r3",
+      "source_commit_subject": "R3: reconstruct the pre-change display predicate as grandfathered Tier 1",
+      "source_date": "2026-09-02",
+      "content_sha256": "a9b8c59efb98481a546651213c0195c3c2beb78b96f93f6bf3f48faec63be9c5",
+      "content_size_bytes": 5155,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import (line 210); runtime-critical -- server-owned 30/60/100 Map progression and Lord eligibility authority",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "guild_quest_answer_service.py",
@@ -1166,6 +1166,18 @@
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import (line 249); runtime-critical -- Lord queue admissibility filtering before attempt creation and exact-trial contract",
       "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced this module and is byte-identical to it; deployment remains separately gated"
+    },
+    {
+      "path": "tools/incident_019b_progression_continuity.py",
+      "source_commit": "5c9783e46676ab82f2e5ff9b49054724d1400bac",
+      "source_branch_or_local_ref": "claude/rpg-v1-p0-prechange-display-continuity-r3",
+      "source_commit_subject": "R3: make the census scan plan real rather than declared",
+      "source_date": "2026-09-02",
+      "content_sha256": "a16889dbac3931e2ab5ab03bdd22b2b29d868ad7433db84044c1d2c9f92ab9a2",
+      "content_size_bytes": 27004,
+      "line_ending_policy": "LF",
+      "runtime_role": "packaged administrative runner (Dockerfile COPY); the owner-gated grandfathered continuity baseline migration and its read-only preflight are executed from inside the governed image",
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     }
   ]
 }

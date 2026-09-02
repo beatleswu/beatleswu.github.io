@@ -47,7 +47,7 @@
     // response carrying one -- e.g. a review that triggers a level-up -- gets
     // rejected as invalid_review_response even though it was already durably
     // committed server-side.
-    const APPROVED_PRESENTATION_EXTENSION_FIELDS = ['combat_stats', 'level_up_rewards', 'boss_verdict'];
+    const APPROVED_PRESENTATION_EXTENSION_FIELDS = ['combat_stats', 'level_up_rewards', 'boss_verdict', 'guild_progress'];
     const PUBLIC_SUBMISSION_DUPLICATE = [
         'ok',
         'submission_duplicate',

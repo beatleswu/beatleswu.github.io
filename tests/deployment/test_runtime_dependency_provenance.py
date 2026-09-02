@@ -116,6 +116,11 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         # provenance record. Temporary instrumentation -- retire all three
         # together, never the boss_attempt_expired control flow.
         "incident_018_observability.py",
+        # R3 grandfathered legacy continuity: the owner-gated baseline
+        # migration and its read-only preflight are executed from inside the
+        # governed image, so the runner is packaged and governed alongside its
+        # Dockerfile COPY and build-manifest entry.
+        "tools/incident_019b_progression_continuity.py",
     }
 )
 CURRENT_EXPECTED_COUNT = B1_PRESENT_EXPECTED_COUNT + len(POST_B1_GOVERNED_RUNTIME_PATHS)

@@ -259,7 +259,9 @@ def _assert_provenance_contract(governed_paths, presentation_present, expected_c
 # migration dependency to the governed set.
 # RPG V1 P0 hotfix adds four app-start runtime authorities: Zone 3 legacy
 # compatibility, Zone progression, Guild answer handling, and Lord admission.
-POST_B1_PROVENANCE_ADDITIONS = 17
+# R3 grandfathered legacy continuity adds the packaged baseline migration /
+# census runner, which is executed from inside the governed image.
+POST_B1_PROVENANCE_ADDITIONS = 18
 CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 

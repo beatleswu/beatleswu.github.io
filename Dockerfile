@@ -222,6 +222,10 @@ COPY tools/community_leaderboard_rewards_real_grant_commit.py /app/tools/communi
 # public client endpoint.
 COPY tools/historical_leaderboard_restoration.py /app/tools/historical_leaderboard_restoration.py
 COPY tools/community_leaderboard_rewards_exact_period.py /app/tools/community_leaderboard_rewards_exact_period.py
+# Grandfathered legacy continuity baseline runner / census / comparison.  The
+# owner-gated migration and its read-only preflight are executed from inside
+# the governed image, so the tool must actually be packaged in it.
+COPY tools/incident_019b_progression_continuity.py /app/tools/incident_019b_progression_continuity.py
 COPY sgf_engine ./sgf_engine
 
 # ── Curated root static pages/scripts (explicit list, not a wildcard).

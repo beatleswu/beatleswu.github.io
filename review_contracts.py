@@ -80,10 +80,15 @@ PUBLIC_SUBMISSION_DUPLICATE_FIELDS: tuple[str, ...] = (
 # invalid_review_response (see incident 017).
 # boss_verdict is a server-owned Lord Trial result projection.  It is not
 # accepted as a request field and is never a client correctness authority.
+# guild_progress is likewise a read-only, server-computed next-question
+# projection returned after the Guild answer has already committed.  It lets
+# the client advance without a second blocking refresh; it is not a count or
+# correctness input.
 APPROVED_PRESENTATION_EXTENSION_FIELDS: tuple[str, ...] = (
     "combat_stats",
     "level_up_rewards",
     "boss_verdict",
+    "guild_progress",
 )
 
 # This is an internal, server-owned execution policy.  It is deliberately
@@ -123,6 +128,12 @@ class ReviewCommand:
     submission_id: str | None = None
     combat_settlement_context: str | None = None
     boss_answer: Mapping[str, Any] | None = None
+    # A Guild answer is a client-provided candidate envelope only. The legacy
+    # operation re-validates eligibility and re-judges it server-side; this
+    # field must cross the typed boundary instead of being downgraded to
+    # ordinary practice by the compatibility service.
+    guild_answer: Mapping[str, Any] | None = None
+    guild_quest_key: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

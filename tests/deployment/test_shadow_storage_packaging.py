@@ -21,7 +21,10 @@ RELEASE_BUILD_SCRIPT = REPO_ROOT / "scripts" / "release" / "build-release-image.
 # migration constants module (DDL remains operator-owned).
 # +4 for the RPG V1 P0 hotfix's app-start Zone 3 compatibility, progression,
 # Guild answer, and Lord admission authorities.
-CURRENT_GOVERNED_PROVENANCE_COUNT = 97
+# +1 for the R3 grandfathered legacy continuity runner, which is packaged in
+# the governed image because the owner-gated baseline migration and its
+# read-only preflight are executed from inside it.
+CURRENT_GOVERNED_PROVENANCE_COUNT = 98
 
 
 def _text(path):
