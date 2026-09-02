@@ -461,3 +461,56 @@ def test_retry_gate_ignores_incorrect_and_duplicate_answers(app_module, monkeypa
     _bind(app_module, monkeypatch, conn, questions, correct_ids=set(zone1_ids[:40]))
     assert _zone(app_module, 411, ZONE1)["cooldown_left"] == 30
     conn.close()
+
+
+def test_retry_gate_uses_trusted_post_failure_evidence_when_the_failure_is_dated(
+    app_module, monkeypatch
+):
+    """Grandfathered continuity must never pay off a pending retry lock.
+
+    The gate used to be a delta against ``seen`` -- the visible union -- so
+    publishing the historical baseline would have cleared every outstanding
+    retry lock for free.  When the failure moment is recorded, the same 30 is
+    measured in trusted Tier 2 answers written strictly after it.
+    """
+
+    conn = _connection()
+    questions = _questions(zone1_count=100)
+    zone1_ids = sorted(q["id"] for q in questions if q["topic"] == ZONE1_TOPIC)
+    conn.execute(
+        "INSERT INTO adventure_boss_progress"
+        "(user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen,"
+        " last_attempt_at) VALUES (?,?,0,0,1,10,?,?)",
+        (412, ZONE1, 40 + app_module.BOSS_FAIL_COOLDOWN, "2026-09-01T00:00:00"),
+    )
+    conn.commit()
+
+    # A huge visible set -- as a restored baseline would produce -- but no
+    # trusted evidence after the failure.
+    _bind(app_module, monkeypatch, conn, questions, correct_ids=set(zone1_ids))
+    zone = _zone(app_module, 412, ZONE1)
+    assert zone["lord_retry_measured_from_failure"] is True
+    assert zone["cooldown_left"] == app_module.BOSS_FAIL_COOLDOWN
+    assert zone["boss_ready"] is False
+
+    # 29 trusted answers after the failure: still locked.
+    for offset in range(29):
+        conn.execute(
+            "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
+            "VALUES (?,?,?,?,?)",
+            (412, zone1_ids[offset], 5, "2026-09-02T00:00:00", "mbv1:map"),
+        )
+    conn.commit()
+    assert _zone(app_module, 412, ZONE1)["cooldown_left"] == 1
+
+    # The thirtieth opens it.
+    conn.execute(
+        "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
+        "VALUES (?,?,?,?,?)",
+        (412, zone1_ids[29], 5, "2026-09-02T00:00:00", "mbv1:map"),
+    )
+    conn.commit()
+    reopened = _zone(app_module, 412, ZONE1)
+    assert reopened["cooldown_left"] == 0
+    assert reopened["boss_ready"] is True
+    conn.close()

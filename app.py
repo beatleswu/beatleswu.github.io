@@ -12081,7 +12081,20 @@ def _adventure_state(uid):
         cleared = bool(row.get('cleared'))
         placement_unlocked = z['key'] in placement_unlocks
         cooldown_until = int(row.get('cooldown_until_seen') or 0)
-        cooldown_left = max(0, cooldown_until - seen)
+        # The post-failure retry gate is 30 further distinct correct answers.
+        # It was measured as a delta against ``seen`` -- the *visible* union --
+        # so any growth in visible progress paid it off, and publishing the
+        # grandfathered baseline would have cleared every pending retry lock
+        # for free.  Where the failure moment is known, measure the same 30 in
+        # trusted Tier 2 answers recorded strictly after that failure instead.
+        # Rows with no recorded attempt timestamp keep the legacy arithmetic.
+        lord_retry = lord_retry_states.get(z['key'])
+        if lord_retry and lord_retry.get('since'):
+            cooldown_left = max(
+                0, int(lord_retry['required']) - int(lord_retry['achieved'])
+            )
+        else:
+            cooldown_left = max(0, cooldown_until - seen)
 
         # Keep the exact pre-R6 public projection as a grandfathered,
         # read-only entitlement.  It is not copied into Zone authority and
@@ -12101,19 +12114,11 @@ def _adventure_state(uid):
         # answers.  The old ``round()``-ed percentage admitted players just
         # below the stated share (576 of 1939 reads as 30% but is 29.7%).
         lord_required_correct = lord_eligibility_requirement(total)
-        # A failed Lord owes new *trusted* work before the next attempt.
-        # Grandfathered continuity can open the first attempt, but it can
-        # never pay off a retry lock.
-        lord_retry = lord_retry_states.get(z['key']) or {
-            'locked': False, 'required': 0, 'achieved': 0, 'since': None,
-        }
-        lord_retry_locked = bool(lord_retry.get('locked'))
         boss_ready = (
             unlocked
             and is_lord_eligible(seen, total)
             and not cleared
             and cooldown_left == 0
-            and not lord_retry_locked
         )
 
         zones.append({
@@ -12126,9 +12131,10 @@ def _adventure_state(uid):
             'defeated': defeated,
             'pct': pct,
             'defeat_pct': defeat_pct,
-            'lord_retry_locked': lord_retry_locked,
-            'lord_retry_required_new_correct': int(lord_retry.get('required') or 0),
-            'lord_retry_new_correct': int(lord_retry.get('achieved') or 0),
+            'lord_retry_new_correct': int((lord_retry or {}).get('achieved') or 0),
+            'lord_retry_measured_from_failure': bool(
+                lord_retry and lord_retry.get('since')
+            ),
             'unlock_pct': BOSS_UNLOCK_PCT,
             'boss_exam_size': BOSS_EXAM_SIZE,
             'boss_pass_score': BOSS_PASS_SCORE,
@@ -12966,17 +12972,6 @@ def adventure_boss_start():
             'progress': state.get('pct', 0),
             'correct': state.get('seen', 0),
             'required_correct': state.get('lord_required_correct', 0),
-        }), 400
-    # The post-failure retry lock is a separate server-authoritative gate.
-    # ``_adventure_state`` already measured it from trusted post-failure
-    # evidence only; there is deliberately no second authority here, and
-    # grandfathered continuity cannot satisfy it.
-    if not is_replay and state.get('lord_retry_locked'):
-        return jsonify({
-            'ok': False,
-            'error': 'lord_retry_locked',
-            'required_new_correct': state.get('lord_retry_required_new_correct', 0),
-            'new_correct': state.get('lord_retry_new_correct', 0),
         }), 400
 
     premium = is_premium(uid)
