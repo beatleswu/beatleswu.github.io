@@ -569,3 +569,63 @@ def test_pg_parity_identity_folding_primitive(pg_url):
     finally:
         conn.rollback()
         conn.close()
+
+
+def test_resolve_batch_deduplicates_inputs_without_changing_missing_semantics(monkeypatch):
+    conn = _mk_conn(with_identity=True)
+    st = _make_hot(conn)
+    calls = []
+    original_all = PuzzleIdentityStore._all
+
+    def observed_all(store, sql, params=()):
+        if "puzzle_identity_alias" in sql:
+            kind = "current" if "is_current" in sql else "historical"
+            calls.append((kind, len(tuple(params))))
+        return original_all(store, sql, params)
+
+    monkeypatch.setattr(PuzzleIdentityStore, "_all", observed_all)
+    wanted = list(range(100000, 100801)) + list(range(100000, 100400))
+    out = st.resolve_batch(
+        "LEGACY_QUESTION_ID",
+        wanted,
+        alias_context=None,
+    )
+    assert list(out) == [str(value) for value in range(100000, 100801)]
+    assert all(row["status"] == "MISSING" for row in out.values())
+    assert calls == [
+        ("current", 402), ("current", 402), ("current", 3),
+        ("historical", 400), ("historical", 400), ("historical", 1),
+    ]
+    conn.close()
+
+
+def test_pg_resolve_batch_uses_bounded_large_chunks(pg_url, monkeypatch):
+    import psycopg2
+    from psycopg2.extras import DictCursor
+    from db import PostgresConnectionWrapper
+
+    raw = psycopg2.connect(pg_url, cursor_factory=DictCursor)
+    conn = PostgresConnectionWrapper(raw, pooled=False)
+    try:
+        identity_upgrade(conn)
+        _seed_receipt(conn)
+        calls = []
+        original_all = PuzzleIdentityStore._all
+
+        def observed_all(store, sql, params=()):
+            if "puzzle_identity_alias" in sql:
+                kind = "current" if "is_current" in sql else "historical"
+                calls.append((kind, len(tuple(params))))
+            return original_all(store, sql, params)
+
+        monkeypatch.setattr(PuzzleIdentityStore, "_all", observed_all)
+        wanted = list(range(100000, 100801))
+        out = PuzzleIdentityStore(conn).resolve_batch(
+            "LEGACY_QUESTION_ID", wanted, alias_context=None
+        )
+        assert len(out) == len(wanted)
+        assert all(row["status"] == "MISSING" for row in out.values())
+        assert calls == [("current", 803), ("historical", 801)]
+    finally:
+        conn.rollback()
+        conn.close()

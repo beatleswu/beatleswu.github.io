@@ -36,6 +36,13 @@ NATIVE_CREATED_BY_DEFAULT = "native_authoring"
 DEFAULT_ALIAS_CONTEXT = "genesis-v1"
 POST_GENESIS_ALIAS_CONTEXT = "post-genesis"
 
+# SQLite's default host-parameter limit is commonly 999, so keep the
+# established conservative batch size there.  PostgreSQL accepts materially
+# larger parameter lists; the production resolver was otherwise issuing one
+# query per 400 ids for a corpus-sized aggregate read.
+_RESOLVE_BATCH_SIZE_SQLITE = 400
+_RESOLVE_BATCH_SIZE_POSTGRES = 10_000
+
 
 class PuzzleIdentityError(RuntimeError):
     """Fail-closed puzzle-identity storage error."""
@@ -97,6 +104,16 @@ class PuzzleIdentityStore:
         if not hasattr(self._conn, "execute"):
             cur.close()
         return rows
+
+    @staticmethod
+    def _resolve_batch_size(conn: Any) -> int:
+        raw = getattr(conn, "_conn", conn)
+        module = raw.__class__.__module__.lower()
+        return (
+            _RESOLVE_BATCH_SIZE_SQLITE
+            if module.startswith("sqlite3")
+            else _RESOLVE_BATCH_SIZE_POSTGRES
+        )
 
     @staticmethod
     def _val(row: Any, idx: int, key: str) -> Any:
@@ -611,15 +628,19 @@ class PuzzleIdentityStore:
         an ambiguous value (it is reported as its own fail-closed row)."""
         if alias_kind not in ALIAS_KINDS:
             raise PuzzleIdentityError(f"unsupported alias_kind: {alias_kind}")
-        wanted = [str(v) for v in alias_values]
+        # The result is keyed by string value, so duplicate inputs cannot
+        # produce distinct output.  Preserve first-seen order while ensuring
+        # direct callers cannot pay for repeated alias batches.
+        wanted = list(dict.fromkeys(str(v) for v in alias_values))
         out: dict[str, dict[str, Any]] = {
             v: {"status": "MISSING", "source_record_uuid": None} for v in wanted
         }
         if not wanted:
             return out
+        batch_size = self._resolve_batch_size(self._conn)
         by_value: dict[str, set[str]] = {}
-        for chunk_start in range(0, len(wanted), 400):
-            chunk = wanted[chunk_start:chunk_start + 400]
+        for chunk_start in range(0, len(wanted), batch_size):
+            chunk = wanted[chunk_start:chunk_start + batch_size]
             placeholders = ",".join("?" * len(chunk))
             if alias_context is None:
                 sql = ("SELECT alias_value, source_record_uuid FROM puzzle_identity_alias "
@@ -647,8 +668,8 @@ class PuzzleIdentityStore:
             # stay MISSING.
             unbound = [v for v in wanted if v not in by_value]
             hist: dict[str, set[str]] = {}
-            for chunk_start in range(0, len(unbound), 400):
-                chunk = unbound[chunk_start:chunk_start + 400]
+            for chunk_start in range(0, len(unbound), batch_size):
+                chunk = unbound[chunk_start:chunk_start + batch_size]
                 if not chunk:
                     continue
                 placeholders = ",".join("?" * len(chunk))

@@ -12022,6 +12022,19 @@ def _adventure_state(uid):
             uid,
             unlock_rows=[dict(r) for r in unlock_rows],
         )
+        # LC020 performance: only Adventure question ids participate in the
+        # three zone counters below.  Keep every user-evidence id as well so
+        # an out-of-zone legacy id that aliases a zone question still folds
+        # correctly; omitting those ids would change canonical continuity.
+        zone_question_sets = {
+            z['key']: _questions_for_adventure_zone(qs, z, premium)
+            for z in ADVENTURE_ZONES
+        }
+        adventure_question_ids = {
+            q['id']
+            for zone_questions in zone_question_sets.values()
+            for q in zone_questions
+        }
         # LC019-W2: Adventure Lord progress is "have I cleared this puzzle".
         # Fold the mastery / attempted / defeat sets by canonical identity so a
         # content-duplicate counts once.  Cold (today): _gk is the identity
@@ -12029,7 +12042,7 @@ def _adventure_state(uid):
         # queries.
         _adv_gkm = _identity_group_key_map(
             conn,
-            {q['id'] for q in qs}
+            adventure_question_ids
             | set(correct_raw)
             | set(trusted_raw)
             | {r['question_id'] for r in cards},
@@ -12051,7 +12064,7 @@ def _adventure_state(uid):
                 _zone['key'],
                 {
                     int(q['id'])
-                    for q in _questions_for_adventure_zone(qs, _zone, premium)
+                    for q in zone_question_sets[_zone['key']]
                 },
             )
 
@@ -12067,7 +12080,7 @@ def _adventure_state(uid):
     previous_unlocks_next = True
 
     for z in ADVENTURE_ZONES:
-        zone_qs = _questions_for_adventure_zone(qs, z, premium)
+        zone_qs = zone_question_sets[z['key']]
         total = len(zone_qs)
         # ``seen`` is the long-standing API field consumed by the E9/E10
         # progress surfaces.  Its canonical numerator is now historical
