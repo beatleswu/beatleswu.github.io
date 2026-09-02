@@ -12319,6 +12319,29 @@ def _persist_next_zone_unlock(conn, uid, zone_key, now):
     return next_zone_key
 
 
+def _lord_retry_evaluation_failed_state():
+    """The conservative retry lock used when retry eligibility is unreadable.
+
+    A database/read failure is not evidence that the player paid off the
+    post-failure debt, so it must never be reported as ``required=0`` (which
+    the caller turns into ``cooldown_left=0`` and the Lord start endpoint
+    reads as "no cooldown").  The full requirement stands with nothing
+    achieved, exactly as it would immediately after the failure.
+
+    ``unresolvable_failure_reference`` is deliberately NOT set: that flag
+    means the failure timestamp itself is missing, which is a different,
+    durable condition from a transient read failure.
+    """
+
+    return {
+        'locked': True,
+        'required': lord_retry_requirement(),
+        'achieved': 0,
+        'since': None,
+        'evaluation_failed': True,
+    }
+
+
 def _adventure_lord_retry_state(conn, uid, zone_key, zone_ids):
     """Return the post-failure Lord retry lock for one Zone.
 
@@ -12341,8 +12364,15 @@ def _adventure_lord_retry_state(conn, uid, zone_key, zone_ids):
             (uid, zone_key),
         ).fetchone()
     except Exception:
-        # A missing legacy table must not silently unlock a retry.
-        return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
+        # A read failure must never silently unlock a retry.  This used to
+        # return ``locked=False, required=0``, which the caller turned into
+        # ``cooldown_left=0`` -- a player with a recorded failed Lord attempt
+        # became immediately eligible again the moment this read failed.  The
+        # caller only reaches this function for an uncleared Zone that already
+        # recorded an attempt, and it reads the same table unguarded to build
+        # that row, so a genuinely missing legacy table raises before this
+        # point and can never be locked shut by this branch.
+        return _lord_retry_evaluation_failed_state()
     if not row:
         return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
     attempts = int(_row_value(row, 'attempts') or 0)
@@ -12368,7 +12398,12 @@ def _adventure_lord_retry_state(conn, uid, zone_key, zone_ids):
             'since': None,
             'unresolvable_failure_reference': True,
         }
-    achieved = trusted_correct_count_after(conn, uid, zone_ids, since)
+    try:
+        achieved = trusted_correct_count_after(conn, uid, zone_ids, since)
+    except Exception:
+        # The post-failure count is the whole measurement.  If it cannot be
+        # read there is no evidence the debt was paid, so the lock stands.
+        return _lord_retry_evaluation_failed_state()
     return {
         'locked': not is_lord_retry_satisfied(achieved),
         'required': lord_retry_requirement(),
