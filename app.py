@@ -12082,18 +12082,24 @@ def _adventure_state(uid):
         placement_unlocked = z['key'] in placement_unlocks
         cooldown_until = int(row.get('cooldown_until_seen') or 0)
         # The post-failure retry gate is 30 further distinct correct answers.
-        # It was measured as a delta against ``seen`` -- the *visible* union --
-        # so any growth in visible progress paid it off, and publishing the
+        # It used to be a delta against ``seen`` -- the *visible* union -- so
+        # any growth in visible progress paid it off, and publishing the
         # grandfathered baseline would have cleared every pending retry lock
-        # for free.  Where the failure moment is known, measure the same 30 in
-        # trusted Tier 2 answers recorded strictly after that failure instead.
-        # Rows with no recorded attempt timestamp keep the legacy arithmetic.
+        # for free.  The same 30 is now measured in trusted Tier 2 answers
+        # recorded strictly after the failure, for every locked Zone.
+        #
+        # There is deliberately no union-based fallback: a row that cannot be
+        # measured that way fails closed instead, because falling back to the
+        # old arithmetic is exactly how Tier 1 continuity would buy a retry.
         lord_retry = lord_retry_states.get(z['key'])
-        if lord_retry and lord_retry.get('since'):
+        if lord_retry:
             cooldown_left = max(
                 0, int(lord_retry['required']) - int(lord_retry['achieved'])
             )
         else:
+            # No recorded attempt for this Zone: nothing is owed.  The legacy
+            # column is still honoured so an untouched historical row cannot
+            # silently lose an outstanding lock.
             cooldown_left = max(0, cooldown_until - seen)
 
         # Keep the exact pre-R6 public projection as a grandfathered,
@@ -12134,6 +12140,9 @@ def _adventure_state(uid):
             'lord_retry_new_correct': int((lord_retry or {}).get('achieved') or 0),
             'lord_retry_measured_from_failure': bool(
                 lord_retry and lord_retry.get('since')
+            ),
+            'lord_retry_reference_unresolvable': bool(
+                lord_retry and lord_retry.get('unresolvable_failure_reference')
             ),
             'unlock_pct': BOSS_UNLOCK_PCT,
             'boss_exam_size': BOSS_EXAM_SIZE,
@@ -12327,8 +12336,8 @@ def _adventure_lord_retry_state(conn, uid, zone_key, zone_ids):
 
     try:
         row = conn.execute(
-            'SELECT attempts, cleared, last_attempt_at FROM adventure_boss_progress '
-            'WHERE user_id=? AND zone_key=?',
+            'SELECT attempts, cleared, last_attempt_at, updated_at '
+            'FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
             (uid, zone_key),
         ).fetchone()
     except Exception:
@@ -12338,17 +12347,26 @@ def _adventure_lord_retry_state(conn, uid, zone_key, zone_ids):
         return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
     attempts = int(_row_value(row, 'attempts') or 0)
     cleared = int(_row_value(row, 'cleared') or 0)
-    since = str(_row_value(row, 'last_attempt_at') or '').strip()
     if cleared or attempts <= 0:
         return {'locked': False, 'required': 0, 'achieved': 0, 'since': None}
+    # Every settlement path stamps both columns, so for an uncleared Zone with
+    # a recorded attempt either one marks the most recent failure.  Older rows
+    # may carry only ``updated_at``; that is existing server-owned state, not
+    # an invented timestamp.
+    since = str(_row_value(row, 'last_attempt_at') or '').strip()
     if not since:
-        # An attempt was recorded without a usable failure timestamp: fail
-        # closed rather than treating the lock as paid.
+        since = str(_row_value(row, 'updated_at') or '').strip()
+    if not since:
+        # No failure reference at all: "30 answers after that failure" is not
+        # computable, so fail closed.  Deciding to admit such a row is an
+        # explicit Owner compatibility call, never a silent default -- the
+        # alternative is letting grandfathered continuity pay off the lock.
         return {
             'locked': True,
             'required': lord_retry_requirement(),
             'achieved': 0,
             'since': None,
+            'unresolvable_failure_reference': True,
         }
     achieved = trusted_correct_count_after(conn, uid, zone_ids, since)
     return {

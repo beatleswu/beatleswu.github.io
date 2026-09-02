@@ -310,11 +310,14 @@ def test_post_failure_cooldown_still_blocks_an_eligible_player(
     questions = _pool(topic, total, 100000)
     ids = [q["id"] for q in questions][:required]
     # Failed the Lord at `required` correct: 30 further correct answers needed.
+    # The retry gate is measured in trusted Tier 2 answers recorded strictly
+    # after the failure, so the row carries the moment it failed.
+    failed_at = "2026-09-05T00:00:00"
     conn.execute(
         "INSERT INTO adventure_boss_progress"
-        "(user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen)"
-        " VALUES (?,?,0,0,1,10,?)",
-        (8100, zone_key, required + app_module.BOSS_FAIL_COOLDOWN),
+        "(user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen,"
+        " last_attempt_at,updated_at) VALUES (?,?,0,0,1,10,?,?,?)",
+        (8100, zone_key, required + app_module.BOSS_FAIL_COOLDOWN, failed_at, failed_at),
     )
     conn.commit()
     _bind(app_module, monkeypatch, conn, questions, set(ids))
@@ -326,11 +329,24 @@ def test_post_failure_cooldown_still_blocks_an_eligible_player(
     assert response.status_code == 400
     assert response.get_json()["error"] == "cooldown"
 
-    # Exactly 30 further distinct correct answers releases it.
+    # Growing *visible* coverage does not pay the lock off -- only new trusted
+    # work after the failure does.
     _bind(
         app_module, monkeypatch, conn, questions,
         set([q["id"] for q in questions][: required + app_module.BOSS_FAIL_COOLDOWN]),
     )
+    assert _state_zone(app_module, 8100, zone_key)["cooldown_left"] == 30
+    assert _start(client, zone_key).status_code == 400
+
+    # Exactly 30 distinct trusted answers after the failure releases it.
+    for question_id in [q["id"] for q in questions][:app_module.BOSS_FAIL_COOLDOWN]:
+        conn.execute(
+            "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context)"
+            " VALUES (?,?,5,?,'mbv1:map')",
+            (8100, question_id, "2026-09-06T00:00:00"),
+        )
+    conn.commit()
+    app_module._ADVENTURE_STATE_CACHE.clear()
     assert _state_zone(app_module, 8100, zone_key)["cooldown_left"] == 0
     assert _start(client, zone_key).status_code == 200
     conn.close()

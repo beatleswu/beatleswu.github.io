@@ -418,27 +418,38 @@ def test_retry_gate_counts_distinct_correct_map_questions(app_module, monkeypatc
     questions = _questions(zone1_count=100)
     zone1_ids = sorted(q["id"] for q in questions if q["topic"] == ZONE1_TOPIC)
 
-    # The player failed the Lord with 40 distinct correct answers, so the row
-    # records the seen-count at which a retry becomes available.
+    # The player failed the Lord with 40 distinct correct answers.  The gate is
+    # now measured in trusted Tier 2 answers recorded strictly after that
+    # failure, so the row carries the moment it failed.
+    failed_at = "2026-09-05T00:00:00"
     conn.execute(
         "INSERT INTO adventure_boss_progress"
-        "(user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen)"
-        " VALUES (?,?,0,0,1,10,?)",
-        (410, ZONE1, 40 + app_module.BOSS_FAIL_COOLDOWN),
+        "(user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen,"
+        " last_attempt_at,updated_at) VALUES (?,?,0,0,1,10,?,?,?)",
+        (410, ZONE1, 40 + app_module.BOSS_FAIL_COOLDOWN, failed_at, failed_at),
     )
     conn.commit()
 
     for answered, expected_left in (
-        (40, 30), (41, 29), (69, 1), (70, 0), (75, 0),
+        (0, 30), (1, 29), (29, 1), (30, 0), (35, 0),
     ):
+        conn.execute("DELETE FROM review_log WHERE user_id=410")
+        for question_id in zone1_ids[:answered]:
+            conn.execute(
+                "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context)"
+                " VALUES (?,?,5,?,'mbv1:map')",
+                (410, question_id, "2026-09-06T00:00:00"),
+            )
+        conn.commit()
+        # Visible coverage stays well past 30% throughout, so the retry gate is
+        # the only thing blocking -- and only trusted post-failure work moves it.
         _bind(
             app_module, monkeypatch, conn, questions,
-            correct_ids=set(zone1_ids[:answered]),
+            correct_ids=set(zone1_ids[:70]),
         )
         zone = _zone(app_module, 410, ZONE1)
         assert zone["cooldown_left"] == expected_left, answered
         assert zone["cooldown_required"] == app_module.BOSS_FAIL_COOLDOWN
-        # Coverage is well past 30%, so the gate is the only thing blocking.
         assert zone["boss_ready"] is (expected_left == 0)
     conn.close()
 
