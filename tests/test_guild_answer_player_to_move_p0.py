@@ -13,11 +13,18 @@ lookup returned ``None`` and the service raised ``judge_unavailable`` (503).
 as a payload, so the transport threw and index.html showed the generic
 save-failure message.  Nothing was ever written.
 
-Map Battle and Lord Trial judge the same corpus correctly because they resolve
-the player from the parsed SGF and fall back to the first move's colour
+Map Battle judges the same corpus correctly because it resolves the player
+from the parsed SGF and falls back to the first move's colour
 (``_map_battle_question_context``, app.py).  These tests pin the Guild path to
 that same derivation, and keep the fail-closed guarantee for content that is
 genuinely unresolvable.
+
+Lord Trial is NOT a second example of this pattern: it has the identical
+unfixed ``PL[]``-only regex, live, in ``lord_trial_answer_service.py``. It
+stays safe only because ``lord_trial_admission.py`` pre-filters unjudgeable
+questions out of the pool at attempt-creation time -- a different mitigation,
+applied earlier, and out of scope for this fix. See
+GO_ODYSSEY_LORD_TRIAL_PLAYER_TO_MOVE_FOLLOWUP_001.
 """
 
 from __future__ import annotations

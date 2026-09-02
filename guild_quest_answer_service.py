@@ -103,9 +103,19 @@ def _question_player_to_move(content: str) -> str | None:
     to be a ``PL\\[([BW])\\]`` regex with no fallback, so every ordinary Guild
     question without that literal tag resolved to ``None`` and was reported as
     ``judge_unavailable`` -- the answer could never be judged, and therefore
-    never written.  Map Battle and Lord Trial have always used the first-move
-    fallback (see ``_map_battle_question_context`` in app.py), which is why the
-    same corpus judges correctly there.
+    never written.  Map Battle has always used the first-move fallback (see
+    ``_map_battle_question_context`` in app.py), which is why the same corpus
+    judges correctly there; this mirrors that derivation.
+
+    Lord Trial is NOT an example of this pattern -- it does not fall back at
+    all.  ``lord_trial_answer_service._question_board_context`` still has the
+    literal ``PL[]``-only regex this function replaces, so the identical
+    ``judge_unavailable`` condition remains live there.  Lord Trial stays safe
+    only because ``lord_trial_admission.py`` runs the real judge over every
+    candidate question at attempt-creation time and excludes anything it
+    cannot judge from the admissible pool -- a different mitigation (narrower
+    content, not a repaired derivation), applied earlier in the flow, not a
+    reason this function's fix can be considered already present there.
 
     Ambiguity still fails closed: if the SGF declares no player and its first
     moves are not a single colour, this returns ``None`` and the caller rejects
