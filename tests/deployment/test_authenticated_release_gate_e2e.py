@@ -96,6 +96,12 @@ def authenticated_stack():
     with disposable_postgres(name_prefix="go-odyssey-auth-e2e") as database:
         os.environ["DATABASE_URL"] = database["database_url"]
         os.environ["QUESTIONS_JSON_PATH"] = str(REPO_ROOT / "questions.json")
+        # app.py writes a secret_key.txt beside itself when SECRET_KEY is unset.
+        # That file is a governed protected artifact: the release tooling refuses
+        # any worktree containing it, so importing the app without this would
+        # make THIS gate test break test_release_source_separation later in the
+        # same run. Supply a throwaway value instead of creating the file.
+        os.environ.setdefault("SECRET_KEY", "release-gate-e2e-ephemeral-key")
         _install_app_import_stubs()
 
         import app as app_module
