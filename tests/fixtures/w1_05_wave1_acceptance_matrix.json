@@ -1,0 +1,134 @@
+{
+  "task": "W1_05_QUALITY_WAVE1_ACCEPTANCE_HARNESS_001",
+  "canonical_master": "616d51b17abe010de1e862382ca4db7bec65936f",
+  "scope": "Wave 1 product acceptance and integration harness",
+  "cases": [
+    {
+      "id": "zone_presentation_presence",
+      "area": "WORLD presentation",
+      "method": "bounded static contract",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "missing_fallback_asset_detection",
+      "area": "WORLD presentation",
+      "method": "explicit local asset resolution plus loader fallback contract",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone_entry_clear_replay",
+      "area": "WORLD/JOURNEY lifecycle",
+      "method": "bounded source contract; existing replay model runner remains a separate behavioral gate",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "boss_lord_distinction",
+      "area": "WORLD/JOURNEY lifecycle",
+      "method": "CTA routing and server-state distinction contract",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "replay_no_reward",
+      "area": "replay safety",
+      "method": "presentation-only and no-write source contract plus negative delta control",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "onboarding_reachability",
+      "area": "JOURNEY onboarding",
+      "method": "reachable DOM spine and CTA handoff contract",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "mobile_portrait",
+      "area": "device responsiveness",
+      "viewport": "390x844",
+      "method": "browser viewport/CSS contract only",
+      "automation": "automated",
+      "owner_gate": "physical device later"
+    },
+    {
+      "id": "tablet_portrait",
+      "area": "device responsiveness",
+      "viewport": "768x1024",
+      "method": "browser viewport/CSS contract only",
+      "automation": "automated",
+      "owner_gate": "physical device later"
+    },
+    {
+      "id": "tablet_landscape",
+      "area": "device responsiveness",
+      "viewport": "1024x768",
+      "method": "browser viewport/CSS contract only",
+      "automation": "automated",
+      "owner_gate": "physical device later"
+    },
+    {
+      "id": "reduced_motion",
+      "area": "accessibility",
+      "method": "CSS and runtime motion preference contract",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "keyboard_focus",
+      "area": "accessibility",
+      "method": "keyboard activation, focus-visible, and hidden-shell focus contract",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "audio_not_only_information",
+      "area": "accessibility",
+      "method": "visible text/status/control presence contract",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "static_asset_manifest_validity",
+      "area": "static integration readiness",
+      "method": "manifest paths, dimensions, byte lengths, and SHA-256 checks",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "shell_static_integration_readiness",
+      "area": "shell/static integration readiness",
+      "method": "versioned E9 script/style/slot wiring contract",
+      "automation": "automated",
+      "owner_gate": "none"
+    },
+    {
+      "id": "physical_device_acceptance",
+      "area": "device acceptance",
+      "method": "Owner-operated physical-device review",
+      "automation": "manual_later",
+      "owner_gate": "required"
+    }
+  ],
+  "known_debt": [
+    {
+      "id": "A019 stale assertion",
+      "classification": "TEST_STALE"
+    },
+    {
+      "id": "Jade Ring changed-path base-ref issue",
+      "classification": "HARNESS_DEBT"
+    },
+    {
+      "id": "whole-suite shared-state/setup errors",
+      "classification": "HARNESS_DEBT / TEST_ISOLATION_SHARED_STATE"
+    }
+  ],
+  "limits": [
+    "This gate does not run the whole repository suite.",
+    "A browser viewport is not evidence of physical-device acceptance.",
+    "No app.py, index.html, i18n.js, sw.js, runtime Economy, or payment changes are part of this harness."
+  ]
+}
