@@ -1,0 +1,284 @@
+{
+  "task": "W1_05_QUALITY_ZONE3_VERTICAL_SLICE_ACCEPTANCE_HARNESS_002",
+  "base": "ffcee93aab813d110ce0b70276a101a291f2b508",
+  "canonical_master": "616d51b17abe010de1e862382ca4db7bec65936f",
+  "scope": "bounded Zone 3 Goblin Cave vertical-slice acceptance and later static integration readiness",
+  "zone": {
+    "number": 3,
+    "key": "k16_20",
+    "name_en": "Goblin Cave",
+    "name_zh": "哥布林洞穴",
+    "lord_id": "goblin_centurion",
+    "lord_name_en": "Goblin Centurion"
+  },
+  "dimensions": [
+    "FUNCTIONAL",
+    "CONTENT",
+    "VISUAL",
+    "ANIMATION",
+    "SFX",
+    "BGM_AMBIENCE",
+    "ONBOARDING",
+    "UX",
+    "RESPONSIVE",
+    "ACCESSIBILITY",
+    "INTEGRATION",
+    "TEST"
+  ],
+  "cases": [
+    {
+      "id": "zone3_canonical_identity",
+      "dimensions": ["FUNCTIONAL", "CONTENT", "VISUAL", "TEST"],
+      "acceptance": "The Zone 3 product identity is k16_20 / Goblin Cave with Goblin Centurion as its Lord.",
+      "evidence": "automated source and authority contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone3_visual_asset_presence",
+      "dimensions": ["CONTENT", "VISUAL", "INTEGRATION", "TEST"],
+      "acceptance": "The Zone 3 landmark, server-bound normal-monster art, and bilingual entry-film art/audio files are present and non-empty.",
+      "evidence": "automated explicit path/hash manifest probe",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone3_monster_roster_closure",
+      "dimensions": ["FUNCTIONAL", "CONTENT", "INTEGRATION", "TEST"],
+      "acceptance": "All 13 explicit E055 normal IDs resolve to a Zone 3 binding; no Lord ID is admitted as a normal entry.",
+      "evidence": "automated server-owned registry contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone3_encounter_hierarchy",
+      "dimensions": ["FUNCTIONAL", "CONTENT", "VISUAL", "UX", "TEST"],
+      "acceptance": "Common/Monster, Elite, Battlefield Boss, and Lord Trial remain distinct presentation tiers and authority boundaries.",
+      "evidence": "automated tier and source contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone3_entry_cinematic",
+      "dimensions": ["FUNCTIONAL", "CONTENT", "VISUAL", "ANIMATION", "SFX", "ONBOARDING", "UX", "ACCESSIBILITY", "TEST"],
+      "acceptance": "Zone 3 entry has four bilingual cinematic beats with captions, scene art, narration, and an explicit Start Training handoff.",
+      "evidence": "automated bounded source/assets contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone3_gameplay_handoff",
+      "dimensions": ["FUNCTIONAL", "UX", "INTEGRATION", "TEST"],
+      "acceptance": "Entry hands off to the existing server-backed Map Battle path and exposes the server-owned adventure monster projection.",
+      "evidence": "automated frontend/backend seam contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone3_onboarding_reachability",
+      "dimensions": ["ONBOARDING", "UX", "ACCESSIBILITY", "TEST"],
+      "acceptance": "The accepted World Stage onboarding spine remains reachable, ordered, visible, and actionable before Zone 3 selection.",
+      "evidence": "automated DOM/CTA contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone3_lord_ready_presentation",
+      "dimensions": ["FUNCTIONAL", "VISUAL", "ANIMATION", "SFX", "UX", "INTEGRATION", "TEST"],
+      "acceptance": "Server-backed boss availability can open the generic Goblin Centurion Lord card without confusing it with a normal encounter.",
+      "evidence": "automated generic-path/source contract; Zone 3-specific art remains a candidate input",
+      "status": "verified_generic_pending_zone3_art",
+      "owner_gate": "Zone 3 content candidate for specialized Lord art/audio later"
+    },
+    {
+      "id": "zone3_lord_trial",
+      "dimensions": ["FUNCTIONAL", "CONTENT", "VISUAL", "ANIMATION", "SFX", "UX", "INTEGRATION", "TEST"],
+      "acceptance": "Lord entry uses the existing exam flow, with server-issued attempt/questions and authoritative finish response.",
+      "evidence": "automated generic Lord start/finish seam contract; physical flow later",
+      "status": "verified_generic_pending_owner_runtime",
+      "owner_gate": "Owner runtime review of Zone 3 Lord presentation"
+    },
+    {
+      "id": "zone3_authoritative_clear_reward",
+      "dimensions": ["FUNCTIONAL", "UX", "INTEGRATION", "TEST"],
+      "acceptance": "Clear/progression/reward state comes from the authoritative Lord finish and first-clear reward contract.",
+      "evidence": "automated source contract; no database or Production mutation",
+      "status": "verified_generic",
+      "owner_gate": "Owner acceptance later"
+    },
+    {
+      "id": "zone3_post_clear",
+      "dimensions": ["CONTENT", "VISUAL", "ANIMATION", "SFX", "BGM_AMBIENCE", "UX", "INTEGRATION", "TEST"],
+      "acceptance": "The generic replay model exposes the post-victory boundary, while Zone 3 post-clear content is an explicit future candidate and is not falsely claimed present.",
+      "evidence": "automated fail-closed/source boundary contract",
+      "status": "content_candidate_gate",
+      "owner_gate": "Zone 3 post-clear content and Owner review later"
+    },
+    {
+      "id": "zone3_zone4_hook",
+      "dimensions": ["CONTENT", "VISUAL", "ANIMATION", "SFX", "BGM_AMBIENCE", "UX", "INTEGRATION", "TEST"],
+      "acceptance": "The Zone 3 screenplay and world topology preserve the forward hook toward Zone 4; runtime hook promotion remains candidate-gated.",
+      "evidence": "automated planning/topology contract",
+      "status": "content_candidate_gate",
+      "owner_gate": "Zone 3 content candidate and Owner review later"
+    },
+    {
+      "id": "zone3_replay_safety",
+      "dimensions": ["FUNCTIONAL", "UX", "INTEGRATION", "TEST"],
+      "acceptance": "Replay is presentation-only: no clear, unlock, reward, progression, or player-position write is allowed.",
+      "evidence": "automated source contract plus negative state-delta control and bounded replay runner",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "zone3_bgm_ambience_candidate",
+      "dimensions": ["CONTENT", "ANIMATION", "SFX", "BGM_AMBIENCE", "TEST"],
+      "acceptance": "Zone 3 shot SFX cues are explicit; dedicated Zone 3 BGM/ambience slots are visibly pending rather than silently borrowed or claimed complete.",
+      "evidence": "automated source boundary contract",
+      "status": "content_candidate_gate",
+      "owner_gate": "Zone 3 BGM/ambience candidate and Owner audio review later"
+    },
+    {
+      "id": "viewport_16_9",
+      "dimensions": ["VISUAL", "RESPONSIVE", "UX", "TEST"],
+      "viewport": "1920x1080",
+      "acceptance": "Wide 16:9 browser viewport keeps the map stage ratio and bounded shell surfaces intact.",
+      "evidence": "automated browser viewport/CSS contract only",
+      "status": "verified_viewport_only",
+      "owner_gate": "physical device later"
+    },
+    {
+      "id": "viewport_4_3",
+      "dimensions": ["VISUAL", "RESPONSIVE", "UX", "TEST"],
+      "viewport": "1024x768",
+      "acceptance": "Legacy 4:3 browser viewport enters the bounded tablet layout without relying on horizontal overflow.",
+      "evidence": "automated browser viewport/CSS contract only",
+      "status": "verified_viewport_only",
+      "owner_gate": "physical device later"
+    },
+    {
+      "id": "viewport_ipad_landscape",
+      "dimensions": ["VISUAL", "RESPONSIVE", "UX", "TEST"],
+      "viewport": "1180x820",
+      "acceptance": "iPad-landscape-sized browser viewport keeps stage, drawer, and controls bounded.",
+      "evidence": "automated browser viewport/CSS contract only",
+      "status": "verified_viewport_only",
+      "owner_gate": "physical device later"
+    },
+    {
+      "id": "viewport_ipad_portrait",
+      "dimensions": ["VISUAL", "RESPONSIVE", "UX", "TEST"],
+      "viewport": "820x1180",
+      "acceptance": "iPad-portrait-sized browser viewport preserves ordered content and reachable controls.",
+      "evidence": "automated browser viewport/CSS contract only",
+      "status": "verified_viewport_only",
+      "owner_gate": "physical device later"
+    },
+    {
+      "id": "viewport_mobile_portrait",
+      "dimensions": ["VISUAL", "RESPONSIVE", "UX", "ACCESSIBILITY", "TEST"],
+      "viewport": "390x844",
+      "acceptance": "Mobile portrait browser viewport uses the ordered single-column journey, inline details, and dock-safe spacing.",
+      "evidence": "automated browser viewport/CSS contract only",
+      "status": "verified_viewport_only",
+      "owner_gate": "physical device later"
+    },
+    {
+      "id": "reduced_motion",
+      "dimensions": ["ANIMATION", "RESPONSIVE", "ACCESSIBILITY", "TEST"],
+      "acceptance": "Reduced-motion preference removes required transitions/animations and smooth-scroll dependency.",
+      "evidence": "automated CSS/runtime preference contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "keyboard_focus",
+      "dimensions": ["UX", "ACCESSIBILITY", "TEST"],
+      "acceptance": "Zone controls are keyboard-activatable and focus-visible; hidden shell regions are removed from tab order.",
+      "evidence": "automated DOM/JS/CSS focus contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "critical_information_not_audio_only",
+      "dimensions": ["ONBOARDING", "UX", "ACCESSIBILITY", "TEST"],
+      "acceptance": "Zone identity, progress, state, replay, and cinematic context have visible text/status/control equivalents.",
+      "evidence": "automated DOM/text/status contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "missing_asset_fail_safe",
+      "dimensions": ["VISUAL", "UX", "INTEGRATION", "TEST"],
+      "acceptance": "Missing or empty static paths are detected and component loading exposes a bounded status fallback.",
+      "evidence": "automated explicit asset probe plus missing-path negative control",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "static_manifest_validity",
+      "dimensions": ["VISUAL", "INTEGRATION", "TEST"],
+      "acceptance": "The Zone 3 acceptance asset manifest and PWA manifest resolve non-empty files with stable byte/hash metadata where declared.",
+      "evidence": "automated bounded manifest/hash probe",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "shell_static_integration_readiness",
+      "dimensions": ["VISUAL", "UX", "ACCESSIBILITY", "INTEGRATION", "TEST"],
+      "acceptance": "Existing E9 slots, versioned scripts/styles, and static contract marker remain wired without shared-shell changes.",
+      "evidence": "automated static integration and protected-file contract",
+      "status": "verified",
+      "owner_gate": "none"
+    },
+    {
+      "id": "physical_device_acceptance",
+      "dimensions": ["VISUAL", "ANIMATION", "SFX", "BGM_AMBIENCE", "UX", "RESPONSIVE", "ACCESSIBILITY", "TEST"],
+      "acceptance": "Owner reviews real iPad landscape/portrait and mobile portrait hardware, touch/safe-area/browser-chrome/audio-disabled behavior.",
+      "evidence": "manual Owner milestone only",
+      "status": "required_later",
+      "owner_gate": "required physical device acceptance"
+    }
+  ],
+  "required_assets": [
+    {"path": "/assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp", "role": "zone3 landmark", "bytes": 98708, "sha256": "a9f611c9d24c7f1bf17ee0bac28978a5a12b736ed8b6dd09f34b97cb59864027"},
+    {"path": "/assets/monsters/orc_grunt_chibi.png", "role": "M022 protected legacy presentation", "bytes": 288584, "sha256": "91f788f87ee4621f85be7fdc5751134d52bc925fe629776dcc2e27188de288f8"},
+    {"path": "/art/monsters/M023_coppercap_goblin.png", "role": "M023 normal presentation", "bytes": 1253884, "sha256": "59a3f4be1b948b30267d3d5311694285ced6f228bde1cb97435a60748cd89c67"},
+    {"path": "/art/monsters/M024_echo_bat.png", "role": "M024 normal presentation", "bytes": 2141681, "sha256": "3990a6badf07ee720a5eaf5f18a434b9442f4552d909fca948e9e3dad5b78920"},
+    {"path": "/art/monsters/M025_pickaxe_moleworker.png", "role": "M025 normal presentation", "bytes": 2318145, "sha256": "4a57f144e79eae94d2c372f5d913e7673f61e1813d2d593d42abd1d456d60cc9"},
+    {"path": "/art/monsters/M026_fungus_lantern_imp.png", "role": "M026 normal presentation", "bytes": 2477759, "sha256": "7e6789d2964026a7424a627d7ac21d290f493c9a03d12619c33c1b2db4b44ebf"},
+    {"path": "/art/monsters/M027_rope_ladder_lizard.png", "role": "M027 normal presentation", "bytes": 2322165, "sha256": "5a6186946f8987c323090e634c7c597495696a96ee6cf5f89563d7bdfebb9c49"},
+    {"path": "/art/monsters/M028_ironbucket_beetle.png", "role": "M028 normal presentation", "bytes": 2201477, "sha256": "d1225d8dbe29ab96c66b9c4a0ca1c6e65d1c475efa11465dd071e1c2c2b262e4"},
+    {"path": "/art/monsters/M029_crevice_snake.png", "role": "M029 normal presentation", "bytes": 2129228, "sha256": "8a9d99d1b2ca98b6223b3fb3ebfbd340e9b5c0a5c0456221062b42d3da6e7e50"},
+    {"path": "/art/monsters/M030_cartcap_crawler.png", "role": "M030 normal presentation", "bytes": 2530759, "sha256": "bf68d5c6204b9ccb4e02c117d21c0e5c6621524e655b9f3d7ec420284aafe2c3"},
+    {"path": "/art/monsters/M031_crystal_ore_gob.png", "role": "M031 normal presentation", "bytes": 2392105, "sha256": "36c2792f9f5fd4e76c9058271b3b6f634ac01cf7645990e81cc118f293c95e74"},
+    {"path": "/art/monsters/M032_cavern_slinger.png", "role": "M032 normal presentation", "bytes": 1547169, "sha256": "e584e5b56119ec877d5515e37493b8bfc307bd967aa65575ae9edad61e798f87"},
+    {"path": "/art/monsters/M033_stalactite_tortoise.png", "role": "M033 normal presentation", "bytes": 2949251, "sha256": "a1a6bcb629359c5d780817bdd55d002f2cee32d8c2eb81c35fadfc0c8b850f30"},
+    {"path": "/art/monsters/M060_crystalhorn_lizard.png", "role": "M060 normal presentation", "bytes": 2301147, "sha256": "b523807d9d4bec9ed85298fd41e8efb9c81e4c409dff88cf40fba14ac66753d5"},
+    {"path": "/assets/storyboards/go_goblin_cave_scene_01.webp", "role": "entry shot 1", "bytes": 187720, "sha256": "3b006afc1f0380e4299d3694d68490689f57710ca584006a3edcc5f3c439dadd"},
+    {"path": "/assets/storyboards/go_goblin_cave_scene_02.webp", "role": "entry shot 2", "bytes": 238770, "sha256": "4a83fcf3f4679297cec08af702d8337986402a64cb27e485dbf7ac7b7b3371d1"},
+    {"path": "/assets/storyboards/go_goblin_cave_scene_03.webp", "role": "entry shot 3", "bytes": 332888, "sha256": "21e775881688ae0206f11dbe98ab883cf98cd4c7068a6c5a0e6be0c54efd4914"},
+    {"path": "/assets/storyboards/go_goblin_cave_scene_04.webp", "role": "entry shot 4", "bytes": 251040, "sha256": "53844977b02df5e0bf83bd9715b5917a4d909d9a0a8e4e23e0cf38b2a3eeac24"},
+    {"path": "/assets/storyboards/go_goblin_cave_voice_01.mp3", "role": "zh entry narration 1", "bytes": 328033, "sha256": "f87a922e740cac9c781d33e1e4006f39eda8049393b5c842fac3411ce7f56700"},
+    {"path": "/assets/storyboards/go_goblin_cave_voice_02.mp3", "role": "zh entry narration 2", "bytes": 281639, "sha256": "1a62c86c8be9ec7ec5212d49b00ede44e3780a53bdc9b9bf2786706fd39eb1c2"},
+    {"path": "/assets/storyboards/go_goblin_cave_voice_03.mp3", "role": "zh entry narration 3", "bytes": 376516, "sha256": "84a88ed81279f456662dd83d61fce20cd3780c51e049eca9206224ad99930b80"},
+    {"path": "/assets/storyboards/go_goblin_cave_voice_04.mp3", "role": "zh entry narration 4", "bytes": 395742, "sha256": "8f2e6cc51dacc9954ff274fa95b6a577047d0947c99044a8f75f27b666912523"},
+    {"path": "/assets/storyboards/go_goblin_cave_voice_en_01.mp3", "role": "en entry narration 1", "bytes": 276624, "sha256": "3080be8e6c1af87ca8a5530a0d68542f9d1759cbbe0379c5d9903dcbfb8812d5"},
+    {"path": "/assets/storyboards/go_goblin_cave_voice_en_02.mp3", "role": "en entry narration 2", "bytes": 252382, "sha256": "6ff826c5386733eca23ced34a6b903e24a0ced9a8f748c91efa6dee0ffecabdb"},
+    {"path": "/assets/storyboards/go_goblin_cave_voice_en_03.mp3", "role": "en entry narration 3", "bytes": 380278, "sha256": "ef892c073e51d07288605c2e475ab08e96bd4b453a6f67f83f1132de3d01ba81"},
+    {"path": "/assets/storyboards/go_goblin_cave_voice_en_04.mp3", "role": "en entry narration 4", "bytes": 348513, "sha256": "d0018a99afee9491d64b7f1007aa1f7a45193d72290538ee79f2dd740923e88a"}
+  ],
+  "known_debt": [
+    {"id": "A019 stale assertion", "classification": "TEST_STALE"},
+    {"id": "Jade Ring changed-path base-ref issue", "classification": "HARNESS_DEBT"},
+    {"id": "whole-suite shared-state/setup errors", "classification": "HARNESS_DEBT / TEST_ISOLATION_SHARED_STATE"}
+  ],
+  "limits": [
+    "This selector is bounded and does not run the repository-wide suite.",
+    "Browser viewport/CSS evidence is not physical-device acceptance.",
+    "Production acceptance remains a later Owner milestone.",
+    "No merge, deploy, database migration, or Production mutation occurs in this task.",
+    "This task does not modify app.py, index.html, i18n.js, sw.js, runtime Economy, payment, or shared shell code.",
+    "The matrix records future Zone 3 post-clear, Zone 4 hook, and dedicated BGM/ambience content as candidate-gated; it does not claim those assets are already runtime-integrated."
+  ]
+}
