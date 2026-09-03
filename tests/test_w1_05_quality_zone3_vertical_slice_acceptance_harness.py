@@ -618,6 +618,20 @@ def test_negative_control_missing_asset_is_rejected():
     assert missing_asset_paths(paths | {missing}) == [missing]
 
 
+def test_negative_control_replay_reward_delta_is_rejected():
+    before = {
+        "coins": 10,
+        "xp": 4,
+        "stars": 1,
+        "cleared": 1,
+        "unlocked": 1,
+        "current_zone_key": "k16_20",
+    }
+    after = dict(before, coins=11)
+    with pytest.raises(AssertionError, match="protected state"):
+        assert_replay_safe(before, after, [])
+
+
 def test_zone3_static_manifest_validity():
     manifest = load_json(MANIFEST)
     assert manifest["display"] == "standalone"
