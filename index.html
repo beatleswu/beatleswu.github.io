@@ -9561,6 +9561,15 @@ async function submitSRS(grade){
             // help (start a fresh trial from the map).
             console.warn('[BOSS] attempt expired; answer not recorded');
             setMsg(I18n.t('index.srs.boss_attempt_expired'), 'err');
+        }else if(data.error==='judge_unavailable'){
+            // The server could not judge this question, so it deliberately
+            // wrote nothing. That is a fail-closed content state, not a failed
+            // database write -- say so rather than claiming a save failure.
+            console.warn('[GUILD] question unjudgeable; answer not recorded');
+            setMsg(I18n.t('index.srs.guild_judge_unavailable'), 'err');
+        }else if(data.error==='guild_quest_not_eligible'){
+            console.warn('[GUILD] question outside the accepted quest; not recorded');
+            setMsg(I18n.t('index.srs.guild_not_eligible'), 'err');
         }else if(data.error==='daily_limit'){
             _dailyLimitMax = data.limit || _dailyLimitMax;
             if (_bossMode) {

@@ -215,6 +215,37 @@
         return mapOutcome(payload);
     }
 
+    // Server-owned rejection states: the request reached the server, the server
+    // made a decision, and it reported a specific reason. These are handed back
+    // to the caller as a payload so it can say what actually happened.
+    //
+    // Anything NOT listed here is re-thrown and the caller renders the generic
+    // "answer not saved" text with no code at all. That is what made the Guild
+    // outage undiagnosable: every Guild rejection -- including judge_unavailable,
+    // the code that WAS the incident -- collapsed into one opaque message.
+    //
+    // A rejection listed here still never marks the question seen and never
+    // advances (index.html gates both on `data.ok`), so surfacing the reason
+    // changes diagnostics only, never progression.
+    // tests/deployment/test_guild_error_contract.py enumerates the backend codes
+    // and fails the release gate if a new one is added without appearing here.
+    const SERVER_OWNED_REJECTIONS = new Set([
+        'premium_required',
+        'daily_limit',
+        // INCIDENT_018: an expired Lord attempt is a server-owned gameplay
+        // state, not a transport fault.
+        'boss_attempt_expired',
+        // Guild Quest answer path -- all server-owned decisions.
+        'judge_unavailable',
+        'guild_quest_not_eligible',
+        'guild_verdict_unavailable',
+        'guild_answer_required',
+        'invalid_guild_quest_context',
+        'forbidden_answer_field',
+        'malformed_answer',
+        'unknown_question',
+    ]);
+
     async function legacyReview(questionId, grade, unitName, unitDone, metadata, fetchImpl) {
         const value = metadata || {};
         const command = {
@@ -236,17 +267,7 @@
             const outcome = await review(command, fetchImpl);
             return outcome.payload;
         } catch (error) {
-            if (
-                error &&
-                error.kind === 'REJECTED' &&
-                (error.code === 'premium_required' ||
-                    error.code === 'daily_limit' ||
-                    // INCIDENT_018: an expired Lord attempt is a server-owned
-                    // gameplay state, not a transport fault.  Hand it back as
-                    // a payload so the caller can say what actually happened
-                    // instead of reporting a write failure.
-                    error.code === 'boss_attempt_expired')
-            ) {
+            if (error && error.kind === 'REJECTED' && SERVER_OWNED_REJECTIONS.has(error.code)) {
                 return error.payload;
             }
             throw error;

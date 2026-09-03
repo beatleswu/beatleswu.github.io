@@ -1677,6 +1677,8 @@ const I18n = (() => {
         'index.battle.adventure_encounter': { en: '🗺️ Adventure Encounter', zh: '🗺️ 冒險遭遇' },
         'index.srs.save_fail':  { en: 'Answer not saved — please retry or refresh.', zh: '答題記錄寫入失敗，這題尚未儲存。請稍後重試或重新整理頁面。' },
         'index.srs.save_fail_detail': { en: 'Answer not saved: {e}', zh: '答題記錄寫入失敗：{e}' },
+        'index.srs.guild_judge_unavailable': { en: 'This question cannot be judged right now, so nothing was saved. Please try another question or retry later.', zh: '這一題目前無法判定，因此沒有儲存。請先試其他題目，或稍後再試。' },
+        'index.srs.guild_not_eligible': { en: 'This question is not part of your current Guild Quest, so it was not recorded.', zh: '這一題不在你目前的公會任務範圍內，因此沒有被記錄。' },
         'index.srs.boss_attempt_expired': { en: 'This Lord Trial has expired, so this answer was not recorded. Return to the map to start a new trial.', zh: '本次領主試煉已逾時，這題沒有被記錄。請回到地圖重新挑戰。' },
 
         // index.html — boss battle dynamic
