@@ -29,6 +29,7 @@ a quota and not a hard entitlement clock that may be silently renewed.  So:
   * idempotency and judge semantics unchanged (I/J)
 """
 import datetime
+import re
 import sqlite3
 import sys
 import types
@@ -336,7 +337,14 @@ def test_expired_attempt_is_not_rendered_as_a_write_failure():
     transport = (REPO_ROOT / 'js/game/review_transport.js').read_text(encoding='utf-8')
     # Handed back as a payload, so submitSRS's data-driven branch sees it
     # instead of the generic catch that prints the save-failure string.
-    assert "error.code === 'boss_attempt_expired'" in transport
+    # The allowlist was widened from three inline `error.code ===` comparisons
+    # to a named SERVER_OWNED_REJECTIONS set when the Guild codes were mapped;
+    # assert the membership invariant rather than the old literal shape.
+    rejections = re.search(
+        r'const SERVER_OWNED_REJECTIONS = new Set\(\[(.*?)\]\);', transport, re.S
+    )
+    assert rejections, 'the transport must declare an explicit rejection set'
+    assert "'boss_attempt_expired'" in rejections.group(1)
 
     index = (REPO_ROOT / 'index.html').read_text(encoding='utf-8')
     start = index.index("function submitSRS")
