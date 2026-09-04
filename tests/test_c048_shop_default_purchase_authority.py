@@ -1,4 +1,4 @@
-"""C048 proof that the default Shop purchase route is durable and fail-closed."""
+"""C048 proof that the canonical Shop purchase route is durable and gated."""
 
 from __future__ import annotations
 
@@ -24,7 +24,12 @@ def _default_client(path, monkeypatch):
     return _client(path, monkeypatch)
 
 
-def test_default_stackable_purchase_uses_durable_operation_and_replays_once(
+def _canonical_client(path, monkeypatch):
+    monkeypatch.setenv(app_module.CANONICAL_COIN_SHOP_PURCHASE_FLAG, "true")
+    return _client(path, monkeypatch)
+
+
+def test_canonical_stackable_purchase_uses_durable_operation_and_replays_once(
     tmp_path, monkeypatch
 ):
     path = tmp_path / "c048-default-stackable.sqlite"
@@ -35,7 +40,7 @@ def test_default_stackable_purchase_uses_durable_operation_and_replays_once(
 
     monkeypatch.setattr(app_module, "_spend_coins", legacy_should_not_run)
     monkeypatch.setattr(app_module, "_grant_shop_purchase", legacy_should_not_run)
-    client = _default_client(path, monkeypatch)
+    client = _canonical_client(path, monkeypatch)
 
     first = client.post(
         "/api/shop/buy",
@@ -76,10 +81,10 @@ def test_default_stackable_purchase_uses_durable_operation_and_replays_once(
         ).fetchone()[0] == 1
 
 
-def test_default_equipment_purchase_persists_unequipped_ownership(tmp_path, monkeypatch):
+def test_canonical_equipment_purchase_persists_unequipped_ownership(tmp_path, monkeypatch):
     path = tmp_path / "c048-default-equipment.sqlite"
     _create_db(path, post_b033=True, purchase_schema=True, coins=1000)
-    client = _default_client(path, monkeypatch)
+    client = _canonical_client(path, monkeypatch)
 
     response = client.post(
         "/api/shop/buy",
@@ -102,7 +107,7 @@ def test_default_equipment_purchase_persists_unequipped_ownership(tmp_path, monk
     assert len(rows) == 1
     assert rows[0][2:] == ("wooden_sword", 0, "coin_shop")
 
-    reloaded = _default_client(path, monkeypatch)
+    reloaded = _canonical_client(path, monkeypatch)
     inventory = reloaded.get("/api/player/inventory")
     assert inventory.status_code == 200
     owned = [entry for entry in inventory.get_json() if entry["item_id"] == "wooden_sword"]

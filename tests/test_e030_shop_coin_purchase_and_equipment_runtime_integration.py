@@ -310,10 +310,10 @@ def test_shop_default_purchase_requires_canonical_operation_authority(tmp_path, 
         "/api/shop/buy",
         json={"item_key": "hint_ticket", "qty": 2, "purchase_operation_id": "c048-no-schema"},
     )
-    assert response.status_code == 503
+    assert response.status_code == 409
     assert response.get_json() == {
-        "error": "schema_unavailable",
-        "code": "SCHEMA_UNAVAILABLE",
+        "error": "shop_offer_unavailable",
+        "code": "SHOP_PURCHASE_DISABLED",
     }
     with sqlite3.connect(path) as conn:
         assert conn.execute(

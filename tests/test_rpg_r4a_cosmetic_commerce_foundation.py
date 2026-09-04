@@ -131,6 +131,7 @@ def cosmetic_app(tmp_path, monkeypatch):
         upgrade_outbox(conn)
 
     app = _load_app(monkeypatch)
+    monkeypatch.setenv(app.CANONICAL_COIN_SHOP_PURCHASE_FLAG, "true")
     monkeypatch.setattr(app, "get_db", lambda: _DbContext(path))
     app.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
     return app, path

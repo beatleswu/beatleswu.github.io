@@ -23602,6 +23602,15 @@ def _canonical_coin_shop_purchase_enabled():
     return _env_flag_enabled(CANONICAL_COIN_SHOP_PURCHASE_FLAG, default=False)
 
 
+def _canonical_shop_purchase_disabled_response():
+    """Return the stable fail-closed response for a disabled Coin Shop."""
+
+    return jsonify({
+        'error': 'shop_offer_unavailable',
+        'code': 'SHOP_PURCHASE_DISABLED',
+    }), 409
+
+
 def _equipment_canonical_loadout_enabled():
     return _env_flag_enabled(EQUIPMENT_CANONICAL_LOADOUT_FLAG, default=False)
 
@@ -24058,6 +24067,13 @@ def _canonical_shop_purchase_response(uid, body, *, appearance_only=False):
         )
     except IdempotencyIdentityError:
         return jsonify({'error': 'invalid_operation_identity'}), 400
+
+    # The public Shop projection and every canonical Coin mutation share this
+    # request-time server authority.  Validate the operation identity first
+    # so malformed requests keep their existing contract, then fail closed
+    # before opening the mutation transaction or reserving C019 state.
+    if not _canonical_coin_shop_purchase_enabled():
+        return _canonical_shop_purchase_disabled_response()
 
     with get_db() as conn:
         try:
@@ -24847,9 +24863,9 @@ def shop_buy():
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
     # C048 closes the default authority split: /api/shop/buy always performs
-    # server-fact classification before any mutation. The compatibility flag
-    # remains scoped to catalog projection and the separate appearance route;
-    # it is not a purchase-safety gate and must not expose Shop UI.
+    # server-fact classification before any mutation. Canonical Coin mutation
+    # then applies the same request-time Shop gate before entering C019/C026;
+    # legacy compatibility remains explicitly retired and must not expose UI.
     with get_db() as conn:
         dispatch = _classify_shop_request(conn, body)
     if dispatch['classification'] == CANONICAL_SHOP_DISPATCH:
