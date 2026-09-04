@@ -428,16 +428,16 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "3995a87c519f2e38277cf21ac8c48c833d2db1f0",
+      "source_commit": "f3999e58424cbd378b13dd8c503462207aea09aa",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "preflight: rebase A051 hero equipment presentation",
-      "source_date": "2026-08-31",
-      "content_sha256": "21890153c1799fd69ce7759d3babbee9be847db7a52c7bc19247c3d903c92985",
-      "content_size_bytes": 75923,
+      "source_commit_subject": "fix(loadout): stop offering an equip action the server will refuse",
+      "source_date": "2026-09-04",
+      "content_sha256": "4bb8f0198972bfe681ab8113ab2d8824ab12082280259391b237a01d16c3918e",
+      "content_size_bytes": 78568,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical origin/master provenance -- source_commit is the A051 commit that introduced the current blob and is byte-identical to current content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is the canonical Loadout restoration commit that introduced the current blob and is byte-identical to current content; deployment remains separately gated"
     },
     {
       "path": "badges.html",
