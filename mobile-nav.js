@@ -16,9 +16,11 @@
   border-top: 1px solid rgba(217,170,85,.28);
   height: 64px;
   padding: 0 8px env(safe-area-inset-bottom, 0);
-  align-items: center; justify-content: space-around;
+  align-items: center; justify-content: flex-start;
+  overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
   box-shadow: 0 -12px 28px rgba(0,0,0,.28);
 }
+#mobile-nav::-webkit-scrollbar { display: none; }
 @media (max-width: 768px) {
   #mobile-nav { display: flex; }
   body { padding-bottom: 64px; }
@@ -30,7 +32,7 @@
   text-decoration: none; color: rgba(255,246,224,.72);
   font-size: 9px; font-family: 'DM Mono', monospace;
   letter-spacing: .3px; transition: all .15s;
-  min-width: 52px; min-height: 44px; justify-content: center;
+  min-width: 58px; min-height: 44px; flex: 0 0 58px; justify-content: center;
   border: 1px solid transparent;
   position: relative;
 }
@@ -40,6 +42,10 @@
   color: #fbbf24;
   background: rgba(251,191,36,.12);
   border-color: rgba(251,191,36,.22);
+}
+#mobile-nav .mnb:focus-visible {
+  outline: 3px solid #fbbf24;
+  outline-offset: -3px;
 }
 `;
 
@@ -52,7 +58,14 @@
     { href: '/curriculum', icon: '📜', zh: '公會', en: 'Guild' },
     { href: '/mistakes',   icon: '📕', zh: '卷宗', en: 'Scrolls' },
     { href: '/stats',      icon: '📊', zh: '戰績', en: 'Record' },
+    { href: '/community',  icon: '🍻', zh: '酒館', en: 'Tavern' },
     { href: '/hero',       icon: '🛡️', zh: '英雄', en: 'Hero' },
+    { href: '/inventory',   icon: '🎒', zh: '背包', en: 'Pack' },
+    { href: '/badges',      icon: '🏅', zh: '獎章', en: 'Badges' },
+    { href: '/rating_test', icon: '🔭', zh: '鑑定', en: 'Rating' },
+    { href: '/play',        icon: '⚫', zh: '競技', en: 'Arena' },
+    { href: '/shop',        icon: '🪙', zh: '商店', en: 'Shop' },
+    { href: '/upgrade',     icon: '💎', zh: '通行證', en: 'Pass' },
   ];
 
   const path = window.location.pathname.replace(/\/$/, '') || '/';
@@ -61,12 +74,16 @@
   }
 
   function buildNav() {
+    nav.setAttribute('aria-label', (typeof I18n !== 'undefined' && I18n.getLang() === 'en')
+      ? 'Main navigation' : '主要導覽');
     nav.innerHTML = ITEMS.map(item => {
       const active = (path === item.href || (item.href !== '/' && path.startsWith(item.href)))
         ? ' active' : '';
-      return `<a href="${item.href}" class="mnb${active}">` +
+      const current = active ? ' aria-current="page"' : '';
+      const label = _label(item);
+      return `<a href="${item.href}" class="mnb${active}" aria-label="${label}"${current}>` +
              `<span class="mi">${item.icon}</span>` +
-             `<span>${_label(item)}</span>` +
+             `<span>${label}</span>` +
              `</a>`;
     }).join('');
   }

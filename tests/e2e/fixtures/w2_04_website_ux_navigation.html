@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>W2-04 Navigation Fixture</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; background: #17120d; color: #fff6e0; }
+    header { padding: 18px 22px; border-bottom: 1px solid #5a4220; }
+    header a { color: #fbbf24; margin-right: 14px; }
+    main { max-width: 760px; margin: 0 auto; padding: 56px 22px 120px; }
+    #primary-cta { display: inline-flex; min-height: 44px; align-items: center; padding: 0 18px; border-radius: 10px; background: #fbbf24; color: #17120d; font-weight: 700; }
+  </style>
+  <script src="/i18n.js"></script>
+</head>
+<body>
+  <header aria-label="Desktop navigation probe">
+    <a href="/">Home</a>
+    <a href="/curriculum">Learn / World</a>
+    <a href="/community">Community</a>
+    <a href="/shop">Shop</a>
+  </header>
+  <main>
+    <h1 data-i18n="common.brand">弈境奇兵 (Go Odyssey)</h1>
+    <p>Shared navigation acceptance fixture.</p>
+    <a id="primary-cta" href="/curriculum">Open the Guild</a>
+  </main>
+  <script src="/mobile-nav.js?v=w2-04"></script>
+</body>
+</html>
