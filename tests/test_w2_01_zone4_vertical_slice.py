@@ -60,18 +60,82 @@ def test_zone4_manifest_is_a_complete_ten_shot_lifecycle():
     assert manifest["story"]["shots"][9]["handoff"] == "END_CINEMATIC_SEQUENCE_AFTER_SHOT"
 
 
-def test_zone4_zh_tw_dialogue_is_exact_and_en_us_does_not_fallback():
+def test_zone4_owner_approved_dialogue_is_complete_in_both_locales():
+    manifest = load_zone4_manifest()
+    expected_zh = {
+        "adventure.zone4.cinematic.s01.b001": "這裡就是迷霧森林嗎？霧比剛才更濃了。",
+        "adventure.zone4.cinematic.s01.b002": "小水，跟緊我，我們不要走散。",
+        "adventure.zone4.cinematic.s02.b001": "奇怪……我們剛才，是從哪邊進來的？",
+        "adventure.zone4.cinematic.s02.b002": "我明明有記住方向，怎麼四周看起來全都一樣？",
+        "adventure.zone4.cinematic.s03.b001": "等等……那邊怎麼有一個我？",
+        "adventure.zone4.cinematic.s03.b002": "不對！後面還有……怎麼會有這麼多個我？",
+        "adventure.zone4.cinematic.s04.b001": "他們連動作都跟我一模一樣……",
+        "adventure.zone4.cinematic.s04.b002": "如果每一個看起來都是真的，我到底該相信哪一個？",
+        "adventure.zone4.cinematic.s05.b001": "哪一個……才是你？還是……連你自己也不知道？",
+        "adventure.zone4.cinematic.s05.b002": "眼睛看到的，就一定是真的嗎？",
+        "adventure.zone4.cinematic.s06.b001": "等等……那些影子一直在變。",
+        "adventure.zone4.cinematic.s06.b002": "可是小水沒有。牠一直都在同一個地方。",
+        "adventure.zone4.cinematic.s06.b003": "原來我不一定要相信這些影子……我可以相信小水。",
+        "adventure.zone4.cinematic.s07.b002": "我不猜了。",
+        "adventure.zone4.cinematic.s07.b001": "小水。帶我走。",
+        "adventure.zone4.cinematic.s07.b003": "我相信你。",
+        "adventure.zone4.cinematic.s08.b001": "霧真的散了……那些假的影子也全部不見了。",
+        "adventure.zone4.cinematic.s08.b002": "原來有時候一直靠自己猜，反而會越走越迷糊。",
+        "adventure.zone4.cinematic.s09.b001": "咦？黑色和白色的果實？",
+        "adventure.zone4.cinematic.s09.b002": "好像圍棋的黑子和白子。",
+        "adventure.zone4.cinematic.s09.b003": "這是在提醒我，今天做對的選擇嗎？",
+        "adventure.zone4.cinematic.s10.b001": "小水，你聽到了嗎？前面好像有鼓聲。",
+        "adventure.zone4.cinematic.s10.b002": "那條路通往森林外面。",
+        "adventure.zone4.cinematic.s10.b003": "走吧！看看下一個地方有什麼在等我們。",
+    }
+    expected_en = {
+        "adventure.zone4.cinematic.s01.b001": "Is this the Misty Forest? The fog’s much thicker here.",
+        "adventure.zone4.cinematic.s01.b002": "Stay close, Shui. We don’t want to get separated.",
+        "adventure.zone4.cinematic.s02.b001": "That’s strange… which way did we come in?",
+        "adventure.zone4.cinematic.s02.b002": "I was sure I remembered the way. Why does everything look the same now?",
+        "adventure.zone4.cinematic.s03.b001": "Wait… is that me over there?",
+        "adventure.zone4.cinematic.s03.b002": "No—there’s another one! Why are there so many of me?",
+        "adventure.zone4.cinematic.s04.b001": "They’re even moving exactly like me…",
+        "adventure.zone4.cinematic.s04.b002": "If they all look real, how am I supposed to know which one to trust?",
+        "adventure.zone4.cinematic.s05.b001": "Which one… is the real you? Or… don’t you even know?",
+        "adventure.zone4.cinematic.s05.b002": "Can you always trust what your eyes tell you?",
+        "adventure.zone4.cinematic.s06.b001": "Hang on… those copies keep changing.",
+        "adventure.zone4.cinematic.s06.b002": "But Shui hasn’t. Shui’s been right there the whole time.",
+        "adventure.zone4.cinematic.s06.b003": "I don’t have to trust these shadows. I can trust Shui.",
+        "adventure.zone4.cinematic.s07.b002": "I’m done guessing.",
+        "adventure.zone4.cinematic.s07.b001": "Shui. Lead the way.",
+        "adventure.zone4.cinematic.s07.b003": "I trust you.",
+        "adventure.zone4.cinematic.s08.b001": "The fog really is clearing… and all those fake copies are gone.",
+        "adventure.zone4.cinematic.s08.b002": "Maybe trying to work everything out on my own just made me more confused.",
+        "adventure.zone4.cinematic.s09.b001": "Huh? A black fruit and a white one?",
+        "adventure.zone4.cinematic.s09.b002": "They look just like black and white Go stones.",
+        "adventure.zone4.cinematic.s09.b003": "Maybe they’re here to remind me that I made the right choice.",
+        "adventure.zone4.cinematic.s10.b001": "Shui, can you hear that? I think there are drums up ahead.",
+        "adventure.zone4.cinematic.s10.b002": "That path looks like it leads out of the forest.",
+        "adventure.zone4.cinematic.s10.b003": "Come on! Let’s see what’s waiting for us next.",
+    }
+    assert manifest["story"]["ownerApprovedDialogueLineCount"] == 24
+    assert manifest["story"]["existingCanonicalZhLineCount"] == 3
+    assert manifest["story"]["ownerApprovedNewZhLineCount"] == 21
+    assert manifest["locales"]["zh-TW"]["status"] == "OWNER_APPROVED_DIALOGUE_COMPLETE"
+    assert manifest["locales"]["en-US"]["status"] == "OWNER_APPROVED_DIALOGUE_COMPLETE"
+    assert manifest["locales"]["zh-TW"]["dialogue"] == expected_zh
+    assert manifest["locales"]["en-US"]["dialogue"] == expected_en
+    for key, value in expected_zh.items():
+        assert localized_dialogue("zh-TW", key) == value
+    for key, value in expected_en.items():
+        assert localized_dialogue("en-US", key) == value
+    assert localized_dialogue("fr-FR", next(iter(expected_zh))) is None
+
+
+def test_zone4_canonical_zh_lines_remain_byte_exact():
     manifest = load_zone4_manifest()
     expected = {
         "adventure.zone4.cinematic.s02.b001": "奇怪……我們剛才，是從哪邊進來的？",
         "adventure.zone4.cinematic.s05.b001": "哪一個……才是你？還是……連你自己也不知道？",
         "adventure.zone4.cinematic.s07.b001": "小水。帶我走。",
     }
-    assert manifest["locales"]["zh-TW"]["dialogue"] == expected
-    for key, value in expected.items():
-        assert localized_dialogue("zh-TW", key) == value
-        assert localized_dialogue("en-US", key) is None
-    assert manifest["locales"]["en-US"]["dialogue"] == {}
+    assert {key: manifest["locales"]["zh-TW"]["dialogue"][key] for key in expected} == expected
 
 
 def test_all_manifest_referenced_existing_assets_resolve_without_promoting_legacy_art():

@@ -39,9 +39,43 @@ def validate_zone4_manifest(manifest: Mapping[str, Any]) -> None:
     if set(zone.get("names", {})) != set(SUPPORTED_LOCALES):
         raise Zone4ContentContractError("Zone 4 locale names are incomplete")
 
+    creative_lock = manifest.get("ownerCreativeLock")
+    if not isinstance(creative_lock, Mapping):
+        raise Zone4ContentContractError("Zone 4 Owner creative lock is missing")
+    if creative_lock.get("status") != "OWNER_APPROVED_CONTENT_LOCK":
+        raise Zone4ContentContractError("Zone 4 Owner creative lock is not approved")
+    if creative_lock.get("approvedTenShotCount") != 10:
+        raise Zone4ContentContractError("Zone 4 Owner shot count is not approved")
+    if creative_lock.get("childReadabilitySequence") != [
+        "WHAT_HAPPENED",
+        "WHAT_HERO_SEES",
+        "WHY_HERO_IS_CONFUSED",
+        "WHAT_CLUE_HERO_NOTICES",
+        "WHAT_DECISION_HERO_MAKES",
+        "WHAT_HAPPENS_NEXT",
+    ]:
+        raise Zone4ContentContractError("Zone 4 child-readability sequence is invalid")
+    visual_direction = creative_lock.get("visualDirection")
+    visual_shots = visual_direction.get("shots") if isinstance(visual_direction, Mapping) else None
+    if not isinstance(visual_shots, Mapping) or set(visual_shots) != {f"Z4_S{n:02d}" for n in range(1, 11)}:
+        raise Zone4ContentContractError("Zone 4 approved visual briefs are incomplete")
+    if any(brief.get("status") != "OWNER_APPROVED" or not brief.get("brief") for brief in visual_shots.values()):
+        raise Zone4ContentContractError("Zone 4 approved visual brief metadata is invalid")
+    audio_direction = creative_lock.get("audioDirection")
+    if not isinstance(audio_direction, Mapping) or audio_direction.get("shuiVoice") != "NONE" or audio_direction.get("shuiNonverbal") is not True:
+        raise Zone4ContentContractError("Zone 4 Shui audio boundary is invalid")
+    story_relic = creative_lock.get("storyRelic")
+    if not isinstance(story_relic, Mapping) or story_relic.get("clientRewardGrant") is not False or story_relic.get("inventoryMutation") is not False:
+        raise Zone4ContentContractError("Zone 4 story relic authority is invalid")
+    design_roster = creative_lock.get("designRoster")
+    if not isinstance(design_roster, Mapping) or design_roster.get("ids") != [f"M{n:03d}" for n in range(34, 46)] or design_roster.get("adventureAuthorizedCount") != 0:
+        raise Zone4ContentContractError("Zone 4 design roster authority is invalid")
+
     story = manifest.get("story")
     if not isinstance(story, Mapping) or story.get("canonicalShotCount") != 10:
         raise Zone4ContentContractError("Zone 4 shot count is not canonical")
+    if story.get("ownerApprovedDialogueLineCount") != 24 or story.get("existingCanonicalZhLineCount") != 3 or story.get("ownerApprovedNewZhLineCount") != 21:
+        raise Zone4ContentContractError("Zone 4 Owner dialogue counts are invalid")
     shots = story.get("shots")
     if not isinstance(shots, list) or [shot.get("id") for shot in shots] != [f"Z4_S{n:02d}" for n in range(1, 11)]:
         raise Zone4ContentContractError("Zone 4 shot identity/order is invalid")
@@ -58,12 +92,17 @@ def validate_zone4_manifest(manifest: Mapping[str, Any]) -> None:
         raise Zone4ContentContractError("Zone 4 gameplay handoff boundary is invalid")
 
     beats = story.get("dialogueBeats")
-    if not isinstance(beats, list):
+    if not isinstance(beats, list) or len(beats) != 24:
         raise Zone4ContentContractError("Zone 4 dialogue beat registry is missing")
     beat_ids = [beat.get("beatId") for beat in beats]
     if len(beat_ids) != len(set(beat_ids)) or any(not beat_id for beat_id in beat_ids):
         raise Zone4ContentContractError("Zone 4 dialogue beat IDs are not unique")
     shot_by_id = {shot["id"]: shot for shot in shots}
+    shot_beat_ids = [beat_id for shot in shots for beat_id in shot.get("dialogueBeatIds", [])]
+    if shot_beat_ids != [beat["beatId"] for beat in beats] and set(shot_beat_ids) != set(beat_ids):
+        raise Zone4ContentContractError("Zone 4 shot and dialogue beat registries do not align")
+    if set(shot_beat_ids) != set(beat_ids) or len(shot_beat_ids) != 24:
+        raise Zone4ContentContractError("Zone 4 dialogue beats do not cover the approved script")
     for beat in beats:
         if beat.get("shotId") not in shot_by_id:
             raise Zone4ContentContractError("Zone 4 dialogue beat references an unknown shot")
@@ -71,6 +110,14 @@ def validate_zone4_manifest(manifest: Mapping[str, Any]) -> None:
             raise Zone4ContentContractError("Zone 4 dialogue beat is not bound to its shot")
         if not beat.get("i18nKey"):
             raise Zone4ContentContractError("Zone 4 dialogue beat has no i18n key")
+        if not isinstance(beat.get("sequence"), int) or beat["sequence"] < 1:
+            raise Zone4ContentContractError("Zone 4 dialogue beat sequence is invalid")
+        if beat.get("canonicalStatus") not in {"EXISTING_CANONICAL", "OWNER_APPROVED_NEW"}:
+            raise Zone4ContentContractError("Zone 4 dialogue beat approval status is invalid")
+        if beat.get("voiceStatus") != "NOT_GENERATED":
+            raise Zone4ContentContractError("Zone 4 voice generation is outside this task")
+        if beat.get("character") in {"SHUI", "水靈馬"}:
+            raise Zone4ContentContractError("Shui must remain nonverbal")
 
     locales = manifest.get("locales")
     if not isinstance(locales, Mapping) or set(locales) != set(SUPPORTED_LOCALES):
@@ -79,8 +126,8 @@ def validate_zone4_manifest(manifest: Mapping[str, Any]) -> None:
     beat_keys = {beat["i18nKey"] for beat in beats}
     if set(zh_dialogue) != beat_keys:
         raise Zone4ContentContractError("zh-TW Zone 4 dialogue is not complete")
-    if locales["en-US"].get("dialogue", {}):
-        raise Zone4ContentContractError("unapproved en-US dialogue was added")
+    if set(locales["en-US"].get("dialogue", {})) != beat_keys:
+        raise Zone4ContentContractError("en-US Zone 4 dialogue is not complete")
 
     encounters = manifest.get("encounters")
     normal = encounters.get("normal") if isinstance(encounters, Mapping) else None

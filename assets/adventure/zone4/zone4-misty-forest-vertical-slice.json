@@ -30,8 +30,102 @@
     "dedicatedGameplayEnvironmentStatus": "MISSING_AUTHORIZED_ASSET",
     "finalCinematicAssetStatus": "INCOMPLETE_AUTHORIZED_PACKAGE"
   },
+  "ownerCreativeLock": {
+    "status": "OWNER_APPROVED_CONTENT_LOCK",
+    "approvedTenShotCount": 10,
+    "storyTheme": "When misleading visual information makes the Hero uncertain, the Hero notices that Shui remains stable and chooses to trust a reliable companion rather than continuing to guess alone.",
+    "childReadabilitySequence": [
+      "WHAT_HAPPENED",
+      "WHAT_HERO_SEES",
+      "WHY_HERO_IS_CONFUSED",
+      "WHAT_CLUE_HERO_NOTICES",
+      "WHAT_DECISION_HERO_MAKES",
+      "WHAT_HAPPENS_NEXT"
+    ],
+    "englishAccentPolicy": "BRITISH_ENGLISH",
+    "visualDirection": {
+      "globalStyle": "Stylized cinematic 3D animated-feature look; family-friendly fantasy adventure; cool misty teal / forest green / muted violet; Shui remains translucent luminous blue; Hero continuity with Zone3; no horror; no grimdark; no baked text/UI.",
+      "shots": {
+        "Z4_S01": {
+          "status": "OWNER_APPROVED",
+          "brief": "Wide forest entrance. Violet eye-glint small/background-only. Do not make it read as the Zone boss."
+        },
+        "Z4_S02": {
+          "status": "OWNER_APPROVED",
+          "brief": "Hero visibly disoriented. Shui visually steadier and clearer than surrounding fog."
+        },
+        "Z4_S03": {
+          "status": "OWNER_APPROVED",
+          "brief": "Multiple translucent Hero copies emerge. Must clearly read as copies of Hero, not ordinary enemies."
+        },
+        "Z4_S04": {
+          "status": "OWNER_APPROVED",
+          "brief": "Copies form a ring. Confusion, not violent/horror encirclement."
+        },
+        "Z4_S05": {
+          "status": "OWNER_APPROVED",
+          "brief": "Rabbit King must NOT stand fully revealed in the centre. Use partial rabbit ears/eyes/silhouette fragments in fog or distributed presence to support the everywhere-voice concept."
+        },
+        "Z4_S06": {
+          "status": "OWNER_APPROVED",
+          "brief": "KEY STORY IMAGE. Shui is the only stable visual anchor. Copies show subtle inconsistency/change."
+        },
+        "Z4_S07": {
+          "status": "OWNER_APPROVED",
+          "brief": "KEY STORY IMAGE. Hero changes from uncertainty to calm trust. No exaggerated heroic pose."
+        },
+        "Z4_S08": {
+          "status": "OWNER_APPROVED",
+          "brief": "Post-clear palette becomes slightly warmer. Ancient tree and black/white fruit become clearly readable."
+        },
+        "Z4_S09": {
+          "status": "OWNER_APPROVED",
+          "brief": "Black and white fruit fall into Hero's open hand. Must read as a story relic beat, not loot/reward UI."
+        },
+        "Z4_S10": {
+          "status": "OWNER_APPROVED",
+          "brief": "Hero and Shui face a scorched trail. Warmer distant light and drums imply Zone5. Do not depict Zone5 final characters/environment yet."
+        }
+      }
+    },
+    "audioDirection": {
+      "status": "CREATIVE_DIRECTION_APPROVED_PRODUCTION_NOT_GENERATED",
+      "required": [
+        "forest/mist ambience",
+        "child-safe phantom shimmer/whispers",
+        "restrained Rabbit King echo",
+        "Shot07 trust-resolution note",
+        "fog-clearing/leaves",
+        "fruit soft landing",
+        "distant Zone5 drums",
+        "dedicated Zone4 BGM treatment"
+      ],
+      "shuiVoice": "NONE",
+      "shuiNonverbal": true,
+      "legacyCuesReferenceOnly": ["mystic", "pulse", "woodhit", "journey"],
+      "voiceGenerated": false,
+      "sfxGenerated": false,
+      "bgmGenerated": false
+    },
+    "storyRelic": {
+      "id": "black_white_fruit",
+      "status": "OWNER_APPROVED_STORY_MEMORY",
+      "goSymbolism": true,
+      "clientRewardGrant": false,
+      "inventoryMutation": false
+    },
+    "designRoster": {
+      "status": "DESIGN_ROSTER_ONLY",
+      "ids": ["M034", "M035", "M036", "M037", "M038", "M039", "M040", "M041", "M042", "M043", "M044", "M045"],
+      "count": 12,
+      "adventureAuthorizedCount": 0
+    }
+  },
   "story": {
     "canonicalShotCount": 10,
+    "ownerApprovedDialogueLineCount": 24,
+    "existingCanonicalZhLineCount": 3,
+    "ownerApprovedNewZhLineCount": 21,
     "lifecycle": [
       {
         "id": "first_entry",
@@ -65,7 +159,7 @@
             "en-US": "Misty Forest edge reference frame"
           }
         },
-        "dialogueBeatIds": []
+        "dialogueBeatIds": ["Z4_S01_B001", "Z4_S01_B002"]
       },
       {
         "id": "Z4_S02",
@@ -82,7 +176,7 @@
             "en-US": "Disorientation in the mist reference frame"
           }
         },
-        "dialogueBeatIds": ["Z4_S02_B001"]
+        "dialogueBeatIds": ["Z4_S02_B001", "Z4_S02_B002"]
       },
       {
         "id": "Z4_S03",
@@ -99,7 +193,7 @@
             "en-US": "Phantoms in the mist reference frame"
           }
         },
-        "dialogueBeatIds": []
+        "dialogueBeatIds": ["Z4_S03_B001", "Z4_S03_B002"]
       },
       {
         "id": "Z4_S04",
@@ -116,7 +210,7 @@
             "en-US": "Mirrored phantoms reference frame"
           }
         },
-        "dialogueBeatIds": []
+        "dialogueBeatIds": ["Z4_S04_B001", "Z4_S04_B002"]
       },
       {
         "id": "Z4_S05",
@@ -130,7 +224,7 @@
           "renderableInBoundedSlice": false,
           "alt": null
         },
-        "dialogueBeatIds": ["Z4_S05_B001"]
+        "dialogueBeatIds": ["Z4_S05_B001", "Z4_S05_B002"]
       },
       {
         "id": "Z4_S06",
@@ -144,7 +238,7 @@
           "renderableInBoundedSlice": false,
           "alt": null
         },
-        "dialogueBeatIds": []
+        "dialogueBeatIds": ["Z4_S06_B001", "Z4_S06_B002", "Z4_S06_B003"]
       },
       {
         "id": "Z4_S07",
@@ -159,7 +253,7 @@
           "renderableInBoundedSlice": false,
           "alt": null
         },
-        "dialogueBeatIds": ["Z4_S07_B001"]
+        "dialogueBeatIds": ["Z4_S07_B002", "Z4_S07_B001", "Z4_S07_B003"]
       },
       {
         "id": "Z4_S08",
@@ -173,7 +267,7 @@
           "renderableInBoundedSlice": false,
           "alt": null
         },
-        "dialogueBeatIds": []
+        "dialogueBeatIds": ["Z4_S08_B001", "Z4_S08_B002"]
       },
       {
         "id": "Z4_S09",
@@ -187,7 +281,7 @@
           "renderableInBoundedSlice": false,
           "alt": null
         },
-        "dialogueBeatIds": []
+        "dialogueBeatIds": ["Z4_S09_B001", "Z4_S09_B002", "Z4_S09_B003"]
       },
       {
         "id": "Z4_S10",
@@ -202,33 +296,231 @@
           "renderableInBoundedSlice": false,
           "alt": null
         },
-        "dialogueBeatIds": []
+        "dialogueBeatIds": ["Z4_S10_B001", "Z4_S10_B002", "Z4_S10_B003"]
       }
     ],
     "dialogueBeats": [
       {
+        "beatId": "Z4_S01_B001",
+        "shotId": "Z4_S01",
+        "sequence": 1,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s01.b001",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S01_B002",
+        "shotId": "Z4_S01",
+        "sequence": 2,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s01.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
         "beatId": "Z4_S02_B001",
         "shotId": "Z4_S02",
+        "sequence": 1,
         "character": "HERO",
-        "i18nKey": "adventure.zone4.cinematic.s02.b001"
+        "i18nKey": "adventure.zone4.cinematic.s02.b001",
+        "canonicalStatus": "EXISTING_CANONICAL",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S02_B002",
+        "shotId": "Z4_S02",
+        "sequence": 2,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s02.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S03_B001",
+        "shotId": "Z4_S03",
+        "sequence": 1,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s03.b001",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S03_B002",
+        "shotId": "Z4_S03",
+        "sequence": 2,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s03.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S04_B001",
+        "shotId": "Z4_S04",
+        "sequence": 1,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s04.b001",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S04_B002",
+        "shotId": "Z4_S04",
+        "sequence": 2,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s04.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
       },
       {
         "beatId": "Z4_S05_B001",
         "shotId": "Z4_S05",
+        "sequence": 1,
         "character": "LORD",
-        "i18nKey": "adventure.zone4.cinematic.s05.b001"
+        "i18nKey": "adventure.zone4.cinematic.s05.b001",
+        "canonicalStatus": "EXISTING_CANONICAL",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S05_B002",
+        "shotId": "Z4_S05",
+        "sequence": 2,
+        "character": "LORD",
+        "i18nKey": "adventure.zone4.cinematic.s05.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S06_B001",
+        "shotId": "Z4_S06",
+        "sequence": 1,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s06.b001",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S06_B002",
+        "shotId": "Z4_S06",
+        "sequence": 2,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s06.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S06_B003",
+        "shotId": "Z4_S06",
+        "sequence": 3,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s06.b003",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S07_B002",
+        "shotId": "Z4_S07",
+        "sequence": 1,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s07.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
       },
       {
         "beatId": "Z4_S07_B001",
         "shotId": "Z4_S07",
+        "sequence": 2,
         "character": "HERO",
-        "i18nKey": "adventure.zone4.cinematic.s07.b001"
+        "i18nKey": "adventure.zone4.cinematic.s07.b001",
+        "canonicalStatus": "EXISTING_CANONICAL",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S07_B003",
+        "shotId": "Z4_S07",
+        "sequence": 3,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s07.b003",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S08_B001",
+        "shotId": "Z4_S08",
+        "sequence": 1,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s08.b001",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S08_B002",
+        "shotId": "Z4_S08",
+        "sequence": 2,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s08.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S09_B001",
+        "shotId": "Z4_S09",
+        "sequence": 1,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s09.b001",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S09_B002",
+        "shotId": "Z4_S09",
+        "sequence": 2,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s09.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S09_B003",
+        "shotId": "Z4_S09",
+        "sequence": 3,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s09.b003",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S10_B001",
+        "shotId": "Z4_S10",
+        "sequence": 1,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s10.b001",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S10_B002",
+        "shotId": "Z4_S10",
+        "sequence": 2,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s10.b002",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
+      },
+      {
+        "beatId": "Z4_S10_B003",
+        "shotId": "Z4_S10",
+        "sequence": 3,
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s10.b003",
+        "canonicalStatus": "OWNER_APPROVED_NEW",
+        "voiceStatus": "NOT_GENERATED"
       }
     ]
   },
   "locales": {
     "zh-TW": {
-      "status": "AUTHORITATIVE_DIALOGUE_PARTIAL",
+      "status": "OWNER_APPROVED_DIALOGUE_COMPLETE",
       "ui": {
         "kicker": "第四區 · 冒險片段",
         "prePlay": "進入",
@@ -248,13 +540,34 @@
         "shotLabel": "第 {shot} 幕／共 {total} 幕"
       },
       "dialogue": {
+        "adventure.zone4.cinematic.s01.b001": "這裡就是迷霧森林嗎？霧比剛才更濃了。",
+        "adventure.zone4.cinematic.s01.b002": "小水，跟緊我，我們不要走散。",
         "adventure.zone4.cinematic.s02.b001": "奇怪……我們剛才，是從哪邊進來的？",
+        "adventure.zone4.cinematic.s02.b002": "我明明有記住方向，怎麼四周看起來全都一樣？",
+        "adventure.zone4.cinematic.s03.b001": "等等……那邊怎麼有一個我？",
+        "adventure.zone4.cinematic.s03.b002": "不對！後面還有……怎麼會有這麼多個我？",
+        "adventure.zone4.cinematic.s04.b001": "他們連動作都跟我一模一樣……",
+        "adventure.zone4.cinematic.s04.b002": "如果每一個看起來都是真的，我到底該相信哪一個？",
         "adventure.zone4.cinematic.s05.b001": "哪一個……才是你？還是……連你自己也不知道？",
-        "adventure.zone4.cinematic.s07.b001": "小水。帶我走。"
+        "adventure.zone4.cinematic.s05.b002": "眼睛看到的，就一定是真的嗎？",
+        "adventure.zone4.cinematic.s06.b001": "等等……那些影子一直在變。",
+        "adventure.zone4.cinematic.s06.b002": "可是小水沒有。牠一直都在同一個地方。",
+        "adventure.zone4.cinematic.s06.b003": "原來我不一定要相信這些影子……我可以相信小水。",
+        "adventure.zone4.cinematic.s07.b002": "我不猜了。",
+        "adventure.zone4.cinematic.s07.b001": "小水。帶我走。",
+        "adventure.zone4.cinematic.s07.b003": "我相信你。",
+        "adventure.zone4.cinematic.s08.b001": "霧真的散了……那些假的影子也全部不見了。",
+        "adventure.zone4.cinematic.s08.b002": "原來有時候一直靠自己猜，反而會越走越迷糊。",
+        "adventure.zone4.cinematic.s09.b001": "咦？黑色和白色的果實？",
+        "adventure.zone4.cinematic.s09.b002": "好像圍棋的黑子和白子。",
+        "adventure.zone4.cinematic.s09.b003": "這是在提醒我，今天做對的選擇嗎？",
+        "adventure.zone4.cinematic.s10.b001": "小水，你聽到了嗎？前面好像有鼓聲。",
+        "adventure.zone4.cinematic.s10.b002": "那條路通往森林外面。",
+        "adventure.zone4.cinematic.s10.b003": "走吧！看看下一個地方有什麼在等我們。"
       }
     },
     "en-US": {
-      "status": "ZONE_LABEL_AND_UI_ONLY_DIALOGUE_TRANSLATION_PENDING",
+      "status": "OWNER_APPROVED_DIALOGUE_COMPLETE",
       "ui": {
         "kicker": "Zone 4 · Adventure slice",
         "prePlay": "Entry",
@@ -273,7 +586,32 @@
         "controlsLabel": "Zone 4 presentation controls",
         "shotLabel": "Shot {shot} of {total}"
       },
-      "dialogue": {}
+      "dialogue": {
+        "adventure.zone4.cinematic.s01.b001": "Is this the Misty Forest? The fog’s much thicker here.",
+        "adventure.zone4.cinematic.s01.b002": "Stay close, Shui. We don’t want to get separated.",
+        "adventure.zone4.cinematic.s02.b001": "That’s strange… which way did we come in?",
+        "adventure.zone4.cinematic.s02.b002": "I was sure I remembered the way. Why does everything look the same now?",
+        "adventure.zone4.cinematic.s03.b001": "Wait… is that me over there?",
+        "adventure.zone4.cinematic.s03.b002": "No—there’s another one! Why are there so many of me?",
+        "adventure.zone4.cinematic.s04.b001": "They’re even moving exactly like me…",
+        "adventure.zone4.cinematic.s04.b002": "If they all look real, how am I supposed to know which one to trust?",
+        "adventure.zone4.cinematic.s05.b001": "Which one… is the real you? Or… don’t you even know?",
+        "adventure.zone4.cinematic.s05.b002": "Can you always trust what your eyes tell you?",
+        "adventure.zone4.cinematic.s06.b001": "Hang on… those copies keep changing.",
+        "adventure.zone4.cinematic.s06.b002": "But Shui hasn’t. Shui’s been right there the whole time.",
+        "adventure.zone4.cinematic.s06.b003": "I don’t have to trust these shadows. I can trust Shui.",
+        "adventure.zone4.cinematic.s07.b002": "I’m done guessing.",
+        "adventure.zone4.cinematic.s07.b001": "Shui. Lead the way.",
+        "adventure.zone4.cinematic.s07.b003": "I trust you.",
+        "adventure.zone4.cinematic.s08.b001": "The fog really is clearing… and all those fake copies are gone.",
+        "adventure.zone4.cinematic.s08.b002": "Maybe trying to work everything out on my own just made me more confused.",
+        "adventure.zone4.cinematic.s09.b001": "Huh? A black fruit and a white one?",
+        "adventure.zone4.cinematic.s09.b002": "They look just like black and white Go stones.",
+        "adventure.zone4.cinematic.s09.b003": "Maybe they’re here to remind me that I made the right choice.",
+        "adventure.zone4.cinematic.s10.b001": "Shui, can you hear that? I think there are drums up ahead.",
+        "adventure.zone4.cinematic.s10.b002": "That path looks like it leads out of the forest.",
+        "adventure.zone4.cinematic.s10.b003": "Come on! Let’s see what’s waiting for us next."
+      }
     }
   },
   "assets": {
@@ -357,9 +695,8 @@
   },
   "authorityGaps": [
     "ZONE4_DEDICATED_GAMEPLAY_ENVIRONMENT_MISSING",
-    "ZONE4_FINAL_CINEMATIC_ART_MISSING_FOR_SHOTS_05_10",
+    "ZONE4_FINAL_CINEMATIC_ART_MISSING_FOR_SHOTS_01_10",
     "ZONE4_ADVENTURE_NORMAL_RUNTIME_AUTHORITY_MISSING_FOR_M034_M045",
-    "ZONE4_EN_US_FINAL_DIALOGUE_TRANSLATION_AUTHORITY_MISSING",
     "ZONE4_APPROVED_DIALOGUE_VOICE_AUTHORITY_MISSING",
     "ZONE4_DEDICATED_BGM_AND_SFX_PACKAGE_MISSING"
   ]
