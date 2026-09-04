@@ -32,6 +32,8 @@ from pathlib import Path
 
 import pytest
 
+from process_runner import run_bounded
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 DEPLOY_SCRIPT = REPO_ROOT / "scripts" / "release" / "deploy-static-release.ps1"
@@ -47,7 +49,7 @@ def _read(path):
 def _run_pwsh(script, timeout=60):
     if shutil.which("powershell") is None:
         pytest.skip("powershell not available in this environment")
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=timeout,
     )

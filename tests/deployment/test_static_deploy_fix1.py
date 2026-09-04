@@ -35,6 +35,8 @@ from pathlib import Path
 
 import pytest
 
+from process_runner import run_bounded
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 DEPLOY_SCRIPT = REPO_ROOT / "scripts" / "release" / "deploy-static-release.ps1"
@@ -56,7 +58,7 @@ def _run_harness(scenario, env=None):
         import os
         full_env = dict(os.environ)
         full_env.update(env)
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(HARNESS), "-Scenario", scenario],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=60, env=full_env,
     )
@@ -481,7 +483,7 @@ def test_rollback_and_preflight_treat_manifest_as_sole_generation_truth():
 # ---------------------------------------------------------------------------
 
 def test_existing_static_release_tooling_tests_still_pass():
-    result = subprocess.run(
+    result = run_bounded(
         ["python", "-m", "pytest", "tests/deployment/test_static_release_tooling.py", "-q"],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=120,
     )

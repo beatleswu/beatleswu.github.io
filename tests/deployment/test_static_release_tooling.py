@@ -21,6 +21,8 @@ from pathlib import Path
 
 import pytest
 
+from process_runner import run_bounded
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INVENTORY_PATH = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 APP_PY = REPO_ROOT / "app.py"
@@ -188,7 +190,7 @@ def _run_powershell(tmp_path, body):
     # but this harness must use the runtime that exposes Get-FileHash when
     # executing a generated -File script in the isolated test process.
     executable = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
-    return subprocess.run(
+    return run_bounded(
         [executable, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
         capture_output=True, text=True, timeout=120,
     )
