@@ -10,7 +10,8 @@
 // the fixed bytes; this one clicks the actual button element that ships to
 // players and inspects the actual click-time state.
 //
-// Usage: node run_e10_replay_story_button_real_click.mjs [--viewport desktop|tablet|mobile]
+// Usage: node run_e10_replay_story_button_real_click.mjs
+//   [--viewport desktop|ipad-landscape|ipad-portrait|mobile|tablet]
 
 import { spawn } from 'node:child_process';
 import fssync from 'node:fs';
@@ -28,8 +29,11 @@ const OTHER_ZONE_KEY = 'k21_25';
 
 const VIEWPORTS = {
   desktop: { width: 1280, height: 800 },
-  tablet: { width: 768, height: 1024 },
+  'ipad-landscape': { width: 1024, height: 768 },
+  'ipad-portrait': { width: 768, height: 1024 },
   mobile: { width: 375, height: 812 },
+  // Backward-compatible alias for the original bounded tablet probe.
+  tablet: { width: 768, height: 1024 },
 };
 
 function resolveChrome() {
@@ -52,7 +56,7 @@ function parseArgs(argv) {
     if (argv[i] === '--viewport') { options.viewport = argv[i + 1]; i += 1; }
   }
   if (!VIEWPORTS[options.viewport]) {
-    throw new Error(`unknown --viewport '${options.viewport}'; expected desktop|tablet|mobile`);
+    throw new Error(`unknown --viewport '${options.viewport}'; expected desktop|ipad-landscape|ipad-portrait|mobile`);
   }
   return options;
 }
@@ -162,20 +166,83 @@ const CLICK_AND_READ = (zoneKey) => {
 const SKIP_TO_CLOSE = () => {
   const overlay = document.getElementById('boss-cinematic');
   if (!overlay) return { error: 'no overlay' };
+  const readState = () => {
+    let internal = {};
+    try {
+      internal = window.eval(`({
+        presentationOnly: typeof _zoneCinematicPresentationOnly !== 'undefined'
+          ? _zoneCinematicPresentationOnly : null,
+        sequenceRunId: typeof _zoneCinematicSequenceRunId !== 'undefined'
+          ? _zoneCinematicSequenceRunId : null,
+        filmRunId: typeof _introFilmRunId !== 'undefined' ? _introFilmRunId : null,
+        activePhase: typeof _introFilmActiveOpts !== 'undefined'
+          ? _introFilmActiveOpts.phase : null,
+        filmTimers: typeof _introFilmTimers !== 'undefined' ? _introFilmTimers.length : null,
+        speechTimers: typeof _introSpeechTimers !== 'undefined' ? _introSpeechTimers.length : null,
+        cinematicAdvance: typeof _zoneCinematicAdvanceSegment === 'function',
+        introAudio: typeof _introAudio !== 'undefined' && !!_introAudio,
+        bgmAudio: typeof _introBgmAudio !== 'undefined' && !!_introBgmAudio,
+        ambienceAudio: typeof _introAmbienceAudio !== 'undefined' && !!_introAmbienceAudio,
+        sfxAudio: typeof _introSfxAudio !== 'undefined' && !!_introSfxAudio,
+        introAudioActive: typeof _introAudio !== 'undefined' && !!_introAudio
+          && !_introAudio.paused && !_introAudio.ended,
+        bgmAudioActive: typeof _introBgmAudio !== 'undefined' && !!_introBgmAudio
+          && !_introBgmAudio.paused && !_introBgmAudio.ended,
+        ambienceAudioActive: typeof _introAmbienceAudio !== 'undefined' && !!_introAmbienceAudio
+          && !_introAmbienceAudio.paused && !_introAmbienceAudio.ended,
+        sfxAudioActive: typeof _introSfxAudio !== 'undefined' && !!_introSfxAudio
+          && !_introSfxAudio.paused && !_introSfxAudio.ended,
+        speechActive: typeof speechSynthesis !== 'undefined'
+          && (speechSynthesis.speaking || speechSynthesis.pending),
+      })`);
+    } catch (error) {
+      internal = { error: String(error && error.message || error) };
+    }
+    return {
+      overlay_class: overlay.className,
+      overlay_visible: overlay.classList.contains('show'),
+      ...internal,
+    };
+  };
+  const steps = [];
   for (let i = 0; i < 25; i += 1) {
     if (!overlay.className.includes('show')) break;
+    steps.push({ before: readState(), index: i });
     const skip = overlay.querySelector('.intro-skip-btn');
-    if (skip && skip.offsetParent !== null) { skip.click(); continue; }
+    if (skip && skip.offsetParent !== null) {
+      steps[steps.length - 1].control = 'skip';
+      skip.click();
+      steps[steps.length - 1].after = readState();
+      continue;
+    }
     const closeBtn = overlay.querySelector('.boss-cinematic-close-x');
-    if (closeBtn && closeBtn.offsetParent !== null) { closeBtn.click(); continue; }
+    if (closeBtn && closeBtn.offsetParent !== null) {
+      steps[steps.length - 1].control = 'close';
+      closeBtn.click();
+      steps[steps.length - 1].after = readState();
+      continue;
+    }
+    steps[steps.length - 1].stalled = true;
     break;
   }
   const root = document.getElementById('e9-world-stage-slot');
   const state = root ? root.__e9WorldStageState : null;
+  const finalState = readState();
+  const activeAudioCount = [
+    finalState.introAudioActive,
+    finalState.bgmAudioActive,
+    finalState.ambienceAudioActive,
+    finalState.sfxAudioActive,
+  ].filter(Boolean).length;
+  finalState.orphan_replay_timer_count = (finalState.filmTimers || 0) + (finalState.speechTimers || 0);
+  finalState.orphan_replay_audio_count = activeAudioCount;
+  finalState.orphan_replay_effect_count = finalState.orphan_replay_timer_count;
   return {
     final_overlay_class: overlay.className,
     returned_to_zone_card: !overlay.className.includes('show'),
     selected_zone_key: state ? state.selectedZoneKey : null,
+    steps,
+    final_runtime_state: finalState,
   };
 };
 
@@ -246,6 +313,18 @@ async function main() {
     });
     report.pre_existing_bootstrap_priming = primed;
 
+    // loadMapProgressStatus resolves before the E9 component's render task is
+    // guaranteed to have attached every cleared-zone tile. Wait for the
+    // contract's target tile on surfaces where the replay card is supported;
+    // the mobile surface intentionally has no details/replay tile and is
+    // covered by its page-load/no-console-error contract below.
+    if (OPTIONS.viewport !== 'mobile') {
+      await page.locator(`#e9-world-stage-slot [data-zone="${ZONE_KEY}"]`).waitFor({
+        state: 'attached',
+        timeout: 20000,
+      });
+    }
+
     const firstClick = await page.evaluate(CLICK_AND_READ, ZONE_KEY);
     report.first_click = firstClick;
 
@@ -287,6 +366,12 @@ async function main() {
           .find((el) => el.getAttribute('data-zone') === otherKey);
         if (other) other.click();
       }, OTHER_ZONE_KEY);
+      if (OPTIONS.viewport !== 'mobile') {
+        await page.locator(`#e9-world-stage-slot [data-zone="${ZONE_KEY}"]`).waitFor({
+          state: 'attached',
+          timeout: 20000,
+        });
+      }
       const repeatClick = await page.evaluate(CLICK_AND_READ, ZONE_KEY);
       report.repeat_click = repeatClick;
       report.repeat_click_single_dispatch = (repeatClick.play_story_replay_call_count_delta || 0) === 1
@@ -298,11 +383,32 @@ async function main() {
 
     report.console_page_errors = consoleErrors;
 
+    const closureReports = [report.finish_and_return, report.finish_and_return_2].filter(Boolean);
+    report.replay_first_dismissal_returns_to_zone_card = report.finish_and_return?.returned_to_zone_card === true;
+    report.replay_second_dismissal_returns_to_zone_card = report.finish_and_return_2?.returned_to_zone_card === true;
+    report.replay_final_return_deterministic = closureReports.length === 2
+      && closureReports.every((closure) => (
+        closure.returned_to_zone_card === true
+        && closure.selected_zone_key === ZONE_KEY
+        && closure.steps.length === 3
+        && closure.steps.every((step) => step.control === 'skip')
+        && closure.final_runtime_state.overlay_visible === false
+        && closure.final_runtime_state.presentationOnly === false
+        && closure.final_runtime_state.cinematicAdvance === false
+        && closure.final_runtime_state.orphan_replay_timer_count === 0
+        && closure.final_runtime_state.orphan_replay_audio_count === 0
+        && closure.final_runtime_state.orphan_replay_effect_count === 0
+        && closure.final_runtime_state.speechActive === false
+      ));
+
     const passed = report.button_visible
       && report.button_enabled
       && report.click_handler_fired
       && report.play_story_replay_called
       && report.cinematic_overlay_started_same_tick
+      && report.replay_first_dismissal_returns_to_zone_card
+      && report.replay_second_dismissal_returns_to_zone_card
+      && report.replay_final_return_deterministic
       && (report.repeat_click_single_dispatch !== false)
       && (report.repeat_click_activated_same_tick !== false);
     report.final_status = passed ? 'PASS' : 'FAIL';

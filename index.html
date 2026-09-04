@@ -18322,6 +18322,7 @@ function playZoneStoryReplay(zoneKey) {
 // the player to the Zone Card they came from. Writes nothing.
 function _finishZoneCinematicReplay(zone) {
     _zoneCinematicPresentationOnly = false;
+    _zoneCinematicAdvanceSegment = null;
     hideBossCinematic();
     if (zone?.key && window.E9 && typeof window.E9.showAdventureZoneCard === 'function') {
         window.E9.showAdventureZoneCard(zone.key);
@@ -20933,8 +20934,25 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
     let mistakeStats={total:0};
     let adventureQuestionSrsReady = !e9ShellRequested;
     if (needsImmediatePracticeState || e9ShellRequested) {
-        try{initData=await SRS.init(onNewBadge);adventureQuestionSrsReady=true;}catch(e){notifyAdventureQuestionRuntimeError('srs', e);console.error('[INIT] Adventure question SRS readiness failed:',e);}
-        try{mistakeStats=await fetch('/api/mistakes/stats').then(r=>r.json());}catch(e){}
+        const e9ActivityState = e9ShellRequested
+            ? (window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState)
+            : null;
+        try {
+            initData = await SRS.init(onNewBadge, undefined, undefined,
+                e9ActivityState ? { activityState: e9ActivityState } : undefined);
+            adventureQuestionSrsReady = true;
+        } catch(e) {
+            notifyAdventureQuestionRuntimeError('srs', e);
+            console.error('[INIT] Adventure question SRS readiness failed:',e);
+        }
+        try {
+            if (e9ActivityState && typeof e9ActivityState.fetchMistakes === 'function') {
+                const activityResult = await e9ActivityState.fetchMistakes();
+                if (activityResult && activityResult.ok === true) mistakeStats = activityResult.data;
+            } else {
+                mistakeStats = await fetch('/api/mistakes/stats').then(r=>r.json());
+            }
+        } catch(e) {}
     } else if (legacyWelcomeShellActive) {
         ensureLegacyHomeAmbientState();
     }

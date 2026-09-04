@@ -16,6 +16,10 @@
 
   var dailyCached = null;
   var dailyInFlight = null;
+  var srsDueCached = null;
+  var srsDueInFlight = null;
+  var mistakesCached = null;
+  var mistakesInFlight = null;
 
   function classifyHttpError(status) {
     if (status === 401 || status === 403) return 'unauthorized';
@@ -61,7 +65,7 @@
     return doFetch(url, { credentials: 'same-origin' }).then(function (res) {
       if (!res.ok) return { ok: false, kind: classifyHttpError(res.status), status: res.status };
       return res.json().then(function (body) {
-        return { ok: true, data: normalize(body) };
+        return { ok: true, data: normalize(body), raw: body };
       });
     }).catch(function () {
       return { ok: false, kind: 'network', status: null };
@@ -78,7 +82,14 @@
     });
     return dailyInFlight;
   }
-  function invalidateActivityState() { dailyCached = null; dailyInFlight = null; }
+  function invalidateActivityState() {
+    dailyCached = null;
+    dailyInFlight = null;
+    srsDueCached = null;
+    srsDueInFlight = null;
+    mistakesCached = null;
+    mistakesInFlight = null;
+  }
   function fetchBossProgress(fetchImpl) {
     var adventureAdapter = global.E9 && global.E9.Adapters && global.E9.Adapters.AdventureState;
     if (!adventureAdapter || typeof adventureAdapter.fetchAdventureState !== 'function') {
@@ -90,10 +101,30 @@
     });
   }
   function fetchSrsDue(fetchImpl) {
-    return fetchOne('/api/srs/due', normalizeSrsDue, fetchImpl);
+    if (!fetchImpl && srsDueCached) return Promise.resolve(srsDueCached);
+    if (!fetchImpl && srsDueInFlight) return srsDueInFlight;
+    var request = fetchOne('/api/srs/due', normalizeSrsDue, fetchImpl).then(function (result) {
+      if (!fetchImpl) {
+        srsDueInFlight = null;
+        if (result.ok) srsDueCached = result;
+      }
+      return result;
+    });
+    if (!fetchImpl) srsDueInFlight = request;
+    return request;
   }
   function fetchMistakes(fetchImpl) {
-    return fetchOne('/api/mistakes/stats', normalizeMistakes, fetchImpl);
+    if (!fetchImpl && mistakesCached) return Promise.resolve(mistakesCached);
+    if (!fetchImpl && mistakesInFlight) return mistakesInFlight;
+    var request = fetchOne('/api/mistakes/stats', normalizeMistakes, fetchImpl).then(function (result) {
+      if (!fetchImpl) {
+        mistakesInFlight = null;
+        if (result.ok) mistakesCached = result;
+      }
+      return result;
+    });
+    if (!fetchImpl) mistakesInFlight = request;
+    return request;
   }
 
   var api = {

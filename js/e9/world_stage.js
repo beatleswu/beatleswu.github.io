@@ -893,6 +893,12 @@
   function dispatchZone1Entry(root, zone, state) {
     var cinematicKey = introCinematicKeyForZone(zone && zone.key);
     if (!zone || !cinematicKey || zone.locked || (state && state.authorityUnavailable)) return;
+    // A cleared zone is already past its first-entry lifecycle. It still
+    // remains selectable for inspection and Replay Story, but selecting it
+    // must not queue the old first-entry cinematic behind the replay click.
+    // The queued start used to race the presentation-only replay and reopen
+    // the overlay with first-entry state after the player had dismissed it.
+    if (zone.cleared === true || zone.status === 'completed') return;
     // The bootstrap snapshot is server-authoritative. Missing state means
     // unseen, so a fresh account cannot be silently promoted by browser data.
     if (cinematicSeen(state, cinematicKey)) return;
@@ -1102,6 +1108,18 @@
     } else {
       button.addEventListener('click', button.__e9AdventureHandler);
     }
+  }
+
+  function suppressAdventureButton(button) {
+    if (!button) return;
+    if (button.__e9AdventureHandler) {
+      button.removeEventListener('click', button.__e9AdventureHandler);
+      button.__e9AdventureHandler = null;
+    }
+    button.hidden = true;
+    button.disabled = true;
+    button.setAttribute('aria-disabled', 'true');
+    button.removeAttribute('data-challenge-target-zone');
   }
 
   function configureSecondaryAdventureButton(button, zone, contract) {
@@ -1317,14 +1335,13 @@
     configurePrimaryCta(root, zone, state);
 
     if (cta) {
-      // Portrait tablets use this lower detail card as their only actionable
-      // Zone CTA.  It must always receive the freshly-derived selected-zone
-      // contract, including completed Zone 1 replay semantics.  The separate
-      // Beginner Village tutorial panel is hidden on this responsive surface;
-      // suppressing this button for k26_30 left its prior zone's label/action
-      // attached while landscape continued to use the correctly configured
-      // map/panel CTA.
-      configureAdventureButton(cta, zone, ctaContract(zone, state));
+      // Beginner Village has a surface-owned CTA on every responsive layout:
+      // the immersive map CTA, the tutorial panel on portrait tablets, or
+      // the selected tile's inline CTA on mobile. The generic lower detail
+      // CTA is intentionally suppressed for this zone so it cannot become a
+      // second visible owner or retain a stale handler.
+      if (zone.key === ACTIVE_INTRO_ZONE_KEY) suppressAdventureButton(cta);
+      else configureAdventureButton(cta, zone, ctaContract(zone, state));
     }
     if (secondaryCta) {
       configureSecondaryAdventureButton(secondaryCta, zone, secondaryCtaContract(zone, state));
@@ -1601,6 +1618,10 @@
             bubbles: true,
             detail: selectionDetail,
           }));
+          // Locked/unenterable zones remain inspectable, but their pointer
+          // activation is a non-navigating no-op. Keyboard activation below
+          // applies the same guard; neither path may start progression.
+          if (zone.locked || zone.canEnter === false) return;
           dispatchZone1Entry(root, zone, state);
       };
       var keyActivate = function (evt) {

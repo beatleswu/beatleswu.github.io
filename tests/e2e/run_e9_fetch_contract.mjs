@@ -9,6 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 const outArgIndex = process.argv.indexOf('--out');
 const outFile = outArgIndex >= 0 ? path.resolve(process.argv[outArgIndex + 1]) : null;
+const onlyArgIndex = process.argv.indexOf('--only');
+const onlyCase = onlyArgIndex >= 0 ? process.argv[onlyArgIndex + 1] : null;
 const e9Url = '/index.html?E9_DEBUG=1&e9Shell=1&e9TopHud=1&e9LeftNav=1&e9RightCards=1&e9BottomDock=1&e9WorldStage=1';
 const targetEndpoints = [
   '/api/skills/profile',
@@ -236,7 +238,20 @@ async function createPage(browser, origin, scenario = {}) {
     await route.continue();
   });
   await page.goto(origin + e9Url, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(900);
+  // Do not reset the trace on a wall-clock guess. Wait until the E9 initial
+  // activation has structurally issued every endpoint this contract counts;
+  // this keeps later action deltas about the action under test rather than a
+  // late component mount completing in the background.
+  await page.waitForFunction((paths) => {
+    const trace = window.__E9_FETCH_TRACE__ || [];
+    return paths.every((path) => trace.some((entry) => entry.pathname === path));
+  }, targetEndpoints, { timeout: 20000 });
+  if (!scenario.apiFailure || scenario.apiFailure.path !== '/api/adventure/bootstrap') {
+    await page.locator('#e9-world-stage-slot [data-zone]').first().waitFor({
+      state: 'attached',
+      timeout: 20000,
+    });
+  }
   return page;
 }
 
@@ -299,7 +314,7 @@ async function main() {
   const { server, origin } = await startStaticServer(repoRoot);
   const browser = await chromium.launch({ headless: true, executablePath: findChrome() });
   try {
-    const report = { ok: true, cases: [] };
+    const report = { ok: true, cases: [], only: onlyCase };
 
     report.cases.push(await runCase(browser, origin, 'single_activation_request_counts', {}, 'after-load', {
       '/api/skills/profile': 1,
@@ -309,6 +324,22 @@ async function main() {
       '/api/srs/due': 1,
       '/api/mistakes/stats': 1,
     }));
+
+    // The W1-05 E9 fetch debt is this exact first-activation path. Keep an
+    // explicit bounded selector so that the gate can re-run the reproduced
+    // duplication without turning unrelated historical fallback assertions
+    // into evidence for or against this defect.
+    if (onlyCase) {
+      if (onlyCase !== 'single_activation_request_counts') {
+        throw new Error(`unknown --only '${onlyCase}'; expected single_activation_request_counts`);
+      }
+      if (outFile) {
+        await fs.mkdir(path.dirname(outFile), { recursive: true });
+        await fs.writeFile(outFile, JSON.stringify(report, null, 2));
+      }
+      process.stdout.write(JSON.stringify({ ok: true, case_count: report.cases.length, out_file: outFile }, null, 2));
+      return;
+    }
 
     report.cases.push(await runCase(browser, origin, 'repeated_init_not_refetch', {}, async (page) => {
       await page.evaluate(() => { window.E9.initShell(); window.E9.initShell(); });
