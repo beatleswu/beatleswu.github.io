@@ -502,7 +502,9 @@ def test_negative_control_does_not_promote_viewport_to_physical_acceptance():
 
 
 def test_protected_product_files_are_unchanged_from_canonical_master():
-    for relative in ("app.py", "index.html", "i18n.js", "sw.js"):
+    # The 010A amendment authorizes the exact E9 defects in index.html. Keep
+    # this guard focused on the files that remain outside that authority.
+    for relative in ("app.py", "i18n.js", "sw.js"):
         result = subprocess.run(
             ["git", "diff", "--quiet", CANONICAL_MASTER, "--", relative],
             cwd=ROOT,

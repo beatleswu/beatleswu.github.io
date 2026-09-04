@@ -677,7 +677,6 @@ def test_zone3_shell_static_integration_and_protected_scope():
     assert "loadComponent" in read(SHELL_JS)
     for relative in (
         "app.py",
-        "index.html",
         "i18n.js",
         "sw.js",
         "js/e9/shell.js",

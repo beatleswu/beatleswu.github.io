@@ -32,12 +32,19 @@ const SRS = (() => {
     let _onQuest   = null;  // callback(questList)   任務進度更新後呼叫
 
     // ── 初始化 ────────────────────────────────────────────────
-    async function init(onBadgeCallback, onMonsterCallback, onQuestCallback) {
+    async function init(onBadgeCallback, onMonsterCallback, onQuestCallback, options = {}) {
         _onBadge   = onBadgeCallback   || null;
         _onMonster = onMonsterCallback || null;
         _onQuest   = onQuestCallback   || null;
+        const activityState = options && options.activityState;
+        const dueRequest = activityState && typeof activityState.fetchSrsDue === 'function'
+            ? activityState.fetchSrsDue().then(result => {
+                if (!result || result.ok !== true) throw new Error('srs_due_unavailable');
+                return result.raw || { due: [], count: result.data?.count || 0 };
+            })
+            : fetch('/api/srs/due', {credentials:'include'}).then(r => r.json());
         const [dueData, allCards, defsRes, earnedRes] = await Promise.all([
-            fetch('/api/srs/due', {credentials:'include'}).then(r => r.json()),
+            dueRequest,
             fetch('/api/srs/all', {credentials:'include'}).then(r => r.json()),
             fetch('/api/badges/definitions', {credentials:'include'}).then(r => r.json()),
             fetch('/api/badges/earned', {credentials:'include'}).then(r => r.json()),
