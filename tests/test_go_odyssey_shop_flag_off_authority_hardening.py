@@ -419,6 +419,21 @@ def test_shop_on_loadout_off_grants_ownership_only(tmp_path, monkeypatch):
     assert _inventory_rows(path) == [(1, "cloth_robe", 0, "coin_shop")]
     assert _state(path)["equipped"] == 0
 
+    equip = client.post(
+        "/api/player/inventory/equip",
+        json={"inv_id": 1, "action": "equip"},
+    )
+    unequip = client.post(
+        "/api/player/inventory/equip",
+        json={"inv_id": 1, "action": "unequip"},
+    )
+    assert equip.status_code == 409
+    assert equip.get_json() == {"error": "LOADOUT_DISABLED"}
+    assert unequip.status_code == 409
+    assert unequip.get_json() == {"error": "LOADOUT_DISABLED"}
+    assert _inventory_rows(path) == [(1, "cloth_robe", 0, "coin_shop")]
+    assert _state(path)["equipped"] == 0
+
 
 def test_cross_player_purchase_ownership_isolation(tmp_path, monkeypatch):
     path = tmp_path / "shop-cross-player.sqlite"

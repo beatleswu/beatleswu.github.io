@@ -120,10 +120,11 @@ def test_disabled_owned_unequipped_item_cannot_be_newly_equipped(tmp_path, monke
     assert _rows(path) == [(1, 1, "wooden_sword", 0)]
 
 
-def test_legacy_unequip_recovery_is_allowed_and_replay_is_safe(tmp_path, monkeypatch):
+def test_disabled_unequip_recovery_is_fail_closed_and_replay_is_safe(tmp_path, monkeypatch):
     path = tmp_path / "legacy-unequip-recovery.sqlite"
     _create_inventory(path, [(1, 1, "wooden_sword", 1), (2, 1, "iron_sword", 0)])
     client = _client(path, monkeypatch)
+    before = _rows(path)
 
     response = client.post(
         "/api/player/inventory/equip",
@@ -134,10 +135,12 @@ def test_legacy_unequip_recovery_is_allowed_and_replay_is_safe(tmp_path, monkeyp
         json={"inv_id": 1, "action": "unequip"},
     )
 
-    assert response.status_code == 200
-    assert replay.status_code == 200
-    assert _rows(path) == [
-        (1, 1, "wooden_sword", 0),
+    assert response.status_code == 409
+    assert response.get_json() == {"error": "LOADOUT_DISABLED"}
+    assert replay.status_code == 409
+    assert replay.get_json() == {"error": "LOADOUT_DISABLED"}
+    assert _rows(path) == before == [
+        (1, 1, "wooden_sword", 1),
         (2, 1, "iron_sword", 0),
     ]
 
@@ -157,10 +160,11 @@ def test_locks_preserved_while_disabled(tmp_path, monkeypatch):
     )
 
     assert new_equip.status_code == 409
-    assert recovery.status_code == 200
+    assert recovery.status_code == 409
+    assert recovery.get_json() == {"error": "LOADOUT_DISABLED"}
     assert _rows(path) == [
         (1, 1, "xp_amulet", 0),
-        (2, 1, "xp_amulet", 0),
+        (2, 1, "xp_amulet", 1),
     ]
 
 
@@ -334,7 +338,7 @@ def _postgres_client(url, monkeypatch, *, loadout_enabled=False):
     return client
 
 
-def test_postgres_disabled_legacy_recovery_and_flag_on_parity(a043_postgres_url, monkeypatch):
+def test_postgres_disabled_loadout_and_flag_on_parity(a043_postgres_url, monkeypatch):
     _reset_postgres_inventory(a043_postgres_url)
     client = _postgres_client(a043_postgres_url, monkeypatch)
 
@@ -348,9 +352,10 @@ def test_postgres_disabled_legacy_recovery_and_flag_on_parity(a043_postgres_url,
     )
 
     assert replacement.status_code == 409
-    assert recovery.status_code == 200
+    assert recovery.status_code == 409
+    assert recovery.get_json() == {"error": "LOADOUT_DISABLED"}
     assert _postgres_rows(a043_postgres_url) == [
-        (1, 7, "wooden_sword", 0),
+        (1, 7, "wooden_sword", 1),
         (2, 7, "iron_sword", 0),
     ]
 
