@@ -7,6 +7,8 @@
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/i18n.js?v=20260710a"></script>
 <script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0381"></script>
+<link rel="stylesheet" href="/css/w2_03_equipment_loadout_visual_slice.css?v=20260904w203">
+<script src="/js/w2_03_equipment_loadout_visual_slice.js?v=20260904w203"></script>
 <script src="/js/hero_legacy_cache_guard.js?v=20260829a0401"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -2130,6 +2132,8 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
             </div>
           </div>
         </div>
+
+        <div id="w2-03-equipment-loadout-slice" data-w2-03-equipment-slice></div>
 
         <div class="inv-section legacy-loadout-section" data-loadout-surface="legacy">
           <div class="section-header">
