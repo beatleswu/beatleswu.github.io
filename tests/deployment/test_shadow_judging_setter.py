@@ -5,6 +5,8 @@ import pathlib
 import subprocess
 import sys
 
+from process_runner import run_bounded
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HELPER = ROOT / "scripts" / "release" / "shadow_judging_config.py"
@@ -65,7 +67,7 @@ def invoke_helper(
     if rollback_backup_id is not None:
         args.extend(("--rollback-backup-id", rollback_backup_id))
 
-    result = subprocess.run(
+    result = run_bounded(
         args,
         capture_output=True,
         text=True,
@@ -498,7 +500,7 @@ $helper=[pscustomobject]@{{effective=[pscustomobject]@{{enabled=$true;state='ena
     if($r.health.app_container_id -ne 'app-new' -or $r.health.scheduler_container_id -ne 'sch-new'){{throw ('identity convergence seam failed: ' + ($r | ConvertTo-Json -Compress))}}
 Write-Output 'OK'
 """
-    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    result = run_bounded(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.strip().endswith("OK")
 
@@ -516,7 +518,7 @@ $ok=Get-ShadowFailedGenerationEvidenceSafely -OperationId 'operation-1' -Capture
 $bad=Get-ShadowFailedGenerationEvidenceSafely -OperationId 'operation-2' -CaptureProbe $badProbe
 [pscustomobject]@{{ok=$ok;bad=$bad}} | ConvertTo-Json -Compress -Depth 8
 """
-    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    result = run_bounded(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
     assert result.returncode == 0, result.stdout + result.stderr
     payload = json.loads(result.stdout.strip())
     assert payload["ok"]["status"] == "captured"
@@ -619,6 +621,13 @@ def test_failed_generation_evidence_is_atomically_persisted_before_recovery(tmp_
     destination = str(tmp_path / "evidence").replace("'", "''")
     script = f"""
 $ErrorActionPreference='Stop'
+$windowsUtilityManifest = Join-Path $env:WINDIR 'System32'
+$windowsUtilityManifest = Join-Path $windowsUtilityManifest 'WindowsPowerShell'
+$windowsUtilityManifest = Join-Path $windowsUtilityManifest 'v1.0'
+$windowsUtilityManifest = Join-Path $windowsUtilityManifest 'Modules'
+$windowsUtilityManifest = Join-Path $windowsUtilityManifest 'Microsoft.PowerShell.Utility'
+$windowsUtilityManifest = Join-Path $windowsUtilityManifest 'Microsoft.PowerShell.Utility.psd1'
+if (Test-Path -LiteralPath $windowsUtilityManifest -PathType Leaf) {{ Import-Module $windowsUtilityManifest -Force -ErrorAction Stop }} else {{ Import-Module Microsoft.PowerShell.Utility -Force -ErrorAction Stop }}
 $source=Get-Content '{setter}' -Raw
 $start=$source.IndexOf('function Get-ShadowFailedGenerationEvidence')
 $end=$source.IndexOf('function New-ShadowRecoveredFailureResult')
@@ -627,7 +636,7 @@ $evidence=[pscustomobject]@{{status='captured';operation_id='op-safe';summary=[p
 $result=Persist-ShadowFailedGenerationEvidenceSafely -OperationId 'op-safe' -Evidence $evidence -EvidenceDirectory '{destination}'
 [pscustomobject]@{{result=$result;exists=(Test-Path -LiteralPath $result.path);temporary_files=@(Get-ChildItem -LiteralPath '{destination}' -Filter '*.tmp' -ErrorAction SilentlyContinue).Count;payload=(Get-Content -Raw -LiteralPath $result.path|ConvertFrom-Json)}}|ConvertTo-Json -Compress -Depth 8
 """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=ROOT,
         capture_output=True,
@@ -659,7 +668,7 @@ $evidence=[pscustomobject]@{{status='captured';operation_id='op-safe';sentinel='
 $result=Persist-ShadowFailedGenerationEvidenceSafely -OperationId 'op-safe' -Evidence $evidence -EvidenceDirectory '{destination}'
 $result|ConvertTo-Json -Compress
 """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=ROOT,
         capture_output=True,
@@ -711,7 +720,7 @@ function Invoke-Case {{ param([string]$mode)
 }}
 @('timeout','image','replacement','runtime_throw') | % {{ Invoke-Case $_ }} | ConvertTo-Json -Compress -Depth 6
 """
-    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    result = run_bounded(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
     assert result.returncode == 0, result.stdout + result.stderr
     rows = {row["mode"]: row for row in json.loads(result.stdout.strip())}
     assert all(not rows[name]["success"] for name in rows if name != "replacement"), result.stdout
@@ -730,7 +739,7 @@ $rprobe={{ param($a,$s) [pscustomobject]@{{app=[pscustomobject]@{{enabled=$true;
 $r=Wait-ShadowPostChangeConvergence -HelperResult $helper -ExpectedOperation enable -BeforeHealth $before -DeadlineSeconds 4 -PollIntervalSeconds 1 -HealthProbe ${{function:H}} -RuntimeProbe $rprobe -Clock $clock -SleepAction $sleep
 if($r.health.app_image_id -ne 'img-good'){{throw 'current-attempt image was not used'}}; 'OK'
 """
-    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    result = run_bounded(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
     assert result.returncode == 0, result.stdout + result.stderr
 
 
@@ -824,7 +833,7 @@ def test_setter_powershell_parses_without_errors():
         "[ref]$null,[ref]$errors)|Out-Null; "
         "if($errors.Count){$errors|ForEach-Object{$_.Message};exit 1}"
     )
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-Command", command],
         capture_output=True,
         text=True,

@@ -8,6 +8,8 @@ import time
 
 import pytest
 
+from process_runner import run_bounded
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODULE = ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
@@ -97,7 +99,7 @@ def test_actual_bootstrap_accepts_detached_zero_branch_output_and_advances(tmp_p
     assert git(repo, "branch", "--show-current").stdout == ""
     git(repo, "remote", "add", "origin", str(repo))
     git(repo, "update-ref", "refs/remotes/origin/master", sha)
-    result = subprocess.run(
+    result = run_bounded(
         [
             "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
             str(repo / "scripts" / "build-production-image.ps1"),
@@ -122,12 +124,12 @@ def test_actual_bootstrap_accepts_detached_zero_branch_output_and_advances(tmp_p
     assert "== go-odyssey-app canonical image build" in combined
 
 
-def run_powershell(script, timeout=30):
+def run_powershell(script, timeout=30, cwd=ROOT):
     utf8_preamble = (
         "$OutputEncoding = [Console]::OutputEncoding = "
         "New-Object System.Text.UTF8Encoding($false);\n"
     )
-    return subprocess.run(
+    return run_bounded(
         [
             "powershell",
             "-NoProfile",
@@ -136,7 +138,7 @@ def run_powershell(script, timeout=30):
             "-Command",
             utf8_preamble + script,
         ],
-        cwd=ROOT,
+        cwd=cwd,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -154,13 +156,14 @@ def parse_last_json(stdout):
 
 
 def git(cwd, *arguments, check=True):
-    return subprocess.run(
+    return run_bounded(
         ["git", *arguments],
         cwd=cwd,
         capture_output=True,
         text=True,
         encoding="utf-8",
         check=check,
+        timeout=60,
     )
 
 
@@ -189,7 +192,7 @@ def create_synthetic_repo(
 
 
 def make_junction(link, target):
-    result = subprocess.run(
+    result = run_bounded(
         ["cmd", "/d", "/c", "mklink", "/J", str(link), str(target)],
         capture_output=True,
         text=True,
@@ -220,6 +223,21 @@ def create_governed_build_repo(tmp_path):
     sha = git(repo, "rev-parse", "HEAD").stdout.strip()
     git(repo, "checkout", "-q", "--detach", sha)
     return repo, sha
+
+
+def create_release_tooling_repo(tmp_path):
+    """Create a small real Git repository for worktree lifecycle tests."""
+    repo = tmp_path / "release-tooling-repository"
+    (repo / "scripts" / "release").mkdir(parents=True)
+    shutil.copy2(MODULE, repo / "scripts" / "release" / "ReleaseTooling.psm1")
+    (repo / "tracked.txt").write_text("tracked\n", encoding="utf-8")
+    git(repo, "init", "-q")
+    git(repo, "config", "user.name", "Release Tooling Worktree Test")
+    git(repo, "config", "user.email", "release-tooling-worktree@example.invalid")
+    git(repo, "add", "scripts/release/ReleaseTooling.psm1", "tracked.txt")
+    git(repo, "commit", "-q", "-m", "synthetic release tooling source")
+    sha = git(repo, "rev-parse", "HEAD").stdout.strip()
+    return repo, sha, repo / "scripts" / "release" / "ReleaseTooling.psm1"
 
 
 def invoke_identity(
@@ -448,17 +466,11 @@ def test_local_governed_detached_worktree_uses_exact_sha_and_cleans_up(
 ):
     ambient = tmp_path / "operator ambient"
     ambient.mkdir()
-    expected_sha = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
+    repo, expected_sha, module = create_release_tooling_repo(tmp_path)
     script = f"""
 $ErrorActionPreference = 'Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
-$before = @(git worktree list --porcelain)
+Import-Module '{ps_quote(module)}' -Force -DisableNameChecking
+$before = @(Invoke-Git -Arguments @('worktree', 'list', '--porcelain') -WorkingDirectory '{ps_quote(repo)}')
 $worktree = $null
 $old = [Environment]::CurrentDirectory
 try {{
@@ -473,7 +485,7 @@ finally {{
     [Environment]::CurrentDirectory = $old
     if($worktree){{ Remove-DetachedWorktree -Path $worktree }}
 }}
-$after = @(git worktree list --porcelain)
+$after = @(Invoke-Git -Arguments @('worktree', 'list', '--porcelain') -WorkingDirectory '{ps_quote(repo)}')
 [ordered]@{{
     expected_sha = '{expected_sha}'
     child_cwd = $observed
@@ -482,7 +494,7 @@ $after = @(git worktree list --porcelain)
     preexisting_worktrees_unchanged = (($before -join "`n") -eq ($after -join "`n"))
 }} | ConvertTo-Json -Compress
 """
-    result = run_powershell(script, timeout=60)
+    result = run_powershell(script, timeout=60, cwd=repo)
     assert result.returncode == 0, result.stdout + result.stderr
     payload = parse_last_json(result.stdout)
     assert payload["expected_sha"] == expected_sha
@@ -597,24 +609,24 @@ def test_wrong_git_repository_fails(tmp_path):
 
 
 def test_different_valid_worktree_is_not_a_generated_identity(tmp_path):
+    repo, sha, module = create_release_tooling_repo(tmp_path)
     other = tmp_path / "other-valid-worktree"
-    sha = git(ROOT, "rev-parse", "HEAD").stdout.strip()
-    git(ROOT, "worktree", "add", "--detach", str(other), sha)
+    git(repo, "worktree", "add", "--detach", str(other), sha)
     try:
         script = f"""
 $ErrorActionPreference = 'Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module)}' -Force -DisableNameChecking
 try {{ Assert-GeneratedDetachedWorktreeIdentity -Path '{ps_quote(other)}' -ExpectedGitSha '{sha}' | Out-Null; $failed=$false }}
 catch {{ $failed=$true; $message=$_.Exception.Message }}
 [ordered]@{{failed_closed=$failed;message=$message}} | ConvertTo-Json -Compress
 """
-        result = run_powershell(script)
+        result = run_powershell(script, cwd=repo)
         assert result.returncode == 0, result.stdout + result.stderr
         payload = parse_last_json(result.stdout)
         assert payload["failed_closed"] is True
         assert "not registered" in payload["message"]
     finally:
-        git(ROOT, "worktree", "remove", "--force", str(other))
+        git(repo, "worktree", "remove", "--force", str(other))
 
 
 def test_sibling_prefix_confusion_is_rejected(tmp_path):
@@ -731,7 +743,7 @@ def test_child_bootstrap_rejects_junction_substitution_after_parent_validation(t
     make_junction(substituted, repo)
     marker = repo / "docker-or-build-started"
     try:
-        result = subprocess.run(
+        result = run_bounded(
             [
                 "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
                 str(substituted / "scripts" / "build-production-image.ps1"),
@@ -766,7 +778,7 @@ def test_actual_build_child_bootstrap_fails_before_build_mutation(tmp_path, fail
         expected_sha = "0" * 40
     else:
         (repo / "ordinary-untracked.txt").touch()
-    result = subprocess.run(
+    result = run_bounded(
         [
             "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
             str(repo / "scripts" / "build-production-image.ps1"),
@@ -815,29 +827,30 @@ $results | ConvertTo-Json -Compress
 
 
 def test_cleanup_refuses_another_registered_worktree(tmp_path):
+    repo, sha, module = create_release_tooling_repo(tmp_path)
     other = tmp_path / "other-registered-worktree"
-    sha = git(ROOT, "rev-parse", "HEAD").stdout.strip()
-    git(ROOT, "worktree", "add", "--detach", str(other), sha)
+    git(repo, "worktree", "add", "--detach", str(other), sha)
     try:
         script = f"""
 $ErrorActionPreference='Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module)}' -Force -DisableNameChecking
 try {{ Remove-DetachedWorktree -Path '{ps_quote(other)}'; $refused=$false }}
 catch {{ $refused=$true; $message=$_.Exception.Message }}
 [ordered]@{{refused=$refused;message=$message;exists=(Test-Path -LiteralPath '{ps_quote(other)}')}} | ConvertTo-Json -Compress
 """
-        result = run_powershell(script)
+        result = run_powershell(script, cwd=repo)
         payload = parse_last_json(result.stdout)
         assert payload["refused"] is True
         assert payload["exists"] is True
     finally:
-        git(ROOT, "worktree", "remove", "--force", str(other))
+        git(repo, "worktree", "remove", "--force", str(other))
 
 
 def test_cleanup_refuses_registered_reparse_substitution_and_then_recovers(tmp_path):
+    repo, _sha, module = create_release_tooling_repo(tmp_path)
     script = f"""
 $ErrorActionPreference='Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module)}' -Force -DisableNameChecking
 $sha=(git rev-parse HEAD).Trim()
 $worktree=New-DetachedWorktree -GitSha $sha -Prefix 'go-odyssey-build-reparse-cleanup'
 $moved=$worktree + '-moved'
@@ -855,7 +868,7 @@ finally {{
 }}
 [ordered]@{{refused=$refused;message=$message;target_still_exists=$targetStillExists;final_removed=(-not (Test-Path -LiteralPath $worktree))}} | ConvertTo-Json -Compress
 """
-    result = run_powershell(script, timeout=90)
+    result = run_powershell(script, timeout=90, cwd=repo)
     assert result.returncode == 0, result.stdout + result.stderr
     payload = parse_last_json(result.stdout)
     assert payload["refused"] is True
@@ -865,9 +878,10 @@ finally {{
 
 
 def test_failed_git_worktree_removal_leaves_exact_directory_for_review(tmp_path):
+    repo, _sha, module = create_release_tooling_repo(tmp_path)
     script = f"""
 $ErrorActionPreference='Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module)}' -Force -DisableNameChecking
 $sha=(git rev-parse HEAD).Trim()
 $worktree=New-DetachedWorktree -GitSha $sha -Prefix 'go-odyssey-build-locked-cleanup'
 git worktree lock $worktree
@@ -882,7 +896,7 @@ finally {{
 }}
 [ordered]@{{refused=$refused;message=$message;left_for_review=$leftForReview;final_removed=(-not (Test-Path -LiteralPath $worktree))}} | ConvertTo-Json -Compress
 """
-    result = run_powershell(script, timeout=90)
+    result = run_powershell(script, timeout=90, cwd=repo)
     assert result.returncode == 0, result.stdout + result.stderr
     payload = parse_last_json(result.stdout)
     assert payload["refused"] is True
@@ -922,6 +936,7 @@ $records | ConvertTo-Json -Compress
         ("scripts/release/ReleaseTooling.psm1", "Test-GnuTarExecutableCapability"): (2, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "New-DeterministicStaticArchive"): (1, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "Test-StaticArchiveEntrySafety"): (1, "directory_independent"),
+        ("scripts/release/ReleaseTooling.psm1", "Invoke-Git"): (1, "explicit_local_context"),
         # PR326 added these two bounded callers to the content-only release
         # runner. Keep them explicitly classified so the inventory remains a
         # fail-closed review of every native-process boundary.

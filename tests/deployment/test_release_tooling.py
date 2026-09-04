@@ -6,6 +6,8 @@ import pathlib
 import shutil
 import subprocess
 
+from process_runner import run_bounded
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 RELEASE_SCRIPTS = [
     REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1",
@@ -57,11 +59,12 @@ def assert_powershell_parse_ok(path):
         f"[System.Management.Automation.Language.Parser]::ParseFile('{escaped}', [ref]$null, [ref]$errors) | Out-Null; "
         "if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Host $_.ToString() }; exit 1 }"
     )
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-Command", script],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        timeout=30,
         check=False,
     )
     assert result.returncode == 0, f"{path} did not parse: {result.stdout}\n{result.stderr}"
@@ -186,12 +189,13 @@ def run_module_probe(tmp_path, probe_body):
         f"Import-Module '{module_path}' -Force -DisableNameChecking\n" + probe_body,
         encoding="utf-8",
     )
-    return subprocess.run(
+    return run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         encoding="utf-8",
+        timeout=120,
         check=False,
     )
 
@@ -221,13 +225,14 @@ def run_preflight_with_fake_remote(tmp_path, fake_remote_payload, static_manifes
         static_manifest_path = tmp_path / "static-manifest.json"
         write_json(static_manifest_path, static_manifest)
         command.extend(["-StaticManifest", str(static_manifest_path)])
-    result = subprocess.run(
+    result = run_bounded(
         command,
         cwd=REPO_ROOT,
         env=env,
         capture_output=True,
         text=True,
         encoding="utf-8",
+        timeout=120,
         check=False,
     )
     return result
@@ -347,12 +352,13 @@ def test_release_compose_config_with_fake_values():
             "QUESTIONS_CONTENT_MOUNT_DESTINATION": "/app/data",
         }
     )
-    result = subprocess.run(
+    result = run_bounded(
         ["docker", "compose", "-f", "docker-compose.release.yml", "config"],
         cwd=REPO_ROOT,
         env=env,
         capture_output=True,
         text=True,
+        timeout=120,
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
@@ -395,14 +401,14 @@ def test_canonical_build_uses_exit_code_native_helper_for_stderr_safe_execution(
     assert "docker buildx build `" not in image_content
 
 
-def test_invoke_git_treats_native_stderr_as_diagnostic_and_checks_exit_code():
+def test_invoke_git_uses_the_bounded_native_runner_and_checks_exit_code():
     content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
-    assert "$psi = New-Object System.Diagnostics.ProcessStartInfo" in content
-    assert "$psi.RedirectStandardError = $true" in content
-    assert "$psi.RedirectStandardOutput = $true" in content
-    assert "$process.ExitCode" in content
-    assert "$stderrTask.GetAwaiter().GetResult()" in content
-    assert "if ($exitCode -ne 0)" in content
+    invoke_git = content.split("function Invoke-Git", 1)[1].split("function Get-SafeFirstOutputLine", 1)[0]
+    assert "Invoke-BoundedNativeCommand" in invoke_git
+    assert "-TimeoutSeconds $TimeoutSeconds" in invoke_git
+    assert "-RequireWorkingDirectory" in invoke_git
+    assert "if ($result.exit_code -ne 0)" in invoke_git
+    assert "WaitForExit()" not in invoke_git
 
 
 def test_detached_worktree_cleanup_uses_checked_git_helper():
@@ -412,6 +418,8 @@ def test_detached_worktree_cleanup_uses_checked_git_helper():
     assert "$script:GeneratedDetachedWorktrees.ContainsKey($key)" in cleanup
     assert "Get-RegisteredGitWorktreePaths" in cleanup
     assert "Get-GitCommonDirectory" in cleanup
+    assert "-TimeoutSeconds 600" in cleanup
+    assert "--force', '--force'" in cleanup
     assert "Remove-Item" not in cleanup
     assert "& git worktree remove --force $Path" not in content
 

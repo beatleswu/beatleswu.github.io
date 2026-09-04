@@ -35,6 +35,8 @@ from pathlib import Path
 
 import pytest
 
+from process_runner import run_bounded
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 DEPLOY_SCRIPT = REPO_ROOT / "scripts" / "release" / "deploy-static-release.ps1"
@@ -56,7 +58,7 @@ def _run_harness(scenario, env=None):
         import os
         full_env = dict(os.environ)
         full_env.update(env)
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(HARNESS), "-Scenario", scenario],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=60, env=full_env,
     )
@@ -167,7 +169,7 @@ def test_nested_path_examples_produce_correct_directories():
     ) -RemoteReleaseDir '/root/gen1'
     $dirs | ConvertTo-Json
     """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
     )
@@ -189,7 +191,7 @@ def test_multiple_files_same_directory_dedup_to_one_entry():
     $dirs = Get-RemoteParentDirectorySet -RelativePaths @('assets/shop/a.webp','assets/shop/b.webp','assets/shop/c.webp') -RemoteReleaseDir '/root'
     $dirs | ConvertTo-Json
     """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
     )
@@ -250,7 +252,7 @@ def test_flat_release_still_produces_valid_directory_set():
     $dirs = Get-RemoteParentDirectorySet -RelativePaths @('i18n.js','sw.js') -RemoteReleaseDir '/root/gen'
     $dirs | ConvertTo-Json
     """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
     )
@@ -283,7 +285,7 @@ def test_unsafe_paths_are_rejected(bad_path, reason):
         Write-Output 'REJECTED'
     }}
     """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
     )
@@ -299,7 +301,7 @@ def test_ssh_commands_include_required_bounded_options():
     Import-Module '{PSM1}' -Force -DisableNameChecking
     Get-BoundedSshOptionArguments | ConvertTo-Json
     """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
     )
@@ -330,7 +332,7 @@ def test_bounded_native_command_requires_positive_timeout():
         Write-Output 'REJECTED'
     }}
     """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
     )
@@ -481,7 +483,7 @@ def test_rollback_and_preflight_treat_manifest_as_sole_generation_truth():
 # ---------------------------------------------------------------------------
 
 def test_existing_static_release_tooling_tests_still_pass():
-    result = subprocess.run(
+    result = run_bounded(
         ["python", "-m", "pytest", "tests/deployment/test_static_release_tooling.py", "-q"],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=120,
     )
@@ -495,7 +497,7 @@ def test_powershell_scripts_still_parse():
         [System.Management.Automation.Language.Parser]::ParseFile('{script}', [ref]$null, [ref]$errors) | Out-Null
         if ($errors.Count -gt 0) {{ $errors | ForEach-Object {{ Write-Output $_.ToString() }}; exit 1 }}
         """
-        result = subprocess.run(
+        result = run_bounded(
             ["powershell", "-NoProfile", "-Command", ps_check],
             cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
         )

@@ -34,6 +34,8 @@ from pathlib import Path
 
 import pytest
 
+from process_runner import run_bounded
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 DEPLOY_SCRIPT = REPO_ROOT / "scripts" / "release" / "deploy-static-release.ps1"
@@ -52,7 +54,7 @@ def _load_real_manifest():
 
 
 def _run_ps(command):
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=60,
     )
@@ -66,7 +68,7 @@ def _run_harness(scenario, env=None):
     if env:
         full_env = dict(os.environ)
         full_env.update(env)
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(HARNESS), "-Scenario", scenario],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=60, env=full_env,
     )
@@ -272,7 +274,7 @@ def _generate_script(remote_dir, entries):
 def _run_script_via_real_sh(script_text):
     if shutil.which("sh") is None:
         pytest.skip("sh not available in this environment")
-    result = subprocess.run(["sh", "-s"], input=script_text, capture_output=True, text=True, timeout=30)
+    result = run_bounded(["sh", "-s"], input=script_text, capture_output=True, text=True, timeout=30)
     return result
 
 
@@ -407,7 +409,7 @@ def test_fix1_directory_batching_still_intact():
 
 
 def test_existing_fix1_and_release_suites_still_pass():
-    result = subprocess.run(
+    result = run_bounded(
         ["python", "-m", "pytest",
          "tests/deployment/test_static_deploy_fix1.py",
          "tests/deployment/test_static_release_tooling.py",
@@ -417,28 +419,59 @@ def test_existing_fix1_and_release_suites_still_pass():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_static_deploy_fixes_pass_in_clean_worktree_without_release_artifacts():
-    """EXPAND_DEPLOYMENT_GATE_FIX regression guard: the two fixture-generated
-    deployment tests (fix1's directory-derivation test, fix2's two
-    real-manifest tests) must pass in a fresh git worktree that starts with
-    no release-artifacts/ directory at all -- the exact condition
-    build-release-image.ps1's detached worktree is always in, which is what
-    exposed the original Category C hermeticity gap."""
-    head = subprocess.run(
-        ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, check=True,
-    ).stdout.strip()
-    holder = Path(tempfile.mkdtemp(prefix="hermeticity-check-"))
-    worktree_path = holder / "wt"
+def _git(cwd, *arguments, check=True):
+    return run_bounded(
+        ["git", *arguments],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=check,
+    )
+
+
+def _create_isolated_release_source(tmp_path):
+    """Create a small task-local Git source for the detached-worktree check.
+
+    The canonical checkout's linked-worktree registry is intentionally large;
+    this fixture proves the same real Git/worktree contract without making the
+    nested test runner contend with unrelated registrations.
+    """
+    source = tmp_path / "hermeticity-source"
+    source.mkdir()
+    files = (
+        "tests/deployment/test_static_deploy_fix1.py",
+        "tests/deployment/test_static_deploy_fix2.py",
+        "tests/deployment/process_runner.py",
+        "tests/deployment/static_deploy_fix1_ps_harness.ps1",
+        "tests/fixtures/fake_ssh/ssh.cmd",
+        "tests/fixtures/fake_ssh/scp.cmd",
+        "scripts/release/ReleaseTooling.psm1",
+        "scripts/release/deploy-static-release.ps1",
+    )
+    for relative in files:
+        destination = source / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPO_ROOT / relative, destination)
+    _git(source, "init", "-q")
+    _git(source, "config", "user.name", "Static Release Hermeticity Test")
+    _git(source, "config", "user.email", "static-hermeticity@example.invalid")
+    _git(source, "add", *files)
+    _git(source, "commit", "-q", "-m", "isolated static release fixture")
+    head = _git(source, "rev-parse", "HEAD").stdout.strip()
+    worktree = tmp_path / "hermeticity-worktree"
+    _git(source, "worktree", "add", "--detach", str(worktree), head)
+    return source, worktree
+
+
+def test_static_deploy_fixes_pass_in_clean_worktree_without_release_artifacts(tmp_path):
+    """Run clean-worktree regression checks against an isolated real source."""
+    source, worktree_path = _create_isolated_release_source(tmp_path)
     try:
-        add = subprocess.run(
-            ["git", "worktree", "add", "--detach", str(worktree_path), head],
-            cwd=REPO_ROOT, capture_output=True, text=True, timeout=60,
-        )
-        assert add.returncode == 0, add.stdout + add.stderr
         assert not (worktree_path / "release-artifacts").exists(), (
             "test setup invariant broken: a fresh worktree must not have release-artifacts/"
         )
-        result = subprocess.run(
+        result = run_bounded(
             [sys.executable, "-m", "pytest",
              "tests/deployment/test_static_deploy_fix1.py::test_parent_directory_derivation_and_dedup_and_ordering",
              "tests/deployment/test_static_deploy_fix2.py::test_real_182_file_manifest_produces_one_batch_verification_script",
@@ -451,11 +484,10 @@ def test_static_deploy_fixes_pass_in_clean_worktree_without_release_artifacts():
             "fixtures must clean up after themselves, leaving no release-artifacts/ directory behind"
         )
     finally:
-        subprocess.run(
+        run_bounded(
             ["git", "worktree", "remove", "--force", str(worktree_path)],
-            cwd=REPO_ROOT, capture_output=True, text=True,
+            cwd=source, capture_output=True, text=True, timeout=60,
         )
-        shutil.rmtree(holder, ignore_errors=True)
 
 
 def test_powershell_scripts_still_parse():

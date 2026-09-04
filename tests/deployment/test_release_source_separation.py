@@ -5,9 +5,12 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 
 import pytest
+
+from process_runner import run_bounded
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -63,7 +66,7 @@ def run_powershell(script: str, *, timeout: int = 60) -> subprocess.CompletedPro
         "$OutputEncoding = [Console]::OutputEncoding = "
         "New-Object System.Text.UTF8Encoding($false);\n"
     )
-    return subprocess.run(
+    return run_bounded(
         [
             "powershell",
             "-NoProfile",
@@ -91,13 +94,14 @@ def parse_last_json(stdout: str) -> dict:
 
 
 def git(cwd: pathlib.Path, *args: str) -> str:
-    result = subprocess.run(
+    result = run_bounded(
         ["git", *args],
         cwd=cwd,
         capture_output=True,
         text=True,
         encoding="utf-8",
         check=True,
+        timeout=60,
     )
     return result.stdout.strip()
 
@@ -203,7 +207,7 @@ def run_powershell_capture(args: list[str], cwd: pathlib.Path, extra_env: dict |
     marked rather than dropped, and a genuine command failure still fails.
     """
     env = {**os.environ, **(extra_env or {})}
-    completed = subprocess.run(
+    completed = run_bounded(
         args, cwd=cwd, capture_output=True, env=env, timeout=180, check=False
     )
 
@@ -461,7 +465,13 @@ def test_provenance_count_recovery_and_controller_membership_remain_intact():
     )
 
 
-def _dry_run(gate_sha: str, product_sha: str):
+def _dry_run(
+    gate_sha: str,
+    product_sha: str,
+    *,
+    repo_root: pathlib.Path = ROOT,
+    build_script: pathlib.Path = BUILD_RELEASE,
+):
     return run_powershell_capture(
         [
             "powershell",
@@ -469,14 +479,14 @@ def _dry_run(gate_sha: str, product_sha: str):
             "-ExecutionPolicy",
             "Bypass",
             "-File",
-            str(BUILD_RELEASE),
+            str(build_script),
             "-GateSourceSha",
             gate_sha,
             "-ProductSourceSha",
             product_sha,
             "-DryRun",
         ],
-        cwd=ROOT,
+        cwd=repo_root,
         extra_env={"SECRET_KEY": "source-separation-test-only"},
     )
 
@@ -503,10 +513,60 @@ def test_control_plane_authority_declarations_agree():
     assert normalized == set(CONTROL_PLANE_PREFIXES) | set(CONTROL_PLANE_EXACT_PATHS)
 
 
-def test_canonical_source_separation_dry_run_uses_product_identity_without_build():
-    gate_sha = git(ROOT, "rev-parse", "HEAD")
-    product_sha = derive_product_sha(gate_sha)
-    returncode, stdout, stderr = _dry_run(gate_sha, product_sha)
+def _create_small_release_source_pair(
+    tmp_path: pathlib.Path, *, include_runtime_change: bool = False
+):
+    """Create a real two-commit fixture with a task-local Git registry.
+
+    The production contract is still exercised end to end, but this test must
+    not materialize a full checkout from the canonical repository's large
+    historical linked-worktree registry.  Keeping the fixture repository
+    small makes the watchdog measure the release contract rather than shared
+    workspace state.
+    """
+    repo = tmp_path / "release-source-separation"
+    repo.mkdir()
+    copied = (
+        (BUILD_RELEASE, repo / "scripts" / "release" / "build-release-image.ps1"),
+        (MODULE, repo / "scripts" / "release" / "ReleaseTooling.psm1"),
+        (ROOT / "deploy" / "release-layout.example.json", repo / "deploy" / "release-layout.example.json"),
+    )
+    for source, destination in copied:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+    marker = repo / "scripts" / "release" / "gate-only-marker.txt"
+    marker.write_text("product-control-plane-baseline\n", encoding="utf-8")
+    git(repo, "init", "-q")
+    git(repo, "config", "user.name", "Release Source Separation Test")
+    git(repo, "config", "user.email", "release-source-separation@example.invalid")
+    git(
+        repo,
+        "add",
+        "scripts/release/build-release-image.ps1",
+        "scripts/release/ReleaseTooling.psm1",
+        "deploy/release-layout.example.json",
+        "scripts/release/gate-only-marker.txt",
+    )
+    git(repo, "commit", "-q", "-m", "synthetic product release source")
+    product_sha = git(repo, "rev-parse", "HEAD")
+    if include_runtime_change:
+        (repo / "runtime.py").write_text("unauthorized-product-byte\n", encoding="utf-8")
+        git(repo, "add", "runtime.py")
+    marker.write_text("gate-control-plane-change\n", encoding="utf-8")
+    git(repo, "add", "scripts/release/gate-only-marker.txt")
+    git(repo, "commit", "-q", "-m", "synthetic release gate change")
+    gate_sha = git(repo, "rev-parse", "HEAD")
+    return repo, gate_sha, product_sha
+
+
+def test_canonical_source_separation_dry_run_uses_product_identity_without_build(tmp_path):
+    repo, gate_sha, product_sha = _create_small_release_source_pair(tmp_path)
+    returncode, stdout, stderr = _dry_run(
+        gate_sha,
+        product_sha,
+        repo_root=repo,
+        build_script=repo / "scripts" / "release" / "build-release-image.ps1",
+    )
     assert returncode == 0, (
         f"derived product sha {product_sha}\n"
         f"--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}"
@@ -545,30 +605,39 @@ def test_derived_product_identity_is_a_real_ancestor_and_control_plane_only():
         )
 
 
-def test_unauthorized_product_diff_negative_control():
-    """A Product baseline with real product drift must still fail closed.
-
-    Uses the historical fixed pin, which is exactly such a baseline now. This
-    is the guard against a derivation that 'passes' by choosing a point where
-    every diff is empty.
-    """
-    gate_sha = git(ROOT, "rev-parse", "HEAD")
-    unauthorized = _non_control_plane_paths(HISTORICAL_FIXED_PRODUCT_SHA, gate_sha)
+def test_unauthorized_product_diff_negative_control(tmp_path):
+    """A Product baseline with real product drift must still fail closed."""
+    repo, gate_sha, product_sha = _create_small_release_source_pair(
+        tmp_path, include_runtime_change=True
+    )
+    unauthorized = _non_control_plane_paths(product_sha, gate_sha, repo)
     assert unauthorized, "negative control is only meaningful with real product drift"
 
-    returncode, stdout, stderr = _dry_run(gate_sha, HISTORICAL_FIXED_PRODUCT_SHA)
+    returncode, stdout, stderr = _dry_run(
+        gate_sha,
+        product_sha,
+        repo_root=repo,
+        build_script=repo / "scripts" / "release" / "build-release-image.ps1",
+    )
     assert returncode != 0, "unauthorized product drift must not pass the gate"
     combined = f"{stdout}\n{stderr}"
     assert "UNAPPROVED_PRODUCT_DIFF_DETECTED" in combined, combined[:2000]
 
 
-def test_source_separation_failure_diagnostic_surfaces_real_message():
+def test_source_separation_failure_diagnostic_surfaces_real_message(tmp_path):
     """The real gate message must reach the assertion, not TypeError/None.
 
     This is the regression guard for the zh-TW PowerShell decoding defect.
     """
-    gate_sha = git(ROOT, "rev-parse", "HEAD")
-    returncode, stdout, stderr = _dry_run(gate_sha, HISTORICAL_FIXED_PRODUCT_SHA)
+    repo, gate_sha, product_sha = _create_small_release_source_pair(
+        tmp_path, include_runtime_change=True
+    )
+    returncode, stdout, stderr = _dry_run(
+        gate_sha,
+        product_sha,
+        repo_root=repo,
+        build_script=repo / "scripts" / "release" / "build-release-image.ps1",
+    )
     assert returncode != 0
     assert stdout is not None and stderr is not None
     combined = f"{stdout}\n{stderr}"

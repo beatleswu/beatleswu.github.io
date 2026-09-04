@@ -21,6 +21,8 @@ from pathlib import Path
 
 import pytest
 
+from process_runner import run_bounded
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INVENTORY_PATH = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 APP_PY = REPO_ROOT / "app.py"
@@ -188,7 +190,7 @@ def _run_powershell(tmp_path, body):
     # but this harness must use the runtime that exposes Get-FileHash when
     # executing a generated -File script in the isolated test process.
     executable = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
-    return subprocess.run(
+    return run_bounded(
         [executable, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
         capture_output=True, text=True, timeout=120,
     )
@@ -441,7 +443,7 @@ def test_powershell_script_has_no_syntax_errors(script):
         f"[System.Management.Automation.Language.Parser]::ParseFile('{script}', [ref]$null, [ref]$errors) | Out-Null; "
         "if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Output $_.ToString() }; exit 1 } else { exit 0 }"
     )
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell.exe", "-NoProfile", "-Command", ps_command],
         capture_output=True, text=True, timeout=30,
     )
@@ -940,7 +942,7 @@ $manifest = New-StaticReleaseManifestObject -GitSha ('a' * 40) -GenerationId 'te
     assert (stage / "root.txt").is_file()
     assert (stage / "js" / "nested.js").is_file()
 
-    archive_list = subprocess.run(
+    archive_list = run_bounded(
         ["tar.exe", "-tf", archive.name],
         cwd=tmp_path,
         capture_output=True,

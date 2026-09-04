@@ -32,6 +32,8 @@ from pathlib import Path
 
 import pytest
 
+from process_runner import run_bounded
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 DEPLOY_SCRIPT = REPO_ROOT / "scripts" / "release" / "deploy-static-release.ps1"
@@ -47,7 +49,7 @@ def _read(path):
 def _run_pwsh(script, timeout=60):
     if shutil.which("powershell") is None:
         pytest.skip("powershell not available in this environment")
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=timeout,
     )
@@ -453,7 +455,7 @@ def test_entry_safety_rejects_traversal_and_absolute_entries():
         # own extraction-time sanitization is a second layer; this test
         # proves Test-StaticArchiveEntrySafety itself flags it at the
         # listing stage, before any extraction is attempted.
-        build = subprocess.run(
+        build = run_bounded(
             [gnu_tar, "--force-local", "--transform", "s,^evil.webp,../escaped.webp,",
              "-cf", str(archive_path), "-C", str(src), "evil.webp"],
             capture_output=True, text=True, timeout=30,
@@ -480,7 +482,7 @@ def test_entry_safety_accepts_well_formed_relative_entries():
         (src / "assets").mkdir()
         (src / "assets" / "ok.webp").write_bytes(b"fine")
         archive_path = Path(tmp) / "ok.tar"
-        build = subprocess.run(
+        build = run_bounded(
             [gnu_tar, "--force-local", "-cf", str(archive_path), "-C", str(src), "assets/ok.webp"],
             capture_output=True, text=True, timeout=30,
         )
@@ -555,7 +557,7 @@ def test_deploy_script_still_supports_flat_i18n_sw_only_manifests():
         import hashlib
         sw_sha = hashlib.sha256(b"xyz").hexdigest()
         archive_path = Path(tmp) / "archive.tar"
-        build = subprocess.run(
+        build = run_bounded(
             [gnu_tar, "--force-local", "-cf", str(archive_path), "-C", str(bundle), "i18n.js", "sw.js"],
             capture_output=True, text=True, timeout=30,
         )
@@ -641,7 +643,7 @@ def test_extraction_reverification_mechanism_catches_content_mismatch():
 
         extract_dir = Path(tmp) / "extract"
         extract_dir.mkdir()
-        extract = subprocess.run(
+        extract = run_bounded(
             [gnu_tar, "--force-local", "-xf", str(archive_path), "-C", str(extract_dir).replace("\\", "/")],
             capture_output=True, text=True, timeout=30,
         )
