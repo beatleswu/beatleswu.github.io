@@ -95,7 +95,7 @@ function Invoke-Git {
         [Parameter(Mandatory = $true)]
         [string[]]$Arguments,
         [string]$WorkingDirectory = (Get-RepoRoot),
-        [int]$TimeoutSeconds = 30
+        [int]$TimeoutSeconds = 120
     )
     # Invoke-BoundedNativeCommand is defined later in this module and is
     # resolved when this function is called.  Routing every Git operation
