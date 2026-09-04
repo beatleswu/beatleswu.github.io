@@ -485,7 +485,11 @@ def test_rollback_and_preflight_treat_manifest_as_sole_generation_truth():
 def test_existing_static_release_tooling_tests_still_pass():
     result = run_bounded(
         ["python", "-m", "pytest", "tests/deployment/test_static_release_tooling.py", "-q"],
-        cwd=REPO_ROOT, capture_output=True, text=True, timeout=120,
+        # The complete nested static suite measured 118.80s standalone on
+        # this quiet host.  Keep the existing per-operation budgets intact;
+        # this wrapper gets a bounded 180s envelope so ordinary family-level
+        # startup/I/O overhead cannot turn a passing suite into a timeout.
+        cwd=REPO_ROOT, capture_output=True, text=True, timeout=180,
     )
     assert result.returncode == 0, result.stdout + result.stderr
 

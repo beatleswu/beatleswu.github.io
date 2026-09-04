@@ -6,6 +6,8 @@ import pathlib
 import shutil
 import subprocess
 
+from process_runner import run_bounded
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 RELEASE_SCRIPTS = [
     REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1",
@@ -57,7 +59,7 @@ def assert_powershell_parse_ok(path):
         f"[System.Management.Automation.Language.Parser]::ParseFile('{escaped}', [ref]$null, [ref]$errors) | Out-Null; "
         "if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Host $_.ToString() }; exit 1 }"
     )
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-Command", script],
         cwd=REPO_ROOT,
         capture_output=True,
@@ -414,7 +416,7 @@ Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop
 if (-not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {{ throw 'Get-FileHash was not restored' }}
 Write-Output 'MODULE_PATH_OK'
 """
-    result = subprocess.run(
+    result = run_bounded(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=REPO_ROOT,
         capture_output=True,

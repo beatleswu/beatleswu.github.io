@@ -621,6 +621,8 @@ def test_failed_generation_evidence_is_atomically_persisted_before_recovery(tmp_
     destination = str(tmp_path / "evidence").replace("'", "''")
     script = f"""
 $ErrorActionPreference='Stop'
+$windowsUtilityManifest = Join-Path $env:WINDIR 'System32\\WindowsPowerShell\\v1.0\\Modules\\Microsoft.PowerShell.Utility\\Microsoft.PowerShell.Utility.psd1'
+if (Test-Path -LiteralPath $windowsUtilityManifest -PathType Leaf) {{ Import-Module $windowsUtilityManifest -Force -ErrorAction Stop }}
 $source=Get-Content '{setter}' -Raw
 $start=$source.IndexOf('function Get-ShadowFailedGenerationEvidence')
 $end=$source.IndexOf('function New-ShadowRecoveredFailureResult')

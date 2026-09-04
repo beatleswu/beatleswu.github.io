@@ -16,6 +16,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ReleaseTooling.psm1') -Force -DisableNameChecking
+$windowsUtilityManifest = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1'
+if (Test-Path -LiteralPath $windowsUtilityManifest -PathType Leaf) {
+    Import-Module $windowsUtilityManifest -Force -ErrorAction Stop
+}
+else {
+    Import-Module Microsoft.PowerShell.Utility -Force -ErrorAction Stop
+}
 
 $repoRoot = Get-RepoRoot
 $layout = Get-ReleaseLayout -Path (Resolve-RepoPath $LayoutFile)

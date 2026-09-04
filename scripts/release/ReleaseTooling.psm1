@@ -595,7 +595,15 @@ function New-DetachedWorktree {
     $worktree = Get-CanonicalFilesystemPath -Path (Join-Path $expectedParent ("{0}-{1}" -f $Prefix, ([guid]::NewGuid().ToString('N')))) -Label 'Generated worktree path'
     $repositoryRoot = Get-CanonicalFilesystemPath -Path (Get-RepoRoot) -Label 'Repository root'
     try {
-        Invoke-Git -Arguments @('worktree', 'add', '--detach', $worktree, $GitSha) -WorkingDirectory $repositoryRoot | Out-Null
+        # Worktree materialization is the one Git operation whose duration is
+        # dominated by the shared repository's linked-worktree registry.  The
+        # measured quiet-host registry currently contains 1,285 entries and
+        # exceeds the historical 180s caller envelope.  Keep the operation
+        # bounded, but give this create step the existing 600s upper bound so
+        # a slow checkout can finish and the caller's normal finally cleanup
+        # remains reachable.  All identity and cleanup calls retain their
+        # shorter explicit/default bounds.
+        Invoke-Git -Arguments @('worktree', 'add', '--detach', $worktree, $GitSha) -WorkingDirectory $repositoryRoot -TimeoutSeconds 600 | Out-Null
         $resolvedSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $worktree)
         $script:GeneratedDetachedWorktrees[$worktree.ToLowerInvariant()] = [ordered]@{
             path = $worktree
@@ -665,15 +673,7 @@ function Remove-DetachedWorktree {
     if ($head -ne $record.expected_sha) {
         throw "Cleanup refused: worktree HEAD does not match its generated identity."
     }
-    try {
-        Invoke-Git -Arguments @('worktree', 'remove', '--force', '--', $candidate) -WorkingDirectory $record.repository_root -TimeoutSeconds 120 | Out-Null
-    }
-    catch {
-        # A process-tree timeout can leave the exact task-owned registration
-        # locked while Git is still unwinding its checkout.  Retry only this
-        # ledger-owned path with Git's documented double-force override.
-        Invoke-Git -Arguments @('worktree', 'remove', '--force', '--force', '--', $candidate) -WorkingDirectory $record.repository_root -TimeoutSeconds 120 | Out-Null
-    }
+    Invoke-Git -Arguments @('worktree', 'remove', '--force', '--', $candidate) -WorkingDirectory $record.repository_root -TimeoutSeconds 120 | Out-Null
     if ([System.IO.Directory]::Exists($candidate)) {
         throw "Governed Git worktree removal did not remove the exact path; directory left for manual review."
     }
