@@ -1,0 +1,366 @@
+{
+  "schemaVersion": "w2-01.zone4.misty-forest.vertical-slice.v1",
+  "zone": {
+    "number": 4,
+    "key": "k11_15",
+    "nameI18nKey": "adventure.zone4.name",
+    "names": {
+      "zh-TW": "迷霧森林",
+      "en-US": "Misty Forest"
+    },
+    "worldMap": {
+      "assetId": "e10_world_stage_v2_clean",
+      "path": "/assets/maps/e10_world_stage_v2_clean.webp",
+      "status": "EXISTING_CANONICAL_SHARED_SURFACE",
+      "role": "WORLD_MAP_ONLY"
+    },
+    "landmark": {
+      "assetId": "zone4_twilight_forest_landmark",
+      "path": "/assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp",
+      "status": "OWNER_APPROVED_CANONICAL_WORLD_LANDMARK",
+      "role": "WORLD_LANDMARK_ONLY"
+    }
+  },
+  "authority": {
+    "presentationScope": "ZONE4_VERTICAL_SLICE_PRESENTATION_ONLY",
+    "progressionAuthority": "EXISTING_SERVER_RUNTIME",
+    "unlockAuthority": "EXISTING_SERVER_RUNTIME",
+    "gameplayAuthority": "EXISTING_SERVER_RUNTIME",
+    "clientMutationAllowed": false,
+    "dedicatedGameplayEnvironmentStatus": "MISSING_AUTHORIZED_ASSET",
+    "finalCinematicAssetStatus": "INCOMPLETE_AUTHORIZED_PACKAGE"
+  },
+  "story": {
+    "canonicalShotCount": 10,
+    "lifecycle": [
+      {
+        "id": "first_entry",
+        "phase": "PRE_PLAY",
+        "shots": ["Z4_S01", "Z4_S02", "Z4_S03", "Z4_S04", "Z4_S05", "Z4_S06", "Z4_S07"]
+      },
+      {
+        "id": "post_clear",
+        "phase": "POST_CLEAR",
+        "shots": ["Z4_S08", "Z4_S09"]
+      },
+      {
+        "id": "post_clear_hook",
+        "phase": "POST_CLEAR_HOOK",
+        "shots": ["Z4_S10"]
+      }
+    ],
+    "shots": [
+      {
+        "id": "Z4_S01",
+        "number": 1,
+        "phase": "PRE_PLAY",
+        "sceneKey": "forest_edge",
+        "image": {
+          "assetId": "zone4_storyboard_scene_01_legacy",
+          "path": "/assets/storyboards/go_misty_forest_scene_01.webp",
+          "status": "PRESENT_BUT_LEGACY",
+          "renderableInBoundedSlice": true,
+          "alt": {
+            "zh-TW": "迷霧森林邊緣的參考畫面",
+            "en-US": "Misty Forest edge reference frame"
+          }
+        },
+        "dialogueBeatIds": []
+      },
+      {
+        "id": "Z4_S02",
+        "number": 2,
+        "phase": "PRE_PLAY",
+        "sceneKey": "disorientation",
+        "image": {
+          "assetId": "zone4_storyboard_scene_02_legacy",
+          "path": "/assets/storyboards/go_misty_forest_scene_02.webp",
+          "status": "PRESENT_BUT_LEGACY",
+          "renderableInBoundedSlice": true,
+          "alt": {
+            "zh-TW": "霧中的迷失參考畫面",
+            "en-US": "Disorientation in the mist reference frame"
+          }
+        },
+        "dialogueBeatIds": ["Z4_S02_B001"]
+      },
+      {
+        "id": "Z4_S03",
+        "number": 3,
+        "phase": "PRE_PLAY",
+        "sceneKey": "phantom_copies",
+        "image": {
+          "assetId": "zone4_storyboard_scene_03_legacy",
+          "path": "/assets/storyboards/go_misty_forest_scene_03.webp",
+          "status": "PRESENT_BUT_LEGACY",
+          "renderableInBoundedSlice": true,
+          "alt": {
+            "zh-TW": "霧中幻影參考畫面",
+            "en-US": "Phantoms in the mist reference frame"
+          }
+        },
+        "dialogueBeatIds": []
+      },
+      {
+        "id": "Z4_S04",
+        "number": 4,
+        "phase": "PRE_PLAY",
+        "sceneKey": "mirrored_ring",
+        "image": {
+          "assetId": "zone4_storyboard_scene_04_legacy",
+          "path": "/assets/storyboards/go_misty_forest_scene_04.webp",
+          "status": "PRESENT_BUT_LEGACY",
+          "renderableInBoundedSlice": true,
+          "alt": {
+            "zh-TW": "霧中環形幻影參考畫面",
+            "en-US": "Mirrored phantoms reference frame"
+          }
+        },
+        "dialogueBeatIds": []
+      },
+      {
+        "id": "Z4_S05",
+        "number": 5,
+        "phase": "PRE_PLAY",
+        "sceneKey": "phantom_riddle",
+        "image": {
+          "assetId": null,
+          "path": null,
+          "status": "MISSING_FINAL_ASSET_AUTHORITY",
+          "renderableInBoundedSlice": false,
+          "alt": null
+        },
+        "dialogueBeatIds": ["Z4_S05_B001"]
+      },
+      {
+        "id": "Z4_S06",
+        "number": 6,
+        "phase": "PRE_PLAY",
+        "sceneKey": "steady_shui",
+        "image": {
+          "assetId": null,
+          "path": null,
+          "status": "MISSING_FINAL_ASSET_AUTHORITY",
+          "renderableInBoundedSlice": false,
+          "alt": null
+        },
+        "dialogueBeatIds": []
+      },
+      {
+        "id": "Z4_S07",
+        "number": 7,
+        "phase": "PRE_PLAY",
+        "sceneKey": "trust_choice",
+        "handoff": "HANDOFF_TO_GAMEPLAY_AFTER_SHOT",
+        "image": {
+          "assetId": null,
+          "path": null,
+          "status": "MISSING_FINAL_ASSET_AUTHORITY",
+          "renderableInBoundedSlice": false,
+          "alt": null
+        },
+        "dialogueBeatIds": ["Z4_S07_B001"]
+      },
+      {
+        "id": "Z4_S08",
+        "number": 8,
+        "phase": "POST_CLEAR",
+        "sceneKey": "ancient_tree",
+        "image": {
+          "assetId": null,
+          "path": null,
+          "status": "MISSING_FINAL_ASSET_AUTHORITY",
+          "renderableInBoundedSlice": false,
+          "alt": null
+        },
+        "dialogueBeatIds": []
+      },
+      {
+        "id": "Z4_S09",
+        "number": 9,
+        "phase": "POST_CLEAR",
+        "sceneKey": "black_white_fruit",
+        "image": {
+          "assetId": null,
+          "path": null,
+          "status": "MISSING_FINAL_ASSET_AUTHORITY",
+          "renderableInBoundedSlice": false,
+          "alt": null
+        },
+        "dialogueBeatIds": []
+      },
+      {
+        "id": "Z4_S10",
+        "number": 10,
+        "phase": "POST_CLEAR_HOOK",
+        "sceneKey": "scorched_trail",
+        "handoff": "END_CINEMATIC_SEQUENCE_AFTER_SHOT",
+        "image": {
+          "assetId": null,
+          "path": null,
+          "status": "MISSING_FINAL_ASSET_AUTHORITY",
+          "renderableInBoundedSlice": false,
+          "alt": null
+        },
+        "dialogueBeatIds": []
+      }
+    ],
+    "dialogueBeats": [
+      {
+        "beatId": "Z4_S02_B001",
+        "shotId": "Z4_S02",
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s02.b001"
+      },
+      {
+        "beatId": "Z4_S05_B001",
+        "shotId": "Z4_S05",
+        "character": "LORD",
+        "i18nKey": "adventure.zone4.cinematic.s05.b001"
+      },
+      {
+        "beatId": "Z4_S07_B001",
+        "shotId": "Z4_S07",
+        "character": "HERO",
+        "i18nKey": "adventure.zone4.cinematic.s07.b001"
+      }
+    ]
+  },
+  "locales": {
+    "zh-TW": {
+      "status": "AUTHORITATIVE_DIALOGUE_PARTIAL",
+      "ui": {
+        "kicker": "第四區 · 冒險片段",
+        "prePlay": "進入",
+        "postClear": "通過後",
+        "postClearHook": "下一段旅程",
+        "next": "下一幕",
+        "previous": "上一幕",
+        "replay": "重播片段",
+        "silent": "（無對白）",
+        "legacyAsset": "既有參考畫面，尚非最終 Zone 4 素材",
+        "missingAsset": "最終 Zone 4 畫面素材尚未取得權威",
+        "handoff": "第 7 幕後交給冒險遊戲",
+        "endingHook": "第 10 幕結束這段片段",
+        "subtitlePending": "此語系的核准字幕尚未提供",
+        "dialogueLabel": "Zone 4 對白",
+        "controlsLabel": "Zone 4 片段控制",
+        "shotLabel": "第 {shot} 幕／共 {total} 幕"
+      },
+      "dialogue": {
+        "adventure.zone4.cinematic.s02.b001": "奇怪……我們剛才，是從哪邊進來的？",
+        "adventure.zone4.cinematic.s05.b001": "哪一個……才是你？還是……連你自己也不知道？",
+        "adventure.zone4.cinematic.s07.b001": "小水。帶我走。"
+      }
+    },
+    "en-US": {
+      "status": "ZONE_LABEL_AND_UI_ONLY_DIALOGUE_TRANSLATION_PENDING",
+      "ui": {
+        "kicker": "Zone 4 · Adventure slice",
+        "prePlay": "Entry",
+        "postClear": "After clear",
+        "postClearHook": "Next journey",
+        "next": "Next shot",
+        "previous": "Previous shot",
+        "replay": "Replay slice",
+        "silent": "(No dialogue)",
+        "legacyAsset": "Existing reference frame; not final Zone 4 art",
+        "missingAsset": "Final Zone 4 image authority is not available",
+        "handoff": "Gameplay handoff follows shot 7",
+        "endingHook": "This slice ends after shot 10",
+        "subtitlePending": "Approved dialogue translation is not available",
+        "dialogueLabel": "Zone 4 dialogue",
+        "controlsLabel": "Zone 4 presentation controls",
+        "shotLabel": "Shot {shot} of {total}"
+      },
+      "dialogue": {}
+    }
+  },
+  "assets": {
+    "world": [
+      {
+        "assetId": "e10_world_stage_v2_clean",
+        "role": "SHARED_WORLD_MAP",
+        "path": "/assets/maps/e10_world_stage_v2_clean.webp",
+        "status": "AUTHORITATIVE_USABLE"
+      },
+      {
+        "assetId": "e10_world_stage_v1_base",
+        "role": "SHARED_WORLD_MAP_FALLBACK",
+        "path": "/assets/maps/e10_world_stage_v1_base.webp",
+        "status": "AUTHORITATIVE_USABLE"
+      },
+      {
+        "assetId": "zone4_twilight_forest_landmark",
+        "role": "ZONE4_WORLD_LANDMARK",
+        "path": "/assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp",
+        "status": "AUTHORITATIVE_USABLE"
+      },
+      {
+        "assetId": "zone4_storyboard_scene_01_legacy",
+        "role": "LEGACY_CINEMATIC_REFERENCE",
+        "path": "/assets/storyboards/go_misty_forest_scene_01.webp",
+        "status": "PRESENT_BUT_LEGACY"
+      },
+      {
+        "assetId": "zone4_storyboard_scene_02_legacy",
+        "role": "LEGACY_CINEMATIC_REFERENCE",
+        "path": "/assets/storyboards/go_misty_forest_scene_02.webp",
+        "status": "PRESENT_BUT_LEGACY"
+      },
+      {
+        "assetId": "zone4_storyboard_scene_03_legacy",
+        "role": "LEGACY_CINEMATIC_REFERENCE",
+        "path": "/assets/storyboards/go_misty_forest_scene_03.webp",
+        "status": "PRESENT_BUT_LEGACY"
+      },
+      {
+        "assetId": "zone4_storyboard_scene_04_legacy",
+        "role": "LEGACY_CINEMATIC_REFERENCE",
+        "path": "/assets/storyboards/go_misty_forest_scene_04.webp",
+        "status": "PRESENT_BUT_LEGACY"
+      }
+    ],
+    "audio": {
+      "status": "EXISTING_PROCEDURAL_REFERENCES_ONLY",
+      "cues": ["mystic", "pulse", "woodhit", "journey"],
+      "dedicatedBgm": []
+    }
+  },
+  "encounters": {
+    "normal": [
+      {"id": "M034", "assetPath": "/assets/monsters/forest_spirit_chibi.png", "assetStatus": "AUTHORITATIVE_BATTLEFIELD_ANCHOR", "runtimeStatus": "BATTLEFIELD_ONLY", "runtimeId": "legacy_bf_04_normal"},
+      {"id": "M035", "assetPath": "/art/monsters/M035_mist_tail_fox.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M036", "assetPath": "/art/monsters/M036_moonleaf_moth.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M037", "assetPath": "/art/monsters/M037_vineclaw_beast.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M038", "assetPath": "/art/monsters/M038_mossback_turtle.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M039", "assetPath": "/art/monsters/M039_dewdrop_spider.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M040", "assetPath": "/art/monsters/M040_twig_deer.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M041", "assetPath": "/art/monsters/M041_fogwhistle_frog.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M042", "assetPath": "/art/monsters/M042_bloomcrown_caterpillar.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M043", "assetPath": "/art/monsters/M043_shadowstep_cat.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M044", "assetPath": "/art/monsters/M044_hollowtree_cub.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null},
+      {"id": "M045", "assetPath": "/art/monsters/M045_mosscap_sapling.png", "assetStatus": "PRESENTATION_ART_ONLY", "runtimeStatus": "MISSING_ADVENTURE_AUTHORITY", "runtimeId": null}
+    ],
+    "battlefieldBoss": {
+      "id": "legacy_bf_04_boss",
+      "zoneKey": "zone_04",
+      "assetPath": "/assets/monsters/mist_dryad_chibi.png",
+      "status": "BATTLEFIELD_AUTHORITY_ONLY"
+    },
+    "lord": {
+      "id": "misty_phantom_rabbit_king",
+      "zoneKey": "k11_15",
+      "assetPath": null,
+      "status": "LORD_AUTHORITY_ONLY"
+    }
+  },
+  "authorityGaps": [
+    "ZONE4_DEDICATED_GAMEPLAY_ENVIRONMENT_MISSING",
+    "ZONE4_FINAL_CINEMATIC_ART_MISSING_FOR_SHOTS_05_10",
+    "ZONE4_ADVENTURE_NORMAL_RUNTIME_AUTHORITY_MISSING_FOR_M034_M045",
+    "ZONE4_EN_US_FINAL_DIALOGUE_TRANSLATION_AUTHORITY_MISSING",
+    "ZONE4_APPROVED_DIALOGUE_VOICE_AUTHORITY_MISSING",
+    "ZONE4_DEDICATED_BGM_AND_SFX_PACKAGE_MISSING"
+  ]
+}

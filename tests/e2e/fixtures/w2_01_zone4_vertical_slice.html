@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>W2-01 Zone 4 vertical slice</title>
+  <link rel="stylesheet" href="/css/e9/zone4_misty_forest_vertical_slice.css">
+</head>
+<body>
+  <main id="w2-zone4-fixture" aria-live="polite"></main>
+  <script src="/js/e9/zone4_misty_forest_vertical_slice.js"></script>
+  <script>
+    (async function () {
+      try {
+        var componentResponse = await fetch('/components/adventure/zone4_misty_forest_vertical_slice.html');
+        var manifestResponse = await fetch('/assets/adventure/zone4/zone4-misty-forest-vertical-slice.json');
+        if (!componentResponse.ok || !manifestResponse.ok) throw new Error('Zone 4 fixture resources unavailable');
+        var componentMarkup = await componentResponse.text();
+        var manifest = await manifestResponse.json();
+        document.getElementById('w2-zone4-fixture').innerHTML = componentMarkup;
+        var mount = document.querySelector('[data-zone4-vertical-slice]');
+        var locale = new URLSearchParams(window.location.search).get('locale') || 'zh-TW';
+        var controller = window.GoOdysseyZone4MistyForestVerticalSlice.create({
+          manifest: manifest,
+          mount: mount,
+          locale: locale,
+        });
+        window.__w2Zone4Slice = controller;
+        document.documentElement.setAttribute('data-zone4-fixture-ready', 'true');
+      } catch (error) {
+        document.documentElement.setAttribute('data-zone4-fixture-error', String(error && error.message ? error.message : error));
+        console.error(error);
+      }
+    })();
+  </script>
+</body>
+</html>

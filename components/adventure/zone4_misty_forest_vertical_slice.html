@@ -1,0 +1,28 @@
+<!--
+  W2-01 isolated Zone 4 presentation slice.
+  This component has no progression, unlock, combat, reward, or locale
+  authority.  The Zone4-specific controller fills every visible string from
+  the checked-in locale manifest and leaves unavailable final art empty.
+-->
+<section class="w2-zone4-slice" data-zone4-vertical-slice="w2-01" aria-labelledby="w2-zone4-title">
+  <header class="w2-zone4-slice__header">
+    <p class="w2-zone4-slice__kicker" data-zone4-kicker></p>
+    <h2 class="w2-zone4-slice__title" id="w2-zone4-title" data-zone4-title></h2>
+    <p class="w2-zone4-slice__status" data-zone4-status role="status" aria-live="polite"></p>
+  </header>
+  <figure class="w2-zone4-slice__media" data-zone4-media>
+    <img class="w2-zone4-slice__image" data-zone4-image alt="" hidden>
+    <div class="w2-zone4-slice__empty" data-zone4-empty aria-hidden="true">∅</div>
+    <figcaption class="w2-zone4-slice__asset-note" data-zone4-asset-note></figcaption>
+  </figure>
+  <section class="w2-zone4-slice__dialogue" data-zone4-dialogue-panel aria-live="polite">
+    <p class="w2-zone4-slice__speaker" data-zone4-speaker></p>
+    <p class="w2-zone4-slice__line" data-zone4-line></p>
+  </section>
+  <p class="w2-zone4-slice__handoff" data-zone4-handoff hidden></p>
+  <nav class="w2-zone4-slice__controls" data-zone4-controls>
+    <button class="w2-zone4-slice__button" data-zone4-action="previous" type="button"></button>
+    <button class="w2-zone4-slice__button w2-zone4-slice__button--primary" data-zone4-action="next" type="button"></button>
+    <button class="w2-zone4-slice__button" data-zone4-action="replay" type="button"></button>
+  </nav>
+</section>
