@@ -189,6 +189,22 @@ body::before {
 .intro-hint {
   font-size: 11px; color: var(--ink3); margin-top: 16px; line-height: 1.6;
 }
+.first-play-orientation {
+  margin-top: 22px; padding: 16px; border: 1px solid rgba(56,210,197,.35);
+  border-radius: 12px; background: rgba(56,210,197,.08); text-align: left;
+}
+.first-play-orientation[hidden] { display: none; }
+.first-play-orientation__title {
+  margin: 0 0 10px; color: #7a4f14; font-size: 13px; font-weight: 800;
+}
+.first-play-orientation__steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.first-play-orientation__step { display: grid; grid-template-columns: 28px 1fr; gap: 9px; align-items: start; }
+.first-play-orientation__number {
+  width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%;
+  background: rgba(56,210,197,.18); color: #176c67; font: 700 12px 'DM Mono', monospace;
+}
+.first-play-orientation__step strong { display: block; color: #38230e; font-size: 12px; }
+.first-play-orientation__step span:last-child { display: block; margin-top: 2px; color: var(--ink3); font-size: 11px; line-height: 1.45; }
 
 /* ══ SCREEN 2: TEST ═══════════════════════════════════ */
 .test-col {
@@ -575,11 +591,12 @@ body::before {
         </div>
       </div>
 
-      <button class="btn-start" id="btn-start"><img class="btn-icon" src="/assets/rating_test/icons/brass_astrolabe.png" alt=""><span data-i18n="rt.btnStart">開始棋力鑑定 →</span></button>
+      <button class="btn-start" id="btn-start" data-w2-cta="begin-first-go-interaction"><img class="btn-icon" src="/assets/rating_test/icons/brass_astrolabe.png" alt=""><span data-i18n="rt.btnStart">開始棋力鑑定 →</span></button>
       <p class="intro-hint" id="intro-hint-text" data-i18n-html="rt.introHint">
         測驗中不顯示對錯提示，點擊即送出，計時結束未落子視為答錯。<br>
         結束後可領取本次答對題目的技能點獎勵。
       </p>
+      <div id="first-play-orientation" class="first-play-orientation" data-w2-surface="learn-onboarding-orientation" role="region" aria-labelledby="first-play-orientation-title" hidden></div>
 
       <!-- 自填段位（placement 模式才顯示）-->
       <div class="placement-self-fill" id="self-fill-section" style="display:none">
@@ -608,7 +625,7 @@ body::before {
     <div class="pr-rank" id="pr-rank-disp" data-i18n="rt.default_rank">業餘初段</div>
     <div class="pr-elo"  id="pr-elo-disp">Elo 1500</div>
     <div class="pr-msg"  id="pr-msg" data-i18n="rt.prMsgDefault">棋力確認完成！系統已為你設定初始難度，接下來進行新手教學。</div>
-    <button class="btn-goto-home" onclick="gotoHomeTour()" data-i18n="rt.btnGotoHome">返回弈境奇兵 · 開始修煉</button>
+    <button class="btn-goto-home" onclick="gotoHomeTour()" data-w2-next-action="save-and-continue-learning" data-i18n="rt.btnGotoHome">返回弈境奇兵 · 開始修煉</button>
   </div>
 </div>
 
@@ -624,7 +641,7 @@ body::before {
         <span id="test-player-color" style="font-size:12px;font-weight:700;padding:2px 12px;border-radius:99px;border:1px solid rgba(122,79,20,.26);background:rgba(255,255,255,.45);">—</span>
         <span id="test-disc-badge" style="font-size:11px;background:rgba(255,255,255,.45);padding:2px 10px;border-radius:99px;border:1px solid rgba(122,79,20,.26);">—</span>
       </div>
-      <div id="test-board-wrap"></div>
+      <div id="test-board-wrap" data-w2-interaction="first-go-board"></div>
     </div>
 
     <!-- ── 資訊列（棋盤下方）── -->
@@ -875,6 +892,56 @@ function _initPlacementIntro() {
       nt.textContent = en ? 'Optional — high-dan players start with harder problems, not beginner ones.'
                           : '選填。選了高段，第一題就從高段出，不會被丟新手題。'; }
   }
+  _renderFirstPlayOrientation();
+}
+function _renderFirstPlayOrientation() {
+  const panel = document.getElementById('first-play-orientation');
+  if (!panel) return;
+  if (!_isPlacement) {
+    panel.hidden = true;
+    panel.replaceChildren();
+    return;
+  }
+  const en = (typeof I18n !== 'undefined' && I18n.getLang() === 'en');
+  const copy = en ? {
+    title: 'Your first Go step',
+    steps: [
+      ['Read the board', 'Look for the move that feels right.'],
+      ['Play one move', 'Tap a point on the board. Each answer is one step.'],
+      ['Find your next path', 'Your result points you to the next training step.']
+    ]
+  } : {
+    title: '你的第一步圍棋練習',
+    steps: [
+      ['看懂棋盤', '先找出你覺得對的下一手。'],
+      ['落下一手', '點一下棋盤。每一題都是前進一步。'],
+      ['找到下一步路線', '完成後會告訴你下一步從哪裡開始練。']
+    ]
+  };
+  const title = document.createElement('p');
+  title.id = 'first-play-orientation-title';
+  title.className = 'first-play-orientation__title';
+  title.textContent = copy.title;
+  const list = document.createElement('ol');
+  list.className = 'first-play-orientation__steps';
+  copy.steps.forEach((step, index) => {
+    const item = document.createElement('li');
+    item.className = 'first-play-orientation__step';
+    item.dataset.w2Step = String(index + 1);
+    const number = document.createElement('span');
+    number.className = 'first-play-orientation__number';
+    number.textContent = String(index + 1);
+    const text = document.createElement('div');
+    const heading = document.createElement('strong');
+    heading.textContent = step[0];
+    const body = document.createElement('span');
+    body.textContent = step[1];
+    text.append(heading, body);
+    item.append(number, text);
+    list.appendChild(item);
+  });
+  panel.replaceChildren(title, list);
+  panel.hidden = false;
 }
 
 // ── 一般測驗：自報段位（選填，加速定位）─────────────────────────────────
@@ -935,7 +1002,7 @@ function _trialDecorateResult() {
   const en = (typeof I18n !== 'undefined' && I18n.getLang() === 'en');
   const b = document.querySelector('#screen-placement-result .btn-goto-home');
   if (b) { b.removeAttribute('data-i18n');
-    b.textContent = en ? 'Sign up to save your rank & path →' : '註冊保存棋力與推薦路線 →'; }
+    b.textContent = en ? 'Sign up to save your rank and start learning →' : '註冊保存棋力，開始學習 →'; }
   // 低信心：7 題全錯 → 訊號不穩，提示日後正式鑑定。
   const _correctN = _answers.filter(a => a.correct).length;
   const _lowConf  = _answers.length >= 3 && _correctN === 0;
@@ -2068,6 +2135,7 @@ window.onLangChange = function () {
     // 開始按鈕：placement / 已選自報段位時為動態文字，需重繪
     if (_isPlacement) {
       setStartButtonLabel(I18n.t('rt.plStart'));
+      _renderFirstPlayOrientation();
     } else if (_knownRankName) {
       const sel = document.querySelector('#known-rank-opts .rank-opt.selected .ron');
       const ron = sel ? sel.textContent : _knownRankName;
