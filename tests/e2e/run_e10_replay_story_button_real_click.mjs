@@ -179,6 +179,13 @@ const SKIP_TO_CLOSE = () => {
   };
 };
 
+async function waitForZoneTile(page, zoneKey) {
+  await page.locator(`#e9-world-stage-slot [data-zone="${zoneKey}"]`).waitFor({
+    state: 'attached',
+    timeout: 20000,
+  });
+}
+
 async function main() {
   const report = {
     contract: 'e10_replay_story_button_real_click',
@@ -246,6 +253,10 @@ async function main() {
     });
     report.pre_existing_bootstrap_priming = primed;
 
+    // The E9 component is mounted after the authenticated page load. Waiting
+    // on the real tile removes the runner's own cold-mount race without
+    // weakening the click-time contract under test.
+    await waitForZoneTile(page, ZONE_KEY);
     const firstClick = await page.evaluate(CLICK_AND_READ, ZONE_KEY);
     report.first_click = firstClick;
 
@@ -287,6 +298,7 @@ async function main() {
           .find((el) => el.getAttribute('data-zone') === otherKey);
         if (other) other.click();
       }, OTHER_ZONE_KEY);
+      await waitForZoneTile(page, ZONE_KEY);
       const repeatClick = await page.evaluate(CLICK_AND_READ, ZONE_KEY);
       report.repeat_click = repeatClick;
       report.repeat_click_single_dispatch = (repeatClick.play_story_replay_call_count_delta || 0) === 1

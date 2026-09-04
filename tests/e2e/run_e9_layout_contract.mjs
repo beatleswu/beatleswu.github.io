@@ -418,7 +418,23 @@ async function main() {
         results.push(await collectMetrics(page, state, viewport, origin, requestLog, screenshotDir));
       }
     }
-    assertContracts(results);
+    try {
+      assertContracts(results);
+    } catch (error) {
+      // Preserve the complete per-viewport evidence on a failing run. This
+      // is diagnostic output only; it does not turn a failed contract into a
+      // pass and keeps the exact observed DOM/geometry available for debt
+      // classification.
+      if (outFile) {
+        await fs.writeFile(outFile, JSON.stringify({
+          ok: false,
+          result_count: results.length,
+          assertion_error: String(error && error.message || error),
+          results,
+        }, null, 2));
+      }
+      throw error;
+    }
     if (outFile) {
       await fs.writeFile(outFile, JSON.stringify(results, null, 2));
     }

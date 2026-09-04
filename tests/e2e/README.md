@@ -394,3 +394,27 @@ Only exercises actions a normal user/admin can already take through the UI
 (login, reload, logout, relogin, destroy/remount via the exposed `E9`
 globals). Never touches `E9_ROLLOUT_*` env vars, database rows, or deploy
 tooling.
+
+## W1_05 Zone 3 final browser harness
+
+`run_w1_05_zone3_final_browser_acceptance.mjs` is the bounded pre-integration
+browser runner for the Zone 3 candidate. `--describe` reports the exact
+10-scenario x 4-viewport matrix (40 cases) without credentials or a running
+candidate. `--run` requires an explicit non-production `E2E_BASE_URL`, a
+candidate identifier, and the three isolated account credential sets:
+
+```
+E2E_BASE_URL=http://localhost:5000 \
+E2E_ZONE3_FINAL_CANDIDATE_ID=... \
+E2E_ZONE3_ZH_USERNAME=... E2E_ZONE3_ZH_PASSWORD=... \
+E2E_ZONE3_EN_USERNAME=... E2E_ZONE3_EN_PASSWORD=... \
+E2E_ZONE3_REPLAY_USERNAME=... E2E_ZONE3_REPLAY_PASSWORD=... \
+npm run w1:05:zone3:final-browser
+```
+
+The runner uses real browser navigation and API observation; it does not mock
+the candidate's runtime. Missing candidate preconditions produce a bounded
+blocked result, never a skipped or fabricated pass. Browser viewport
+emulation is explicitly not physical iPad/iPhone acceptance. The runner also
+includes a deliberate missing-presentation-asset no-op scenario and rejects
+production host/IP targets.

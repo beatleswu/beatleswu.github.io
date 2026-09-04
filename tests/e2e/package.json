@@ -9,7 +9,10 @@
     "e9:fetch": "node run_e9_fetch_contract.mjs",
     "e9:acceptance": "node run_e9_acceptance_journey.mjs",
     "e9:acceptance:unit": "node run_e9_acceptance_helpers_unit_tests.mjs",
-    "e9:acceptance:errors": "node run_e9_acceptance_error_monitor_contract.mjs"
+    "e9:acceptance:errors": "node run_e9_acceptance_error_monitor_contract.mjs",
+    "w1:05:zone3:final-browser": "node run_w1_05_zone3_final_browser_acceptance.mjs --run",
+    "w1:05:zone3:final-browser:describe": "node run_w1_05_zone3_final_browser_acceptance.mjs --describe",
+    "w1:05:zone3:final-browser:unit": "node run_w1_05_zone3_final_browser_acceptance_unit_tests.mjs"
   },
   "dependencies": {
     "playwright-core": "1.54.2"
