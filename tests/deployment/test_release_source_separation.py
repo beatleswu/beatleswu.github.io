@@ -94,10 +94,6 @@ def parse_last_json(stdout: str) -> dict:
 
 
 def git(cwd: pathlib.Path, *args: str) -> str:
-    # History/diff probes can follow a worktree-heavy release test in the full
-    # serial gate.  Keep them bounded, but allow the measured registry/I/O
-    # envelope to settle; synthetic-repository operations retain 60 seconds.
-    timeout = 180 if args and args[0] in {"rev-list", "diff"} else 60
     result = run_bounded(
         ["git", *args],
         cwd=cwd,
@@ -105,7 +101,7 @@ def git(cwd: pathlib.Path, *args: str) -> str:
         text=True,
         encoding="utf-8",
         check=True,
-        timeout=timeout,
+        timeout=60,
     )
     return result.stdout.strip()
 
