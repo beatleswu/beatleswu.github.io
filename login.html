@@ -286,7 +286,7 @@ function initGoogleSignin(){
   }catch(e){}
 }
 // 試玩認領：若本頁帶 ?from=try&sid=...，登入/註冊/Google 成功後把匿名鑑定結果綁到帳號。
-// 回傳要導向的目的地（成功→帶 after_placement 的首頁；無 sid 或失敗→null，由呼叫端走原導向）。
+// 有明確 next 時保留它；沒有 next 時維持既有的 placement 回首頁流程。
 async function _claimTrialIfAny(){
   const p=new URLSearchParams(location.search);
   if(p.get('from')!=='try') return null;
@@ -298,7 +298,7 @@ async function _claimTrialIfAny(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({session_id:sid})
     }).then(r=>r.json());
-    return (r&&r.ok)?'/?after_placement=1':null;
+    return (r&&r.ok)?(_safeLoginReturn()||'/?after_placement=1'):null;
   }catch(e){ return null; }
 }
 function _safeLoginReturn(){

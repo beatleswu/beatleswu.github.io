@@ -1055,10 +1055,14 @@ function gotoHomeTour() {
 // ── TRIAL：Google 快速入帳 modal ─────────────────────────────────────
 let _googleClientIdTry = null;
 let _googleInitTry = false;
+const _trialContinueTarget = '/curriculum';
+function _trialSignupHref() {
+  return `/login?tab=register&from=try&sid=${encodeURIComponent(_sid||'')}&next=${encodeURIComponent(_trialContinueTarget)}`;
+}
 
 async function showGoogleSignupModal() {
   const a = document.getElementById('email-signup-fallback');
-  if (a) a.href = `/login?tab=register&from=try&sid=${encodeURIComponent(_sid||'')}`;
+  if (a) a.href = _trialSignupHref();
   document.getElementById('google-signup-modal').classList.remove('hidden');
 
   if (!_googleClientIdTry) {
@@ -1092,7 +1096,7 @@ async function _onGoogleTryCred(resp) {
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({credential: resp.credential}),
     }).then(r => r.json());
-    if (!r.ok) { window.location.href = `/login?tab=register&from=try&sid=${encodeURIComponent(_sid||'')}`; return; }
+    if (!r.ok) { window.location.href = _trialSignupHref(); return; }
     if (_sid) {
       const claim = await fetch('/api/rating_test/claim_anon', {
         method:'POST', credentials:'include',
@@ -1100,13 +1104,13 @@ async function _onGoogleTryCred(resp) {
         body: JSON.stringify({session_id: _sid}),
       }).then(r => r.json());
       if (!claim.ok) {
-        window.location.href = `/login?tab=register&from=try&sid=${encodeURIComponent(_sid)}`;
+        window.location.href = _trialSignupHref();
         return;
       }
     }
-    window.location.href = '/';
+    window.location.href = _trialContinueTarget;
   } catch(e) {
-    window.location.href = `/login?tab=register&from=try&sid=${encodeURIComponent(_sid||'')}`;
+    window.location.href = _trialSignupHref();
   }
 }
 

@@ -178,6 +178,30 @@ header:not(.cg-nav) {
 .continue-banner .cb-name { font-size: 16px; font-weight: 700; margin-top: 1px; }
 .continue-banner .cb-arrow { font-size: 20px; opacity: .7; }
 
+/* ── W2 Learn continuation ── */
+.w2-learn-continuation {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin: 0 0 16px; padding: 16px 18px;
+  border: 1px solid rgba(45, 212, 191, .42); border-radius: 12px;
+  background: linear-gradient(135deg, rgba(13, 148, 136, .96), rgba(15, 118, 110, .96));
+  color: #f0fdfa; box-shadow: 0 8px 24px rgba(4, 47, 46, .26);
+}
+.w2-learn-continuation .cb-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.w2-learn-continuation .cb-icon { flex: 0 0 auto; font-size: 24px; }
+.w2-learn-continuation .cb-title { font-size: 12px; font-weight: 700; letter-spacing: .03em; opacity: .86; }
+.w2-learn-continuation .cb-name { margin-top: 2px; font-size: 17px; font-weight: 800; line-height: 1.3; }
+.w2-learn-continuation .cb-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  flex: 0 0 auto; min-height: 44px; padding: 9px 14px;
+  border: 1px solid rgba(240, 253, 250, .56); border-radius: 9px;
+  background: rgba(4, 47, 46, .28); color: #fff; font-size: 13px; font-weight: 800;
+  text-decoration: none; white-space: nowrap;
+}
+.w2-learn-continuation .cb-action:hover { background: rgba(4, 47, 46, .48); }
+.w2-learn-continuation .cb-action:focus-visible {
+  outline: 3px solid #fef3c7; outline-offset: 3px;
+}
+
 /* ── Plan Banner ── */
 .plan-banner {
   display: flex; align-items: center; justify-content: space-between;
@@ -2754,6 +2778,73 @@ function buildQuestBoard(unitStats) {
   return board;
 }
 
+const CURRICULUM_CONTINUE_T = {
+  title: { zh: '下一步修煉', en: 'Your next learning step' },
+  claim: { zh: '先領取完成的委託，再繼續前進', en: 'Claim your cleared quest, then keep going' },
+  accepted: { zh: '繼續目前的修煉委託', en: 'Continue your active learning quest' },
+  open: { zh: '接下第一張委託，開始一輪練習', en: 'Accept your first quest and begin a practice round' },
+  lane: { zh: '選一條學習路線，開始下一個練習單元', en: 'Choose a learning lane and start the next practice unit' },
+  empty: { zh: '到委託榜看看下一個學習機會', en: 'See what learning opportunity is next on the board' },
+  action: { zh: '查看委託榜 →', en: 'Open the quest board →' },
+};
+function curriculumContinueText(key) {
+  const entry = CURRICULUM_CONTINUE_T[key] || CURRICULUM_CONTINUE_T.empty;
+  return _isEnCur() ? entry.en : entry.zh;
+}
+function buildLearnContinuation(unitStats) {
+  const byKey = questLookup(unitStats);
+  const claimable = (_questBoard.claimable || [])
+    .map(c => byKey.get(c.stage_key)).find(Boolean);
+  const accepted = (_questBoard.accepted || [])
+    .map(key => byKey.get(key)).find(u => u && !u.completed);
+  const open = (_questBoard.open_quests || [])
+    .map(questUnitFromApi).find(Boolean)
+    || (unitStats || []).find(u => !u.aggregate && !u.completed && !u.locked);
+  const next = claimable || accepted || open;
+  const state = claimable ? 'claim'
+    : accepted ? 'accepted'
+    : open ? ((_questBoard.open_quests || []).length ? 'open' : 'lane')
+    : 'empty';
+  const target = claimable ? '#quest-board'
+    : accepted ? (accepted.href || '#quest-board')
+    : open ? ((_questBoard.open_quests || []).length ? '#quest-board' : (open.href || '#quest-board'))
+    : '#quest-board';
+
+  const banner = document.createElement('section');
+  banner.className = 'w2-learn-continuation';
+  banner.id = 'learn-continuation';
+  banner.dataset.w2Surface = 'learn-onboarding-curriculum-continuity';
+  banner.setAttribute('role', 'region');
+  banner.setAttribute('aria-labelledby', 'learn-continuation-title');
+
+  const left = document.createElement('div');
+  left.className = 'cb-left';
+  const icon = document.createElement('div');
+  icon.className = 'cb-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = '📚';
+  const copy = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'cb-title';
+  title.id = 'learn-continuation-title';
+  title.textContent = curriculumContinueText('title');
+  const name = document.createElement('div');
+  name.className = 'cb-name';
+  name.textContent = curriculumContinueText(state);
+  copy.append(title, name);
+  left.append(icon, copy);
+
+  const action = document.createElement('a');
+  action.className = 'cb-action';
+  action.href = target;
+  action.dataset.w2Cta = 'curriculum-first-action';
+  action.dataset.w2Entry = next ? (state === 'accepted' ? 'active-quest' : 'quest-board') : 'quest-board';
+  action.textContent = curriculumContinueText('action');
+  action.setAttribute('aria-label', curriculumContinueText('action'));
+  banner.append(left, action);
+  return banner;
+}
+
 function questTrackerHtml(unitStats) {
   const byKey = questLookup(unitStats);
   const claimSet = new Set((_questBoard.claimable || []).map(c => c.stage_key));
@@ -3092,6 +3183,8 @@ function renderCurriculum(unitStats, isPremium, statsRes) {
   `;
   const board = shell.querySelector('.guild-board');
 
+  // W2 first curriculum action: keep the next step visible above the existing board authority.
+  board.appendChild(buildLearnContinuation(unitStats));
   // 公會委託榜（佈告欄）置頂
   board.appendChild(buildQuestBoard(unitStats));
 
