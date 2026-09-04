@@ -606,13 +606,30 @@ const FUNCTIONAL_RARITY_LABELS = {
 const FUNCTIONAL_SLOT_LABELS = {
   weapon:'武器 / Weapon', armor:'防具 / Armor', accessory:'飾品 / Accessory',
 };
-const FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED = false;
+// The server owns this gate.  The UI starts closed and only opens once
+// /api/auth/me reports the canonical Loadout capability, so the client never
+// becomes a second authority and a failed/blocked capability read fails closed.
+let functionalEquipmentLoadoutCapability = false;
+function functionalEquipmentLoadoutEnabled() {
+  return functionalEquipmentLoadoutCapability === true;
+}
 // Keep the shipped/default UI gate closed.  The two-key override is reserved
 // for an isolated test harness that also enables the server-side canonical
 // Loadout flag; it never grants ownership or changes equipped state locally.
 const FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE =
   window.__GO_EQUIPMENT_LOADOUT_TEST_MODE__ === true
   && window.__GO_EQUIPMENT_LOADOUT_TEST_OVERRIDE__ === true;
+function applyFunctionalEquipmentLoadoutCapability(me) {
+  const next = !!(me && me.equipment_loadout_enabled === true);
+  if (next === functionalEquipmentLoadoutCapability) return;
+  functionalEquipmentLoadoutCapability = next;
+  // Re-render the detail panel so the equip control reflects the capability
+  // that arrived after first paint.
+  if (selectedFunctionalInventoryId == null) return;
+  const selected = functionalEquipmentItems.find(
+    item => String(item.inv_id) === String(selectedFunctionalInventoryId));
+  if (selected) renderFunctionalEquipmentDetail(selected);
+}
 const FUNCTIONAL_INVENTORY_ONLY_IDS = new Set(['go_stone_black']);
 let functionalEquipmentItems = [];
 let activeFunctionalEquipmentFilter = 'all';
@@ -841,7 +858,7 @@ function renderFunctionalEquipmentDetail(item) {
   const action = document.getElementById('functional-detail-action');
   const actionType = item.equipped ? 'unequip' : 'equip';
   const blockedNewEquip = actionType === 'equip'
-    && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED
+    && !functionalEquipmentLoadoutEnabled()
     && !FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE;
   action.textContent = item.equipped
     ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下')
@@ -856,7 +873,7 @@ function renderFunctionalEquipmentDetail(item) {
 }
 async function performFunctionalEquipmentAction(item, action, button) {
   if (!item || item.inv_id == null) return;
-  if (action === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED
+  if (action === 'equip' && !functionalEquipmentLoadoutEnabled()
       && !FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE) {
     showBackpackToast(functionalEquipmentIsEn() ? 'Equip is not available yet.' : '裝備功能尚未開放。');
     return;
@@ -1187,6 +1204,7 @@ async function loadBackpack() {
     if (!petResponse.ok) throw new Error(`Pet inventory HTTP ${petResponse.status}`);
     const catalog = await catalogResponse.json();
     const me = meResponse.ok ? await meResponse.json() : {};
+    applyFunctionalEquipmentLoadoutCapability(me);
     const petStatus = await petResponse.json();
     const definitions = new Map((catalog.items || []).map(item => [item.key, item]));
     backpackItems = Object.entries(catalog.inventory || {}).filter(([, quantity]) => Number(quantity) > 0).map(([key, quantity]) => ({

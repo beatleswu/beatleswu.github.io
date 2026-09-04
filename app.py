@@ -9496,6 +9496,11 @@ def auth_me():
         'needs_onboarding_choice': needs_onboarding_choice,
         'newbie_quest_eligible': newbie_quest_eligible,
         'e9_rollout': decision,
+        # Read-only capability projection so the client never has to keep its
+        # own copy of the Loadout gate.  The server remains the only authority
+        # for both eligibility and the equip/unequip write path; this field
+        # only tells the UI whether to offer the control.
+        'equipment_loadout_enabled': _equipment_canonical_loadout_enabled(),
     })
 
 @app.route('/api/auth/tour_done', methods=['POST'])
