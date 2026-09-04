@@ -2066,8 +2066,8 @@
       "SOURCE_LANE": "JOURNEY",
       "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
       "ROLE": "MANIFEST",
-      "SHA256": "b2b0074fe10999f236c82e6aa08d1787a673ffa75f315da0213758a7c41dbb91",
-      "BYTES": 73680
+      "SHA256": "621ed99a15e2c2b7da1e2a04eb829ad78e8374f764129bb559bbfac367ec0252",
+      "BYTES": 71824
     },
     {
       "PATH": "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
