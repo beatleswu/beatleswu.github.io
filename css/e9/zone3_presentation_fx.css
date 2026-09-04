@@ -1,0 +1,275 @@
+/* W1 Zone 3 presentation FX.  Composited overlays only; no source-art edits. */
+
+.z3-fx-stage {
+    --z3-camera-duration: 7000ms;
+    --z3-camera-x: 50%;
+    --z3-camera-y: 50%;
+    --z3-camera-scale-from: 1;
+    --z3-camera-scale-to: 1;
+    --z3-camera-dx: 0%;
+    --z3-camera-dy: 0%;
+    --z3-camera-amplitude: 0px;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    contain: layout paint;
+    background: #101b1d;
+}
+
+.z3-fx-stage > [data-z3-camera-target] {
+    position: relative;
+    z-index: 0;
+    transform-origin: var(--z3-camera-x) var(--z3-camera-y);
+    will-change: auto;
+}
+
+.z3-fx-stage > [data-z3-camera-target] > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+}
+
+.z3-fx-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: block;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+}
+
+.z3-fx-effect {
+    opacity: 1;
+}
+
+.z3-fx-accent {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+}
+
+.z3-effect-z3-l01 .z3-fx-accent {
+    background: radial-gradient(ellipse at 50% 54%, rgba(255, 185, 74, .10), transparent 58%);
+    animation: z3WarmFlicker 2400ms ease-in-out infinite;
+}
+
+.z3-effect-z3-v01 .z3-fx-particle,
+.z3-effect-z3-v03 .z3-fx-particle {
+    position: absolute;
+    left: var(--z3-particle-x);
+    top: var(--z3-particle-y);
+    width: var(--z3-particle-size);
+    height: var(--z3-particle-size);
+    border-radius: 50%;
+    background: rgba(235, 211, 166, .38);
+    opacity: .30;
+    animation: z3DustMote var(--z3-particle-duration) ease-in-out var(--z3-particle-delay) infinite alternate;
+}
+
+.z3-effect-z3-v03 .z3-fx-particle {
+    background: rgba(117, 215, 224, .52);
+    opacity: .42;
+    animation-name: z3ShuiParticle;
+}
+
+.z3-effect-z3-v02 .z3-fx-accent {
+    inset: 46% -8% -10%;
+    background: linear-gradient(164deg, transparent 20%, rgba(110, 215, 211, .08) 47%, transparent 70%);
+    opacity: .72;
+    animation: z3WaterShimmer 1800ms ease-in-out infinite alternate;
+}
+
+.z3-effect-z3-v04 .z3-fx-accent {
+    inset: 34% 31% 33%;
+    border: 1px solid rgba(133, 232, 228, .42);
+    border-radius: 50%;
+    background: rgba(109, 213, 214, .08);
+    animation: z3ShuiPulse 900ms ease-out both;
+}
+
+.z3-effect-z3-v05 .z3-fx-particle,
+.z3-effect-z3-v06 .z3-fx-particle,
+.z3-effect-z3-v08 .z3-fx-particle {
+    position: absolute;
+    left: var(--z3-particle-x);
+    top: var(--z3-particle-y);
+    width: var(--z3-particle-size);
+    height: var(--z3-particle-size);
+    border-radius: 38% 62% 55% 45%;
+    background: rgba(196, 153, 103, .58);
+    opacity: .68;
+    animation: z3RockDust 900ms ease-out var(--z3-particle-delay) both;
+}
+
+.z3-effect-z3-v06 .z3-fx-particle {
+    border-radius: 2px;
+    background: rgba(104, 93, 82, .76);
+    animation-name: z3RockDebris;
+    animation-duration: 620ms;
+}
+
+.z3-effect-z3-v08 .z3-fx-particle {
+    background: rgba(187, 151, 107, .52);
+    animation-name: z3SpearDustImpulse;
+    animation-duration: 540ms;
+}
+
+.z3-effect-z3-v07 .z3-fx-accent {
+    inset: 52% -8% -8%;
+    background: linear-gradient(180deg, transparent 0%, rgba(128, 203, 201, .13) 56%, rgba(90, 165, 172, .20) 100%);
+    opacity: .74;
+    animation: z3BlockedWaterMist 2600ms ease-in-out infinite alternate;
+}
+
+.z3-effect-z3-v09 .z3-fx-accent {
+    background: radial-gradient(ellipse at 58% 42%, rgba(255, 177, 83, .07), transparent 55%);
+    animation: z3TrialTension 2800ms ease-in-out infinite alternate;
+}
+
+.z3-effect-z3-v10 .z3-fx-accent {
+    background: linear-gradient(180deg, rgba(235, 218, 166, .04), rgba(114, 188, 174, .02));
+    animation: z3TruceCalming 1000ms ease-out both;
+}
+
+.z3-effect-z3-t01-visual .z3-fx-accent {
+    background: linear-gradient(180deg, rgba(118, 179, 190, .02), rgba(92, 157, 177, .22));
+    opacity: .70;
+    animation: z3MistyForestTransition 1200ms ease-in-out both;
+}
+
+.z3-fx-stage.z3-camera-slow-push > [data-z3-camera-target] {
+    animation: z3CameraPush var(--z3-camera-duration) ease-out both;
+}
+
+.z3-fx-stage.z3-camera-slow-pull > [data-z3-camera-target] {
+    animation: z3CameraPull var(--z3-camera-duration) ease-out both;
+}
+
+.z3-fx-stage.z3-camera-slow-drift > [data-z3-camera-target] {
+    animation: z3CameraDrift var(--z3-camera-duration) ease-in-out both;
+}
+
+.z3-fx-stage.z3-camera-bounded-impact-impulse > [data-z3-camera-target] {
+    animation: z3CameraImpulse var(--z3-camera-duration) ease-out both;
+}
+
+.z3-fx-stage > [data-z3-camera-target].z3-camera-target-active {
+    will-change: transform;
+}
+
+@keyframes z3WarmFlicker {
+    0%, 100% { opacity: .66; }
+    43% { opacity: .86; }
+    68% { opacity: .72; }
+}
+
+@keyframes z3DustMote {
+    from { transform: translate3d(-1px, 2px, 0); opacity: .16; }
+    to { transform: translate3d(2px, -4px, 0); opacity: .46; }
+}
+
+@keyframes z3ShuiParticle {
+    from { transform: translate3d(0, 3px, 0); opacity: .20; }
+    to { transform: translate3d(2px, -6px, 0); opacity: .58; }
+}
+
+@keyframes z3WaterShimmer {
+    from { transform: translateX(-1.5%); opacity: .42; }
+    to { transform: translateX(1.5%); opacity: .78; }
+}
+
+@keyframes z3ShuiPulse {
+    0% { transform: scale(.86); opacity: .08; }
+    55% { transform: scale(1); opacity: .48; }
+    100% { transform: scale(1.04); opacity: .04; }
+}
+
+@keyframes z3RockDust {
+    from { transform: translate3d(0, -4px, 0) scale(.75); opacity: .05; }
+    35% { opacity: .72; }
+    to { transform: translate3d(-2px, 18px, 0) scale(1); opacity: 0; }
+}
+
+@keyframes z3RockDebris {
+    from { transform: translate3d(0, -2px, 0); opacity: .12; }
+    to { transform: translate3d(-4px, 10px, 0); opacity: 0; }
+}
+
+@keyframes z3SpearDustImpulse {
+    from { transform: translate3d(0, 1px, 0) scale(.65); opacity: .12; }
+    35% { opacity: .54; }
+    to { transform: translate3d(4px, 8px, 0) scale(1); opacity: 0; }
+}
+
+@keyframes z3BlockedWaterMist {
+    from { transform: translate3d(-.5%, 0, 0); opacity: .42; }
+    to { transform: translate3d(.5%, -1%, 0); opacity: .68; }
+}
+
+@keyframes z3TrialTension {
+    from { opacity: .38; }
+    to { opacity: .70; }
+}
+
+@keyframes z3TruceCalming {
+    from { opacity: .86; }
+    to { opacity: .25; }
+}
+
+@keyframes z3MistyForestTransition {
+    from { transform: translateY(5%); opacity: .05; }
+    to { transform: translateY(0); opacity: .72; }
+}
+
+@keyframes z3CameraPush {
+    from { transform: scale(var(--z3-camera-scale-from)); }
+    to { transform: scale(var(--z3-camera-scale-to)); }
+}
+
+@keyframes z3CameraPull {
+    from { transform: scale(var(--z3-camera-scale-from)); }
+    to { transform: scale(var(--z3-camera-scale-to)); }
+}
+
+@keyframes z3CameraDrift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(var(--z3-camera-dx), var(--z3-camera-dy), 0) scale(1.004); }
+}
+
+@keyframes z3CameraImpulse {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    32% { transform: translate3d(var(--z3-camera-amplitude), 0, 0); }
+    66% { transform: translate3d(calc(var(--z3-camera-amplitude) * -1), 0, 0); }
+}
+
+.z3-fx-stage.z3-reduced-motion .z3-fx-effect,
+.z3-fx-stage.z3-reduced-motion .z3-fx-particle,
+.z3-fx-stage.z3-reduced-motion .z3-fx-accent,
+.z3-fx-stage.z3-reduced-motion > [data-z3-camera-target],
+.z3-fx-stage.z3-camera-reduced-motion > [data-z3-camera-target],
+.z3-fx-reduced-motion,
+.z3-fx-reduced-motion * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    will-change: auto !important;
+}
+
+.z3-fx-stage.z3-reduced-motion .z3-fx-particle {
+    opacity: .28;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .z3-fx-effect,
+    .z3-fx-effect *,
+    .z3-fx-stage > [data-z3-camera-target] {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+        will-change: auto !important;
+    }
+}

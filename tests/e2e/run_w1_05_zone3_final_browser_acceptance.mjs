@@ -57,7 +57,7 @@ const MAX_PRESENTATION_DISMISS_CLICKS = 24;
 const CANDIDATE_ENV = 'E2E_ZONE3_FINAL_CANDIDATE_ID';
 const PRODUCTION_HOST = 'godokoro.com';
 const PRODUCTION_IP = '152.69.200.105';
-const ZONE3_IMAGE_PATTERN = /\/assets\/storyboards\/(?:go_goblin_cave_|zone3[_-])/i;
+const ZONE3_IMAGE_PATTERN = /\/assets\/(?:e10\/art\/zone3\/|storyboards\/(?:go_goblin_cave_|zone3[_-]))/i;
 
 function requireValue(condition, message) {
   if (!condition) throw new Error(message);
@@ -420,12 +420,25 @@ async function runScenario(page, scenario) {
   if (scenario.action === 'presentation_failure_noop') {
     const writes = await runWithWriteTrace(page, async () => {
       await selectZone3(page);
+      await page.waitForFunction(() => (
+        document.querySelector('#intro-film-stage [data-z3-image-load="failed_presentation_only"]')
+        || document.querySelector('#intro-film-stage .z3-image-load-failed')
+      ), { timeout: PAGE_TIMEOUT_MS });
       return page.evaluate(() => ({
         overlayShowing: document.getElementById('boss-cinematic')?.classList.contains('show') === true,
+        presentationFailure: !!document.querySelector(
+          '#intro-film-stage [data-z3-image-load="failed_presentation_only"], #intro-film-stage .z3-image-load-failed'
+        ),
+        dismissalAvailable: !!document.querySelector(
+          '#boss-cinematic.show .intro-skip-btn, #boss-cinematic.show .boss-cinematic-close-x'
+        ),
         path: location.pathname,
       }));
     });
-    requireValue(writes.result.overlayShowing === false, 'missing Zone 3 presentation asset did not fail closed to a no-op');
+    requireValue(writes.result.presentationFailure === true,
+      'missing Zone 3 presentation asset did not remain a presentation-only failure');
+    requireValue(writes.result.dismissalAvailable === true,
+      'presentation failure removed the cinematic dismissal path and blocked gameplay handoff');
     requireValue(writes.result.path === '/', `presentation failure changed route: ${writes.result.path}`);
     requireValue(writes.writes.length === 0, `presentation failure issued a domain write: ${JSON.stringify(writes.writes)}`);
     return writes;

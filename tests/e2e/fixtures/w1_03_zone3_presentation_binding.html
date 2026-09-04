@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zone 3 presentation binding fixture</title>
+    <link rel="stylesheet" href="/css/e9/zone3_presentation_fx.css">
+    <link rel="stylesheet" href="/css/e10/zone3_presentation_binding.css">
+    <style>
+        html, body { margin: 0; min-height: 100%; background: #0e171a; }
+        body { display: grid; place-items: center; padding: 12px; box-sizing: border-box; }
+        #intro-film-stage { width: min(100%, 1180px); aspect-ratio: 16 / 9; }
+        .film-shot { display: none; }
+        .film-shot.active { display: block; }
+    </style>
+</head>
+<body>
+    <main id="intro-film-stage" aria-label="Zone 3 presentation binding stage">
+        <div class="film-shot" data-shot="0"><img src="/assets/e10/art/zone3/cinematic/zone3_shot01.webp" alt=""></div>
+        <div class="film-shot" data-shot="1"><img src="/assets/e10/art/zone3/cinematic/zone3_shot02.webp" alt=""></div>
+        <div class="film-shot" data-shot="2"><img src="/assets/e10/art/zone3/cinematic/zone3_shot03.webp" alt=""></div>
+        <div class="film-shot" data-shot="3"><img src="/assets/e10/art/zone3/cinematic/zone3_shot04.webp" alt=""></div>
+        <div class="film-shot" data-shot="4"><img src="/assets/e10/art/zone3/cinematic/zone3_shot05.webp" alt=""></div>
+        <div class="film-shot" data-shot="5"><img src="/assets/e10/art/zone3/cinematic/zone3_shot06.webp" alt=""></div>
+        <div class="film-shot" data-shot="6"><img src="/assets/e10/art/zone3/cinematic/zone3_shot07.webp" alt=""></div>
+        <div class="film-shot" data-shot="7"><img src="/assets/e10/art/zone3/cinematic/zone3_shot08.webp" alt=""></div>
+        <div class="film-shot" data-shot="8"><img src="/assets/e10/art/zone3/cinematic/zone3_shot09.webp" alt=""></div>
+        <div class="film-shot" data-shot="9"><img src="/assets/e10/art/zone3/cinematic/zone3_shot10.webp" alt=""></div>
+    </main>
+    <script src="/js/e9/zone3_presentation_fx.js"></script>
+    <script src="/js/e10/zone3_presentation_binding.js"></script>
+    <script>
+        window.__z3BindingReady = false;
+        window.GoOdysseyZone3Presentation.ensureReady()
+            .then((result) => {
+                window.__z3BindingReadyResult = result;
+                window.__z3BindingReady = result.ok === true;
+                return result.ok === true;
+            });
+    </script>
+</body>
+</html>

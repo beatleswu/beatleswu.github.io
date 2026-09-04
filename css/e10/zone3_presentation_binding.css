@@ -1,0 +1,61 @@
+/* Journey-owned presentation binding for the authoritative Zone 3 frames. */
+.film-shot.z3-bound-shot > [data-z3-camera-target] {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+}
+
+.film-shot.z3-bound-shot > [data-z3-camera-target] > img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    position: relative;
+    z-index: 1;
+    object-fit: var(--z3-film-object-fit-desktop, cover);
+    object-position: var(--z3-film-object-position-desktop, 50% 50%);
+    background: transparent;
+}
+
+.film-shot.z3-bound-shot::before,
+.film-shot.z3-bound-shot::after {
+    z-index: 0;
+}
+
+.film-shot.z3-bound-shot.z3-fx-stage > [data-z3-camera-target] {
+    overflow: hidden;
+}
+
+/* A missing frame is a presentation-only failure.  Keep the dialogue and
+   the entry/return control readable instead of exposing a broken image icon. */
+.film-shot.z3-bound-shot.z3-image-load-failed > [data-z3-camera-target] > img {
+    visibility: hidden;
+}
+
+.film-shot.z3-bound-shot.z3-reduced-motion,
+.film-shot.z3-bound-shot.z3-reduced-motion > [data-z3-camera-target] > img {
+    animation: none !important;
+    transition: none !important;
+}
+
+@media (orientation: landscape) and (max-width: 1280px) {
+    .film-shot.z3-bound-shot > [data-z3-camera-target] > img {
+        object-fit: var(--z3-film-object-fit-ipad-landscape, var(--z3-film-object-fit-desktop, cover));
+        object-position: var(--z3-film-object-position-ipad-landscape, var(--z3-film-object-position-desktop, 50% 50%));
+    }
+}
+
+@media (orientation: portrait) and (max-width: 1024px) {
+    .film-shot.z3-bound-shot > [data-z3-camera-target] > img {
+        object-fit: var(--z3-film-object-fit-ipad-portrait, contain);
+        object-position: var(--z3-film-object-position-ipad-portrait, 50% 50%);
+    }
+}
+
+@media (orientation: portrait) and (max-width: 600px) {
+    .film-shot.z3-bound-shot > [data-z3-camera-target] > img {
+        object-fit: var(--z3-film-object-fit-mobile-portrait, contain);
+        object-position: var(--z3-film-object-position-mobile-portrait, 50% 50%);
+    }
+}

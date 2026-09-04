@@ -93,6 +93,10 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <script src="/js/game/mode_context.js?v=20260817e10v1bb6"></script>
     <script src="/js/game/game_bootstrap.js?v=20260817e10v1bb6"></script>
     <script src="/js/game/cinematic_replay.js?v=20260819e10replay001"></script>
+    <link rel="stylesheet" href="/css/e9/zone3_presentation_fx.css?v=w1zone3fx009">
+    <link rel="stylesheet" href="/css/e10/zone3_presentation_binding.css?v=w1zone3binding010b">
+    <script src="/js/e9/zone3_presentation_fx.js?v=w1zone3fx009"></script>
+    <script src="/js/e10/zone3_presentation_binding.js?v=w1zone3binding010b"></script>
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
@@ -12954,7 +12958,36 @@ function _bossAudio() {
     }
 }
 
+function _introPresentationMuted() {
+    try {
+        if (window.SFX && window.SFX.muted === true) return true;
+    } catch (e) {}
+    try {
+        return window.localStorage?.getItem('sfx_muted') === '1';
+    } catch (e) {
+        return false;
+    }
+}
+
+function _syncZone3PresentationMute() {
+    const muted = _introPresentationMuted();
+    [_introAudio, _introBgmAudio, _introAmbienceAudio, _introSfxAudio]
+        .filter(Boolean)
+        .forEach(audio => {
+            try {
+                audio.muted = muted;
+                if (muted) audio.pause();
+            } catch (e) {}
+        });
+}
+
+// The existing settings surface owns the mute preference.  This listener is
+// presentation-only and also makes a future settings event apply to every
+// Zone 3 media class without introducing another mixer or volume control.
+document.addEventListener('go-odyssey-audio-mute-changed', _syncZone3PresentationMute);
+
 function _tone(freq, start, duration, type = 'sine', gain = .08) {
+    if (_introPresentationMuted()) return;
     const ctx = _bossAudio();
     if (!ctx) return;
     const osc = ctx.createOscillator();
@@ -14625,6 +14658,9 @@ function updateMapProgress(data) {
         // Zone 2 uses the same account-scoped pending/seen presentation
         // bridge for its POST_CLEAR Shots 8-10.
         _resumeZone2PostClearIfPending();
+        // Zone 3 uses the exact same presentation-only recovery boundary for
+        // Shots 8-10; it does not infer a Zone 4 unlock from the hook frame.
+        _resumeZone3PostClearIfPending();
         // BOSS_READY announcement (Shots 7-8, E10-Z1-CINEMATIC-TRIGGER-
         // REALIGNMENT): also runs on every fresh load, a no-op unless
         // _adventureBossReady(k26_30) is newly true and not yet seen.
@@ -14632,6 +14668,10 @@ function updateMapProgress(data) {
         // Zone 2 uses the same presentational, re-derivable readiness model
         // with its own Shots 5-7 slots. No gameplay state is written here.
         _maybeTriggerZone2BossReadyFilm(zones);
+        // Zone 3's BOSS_READY phase is the manifest-backed continuation of
+        // the same server-derived readiness signal. It never starts a trial
+        // and never changes the authoritative zone state.
+        _maybeTriggerZone3BossReadyFilm(zones);
         if (!zones.length) {
             _activeBossZone = null;
             _setAdventureStoredSelectedStageKey('');
@@ -14683,6 +14723,16 @@ async function startAdventureStage(zoneKey, options = {}) {
         return;
     }
     _activeBossZone = zone;
+    if (zone.key === 'k16_20' && window.GoOdysseyZone3Presentation?.ensureReady) {
+        // Preserve the map CTA's user-gesture boundary when the immutable
+        // manifests are already ready.  If a cold fetch is still pending,
+        // showStageIntroCinematic performs the same readiness check and the
+        // presentation remains usable even when media cannot be unlocked.
+        const binding = window.GoOdysseyZone3Presentation;
+        const unlockPromise = binding.isReady?.() ? _unlockIntroAudioFromGesture() : null;
+        const bindingReady = await binding.ensureReady();
+        if (bindingReady.ok === true && unlockPromise) await unlockPromise;
+    }
     // This function is reached from the real map CTA user gesture.  Zone 2's
     // first spoken beat intentionally starts on Shot 2 (Shot 1 is silent), so
     // prime the reusable media elements before the cinematic's silent hold.
@@ -14872,6 +14922,10 @@ function markAdventureBossReadyFilmSeen(zone) {
 function applyIntroFilmShotAssets(timeline = []) {
     const stage = document.getElementById('intro-film-stage');
     const shots = stage ? Array.from(stage.querySelectorAll('.film-shot')) : [];
+    const isZone3Binding = timeline.some(item => item?.zone3Binding === true);
+    if (isZone3Binding && window.GoOdysseyZone3Presentation?.prepareStage) {
+        window.GoOdysseyZone3Presentation.prepareStage(stage);
+    }
     // Match by item.shot (the DOM slot index each item declares), not by
     // array position: a sub-timeline like Zone 1's postClearTimeline only
     // contains shots 8-9 at array positions 0-1, and must still land on DOM
@@ -14885,10 +14939,54 @@ function applyIntroFilmShotAssets(timeline = []) {
         const img = shotEl.querySelector('img');
         const item = byShotIndex.get(index);
         shotEl.style.display = item ? '' : 'none';
-        if (!img || !item?.imageSrc) return;
+        shotEl.classList.toggle('z3-bound-shot', item?.zone3Binding === true);
+        if (!img || !item?.imageSrc) {
+            if (img) {
+                img.onerror = null;
+                img.onload = null;
+            }
+            delete shotEl.dataset.z3ImageAssetPath;
+            delete shotEl.dataset.z3ImageLoad;
+            shotEl.classList.remove('z3-image-load-failed');
+            return;
+        }
         img.src = item.imageSrc;
         shotEl.style.setProperty('--film-backdrop-image', `url("${item.imageSrc}")`);
         if (item.imageAlt) img.alt = item.imageAlt;
+        if (item.zone3Binding === true) {
+            img.removeAttribute('data-i18n-alt');
+            shotEl.dataset.z3ImageAssetPath = item.imageSrc;
+            shotEl.classList.remove('z3-image-load-failed');
+            img.onerror = () => {
+                // Presentation failure is local to this frame.  Keep the
+                // subtitle/CTA path available and never navigate, settle,
+                // unlock, or grant a reward from an image failure.
+                shotEl.classList.add('z3-image-load-failed');
+                shotEl.dataset.z3ImageLoad = 'failed_presentation_only';
+            };
+            img.onload = () => {
+                shotEl.classList.remove('z3-image-load-failed');
+                shotEl.dataset.z3ImageLoad = 'loaded';
+            };
+            const responsive = item.responsive || {};
+            const modes = [
+                ['desktop', 'DESKTOP_16_9'],
+                ['ipadLandscape', 'IPAD_LANDSCAPE'],
+                ['ipadPortrait', 'IPAD_PORTRAIT'],
+                ['mobilePortrait', 'MOBILE_PORTRAIT'],
+            ];
+            modes.forEach(([key]) => {
+                const descriptor = responsive[key] || {};
+                shotEl.style.setProperty(`--z3-film-object-fit-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`, descriptor.mode || 'contain');
+                shotEl.style.setProperty(`--z3-film-object-position-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`, descriptor.position || '50% 50%');
+            });
+        } else {
+            img.onerror = null;
+            img.onload = null;
+            delete shotEl.dataset.z3ImageAssetPath;
+            delete shotEl.dataset.z3ImageLoad;
+            shotEl.classList.remove('z3-image-load-failed');
+        }
     });
 }
 
@@ -14945,6 +15043,24 @@ async function showStageIntroCinematic(zone, options = {}) {
     };
     if (hasIntroFilm) {
         overlay.dataset.zoneKey = zone.key || '';
+        if (zone.key === 'k16_20') {
+            const bindingReady = window.GoOdysseyZone3Presentation?.ensureReady
+                ? await window.GoOdysseyZone3Presentation.ensureReady()
+                : { ok: false, reason: 'zone3_binding_missing' };
+            if (bindingReady.ok !== true) {
+                // Presentation failure is fail-closed for the cinematic only:
+                // leave the authoritative zone entry CTA usable and never
+                // substitute the historical generic Goblin Cave storyboard.
+                overlay.className = 'boss-cinematic show phase-boss';
+                overlay.dataset.zone3Presentation = 'failed';
+                if (line) line.textContent = getCurrentUiLang() === 'en'
+                    ? 'The story image is unavailable right now. You can still enter the zone.'
+                    : '劇情畫面目前無法載入，你仍可進入本區。';
+                btn.disabled = false;
+                return;
+            }
+            delete overlay.dataset.zone3Presentation;
+        }
         if (shouldShowFinalOnly) {
             // Reset to a clean PRE_PLAY descriptor: finishIntroFilm() is
             // called directly here (bypassing playNewbieVillageIntroFilm),
@@ -15048,6 +15164,7 @@ function _firstIntroAudioSources() {
     const zone = getCurrentIntroZone();
     if (!zone) return { locale: 'unknown', voice: '', bgm: '', ambience: '', sfx: '' };
     const locale = getIntroFilmLocaleConfig(zone);
+    if (!locale) return { locale: 'unknown', voice: '', bgm: '', ambience: '', sfx: '' };
     const phase = _introFilmActiveOpts.phase || 'pre_play';
     const timeline = _introFilmActiveOpts.timeline || (
         phase === 'boss_ready'
@@ -15080,6 +15197,7 @@ function _firstIntroAudioSources() {
 
 function _primeIntroMediaElement(existing, src, kind, volume, loop = false) {
     if (!src) return Promise.resolve();
+    if (_introPresentationMuted()) return Promise.resolve(true);
     const audio = existing || new Audio();
     audio.preload = 'auto';
     audio.playsInline = true;
@@ -15149,7 +15267,7 @@ function _unlockIntroAudioFromGesture() {
 function _startIntroBgm(src, opts = {}) {
     const loop = opts.loop !== false;
     const volume = opts.volume ?? 0.35;
-    if (!src) return;
+    if (!src || _introPresentationMuted()) return;
     if (_introBgmAudio && _introBgmAudio.src && _introBgmAudio.src.indexOf(src) !== -1 && !_introBgmAudio.paused) return;
     _stopIntroBgm();
     try {
@@ -15184,7 +15302,7 @@ function _setIntroBgmDucked(active) {
 }
 function _startIntroAmbience(src, opts = {}) {
     const volume = opts.volume ?? 0.22;
-    if (!src) return;
+    if (!src || _introPresentationMuted()) return;
     if (_introAmbienceAudio && _introAmbienceAudio.src && _introAmbienceAudio.src.indexOf(src) !== -1 && !_introAmbienceAudio.paused) return;
     _stopIntroAmbience();
     try {
@@ -15213,7 +15331,7 @@ function _startIntroAmbience(src, opts = {}) {
 }
 function _playIntroSfxAsset(src, opts = {}) {
     const volume = opts.volume ?? 0.8;
-    if (!src) return;
+    if (!src || _introPresentationMuted()) return;
     // Stop any still-playing one-shot before starting the next -- prevents a
     // later stinger (e.g. GO_STONE_IMPACT) from ringing on top of an earlier
     // one that hasn't finished, and prevents duplicate overlap on repeat
@@ -15257,6 +15375,9 @@ function _stopIntroFilm() {
     _stopIntroBgm();
     _stopIntroAmbience();
     _stopIntroSfx();
+    if (window.GoOdysseyZone3Presentation?.stopFx) {
+        window.GoOdysseyZone3Presentation.stopFx();
+    }
     try {
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     } catch (e) {}
@@ -16762,11 +16883,52 @@ function _zone2CinematicPhaseSlots(locale, isEnglish) {
 }
 
 function getIntroFilmLocaleConfig(zone) {
+    if (zone?.key === 'k16_20') {
+        // Zone 3 is owned by the manifest-backed single writer.  Returning
+        // null while its immutable inputs are loading is intentional: the
+        // old four-shot generic Goblin Cave data must never be a fallback.
+        return window.GoOdysseyZone3Presentation?.getLocaleConfig?.(getCurrentUiLang()) || null;
+    }
     const locale = _getIntroFilmLocaleConfigBase(zone);
     if (zone?.key !== 'k21_25' || !locale) return locale;
     const isEnglish = locale.uiLang === 'en';
     return { ...locale, ..._zone2CinematicPhaseSlots(locale, isEnglish) };
 }
+
+document.addEventListener('e10:zone3-binding-ready', () => {
+    if (typeof renderAdventureMap === 'function') renderAdventureMap();
+});
+
+// Locale changes are a presentation restart boundary for Zone 3.  The same
+// phase is re-resolved from the new locale manifest; no cinematic/progression
+// marker is written by this handler, and a replay remains presentation-only.
+document.addEventListener('e9:i18n-changed', () => {
+    const overlay = document.getElementById('boss-cinematic');
+    const zone = getCurrentIntroZone();
+    if (zone?.key !== 'k16_20' || !overlay?.classList.contains('show')
+        || !overlay.classList.contains('intro-film')) return;
+    const phase = _introFilmActiveOpts.phase || 'pre_play';
+    const replayOnly = _zoneCinematicPresentationOnly;
+    const onComplete = _introFilmActiveOpts.onComplete || null;
+    _stopIntroFilm();
+    if (replayOnly) {
+        playZoneStoryReplay(zone.key);
+        return;
+    }
+    const locale = getIntroFilmLocaleConfig(zone);
+    if (!locale) return;
+    const timeline = phase === 'boss_ready'
+        ? locale.bossReadyTimeline
+        : phase === 'post_clear'
+            ? locale.postClearTimeline
+            : locale.timeline;
+    void playNewbieVillageIntroFilm(zone, {
+        timeline,
+        phase,
+        mode: _introFilmActiveOpts.mode || 'legacy',
+        onComplete,
+    });
+});
 
 function pickCinematicNarratorVoice(preferredLang = 'zh-TW') {
     const voices = getCinematicNarratorVoices(preferredLang);
@@ -16890,6 +17052,17 @@ async function finishIntroFilm(zone) {
         }
         return;
     }
+    if (zone?.key === 'k16_20') {
+        if (titleCard) titleCard.textContent = locale.filmTitle;
+        if (stage) stage.classList.add('show-title-card');
+        if (caption) caption.style.display = 'none';
+        if (line) line.textContent = locale.uiLang === 'en'
+            ? 'When you are ready, enter the cave.'
+            : '準備好後，進入洞穴。';
+        if (overlay) overlay.classList.add('ready');
+        if (btn) btn.disabled = false;
+        return;
+    }
     if (titleCard) titleCard.textContent = locale.filmTitle;
     if (stage) stage.classList.add('show-title-card');
     if (caption) caption.textContent = locale.finalCaption;
@@ -17007,6 +17180,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
     const btn = document.getElementById('boss-cinematic-btn');
     if (!overlay || !stage) return;
     const locale = getIntroFilmLocaleConfig(zone);
+    if (!locale) return;
     const phase = opts.phase || 'pre_play';
     const timeline = opts.timeline || locale.timeline;
     _introFilmActiveOpts = {
@@ -17185,6 +17359,10 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         const playableBeat = beat.audioSrc
             ? beat
             : (slotSrc ? { ...beat, audioSrc: slotSrc } : beat);
+        if (_introPresentationMuted()) {
+            playAssetVoice({ ...playableBeat, audioSrc: '' }, onDone);
+            return;
+        }
         if (playableBeat.audioSrc || !beat.allowTtsFallback) {
             playAssetVoice(playableBeat, onDone);
             return;
@@ -17218,10 +17396,27 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         }
         activeShotNumber = Number(item.shot) + 1;
         shots.forEach((el, idx) => el.classList.toggle('active', idx === item.shot));
+        if (zone?.key === 'k16_20' && window.GoOdysseyZone3Presentation?.transitionShot) {
+            window.GoOdysseyZone3Presentation.transitionShot(item.shotId || `SHOT${String(item.shot + 1).padStart(2, '0')}`, item, {
+                reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true,
+            });
+        }
         // Each cinematic phase is its own audio session.  Zone 2 uses the
         // Owner-locked A3/B3/C3 cues; Zone 1 keeps its historical fallback
         // fields and therefore remains byte/behavior compatible.
-        if (shotIndex === 0) {
+        if (zone?.key === 'k16_20') {
+            if (item.ambienceSrc) {
+                _startIntroAmbience(item.ambienceSrc, { loop: item.ambienceLoop !== false });
+            }
+            if (shotIndex === 0) {
+                const phaseBgm = phase === 'boss_ready'
+                    ? (locale.bgmBossReady || locale.bgmMainTheme)
+                    : phase === 'post_clear'
+                        ? (locale.bgmPostClear || locale.bgmPostClearUrgency)
+                        : locale.bgmMainTheme;
+                if (phaseBgm) _startIntroBgm(phaseBgm, { loop: true, volume: 0.35 });
+            }
+        } else if (shotIndex === 0) {
             const phaseBgm = phase === 'boss_ready'
                 ? (locale.bgmBossReady || locale.bgmMainTheme)
                 : phase === 'post_clear'
@@ -17260,6 +17455,12 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             }, cueIndex * 760);
             _introFilmTimers.push(cueTimer);
         });
+        if (item.transitionAudioSrc) {
+            const transitionTimer = setTimeout(() => {
+                if (runId === _introFilmRunId) _playIntroSfxAsset(item.transitionAudioSrc);
+            }, sfxCues.length * 760);
+            _introFilmTimers.push(transitionTimer);
+        }
         // item.caption is the persistent scene-label badge for the whole
         // shot (set once here); the dialogue subtitle line is set per-beat
         // below, not here -- a shot's caption and its spoken content are
@@ -17275,7 +17476,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             caption.textContent = item.caption || '';
         }
         if (item.sfx) playBossSfx(item.sfx);
-        if (item.shot === 0) {
+        if (item.shot === 0 && zone?.key !== 'k16_20') {
             _introFilmTimers.push(setTimeout(() => playBossSfx('grub'), 620));
         }
         // Old-shape items (every existing non-Zone-1 zone) carry a flat
@@ -17541,6 +17742,88 @@ function playZone2PostClearFilm(zone) {
     });
 }
 
+let _zone3BossReadyStartPending = false;
+let _zone3PostClearStartPending = false;
+
+function _maybeTriggerZone3BossReadyFilm(zones) {
+    const zone = (zones || _adventureProgress || []).find(z => z.key === 'k16_20');
+    if (!zone || !_adventureBossReady(zone) || adventureBossReadyFilmSeen(zone)) return;
+    if (_introFilmActiveOpts.phase === 'boss_ready' || _zone3BossReadyStartPending) return;
+    void playZone3BossReadyFilm(zone);
+}
+
+function playZone3BossReadyFilm(zone) {
+    if (!zone || zone.key !== 'k16_20' || _zone3BossReadyStartPending) return false;
+    const binding = window.GoOdysseyZone3Presentation;
+    if (!binding?.ensureReady) return false;
+    _zone3BossReadyStartPending = true;
+    void binding.ensureReady().then((ready) => {
+        if (ready.ok !== true) return;
+        const overlay = document.getElementById('boss-cinematic');
+        const stage = document.getElementById('intro-film-stage');
+        const btn = document.getElementById('boss-cinematic-btn');
+        const locale = getIntroFilmLocaleConfig(zone);
+        const timeline = locale?.bossReadyTimeline || [];
+        if (!overlay || !stage || !timeline.length) return;
+        markAdventureBossReadyFilmSeen(zone);
+        _stopIntroFilm();
+        overlay.className = 'boss-cinematic show intro-film';
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.dataset.zoneKey = zone.key;
+        delete overlay.dataset.zone3Presentation;
+        stage.classList.remove('show-title-card');
+        if (btn) btn.disabled = true;
+        void playNewbieVillageIntroFilm(zone, {
+            timeline,
+            phase: 'boss_ready',
+            onComplete: () => finishBossReadyFilm(zone),
+        });
+    }).finally(() => {
+        _zone3BossReadyStartPending = false;
+    });
+    return true;
+}
+
+function _resumeZone3PostClearIfPending() {
+    const zone = (_adventureProgress || []).find(z => z.key === 'k16_20')
+        || ADVENTURE_ZONES.find(z => z.key === 'k16_20');
+    if (!zone || !zone.cleared || adventurePostClearSeen(zone)) return;
+    if (!adventurePostClearPending(zone) || _introFilmActiveOpts.phase === 'post_clear') return;
+    if (_zone3PostClearStartPending) return;
+    playZone3PostClearFilm(zone);
+}
+
+function playZone3PostClearFilm(zone) {
+    if (!zone || zone.key !== 'k16_20' || !zone.cleared || _zone3PostClearStartPending) return false;
+    const binding = window.GoOdysseyZone3Presentation;
+    if (!binding?.ensureReady) return false;
+    _zone3PostClearStartPending = true;
+    void binding.ensureReady().then((ready) => {
+        if (ready.ok !== true) return;
+        const overlay = document.getElementById('boss-cinematic');
+        const stage = document.getElementById('intro-film-stage');
+        const btn = document.getElementById('boss-cinematic-btn');
+        const locale = getIntroFilmLocaleConfig(zone);
+        const timeline = locale?.postClearTimeline || [];
+        if (!overlay || !stage || !timeline.length) return;
+        _stopIntroFilm();
+        overlay.className = 'boss-cinematic show intro-film';
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.dataset.zoneKey = zone.key;
+        delete overlay.dataset.zone3Presentation;
+        stage.classList.remove('show-title-card');
+        if (btn) btn.disabled = true;
+        void playNewbieVillageIntroFilm(zone, {
+            timeline,
+            phase: 'post_clear',
+            onComplete: () => finishPostClearFilm(zone),
+        });
+    }).finally(() => {
+        _zone3PostClearStartPending = false;
+    });
+    return true;
+}
+
 // Ends POST_CLEAR exactly on Shot 10's own dialogue -- no Hero response, no
 // legacy title-card thesis, no additional line (Owner review, Fix 2). The
 // overlay simply closes once Shot 10's last beat finishes holding. This is
@@ -17561,7 +17844,7 @@ function finishPostClearFilm(zone) {
     // if that state hasn't actually landed yet (e.g. a stale/offline
     // _adventureProgress), rather than showing a false promise.
     if (zone?.key === 'k21_25') showZone2UnlockReveal(zone);
-    else showZone1UnlockReveal(zone);
+    else if (zone?.key !== 'k16_20') showZone1UnlockReveal(zone);
 }
 
 // ---------------------------------------------------------------------------
@@ -17688,6 +17971,7 @@ function zoneHasReplayableStory(zoneKey) {
 // behind the closed overlay. Zone playback that needs an explicit audio
 // gesture (Safari/WebKit) still goes through the established gesture bridge.
 let _zoneCinematicSequenceRunId = 0;
+let _zone3ReplayReadyPending = false;
 
 // True while a presentation-only run (Replay Story, or a Lord replay success)
 // owns the overlay. Read by the overlay's own skip/replay controls so they
@@ -17774,6 +18058,17 @@ function _startZoneCinematicSegment(zone, segment, onComplete) {
 // deliberately NOT used as the terminator -- it writes POST_CLEAR seen/pending
 // and shows the next-zone unlock reveal, neither of which a replay may do.
 function playZoneStoryReplay(zoneKey) {
+    if (zoneKey === 'k16_20' && window.GoOdysseyZone3Presentation?.ensureReady
+        && !window.GoOdysseyZone3Presentation.isReady?.()) {
+        if (_zone3ReplayReadyPending) return true;
+        _zone3ReplayReadyPending = true;
+        void window.GoOdysseyZone3Presentation.ensureReady().then((ready) => {
+            if (ready.ok === true) playZoneStoryReplay(zoneKey);
+        }).finally(() => {
+            _zone3ReplayReadyPending = false;
+        });
+        return true;
+    }
     const model = _cinematicReplay();
     const zone = _zoneForCinematic(zoneKey);
     if (!model || !zone) return false;
@@ -18972,6 +19267,13 @@ async function _finishBossBattle() {
                     bossPassScore: Number.isFinite(serverPassScore) ? serverPassScore : null,
                     replay,
                 }, finishedZone);
+            } else if (finishedZone?.key === 'k16_20') {
+                await showZone3LordResultCard({
+                    passed: data.passed === true,
+                    correct: serverCorrect,
+                    total: serverTotal,
+                    replay,
+                }, finishedZone);
             } else {
                 await showBossResultCinematic({
                     passed: data.passed,
@@ -19100,6 +19402,50 @@ function showZone1LordResultCard(result, zone) {
 function _triggerZone2PostClearFromBossWin(zone, options = {}) {
     if (!zone || zone.key !== 'k21_25' || !zone.cleared) return;
     _triggerZonePostClearFromBossWin(zone, options);
+}
+
+function _triggerZone3PostClearFromBossWin(zone, options = {}) {
+    if (!zone || zone.key !== 'k16_20' || !zone.cleared) return false;
+    return _triggerZonePostClearFromBossWin(zone, options);
+}
+
+async function showZone3LordResultCard(result, zone) {
+    _stopIntroFilm();
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    if (!overlay || !title || !btn || !zone) return;
+    const isEn = getCurrentUiLang() === 'en';
+    overlay.className = 'boss-cinematic show phase-boss';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key;
+    if (kicker) kicker.textContent = isEn ? 'Goblin Cave Lord Trial' : '哥布林洞穴領主試煉';
+    if (books) books.textContent = isEn ? 'The Centurion guards a fragile home.' : '百夫長守護著一個脆弱的家。';
+    if (rules) rules.innerHTML = '';
+    if (result.passed) {
+        title.textContent = isEn ? 'A Fragile Truce' : '脆弱的停戰';
+        if (line) line.textContent = isEn
+            ? `Authoritative trial result: ${result.correct} of ${result.total} correct. Continue to the guarded truce.`
+            : `權威試煉結果：${result.total} 題答對 ${result.correct} 題。繼續觀看守護下的停戰。`;
+        btn.disabled = false;
+        btn.textContent = isEn ? 'Continue' : '繼續';
+        btn.onclick = () => {
+            hideBossCinematic();
+            _triggerZone3PostClearFromBossWin(zone, { replay: result.replay === true });
+        };
+    } else {
+        title.textContent = isEn ? 'Train and Try Again' : '再修行一次';
+        if (line) line.textContent = isEn
+            ? `The Centurion remains at the last door. ${result.correct} of ${result.total} answers were correct.`
+            : `百夫長仍守在最後一道門前。${result.total} 題中答對 ${result.correct} 題。`;
+        btn.disabled = false;
+        btn.textContent = isEn ? 'Return to Map' : '返回地圖';
+        btn.onclick = () => hideBossCinematic();
+    }
 }
 
 function showZone2LordResultCard(result, zone) {

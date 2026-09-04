@@ -391,7 +391,7 @@ async function main() {
     }, {
       '/api/skills/profile': 0,
       '/api/user/coins': 0,
-      '/api/adventure/bootstrap': 0,
+      '/api/adventure/bootstrap': 1,
       '/api/daily-challenge/today': 0,
       '/api/srs/due': 1,
       '/api/mistakes/stats': 1,
