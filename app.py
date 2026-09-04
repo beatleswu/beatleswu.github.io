@@ -22695,18 +22695,132 @@ def _genmove_with_profile(proc, color: str, size: int, level: int) -> str:
             return coord
     return _gtp_with_timeout(proc, f'genmove {color}', _gnugo_move_timeout(size))
 
-def _gtp(proc, cmd: str):
+# ── GnuGo GTP execution isolation (INCIDENT-004) ─────────────────────────────
+# Production serves every route from a single gevent hub with the stdlib NOT
+# monkey-patched. A blocking pipe read, Thread.join() or OS-lock wait taken on a
+# request greenlet therefore stalls the whole site, including the
+# dependency-free /healthz. All blocking GnuGo I/O below runs on a dedicated
+# worker thread per engine; the request greenlet only ever waits cooperatively.
+
+_GNUGO_GTP_DEFAULT_TIMEOUT_SEC = max(1, int(
+    os.environ.get('GNUGO_GTP_DEFAULT_TIMEOUT') or '20'))
+_GNUGO_LOCK_WAIT_TIMEOUT_SEC = max(1, int(
+    os.environ.get('GNUGO_LOCK_WAIT_TIMEOUT') or '30'))
+_GNUGO_CHANNEL_ATTR = '_gnugo_channel'
+
+
+class GnuGoUnavailable(RuntimeError):
+    """The GTP engine died or hit EOF before returning a complete response."""
+
+
+class GnuGoTimeout(TimeoutError):
+    """A GTP command exceeded its deadline.
+
+    Subclasses TimeoutError so the existing ``except TimeoutError`` handlers and
+    their client-facing 504 contract keep working unchanged.
     """
-    送出 GTP 指令。
+
+
+class GnuGoBusy(RuntimeError):
+    """Another request still holds this game's engine past the wait deadline."""
+
+
+def _gnugo_async_sleeper():
+    """Return a sleep function that yields to the active async runtime.
+
+    Under gevent (production) the request greenlet must never block the hub, so
+    waiting is done with gevent.sleep. Returns None when no cooperative runtime
+    is active, in which case a plain blocking wait is safe.
+    """
+    if _socketio_async_mode != 'gevent':
+        return None
+    try:
+        import gevent
+    except ImportError:
+        return None
+    return gevent.sleep
+
+
+# One shared reaper thread: kill()/wait() must never run on a request greenlet,
+# and a per-reap thread would itself be a leak under repeated timeouts.
+_gnugo_reap_queue: 'queue.Queue' = queue.Queue()
+_gnugo_reaper_started = threading.Event()
+_gnugo_reaper_start_lock = threading.Lock()
+
+
+def _gnugo_reaper_loop():
+    while True:
+        proc = _gnugo_reap_queue.get()
+        try:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+            try:
+                proc.wait(timeout=5)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+                try:
+                    proc.wait(timeout=5)
+                except Exception:
+                    pass
+            for stream in (getattr(proc, 'stdin', None),
+                           getattr(proc, 'stdout', None),
+                           getattr(proc, 'stderr', None)):
+                try:
+                    if stream is not None:
+                        stream.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+
+def _gnugo_reap_async(proc):
+    """Terminate and reap an engine off the request path (no zombies)."""
+    if proc is None:
+        return
+    if not _gnugo_reaper_started.is_set():
+        with _gnugo_reaper_start_lock:
+            if not _gnugo_reaper_started.is_set():
+                threading.Thread(target=_gnugo_reaper_loop,
+                                 name='gnugo-reaper', daemon=True).start()
+                _gnugo_reaper_started.set()
+    _gnugo_reap_queue.put(proc)
+
+
+def _gtp_read_response(proc, cmd: str):
+    """Blocking GTP exchange. MUST run on a channel worker thread.
+
     成功 → 回傳回應字串（可能是空字串，如 play 指令）
-    失敗 → 回傳 None
+    GTP '?' 失敗 → 回傳 None（維持既有呼叫端契約）
+    行程已死 / EOF → raise GnuGoUnavailable（不再無限迴圈）
     """
-    proc.stdin.write((cmd + '\n').encode())
-    proc.stdin.flush()
-    lines = []
+    stdin = getattr(proc, 'stdin', None)
+    stdout = getattr(proc, 'stdout', None)
+    if stdin is None or stdout is None:
+        raise GnuGoUnavailable(f'GnuGo engine has no pipes for: {cmd}')
+    try:
+        stdin.write((cmd + '\n').encode())
+        stdin.flush()
+    except (BrokenPipeError, OSError, ValueError) as exc:
+        raise GnuGoUnavailable(f'GnuGo stdin closed for: {cmd}') from exc
+
+    lines: list = []
     is_error = False
     while True:
-        line = proc.stdout.readline().decode(errors='replace').rstrip('\n')
+        raw = stdout.readline()
+        if raw == b'' or raw == '':
+            # EOF: the engine is gone. Historically no branch matched here and
+            # the loop spun forever; terminate immediately instead.
+            raise GnuGoUnavailable(
+                f'GnuGo engine closed the pipe before completing: {cmd}')
+        if isinstance(raw, bytes):
+            raw = raw.decode(errors='replace')
+        line = raw.rstrip('\n')
         if line.startswith('= '):
             lines.append(line[2:].strip())
         elif line == '=':
@@ -22720,6 +22834,141 @@ def _gtp(proc, cmd: str):
         return None                   # 明確的失敗旗標
     return '\n'.join(lines)
 
+
+class _GtpCall:
+    """Result box for one queued GTP command."""
+
+    __slots__ = ('cmd', 'done', 'value', 'error')
+
+    def __init__(self, cmd):
+        self.cmd = cmd
+        self.done = threading.Event()
+        self.value = None
+        self.error = None
+
+    def result(self):
+        if self.error is not None:
+            raise self.error
+        return self.value
+
+
+class _GtpChannel:
+    """One dedicated worker thread per GnuGo engine.
+
+    Keeps every blocking pipe read off the gevent hub and serialises commands to
+    a single engine, so a stuck engine can never corrupt another request's GTP
+    stream nor stall unrelated routes.
+    """
+
+    def __init__(self, proc):
+        self.proc = proc
+        self._queue: 'queue.Queue' = queue.Queue()
+        self._closed = False
+        self._thread = threading.Thread(
+            target=self._serve, name='gnugo-gtp', daemon=True)
+        self._thread.start()
+
+    def _serve(self):
+        while True:
+            call = self._queue.get()
+            if call is None:
+                return
+            try:
+                call.value = _gtp_read_response(self.proc, call.cmd)
+            except BaseException as exc:            # noqa: BLE001 - relayed to caller
+                call.error = exc
+            finally:
+                call.done.set()
+
+    def submit(self, cmd: str) -> _GtpCall:
+        call = _GtpCall(cmd)
+        if self._closed:
+            call.error = GnuGoUnavailable(f'GnuGo channel closed for: {cmd}')
+            call.done.set()
+            return call
+        self._queue.put(call)
+        return call
+
+    def close(self):
+        if not self._closed:
+            self._closed = True
+            self._queue.put(None)
+
+    def join(self, timeout=None) -> bool:
+        self._thread.join(timeout)
+        return not self._thread.is_alive()
+
+
+def _gtp_channel(proc) -> _GtpChannel:
+    channel = getattr(proc, _GNUGO_CHANNEL_ATTR, None)
+    if channel is None or channel._closed:
+        channel = _GtpChannel(proc)
+        try:
+            setattr(proc, _GNUGO_CHANNEL_ATTR, channel)
+        except AttributeError:
+            pass
+    return channel
+
+
+def _gnugo_wait_for(call: _GtpCall, timeout_sec: float):
+    """Wait for a queued GTP command without blocking the async hub."""
+    sleeper = _gnugo_async_sleeper()
+    if sleeper is None:
+        if not call.done.wait(timeout_sec):
+            raise GnuGoTimeout(
+                f'GnuGo command timed out after {timeout_sec}s: {call.cmd}')
+        return call.result()
+
+    deadline = time.monotonic() + timeout_sec
+    interval = 0.005
+    while True:
+        if call.done.is_set():
+            return call.result()
+        if time.monotonic() >= deadline:
+            raise GnuGoTimeout(
+                f'GnuGo command timed out after {timeout_sec}s: {call.cmd}')
+        sleeper(interval)
+        interval = min(interval * 1.5, 0.05)
+
+
+def _gnugo_cmd_class(cmd: str) -> str:
+    return (str(cmd or '').strip().split() or ['?'])[0]
+
+
+def _gtp(proc, cmd: str, timeout_sec=None):
+    """送出 GTP 指令（有界、且不阻塞 gevent hub）。
+
+    回傳契約與過去相同：成功回傳字串、GTP '?' 回傳 None。
+    逾時 raise GnuGoTimeout（TimeoutError 子類）、引擎死亡 raise GnuGoUnavailable。
+    """
+    if timeout_sec is None or timeout_sec <= 0:
+        timeout_sec = _GNUGO_GTP_DEFAULT_TIMEOUT_SEC
+    # Fail fast on an engine that has already exited, so a dead game cannot
+    # churn a fresh worker thread per call.
+    try:
+        if proc is None or proc.poll() is not None:
+            raise GnuGoUnavailable(f'GnuGo engine is not running for: {cmd}')
+    except (AttributeError, OSError):
+        pass
+    channel = _gtp_channel(proc)
+    call = channel.submit(cmd)
+    try:
+        return _gnugo_wait_for(call, timeout_sec)
+    except GnuGoTimeout:
+        # Kill the engine so the parked worker receives EOF and exits, then reap
+        # it off-hub. Without the kill the worker would spin on a dead pipe.
+        try:
+            app.logger.warning(
+                '[gnugo] GTP command timed out',
+                extra={'gnugo_cmd_class': _gnugo_cmd_class(cmd),
+                       'gnugo_timeout_sec': timeout_sec})
+        except Exception:
+            pass
+        channel.close()
+        _gnugo_reap_async(proc)
+        raise
+
+
 def _gnugo_move_timeout(size: int) -> int:
     raw = os.environ.get(f'GNUGO_MOVE_TIMEOUT_{size}') or os.environ.get('GNUGO_MOVE_TIMEOUT') or '0'
     try:
@@ -22727,30 +22976,61 @@ def _gnugo_move_timeout(size: int) -> int:
     except (TypeError, ValueError):
         return 0
 
+
 def _gtp_with_timeout(proc, cmd: str, timeout_sec: int):
-    if timeout_sec <= 0:
-        return _gtp(proc, cmd)
-    q = queue.Queue(maxsize=1)
+    """Bounded GTP call. timeout_sec<=0 now means 'use the default', never
+    'wait forever' -- the unbounded case was the production hang."""
+    return _gtp(proc, cmd, timeout_sec)
 
-    def run():
-        try:
-            q.put(('ok', _gtp(proc, cmd)))
-        except Exception as exc:
-            q.put(('err', exc))
 
-    t = threading.Thread(target=run, daemon=True)
-    t.start()
-    t.join(timeout_sec)
-    if t.is_alive():
-        try:
-            proc.kill()
-        except Exception:
-            pass
-        raise TimeoutError(f'GnuGo command timed out after {timeout_sec}s: {cmd}')
-    kind, value = q.get()
-    if kind == 'err':
-        raise value
-    return value
+class _GnuGoGameLock:
+    """Acquire a game's OS lock without ever blocking the async hub.
+
+    ``threading.Lock.acquire()`` on a request greenlet blocks the single serving
+    OS thread. Poll non-blockingly and yield instead, then fail bounded.
+    """
+
+    def __init__(self, game, timeout_sec=None):
+        self._lock = game['lock'] if isinstance(game, dict) else game
+        self._timeout = timeout_sec or _GNUGO_LOCK_WAIT_TIMEOUT_SEC
+        self._held = False
+
+    def __enter__(self):
+        sleeper = _gnugo_async_sleeper() or time.sleep
+        deadline = time.monotonic() + self._timeout
+        interval = 0.002
+        while not self._lock.acquire(blocking=False):
+            if time.monotonic() >= deadline:
+                raise GnuGoBusy('這盤棋還在處理上一手，請稍候再試')
+            sleeper(interval)
+            interval = min(interval * 1.5, 0.05)
+        self._held = True
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if self._held:
+            self._held = False
+            self._lock.release()
+        return False
+
+
+def _gnugo_game_lock(game, timeout_sec=None):
+    return _GnuGoGameLock(game, timeout_sec)
+
+
+@app.errorhandler(GnuGoBusy)
+def _handle_gnugo_busy(exc):
+    """A concurrent request still holds this engine -- bounded, retryable."""
+    return jsonify({'error': str(exc) or '這盤棋還在處理上一手，請稍候再試',
+                    'error_type': 'gnugo_busy'}), 409
+
+
+@app.errorhandler(GnuGoUnavailable)
+def _handle_gnugo_unavailable(exc):
+    """The engine died. Previously this hung the whole app; now it is bounded."""
+    app.logger.warning('[gnugo] engine unavailable on request path')
+    return jsonify({'error': 'GnuGo 引擎暫時無法使用，請重新開始一盤',
+                    'error_type': 'gnugo_unavailable'}), 503
 
 def _start_gnugo(size: int, level: int, handicap: int, komi: float) -> subprocess.Popen:
     profile = _gnugo_profile(level)
@@ -22766,13 +23046,23 @@ def _start_gnugo(size: int, level: int, handicap: int, komi: float) -> subproces
         _gtp(proc, f'fixed_handicap {handicap}')
     return proc
 
+def _gnugo_shutdown_proc(proc):
+    """Close an engine's channel and reap it off the request path.
+
+    The old graceful ``quit`` + ``wait(timeout=2)`` both ran on the request
+    greenlet and blocked the hub; termination is now handed to the reaper.
+    """
+    if proc is None:
+        return
+    channel = getattr(proc, _GNUGO_CHANNEL_ATTR, None)
+    if channel is not None:
+        channel.close()
+    _gnugo_reap_async(proc)
+
+
 def _terminate_gnugo_game(g):
     if g:
-        try:
-            _gtp(g['proc'], 'quit')
-            g['proc'].wait(timeout=2)
-        except Exception:
-            g['proc'].kill()
+        _gnugo_shutdown_proc(g.get('proc'))
 
 def _cleanup_gnugo(game_id: str, user_id=None):
     with _gnugo_lock:
@@ -22915,10 +23205,13 @@ def bot_new():
     # 若玩家執白，GnuGo（黑）先走
     if current_color == ai_color:
         g = _gnugo_games[game_id]
-        with g['lock']:
+        with _gnugo_game_lock(g):
             try:
                 mv = _genmove_with_profile(proc, ai_color, size, level)
-            except TimeoutError:
+            except (TimeoutError, GnuGoUnavailable):
+                app.logger.warning(
+                    '[gnugo] genmove ended game',
+                    extra={'gnugo_board_size': size, 'gnugo_level': level})
                 _cleanup_gnugo(game_id, uid)
                 return jsonify({
                     'error': '這台免費 VM 計算 19 路局面太久，已自動結束此盤。請改用 9 路/13 路，或降低難度。',
@@ -22954,7 +23247,7 @@ def bot_move():
     p_col_name = 'black' if pcol == 'B' else 'white'
     a_col_name = 'black' if acol == 'B' else 'white'
 
-    with g['lock']:
+    with _gnugo_game_lock(g):
         # ── 合法性預檢查（禁著點 / 打劫）──
         if not is_pass:
             try:
@@ -23001,7 +23294,11 @@ def bot_move():
         # GnuGo 回應
         try:
             ai_resp = _genmove_with_profile(proc, acol, size, g.get('level', 5))
-        except TimeoutError:
+        except (TimeoutError, GnuGoUnavailable):
+            app.logger.warning(
+                '[gnugo] genmove ended game',
+                extra={'gnugo_board_size': size,
+                       'gnugo_level': g.get('level', 5)})
             _cleanup_gnugo(game_id, session.get('user_id'))
             return jsonify({
                 'error': '這台免費 VM 計算 19 路局面太久，已自動結束此盤。請改用 9 路/13 路，或降低難度。',
@@ -23059,7 +23356,7 @@ def bot_pass():
     proc = g['proc']; size = g['size']; pcol = g['player']; acol = g['ai']
     p_col_name = 'black' if pcol == 'B' else 'white'
 
-    with g['lock']:
+    with _gnugo_game_lock(g):
         _gtp(proc, f'play {pcol} PASS')
         g['ko_point'] = None   # 虛手清除打劫
         g['moves'] += 1
@@ -23067,7 +23364,11 @@ def bot_pass():
         player_before_ai = _list_stones(proc, p_col_name, size)
         try:
             ai_resp = _genmove_with_profile(proc, acol, size, g.get('level', 5))
-        except TimeoutError:
+        except (TimeoutError, GnuGoUnavailable):
+            app.logger.warning(
+                '[gnugo] genmove ended game',
+                extra={'gnugo_board_size': size,
+                       'gnugo_level': g.get('level', 5)})
             _cleanup_gnugo(game_id, session.get('user_id'))
             return jsonify({
                 'error': '這台免費 VM 計算 19 路局面太久，已自動結束此盤。請改用 9 路/13 路，或降低難度。',
@@ -23093,7 +23394,7 @@ def bot_pass():
     if ai_resp == 'PASS':
         # 雙方都 pass → 可計分
         result['both_passed'] = True
-        with g['lock']:
+        with _gnugo_game_lock(g):
             score_str = _gtp(proc, 'final_score').strip()
         result['score'] = score_str
     elif ai_resp == 'RESIGN':
@@ -23118,7 +23419,7 @@ def bot_undo():
     proc = g['proc']
     size = g['size']
 
-    with g['lock']:
+    with _gnugo_game_lock(g):
         # undo 兩次（AI 的手 + 玩家的手）
         r1 = _gtp(proc, 'undo')
         r2 = _gtp(proc, 'undo')
@@ -23149,7 +23450,7 @@ def bot_estimate():
     if not g:
         return jsonify({'error': '對局不存在'}), 404
 
-    with g['lock']:
+    with _gnugo_game_lock(g):
         resp = _gtp(g['proc'], 'estimate_score')
 
     if not resp:
@@ -23193,7 +23494,7 @@ def bot_score():
     g = _get_user_gnugo_game(game_id)
     if not g:
         return jsonify({'error': '對局不存在'}), 404
-    with g['lock']:
+    with _gnugo_game_lock(g):
         score = _gtp(g['proc'], 'final_score').strip()
     payload = {'ok': True, 'score': score}
     payload.update(_parse_final_score(score))
@@ -23234,8 +23535,9 @@ def quiz_gnugo():
         for s in white:
             _gtp(proc, f'play W {_xy_to_gtp(s["x"], s["y"], board_size)}')
 
-        # 生成回應手
-        resp = _gtp(proc, f'genmove {player}')
+        # 生成回應手（用該盤面大小的既定期限，不再無限等待）
+        resp = _gtp_with_timeout(proc, f'genmove {player}',
+                                 _gnugo_move_timeout(board_size))
         if not resp:
             return jsonify({'error': 'GnuGo 無回應'}), 500
 
@@ -23251,19 +23553,24 @@ def quiz_gnugo():
 
     except FileNotFoundError:
         return jsonify({'error': 'GnuGo 未安裝，請確認伺服器已安裝 gnugo'}), 500
+    except TimeoutError:
+        app.logger.warning(
+            '[gnugo] quiz_gnugo timed out',
+            extra={'gnugo_board_size': board_size, 'gnugo_level': level})
+        return jsonify({'error': 'GnuGo 計算逾時，請降低難度或改用較小棋盤',
+                        'error_type': 'gnugo_timeout'}), 504
+    except GnuGoUnavailable:
+        app.logger.warning(
+            '[gnugo] quiz_gnugo engine unavailable',
+            extra={'gnugo_board_size': board_size, 'gnugo_level': level})
+        return jsonify({'error': 'GnuGo 引擎暫時無法使用，請稍後再試',
+                        'error_type': 'gnugo_unavailable'}), 503
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        if proc:
-            try:
-                _gtp(proc, 'quit')
-                proc.wait(timeout=2)
-            except Exception:
-                pass
-            try:
-                proc.kill()
-            except Exception:
-                pass
+        # Termination and reaping run off the request path; the old
+        # quit + wait(timeout=2) blocked the single gevent hub.
+        _gnugo_shutdown_proc(proc)
 
 
 @app.route('/badges')
@@ -28575,9 +28882,8 @@ def on_request_position_eval(data):
             print(f'[position_eval error] {e}')
             socketio.emit('position_eval_result', {'error': str(e)}, to=sid)
         finally:
-            if proc:
-                try: proc.kill()
-                except Exception: pass
+            # Close the GTP channel too, else its worker thread is orphaned.
+            _gnugo_shutdown_proc(proc)
 
     threading.Thread(target=_run, daemon=True).start()
     emit('position_eval_pending', {})
@@ -28614,9 +28920,8 @@ def on_request_auto_dead_stones(data):
             print(f'[auto_dead_stones error] {e}')
             socketio.emit('auto_dead_result', {'error': str(e)}, to=sid)
         finally:
-            if proc:
-                try: proc.kill()
-                except Exception: pass
+            # Close the GTP channel too, else its worker thread is orphaned.
+            _gnugo_shutdown_proc(proc)
 
     threading.Thread(target=_run, daemon=True).start()
     emit('auto_dead_pending', {})
