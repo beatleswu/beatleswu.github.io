@@ -192,8 +192,20 @@ def test_enabled_fixture_uses_canonical_route_projects_wooden_sword_and_unequips
     assert _inventory_row(path, wooden.row_id) == ("wooden_sword", 0, "weapon")
 
 
-def test_inventory_enabled_path_is_test_only_and_reuses_authoritative_endpoint():
-    assert "const FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED = false;" in INVENTORY
+def test_inventory_enabled_path_is_server_gated_and_reuses_authoritative_endpoint():
+    """The shipped UI gate stays closed and is never a second authority.
+
+    The gate used to be the literal ``FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED =
+    false``. That hard-coded copy meant enabling the server flag alone could
+    not restore player access, so it was replaced by a read-only capability the
+    server projects on /api/auth/me. The invariant this test protects is
+    unchanged and now strictly stronger: the client still ships closed, still
+    cannot open itself, and still reuses the authoritative endpoint.
+    """
+    # Ships closed, and only the server can open it.
+    assert "let functionalEquipmentLoadoutCapability = false;" in INVENTORY
+    assert "!!(me && me.equipment_loadout_enabled === true)" in INVENTORY
+    assert "FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED" not in INVENTORY
     assert "window.__GO_EQUIPMENT_LOADOUT_TEST_MODE__ === true" in INVENTORY
     assert "window.__GO_EQUIPMENT_LOADOUT_TEST_OVERRIDE__ === true" in INVENTORY
     assert "fetch('/api/player/inventory/equip'" in INVENTORY
@@ -201,8 +213,12 @@ def test_inventory_enabled_path_is_test_only_and_reuses_authoritative_endpoint()
     assert "await loadFunctionalEquipment(item.inv_id)" in INVENTORY
     assert "LOADOUT_DISABLED" not in INVENTORY
     assert "localStorage" not in INVENTORY
-    assert "action.disabled = blockedNewEquip;" in INVENTORY
-    assert "action === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED" in INVENTORY
+    # The control is now disabled by a strictly wider condition: the Loadout
+    # capability being off, OR the canonical server saying the item is not
+    # equippable at all (go_stone_black / xp_amulet).
+    assert "const blocked = notEquippable || blockedNewEquip;" in INVENTORY
+    assert "action.disabled = blocked;" in INVENTORY
+    assert "action === 'equip' && !functionalEquipmentLoadoutEnabled()" in INVENTORY
 
 
 def test_hero_projection_consumes_server_equipped_wooden_sword_mapping_only():

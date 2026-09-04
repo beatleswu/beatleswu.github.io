@@ -606,14 +606,50 @@ const FUNCTIONAL_RARITY_LABELS = {
 const FUNCTIONAL_SLOT_LABELS = {
   weapon:'武器 / Weapon', armor:'防具 / Armor', accessory:'飾品 / Accessory',
 };
-const FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED = false;
+// The server owns this gate.  The UI starts closed and only opens once
+// /api/auth/me reports the canonical Loadout capability, so the client never
+// becomes a second authority and a failed/blocked capability read fails closed.
+let functionalEquipmentLoadoutCapability = false;
+function functionalEquipmentLoadoutEnabled() {
+  return functionalEquipmentLoadoutCapability === true;
+}
 // Keep the shipped/default UI gate closed.  The two-key override is reserved
 // for an isolated test harness that also enables the server-side canonical
 // Loadout flag; it never grants ownership or changes equipped state locally.
 const FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE =
   window.__GO_EQUIPMENT_LOADOUT_TEST_MODE__ === true
   && window.__GO_EQUIPMENT_LOADOUT_TEST_OVERRIDE__ === true;
-const FUNCTIONAL_INVENTORY_ONLY_IDS = new Set(['go_stone_black']);
+function applyFunctionalEquipmentLoadoutCapability(me) {
+  const next = !!(me && me.equipment_loadout_enabled === true);
+  if (next === functionalEquipmentLoadoutCapability) return;
+  functionalEquipmentLoadoutCapability = next;
+  // Re-render the detail panel so the equip control reflects the capability
+  // that arrived after first paint.
+  if (selectedFunctionalInventoryId == null) return;
+  const selected = functionalEquipmentItems.find(
+    item => String(item.inv_id) === String(selectedFunctionalInventoryId));
+  if (selected) renderFunctionalEquipmentDetail(selected);
+}
+// Equippability comes from the server's canonical projection, not a client
+// copy of the non-equippable ids. Strict === true so a missing/legacy payload
+// field fails closed (item treated as not equippable, never silently equipped).
+function functionalItemEquippable(item) {
+  return item?.canonical_equippable === true;
+}
+function functionalItemBlockReason(item) {
+  return functionalItemEquippable(item) ? null : (item?.not_equippable_reason || 'NON_FUNCTIONAL_EQUIPMENT');
+}
+function functionalItemIsTrophy(item) {
+  return functionalItemBlockReason(item) === 'GO_STONE_BLACK_NOT_EQUIPPABLE';
+}
+function functionalItemBlockLabel(item) {
+  const en = functionalEquipmentIsEn();
+  switch (functionalItemBlockReason(item)) {
+    case 'GO_STONE_BLACK_NOT_EQUIPPABLE': return en ? 'Collection only' : '收藏品 · 不可裝備';
+    case 'XP_AMULET_HOLD_FOR_AUTHORITY': return en ? 'Not yet available' : '尚未開放';
+    default: return en ? 'Not equippable' : '不可裝備';
+  }
+}
 let functionalEquipmentItems = [];
 let activeFunctionalEquipmentFilter = 'all';
 let selectedFunctionalInventoryId = null;
@@ -685,13 +721,13 @@ function functionalEquipmentFilterMatch(item) {
   return item.slot === activeFunctionalEquipmentFilter;
 }
 function functionalEffectDetails(item) {
-  if (FUNCTIONAL_INVENTORY_ONLY_IDS.has(item?.item_id)) return [];
+  if (!functionalItemEquippable(item)) return [];
   return Array.isArray(item?.active_effect_details)
     ? item.active_effect_details.filter(effect => effect && typeof effect === 'object' && !Array.isArray(effect))
     : [];
 }
 function functionalUnsupportedEffects(item) {
-  if (FUNCTIONAL_INVENTORY_ONLY_IDS.has(item?.item_id)) return [];
+  if (!functionalItemEquippable(item)) return [];
   return Array.isArray(item?.unsupported_effects)
     ? item.unsupported_effects.filter(effect => effect && typeof effect === 'object' && !Array.isArray(effect))
     : [];
@@ -731,7 +767,7 @@ function functionalEquipmentCardHTML(item) {
     <div class="functional-effect-line"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><span class="functional-effect-value">${functionalEquipmentEscape(functionalEffectValue(effect))}</span></div>`).join('');
   const unsupportedRows = unsupported.map(effect => `
     <div class="functional-effect-line functional-effect-disabled"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}<small class="functional-effect-status">${functionalEquipmentEscape(functionalEffectStatus(effect))}</small></span><span class="functional-effect-value">${functionalEquipmentEscape(functionalEffectValue(effect))}</span></div>`).join('');
-  const inventoryOnly = FUNCTIONAL_INVENTORY_ONLY_IDS.has(item.item_id);
+  const inventoryOnly = functionalItemIsTrophy(item);
   const effects = inventoryOnly
     ? functionalEquipmentInventoryOnlyLine()
     : (effectRows + unsupportedRows || `<div class="functional-effect-line functional-effect-disabled"><span>${functionalEquipmentIsEn() ? 'No active effect' : '目前沒有啟用效果'}</span><span class="functional-effect-value">—</span></div>`);
@@ -806,7 +842,7 @@ function renderFunctionalEquipmentDetail(item) {
   icon.alt = item.icon_alt || name;
   document.getElementById('functional-detail-name').textContent = name;
   const detailBadge = document.getElementById('functional-detail-badge');
-  if (detailBadge) detailBadge.textContent = FUNCTIONAL_INVENTORY_ONLY_IDS.has(item.item_id)
+  if (detailBadge) detailBadge.textContent = functionalItemIsTrophy(item)
     ? (functionalEquipmentIsEn() ? 'Collection / Trophy' : '收藏品 / Trophy')
     : '戰鬥裝備 / Functional Equipment';
   document.getElementById('functional-detail-meta').textContent = `${functionalEquipmentRarity(item)} · ${functionalEquipmentSlot(item)}`;
@@ -815,7 +851,7 @@ function renderFunctionalEquipmentDetail(item) {
     <div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'Owned quantity' : '持有數量'}</span><strong>×${Number(item.owned_quantity || 1)}</strong></div>
     <div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'State' : '狀態'}</span><strong>${item.equipped ? (functionalEquipmentIsEn() ? 'Equipped' : '已裝備') : (functionalEquipmentIsEn() ? 'Owned' : '已持有')}</strong></div>`;
   const effects = document.getElementById('functional-detail-effects');
-  const inventoryOnly = FUNCTIONAL_INVENTORY_ONLY_IDS.has(item.item_id);
+  const inventoryOnly = functionalItemIsTrophy(item);
   const active = functionalEffectDetails(item).map(effect => `<div class="functional-detail-row"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><strong>${functionalEquipmentEscape(functionalEffectValue(effect))}</strong></div>`).join('');
   const unsupported = functionalUnsupportedEffects(item).map(effect => `<div class="functional-detail-row muted"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}<small class="functional-effect-status">${functionalEquipmentEscape(functionalEffectStatus(effect))}</small></span><strong>${functionalEquipmentEscape(functionalEffectValue(effect))}</strong></div>`).join('');
   effects.innerHTML = inventoryOnly
@@ -840,28 +876,44 @@ function renderFunctionalEquipmentDetail(item) {
   document.getElementById('functional-detail-source').textContent = `${functionalEquipmentIsEn() ? (item.where_to_obtain_en || 'Monster drop') : (item.where_to_obtain || '怪物掉落')} · ${functionalEquipmentIsEn() ? 'Source' : '來源'}: ${item.source || 'drop'}`;
   const action = document.getElementById('functional-detail-action');
   const actionType = item.equipped ? 'unequip' : 'equip';
+  // An item the canonical server will never equip must not offer an equip
+  // action at all; ownership stays visible, the control just stops lying.
+  const notEquippable = !functionalItemEquippable(item) && !item.equipped;
   const blockedNewEquip = actionType === 'equip'
-    && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED
+    && !functionalEquipmentLoadoutEnabled()
     && !FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE;
+  const blocked = notEquippable || blockedNewEquip;
   action.textContent = item.equipped
     ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下')
+    : (notEquippable
+      ? functionalItemBlockLabel(item)
+      : (blockedNewEquip
+        ? (functionalEquipmentIsEn() ? 'Equip unavailable' : '尚未開放裝備')
+        : (functionalEquipmentIsEn() ? 'Equip' : '裝備')));
+  action.disabled = blocked;
+  action.title = notEquippable
+    ? (functionalEquipmentIsEn()
+      ? 'You own this item; the server does not allow equipping it.'
+      : '你已擁有這件物品；伺服器不允許裝備它。')
     : (blockedNewEquip
-      ? (functionalEquipmentIsEn() ? 'Equip unavailable' : '尚未開放裝備')
-      : (functionalEquipmentIsEn() ? 'Equip' : '裝備'));
-  action.disabled = blockedNewEquip;
-  action.title = blockedNewEquip
-    ? (functionalEquipmentIsEn() ? 'Loadout is not enabled; this is presentation only.' : '配裝功能尚未啟用；目前僅供查看。')
-    : '';
-  action.onclick = blockedNewEquip ? null : () => performFunctionalEquipmentAction(item, actionType, action);
+      ? (functionalEquipmentIsEn() ? 'Loadout is not enabled; this is presentation only.' : '配裝功能尚未啟用；目前僅供查看。')
+      : '');
+  action.setAttribute('data-block-reason', notEquippable ? functionalItemBlockReason(item) : '');
+  action.onclick = blocked ? null : () => performFunctionalEquipmentAction(item, actionType, action);
 }
 async function performFunctionalEquipmentAction(item, action, button) {
   if (!item || item.inv_id == null) return;
-  if (action === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED
+  if (action === 'equip' && !functionalEquipmentLoadoutEnabled()
       && !FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE) {
     showBackpackToast(functionalEquipmentIsEn() ? 'Equip is not available yet.' : '裝備功能尚未開放。');
     return;
   }
-  if (FUNCTIONAL_INVENTORY_ONLY_IDS.has(item.item_id)) return;
+  // Defence in depth. The control is already disabled for these, so this is
+  // unreachable in normal use -- but it must never fail silently if reached.
+  if (action === 'equip' && !functionalItemEquippable(item)) {
+    showBackpackToast(functionalItemBlockLabel(item));
+    return;
+  }
   button.disabled = true;
   try {
     const response = await fetch('/api/player/inventory/equip', {
@@ -1187,6 +1239,7 @@ async function loadBackpack() {
     if (!petResponse.ok) throw new Error(`Pet inventory HTTP ${petResponse.status}`);
     const catalog = await catalogResponse.json();
     const me = meResponse.ok ? await meResponse.json() : {};
+    applyFunctionalEquipmentLoadoutCapability(me);
     const petStatus = await petResponse.json();
     const definitions = new Map((catalog.items || []).map(item => [item.key, item]));
     backpackItems = Object.entries(catalog.inventory || {}).filter(([, quantity]) => Number(quantity) > 0).map(([key, quantity]) => ({

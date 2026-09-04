@@ -1847,6 +1847,41 @@ def _functional_source_labels(equip):
     }
 
 
+def _canonical_equippability_projection(equip_id):
+    """Project whether the canonical Loadout writer would accept this item.
+
+    Mirrors ``equipment_loadout_service.equip_owned_item``'s own guard exactly:
+    an id absent from the canonical slot projection is not equippable, and the
+    reason code is the same one the server returns on a real attempt. This is a
+    presentation projection only -- it never grants ownership and is never the
+    write authority.
+    """
+    from migrations.equipment_canonical_slot_v1 import (
+        HOLD_FOR_AUTHORITY_EQUIPMENT_IDS as _hold_ids,
+        INVENTORY_ONLY_EQUIPMENT_IDS as _inventory_only_ids,
+        build_slot_projection as _build_slot_projection,
+    )
+    equip_id = str(equip_id or '')
+    canonical_slot = _build_slot_projection(EQUIPMENT_DEFS).get(equip_id)
+    if canonical_slot is not None:
+        return {
+            'canonical_equippable': True,
+            'canonical_slot': canonical_slot,
+            'not_equippable_reason': None,
+        }
+    if equip_id in _inventory_only_ids:
+        reason = 'GO_STONE_BLACK_NOT_EQUIPPABLE'
+    elif equip_id in _hold_ids:
+        reason = 'XP_AMULET_HOLD_FOR_AUTHORITY'
+    else:
+        reason = 'NON_FUNCTIONAL_EQUIPMENT'
+    return {
+        'canonical_equippable': False,
+        'canonical_slot': None,
+        'not_equippable_reason': reason,
+    }
+
+
 def _functional_equipment_payload(equip, *, inv_id=None, equipped=False,
                                   obtained_at=None, source=None,
                                   owned_quantity=None, comparison_summary=None):
@@ -1887,6 +1922,11 @@ def _functional_equipment_payload(equip, *, inv_id=None, equipped=False,
         'currently_equipped': bool(equipped),
         'functional_equipment': True,
         'style_equipment': False,
+        # Read-only equippability, resolved from the same canonical slot
+        # authority the Loadout writer enforces, so the UI never has to keep
+        # its own list of non-equippable ids. ``slot`` cannot express this:
+        # go_stone_black and xp_amulet both still declare 'accessory'.
+        **_canonical_equippability_projection(equip.get('id')),
     }
     if inv_id is not None:
         payload['inv_id'] = inv_id
@@ -9496,6 +9536,11 @@ def auth_me():
         'needs_onboarding_choice': needs_onboarding_choice,
         'newbie_quest_eligible': newbie_quest_eligible,
         'e9_rollout': decision,
+        # Read-only capability projection so the client never has to keep its
+        # own copy of the Loadout gate.  The server remains the only authority
+        # for both eligibility and the equip/unequip write path; this field
+        # only tells the UI whether to offer the control.
+        'equipment_loadout_enabled': _equipment_canonical_loadout_enabled(),
     })
 
 @app.route('/api/auth/tour_done', methods=['POST'])
