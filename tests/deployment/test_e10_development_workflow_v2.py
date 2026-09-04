@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+from process_runner import run_bounded
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,12 +22,13 @@ import e10_development_workflow_v2 as workflow  # noqa: E402
 
 
 def git(repo: Path, *args: str, check: bool = True) -> str:
-    result = subprocess.run(
+    result = run_bounded(
         ["git", *args],
         cwd=repo,
         capture_output=True,
         text=True,
         encoding="utf-8",
+        timeout=60,
         check=False,
     )
     if check and result.returncode:
@@ -264,26 +268,57 @@ def test_current_canonical_r2a_history_is_accepted(tmp_path: Path) -> None:
     base = "7b25a4b180f514cafab1945ea2ee62b9c97c5438"
     r2a = "d6ea55376c82940713b0d2ce7ddffd4ba7e342bd"
     assert git(ROOT, "rev-parse", canonical + "^{commit}") == canonical
-    lineage = subprocess.run(
+    lineage = run_bounded(
         ["git", "merge-base", "--is-ancestor", r2a, canonical],
         cwd=ROOT,
         check=False,
+        timeout=60,
     )
     assert lineage.returncode == 0
 
-    # Use a temporary detached worktree pinned to a stable canonical anchor.
-    # This keeps the regression valid after future Product merges advance
-    # ROOT/HEAD without copying the repository or contacting a remote.
+    # Use an exact temporary shared clone pinned to a stable canonical anchor.
+    # A linked worktree would register in the shared repository's large
+    # .git/worktrees set and make later serial release probes contend on the
+    # same metadata.  The clone shares immutable objects but has no linked-
+    # worktree registration, so this regression remains isolated.
     fixture = tmp_path / "canonical-anchor"
-    worktree = subprocess.run(
-        ["git", "worktree", "add", "--quiet", "--detach", str(fixture), canonical],
+    cloned = run_bounded(
+        [
+            "git",
+            "-c",
+            "core.longpaths=true",
+            "clone",
+            "--shared",
+            "--quiet",
+            str(ROOT),
+            str(fixture),
+        ],
         cwd=ROOT,
         capture_output=True,
         text=True,
         encoding="utf-8",
         check=False,
+        timeout=300,
     )
-    assert worktree.returncode == 0, worktree.stderr or worktree.stdout
+    assert cloned.returncode == 0, cloned.stderr or cloned.stdout
+    checked_out = run_bounded(
+        [
+            "git",
+            "-c",
+            "core.longpaths=true",
+            "checkout",
+            "--quiet",
+            "--detach",
+            canonical,
+        ],
+        cwd=fixture,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+        timeout=180,
+    )
+    assert checked_out.returncode == 0, checked_out.stderr or checked_out.stdout
     try:
         assert git(fixture, "rev-parse", "HEAD") == canonical
         packet = workflow.build_pr_ready_packet(
@@ -308,15 +343,8 @@ def test_current_canonical_r2a_history_is_accepted(tmp_path: Path) -> None:
         assert packet["R2A_HISTORY_PRESENT"] == "YES_EXPECTED"
         assert packet["R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE"] == "NO"
     finally:
-        removed = subprocess.run(
-            ["git", "worktree", "remove", str(fixture)],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            check=False,
-        )
-        assert removed.returncode == 0, removed.stderr or removed.stdout
+        if fixture.exists():
+            shutil.rmtree(fixture)
 
 
 def test_control_plane_only_accepts_build_production_image_script(tmp_path: Path) -> None:

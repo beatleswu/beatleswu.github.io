@@ -8,6 +8,8 @@ import time
 
 import pytest
 
+from process_runner import run_bounded
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODULE = ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
@@ -122,12 +124,12 @@ def test_actual_bootstrap_accepts_detached_zero_branch_output_and_advances(tmp_p
     assert "== go-odyssey-app canonical image build" in combined
 
 
-def run_powershell(script, timeout=30):
+def run_powershell(script, timeout=30, cwd=ROOT):
     utf8_preamble = (
         "$OutputEncoding = [Console]::OutputEncoding = "
         "New-Object System.Text.UTF8Encoding($false);\n"
     )
-    return subprocess.run(
+    return run_bounded(
         [
             "powershell",
             "-NoProfile",
@@ -136,7 +138,7 @@ def run_powershell(script, timeout=30):
             "-Command",
             utf8_preamble + script,
         ],
-        cwd=ROOT,
+        cwd=cwd,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -186,6 +188,18 @@ def create_synthetic_repo(
     if detached:
         git(repo, "checkout", "-q", "--detach", sha)
     return repo, sha
+
+
+def create_worktree_contract_repo(tmp_path):
+    repo, _sha = create_synthetic_repo(tmp_path, include_child_script=False)
+    module_path = repo / "scripts" / "release" / "ReleaseTooling.psm1"
+    module_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(MODULE, module_path)
+    git(repo, "add", "scripts/release/ReleaseTooling.psm1")
+    git(repo, "commit", "-q", "-m", "add release tooling contract")
+    sha = git(repo, "rev-parse", "HEAD").stdout.strip()
+    git(repo, "checkout", "-q", "--detach", sha)
+    return repo, sha, module_path
 
 
 def make_junction(link, target):
@@ -446,18 +460,12 @@ catch {{
 def test_local_governed_detached_worktree_uses_exact_sha_and_cleans_up(
     tmp_path, child_exit_code
 ):
+    repo, expected_sha, module_path = create_worktree_contract_repo(tmp_path)
     ambient = tmp_path / "operator ambient"
     ambient.mkdir()
-    expected_sha = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
     script = f"""
 $ErrorActionPreference = 'Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module_path)}' -Force -DisableNameChecking
 $before = @(git worktree list --porcelain)
 $worktree = $null
 $old = [Environment]::CurrentDirectory
@@ -482,11 +490,11 @@ $after = @(git worktree list --porcelain)
     preexisting_worktrees_unchanged = (($before -join "`n") -eq ($after -join "`n"))
 }} | ConvertTo-Json -Compress
 """
-    result = run_powershell(script, timeout=60)
+    result = run_powershell(script, timeout=60, cwd=repo)
     assert result.returncode == 0, result.stdout + result.stderr
     payload = parse_last_json(result.stdout)
     assert payload["expected_sha"] == expected_sha
-    assert pathlib.Path(payload["child_cwd"]) != ROOT
+    assert pathlib.Path(payload["child_cwd"]) != repo
     assert payload["child_exit_code"] == child_exit_code
     assert payload["temporary_worktree_removed"] is True
     assert payload["preexisting_worktrees_unchanged"] is True
@@ -597,24 +605,24 @@ def test_wrong_git_repository_fails(tmp_path):
 
 
 def test_different_valid_worktree_is_not_a_generated_identity(tmp_path):
+    repo, sha, module_path = create_worktree_contract_repo(tmp_path)
     other = tmp_path / "other-valid-worktree"
-    sha = git(ROOT, "rev-parse", "HEAD").stdout.strip()
-    git(ROOT, "worktree", "add", "--detach", str(other), sha)
+    git(repo, "worktree", "add", "--detach", str(other), sha)
     try:
         script = f"""
 $ErrorActionPreference = 'Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module_path)}' -Force -DisableNameChecking
 try {{ Assert-GeneratedDetachedWorktreeIdentity -Path '{ps_quote(other)}' -ExpectedGitSha '{sha}' | Out-Null; $failed=$false }}
 catch {{ $failed=$true; $message=$_.Exception.Message }}
 [ordered]@{{failed_closed=$failed;message=$message}} | ConvertTo-Json -Compress
 """
-        result = run_powershell(script)
+        result = run_powershell(script, cwd=repo)
         assert result.returncode == 0, result.stdout + result.stderr
         payload = parse_last_json(result.stdout)
         assert payload["failed_closed"] is True
         assert "not registered" in payload["message"]
     finally:
-        git(ROOT, "worktree", "remove", "--force", str(other))
+        git(repo, "worktree", "remove", "--force", str(other))
 
 
 def test_sibling_prefix_confusion_is_rejected(tmp_path):
@@ -815,29 +823,30 @@ $results | ConvertTo-Json -Compress
 
 
 def test_cleanup_refuses_another_registered_worktree(tmp_path):
+    repo, sha, module_path = create_worktree_contract_repo(tmp_path)
     other = tmp_path / "other-registered-worktree"
-    sha = git(ROOT, "rev-parse", "HEAD").stdout.strip()
-    git(ROOT, "worktree", "add", "--detach", str(other), sha)
+    git(repo, "worktree", "add", "--detach", str(other), sha)
     try:
         script = f"""
 $ErrorActionPreference='Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module_path)}' -Force -DisableNameChecking
 try {{ Remove-DetachedWorktree -Path '{ps_quote(other)}'; $refused=$false }}
 catch {{ $refused=$true; $message=$_.Exception.Message }}
 [ordered]@{{refused=$refused;message=$message;exists=(Test-Path -LiteralPath '{ps_quote(other)}')}} | ConvertTo-Json -Compress
 """
-        result = run_powershell(script)
+        result = run_powershell(script, cwd=repo)
         payload = parse_last_json(result.stdout)
         assert payload["refused"] is True
         assert payload["exists"] is True
     finally:
-        git(ROOT, "worktree", "remove", "--force", str(other))
+        git(repo, "worktree", "remove", "--force", str(other))
 
 
 def test_cleanup_refuses_registered_reparse_substitution_and_then_recovers(tmp_path):
+    repo, _sha, module_path = create_worktree_contract_repo(tmp_path)
     script = f"""
 $ErrorActionPreference='Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module_path)}' -Force -DisableNameChecking
 $sha=(git rev-parse HEAD).Trim()
 $worktree=New-DetachedWorktree -GitSha $sha -Prefix 'go-odyssey-build-reparse-cleanup'
 $moved=$worktree + '-moved'
@@ -855,7 +864,7 @@ finally {{
 }}
 [ordered]@{{refused=$refused;message=$message;target_still_exists=$targetStillExists;final_removed=(-not (Test-Path -LiteralPath $worktree))}} | ConvertTo-Json -Compress
 """
-    result = run_powershell(script, timeout=90)
+    result = run_powershell(script, timeout=90, cwd=repo)
     assert result.returncode == 0, result.stdout + result.stderr
     payload = parse_last_json(result.stdout)
     assert payload["refused"] is True
@@ -865,9 +874,10 @@ finally {{
 
 
 def test_failed_git_worktree_removal_leaves_exact_directory_for_review(tmp_path):
+    repo, _sha, module_path = create_worktree_contract_repo(tmp_path)
     script = f"""
 $ErrorActionPreference='Stop'
-Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+Import-Module '{ps_quote(module_path)}' -Force -DisableNameChecking
 $sha=(git rev-parse HEAD).Trim()
 $worktree=New-DetachedWorktree -GitSha $sha -Prefix 'go-odyssey-build-locked-cleanup'
 git worktree lock $worktree
@@ -882,7 +892,7 @@ finally {{
 }}
 [ordered]@{{refused=$refused;message=$message;left_for_review=$leftForReview;final_removed=(-not (Test-Path -LiteralPath $worktree))}} | ConvertTo-Json -Compress
 """
-    result = run_powershell(script, timeout=90)
+    result = run_powershell(script, timeout=90, cwd=repo)
     assert result.returncode == 0, result.stdout + result.stderr
     payload = parse_last_json(result.stdout)
     assert payload["refused"] is True
@@ -915,6 +925,10 @@ $records | ConvertTo-Json -Compress
         ("scripts/release/package-static-release.ps1", "<script>"): (2, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "Invoke-BoundedSshCommand"): (2, "remote_context"),
         ("scripts/release/ReleaseTooling.psm1", "Invoke-BoundedScpUpload"): (1, "remote_context"),
+        # RELEASE-GATE-TIMEOUT-HARDENING-02: Git identity/worktree operations
+        # use the same bounded native runner so a timed-out checkout cannot
+        # strand the parent release process before cleanup runs.
+        ("scripts/release/ReleaseTooling.psm1", "Invoke-Git"): (1, "isolated_worktree_required"),
         ("scripts/release/deploy-release-image.ps1", "Get-RemoteCandidateFailureEvidence"): (1, "remote_context"),
         ("scripts/release/deploy-release-image.ps1", "Invoke-ProductionVerificationSeries"): (1, "explicit_local_context"),
         ("scripts/release/deploy-release-image.ps1", "<script>"): (1, "explicit_local_context"),

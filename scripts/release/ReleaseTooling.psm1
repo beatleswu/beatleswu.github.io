@@ -2,6 +2,64 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $script:GeneratedDetachedWorktrees = @{}
 
+function Initialize-WindowsPowerShellModulePath {
+    <#
+    Windows PowerShell 5.1 does not always rebuild PSModulePath when it is
+    launched from PowerShell 7.  In that situation the process inherits the
+    PowerShell 7 module roots and built-in Windows PowerShell cmdlets such as
+    Get-FileHash are not discoverable.  Release tooling is deliberately
+    allowed to repair only this child-process environment; it does not change
+    the host environment or any product/runtime source.
+    #>
+    $requiredRoots = @()
+    if (-not [string]::IsNullOrWhiteSpace($env:WINDIR)) {
+        $windowsRoot = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\Modules'
+        if (Test-Path -LiteralPath $windowsRoot -PathType Container) {
+            $requiredRoots += $windowsRoot
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:ProgramFiles)) {
+        $programFilesRoot = Join-Path $env:ProgramFiles 'WindowsPowerShell\Modules'
+        if (Test-Path -LiteralPath $programFilesRoot -PathType Container) {
+            $requiredRoots += $programFilesRoot
+        }
+    }
+    $currentRoots = @()
+    if (-not [string]::IsNullOrWhiteSpace($env:PSModulePath)) {
+        $currentRoots = @($env:PSModulePath -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+    $orderedRoots = @()
+    $known = @{}
+    foreach ($root in @($requiredRoots) + @($currentRoots)) {
+        $key = $root.ToLowerInvariant()
+        if (-not $known.ContainsKey($key)) {
+            $known[$key] = $true
+            $orderedRoots += $root
+        }
+    }
+    if (($orderedRoots -join ';') -ne $env:PSModulePath) {
+        $env:PSModulePath = ($orderedRoots -join ';')
+    }
+    if (-not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {
+        $utilityManifest = $null
+        foreach ($root in $requiredRoots) {
+            $candidate = Join-Path $root 'Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1'
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $utilityManifest = $candidate
+                break
+            }
+        }
+        if ($utilityManifest) {
+            Import-Module $utilityManifest -Force -ErrorAction Stop
+        }
+        else {
+            Import-Module Microsoft.PowerShell.Utility -Force -ErrorAction Stop
+        }
+    }
+}
+
+Initialize-WindowsPowerShellModulePath
+
 function Get-RepoRoot {
     return (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 }
@@ -36,65 +94,36 @@ function Invoke-Git {
     param(
         [Parameter(Mandatory = $true)]
         [string[]]$Arguments,
-        [string]$WorkingDirectory = (Get-RepoRoot)
+        [string]$WorkingDirectory = (Get-RepoRoot),
+        [int]$TimeoutSeconds = 120
     )
-    Push-Location $WorkingDirectory
-    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("go-odyssey-git-stderr-" + [guid]::NewGuid().ToString('N') + '.log')
-    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("go-odyssey-git-stdout-" + [guid]::NewGuid().ToString('N') + '.log')
-    try {
-        # Git writes normal progress such as `Preparing worktree...` to stderr.
-        # PowerShell 5 promotes native stderr to NativeCommandError when the
-        # module-wide ErrorActionPreference is Stop. Keep stderr separate and
-        # judge success only by git's actual process exit code.
-        # Do not invoke git through PowerShell's native-command pipeline here.
-        # Windows PowerShell 5.1 can surface redirected native stderr as a
-        # NativeCommandError in the caller's ErrorActionPreference=Stop scope,
-        # even when the process exits successfully.  ProcessStartInfo keeps
-        # stdout/stderr as data and makes the exit code authoritative.
-        $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = 'git.exe'
-        $psi.WorkingDirectory = $WorkingDirectory
-        $psi.UseShellExecute = $false
-        $psi.CreateNoWindow = $true
-        $psi.RedirectStandardOutput = $true
-        $psi.RedirectStandardError = $true
-        $psi.Arguments = (($Arguments | ForEach-Object {
-            if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\\"') + '"' } else { $_ }
-        }) -join ' ')
-        $process = New-Object System.Diagnostics.Process
-        $process.StartInfo = $psi
-        $process.Start() | Out-Null
-        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-        $stderrTask = $process.StandardError.ReadToEndAsync()
-        $process.WaitForExit()
-        $stdout = ($stdoutTask.GetAwaiter().GetResult().TrimEnd("`r", "`n")) -split "`r?`n"
-        $stderr = $stderrTask.GetAwaiter().GetResult()
-        $exitCode = $process.ExitCode
-        $stdout | Set-Content -LiteralPath $stdoutPath -Encoding UTF8
-        $stderr | Set-Content -LiteralPath $stderrPath -Encoding UTF8
-        $stderr = if (Test-Path -LiteralPath $stderrPath) {
-            Get-Content -Raw -LiteralPath $stderrPath
-        }
-        else {
-            ''
-        }
-        if (-not [string]::IsNullOrWhiteSpace($stderr)) {
-            Write-Host $stderr.TrimEnd()
-        }
-        if ($exitCode -ne 0) {
-            $diagnostic = $stderr.Trim()
-            if ([string]::IsNullOrWhiteSpace($diagnostic)) {
-                $diagnostic = ($stdout -join [Environment]::NewLine).Trim()
-            }
-            throw "git $($Arguments -join ' ') failed with exit code $exitCode`: $diagnostic"
-        }
-        return $stdout
+    # Invoke-BoundedNativeCommand is defined later in this module and is
+    # resolved when this function is called.  Routing every Git operation
+    # through it prevents a blocked worktree/index operation from defeating
+    # the release runner's outer timeout and leaves the caller able to run
+    # its normal finally cleanup.
+    $result = Invoke-BoundedNativeCommand `
+        -FileName 'git.exe' `
+        -ArgumentList $Arguments `
+        -WorkingDirectory $WorkingDirectory `
+        -RequireWorkingDirectory `
+        -TimeoutSeconds $TimeoutSeconds `
+        -OperationLabel 'git command'
+    if (-not [string]::IsNullOrWhiteSpace([string]$result.stderr)) {
+        Write-Host ([string]$result.stderr).TrimEnd()
     }
-    finally {
-        Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
-        Pop-Location
+    if ($result.exit_code -ne 0) {
+        $diagnostic = ([string]$result.stderr).Trim()
+        if ([string]::IsNullOrWhiteSpace($diagnostic)) {
+            $diagnostic = ([string]$result.stdout).Trim()
+        }
+        throw "git $($Arguments -join ' ') failed with exit code $($result.exit_code)`: $diagnostic"
     }
+    $stdout = [string]$result.stdout
+    if ([string]::IsNullOrWhiteSpace($stdout)) {
+        return @()
+    }
+    return @($stdout -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 }
 
 function Get-SafeFirstOutputLine {
@@ -295,9 +324,45 @@ function Get-GitCommonDirectory {
 }
 
 function Get-RegisteredGitWorktreePaths {
-    return @(Invoke-Git -Arguments @('worktree', 'list', '--porcelain') | Where-Object { $_ -like 'worktree *' } | ForEach-Object {
-        Get-CanonicalFilesystemPath -Path $_.Substring('worktree '.Length) -Label 'Registered Git worktree path'
-    })
+    # `git worktree list --porcelain` walks every linked worktree and can
+    # remain in an initializing/locked state when a timed-out child was
+    # interrupted.  Cleanup only needs the linked-worktree identities, which
+    # Git records one-per-entry in the common .git/worktrees metadata.  Read
+    # those exact gitdir files directly so one damaged/slow foreign entry
+    # cannot prevent cleanup of this operation's own generated path.
+    $commonDirectory = Get-GitCommonDirectory -WorkingDirectory (Get-RepoRoot)
+    $metadataRoot = Join-Path $commonDirectory 'worktrees'
+    if (-not [System.IO.Directory]::Exists($metadataRoot)) {
+        return @()
+    }
+    $paths = @()
+    foreach ($metadata in @(Get-ChildItem -LiteralPath $metadataRoot -Directory -Force -ErrorAction SilentlyContinue)) {
+        $gitdirFile = Join-Path $metadata.FullName 'gitdir'
+        if (-not [System.IO.File]::Exists($gitdirFile)) {
+            continue
+        }
+        try {
+            $gitdir = ([System.IO.File]::ReadAllText($gitdirFile)).Trim()
+            if ([string]::IsNullOrWhiteSpace($gitdir)) {
+                continue
+            }
+            if (-not [System.IO.Path]::IsPathRooted($gitdir)) {
+                $gitdir = Join-Path $metadata.FullName $gitdir
+            }
+            $gitdir = [System.IO.Path]::GetFullPath($gitdir)
+            $worktreeDirectory = [System.IO.Directory]::GetParent($gitdir)
+            if ($null -eq $worktreeDirectory) {
+                continue
+            }
+            $paths += Get-CanonicalFilesystemPath -Path $worktreeDirectory.FullName -Label 'Registered Git worktree path'
+        }
+        catch {
+            # A malformed or inaccessible foreign registration is not an
+            # authorization to touch it.  Leave it out and let exact-path
+            # cleanup fail closed if its own identity cannot be resolved.
+        }
+    }
+    return @($paths)
 }
 
 function Assert-DetachedWorktreeIdentity {
@@ -453,6 +518,71 @@ function Assert-GovernedBuildChildIdentity {
     return $validatedRoot
 }
 
+function Remove-PartiallyCreatedDetachedWorktree {
+    <#
+    Best-effort rollback for a worktree whose `git worktree add` or immediate
+    identity check failed before the normal generated-worktree ledger could be
+    populated.  The caller supplies the exact generated leaf and parent; all
+    checks stay within that one task-owned path.  A reparse-point substitution
+    or an unresolved Git registration is deliberately left for review.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ExpectedParent,
+        [Parameter(Mandatory = $true)][string]$Prefix,
+        [Parameter(Mandatory = $true)][string]$RepositoryRoot
+    )
+    try {
+        $candidate = Get-CanonicalFilesystemPath -Path $Path -Label 'Partial cleanup worktree path'
+        $parent = Get-CanonicalFilesystemPath -Path $ExpectedParent -Label 'Partial cleanup parent path'
+        $candidateParent = Get-CanonicalFilesystemPath -Path ([System.IO.Directory]::GetParent($candidate).FullName) -Label 'Partial cleanup parent path'
+        if (-not (Test-CanonicalPathEqual -Left $candidateParent -Right $parent)) { return }
+        $leaf = [System.IO.Path]::GetFileName($candidate)
+        $expectedLeafPattern = '^{0}-[0-9a-f]{{32}}$' -f [regex]::Escape($Prefix)
+        if ($leaf -notmatch $expectedLeafPattern) { return }
+        if ([System.IO.Directory]::Exists($candidate)) {
+            $attributes = [System.IO.File]::GetAttributes($candidate)
+            if (($attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { return }
+        }
+
+        $registered = @()
+        try {
+            $registered = @(Get-RegisteredGitWorktreePaths | Where-Object {
+                Test-CanonicalPathEqual -Left $_ -Right $candidate
+            })
+        }
+        catch {
+            return
+        }
+        if ($registered.Count -gt 1) { return }
+        if ($registered.Count -eq 1) {
+            try {
+                Invoke-Git -Arguments @('worktree', 'remove', '--force', '--force', '--', $candidate) -WorkingDirectory $RepositoryRoot -TimeoutSeconds 120 | Out-Null
+            }
+            catch {
+                return
+            }
+            $registeredAfter = @()
+            try {
+                $registeredAfter = @(Get-RegisteredGitWorktreePaths | Where-Object {
+                    Test-CanonicalPathEqual -Left $_ -Right $candidate
+                })
+            }
+            catch {
+                return
+            }
+            if ($registeredAfter.Count -ne 0) { return }
+        }
+        if ([System.IO.Directory]::Exists($candidate)) {
+            Remove-Item -LiteralPath $candidate -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    catch {
+        # Cleanup must never turn a precise create failure into an unsafe broad
+        # deletion.  The exact generated path remains for manual review.
+    }
+}
+
 function New-DetachedWorktree {
     param(
         [Parameter(Mandatory = $true)][string]$GitSha,
@@ -463,21 +593,40 @@ function New-DetachedWorktree {
     }
     $expectedParent = Assert-NoReparsePointPath -Path ([System.IO.Path]::GetTempPath()) -Label 'Generated worktree parent path'
     $worktree = Get-CanonicalFilesystemPath -Path (Join-Path $expectedParent ("{0}-{1}" -f $Prefix, ([guid]::NewGuid().ToString('N')))) -Label 'Generated worktree path'
-    Invoke-Git -Arguments @('worktree', 'add', '--detach', $worktree, $GitSha) | Out-Null
-    $resolvedSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $worktree)
-    $script:GeneratedDetachedWorktrees[$worktree.ToLowerInvariant()] = [ordered]@{
-        path = $worktree
-        parent = $expectedParent
-        prefix = $Prefix
-        expected_sha = $resolvedSha
-        repository_root = Get-CanonicalFilesystemPath -Path (Get-RepoRoot) -Label 'Repository root'
-        git_common_directory = Get-GitCommonDirectory -WorkingDirectory (Get-RepoRoot)
-    }
+    $repositoryRoot = Get-CanonicalFilesystemPath -Path (Get-RepoRoot) -Label 'Repository root'
     try {
+        # Worktree materialization is the one Git operation whose duration is
+        # dominated by the shared repository's linked-worktree registry.  The
+        # measured quiet-host registry currently contains 1,285 entries and
+        # exceeds the historical 180s caller envelope.  Keep the operation
+        # bounded, but give this create step the existing 600s upper bound so
+        # a slow checkout can finish and the caller's normal finally cleanup
+        # remains reachable.  All identity and cleanup calls retain their
+        # shorter explicit/default bounds.
+        Invoke-Git -Arguments @('worktree', 'add', '--detach', $worktree, $GitSha) -WorkingDirectory $repositoryRoot -TimeoutSeconds 600 | Out-Null
+        $resolvedSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $worktree)
+        $script:GeneratedDetachedWorktrees[$worktree.ToLowerInvariant()] = [ordered]@{
+            path = $worktree
+            parent = $expectedParent
+            prefix = $Prefix
+            expected_sha = $resolvedSha
+            repository_root = $repositoryRoot
+            git_common_directory = Get-GitCommonDirectory -WorkingDirectory $repositoryRoot
+        }
         return Assert-GeneratedDetachedWorktreeIdentity -Path $worktree -ExpectedGitSha $resolvedSha
     }
     catch {
-        Remove-DetachedWorktree -Path $worktree
+        $key = $worktree.ToLowerInvariant()
+        if ($script:GeneratedDetachedWorktrees.ContainsKey($key)) {
+            try { Remove-DetachedWorktree -Path $worktree } catch {}
+        }
+        else {
+            Remove-PartiallyCreatedDetachedWorktree `
+                -Path $worktree `
+                -ExpectedParent $expectedParent `
+                -Prefix $Prefix `
+                -RepositoryRoot $repositoryRoot
+        }
         throw
     }
 }
@@ -524,7 +673,7 @@ function Remove-DetachedWorktree {
     if ($head -ne $record.expected_sha) {
         throw "Cleanup refused: worktree HEAD does not match its generated identity."
     }
-    Invoke-Git -Arguments @('worktree', 'remove', '--force', '--', $candidate) -WorkingDirectory $record.repository_root | Out-Null
+    Invoke-Git -Arguments @('worktree', 'remove', '--force', '--', $candidate) -WorkingDirectory $record.repository_root -TimeoutSeconds 120 | Out-Null
     if ([System.IO.Directory]::Exists($candidate)) {
         throw "Governed Git worktree removal did not remove the exact path; directory left for manual review."
     }
