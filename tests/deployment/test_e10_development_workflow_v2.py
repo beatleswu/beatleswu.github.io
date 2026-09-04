@@ -302,7 +302,15 @@ def test_current_canonical_r2a_history_is_accepted(tmp_path: Path) -> None:
     )
     assert cloned.returncode == 0, cloned.stderr or cloned.stdout
     checked_out = run_bounded(
-        ["git", "checkout", "--quiet", "--detach", canonical],
+        [
+            "git",
+            "-c",
+            "core.longpaths=true",
+            "checkout",
+            "--quiet",
+            "--detach",
+            canonical,
+        ],
         cwd=fixture,
         capture_output=True,
         text=True,
