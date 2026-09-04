@@ -28,6 +28,17 @@ INTEGRATION_PATHS = {
     "tests/test_w1_03_journey_zone3_final_presentation_single_writer_binding_010.py",
     "docs/planning/w1_zone3_final_presentation_candidate_inventory_010.json",
 }
+# Narrow allowlist for the accepted 010A runtime-defect closure. These paths
+# are deliberately enumerated rather than allowing a broad audio/runtime
+# subtree, so this historical lane guard remains a scope assertion.
+RUNTIME_DEFECT_RECONCILIATION_PATHS = {
+    "js/e9/adapters/activity_state.js",
+    "srs.js",
+    "tests/e2e/run_e10_replay_story_button_real_click.mjs",
+    "tests/e2e/run_e9_fetch_contract.mjs",
+    "tests/e2e/run_e9_layout_contract.mjs",
+    "tests/test_e10_replay_story_button_hotfix.py",
+}
 CONTENT = ROOT / "js" / "e9" / "journey_zone3_vertical_slice_content.js"
 CONTROLLER = ROOT / "js" / "e9" / "journey_zone3_vertical_slice.js"
 VIEW = ROOT / "js" / "e9" / "journey_zone3_vertical_slice_view.js"
@@ -57,7 +68,7 @@ def accepted_authority_paths() -> set[str]:
             check=True,
         )
         paths.update(item.replace("\\", "/") for item in result.stdout.splitlines() if item)
-    return paths | INTEGRATION_PATHS
+    return paths | INTEGRATION_PATHS | RUNTIME_DEFECT_RECONCILIATION_PATHS
 
 
 def git_paths(*args: str) -> set[str]:
