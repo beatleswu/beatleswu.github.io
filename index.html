@@ -13081,6 +13081,9 @@ function _registerZone3PresentationLifecycleCleanup() {
             _zone3PresentationCleanupGeneration = null;
         }
         _stopIntroFilm();
+        _zoneCinematicPresentationOnly = false;
+        _zoneCinematicAdvanceSegment = null;
+        _zoneCinematicSequenceRunId += 1;
         const overlay = document.getElementById('boss-cinematic');
         if (overlay && overlay.dataset.zone3EntryFlow === 'true') {
             overlay.className = 'boss-cinematic';
@@ -17980,7 +17983,10 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
     _registerZone3PresentationLifecycleCleanup();
     const slot = _zone3CinematicSlotForPhase(phase);
     const presentationOnly = opts.presentationOnly === true;
+    let begun = false;
     const begin = () => {
+        if (begun) return;
+        begun = true;
         delete overlay.dataset.zone3AudioGesturePending;
         overlay.dataset.zone3Presentation = 'world_manifest';
         overlay.dataset.zone3EntryFlow = phase === 'pre_play' ? 'true' : 'false';
@@ -17988,7 +17994,10 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
         overlay.dataset.assetSlot = slot;
         overlay.dataset.assetStatus = 'READY';
         const btn = document.getElementById('boss-cinematic-btn');
-        if (btn) btn.disabled = true;
+        if (btn) {
+            btn.disabled = true;
+            btn.onclick = null;
+        }
         if (typeof opts.onStarted === 'function') opts.onStarted();
         void playNewbieVillageIntroFilm(zone, {
             timeline,
@@ -18023,12 +18032,17 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
     const line = document.getElementById('boss-cinematic-line');
     if (line) line.textContent = I18n.t('index.film.audio_gesture_required');
     const btn = document.getElementById('boss-cinematic-btn');
-    if (btn) {
+    const installExplicitGesture = () => {
+        if (begun || _introFilmRunId !== pendingRunId
+            || overlay.dataset.zone3AudioGesturePending !== phase) return;
+        if (!btn) return;
         btn.disabled = false;
         btn.textContent = I18n.t('index.film.replay');
         btn.onclick = async () => {
+            if (begun) return;
             btn.disabled = true;
             await _unlockIntroAudioFromGesture();
+            if (begun) return;
             if (!_introAudioUnlocked) {
                 btn.disabled = false;
                 if (line) line.textContent = I18n.t('index.film.audio_gesture_required');
@@ -18036,6 +18050,32 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
             }
             begin();
         };
+    };
+    // A real Replay Story click already supplied the media gesture to
+    // _unlockIntroAudioFromGesture(), but the reusable media elements settle
+    // asynchronously.  Continue through the same bridge once that exact
+    // unlock completes instead of requiring a second click.  Automatic
+    // presentation triggers do not pass this option and retain the existing
+    // explicit prompt behavior.
+    const pendingUnlock = opts.audioUnlockPromise;
+    const pendingRunId = _introFilmRunId;
+    if (pendingUnlock && typeof pendingUnlock.then === 'function') {
+        if (btn) {
+            btn.disabled = true;
+            btn.onclick = null;
+        }
+        const continueAfterPendingUnlock = () => {
+            if (begun || pendingRunId !== _introFilmRunId
+                || overlay.dataset.zone3AudioGesturePending !== phase) return;
+            // Replay is presentation-only.  The originating click has
+            // already supplied the gesture; muted media priming is best
+            // effort and must never strand the visual sequence when a
+            // browser rejects one optional bed or voice asset.
+            begin();
+        };
+        void Promise.resolve(pendingUnlock).then(continueAfterPendingUnlock, continueAfterPendingUnlock);
+    } else {
+        installExplicitGesture();
     }
     return false;
 }
@@ -18348,7 +18388,7 @@ function _playZoneCinematicSequence(zone, segments, opts = {}) {
         document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
         const btn = document.getElementById('boss-cinematic-btn');
         if (btn) btn.disabled = true;
-        const started = _startZoneCinematicSegment(zone, segment, advance);
+        const started = _startZoneCinematicSegment(zone, segment, advance, opts);
         if (started === false) {
             // The gesture bridge is now waiting on the player; it will resume
             // this same chain from its own begin() via onComplete.
@@ -18361,7 +18401,7 @@ function _playZoneCinematicSequence(zone, segments, opts = {}) {
 
 // Starts one segment. Returns false when playback is deferred behind an
 // explicit audio gesture, in which case the bridge owns the continuation.
-function _startZoneCinematicSegment(zone, segment, onComplete) {
+function _startZoneCinematicSegment(zone, segment, onComplete, sequenceOptions = {}) {
     const opts = {
         timeline: segment.timeline,
         phase: segment.phase,
@@ -18374,6 +18414,7 @@ function _startZoneCinematicSegment(zone, segment, onComplete) {
         return _startZone3CinematicWithGesture(zone, {
             ...opts,
             presentationOnly: _zoneCinematicPresentationOnly,
+            audioUnlockPromise: sequenceOptions.audioUnlockPromise,
         });
     }
     void playNewbieVillageIntroFilm(zone, opts);
@@ -18393,8 +18434,12 @@ function playZoneStoryReplay(zoneKey) {
     if (!model || !zone) return false;
     const sequence = model.replaySequence(zone);
     if (!sequence.length) return false;
+    const replayOptions = arguments[1] && typeof arguments[1] === 'object'
+        ? arguments[1]
+        : {};
     return _playZoneCinematicSequence(zone, sequence, {
         presentationOnly: true,
+        audioUnlockPromise: replayOptions.audioUnlockPromise,
         onComplete: () => _finishZoneCinematicReplay(zone),
     });
 }

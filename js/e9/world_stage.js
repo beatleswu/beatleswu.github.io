@@ -1006,11 +1006,20 @@
     var state = root && root.__e9WorldStageState;
     if (state && state.authorityUnavailable) return false;
     if (!zoneStoryReplayAvailable(zoneKey)) return false;
+    var audioUnlockPromise = null;
     if (typeof window._unlockIntroAudioFromGesture === 'function') {
-      try { window._unlockIntroAudioFromGesture(); } catch (error) { /* best-effort priming only */ }
+      try {
+        // Keep the promise created by this real click so the existing
+        // Zone-specific gesture bridge can continue the same replay after
+        // reusable media priming settles.  Fire-and-forget priming leaves a
+        // Zone 3 replay stranded at the audio-gesture-pending screen.
+        audioUnlockPromise = window._unlockIntroAudioFromGesture();
+      } catch (error) { /* best-effort priming only */ }
     }
     var api = window.E10Cinematic;
-    if (api && typeof api.playStoryReplay === 'function' && api.playStoryReplay(zoneKey)) {
+    if (api && typeof api.playStoryReplay === 'function' && api.playStoryReplay(zoneKey, {
+      audioUnlockPromise: audioUnlockPromise,
+    })) {
       return true;
     }
     // Narrow fail-safe: only reached when the E10Cinematic model itself is
