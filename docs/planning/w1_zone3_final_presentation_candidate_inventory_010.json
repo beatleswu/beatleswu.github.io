@@ -1,0 +1,2881 @@
+{
+  "SCHEMA_VERSION": "W1_ZONE3_FINAL_PRESENTATION_CANDIDATE_INVENTORY_V1",
+  "TASK": "W1_03_JOURNEY_ZONE3_FINAL_PRESENTATION_SINGLE_WRITER_BINDING_010",
+  "CANDIDATE_BASE": "616d51b17abe010de1e862382ca4db7bec65936f",
+  "CANDIDATE_BASE_TREE": "f3882ecee3980d310817096e3a15bc469683e9cd",
+  "AUTHORITIES": {
+    "WORLD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+    "HERO": "15cd275b8f4992c30e93d874c45244d87909d334",
+    "JOURNEY": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+    "SYSTEMS": "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf"
+  },
+  "INTEGRATION_LANE": "JOURNEY_SINGLE_WRITER_010",
+  "INTEGRATION_PATHS": [
+    "js/e9/journey_zone3_presentation_audio.js",
+    "sound.js",
+    "tests/e2e/fixtures/w1_03_journey_zone3_final_presentation_single_writer_binding_010.html",
+    "tests/e2e/run_w1_03_journey_zone3_final_presentation_single_writer_binding_010.mjs",
+    "tests/test_w1_03_journey_zone3_final_presentation_single_writer_binding_010.py"
+  ],
+  "SELF_RECORDING": "EXCLUDED_TO_AVOID_CIRCULAR_HASH",
+  "PATH_COUNT": 351,
+  "OVERLAP_PATH_COUNT": 22,
+  "BYTE_IDENTICAL_OVERLAP_COUNT": 22,
+  "AUTHORIZED_SUCCESSOR_OVERLAP_COUNT": 0,
+  "UNRESOLVED_OVERLAP_COUNT": 0,
+  "UNRELATED_SOURCE_PATH_COUNT": 0,
+  "ENTRIES": [
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot01_moving_refugees_owner_approved.jpeg",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "381d94c09d1d37d921c461e3f6c80b9a37ba92ed0d63581e9015ac53440e470f",
+      "BYTES": 545655,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot02_household_belongings_owner_approved.jpeg",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "f2af78399c1603ba1df453f5efb9df22f344999d9fe6721ebeb418527155bbc0",
+      "BYTES": 663920,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot03_meet_grik_owner_approved.jpeg",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "e7c08c827f213b3adc9db24ce419282d747cbfd7ee2ca08fbf2c4cfd32dad1a2",
+      "BYTES": 621107,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot04_shrinking_living_space_owner_approved.jpeg",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "bd4f1b818e49aa976a20cd82c5d48fef77c569c70ba23e4407942b50adb85a67",
+      "BYTES": 591629,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot05_blocked_water_route_owner_approved.jpeg",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "f7261e5f42545327bb5960aec2d38f049ffba0cb94c11d405e2f2ac81d2d4f4f",
+      "BYTES": 711516,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot06_last_door_centurion_owner_approved.jpeg",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "9309ba5bd565007a30666a018c904321df43d64baeeee3ac0286016dd4a8ab15",
+      "BYTES": 619999,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot07_lord_trial_challenge_owner_approved.png",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "e861ef571c3b46ba7e8b93839da472a390ee8a9a25784cf860564a1c1627950f",
+      "BYTES": 2545852,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot08_fragile_truce_owner_approved.png",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "ffecac99714b6f936df6e95aaccd4287f64bda73eeedf224bdcb7e93641edab2",
+      "BYTES": 2527541,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot09_stone_shard_handoff_owner_approved.jpeg",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "573e29b1176182705847dfbf89dc1cceff686567187a6514f6e8fe213b861344",
+      "BYTES": 557654,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot10_mist_forest_hook_owner_approved.jpeg",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "06b276012e83971631a8ac352ba07325938bb06f61be3a49f6050314084e6646",
+      "BYTES": 569654,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "0f9dc58d7cfe203018d96773da518073f33c596f89e4c1e011b1035a9993055f",
+      "BYTES": 31056,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot01.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "f689f568dc501452b6c00212d5cec50d341ef2ba5b6059ddb23ebaeebe8eeb8c",
+      "BYTES": 293626,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot02.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "66dd93e017fa3f20e1e24f7deb1c7375da969384062d4987a7cad83f2d67cda6",
+      "BYTES": 317118,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot03.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "904d21f0f753eff5f3858d2f1a8c735c18ad35f96be61825977de1ad63180cc1",
+      "BYTES": 299144,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot04.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "0dc20e776ec12dfe79aed8a988dbe3c7597982354885175a098871e9fda7e431",
+      "BYTES": 272796,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot05.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "ae506cfa36b766ff94fe0e3cdf690e9da9d9d1231b1eeecaf0db46f90c1d20e9",
+      "BYTES": 414592,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot06.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "7722c6fe21d066ae6063072ba9e4c7c8e1df91f079711169d904506cc62af065",
+      "BYTES": 298992,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot07.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "c1bee63b305635ec4e65b52dc18424b92dddb3c895c38d3582275fccf4f2f780",
+      "BYTES": 1679490,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot08.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "7209bca8197b18dd498936caeb7d774051fa2733ddce3d7ec45a6cefd43ff238",
+      "BYTES": 1567524,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot09.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "b6d7456a485499f1ef25a32d23ca48ea70402aecb09912157f5d2994d09e739c",
+      "BYTES": 242272,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/cinematic/zone3_shot10.webp",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "159b843ac507b814dcec91eb020d9dd45d4513de4aa0100d693d4d981f8da7e4",
+      "BYTES": 241688,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/art/zone3/environment/source/1-照片-1.jpg",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "4c8b7f54578da1aee95eaf3bfb94f532af86d4167caec2105d112ed5716671b0",
+      "BYTES": 438330
+    },
+    {
+      "PATH": "assets/e10/art/zone3/environment/source/2-照片-2.jpg",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "dd40a804bbff23011cf682fbf2d3cd269b6ce30c73f093693fbea00929dd6d2e",
+      "BYTES": 331814
+    },
+    {
+      "PATH": "assets/e10/art/zone3/environment/zone3_environment_master.webp",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "d4c1de8f3e40305f490b52cfcafcca2fced018329fb3ec3e84443cc340b25862",
+      "BYTES": 144274
+    },
+    {
+      "PATH": "assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "c391799949568706ee58458421e1ec4c71161d5e3c71a8004ba2485a04e98db6",
+      "BYTES": 31410
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_01_ritual_key_art.png",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "fa98c1fc2ccc351c37958a99e71da7f037bf967e8b4f948580a57424f0f314ee",
+      "BYTES": 2772851
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_01_ritual_key_art.webp",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "0cadd81786f9fc76d2555917aca28bffd48326fd76298521e15dddac23cff423",
+      "BYTES": 2075572
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_02_challenge_backplate.png",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "ea7d18554be39c956f374f7802006d1b4ffa2cb2958e661e8ebe3efc627c3704",
+      "BYTES": 2738874
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_02_challenge_backplate.webp",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "8c465f2f24a8adb15b81b40d2da5ce6bf16b5b73596ca9b4aa12d86163eee2d3",
+      "BYTES": 1881166
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_03_failure_backplate.png",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "9749b28e968e748adf578b32e5a5ff629deb69d1cbdb5321a69869f4dbad1c56",
+      "BYTES": 2548784
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_03_failure_backplate.webp",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "73e5760c120f0c3bc0a4b720b7fbc096c6c1abb3d0d1c29a64c52b2d8f4aed0c",
+      "BYTES": 1767826
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_04_first_star_success_backplate.png",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "30aded5b2adf5cf113b72d14fe111a91e16295ea58f5314ef8fba79b72133be5",
+      "BYTES": 2656817
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_04_first_star_success_backplate.webp",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "4cd9570539bf9253da800031c78465f90f18119db85654ced2375a181a15898f",
+      "BYTES": 1953140
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_05_lord_portrait.png",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "cbcdda5c6c51f7f0d664710bd5ef15cd28601f6046c585670fcee753c9b1ce8c",
+      "BYTES": 2584114
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_05_lord_portrait.webp",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "18f157d094d3f5bf5807400def5738f43cefa3a5db1b443c71ed18c83edbe35e",
+      "BYTES": 1787506
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_06_success_lord_portrait.png",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "759dbcc871bf551d5ba63bbfbefad730d5be6293c7d4df57f37781613c40368a",
+      "BYTES": 2353639
+    },
+    {
+      "PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_06_success_lord_portrait.webp",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_ASSET",
+      "SHA256": "13b4437bd72de85d51ba377264cdb8a11bac40b8e21d3e475cb511b4f19e7827",
+      "BYTES": 1685000
+    },
+    {
+      "PATH": "assets/e10/art/zone3/zone3-world-asset-package.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "016bd9e810fe4f4abc841210d0cd825cd1da2cc3be598bf057b44fa143dbd4c4",
+      "BYTES": 22652,
+      "OVERLAP_CLASSIFICATION": "BYTE_IDENTICAL",
+      "FINAL_AUTHORITY": "JOURNEY"
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/ambience/zone3_ambience_cave_room_tone.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "088d40fe0025ea9c268848a8fdc07fef3edb1f4850a83bc64c9eab228ea9a946",
+      "BYTES": 193141
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/ambience/zone3_ambience_distant_cave_wind.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2c92a9fdc2a7fd8de400a10dc454f7d87be1b3c932bc21b2a9f11f806bc93073",
+      "BYTES": 193141
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/ambience/zone3_ambience_family_activity.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "8c6d0f185fce429f6c491e507c461a16e0e65a38fe42dea5d6f59bf9ec9caaa7",
+      "BYTES": 193141
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/ambience/zone3_ambience_fragile_truce.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5b037d1f9eedfacbcf599697baff32b6bb06332a27dbe4dc1298693efa7ab84f",
+      "BYTES": 193141
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/ambience/zone3_ambience_trial_tension.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "ef3a82737d70081561604ed3c9913c48ea60d2b19b4f4d56c5952388371b6125",
+      "BYTES": 193141
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/bgm/zone3_bgm_discovery.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "47d9c6040103ba696d543586636469895b756bd52bc579c56662481874d93d82",
+      "BYTES": 479862
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/bgm/zone3_bgm_escalation.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "41885ce8cb22b1311c982894ff0d3850bc73ff37071b6707d039b779e373c97a",
+      "BYTES": 479862
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/bgm/zone3_bgm_recovery.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b005fe788623b394fcb68f72998c470164c9b69c96bac355e04314f9044851a5",
+      "BYTES": 480698
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot01_b001_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "0ae7ef3bb19518ed12a9abd336e41ea998f1ae23766a81e71341181d325176b1",
+      "BYTES": 53542
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot01_b002_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5dff45995f81a777010583f00c2a41d65ace9c7e17255fe1ebdbfe56225c06c4",
+      "BYTES": 82799
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot01_b003_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "a9c7500b81ae4f3cfcf5d96efb9f05920f78c2f5ec65ca0096acfcb0925ee460",
+      "BYTES": 29301
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot01_b004_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "425cfb1f38adc41dfc84ad93e02c68273e7afe6fbd319cc05f79b94755402211",
+      "BYTES": 39332
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b001_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "7b3d53e273c326f58aece1218f82e48af8949789fdc887e8c7c0624c7a3e2bb2",
+      "BYTES": 20106
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b002_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "62215c19c7fb2f7656b7efe19b16aa2e826bc64c9c6e05f85ceaa1f663f4ab21",
+      "BYTES": 72768
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b003_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "db0a203ebc93151203775e81069c5d53820598073f8c8d75c40f552428ea4a00",
+      "BYTES": 41839
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b004_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "4335ef1b8e55342a722466c9ed5c927878610bd6ff1f6ea9461551699ee7ec10",
+      "BYTES": 40586
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b005_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "bd7ca0b0ed94a70432b0e9ddd6c2ed2a1385589f5c784a3d1f7e040a023020ee",
+      "BYTES": 61066
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b001_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "0d7532cf17a29efcee7e7624b48207a91da697e7a88439483c083a0b4dc07df3",
+      "BYTES": 21359
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b002_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "661346aeacd8ee62094a1441b797bde0e5baa437b53c0108103d3361bf30c58a",
+      "BYTES": 33062
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b003_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "8470a2605b1a1cfdf7bb83ae08d1672f6fa4aa05012585da73fa9e9989e99140",
+      "BYTES": 63991
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b004_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "96d7fe2f813db7ec43d7165d83556dd59b5ce32f23cbed0337a3f4a670083e0e",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b005_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5d72d0bdd5fe51ee3256ad65a1dfb3bda5d82a05e98c213a5a86b9a98febbb43",
+      "BYTES": 38078
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b006_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "cccbd6e1aed5537c2d60479a2cae5293a78171936ad0ce6c4b0815b638816347",
+      "BYTES": 21359
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b007_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b4ad5ecda6ea0ad9776f2480056a7013ddf4ad6c1a603956021dcca18c74eae1",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b008_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "4d3ecb6e153a3fe5191f4cbcf63cd135d0b320856f801e3c4b7292d443f7812b",
+      "BYTES": 36824
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b009_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "6556864fa4dae9e8a4a6e97247973466853b983734a0a17591cdf3e423d33fec",
+      "BYTES": 57304
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b010_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "75d95aaa6800a00c85b6f6afe71892e2a7dd6041d274074f3c706ac3e3461535",
+      "BYTES": 12582
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b011_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "0d559d7ee432ea4dbfdf042a9f33ee8aae3a8e2acacd75dbdcee4f90981fadc2",
+      "BYTES": 65245
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b001_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b82520dc99c13ecd6989d502ccc115a3d43320cb264d53366fbd32450464631e",
+      "BYTES": 44765
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b002_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f348594e7fa3bf9a7344a37f17002c444c17a2f8443070b310f5595e1bf2d360",
+      "BYTES": 58558
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b003_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "47e2fb72f7cf87ac59cdb2f115117a7004193b294ef76b63e8f035d38612e2a0",
+      "BYTES": 31808
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b004_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "dd1beb46ae2e8b2e6b9a096d3cb65adb0eb07941944c88611ff39c785d902ee9",
+      "BYTES": 26793
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b005_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "126201650ac4f7c90c74664812d5f720749aefe6ad589d0891d8a8be01b9fe7b",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b006_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5b3a7ae354db033a285fa68a7620e7277f84e5b11e0a31ae001822e23a80d3ca",
+      "BYTES": 44765
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b007_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2293b4dbd79fda2b749824d23758eea82d6bb25071d9445ccadd1edae485bdbd",
+      "BYTES": 39332
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b008_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "8002ed32f5b23c81179b2f8003514d22f9bd97370f772732b1ff0019d8e3210f",
+      "BYTES": 44765
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b009_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b46875f405fedb08c6cfbd74ba1218a2e70b28d69dd54423622305315d92ec01",
+      "BYTES": 56050
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b001_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5fe22f11720248b17a3fc40133a215ebb6334105763ebe117e82e0c4467d808d",
+      "BYTES": 26793
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b002_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f4a639fdafbebe3cda33c9f6b0f063d62e1f178a784ef19578f7af30c8b72346",
+      "BYTES": 31808
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b003_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "dca172a7a73a44fd2132d96265ff5f265dab58b3dcbed62dd2016d573df7a46c",
+      "BYTES": 33062
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b004_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "00a7e6140e202db0bc0deec999baf6e2687d8bf9720f12bff3f718bf3d5baa7e",
+      "BYTES": 54796
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b005_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e4d91213aae2ef8f2ac3301de1556d2d95f932c5f3a376db37065fc4f5a97846",
+      "BYTES": 36824
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b006_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "8a02f84fc5b0a7003d5ebeaaecd81e39d63fa26a8f474d36e9b1d35dbaa9d79e",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b007_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "4610e022d93122c5134df68ad8853459b387e3255731683e622e53b9113fd63c",
+      "BYTES": 57304
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b001_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "ee61d6b40cd3525900b1092749cd51049dc94b0d8d7c66c387ceeae19c1a5612",
+      "BYTES": 24285
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b002_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "c65e7d146e4d93fbc57bb339df571f610fb1c5e3dee0cd917aa8503ddb837b27",
+      "BYTES": 58558
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b003_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "306d7d0c3df8afc42d53c2f3834b05bd67d770ad0de1f2f7cd4ad431bb611e06",
+      "BYTES": 25539
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b004_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "295202017dcd4c1a2253833ff782f3fbbffe1e7091decfa884298bb200acac61",
+      "BYTES": 106205
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b005_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "488f592725931a3649dec168b5fc597ef8538719f465c91935c9b01c26a7a7f3",
+      "BYTES": 59812
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b006_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "ac6573a0a7be678972a2fadb5e38c591f758b75faf37f0f7cd5d3aeda3343263",
+      "BYTES": 47273
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b007_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "a76bc404157f4e37bfe7defb599dacfbae0b2db81ddf59b18787a41b215f2297",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b008_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "ba35183bf6ba116d1fda56190a5f1d3e6cb9b500587cfbd87f6cb26c455b4c31",
+      "BYTES": 62319
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b009_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "40954056703e6b95e8800e110185a5f1e6824bc8f07d57ce2049ff41a3843cb3",
+      "BYTES": 38078
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b001_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "397dea64a24144f02c31d272994c9f1ef6d4b9d8d96c680def793c6304456893",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b002_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "05c01cac9a56c7e1d8503428ce1a13d9e71b828b9cdaeddb35a021fad15f2af5",
+      "BYTES": 72768
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b003_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2a1e31ec7aa2c070498b47e96ade9f24b630fb3e9d0641bc57f781e12dbd32fa",
+      "BYTES": 21359
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b004_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5ea639cda1c7189b6c5adbb5d43f4e4732c0bf360d0a3d2553e1dbe6c61639cc",
+      "BYTES": 41839
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b005_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "7a3a76c59942da0edcff924b95c1b8fd0c1c7af75b3961bb35462a3c660f3012",
+      "BYTES": 31808
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b006_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "1973d382d360def5653e950af742d3f20bb12207754902a8bef6f04066bacb4a",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b007_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "68f372bea542df520178c09503d19dda734d593ac03d6741a7fb224c2f24ea56",
+      "BYTES": 16344
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b008_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "da3fa43a0d40182c53fff96c6bcc698baeb2e13e416dae625391e154eec2afc8",
+      "BYTES": 33062
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b009_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "7a3b610ab0a2ed5d5b281131259f4dcc2449d25b6b7b2ef72c36a5f24474606a",
+      "BYTES": 57304
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b010_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "648fbef869f9415a65a9781405a946d8ac94e68118433d85057b31d680b94e98",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b011_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "79b16c07ea45bcc09caa0c006b926633ecc656509d509b87c05ae5493651b7f3",
+      "BYTES": 20106
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b012_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "ad1d0d3576b50a844045f99793be721822b80e361371c2501e7d1d967c007cac",
+      "BYTES": 41839
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b001_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "4c26cce4ecad1cb04064db3bf4a44d0c9190712ebd06d596bca51cce2a00db29",
+      "BYTES": 61066
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b002_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "871ba2ea5e4cef0e3abe718056612056c4b2bd019095566a9243cc1dca01b053",
+      "BYTES": 67753
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b003_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "662fd09ebe7034c5417de0e82e519a98558582be90e4cbbaf06b6a12cdf9b528",
+      "BYTES": 17598
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b004_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "de5caadb142bfe69670e4ff8018dc426be66920f77378216eb914042df710c4b",
+      "BYTES": 44765
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b005_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "ff184106c966cead06f3e2031434ba47736e2a71d1492c88b1f40d97b2f3d0dd",
+      "BYTES": 79038
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b006_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "303f3bc5dc525b970d09efa3a1e3765c11d2626ed40aa8b6b220c4079af0e482",
+      "BYTES": 30555
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b007_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d41933d788ed89310779bc5bbf1bcaa9fa111b47fcd0e6b9533c375eb5c7d3ac",
+      "BYTES": 65245
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b008_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e82461344de833dc57464bd2697b3cc9c8591cba8c6161fdbc1573f3239051cb",
+      "BYTES": 48527
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b009_en-US_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d6475abb5a0f0a6d4008eff4f394efc30ddc8bc0ae67f03bf32b1e0848ed7f58",
+      "BYTES": 56050
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b010_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "4bf6f32ade156949ed2940fdf535bbad17ff957dbfd802e23dd8073319ce031e",
+      "BYTES": 29301
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b011_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "589944bdff218f077d9a0241e2d63b487bd0ec79a0b6ec0e01868c9b9bb90ecf",
+      "BYTES": 53542
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b001_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2d4f7f251dc7100a32d5d0967f60665af529350a385c8b20d8ed62b9482ee58a",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b002_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d46b7e741e36c7c4b2a0e33a3e1f38d86c4c7c58eef4c5961905b03c64161e9a",
+      "BYTES": 11328
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b003_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "1d0ca0d9695e658e5aaeefb9f84d59414d994fb06a7df4acbe16c8545c5aad78",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b004_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b2a4b9a104e0ed664e8ed591d31fb75ba5756886d8550f0c95f7c1317178792b",
+      "BYTES": 51035
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b005_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "12e67ab0a2621830d0d1036cbbfa46aae766b53210de7aca4a2919e143c35f84",
+      "BYTES": 44765
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b006_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "681b97e7cbe91c18c16767a4a140ae282c1339cd8a515f43ed34a5d3e75901f2",
+      "BYTES": 44765
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b007_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "a5b6a16706bd8ce44317922f38b61c598c4c4bc0c4c017c7e7ab3edd9799b7fb",
+      "BYTES": 41839
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b008_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "4c02d01030c29c3bca5c62f9cdcc7adb8f9c59d247a95bb3768e9343d8e91b74",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b009_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "49d5f7bc40ea67367ba9ee33d9340d1b6e61b4859f7191955de8de557faa5fbc",
+      "BYTES": 18852
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b010_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "8097c9767ac196631a76810c2e747540f261e6464c870e6641d87d091bd79414",
+      "BYTES": 34316
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b011_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "04244bf9ab81587cc8593456218b2b134968aa33646c5f8c6517b00003742284",
+      "BYTES": 46019
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b012_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "92cf5b2039c3718cc3a7726e60bbcdeae719c999d0dd09afa7ed5c302293763e",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b013_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e1dbf018cd0b7914f004dfb252acc0c72f7e15458ad63c4c1c27608cbe5d8b67",
+      "BYTES": 16344
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b014_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "9645f584bb441aafbbc944ef171697ee0177f55d57575cc3af8b981657a1b34d",
+      "BYTES": 41839
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b001_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d3b428cd1683f507492be0abe730f997595e72119e3b89954696562c2955bba0",
+      "BYTES": 43511
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b002_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "75c85fb739f63f65983c0a2b6b7ad126a8d596fc8481ffb9211b4f6d7577445d",
+      "BYTES": 20106
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b003_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "a40295187a15984df74df72c9b563936da26d9c170630687a08462e445320b87",
+      "BYTES": 47273
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b004_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d32481390126438323e191a5f0559dbe4289ff7f895f226874b58da938834edd",
+      "BYTES": 67753
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b005_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5401fbf3b77f27424a406f3a05b3a127a44d189edc82371598072a8811ab3423",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b006_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e54909eb7681a7a02778cdd2d7fd8f2ec9b2ca325dc10f83912808068e3842bf",
+      "BYTES": 34316
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b007_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "06bbf7e89a116193458e58e7e4f35a5871c0133fe22ee38d2b7436598f8e1c76",
+      "BYTES": 46019
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b008_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "7bfa645b4bcd39a4b2fad1cc7af6076662df4618b30a6198aa69baf6c1fac808",
+      "BYTES": 38078
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b009_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "3294bd0d923a3d7ad10566e25e3e821511ada8144581aabb31845c780830fbaf",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b010_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b25efed049385a28392bc756685799d2052ef2ba1c92de280ab6ec10f32ce79e",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b011_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e3e2c9641dfb0bf332131ed228bfe891b1d2c80a57bde336f028fa1b8961d064",
+      "BYTES": 10075
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b012_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "57339b0113e60e5f16883fb51aba9041de1f51e905bdf3d84233c11937ea16b6",
+      "BYTES": 48527
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b013_en-US_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2dd61c998025ea0de79002ae12d6b9fc2ed327a5b2dbe3c5d98b42899281f1bc",
+      "BYTES": 33062
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b014_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "9c6c7be5f5dd78fc1f46545a478f51326745f9ba7f4d78aadc733d62796676b0",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b015_en-US_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "3c7b9c5695fcbda83cd5c114aabb11a1048ce4d68a13d95020c521e843c40a50",
+      "BYTES": 30555
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b001_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "85bd076c1d0cfc202f6a96bf1b6d8e8d7592e6a71ef150a669e79280fbe45d27",
+      "BYTES": 43511
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b002_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "dabc232a707a87adcdb0088dfeac354ffc785f84d79cac2547108bfce6f8c5eb",
+      "BYTES": 56050
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "cbaf2f668c66949899af4812d92b4d150ba89252feafb060e1a7814f180a63f4",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b004_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "290dfbbebd0e8793111c250697dbc5825def2ff8aaa47be03bf3092830c94348",
+      "BYTES": 49781
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b001_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "77d151fbbf524a47c0ac658e50ab881b210eba102c8452d5197c6183a4992830",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b002_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "fb6197015a33d57744708ba63706bc6aae911ea27318322816c08222e4fb2e36",
+      "BYTES": 74022
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b003_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d4dfc112f1e0a1e636969c0387c4f341588abb96a7bfe8d78d604ea6d8e0aa30",
+      "BYTES": 39332
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "587484800e84daf167107f6f781507b49d98aec9365591390905e6cae1a9f083",
+      "BYTES": 36824
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b005_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "3a4806b419adedcc29804e71e8003f0632860502226454dada2012b37368de77",
+      "BYTES": 56050
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b001_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "8538a9689b65cd59e19e888a566fc62fe4acddb843cbca178e5286652329a9ed",
+      "BYTES": 20106
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b002_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "51811813818d60a15995fd9b041021cb2a9210f540af42aed3d56a396ecad7a3",
+      "BYTES": 35570
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b003_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "1385c1e470110b11d7239d981c2da5ece5d49b4c54dc916f82d73a4f310d8528",
+      "BYTES": 54796
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b004_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "7708d89260a400cf55ce33ca332b0bfd32f1b9b5bcca9cb6b6ebb7a89b12fa6b",
+      "BYTES": 24285
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b005_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e30fd0245a2271e5ce25140de7ef497e4b6fc87d6a1da8d8126209e8538e253c",
+      "BYTES": 51035
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b006_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "af31827fa1147c6a5071e439e6be90fb7f2aea9e6749b5d15a7a0ec1170cba10",
+      "BYTES": 24285
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b007_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "7e1a93c4aeed46a0e4c009eabb91ce363b3ac1be84f7cda511c17cd16dc57e45",
+      "BYTES": 31808
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b008_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d5ee7543bdbeb11f29aa7ea90fdc7dbbc902692565e52486b0b76e36ac2992c8",
+      "BYTES": 30555
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b009_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "0025dddd67a2700b3d6c4559509e7294ed23eaecfdaf08e9b25585e7f1d20ab0",
+      "BYTES": 70261
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b010_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "07b4df505db1c638263609dac0c09597139238a7a4504a99801a82b56c0b9b6e",
+      "BYTES": 21359
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b011_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "1323872988fdb8939a45e6ad479a0e7b698266b29b82b0707be936f588b3601f",
+      "BYTES": 72768
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b001_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "77a985c1c15ceab3babb07c1fd95b99980cc29ca9cd070156a04ef2bcf23d68f",
+      "BYTES": 40586
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b002_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "dceed91c9e2642ec14a8bcbd1198fbd912c4a73b2263faca3595c13a0b54ccf7",
+      "BYTES": 49781
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b003_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f46e3d7db4d1ba69f63a3021e62888415c97303133fd7d69c80459466e185830",
+      "BYTES": 31808
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b004_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "50e469cd771f1f01b5e1da8c3a8ee3e8aaeaac4c9f7c04875fe032d14e215fba",
+      "BYTES": 38078
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b005_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "3b7546cbbc24135a89c9abdc3b8cdaa8b2df6e71d123dd54bb26c35d4106df93",
+      "BYTES": 29301
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b006_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d01212c7188d9356abfde2f929f04efb51ead23162e65e238f2d73c143a54a4b",
+      "BYTES": 41839
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b007_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "325d77a7ffe79e2853e240a5544b0246d8f1eb6ffa4f1056613443ddc0a34007",
+      "BYTES": 43511
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b008_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "44d29f6657705c830f9f95122d59f483a9bccb206184e7829b1bb3cfb2ea1b15",
+      "BYTES": 36824
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b009_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2753de201f185b3a8216f7584a27d6117221448f5a63dccb7156b48b9f1778d7",
+      "BYTES": 61066
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b001_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "92623dfb3869eba82130fa3211d1f60925ba90aac5d19a94b7db669e000073b8",
+      "BYTES": 33062
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b002_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2c01889951400307b294a205b2c1fb89ccb400e5f65883da3b52da07596579df",
+      "BYTES": 38078
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b003_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "344354e1b3ecd8ebfb4c705eafc69185e727c960be746273fe78c867c1ae304b",
+      "BYTES": 44765
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b004_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "99a6764ae45054e6991b230d04eacf8eb04480b7433015c7df8739519fc7c976",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b005_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "ad9c75805c3c0fd4d25360bb104442d4687ab43030b535d434da8683b39f1af4",
+      "BYTES": 47273
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b006_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "43df19f38898eb7ae7aeda69ab354f9f78c7c0e24852ef6e6d264c5727ae2a49",
+      "BYTES": 48527
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b007_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e62991221fbe4ddc5106c954963f19c4a55775446a6557050dcc775c98f28d74",
+      "BYTES": 54796
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b001_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2d5ee68b7162a7586cd1d96995b5f06f72645a65ba21aa262e331681ee38bb32",
+      "BYTES": 25539
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b002_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "1b6460a6a4504b570089b1f985263862f3043814557197e220eac51dee0839d2",
+      "BYTES": 15090
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b003_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b9e43f896fefb379f40befb87b31367d78f3d853ec4ecda4f483a5930f754b95",
+      "BYTES": 29301
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b004_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "cc10f18d423d455b4b6b025b9e590c8eb993b0c1d712931323a1140e0abcc408",
+      "BYTES": 79038
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b005_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "3bbe3c3433cbeec9c0a66211485993021c4baa2fdc60addcd7dbdc8c4a93d39c",
+      "BYTES": 62319
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b006_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "25f9f8a46bd912480eedfe1031f54db263287a349936c5d61c28455a0a5b5884",
+      "BYTES": 62319
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b007_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "342b41b72de852d525b51e6190743cc1b5f1ba5557b6c96e71008242167ce889",
+      "BYTES": 63991
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b008_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "9e9e4f39b98b8b9d1a5a6b08b57c4a998c2bf2a542d79c5eea613f051d382e90",
+      "BYTES": 48527
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b009_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "659fcc88e07361241883042ce757bc6cc0e8e8ad3894aa99f9053c3390ebbeb7",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b001_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "6ba289ca0d3f09e7d23ded12c5b5845c36d606c3fecee2bd102bdc18885cd2ea",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b002_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e2f96c58aa3296eae2fe669d06d612b5becd5f9e273110691810b6528180e892",
+      "BYTES": 91995
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b003_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d407f9864fbc06e8cf0cf96bc0d8b17dfb6d395ef6bacf374aed46f98b236250",
+      "BYTES": 34316
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b004_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "48fc9954b9c838ea264a691f0550942af801a6036224b3a196580233ea7167f3",
+      "BYTES": 49781
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b005_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "915a51387720f0adbb086e1c1212a56fae9f07c57f137189b76da54ffec2495b",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b006_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b9c6e8cbc05fc03b2ac2f0fae379dceb6c60a2d8a614cda16e6520c023ca2c85",
+      "BYTES": 58558
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b007_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "6d7bf33e31148ac328d075f9a179bd6928305a95d4ead6a5a760b49bbf2a2d07",
+      "BYTES": 17598
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b008_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "c93287a8ed311a65393b6b5535ed2b4956d4b3a562bbf1029f85c48d797d5bb9",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b009_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "003e3d0b004126f6a13619f01fd02b727dec5a4a4bdc26b89080d0632d83faa7",
+      "BYTES": 67753
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b010_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "af0c76c514a0cf8d49589d48789a6317e467cc6cbf5c35a3a42dbf7ba6014681",
+      "BYTES": 16344
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b011_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "9d13b744588f0bd7ff1848f19ae300e304bdc4d2f999d5ce1ae8c0fcc2bb7d68",
+      "BYTES": 20106
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b012_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "05d368f49dca337afa1f1ff7214dc4e273f6218b44554575428f9d6ca364725d",
+      "BYTES": 48527
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b001_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d8fa0df43a000a9ab03abc75f1ed845bc0ba5fae78eeacdb3a92d9e4ebfbf9fd",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b002_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "6f55a97655f85d08c1c14b14d8107e015ad89c33ff665694d63a58f761a44bd8",
+      "BYTES": 66499
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b003_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "ef03c70f9fec817930a604eefafdba033c6d505b0c99c9c87184ad41edf45dc1",
+      "BYTES": 16344
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b004_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "6630396858a58b288b35d9dc7c1db8ff9e0a2448d7db855ce1ef97fdcab90396",
+      "BYTES": 49781
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b005_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5d249b3bad5001142a7017f0cafe99229464cc592d8f300f988a89d40fd06536",
+      "BYTES": 25539
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b006_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "dfed1927debdd12b2913cf39a77d9157005495bf9420a67a89e040f003e656c3",
+      "BYTES": 24285
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b007_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f6fd0ace3f992cc65485815a2d9ccb64b7f124284e83efa28472ecdea94b778f",
+      "BYTES": 65245
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b008_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "00026cc406793d2ee506d45424bec845fabdf2ab2b7ff31063a0f6877e757d21",
+      "BYTES": 44765
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b009_zh-TW_centurion.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "4c97d5061ccc834f7fbebbce539123bba1346056d9f0849f8a738adf0fdf4c56",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b010_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "39f852abae480dffe4b16b9ba56a969e3bb50d0225441204a41844e686da6aa1",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b011_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "96b40b2bd920f817225650a3e30d609330f84382e1fe24982a5356d645987ea7",
+      "BYTES": 53542
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b001_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "0a519654804a623cdbc3a2dca158a41212e23a78b45c9309782c579a99f54d7b",
+      "BYTES": 15090
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b002_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "c65d73de1a3b0f75117071067c0ac21e60bdfbf6d3ce55d1c7e37cf4f9affad6",
+      "BYTES": 15090
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b003_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f3e2d24e56988b0583abfc6a209c4479381bf897c2d594a9a3ad0a4a1378c170",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b004_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "7721a48884ebafd9378fa8afaa82ee8ea692d6f880754187f9d13a70574aea4a",
+      "BYTES": 65245
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b005_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "5f319ee7c89298bceaa692c1f2480f02f0831a33356effbc675f1d713abfebbc",
+      "BYTES": 43511
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b006_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "18b92219ba3f1e7c2f8435de10bef78d3c8d35d928f6c3637cc7800565e9fa6a",
+      "BYTES": 53542
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b007_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f226bfa731bcf22fdc58ca741b93297bc8f7a350048c1c2cb96ca95a23c769c7",
+      "BYTES": 49781
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b008_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "127f0ab241b51ac23bfc7895880ac56fdb456cca9a422d1abd6fc2d20a24b73b",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b009_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d808f9327df29d3033d10061c97d2a68462c63fd5939aa8bc7b7d9095b3345cd",
+      "BYTES": 21359
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b010_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "617557477294f5acf9a9bdbad6242ac82c4f3f1d37fc9894c307741764f53eca",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b011_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "8530725c9d21c2376b8cadcca62f6ec13f0e815bb3aa464385e6597ea0509878",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b012_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "3fd381a0e4c2cecdd17a22108ca8f7f08c56687d56176cb3176e8da60c651336",
+      "BYTES": 53542
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b013_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "291a925cf5c56e65f1622dd051c4f40c01ae4a71b8502a061c439f2ca259ea4f",
+      "BYTES": 17598
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b014_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "bf066a025936abcf80c1120cd9c43003a3c0f9d42576236d5b7a042cef076e21",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b001_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "1c87d9b6deb489a973a01aa983ceb14aa1237c8506b450803625811938fc1eff",
+      "BYTES": 52288
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b002_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "c597c84e4553d62529fb32778e42ba26bce31ba39f804341149477e8a2e65df2",
+      "BYTES": 17598
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b003_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "a25e46a56a7b849452343600209b369752917424a56ba8173db06ccaf877bcaa",
+      "BYTES": 71515
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b004_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "60fc7377872416462e3c84b8b68cdf9b4b763a227885c2fb22f78e7cfbea53aa",
+      "BYTES": 70261
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b005_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2885bd73c4642077af80fabd554aecf1c132bb96bb4fb2437c8801303f2186d0",
+      "BYTES": 35570
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b006_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "283334cbda24b139c47958bebcdfa6e7feacb45eb8d817e13b33eeddc483a58c",
+      "BYTES": 31808
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b007_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "933754e9cae8e4e0f044d2fa0857062160e7b26f1160817ff27c72b772270566",
+      "BYTES": 63991
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b008_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f8f5662fc88cd39285a36bf9dfafaff34ba3c9f510d513278ce2756f1b4563f9",
+      "BYTES": 36824
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b009_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "76118584648a276e6855291aa94b10bf5240f7cec9cdad3ad4dd14be89403a8b",
+      "BYTES": 33062
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b010_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f267f0e0139ad3df1eef09dcab4a27911e101ff12f5987cf625b2e4661e61a13",
+      "BYTES": 18852
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b011_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "e1f49eab80aabda9348feb87043c37926fc1b9ec94cd8f35cd3ea1fe1ec5529f",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b012_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "fe02cd77e126f5f956a16c42afa1dec1fa07282e9e9e048439cb23a66efd00aa",
+      "BYTES": 28047
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b013_zh-TW_hero.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d591bacbd6ffb1fa4abb26cebfc195a12eb0fcd6cf4dc2553b9869b52e979a2f",
+      "BYTES": 29301
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b014_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "b132806df8b92533238a8ccf6614e8ccb83a5aa42b3b9b2a3c02c65812d7c453",
+      "BYTES": 20106
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b015_zh-TW_grik.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "0330adbad844547f645ff2fbb95c97102bd527513a0a1a5ddc5507602ac6e13b",
+      "BYTES": 35570
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/sfx/zone3_sfx_belongings_movement.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "86e17ad583b757c34dba10a7ead97772e7c244361377d81c46295b9ba9309f3e",
+      "BYTES": 65245
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/sfx/zone3_sfx_blocked_water_flow.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "d3c1a051fcd487d8f9be5c18cbc5a33327aa565dfa531a49391cb16bd746fd9e",
+      "BYTES": 160958
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/sfx/zone3_sfx_centurion_armor.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "c00cd80ec2a9a1cc82bb8d736b8dfbffdb82981e99d6379f794529fe39e0a9d8",
+      "BYTES": 48945
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/sfx/zone3_sfx_centurion_spear_plant.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "54a44480b12ae192d7d9bd96ad5210cfd9a519c54e34f04f77af5d17bcffb97a",
+      "BYTES": 48945
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/sfx/zone3_sfx_refugee_footsteps.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "2a7d80ec4469365ec26cde57a3a2b83ffd8a228ce2419a3a40b70fa8223d9582",
+      "BYTES": 81128
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/sfx/zone3_sfx_rockfall.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "7f7abe717996b75e5dd56b295a841b97f28bba26a2ded834767a13bc583c2747",
+      "BYTES": 81128
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/sfx/zone3_sfx_water_drip.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "f5867f9703b3e290213cdb44318cb02a2c43a4883adaa978af65f6cf8330953e",
+      "BYTES": 33062
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/transition/zone3_to_zone4_misty_forest_wind.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "AUDIO",
+      "SHA256": "4e4e95661f4492b565b894a0034daa4dbba828915c42c64cd6639400fedd091e",
+      "BYTES": 81128
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/zone3-cinematic-audio-manifest-en-US.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "23f04435fbc15d99a8be72a822a149b55552cb126ed25054745f55a76ed1191a",
+      "BYTES": 83650
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "b2b0074fe10999f236c82e6aa08d1787a673ffa75f315da0213758a7c41dbb91",
+      "BYTES": 73680
+    },
+    {
+      "PATH": "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "a7137f6b7ac80a9c129f77c2afbbab3123a454c2b7d7403421048eb11d7f2b80",
+      "BYTES": 25111
+    },
+    {
+      "PATH": "assets/e10/i18n/zone3/zone3-cinematic-subtitles-en-US.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "I18N",
+      "SHA256": "81393bfb65f24b6be2d569e8cd04cee158b915b270bf605f72ab703519617ce6",
+      "BYTES": 24376
+    },
+    {
+      "PATH": "assets/e10/i18n/zone3/zone3-cinematic-subtitles.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "I18N",
+      "SHA256": "4472391b6cf12e8e2c35dfc5f62df1f93d03835a6296494c35d53fc2f383d45e",
+      "BYTES": 21358
+    },
+    {
+      "PATH": "components/adventure/journey_onboarding.html",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "75950154ff6e8d2869248292797375b8a6d76c2a020f7b656ff8dbb89227a86b",
+      "BYTES": 1129
+    },
+    {
+      "PATH": "components/adventure/zone3_vertical_slice.html",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "47d0a59d30d258b5fa743081e65482b2429eb62334923c7b9a3e828154c6cb1d",
+      "BYTES": 1221
+    },
+    {
+      "PATH": "css/e9/journey_onboarding.css",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "4db7a7d894326b06043235542add4858b82a94f384ad830dcd7a8147bad24e57",
+      "BYTES": 1644
+    },
+    {
+      "PATH": "css/e9/zone3_presentation_fx.css",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "c6d9d8c7151ef112c2b3aff8dabbcd6cc21850230ced346ed3e8be9fb579c071",
+      "BYTES": 8132
+    },
+    {
+      "PATH": "css/e9/zone3_vertical_slice.css",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "bc4036c5661fc2fab2af021f743e95ef501d5491126fb66e8b1f668d0c50cefe",
+      "BYTES": 4375
+    },
+    {
+      "PATH": "docs/audits/w1_04_zone3_40item_dod_evidence_reconciled_matrix_005.json",
+      "SOURCE_LANE": "SYSTEMS",
+      "SOURCE_HEAD": "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf",
+      "ROLE": "MANIFEST",
+      "SHA256": "774036c3215d5605ca3de985c5826e70b6768242a830328668f546744f3a82d7",
+      "BYTES": 92815
+    },
+    {
+      "PATH": "docs/audits/w1_04_zone3_40item_dod_evidence_status_reconciliation_005.md",
+      "SOURCE_LANE": "SYSTEMS",
+      "SOURCE_HEAD": "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf",
+      "ROLE": "DOC",
+      "SHA256": "5cac277cadcb75b8d4b5c48a30df15a7310a88904728ef894f9aa4954c46346b",
+      "BYTES": 45984
+    },
+    {
+      "PATH": "docs/audits/w1_04_zone3_full_vertical_slice_completeness_parity_audit_004.md",
+      "SOURCE_LANE": "SYSTEMS",
+      "SOURCE_HEAD": "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf",
+      "ROLE": "DOC",
+      "SHA256": "5268ee5f1972eece6b803cec0ef0f5964a9e93d16180e15a774b5d5efa57421d",
+      "BYTES": 29912
+    },
+    {
+      "PATH": "docs/contracts/w1_04_zone3_final_presentation_binding_contract_006.json",
+      "SOURCE_LANE": "SYSTEMS",
+      "SOURCE_HEAD": "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf",
+      "ROLE": "MANIFEST",
+      "SHA256": "af96dabd328d864b6d2fbc408dea7bebef5c5bf935838bd774909a44f37cd5f4",
+      "BYTES": 12295
+    },
+    {
+      "PATH": "docs/contracts/w1_04_zone3_final_presentation_binding_contract_006.md",
+      "SOURCE_LANE": "SYSTEMS",
+      "SOURCE_HEAD": "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf",
+      "ROLE": "DOC",
+      "SHA256": "2c03f87285fc2b76f271ac3f7e18ac5fd1d5b4cee75688af8ec8d09d69e4d94a",
+      "BYTES": 5173
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_audio_production_manifest_v1.json",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "MANIFEST",
+      "SHA256": "20a6162049d1207fbc86728e29eaa14f97e2394491997d215b67dcb1ea055f96",
+      "BYTES": 75287
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_hero_lord_dependency_manifest_v1.json",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "MANIFEST",
+      "SHA256": "efe4f85a0335161af056eec61eaf9afddf14651f902e158b19b153239ab3353c",
+      "BYTES": 51665
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_story_onboarding_beat_manifest_v1.json",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "MANIFEST",
+      "SHA256": "73d2afa5e66311eda034ae423ce6423dcd41e6c02c39b131284e2aff47ca2f5f",
+      "BYTES": 32549
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_style_b_lock_and_zone_content_production_v1.md",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "DOC",
+      "SHA256": "1370231e6d75a2e89d24df1f32be585b1f41df3898f733590fb04e903ff999cd",
+      "BYTES": 42601
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_zone3_environment_cinematic_asset_manifest_v1.json",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "MANIFEST",
+      "SHA256": "8f57b88f7542e7fb057fc59c33393f05440bd8c813a1478cba3f6c3d75f24454",
+      "BYTES": 49911
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_zone3_environment_cinematic_production_prep_v1.md",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "DOC",
+      "SHA256": "26a1cce8d27b6c25579d7d34fb3ab7c96f1e55ddc5158f23d806cfa1d4fb2b63",
+      "BYTES": 25679
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_zone3_presentation_fx_binding_handoff_010.json",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "MANIFEST",
+      "SHA256": "b089ad97e352359c22a47c07de73f194aff83d465bf031eb70ada736399c2951",
+      "BYTES": 10408
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_zone3_presentation_fx_content_preflight_008a.md",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "DOC",
+      "SHA256": "ca00feedde5305034734325368680e11234784a47dda3279abe135e6476d472c",
+      "BYTES": 12776
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "MANIFEST",
+      "SHA256": "8a0fada47bb3485846e5074dd1cc65a4982b6a5f263961bb6d4b9934d1a208b8",
+      "BYTES": 41591
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_zone3_presentation_fx_runtime_package_009.json",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "MANIFEST",
+      "SHA256": "e9af1a61ade80e78632716a2c4c0bf77188426408bc607af86fbce9321006fdb",
+      "BYTES": 9287
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_zone_environment_asset_manifest_v1.json",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "MANIFEST",
+      "SHA256": "391e05f9828ac4f7a6a911efe8c1e0cf9fb8f557247e5c7243348cf11e52c005",
+      "BYTES": 67803
+    },
+    {
+      "PATH": "docs/planning/w1_01_world_zone_visual_language_style_lock_v1.md",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "DOC",
+      "SHA256": "f533acff89c3ac8e8269eab784026b940396a1ea9d490780f64a013014461062",
+      "BYTES": 56532
+    },
+    {
+      "PATH": "docs/planning/w1_02_hero_character_presentation_contract_001.md",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "DOC",
+      "SHA256": "0948e5eb2390fc29e42be7579d0e254de34f094a6c158e0b30b7fc9e42b4a52e",
+      "BYTES": 23523
+    },
+    {
+      "PATH": "docs/planning/w1_02_hero_zone3_encounter_runtime_contract_and_handoff_006.json",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "MANIFEST",
+      "SHA256": "cb76540cc10584831e60fcb1e8a3aee5b8f75c2f5cb65b9a9b6aa52629ecfd0a",
+      "BYTES": 11211
+    },
+    {
+      "PATH": "docs/planning/w1_02_hero_zone3_encounter_runtime_contract_and_handoff_006.md",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "DOC",
+      "SHA256": "b9c8cc17b5cc02a94cad706c6437998bf96d763153862242940ca7618a148560",
+      "BYTES": 1309
+    },
+    {
+      "PATH": "docs/planning/w1_03_journey_onboarding_spine_001.md",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "DOC",
+      "SHA256": "d10e04404beaac1e867db6bc55700759f0614c82535c6dc503e41caa8b0ef96e",
+      "BYTES": 13930
+    },
+    {
+      "PATH": "docs/planning/w1_03_journey_zone3_en_us_script_and_voice_authority_recovery_007.md",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "DOC",
+      "SHA256": "70712c4fbb15db0d7593e4b5487542fb388f45d1453c92b1baba498170683157",
+      "BYTES": 3861
+    },
+    {
+      "PATH": "docs/planning/w1_03_journey_zone3_vertical_slice_wiring_002.md",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "DOC",
+      "SHA256": "08998f2fdcbb075323649b93119c6451316874f78b52798dc21e5ce94dc276b7",
+      "BYTES": 2914
+    },
+    {
+      "PATH": "i18n.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "142f2f73ac686d96acea8145a5b6c01afd2380c6d0136fb8d2ec6decacecf31d",
+      "BYTES": 396703
+    },
+    {
+      "PATH": "index.html",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "30e5f16167461b04293f3de550c018f818ac0a84ed16ddc5124ff87cec300341",
+      "BYTES": 1062537
+    },
+    {
+      "PATH": "js/e9/journey_onboarding_content.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "5fc89d44968378583f75759aae32615927fa29e594ea0d0efdc5c04f8d7d960b",
+      "BYTES": 4424
+    },
+    {
+      "PATH": "js/e9/journey_onboarding_spine.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "40be63701cefe770bd96ec9318642fc2832bde7c5b14a670a9045964d46f0c74",
+      "BYTES": 15294
+    },
+    {
+      "PATH": "js/e9/journey_onboarding_view.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "5454ac78734dcb4bfcd430a7eb7370854ef0b1cf8faef3addf0209c6874a3cdd",
+      "BYTES": 5622
+    },
+    {
+      "PATH": "js/e9/journey_zone3_presentation_audio.js",
+      "SOURCE_LANE": "JOURNEY_SINGLE_WRITER_010",
+      "SOURCE_HEAD": "BASE_616d51b17abe010de1e862382ca4db7bec65936f",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "441481b59ccc4bafe8b5e44d3ea20f7068af4f1d496f1de826d1c05ebf0d35b4",
+      "BYTES": 17096
+    },
+    {
+      "PATH": "js/e9/journey_zone3_vertical_slice.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "9f8516a0131ab21f0e02fa9e34a7d70be226ebb324094bc364c3cc931dda44d1",
+      "BYTES": 22721
+    },
+    {
+      "PATH": "js/e9/journey_zone3_vertical_slice_content.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "2eb494773f73ed46345fd51c544549909530fd08dc1d92632d0c01589f75dae6",
+      "BYTES": 21867
+    },
+    {
+      "PATH": "js/e9/journey_zone3_vertical_slice_view.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "11b5db53ed5c45ec0717ec2b9f20ec3921c190f598419a399c97f5f0545fe3cc",
+      "BYTES": 7148
+    },
+    {
+      "PATH": "js/e9/shell.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "5888f08dedf37f085d1ae4ae5790b92215479e773440dfa5cfb777a7f0f034fc",
+      "BYTES": 15818
+    },
+    {
+      "PATH": "js/e9/world_stage.js",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "8cecd42b17e82ccbbf9d4a143546acd867923c8dde24dead850fa9a7b2ddc433",
+      "BYTES": 92270
+    },
+    {
+      "PATH": "js/e9/zone3_presentation_fx.js",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "d61339ee732389ad60ebb54fe1cfe1dcef56c3b55d9c1787366cb9dcc4d980dc",
+      "BYTES": 28351
+    },
+    {
+      "PATH": "sound.js",
+      "SOURCE_LANE": "JOURNEY_SINGLE_WRITER_010",
+      "SOURCE_HEAD": "BASE_616d51b17abe010de1e862382ca4db7bec65936f",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "5aa7e00b3526e1aaaf925b79e5a1a5f52f145a5cc1a5224199c1f626b813fba8",
+      "BYTES": 15036
+    },
+    {
+      "PATH": "tests/e2e/fixtures/w1_01_zone3_presentation_fx.html",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "TEST",
+      "SHA256": "41f6d2f0f954e055dd14b801d51dc2d0054cd80b53059b15cfa430bc6f0330f4",
+      "BYTES": 1175
+    },
+    {
+      "PATH": "tests/e2e/fixtures/w1_03_journey_zone3_final_presentation_single_writer_binding_010.html",
+      "SOURCE_LANE": "JOURNEY_SINGLE_WRITER_010",
+      "SOURCE_HEAD": "BASE_616d51b17abe010de1e862382ca4db7bec65936f",
+      "ROLE": "TEST",
+      "SHA256": "460c567740a8054b7f5d4e6a4f9f8fe1378c51b6a63dfea1c748b40c8f32546c",
+      "BYTES": 10916
+    },
+    {
+      "PATH": "tests/e2e/run_w1_01_zone3_presentation_fx.mjs",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "TEST",
+      "SHA256": "43c8a4b3761374dd92f9ada036c1d648d96db1621e3d524c6d5c59397be636ad",
+      "BYTES": 11841
+    },
+    {
+      "PATH": "tests/e2e/run_w1_03_journey_onboarding_spine.mjs",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "cc3d0204305931e855084ad9e26d910f42e0a77020b8c1611abeac34fcb949ad",
+      "BYTES": 7575
+    },
+    {
+      "PATH": "tests/e2e/run_w1_03_journey_zone3_final_presentation_single_writer_binding_010.mjs",
+      "SOURCE_LANE": "JOURNEY_SINGLE_WRITER_010",
+      "SOURCE_HEAD": "BASE_616d51b17abe010de1e862382ca4db7bec65936f",
+      "ROLE": "TEST",
+      "SHA256": "fdb1902cad0f4efca82d86a78f9d99c9c248d3abe51dd18d2046966068e420f9",
+      "BYTES": 9326
+    },
+    {
+      "PATH": "tests/e2e/run_w1_03_journey_zone3_vertical_slice_wiring.mjs",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "d7a80a8a32ed4b4509627240e183ed7bd5e07e20e0261f9313289a43af832154",
+      "BYTES": 17955
+    },
+    {
+      "PATH": "tests/fixtures/w1_04_zone3_final_presentation_binding_external_inputs_006.json",
+      "SOURCE_LANE": "SYSTEMS",
+      "SOURCE_HEAD": "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf",
+      "ROLE": "TEST",
+      "SHA256": "90dd69a73b7ec0098ba4588a60a176dfcd6726c3efe6edade06d533a850c0d2e",
+      "BYTES": 1420
+    },
+    {
+      "PATH": "tests/test_e9_adventure_shell_foundation.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "3e47be67e9770e4be57ad8ff1f10b37bda6298c5dbdd8e86e9be13464a158711",
+      "BYTES": 13734
+    },
+    {
+      "PATH": "tests/test_e9_adventure_shell_integration.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "cf3fc15809a2ccc35149b8a72bf1133fce39e47ce269c0ef8a7bfef2f43b5224",
+      "BYTES": 22893
+    },
+    {
+      "PATH": "tests/test_w1_01_world_zone3_presentation_fx_binding_handoff.py",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "TEST",
+      "SHA256": "698b61d492197edd99273458f400672c10ac934f35aa6eec33d6e87a48c86ae8",
+      "BYTES": 6436
+    },
+    {
+      "PATH": "tests/test_w1_01_world_zone3_presentation_fx_preflight.py",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "TEST",
+      "SHA256": "cf6583b1be660b36e502ad8eb8e7f89707f429e98bec376749eda2effbcae3c9",
+      "BYTES": 11047
+    },
+    {
+      "PATH": "tests/test_w1_01_world_zone3_presentation_fx_runtime_package.py",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "TEST",
+      "SHA256": "97bc8e15178022785b53677282d3495d5e0124fdffb2f35ce686607b36af8493",
+      "BYTES": 8384
+    },
+    {
+      "PATH": "tests/test_w1_01_zone3_10shot_asset_ingestion.py",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "TEST",
+      "SHA256": "c5281b2e2a032ca611402a419eb8202b9daba4002a12ec1ed7d2259867ed3a36",
+      "BYTES": 8888
+    },
+    {
+      "PATH": "tests/test_w1_01_zone3_world_asset_package.py",
+      "SOURCE_LANE": "WORLD",
+      "SOURCE_HEAD": "fd7a1bcee2a01723a716f20683a4411d593f2dab",
+      "ROLE": "TEST",
+      "SHA256": "7c3ea58fb29ea35478aab1ce658007c280b266b4200acf7a5d2e4881d7e873c2",
+      "BYTES": 8678
+    },
+    {
+      "PATH": "tests/test_w1_02_hero_zone3_encounter_runtime_contract_and_handoff_006.py",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "TEST",
+      "SHA256": "f5cebac11176a983f34e58378edd728c202261041a7a3117c6f9fa1b2e881adb",
+      "BYTES": 5619
+    },
+    {
+      "PATH": "tests/test_w1_02_zone3_lord_final_asset_ingestion_005.py",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "TEST",
+      "SHA256": "514bdbb4e8e6974a310b507655d4bc919841170695df6f0e82765626784a17bc",
+      "BYTES": 4761
+    },
+    {
+      "PATH": "tests/test_w1_02_zone3_monster_lord_runtime_asset_binding_004.py",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "TEST",
+      "SHA256": "59612d90f5f84a93c025b5ed75032e5d253b5ddef9aa909abe1836eb01d9e0e5",
+      "BYTES": 10891
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_onboarding_spine.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "9a237dada36cf055e0ee2e695d133c7c3213e921ac9f2e740f438283ad6ee0d7",
+      "BYTES": 5641
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_cinematic_asset_slot_responsive_binding.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "b2da2e30f08fb524c3d135379244936c32e20604c52fcbb2d4bb4485eb87688f",
+      "BYTES": 15658
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_en_us_british_reaudition_007r2.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "5c417b2c71a6982163eb8e79643eb233727d5988353709d343bd5f17ebd70562",
+      "BYTES": 2873
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_en_us_full_97beat_british_voice_production_008.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "bd92e624ed5a889a73b148b19251326a8917321ff369118fff6fbb8c9a58c15b",
+      "BYTES": 6440
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_en_us_hero_british_recast_007r4.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "3dd4321855370aa19f2a46a173a8a5835439538711f78c23f42f54e6dfa8c59e",
+      "BYTES": 3918
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_en_us_script_and_voice_authority_recovery_007.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "2d441576a7a045ef95ad648d32d1aec315d1422ca6e699a0a908c78f4b392766",
+      "BYTES": 8545
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_final_audio_production.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "39288d032eeb97a68a159c8634ae3a9645d8ecc05dc28b1a695e3bd068836702",
+      "BYTES": 5124
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_final_presentation_single_writer_binding_010.py",
+      "SOURCE_LANE": "JOURNEY_SINGLE_WRITER_010",
+      "SOURCE_HEAD": "BASE_616d51b17abe010de1e862382ca4db7bec65936f",
+      "ROLE": "TEST",
+      "SHA256": "48603743080dcb2accf164f0583ebed61fafdea97076380b9088dfd14b9158ed",
+      "BYTES": 14156
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_i18n_subtitle_voice_production.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "05260045ce68118aa0ddf679c32cd9e7ad12d9023d627f8500fa6630edcc7bc2",
+      "BYTES": 7812
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_presentation_audio_package_009.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "7eb671503aa1ba164251f4aab7ceac878c2e589717417d4c6d5996c977c157d2",
+      "BYTES": 3484
+    },
+    {
+      "PATH": "tests/test_w1_03_journey_zone3_vertical_slice_wiring.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "e084bc1d255223e37498467e96aaf5495e204137ac61288a6663e59152abc7ce",
+      "BYTES": 11784
+    },
+    {
+      "PATH": "tests/test_w1_04_zone3_final_presentation_binding_contract_006.py",
+      "SOURCE_LANE": "SYSTEMS",
+      "SOURCE_HEAD": "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf",
+      "ROLE": "TEST",
+      "SHA256": "5dd3d096483368a49ee34dfaf7f564ccb1176498c65f540f744ea56a385bb8f8",
+      "BYTES": 8362
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-hero-round1/hero_A_Steve_Calm_Youthful_Positive.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "5acea0be3e8470788c79b80a4e8f61d5975fca8cf493b1715dadeef4382f9f1c",
+      "BYTES": 18852
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-hero-round1/hero_B_Ethan_Warm_Trusting.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "750d4e011eb56459265862168498a2b829227db2001bccb9e7d3c3ca517a1f6d",
+      "BYTES": 31808
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-hero-round1/hero_C_Alfie_Clear_Expressive.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "bf4a549ec5819a88d19d0c594190f12797ec86004224dc69a5c4433f6addf99c",
+      "BYTES": 18852
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-round2/centurion/centurion_A_Mark_-_Calm_British_Authority.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "a3146f61f62d9923c5a96d52579be1cc6584ece4b6f71a3df17f1ebfae4ed133",
+      "BYTES": 25539
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-round2/centurion/centurion_B_Robert.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "1ce4e735c45f6ba859e066120ddda8e9a4908d3ff9a135b87000e382e8ce5713",
+      "BYTES": 26793
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-round2/centurion/centurion_C_Craig_-_Warm,_articulate_British_male.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "d5c1b5f26d23c5705e1582649828be0beadc64506bbf9a637cfc79126f1d72bb",
+      "BYTES": 21359
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-round2/grik/grik_A_Ali_-_Everyday_British_(London)_Male.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "57ba7fb4be165f1b2a52b149a68272af35fc4cbfeeff68dbb4df7dac0c01485e",
+      "BYTES": 123759
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-round2/grik/grik_B_Nick_-_British.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "7404934ca8a392a026dd26a2cad28c3ecf01d89148e59ef68eea0a83cc74434b",
+      "BYTES": 61066
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US-british-round2/grik/grik_C_Joe_-_Deep_British_Narrator.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "74bb02147b575f316d791702b15137a4c46f074ddc778f3b26ff6f4b4af73174",
+      "BYTES": 69007
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US/centurion/centurion_en-us_kevin-tu_r1.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "b79280adb5d174868df0371a3a02abd2ee8c316ea3f690cba4f971f47e4d72dc",
+      "BYTES": 26793
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US/grik/grik_en-us_zack_r1.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "8d9d84e1d7559f684de8f1144b117d0acc85fbac8fada7f881ea42327d7ccd8c",
+      "BYTES": 75276
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/zh-TW/centurion/centurion_4aW8bNY2tSD8eaHmuXZ0.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "cffda9055f36a4dbc64effe53fa8801189ef5d451b6a527c651467b71770b56a",
+      "BYTES": 23031
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/zh-TW/centurion/centurion_BrbEfHMQu0fyclQR7lfh.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "551f95a83d1b1d135dff7efee61115a12eaa25b11cab037e0bc0af0e1df50d6b",
+      "BYTES": 24285
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/zh-TW/centurion/centurion_R55vTH9XmVSyAcM6YvtV.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "15ce042322928634b78eb5bb07ef1eca18b880dce3919c0670b82c095d6e3479",
+      "BYTES": 20106
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/zh-TW/grik/grik_4aW8bNY2tSD8eaHmuXZ0.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "bb9591bf6bf0f26e1d97f2830e46530a7084c7f170c650e133acf80e23ee02dd",
+      "BYTES": 29301
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/zh-TW/grik/grik_DSyEP4HEaCKur8rFFOri.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "8227efa0b86e1cac74106ded229b99e393f23b2b641a8aa4816f7efb7412ffe2",
+      "BYTES": 36824
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/_local_review/auditions/zh-TW/grik/grik_R55vTH9XmVSyAcM6YvtV.mp3",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "66f0c238f6eb8fc4b3dc3694c25ad7a619f9fb14b8cf918f4d85bc8acc68bbe2",
+      "BYTES": 21359
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/generate_zone3_audio.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "6dce4e2fd7a49b3c122616d40cd88dbbac484815a3b926081899352b1b60dcd0",
+      "BYTES": 19936
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/zone3_en_us_british_round2_audition_manifest.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "b9e4517f406eff51b6933fd71302f478712b5cfdf7e2590dcf90784e64721cca",
+      "BYTES": 8035
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/zone3_en_us_hero_british_round1_audition_manifest.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "8d3753fa5f2ea66fb828c1789a80be6fec04f498f42ce0e5bb1f8507ab72f81d",
+      "BYTES": 4940
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/zone3_en_us_voice_audition_manifest.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "9bb21e683169e1b085a28772604e494f522dfef6c199d62a0be553b5138ae11e",
+      "BYTES": 2231
+    },
+    {
+      "PATH": "tools/e10_zone3_audio/zone3_voice_audition_manifest.json",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "MANIFEST",
+      "SHA256": "98cfb782041975a8eb50eac1ee8af65b4245b46344f3ac44c88241f991b6e599",
+      "BYTES": 4778
+    },
+    {
+      "PATH": "tools/e10_zone3_en_us_full_production_008/generate_production.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "b5b895a4dd6d073a38d79fb4ce89b9060ad6b9c357060620c70c3124137b2e32",
+      "BYTES": 11508
+    },
+    {
+      "PATH": "tools/e10_zone3_en_us_hero_british_recast_007r4/generate_auditions.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "5b1c6fc92a4bede08b3b6d77bf5647f7c6556c9a95c6e761dbcdafd414f3d4df",
+      "BYTES": 10273
+    },
+    {
+      "PATH": "tools/e10_zone3_en_us_voice_preflight/generate_auditions.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "e59ff5ac32830d3d15299f37882b6f63a8c45cac08b382f4add262540562b087",
+      "BYTES": 6013
+    },
+    {
+      "PATH": "tools/e10_zone3_en_us_voice_reaudition/generate_round2.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "30414e4005c9b072bdb43c18dd3cb95d988009853e5bdf63ebc801026c749619",
+      "BYTES": 11633
+    },
+    {
+      "PATH": "tools/e10_zone3_presentation_audio/generate_package.py",
+      "SOURCE_LANE": "JOURNEY",
+      "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
+      "ROLE": "TEST",
+      "SHA256": "7a232cef0e491481da5c8d13c17afd5124940e92bf7e98ded3b6d8cba44d40b6",
+      "BYTES": 21491
+    },
+    {
+      "PATH": "zone3_runtime_asset_bindings.py",
+      "SOURCE_LANE": "HERO",
+      "SOURCE_HEAD": "15cd275b8f4992c30e93d874c45244d87909d334",
+      "ROLE": "PRODUCT_RUNTIME",
+      "SHA256": "98d8d74f20c0cda7e930349c4aa0b7e6869bd32b767c1574ec2d9720b3e6f7d0",
+      "BYTES": 17082
+    }
+  ]
+}

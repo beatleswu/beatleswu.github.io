@@ -20,7 +20,11 @@
     { flag: 'e9TopHud', component: 'top_hud', selector: '#e9-top-hud-slot', src: '/components/adventure/top_hud.html' },
     { flag: 'e9LeftNav', component: 'left_nav', selector: '#e9-left-nav-slot', src: '/components/adventure/left_nav.html' },
     { flag: 'e9RightCards', component: 'right_cards', selector: '#e9-right-cards-slot', src: '/components/adventure/right_cards.html' },
-    { flag: 'e9BottomDock', component: 'bottom_dock', selector: '#e9-bottom-dock-slot', src: '/components/adventure/bottom_dock.html' }
+    { flag: 'e9BottomDock', component: 'bottom_dock', selector: '#e9-bottom-dock-slot', src: '/components/adventure/bottom_dock.html' },
+    // W1_03 journey surfaces stay non-critical: a failed guide must never
+    // recover or replace the authoritative World Stage/legacy Adventure map.
+    { flag: 'e9Shell', component: 'journey_onboarding', selector: '#e9-journey-onboarding-slot', src: '/components/adventure/journey_onboarding.html' },
+    { flag: 'e9Shell', component: 'zone3_vertical_slice', selector: '#e9-zone3-vertical-slice-slot', src: '/components/adventure/zone3_vertical_slice.html' }
   ];
 
   var LEGACY_SELECTORS = [

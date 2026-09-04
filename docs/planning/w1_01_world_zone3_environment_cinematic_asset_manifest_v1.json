@@ -1,0 +1,839 @@
+{
+  "manifest_id": "w1-01-world-zone3-environment-cinematic-production-prep-v1",
+  "schema_version": "1.0",
+  "status": "PREPARED_FOR_OWNER_VISUAL_PRODUCTION",
+  "task": "W1_01_WORLD_ZONE3_ENVIRONMENT_CINEMATIC_PRODUCTION_PREP_005",
+  "swarm_round": "W1_R2_ZONE3_VERTICAL_SLICE",
+  "base_candidate": "4a6d66f9df4c305811f8782f689f637b66952a27",
+  "owner_style": "B — STYLIZED_ADVENTURE",
+  "zone": {
+    "zone_number": 3,
+    "zone_key": "k16_20",
+    "name_zh": "哥布林洞穴",
+    "name_en": "Goblin Cave",
+    "stage": "LV3",
+    "level_band": "16–20級",
+    "lord_id": "goblin_centurion",
+    "lord_name_zh": "哥布林百夫長",
+    "lord_name_en": "Goblin Centurion",
+    "lord_face_authority": "HERO_LANE_ONLY",
+    "lord_voice_authority": "AUDIO_OR_SCREENPLAY_LANE_ONLY"
+  },
+  "authority": {
+    "runtime_identity_source": "app.py ADVENTURE_ZONES and ADVENTURE_BOSS_META at the supplied candidate base",
+    "screenplay_source": "docs/planning/e10_final_screenplay_v1.md Zone 3 Shots 1–10",
+    "style_source": "docs/planning/w1_01_world_style_b_lock_and_zone_content_production_v1.md",
+    "replay_source": "js/game/cinematic_replay.js",
+    "map_surface_source": "components/adventure/world_stage.html and js/e9/world_stage.js",
+    "battlefield_boss_is_lord": false,
+    "visual_art_grants_authority": false
+  },
+  "hard_boundaries": {
+    "TEXT_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "ROUTE_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "STATE_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "REWARD_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "APP_PY_CHANGED": false,
+    "SHARED_SHELL_CHANGED": false,
+    "GAMEPLAY_AUTHORITY_CHANGED": false,
+    "RUNTIME_PRODUCT_FILES_CHANGED": false,
+    "MONSTER_OR_LORD_CHARACTER_ART_CREATED": false,
+    "ARTWORK_GENERATION_EXECUTED": false,
+    "AUDIO_GENERATION_EXECUTED": false,
+    "PRODUCTION_MUTATION": false,
+    "DEPLOY": false,
+    "MERGE": false,
+    "SHOP_ENABLED": false,
+    "LOADOUT_ENABLED": false,
+    "PAYMENT_CHANGED": false,
+    "REVENUE_LIVE": false
+  },
+  "production_roots": {
+    "review_source_root": "tools/e10_world_zone_art_review/zone3",
+    "canonical_source_root": "assets/e10/art/zone3",
+    "runtime_derivative_root": "assets/e10/art/zone3",
+    "review_source_format": "Owner/ChatGPT-reviewed PNG source evidence",
+    "runtime_derivative_format": "WEBP after accepted source review and a separate static packaging gate",
+    "no_asset_directories_created_by_this_task": true
+  },
+  "continuity_inputs": [
+    {
+      "path": "assets/maps/e10_world_stage_v1_base.webp",
+      "classification": "EXISTING_CANONICAL",
+      "reuse": "Map canvas/depth baseline only"
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp",
+      "classification": "EXISTING_BUT_INCOMPLETE",
+      "reuse": "Cave landmark visual reference; not final admission"
+    },
+    {
+      "path": "assets/e10/ui/e10-ui-assets.json",
+      "classification": "EXISTING_CANONICAL",
+      "reuse": "Shared map node, selection, lock, completion, progress, and player-marker vocabulary"
+    },
+    {
+      "path": "assets/e10/art/zone1/lord_trial/",
+      "classification": "EXISTING_CANONICAL_DELIVERY_REFERENCE",
+      "reuse": "Separate ritual/backplate/result pattern and runtime WebP derivative pattern; no Zone 1 pixels"
+    },
+    {
+      "path": "assets/e10/art/zone2/lord_trial/",
+      "classification": "EXISTING_CANONICAL_DELIVERY_REFERENCE",
+      "reuse": "4:3 Lord-trial backplate pattern and separate key-art/portrait pattern; no Zone 2 pixels"
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot01.webp–e10_z2_shot10.webp",
+      "classification": "REFERENCE_ONLY",
+      "reuse": "Shot mapping and 16:9 storyboard delivery precedent; no image reuse"
+    },
+    {
+      "path": "js/game/cinematic_replay.js",
+      "classification": "EXISTING_CANONICAL",
+      "reuse": "Zone-agnostic replay/lifecycle contract; no code change"
+    }
+  ],
+  "slots": [
+    {
+      "ASSET_ID": "Z3_MAP_LANDMARK",
+      "PURPOSE": "World-stage map landmark and zone-details image",
+      "SCENE": "Cave mouth, amber-lit descent, occupied limestone alcoves, and a reserved deeper last door; recognizable at map-card scale",
+      "CHARACTER_PLACEMENT": "No character pixels. Reserve the center for the semantic node overlay and the lower-right for the existing current-player marker",
+      "CAMERA": "1:1 slightly elevated three-quarter establishing view; cave mouth and route form one readable silhouette",
+      "LIGHTING": "Warm cave-mouth and lantern key, cool inner-cave fill, soft edge separation; no blacked-out recesses",
+      "PALETTE": "Limestone cream, charcoal teal, lantern amber, moss green, copper, damp blue-gray",
+      "ASPECT_RATIO": "1:1",
+      "MASTER_DIMENSIONS": "1536x1536",
+      "DESKTOP_SAFE_AREA": {
+        "x": "10–90%",
+        "y": "10–88%",
+        "notes": "Keep cave mouth, route, and last-door read away from outer 10%; leave lower 12% quiet for semantic card treatment"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "14–86%",
+        "y": "10–84%",
+        "notes": "Preserve one route landmark and a clean center; do not rely on tiny edge detail"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "18–82%",
+        "y": "12–82%",
+        "notes": "The cave-mouth silhouette and amber entry must survive a 320x320 display box; keep lower 18% quiet"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/environment/zone3_map_landmark.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/environment/zone3_map_landmark.png",
+      "SHOT_COVERAGE": [],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["text", "route arrow", "node state", "unlock glow", "clear badge", "reward", "character", "Lord", "UI"]
+    },
+    {
+      "ASSET_ID": "Z3_ENTRY_ENVIRONMENT",
+      "PURPOSE": "Zone-entry environment backplate and first-entry Shot 1 reveal",
+      "SCENE": "Open cave mouth immediately after goblins flee with supplies; broken route, lantern trail, and inhabited cave depth; retreat rather than raid",
+      "CHARACTER_PLACEMENT": "Empty center subject bay at x=50%; rear-left route bay for later fleeing silhouettes; no named or identifiable character pixels",
+      "CAMERA": "16:9 wide establishing frame with mild handheld-feel composition but no baked motion blur",
+      "LIGHTING": "Torch/lantern flicker against cool cave spill; readable dark values and soft amber reflections",
+      "PALETTE": "Limestone cream, lantern amber, moss green, damp blue-gray, restrained berry red, charcoal teal",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Keep cave mouth and retreat route visible; leave y=84–100% quiet for semantic cinematic controls"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "14–86%",
+        "y": "10–76%",
+        "notes": "Keep the cave mouth and center subject bay in the 4:3 crop; lower 24% remains quiet"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "27–73%",
+        "y": "10–64%",
+        "notes": "Cave identity, lantern, and open route stay in the center band; lower 36% is UI-safe"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/entry/zone3_entry_backplate.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/entry/zone3_entry_backplate.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/entry/zone3_entry_backplate.png",
+      "SHOT_COVERAGE": [1],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["ambush framing", "gore", "baked dialogue", "character bodies", "Monster", "Lord", "UI", "reward"]
+    },
+    {
+      "ASSET_ID": "Z3_CAVE_PRIMARY_ENVIRONMENT",
+      "PURPOSE": "Primary Zone 3 environment for gameplay context and Shots 2–4",
+      "SCENE": "Inhabited limestone chamber with storage alcoves, rope route, fading supply trail, lantern pools, and a practical cave wall",
+      "CHARACTER_PLACEMENT": "Empty Hero/Companion foreground bays x=35–66%; eye-level Grik bay x=62–76%; no character pixels",
+      "CAMERA": "16:9 stable eye-level medium-wide; route leads inward without collapsing into a tunnel",
+      "LIGHTING": "Warm lantern pools against a cool overhead cave shaft; soft limestone bounce and readable recesses",
+      "PALETTE": "Limestone cream, charcoal teal, lantern amber, moss green, copper, warm ivory",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Keep wall/route x=40–62%, Grik bay x=62–76%, and Hero/Companion bays readable; bottom 18% quiet"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "14–86%",
+        "y": "10–76%",
+        "notes": "Retain one lateral route landmark and the wall read; do not stretch the panorama"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "27–73%",
+        "y": "10–64%",
+        "notes": "Wall/route and one subject bay remain center-safe; secondary alcoves may crop"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/environment/zone3_environment_master.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/environment/zone3_environment_master.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/environment/zone3_environment_master.png",
+      "SHOT_COVERAGE": [2, 3, 4],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["raid dungeon tropes", "horror blackout", "character bodies", "Monster", "Lord", "baked status", "reward"]
+    },
+    {
+      "ASSET_ID": "Z3_BOARD_WALL_REVEAL",
+      "PURPOSE": "Zone core image for the natural Go-board wall reveal in Shot 5",
+      "SCENE": "Cracked natural cave wall whose stone spacing reads as a found board pattern while the occupied settlement remains visible around it",
+      "CHARACTER_PLACEMENT": "Empty Hero hand/face interaction bay x=42–58%; no Hero, Grik, constructed board, or character pixels",
+      "CAMERA": "16:9 slow-push composition; wall is centered but not full-frame so cave context survives",
+      "LIGHTING": "A narrow cool shaft catches the cracks while ambient amber remains in the surrounding chamber; no magical glow",
+      "PALETTE": "Pale limestone, charcoal cracks, mineral blue-gray, restrained lantern amber, moss green",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Keep the crack/board read x=35–65%; semantic dialogue lane remains outside the base image"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "16–84%",
+        "y": "10–76%",
+        "notes": "Preserve enough wall edge and cave material to show this is found, not a magical UI grid"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "28–72%",
+        "y": "12–62%",
+        "notes": "Crack/stone spacing must read in the center band; lower 38% is quiet"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/cinematic/zone3_shot05_board_wall_reveal.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/cinematic/zone3_shot05_board_wall_reveal.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/cinematic/zone3_shot05_board_wall_reveal.png",
+      "SHOT_COVERAGE": [5],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["magical grid", "glowing board", "baked explanation", "constructed UI board", "character", "reward"]
+    },
+    {
+      "ASSET_ID": "Z3_LORD_APPROACH_BACKGROUND",
+      "PURPOSE": "Boss-ready and last-door approach background for Shots 6–7",
+      "SCENE": "Reserved last door, quiet passage, and planted-spear ground point; tension comes from stillness and recognition",
+      "CHARACTER_PLACEMENT": "Empty Centurion bay x=66% and Hero bay x=36%; WORLD supplies only the door, floor, depth, and optional empty spear-contact point",
+      "CAMERA": "16:9 level-angle frame, symmetrical enough for recognition but not a generic boss card",
+      "LIGHTING": "Lantern pools narrow toward the last door; soft stone rim; no horror blackout, explosion, or battle flash",
+      "PALETTE": "Charcoal teal, limestone cream, copper, low lantern amber, damp blue-gray, warm ivory",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Last door x=58–76%, Hero bay x=28–44%; preserve center for semantic Lord metadata"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "14–86%",
+        "y": "10–76%",
+        "notes": "Door and both subject bays survive 4:3 crop; lower 24% remains quiet"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "27–73%",
+        "y": "10–64%",
+        "notes": "Door remains visible near center-right; Hero bay and central metadata lane are not cropped"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/cinematic/zone3_shot06_last_door_approach.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/cinematic/zone3_shot06_last_door_approach.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/cinematic/zone3_shot06_last_door_approach.png",
+      "SHOT_COVERAGE": [6, 7],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["Battlefield Boss frame", "Lord body", "Lord face", "combat stance", "kill trophy", "baked Lord name", "reward"]
+    },
+    {
+      "ASSET_ID": "Z3_FRAGILE_TRUCE_BACKPLATE",
+      "PURPOSE": "Post-clear and fragile-truce presentation for Shot 8",
+      "SCENE": "Passage opens without destruction; supplies remain, lantern route settles, and the last door no longer blocks passage",
+      "CHARACTER_PLACEMENT": "Empty Hero/Grik/Centurion bays; no combat stance, defeated body, trophy, or character pixels",
+      "CAMERA": "16:9 wide static recovery view; open route reads before any overlay",
+      "LIGHTING": "Warmth returns gradually while cool cave depth remains; soft dust settle, no victory flash",
+      "PALETTE": "Warm ivory, limestone cream, lantern amber, moss green, softened charcoal teal, copper",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Open route x=44–70%; keep the scene legible behind server-confirmed clear text"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "14–86%",
+        "y": "10–76%",
+        "notes": "Keep open passage and one practical prop; lower 24% is overlay-safe"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "27–73%",
+        "y": "10–64%",
+        "notes": "Truce read must survive as open space and settled lantern warmth, not as color-only victory"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/clear/zone3_clear_backplate.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/clear/zone3_clear_backplate.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/clear/zone3_clear_backplate.png",
+      "SHOT_COVERAGE": [8],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["destruction", "victory trophy", "defeated body", "reward icon", "star", "clear badge", "baked state"]
+    },
+    {
+      "ASSET_ID": "Z3_STONE_SHARD_HANDOFF_PLATE",
+      "PURPOSE": "Canonical STONE SHARD prop plate for Shot 9",
+      "SCENE": "Worn stone surface and an ordinary Stone Shard staged between two interaction bays; the cave remains inhabited and calm",
+      "CHARACTER_PLACEMENT": "Two empty hand/prop bays x=42–58%; no hands, Hero, Grik, face, body, or character pixels",
+      "CAMERA": "16:9 close composition with controlled shallow depth; the Shard remains center-safe without photorealistic blur",
+      "LIGHTING": "Soft lantern top light and stone bounce; the Shard is ordinary and does not pulse, glow, or point",
+      "PALETTE": "Warm ivory stone, charcoal edge, muted lantern amber, damp blue-gray, moss green",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Keep the Shard x=44–56%; leave top/bottom lanes for semantic story text outside the image"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "18–82%",
+        "y": "12–76%",
+        "notes": "Shard and interaction bays survive 4:3 crop; no hand is baked into the plate"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "30–70%",
+        "y": "18–58%",
+        "notes": "Shard remains visibly ordinary in the center; lower 42% stays quiet for captions/controls"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/cinematic/zone3_shot09_stone_shard_handoff.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/cinematic/zone3_shot09_stone_shard_handoff.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/cinematic/zone3_shot09_stone_shard_handoff.png",
+      "SHOT_COVERAGE": [9],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "STORY_OBJECT_NAME": "STONE SHARD",
+      "PROHIBITED_CONTENT": ["stone-mark runtime label", "magical glow", "route pointer", "reward", "inventory icon", "hands", "character", "baked dialogue"]
+    },
+    {
+      "ASSET_ID": "Z3_ZONE4_HOOK_THRESHOLD",
+      "PURPOSE": "Post-clear Zone 4 hook for Shot 10",
+      "SCENE": "Deeper cave threshold opens toward a distant natural mist/forest edge; the hook is historical and environmental, not a magical route",
+      "CHARACTER_PLACEMENT": "Empty Hero/Companion foreground bay; no character pixels, map marker, arrow, or glowing object",
+      "CAMERA": "16:9 medium-wide static frame; off-axis threshold lets the player imagine the next route",
+      "LIGHTING": "Cave amber fades into cool natural mist; no supernatural beacon or high-contrast portal",
+      "PALETTE": "Damp blue-gray, moss green, limestone cream, low lantern amber, muted charcoal teal",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Natural mist opening x=56–76%; preserve cave foreground and no route UI in the base image"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "16–84%",
+        "y": "10–76%",
+        "notes": "Keep both cave and mist materials visible; do not turn the threshold into an icon"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "28–72%",
+        "y": "10–64%",
+        "notes": "Cave-to-mist contrast remains in the center band; no edge-only destination cue"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/cinematic/zone3_shot10_zone4_hook.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/cinematic/zone3_shot10_zone4_hook.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/cinematic/zone3_shot10_zone4_hook.png",
+      "SHOT_COVERAGE": [10],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["route arrow", "glowing Shard", "map marker", "unlock signal", "baked Zone 4 name", "character", "reward"]
+    },
+    {
+      "ASSET_ID": "Z3_LORD_RITUAL_BACKGROUND",
+      "PURPOSE": "Lord Trial ritual/challenge background only",
+      "SCENE": "Abstracted last-door chamber with a stable ritual floor, cave depth, and controlled negative space for the separate Centurion layer",
+      "CHARACTER_PLACEMENT": "Empty central Lord/metadata bay; no Lord, Hero, weapon, face, voice, label, button, or character pixels",
+      "CAMERA": "4:3 centered backplate, UI-aware; ritual floor sits lower-middle and the subject bay remains clear",
+      "LIGHTING": "Controlled amber ring and stone reflections; no new magical system, aura, or combat flash",
+      "PALETTE": "Charcoal teal, limestone cream, copper, restrained lantern amber, warm ivory",
+      "ASPECT_RATIO": "4:3",
+      "MASTER_DIMENSIONS": "2048x1536",
+      "DESKTOP_SAFE_AREA": {
+        "x": "10–90%",
+        "y": "8–84%",
+        "notes": "Keep central subject bay x=36–64% empty; top/bottom semantic UI lanes remain unpainted"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "12–88%",
+        "y": "8–80%",
+        "notes": "Ritual floor and negative space survive portrait and landscape 4:3 presentation"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "22–78%",
+        "y": "10–62%",
+        "notes": "Central subject bay remains clear; lower 38% is reserved for semantic controls and result text"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/lord_trial/zone3_lord_ritual_background.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/lord_trial/zone3_lord_ritual_background.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_ritual_background.png",
+      "SHOT_COVERAGE": [],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "LORD_CHARACTER_SOURCE": "HERO_LANE",
+      "PROHIBITED_CONTENT": ["Lord body", "Lord face", "Battlefield Boss shortcut", "Lord name", "voice cue", "button", "state", "reward", "star"]
+    },
+    {
+      "ASSET_ID": "Z3_LORD_RESULT_BACKGROUND",
+      "PURPOSE": "Lord Trial result/failure/success background only",
+      "SCENE": "The same cave continuity after a committed result; open/held last-door state with a neutral emotional range",
+      "CHARACTER_PLACEMENT": "Empty result subject bay; no character, reward, star, clear, or outcome symbol baked into the background",
+      "CAMERA": "4:3 backplate with stable center and top/bottom semantic UI clearance",
+      "LIGHTING": "Stable warm/cool balance; result tone is supplied by runtime state and semantic UI, not by a baked color state",
+      "PALETTE": "Limestone cream, warm ivory, charcoal teal, quiet lantern amber, copper",
+      "ASPECT_RATIO": "4:3",
+      "MASTER_DIMENSIONS": "2048x1536",
+      "DESKTOP_SAFE_AREA": {
+        "x": "10–90%",
+        "y": "8–84%",
+        "notes": "Keep result subject bay x=36–64% empty and background readable behind semantic result copy"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "12–88%",
+        "y": "8–80%",
+        "notes": "No result meaning depends only on hue, vignette, or a cropped edge"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "22–78%",
+        "y": "10–62%",
+        "notes": "Central background survives narrow crop; lower 38% remains clear for controls and result text"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/lord_trial/zone3_lord_result_background.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/lord_trial/zone3_lord_result_background.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/lord_trial/zone3_lord_result_background.png",
+      "SHOT_COVERAGE": [],
+      "STATUS": "NEW_PROPOSED_NOT_GENERATED",
+      "GENERATION_REQUIRED": true,
+      "CHARACTER_ART_EXCLUSION": true,
+      "LORD_CHARACTER_SOURCE": "HERO_LANE",
+      "PROHIBITED_CONTENT": ["result state", "reward", "star", "clear badge", "Lord body", "face", "voice cue", "button", "Battlefield Boss frame"]
+    },
+    {
+      "ASSET_ID": "Z3_REPLAY_BACKPLATE",
+      "PURPOSE": "Replay-safe revisit treatment for the lantern route, Grik approach, and last door",
+      "SCENE": "Calm revisit of the accepted primary/approach geography; no first-clear event or new story prop grant",
+      "CHARACTER_PLACEMENT": "Reuse the empty subject bays from Z3_CAVE_PRIMARY_ENVIRONMENT and Z3_LORD_APPROACH_BACKGROUND",
+      "CAMERA": "DERIVED from accepted 16:9 primary/approach source; no new camera invention",
+      "LIGHTING": "Quiet neutral grade from accepted source; no celebratory flash or first-entry urgency",
+      "PALETTE": "Accepted Zone 3 palette with reduced contrast and unchanged material read",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152 derivative",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Preserve the same subject and route bays as the source plate"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "14–86%",
+        "y": "10–76%",
+        "notes": "No replay-only edge crop or state signal"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "27–73%",
+        "y": "10–64%",
+        "notes": "Identity remains the same as first-entry; only presentation timing/state differs"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/replay/zone3_replay_backplate.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/replay/zone3_replay_backplate.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/replay/zone3_replay_backplate.png",
+      "SHOT_COVERAGE": [],
+      "STATUS": "DERIVED_NO_NEW_GENERATION",
+      "GENERATION_REQUIRED": false,
+      "SOURCE_SLOT_IDS": ["Z3_CAVE_PRIMARY_ENVIRONMENT", "Z3_LORD_APPROACH_BACKGROUND"],
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["repeat reward", "repeat Stone Shard grant", "new unlock", "new star", "first-clear-only flash", "baked state"]
+    },
+    {
+      "ASSET_ID": "Z3_BATTLEFIELD_BOSS_CONTEXT",
+      "PURPOSE": "Conditional generic Battlefield Boss environment context, only if later runtime authority admits it",
+      "SCENE": "Zone 3 cave context for a generic Battlefield Boss surface; it is not the last-door Lord ritual",
+      "CHARACTER_PLACEMENT": "Empty generic encounter bay; no Centurion/Lord identity, face, body, or weapon",
+      "CAMERA": "DEFERRED_OR_DERIVED 16:9 context crop from the primary cave source",
+      "LIGHTING": "Controlled copper emphasis may be supplied by the shared Battlefield Boss presentation, never baked as gameplay state",
+      "PALETTE": "Primary Zone 3 palette with restrained copper accent",
+      "ASPECT_RATIO": "16:9",
+      "MASTER_DIMENSIONS": "2048x1152 if separately admitted",
+      "DESKTOP_SAFE_AREA": {
+        "x": "8–92%",
+        "y": "8–82%",
+        "notes": "Generic encounter bay only; no Lord ritual identity"
+      },
+      "IPAD_SAFE_AREA": {
+        "x": "14–86%",
+        "y": "10–76%",
+        "notes": "Preserve the ordinary encounter context and semantic HP/label lanes outside art"
+      },
+      "MOBILE_SAFE_AREA": {
+        "x": "27–73%",
+        "y": "10–64%",
+        "notes": "No visual scale shortcut may turn this into a Lord"
+      },
+      "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/encounter/zone3_battlefield_boss_context.webp",
+      "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/encounter/zone3_battlefield_boss_context.png",
+      "CANONICAL_SOURCE_PATH": "assets/e10/art/zone3/encounter/zone3_battlefield_boss_context.png",
+      "SHOT_COVERAGE": [],
+      "STATUS": "CONDITIONAL_DEFERRED_UNTIL_RUNTIME_ADMISSION",
+      "GENERATION_REQUIRED": false,
+      "SOURCE_SLOT_IDS": ["Z3_CAVE_PRIMARY_ENVIRONMENT"],
+      "CHARACTER_ART_EXCLUSION": true,
+      "PROHIBITED_CONTENT": ["Lord", "Centurion", "Lord ritual", "Lord result", "combat authority", "reward", "state"]
+    }
+  ],
+  "cinematic_coverage": [
+    {
+      "SHOT": 1,
+      "CANONICAL_BEAT": "Cave mouth; goblins flee with supplies",
+      "WORLD_ASSET_IDS": ["Z3_ENTRY_ENVIRONMENT"],
+      "CHARACTER_ART_OWNER": "HERO_LANE_OR_CINEMATIC_COMPOSITOR",
+      "STATE_AUTHORITY": "NONE_PRE_PLAY"
+    },
+    {
+      "SHOT": 2,
+      "CANONICAL_BEAT": "Hero watches goblins recede",
+      "WORLD_ASSET_IDS": ["Z3_CAVE_PRIMARY_ENVIRONMENT"],
+      "CHARACTER_ART_OWNER": "HERO_LANE_OR_CINEMATIC_COMPOSITOR",
+      "STATE_AUTHORITY": "NONE_PRE_PLAY"
+    },
+    {
+      "SHOT": 3,
+      "CANONICAL_BEAT": "Grik is cornered at eye level",
+      "WORLD_ASSET_IDS": ["Z3_CAVE_PRIMARY_ENVIRONMENT"],
+      "CHARACTER_ART_OWNER": "HERO_LANE_OR_CINEMATIC_COMPOSITOR",
+      "STATE_AUTHORITY": "NONE_PRE_PLAY"
+    },
+    {
+      "SHOT": 4,
+      "CANONICAL_BEAT": "Grik gestures at the shrinking cave wall",
+      "WORLD_ASSET_IDS": ["Z3_CAVE_PRIMARY_ENVIRONMENT"],
+      "CHARACTER_ART_OWNER": "HERO_LANE_OR_CINEMATIC_COMPOSITOR",
+      "STATE_AUTHORITY": "NONE_PRE_PLAY"
+    },
+    {
+      "SHOT": 5,
+      "CANONICAL_BEAT": "Natural Go-board wall reveal",
+      "WORLD_ASSET_IDS": ["Z3_BOARD_WALL_REVEAL"],
+      "CHARACTER_ART_OWNER": "HERO_LANE_OR_CINEMATIC_COMPOSITOR",
+      "STATE_AUTHORITY": "NONE_PRE_PLAY"
+    },
+    {
+      "SHOT": 6,
+      "CANONICAL_BEAT": "Centurion introduced as the last door",
+      "WORLD_ASSET_IDS": ["Z3_LORD_APPROACH_BACKGROUND"],
+      "CHARACTER_ART_OWNER": "HERO_LANE",
+      "STATE_AUTHORITY": "LORD_ENTRY_REMAINS_SERVER_BACKED"
+    },
+    {
+      "SHOT": 7,
+      "CANONICAL_BEAT": "Core Belief and chance to turn back",
+      "WORLD_ASSET_IDS": ["Z3_LORD_APPROACH_BACKGROUND"],
+      "CHARACTER_ART_OWNER": "HERO_LANE",
+      "STATE_AUTHORITY": "LORD_ENTRY_REMAINS_SERVER_BACKED"
+    },
+    {
+      "SHOT": 8,
+      "CANONICAL_BEAT": "Ceasefire before anyone speaks",
+      "WORLD_ASSET_IDS": ["Z3_FRAGILE_TRUCE_BACKPLATE"],
+      "CHARACTER_ART_OWNER": "HERO_LANE_OR_CINEMATIC_COMPOSITOR",
+      "STATE_AUTHORITY": "SERVER_CONFIRMED_CLEAR_ONLY"
+    },
+    {
+      "SHOT": 9,
+      "CANONICAL_BEAT": "STONE SHARD handoff",
+      "WORLD_ASSET_IDS": ["Z3_STONE_SHARD_HANDOFF_PLATE"],
+      "CHARACTER_ART_OWNER": "HERO_LANE_OR_CINEMATIC_COMPOSITOR",
+      "STATE_AUTHORITY": "STORY_PROP_ONLY; NO_REWARD_GRANT"
+    },
+    {
+      "SHOT": 10,
+      "CANONICAL_BEAT": "Grik gestures toward deeper cave/forest",
+      "WORLD_ASSET_IDS": ["Z3_ZONE4_HOOK_THRESHOLD"],
+      "CHARACTER_ART_OWNER": "HERO_LANE_OR_CINEMATIC_COMPOSITOR",
+      "STATE_AUTHORITY": "SERVER_CONFIRMED_POST_CLEAR_HOOK_ONLY"
+    }
+  ],
+  "CHATGPT_IMAGE_GENERATION_QUEUE": [
+    {
+      "ORDER": 1,
+      "QUEUE_ID": "Z3_WORLD_Q01_MAP_LANDMARK",
+      "OUTPUT_ASSET_IDS": ["Z3_MAP_LANDMARK"],
+      "DEPENDS_ON": [],
+      "PROMPT": "Create a polished stylized adventure-RPG environment landmark for Zone 3, 哥布林洞穴 / Goblin Cave. Show a recognizable cave mouth descending into an inhabited limestone settlement, warm lantern pools, moss, rope route, storage alcoves, and a reserved deeper last door. Use readable silhouettes, simplified tactile 3D forms, rich controlled color, and clear foreground/midground/background separation. Compose as a square map landmark with the cave mouth and route readable at small card scale. Leave the semantic node and current-player marker areas visually quiet. Environment only.",
+      "NEGATIVE_PROMPT": "No text, labels, Chinese or English words, route arrows, UI, buttons, node states, unlock/clear/reward symbols, characters, Monsters, Goblin Centurion, faces, weapons, gore, photorealism, grimdark horror, muddy contrast, purple monochrome, watermark, logo.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "1:1",
+        "MASTER_DIMENSIONS": "1536x1536",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+        "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/environment/zone3_map_landmark.png"
+      },
+      "ACCEPTANCE_CHECKS": ["Zone 3 cave identity reads without text", "last door is reserved but not a boss portrait", "center/lower safe areas remain usable", "no character or state pixels"]
+    },
+    {
+      "ORDER": 2,
+      "QUEUE_ID": "Z3_WORLD_Q02_ENTRY",
+      "OUTPUT_ASSET_IDS": ["Z3_ENTRY_ENVIRONMENT"],
+      "DEPENDS_ON": ["Z3_WORLD_Q01_MAP_LANDMARK"],
+      "PROMPT": "Create a 16:9 stylized adventure-RPG Zone 3 cave-mouth entry environment. The moment is immediately after goblins flee carrying supplies: an open limestone mouth, a broken practical route, lantern trail, storage hints, and inhabited depth. The image should make retreat rather than raid legible, feel approachable rather than grimdark, and reserve a center subject bay for later Hero/Companion compositing and a rear-left route bay for later fleeing silhouettes. Use the same tactile 3D adventure grammar as the accepted Zone 1–2 package.",
+      "NEGATIVE_PROMPT": "No text, subtitles, labels, route arrows, UI, character bodies, named Goblins, Monster, Lord, ambush, dungeon horror, gore, blood, photorealism, black void, muddy low contrast, purple monochrome, reward, state, watermark, logo, baked motion blur.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "16:9",
+        "MASTER_DIMENSIONS": "2048x1152",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/entry/zone3_entry_backplate.webp",
+        "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/entry/zone3_entry_backplate.png"
+      },
+      "ACCEPTANCE_CHECKS": ["cave mouth and retreat route survive 9:16 center crop", "no ambush or raid read", "center subject bay is empty", "warm/cool separation remains readable in grayscale"]
+    },
+    {
+      "ORDER": 3,
+      "QUEUE_ID": "Z3_WORLD_Q03_PRIMARY_CAVE",
+      "OUTPUT_ASSET_IDS": ["Z3_CAVE_PRIMARY_ENVIRONMENT"],
+      "DEPENDS_ON": ["Z3_WORLD_Q02_ENTRY"],
+      "PROMPT": "Create the primary 16:9 environment plate for Zone 3, 哥布林洞穴 / Goblin Cave: an inhabited limestone chamber with storage alcoves, rope route, fading supply trail, lantern pools, practical cave-wall detail, and believable settlement depth. Build a stable eye-level medium-wide composition with three readable layers. Reserve Hero/Companion foreground bays x=35–66% and an eye-level Grik bay x=62–76%, but paint no characters. The space must feel resourceful and defended, never like a raid dungeon.",
+      "NEGATIVE_PROMPT": "No text, dialogue, UI, route label, state, reward, character bodies, Grik, Goblin Centurion, Monsters, generic boss, horror blackout, gore, photorealistic cave, generic cinematic realism, muddy contrast, purple monochrome, watermark, logo.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "16:9",
+        "MASTER_DIMENSIONS": "2048x1152",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/environment/zone3_environment_master.webp",
+        "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/environment/zone3_environment_master.png"
+      },
+      "ACCEPTANCE_CHECKS": ["usable for gameplay context and Shots 2–4", "wall/route remain visible behind character layers", "three-layer read survives crop", "no character pixels"]
+    },
+    {
+      "ORDER": 4,
+      "QUEUE_ID": "Z3_WORLD_Q04_BOARD_WALL",
+      "OUTPUT_ASSET_IDS": ["Z3_BOARD_WALL_REVEAL"],
+      "DEPENDS_ON": ["Z3_WORLD_Q03_PRIMARY_CAVE"],
+      "PROMPT": "Create a 16:9 stylized environment plate for Zone 3 Shot 5: a cracked natural limestone cave wall whose stone spacing and composition suggest a found Go-board pattern. Keep surrounding occupied cave material visible so this is discovered environmental evidence, not a constructed interface. Center the crack/stone read x=35–65%, leave an empty Hero interaction bay x=42–58%, and use a cool shaft against restrained lantern amber. The reveal is photographic and tactile, not magical.",
+      "NEGATIVE_PROMPT": "No magical grid, glowing board, UI board, text, explanation, subtitles, labels, characters, hands, Hero, Grik, Lord, reward, state, neon, horror, photorealism, muddy cave, purple monochrome, watermark, logo.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "16:9",
+        "MASTER_DIMENSIONS": "2048x1152",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/cinematic/zone3_shot05_board_wall_reveal.webp",
+        "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/cinematic/zone3_shot05_board_wall_reveal.png"
+      },
+      "ACCEPTANCE_CHECKS": ["natural wall reads as Zone 3 core image", "no magical grid or Go rules are baked", "interaction bay is empty", "contrast survives mobile crop"]
+    },
+    {
+      "ORDER": 5,
+      "QUEUE_ID": "Z3_WORLD_Q05_LAST_DOOR",
+      "OUTPUT_ASSET_IDS": ["Z3_LORD_APPROACH_BACKGROUND"],
+      "DEPENDS_ON": ["Z3_WORLD_Q03_PRIMARY_CAVE", "Z3_WORLD_Q04_BOARD_WALL"],
+      "PROMPT": "Create a 16:9 stylized adventure-RPG last-door approach environment for Zone 3. Show a reserved limestone last door, quiet passage, lantern pools narrowing toward it, and a grounded spear-contact point without the spear or any character. Use a level camera, stillness, and negative space rather than a low-angle monster reveal. Reserve a Centurion bay x=66% and Hero bay x=36%; environment only, ready for a separately produced Goblin Centurion Lord layer.",
+      "NEGATIVE_PROMPT": "No Goblin Centurion, Lord body, Lord face, character, weapon, Battlefield Boss frame, combat pose, kill trophy, text, Lord name, UI, reward, explosion, horror darkness, gore, photorealism, muddy contrast, purple monochrome, watermark, logo.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "16:9",
+        "MASTER_DIMENSIONS": "2048x1152",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/cinematic/zone3_shot06_last_door_approach.webp",
+        "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/cinematic/zone3_shot06_last_door_approach.png"
+      },
+      "ACCEPTANCE_CHECKS": ["Lord and Battlefield Boss remain visually separable", "door is a location/identity anchor, not a character", "both subject bays survive crop", "no spear or Lord pixels"]
+    },
+    {
+      "ORDER": 6,
+      "QUEUE_ID": "Z3_WORLD_Q06_FRAGILE_TRUCE",
+      "OUTPUT_ASSET_IDS": ["Z3_FRAGILE_TRUCE_BACKPLATE"],
+      "DEPENDS_ON": ["Z3_WORLD_Q05_LAST_DOOR"],
+      "PROMPT": "Create a 16:9 post-clear Zone 3 environment plate for a fragile truce. The cave passage is open without destruction; supplies remain, lanterns settle, the last door no longer blocks the route, and the cave faction is not depicted as defeated. Keep the mood warmly relieved but still cautious. Reserve empty bays for later Hero, Grik, and Goblin Centurion layers. This is a neutral background for a server-confirmed clear, not a reward image.",
+      "NEGATIVE_PROMPT": "No text, clear badge, stars, reward, coins, loot, trophy, defeated body, destroyed settlement, battle debris, characters, Lord, Battlefield Boss, victory flash, magical explosion, gore, photorealism, horror, purple monochrome, watermark, logo.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "16:9",
+        "MASTER_DIMENSIONS": "2048x1152",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/clear/zone3_clear_backplate.webp",
+        "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/clear/zone3_clear_backplate.png"
+      },
+      "ACCEPTANCE_CHECKS": ["fragile truce reads without dialogue/audio", "no destruction or kill trophy", "neutral enough for semantic clear UI", "lower control lane stays clear"]
+    },
+    {
+      "ORDER": 7,
+      "QUEUE_ID": "Z3_WORLD_Q07_STONE_SHARD",
+      "OUTPUT_ASSET_IDS": ["Z3_STONE_SHARD_HANDOFF_PLATE"],
+      "DEPENDS_ON": ["Z3_WORLD_Q06_FRAGILE_TRUCE"],
+      "PROMPT": "Create a 16:9 close environment plate for Zone 3 Shot 9's canonical STONE SHARD handoff. Show an ordinary irregular stone shard on a worn cave-stone surface, staged between two empty interaction bays for later Hero and Grik hand layers. The shard is a story prop and future Journey Relic memory, not a reward icon in this image. Use soft lantern light and stone bounce; no glow, pulse, pointer, or magical destination signal.",
+      "NEGATIVE_PROMPT": "No text, stone-mark runtime label, hands, characters, Hero, Grik, Lord, reward, inventory, coin, star, glow, aura, arrow, route pointer, UI, magic grid, photorealism, horror, gore, purple monochrome, watermark, logo.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "16:9",
+        "MASTER_DIMENSIONS": "2048x1152",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/cinematic/zone3_shot09_stone_shard_handoff.webp",
+        "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/cinematic/zone3_shot09_stone_shard_handoff.png"
+      },
+      "ACCEPTANCE_CHECKS": ["STONE SHARD is ordinary and center-readable", "no hands or character art baked", "no reward/ownership implication", "safe for captions and narrow crop"]
+    },
+    {
+      "ORDER": 8,
+      "QUEUE_ID": "Z3_WORLD_Q08_ZONE4_HOOK",
+      "OUTPUT_ASSET_IDS": ["Z3_ZONE4_HOOK_THRESHOLD"],
+      "DEPENDS_ON": ["Z3_WORLD_Q06_FRAGILE_TRUCE", "Z3_WORLD_Q07_STONE_SHARD"],
+      "PROMPT": "Create a 16:9 post-clear Zone 3 threshold environment for Shot 10. Let the deeper cave open toward a distant natural mist and forest edge, as recalled by Grik. Keep the hook quiet, historical, and environmental: cave amber fades into cool mist, with no magical beacon. Reserve a center foreground bay for Hero/Companion compositing and keep the destination opening center-safe. The Stone Shard remains an ordinary prop and is not shown pointing anywhere.",
+      "NEGATIVE_PROMPT": "No text, Zone 4 name, route arrow, map marker, glowing Stone Shard, portal, unlock signal, characters, Hero, Grik, Lord, reward, UI, photorealism, horror, gore, muddy contrast, purple monochrome, watermark, logo.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "16:9",
+        "MASTER_DIMENSIONS": "2048x1152",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATH": "/assets/e10/art/zone3/cinematic/zone3_shot10_zone4_hook.webp",
+        "REVIEW_SOURCE_PATH": "tools/e10_world_zone_art_review/zone3/cinematic/zone3_shot10_zone4_hook.png"
+      },
+      "ACCEPTANCE_CHECKS": ["next-zone hook is legible without an arrow", "cave and mist materials remain continuous", "no unlock/progression signal", "center crop preserves the threshold"]
+    },
+    {
+      "ORDER": 9,
+      "QUEUE_ID": "Z3_WORLD_Q09_LORD_BACKGROUNDS",
+      "OUTPUT_ASSET_IDS": ["Z3_LORD_RITUAL_BACKGROUND", "Z3_LORD_RESULT_BACKGROUND"],
+      "DEPENDS_ON": ["Z3_WORLD_Q05_LAST_DOOR", "Z3_WORLD_Q06_FRAGILE_TRUCE"],
+      "PROMPT": "Using the accepted Zone 3 last-door environment grammar, produce two coordinated 4:3 background-only plates for the separate Goblin Centurion Lord Trial: (A) a ritual/challenge background with a stable ritual floor and controlled amber stone reflections, and (B) a result background with the same cave continuity and neutral emotional range. Both must leave a clear central subject/metadata bay and semantic top/bottom lanes. Environment only: the HERO lane supplies the Goblin Centurion character and any Hero layer later.",
+      "NEGATIVE_PROMPT": "No Lord body, face, character, Hero, Grik, weapon, Battlefield Boss shortcut, Lord name, dialogue, voice cue, buttons, HP, stars, clear state, rewards, coins, loot, combat outcome, new magic system, photorealism, horror, gore, muddy contrast, purple monochrome, watermark, logo.",
+      "OUTPUT_CONTRACT": {
+        "ASPECT_RATIO": "4:3",
+        "MASTER_DIMENSIONS": "2048x1536 each",
+        "MASTER_FORMAT": "PNG",
+        "EXPECTED_RUNTIME_PATHS": [
+          "/assets/e10/art/zone3/lord_trial/zone3_lord_ritual_background.webp",
+          "/assets/e10/art/zone3/lord_trial/zone3_lord_result_background.webp"
+        ],
+        "REVIEW_SOURCE_PATHS": [
+          "tools/e10_world_zone_art_review/zone3/lord_trial/zone3_lord_ritual_background.png",
+          "tools/e10_world_zone_art_review/zone3/lord_trial/zone3_lord_result_background.png"
+        ]
+      },
+      "ACCEPTANCE_CHECKS": ["two outputs share cave continuity", "ritual and result are separate neutral backgrounds", "central subject bay is empty", "Lord remains separate from Battlefield Boss", "no result/reward state is baked"]
+    }
+  ],
+  "responsive_contract": {
+    "crop_reference": "Percentages are normalized against each master before object-fit/runtime crop",
+    "desktop_16_9": {
+      "safe_area": "x=8–92%, y=8–82%",
+      "clearance": "Keep y=84–100% visually quiet for semantic cinematic/map controls",
+      "required_read": "Three layers, cave identity, primary route, and all relevant empty subject bays"
+    },
+    "ipad_portrait_4_3": {
+      "safe_area": "x=14–86%, y=10–76%",
+      "clearance": "Lower 24% remains clear for status/action UI",
+      "required_read": "One lateral route landmark plus the primary cave identity; do not stretch a 16:9 panorama"
+    },
+    "ipad_landscape_4_3": {
+      "safe_area": "x=10–90%, y=8–82%",
+      "clearance": "Keep semantic status/action lane outside art focal points",
+      "required_read": "Route, cave landmark, subject bays, Stone Shard, and last door remain visible"
+    },
+    "mobile_portrait_9_16": {
+      "safe_area": "x=27–73%, y=10–64% for wide plates; x=22–78%, y=10–62% for 4:3 Lord backgrounds",
+      "clearance": "Lower 30–38% stays quiet for controls, captions, and result text",
+      "required_read": "Zone identity and primary focal point survive center crop; edge-only context may crop"
+    },
+    "accessibility": {
+      "grayscale_identity": true,
+      "critical_info_only_audio": false,
+      "critical_info_only_color": false,
+      "captions_and_semantic_labels_outside_art": true,
+      "keyboard_focus_outside_art": true,
+      "reduced_motion": "Remove camera push, parallax sweeps, rapid flicker, particle bursts, and nonessential loops; preserve the same frame, focal point, text, focus, and authoritative state"
+    }
+  },
+  "world_hero_dependencies": {
+    "world_delivers": [
+      "Accepted environment/background plates and documented empty subject bays",
+      "Cave mouth, inhabited chamber, board-wall reveal, last-door depth, fragile-truce geography, Stone Shard staging, and Zone 4 threshold",
+      "Neutral Lord ritual/result backgrounds with no Lord character pixels",
+      "Review/canonical/runtime path contract for later static packaging"
+    ],
+    "hero_delivers": [
+      "Hero entry restraint, observation, wall gesture, approach, ceasefire, and handoff layers",
+      "Approved Companion layer and responsive pivot",
+      "Grik character asset at eye-level presentation",
+      "goblin_centurion Lord character asset, planted-spear pose, Lord hierarchy, and transparent portrait/full-body variants as separately accepted",
+      "Hands or interaction overlays for Shot 9"
+    ],
+    "anchor_contract": {
+      "entry": {"hero": "x=42–58%, y=42–72%", "companion": "x=58–72%, y=50–76%", "retreat_route": "x=18–40%, y=26–58%"},
+      "primary_cave": {"hero_companion": "x=35–66%, y=44–82%", "grik": "x=62–76%, y=30–66%", "wall_route": "x=40–62%, y=24–72%"},
+      "board_wall": {"hero_interaction": "x=42–58%, y=42–72%", "wall_read": "x=35–65%, y=18–66%"},
+      "lord_approach": {"hero": "x=28–44%, y=44–82%", "centurion": "x=60–74%, y=28–74%", "last_door": "x=58–76%, y=12–62%"},
+      "truce": {"hero_grik_centurion": "empty bays retained", "open_passage": "x=44–70%, y=20–72%"},
+      "stone_shard": {"shard": "x=44–56%, y=34–62%", "hands": "empty compositor bays x=42–58%"},
+      "zone4_hook": {"hero_companion": "empty foreground bay x=35–62%", "mist_threshold": "x=56–76%, y=18–68%"},
+      "lord_backgrounds": {"lord_metadata_bay": "empty x=36–64%, y=18–72%", "semantic_lanes": "top and bottom remain clear"}
+    },
+    "separation_rules": [
+      "Goblin Centurion is a Lord-only character dependency here; generic Battlefield Boss art cannot substitute",
+      "World plates never encode FACE_AUTHORITY or VOICE_AUTHORITY",
+      "World and HERO agree through anchor IDs and transparent compositing bounds, not baked pixels",
+      "No visual dependency changes Monster selection, battle settlement, Lord eligibility/retry, clear, reward, or progression authority"
+    ]
+  },
+  "integration_boundaries": {
+    "allowed_later": [
+      "Owner visual review and source-hash recording",
+      "Promotion of accepted PNG sources to the canonical Zone 3 art root",
+      "Reviewed WebP derivative creation through the static packaging gate",
+      "Separate owner-gated world-stage/cinematic static-adoption task"
+    ],
+    "not_allowed_here": [
+      "app.py",
+      "index.html",
+      "i18n.js",
+      "js/game/cinematic_replay.js",
+      "sw.js",
+      "combat/progression/quest/reward authority",
+      "Monster or Lord character art",
+      "audio generation or audio integration",
+      "database, Shop, Loadout, payment, Revenue Live, Production, deployment, merge"
+    ],
+    "runtime_paths_are_proposed_only": true,
+    "static_rebind_required_before_runtime_use": true
+  },
+  "validation": {
+    "canonical_zone_identity_exact": true,
+    "owner_style_b_preserved": true,
+    "all_required_slot_fields_present": true,
+    "first_entry_shots_1_to_10_mapped": true,
+    "lord_ritual_and_result_are_background_only": true,
+    "battlefield_boss_lord_separation_preserved": true,
+    "text_not_baked": true,
+    "route_not_baked": true,
+    "state_not_baked": true,
+    "reward_not_baked": true,
+    "no_monster_or_lord_art_created": true,
+    "no_asset_generation_executed": true,
+    "no_audio_generation_executed": true,
+    "app_py_changed": false,
+    "shared_shell_changed": false,
+    "gameplay_authority_changed": false,
+    "runtime_product_files_changed": false,
+    "ready_for_owner_visual_production": true,
+    "ready_for_runtime_static_integration": false
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "SCHEMA_VERSION": "W1_03_ZONE3_EN_US_OWNER_AUDITION_PACKAGE_V1",
+  "ZONE": 3,
+  "LOCALE": "en-US",
+  "SCRIPT_SOURCE": "assets/e10/i18n/zone3/zone3-cinematic-subtitles-en-US.json",
+  "STATUS": "OWNER_REVIEW_REQUIRED",
+  "NO_RUNTIME_WIRING": true,
+  "NO_FULL_PRODUCTION_AUDIO": true,
+  "CROSS_LANGUAGE_VOICE_FALLBACK": "FORBIDDEN",
+  "candidates": [
+    {
+      "CHARACTER": "GRIK",
+      "CANDIDATE_LABEL": "GRIK_EN_US_ZACK_R1",
+      "VOICE_NAME": "Zack",
+      "VOICE_ID": "DSyEP4HEaCKur8rFFOri",
+      "ENGLISH_SAMPLE_TEXT": "Everyone is tired and hungry. I don't have the strength to fight you.",
+      "SHOT_ID": "SHOT03",
+      "BEAT_ID": "Z3_S03_B003",
+      "I18N_KEY": "e9.zone3.cinematic.shot03.beat03",
+      "PERFORMANCE_DIRECTION": "young voice, slight rasp, tired and guarded, with kindness underneath; natural spoken English, never a monster growl or comic goblin read",
+      "AUDIO_PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US/grik/grik_en-us_zack_r1.mp3",
+      "BYTES": 75276,
+      "DURATION_MS": 4676,
+      "SHA256": "8d9d84e1d7559f684de8f1144b117d0acc85fbac8fada7f881ea42327d7ccd8c",
+      "MODEL_ID": "eleven_v3",
+      "PROVIDER": "ElevenLabs",
+      "OWNER_APPROVED_VOICE": false,
+      "OWNER_APPROVAL": "PENDING",
+      "RUNTIME_BINDING": "NONE"
+    },
+    {
+      "CHARACTER": "CENTURION",
+      "CANDIDATE_LABEL": "CENTURION_EN_US_KEVIN_TU_R1",
+      "VOICE_NAME": "Kevin Tu",
+      "VOICE_ID": "BrbEfHMQu0fyclQR7lfh",
+      "ENGLISH_SAMPLE_TEXT": "I am the last gate.",
+      "SHOT_ID": "SHOT06",
+      "BEAT_ID": "Z3_S06_B003",
+      "I18N_KEY": "e9.zone3.cinematic.shot06.beat03",
+      "PERFORMANCE_DIRECTION": "middle-aged, weathered, controlled and protective; heavy but restrained; never villainous, monstrous, berserk, or an elderly caricature",
+      "AUDIO_PATH": "tools/e10_zone3_audio/_local_review/auditions/en-US/centurion/centurion_en-us_kevin-tu_r1.mp3",
+      "BYTES": 26793,
+      "DURATION_MS": 1646,
+      "SHA256": "b79280adb5d174868df0371a3a02abd2ee8c316ea3f690cba4f971f47e4d72dc",
+      "MODEL_ID": "eleven_v3",
+      "PROVIDER": "ElevenLabs",
+      "OWNER_APPROVED_VOICE": false,
+      "OWNER_APPROVAL": "PENDING",
+      "RUNTIME_BINDING": "NONE"
+    }
+  ]
+}

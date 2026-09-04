@@ -1,0 +1,1471 @@
+{
+  "manifest_id": "W1_01_WORLD_ZONE_ENVIRONMENT_ASSET_MANIFEST_V1",
+  "schema_version": "1.0.0",
+  "status": "OWNER_APPROVED_DIRECTION_B_MANIFEST_READY",
+  "task": "W1_01_WORLD_STYLE_B_LOCK_AND_ZONE3_10_CONTENT_PRODUCTION_003",
+  "canonical_base": "616d51b17abe010de1e862382ca4db7bec65936f",
+  "style_lock_candidate": "e5943e91c135085b10b7bcd1d1d5603ea3664eab",
+  "selected_direction": "B — STYLIZED_ADVENTURE",
+  "artwork_generation": "NOT_PERFORMED",
+  "runtime_integration": "NOT_PERFORMED",
+  "gameplay_authority": false,
+  "production_roots": {
+    "review_source_root": "tools/e10_world_zone_art_review/zone{n}/",
+    "canonical_source_root": "assets/e10/art/zone{n}/",
+    "runtime_derivative_root": "assets/e10/art/zone{n}/",
+    "existing_package_pattern": "assets/e10/art/zone1 and assets/e10/art/zone2"
+  },
+  "shared_style_requirements": {
+    "silhouette": "readable, mildly cartoon-stylized where helpful, no photorealistic drift",
+    "form": "simplified but polished environmental forms",
+    "color": "rich controlled colors; no muddy low contrast or monochromatic purple endgame",
+    "hierarchy": "clear foreground / midground / background separation",
+    "crop": "16:9 master plus safe 4:3 portrait, 4:3 landscape, and 9:16 mobile crops",
+    "state": "semantic UI text and shared E10 state assets remain outside replaceable art",
+    "accessibility": "critical identity/state cannot be color-only, audio-only, or motion-only"
+  },
+  "required_slot_contract": [
+    "ENVIRONMENT_MASTER",
+    "MAP_LANDMARK",
+    "ENTRY_BACKPLATE",
+    "CLEAR_BACKPLATE",
+    "REPLAY_BACKPLATE"
+  ],
+  "conditional_slot_contract": [
+    "BATTLEFIELD_BOSS_CONTEXT_BACKPLATE — only if current encounter authority admits a Battlefield Boss; never a Lord substitute"
+  ],
+  "file_ownership": {
+    "codex": "This manifest and planning specification only",
+    "owner_visual_production": "Source art generation, visual review, and acceptance",
+    "world_content": "Zone identity, environment direction, narrative/fate constraints",
+    "runtime_static_lane": "Later derivative packaging and manifest admission after separate authorization",
+    "world_stage_runtime_lane": "Later landmark rebind/consumption; no change in this task"
+  },
+  "zones": [
+    {
+      "zone_number": 3,
+      "zone_key": "k16_20",
+      "canonical_identity": {
+        "name_zh": "哥布林洞穴",
+        "name_en": "Goblin Cave",
+        "stage": "LV3",
+        "level_band": "16–20級"
+      },
+      "lord": {
+        "id": "goblin_centurion",
+        "name_zh": "哥布林百夫長",
+        "name_en": "Goblin Centurion",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Goblin Caves",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "production_status": "STYLE_B_LOCKED_SPEC_ASSETS_NOT_GENERATED",
+      "production_root": "assets/e10/art/zone3",
+      "review_root": "tools/e10_world_zone_art_review/zone3",
+      "current_landmark_hold": {
+        "current_reference_path": "assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp",
+        "classification": "EXISTING_BUT_INCOMPLETE",
+        "action": "Do not rebind js/e9/world_stage.js in this task"
+      },
+      "proposed_landmark_path": "assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+      "crop_safe_area": {
+        "mobile_portrait": "Keep Hero/primary subject at x=50%, y=42–48%; retain critical landmark inside x=14–86%; preserve lower 22% for controls",
+        "tablet_portrait": "Keep primary subject centered with one route landmark and clear upper/lower UI bands; do not stretch desktop panorama",
+        "tablet_landscape": "Keep route, status, current marker, and action lane visible; do not crop Lord, answer feedback, or critical dialogue",
+        "desktop_16_9": "Preserve all three layers and a clean semantic-UI clearance band"
+      },
+      "required_assets": [
+        {
+          "asset_id": "Z3_ENVIRONMENT_MASTER",
+          "role": "wide Zone environment master",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone3/environment/zone3_environment_master.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/environment/zone3_environment_master.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/environment/zone3_environment_master.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z3_MAP_LANDMARK",
+          "role": "map landmark replacement candidate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone3/environment/zone3_map_landmark.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/environment/zone3_map_landmark.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_WORLD_STAGE_REBIND",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z3_ENTRY_BACKPLATE",
+          "role": "entry/orientation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone3/entry/zone3_entry_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/entry/zone3_entry_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/entry/zone3_entry_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z3_CLEAR_BACKPLATE",
+          "role": "server-confirmed clear presentation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone3/clear/zone3_clear_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/clear/zone3_clear_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/clear/zone3_clear_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z3_REPLAY_BACKPLATE",
+          "role": "replay-safe revisit backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone3/replay/zone3_replay_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/replay/zone3_replay_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/replay/zone3_replay_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "conditional_assets": [
+        {
+          "asset_id": "Z3_BATTLEFIELD_BOSS_CONTEXT",
+          "role": "conditional Battlefield Boss environment context",
+          "required": false,
+          "status": "CONDITIONAL_NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone3/encounter/zone3_battlefield_boss_context.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/encounter/zone3_battlefield_boss_context.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/encounter/zone3_battlefield_boss_context.webp",
+          "runtime_admission": "ONLY_IF_CURRENT_RUNTIME_ADMITS_BATTLEFIELD_BOSS",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "forbidden_in_asset": [
+        "replacement Zone name",
+        "unlock/clear/star/reward authority",
+        "price/ownership/equipment/loadout state",
+        "Lord-as-Battlefield-Boss visual shortcut",
+        "baked text required for critical meaning",
+        "unreviewed historical concept treated as canonical"
+      ]
+    },
+    {
+      "zone_number": 4,
+      "zone_key": "k11_15",
+      "canonical_identity": {
+        "name_zh": "迷霧森林",
+        "name_en": "Misty Forest",
+        "stage": "LV4",
+        "level_band": "11–15級"
+      },
+      "lord": {
+        "id": "misty_phantom_rabbit_king",
+        "name_zh": "迷霧幻影兔王",
+        "name_en": "Misty Phantom Rabbit King",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Mist Forest",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "production_status": "STYLE_B_LOCKED_SPEC_ASSETS_NOT_GENERATED",
+      "production_root": "assets/e10/art/zone4",
+      "review_root": "tools/e10_world_zone_art_review/zone4",
+      "current_landmark_hold": {
+        "current_reference_path": "assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp",
+        "classification": "REFERENCE_ONLY",
+        "action": "Do not rebind js/e9/world_stage.js in this task"
+      },
+      "proposed_landmark_path": "assets/e10/art/zone4/environment/zone4_map_landmark.webp",
+      "crop_safe_area": {
+        "mobile_portrait": "Keep Hero/primary subject at x=50%, y=42–48%; retain critical landmark inside x=14–86%; preserve lower 22% for controls",
+        "tablet_portrait": "Keep primary subject centered with one route landmark and clear upper/lower UI bands; do not stretch desktop panorama",
+        "tablet_landscape": "Keep route, status, current marker, and action lane visible; do not crop Lord, answer feedback, or critical dialogue",
+        "desktop_16_9": "Preserve all three layers and a clean semantic-UI clearance band"
+      },
+      "required_assets": [
+        {
+          "asset_id": "Z4_ENVIRONMENT_MASTER",
+          "role": "wide Zone environment master",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone4/environment/zone4_environment_master.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/environment/zone4_environment_master.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/environment/zone4_environment_master.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z4_MAP_LANDMARK",
+          "role": "map landmark replacement candidate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone4/environment/zone4_map_landmark.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/environment/zone4_map_landmark.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/environment/zone4_map_landmark.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_WORLD_STAGE_REBIND",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z4_ENTRY_BACKPLATE",
+          "role": "entry/orientation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone4/entry/zone4_entry_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/entry/zone4_entry_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/entry/zone4_entry_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z4_CLEAR_BACKPLATE",
+          "role": "server-confirmed clear presentation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone4/clear/zone4_clear_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/clear/zone4_clear_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/clear/zone4_clear_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z4_REPLAY_BACKPLATE",
+          "role": "replay-safe revisit backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone4/replay/zone4_replay_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/replay/zone4_replay_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/replay/zone4_replay_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "conditional_assets": [
+        {
+          "asset_id": "Z4_BATTLEFIELD_BOSS_CONTEXT",
+          "role": "conditional Battlefield Boss environment context",
+          "required": false,
+          "status": "CONDITIONAL_NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone4/encounter/zone4_battlefield_boss_context.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/encounter/zone4_battlefield_boss_context.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/encounter/zone4_battlefield_boss_context.webp",
+          "runtime_admission": "ONLY_IF_CURRENT_RUNTIME_ADMITS_BATTLEFIELD_BOSS",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "forbidden_in_asset": [
+        "replacement Zone name",
+        "unlock/clear/star/reward authority",
+        "price/ownership/equipment/loadout state",
+        "Lord-as-Battlefield-Boss visual shortcut",
+        "baked text required for critical meaning",
+        "unreviewed historical concept treated as canonical"
+      ]
+    },
+    {
+      "zone_number": 5,
+      "zone_key": "k6_10",
+      "canonical_identity": {
+        "name_zh": "獸人部落",
+        "name_en": "Orc Tribe",
+        "stage": "LV5",
+        "level_band": "6–10級"
+      },
+      "lord": {
+        "id": "iron_orc_chieftain",
+        "name_zh": "鋼鐵獸人酋長",
+        "name_en": "Iron Orc Chieftain",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Orc Tribe",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "production_status": "STYLE_B_LOCKED_SPEC_ASSETS_NOT_GENERATED",
+      "production_root": "assets/e10/art/zone5",
+      "review_root": "tools/e10_world_zone_art_review/zone5",
+      "current_landmark_hold": {
+        "current_reference_path": "assets/maps/e10-vs1f-landmarks/zone-05-sky-tower.webp",
+        "classification": "REFERENCE_ONLY",
+        "action": "Do not rebind js/e9/world_stage.js in this task"
+      },
+      "proposed_landmark_path": "assets/e10/art/zone5/environment/zone5_map_landmark.webp",
+      "crop_safe_area": {
+        "mobile_portrait": "Keep Hero/primary subject at x=50%, y=42–48%; retain critical landmark inside x=14–86%; preserve lower 22% for controls",
+        "tablet_portrait": "Keep primary subject centered with one route landmark and clear upper/lower UI bands; do not stretch desktop panorama",
+        "tablet_landscape": "Keep route, status, current marker, and action lane visible; do not crop Lord, answer feedback, or critical dialogue",
+        "desktop_16_9": "Preserve all three layers and a clean semantic-UI clearance band"
+      },
+      "required_assets": [
+        {
+          "asset_id": "Z5_ENVIRONMENT_MASTER",
+          "role": "wide Zone environment master",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone5/environment/zone5_environment_master.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/environment/zone5_environment_master.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/environment/zone5_environment_master.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z5_MAP_LANDMARK",
+          "role": "map landmark replacement candidate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone5/environment/zone5_map_landmark.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/environment/zone5_map_landmark.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/environment/zone5_map_landmark.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_WORLD_STAGE_REBIND",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z5_ENTRY_BACKPLATE",
+          "role": "entry/orientation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone5/entry/zone5_entry_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/entry/zone5_entry_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/entry/zone5_entry_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z5_CLEAR_BACKPLATE",
+          "role": "server-confirmed clear presentation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone5/clear/zone5_clear_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/clear/zone5_clear_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/clear/zone5_clear_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z5_REPLAY_BACKPLATE",
+          "role": "replay-safe revisit backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone5/replay/zone5_replay_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/replay/zone5_replay_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/replay/zone5_replay_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "conditional_assets": [
+        {
+          "asset_id": "Z5_BATTLEFIELD_BOSS_CONTEXT",
+          "role": "conditional Battlefield Boss environment context",
+          "required": false,
+          "status": "CONDITIONAL_NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone5/encounter/zone5_battlefield_boss_context.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/encounter/zone5_battlefield_boss_context.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/encounter/zone5_battlefield_boss_context.webp",
+          "runtime_admission": "ONLY_IF_CURRENT_RUNTIME_ADMITS_BATTLEFIELD_BOSS",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "forbidden_in_asset": [
+        "replacement Zone name",
+        "unlock/clear/star/reward authority",
+        "price/ownership/equipment/loadout state",
+        "Lord-as-Battlefield-Boss visual shortcut",
+        "baked text required for critical meaning",
+        "unreviewed historical concept treated as canonical"
+      ]
+    },
+    {
+      "zone_number": 6,
+      "zone_key": "k1_5",
+      "canonical_identity": {
+        "name_zh": "龍之谷",
+        "name_en": "Dragon Valley",
+        "stage": "LV6",
+        "level_band": "1–5級"
+      },
+      "lord": {
+        "id": "grand_temple_knight",
+        "name_zh": "聖殿大騎士長",
+        "name_en": "Grand Temple Knight",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Dragon Valley",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "production_status": "STYLE_B_LOCKED_SPEC_ASSETS_NOT_GENERATED",
+      "production_root": "assets/e10/art/zone6",
+      "review_root": "tools/e10_world_zone_art_review/zone6",
+      "current_landmark_hold": {
+        "current_reference_path": "assets/maps/e10-vs1f-landmarks/zone-06-royal-castle.webp",
+        "classification": "REFERENCE_ONLY",
+        "action": "Do not rebind js/e9/world_stage.js in this task"
+      },
+      "proposed_landmark_path": "assets/e10/art/zone6/environment/zone6_map_landmark.webp",
+      "crop_safe_area": {
+        "mobile_portrait": "Keep Hero/primary subject at x=50%, y=42–48%; retain critical landmark inside x=14–86%; preserve lower 22% for controls",
+        "tablet_portrait": "Keep primary subject centered with one route landmark and clear upper/lower UI bands; do not stretch desktop panorama",
+        "tablet_landscape": "Keep route, status, current marker, and action lane visible; do not crop Lord, answer feedback, or critical dialogue",
+        "desktop_16_9": "Preserve all three layers and a clean semantic-UI clearance band"
+      },
+      "required_assets": [
+        {
+          "asset_id": "Z6_ENVIRONMENT_MASTER",
+          "role": "wide Zone environment master",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone6/environment/zone6_environment_master.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/environment/zone6_environment_master.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/environment/zone6_environment_master.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z6_MAP_LANDMARK",
+          "role": "map landmark replacement candidate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone6/environment/zone6_map_landmark.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/environment/zone6_map_landmark.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/environment/zone6_map_landmark.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_WORLD_STAGE_REBIND",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z6_ENTRY_BACKPLATE",
+          "role": "entry/orientation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone6/entry/zone6_entry_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/entry/zone6_entry_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/entry/zone6_entry_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z6_CLEAR_BACKPLATE",
+          "role": "server-confirmed clear presentation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone6/clear/zone6_clear_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/clear/zone6_clear_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/clear/zone6_clear_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z6_REPLAY_BACKPLATE",
+          "role": "replay-safe revisit backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone6/replay/zone6_replay_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/replay/zone6_replay_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/replay/zone6_replay_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "conditional_assets": [
+        {
+          "asset_id": "Z6_BATTLEFIELD_BOSS_CONTEXT",
+          "role": "conditional Battlefield Boss environment context",
+          "required": false,
+          "status": "CONDITIONAL_NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone6/encounter/zone6_battlefield_boss_context.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/encounter/zone6_battlefield_boss_context.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/encounter/zone6_battlefield_boss_context.webp",
+          "runtime_admission": "ONLY_IF_CURRENT_RUNTIME_ADMITS_BATTLEFIELD_BOSS",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "forbidden_in_asset": [
+        "replacement Zone name",
+        "unlock/clear/star/reward authority",
+        "price/ownership/equipment/loadout state",
+        "Lord-as-Battlefield-Boss visual shortcut",
+        "baked text required for critical meaning",
+        "unreviewed historical concept treated as canonical"
+      ]
+    },
+    {
+      "zone_number": 7,
+      "zone_key": "d1_2",
+      "canonical_identity": {
+        "name_zh": "賢者之塔",
+        "name_en": "Sage Tower",
+        "stage": "LV7",
+        "level_band": "1–2段"
+      },
+      "lord": {
+        "id": "archmage_phantom",
+        "name_zh": "大魔法師幻影",
+        "name_en": "Archmage Phantom",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Sage Tower",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "production_status": "STYLE_B_LOCKED_SPEC_ASSETS_NOT_GENERATED",
+      "production_root": "assets/e10/art/zone7",
+      "review_root": "tools/e10_world_zone_art_review/zone7",
+      "current_landmark_hold": {
+        "current_reference_path": "assets/maps/e10-vs1f-landmarks/zone-07-star-sea-passage.webp",
+        "classification": "REFERENCE_ONLY",
+        "action": "Do not rebind js/e9/world_stage.js in this task"
+      },
+      "proposed_landmark_path": "assets/e10/art/zone7/environment/zone7_map_landmark.webp",
+      "crop_safe_area": {
+        "mobile_portrait": "Keep Hero/primary subject at x=50%, y=42–48%; retain critical landmark inside x=14–86%; preserve lower 22% for controls",
+        "tablet_portrait": "Keep primary subject centered with one route landmark and clear upper/lower UI bands; do not stretch desktop panorama",
+        "tablet_landscape": "Keep route, status, current marker, and action lane visible; do not crop Lord, answer feedback, or critical dialogue",
+        "desktop_16_9": "Preserve all three layers and a clean semantic-UI clearance band"
+      },
+      "required_assets": [
+        {
+          "asset_id": "Z7_ENVIRONMENT_MASTER",
+          "role": "wide Zone environment master",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone7/environment/zone7_environment_master.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/environment/zone7_environment_master.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/environment/zone7_environment_master.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z7_MAP_LANDMARK",
+          "role": "map landmark replacement candidate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone7/environment/zone7_map_landmark.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/environment/zone7_map_landmark.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/environment/zone7_map_landmark.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_WORLD_STAGE_REBIND",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z7_ENTRY_BACKPLATE",
+          "role": "entry/orientation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone7/entry/zone7_entry_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/entry/zone7_entry_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/entry/zone7_entry_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z7_CLEAR_BACKPLATE",
+          "role": "server-confirmed clear presentation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone7/clear/zone7_clear_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/clear/zone7_clear_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/clear/zone7_clear_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z7_REPLAY_BACKPLATE",
+          "role": "replay-safe revisit backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone7/replay/zone7_replay_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/replay/zone7_replay_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/replay/zone7_replay_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "conditional_assets": [
+        {
+          "asset_id": "Z7_BATTLEFIELD_BOSS_CONTEXT",
+          "role": "conditional Battlefield Boss environment context",
+          "required": false,
+          "status": "CONDITIONAL_NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone7/encounter/zone7_battlefield_boss_context.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/encounter/zone7_battlefield_boss_context.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/encounter/zone7_battlefield_boss_context.webp",
+          "runtime_admission": "ONLY_IF_CURRENT_RUNTIME_ADMITS_BATTLEFIELD_BOSS",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "forbidden_in_asset": [
+        "replacement Zone name",
+        "unlock/clear/star/reward authority",
+        "price/ownership/equipment/loadout state",
+        "Lord-as-Battlefield-Boss visual shortcut",
+        "baked text required for critical meaning",
+        "unreviewed historical concept treated as canonical"
+      ]
+    },
+    {
+      "zone_number": 8,
+      "zone_key": "d3_4",
+      "canonical_identity": {
+        "name_zh": "魔王城前線",
+        "name_en": "Demon Castle Front",
+        "stage": "LV8",
+        "level_band": "3–4段"
+      },
+      "lord": {
+        "id": "chaos_lord",
+        "name_zh": "混沌領主",
+        "name_en": "Chaos Lord",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Demon Castle Frontline",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "production_status": "STYLE_B_LOCKED_SPEC_ASSETS_NOT_GENERATED",
+      "production_root": "assets/e10/art/zone8",
+      "review_root": "tools/e10_world_zone_art_review/zone8",
+      "current_landmark_hold": {
+        "current_reference_path": "assets/maps/e10-vs1f-landmarks/zone-08-abyssal-forge.webp",
+        "classification": "REFERENCE_ONLY",
+        "action": "Do not rebind js/e9/world_stage.js in this task"
+      },
+      "proposed_landmark_path": "assets/e10/art/zone8/environment/zone8_map_landmark.webp",
+      "crop_safe_area": {
+        "mobile_portrait": "Keep Hero/primary subject at x=50%, y=42–48%; retain critical landmark inside x=14–86%; preserve lower 22% for controls",
+        "tablet_portrait": "Keep primary subject centered with one route landmark and clear upper/lower UI bands; do not stretch desktop panorama",
+        "tablet_landscape": "Keep route, status, current marker, and action lane visible; do not crop Lord, answer feedback, or critical dialogue",
+        "desktop_16_9": "Preserve all three layers and a clean semantic-UI clearance band"
+      },
+      "required_assets": [
+        {
+          "asset_id": "Z8_ENVIRONMENT_MASTER",
+          "role": "wide Zone environment master",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone8/environment/zone8_environment_master.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/environment/zone8_environment_master.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/environment/zone8_environment_master.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z8_MAP_LANDMARK",
+          "role": "map landmark replacement candidate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone8/environment/zone8_map_landmark.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/environment/zone8_map_landmark.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/environment/zone8_map_landmark.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_WORLD_STAGE_REBIND",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z8_ENTRY_BACKPLATE",
+          "role": "entry/orientation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone8/entry/zone8_entry_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/entry/zone8_entry_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/entry/zone8_entry_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z8_CLEAR_BACKPLATE",
+          "role": "server-confirmed clear presentation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone8/clear/zone8_clear_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/clear/zone8_clear_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/clear/zone8_clear_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z8_REPLAY_BACKPLATE",
+          "role": "replay-safe revisit backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone8/replay/zone8_replay_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/replay/zone8_replay_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/replay/zone8_replay_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "conditional_assets": [
+        {
+          "asset_id": "Z8_BATTLEFIELD_BOSS_CONTEXT",
+          "role": "conditional Battlefield Boss environment context",
+          "required": false,
+          "status": "CONDITIONAL_NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone8/encounter/zone8_battlefield_boss_context.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/encounter/zone8_battlefield_boss_context.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/encounter/zone8_battlefield_boss_context.webp",
+          "runtime_admission": "ONLY_IF_CURRENT_RUNTIME_ADMITS_BATTLEFIELD_BOSS",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "forbidden_in_asset": [
+        "replacement Zone name",
+        "unlock/clear/star/reward authority",
+        "price/ownership/equipment/loadout state",
+        "Lord-as-Battlefield-Boss visual shortcut",
+        "baked text required for critical meaning",
+        "unreviewed historical concept treated as canonical"
+      ]
+    },
+    {
+      "zone_number": 9,
+      "zone_key": "d5_6",
+      "canonical_identity": {
+        "name_zh": "諸神黃昏",
+        "name_en": "Ragnarök",
+        "stage": "LV9",
+        "level_band": "5–6段"
+      },
+      "lord": {
+        "id": "fallen_war_god_statue",
+        "name_zh": "墮落戰神古像",
+        "name_en": "Fallen War-God Statue",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Ragnarok",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "production_status": "STYLE_B_LOCKED_SPEC_ASSETS_NOT_GENERATED",
+      "production_root": "assets/e10/art/zone9",
+      "review_root": "tools/e10_world_zone_art_review/zone9",
+      "current_landmark_hold": {
+        "current_reference_path": "assets/maps/e10-vs1f-landmarks/zone-09-eternal-night-shrine.webp",
+        "classification": "REFERENCE_ONLY",
+        "action": "Do not rebind js/e9/world_stage.js in this task"
+      },
+      "proposed_landmark_path": "assets/e10/art/zone9/environment/zone9_map_landmark.webp",
+      "crop_safe_area": {
+        "mobile_portrait": "Keep Hero/primary subject at x=50%, y=42–48%; retain critical landmark inside x=14–86%; preserve lower 22% for controls",
+        "tablet_portrait": "Keep primary subject centered with one route landmark and clear upper/lower UI bands; do not stretch desktop panorama",
+        "tablet_landscape": "Keep route, status, current marker, and action lane visible; do not crop Lord, answer feedback, or critical dialogue",
+        "desktop_16_9": "Preserve all three layers and a clean semantic-UI clearance band"
+      },
+      "required_assets": [
+        {
+          "asset_id": "Z9_ENVIRONMENT_MASTER",
+          "role": "wide Zone environment master",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone9/environment/zone9_environment_master.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/environment/zone9_environment_master.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/environment/zone9_environment_master.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z9_MAP_LANDMARK",
+          "role": "map landmark replacement candidate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone9/environment/zone9_map_landmark.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/environment/zone9_map_landmark.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/environment/zone9_map_landmark.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_WORLD_STAGE_REBIND",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z9_ENTRY_BACKPLATE",
+          "role": "entry/orientation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone9/entry/zone9_entry_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/entry/zone9_entry_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/entry/zone9_entry_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z9_CLEAR_BACKPLATE",
+          "role": "server-confirmed clear presentation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone9/clear/zone9_clear_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/clear/zone9_clear_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/clear/zone9_clear_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z9_REPLAY_BACKPLATE",
+          "role": "replay-safe revisit backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone9/replay/zone9_replay_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/replay/zone9_replay_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/replay/zone9_replay_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "conditional_assets": [
+        {
+          "asset_id": "Z9_BATTLEFIELD_BOSS_CONTEXT",
+          "role": "conditional Battlefield Boss environment context",
+          "required": false,
+          "status": "CONDITIONAL_NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone9/encounter/zone9_battlefield_boss_context.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/encounter/zone9_battlefield_boss_context.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/encounter/zone9_battlefield_boss_context.webp",
+          "runtime_admission": "ONLY_IF_CURRENT_RUNTIME_ADMITS_BATTLEFIELD_BOSS",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "forbidden_in_asset": [
+        "replacement Zone name",
+        "unlock/clear/star/reward authority",
+        "price/ownership/equipment/loadout state",
+        "Lord-as-Battlefield-Boss visual shortcut",
+        "baked text required for critical meaning",
+        "unreviewed historical concept treated as canonical"
+      ]
+    },
+    {
+      "zone_number": 10,
+      "zone_key": "d7_plus",
+      "canonical_identity": {
+        "name_zh": "上古終焉神殿",
+        "name_en": "Ancient Doom Temple",
+        "stage": "LV10",
+        "level_band": "7段＋"
+      },
+      "lord": {
+        "id": "source_of_black_white_order",
+        "name_zh": "黑白秩序之源",
+        "name_en": "Source of Black-White Order",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Ancient Final Temple",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "production_status": "STYLE_B_LOCKED_SPEC_ASSETS_NOT_GENERATED",
+      "production_root": "assets/e10/art/zone10",
+      "review_root": "tools/e10_world_zone_art_review/zone10",
+      "current_landmark_hold": {
+        "current_reference_path": "assets/maps/e10-vs1f-landmarks/zone-10-ancient-doom-temple.webp",
+        "classification": "EXISTING_BUT_INCOMPLETE",
+        "action": "Do not rebind js/e9/world_stage.js in this task"
+      },
+      "proposed_landmark_path": "assets/e10/art/zone10/environment/zone10_map_landmark.webp",
+      "crop_safe_area": {
+        "mobile_portrait": "Keep Hero/primary subject at x=50%, y=42–48%; retain critical landmark inside x=14–86%; preserve lower 22% for controls",
+        "tablet_portrait": "Keep primary subject centered with one route landmark and clear upper/lower UI bands; do not stretch desktop panorama",
+        "tablet_landscape": "Keep route, status, current marker, and action lane visible; do not crop Lord, answer feedback, or critical dialogue",
+        "desktop_16_9": "Preserve all three layers and a clean semantic-UI clearance band"
+      },
+      "required_assets": [
+        {
+          "asset_id": "Z10_ENVIRONMENT_MASTER",
+          "role": "wide Zone environment master",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone10/environment/zone10_environment_master.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/environment/zone10_environment_master.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/environment/zone10_environment_master.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z10_MAP_LANDMARK",
+          "role": "map landmark replacement candidate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone10/environment/zone10_map_landmark.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/environment/zone10_map_landmark.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/environment/zone10_map_landmark.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_WORLD_STAGE_REBIND",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z10_ENTRY_BACKPLATE",
+          "role": "entry/orientation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone10/entry/zone10_entry_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/entry/zone10_entry_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/entry/zone10_entry_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z10_CLEAR_BACKPLATE",
+          "role": "server-confirmed clear presentation backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone10/clear/zone10_clear_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/clear/zone10_clear_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/clear/zone10_clear_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        },
+        {
+          "asset_id": "Z10_REPLAY_BACKPLATE",
+          "role": "replay-safe revisit backplate",
+          "required": true,
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone10/replay/zone10_replay_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/replay/zone10_replay_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/replay/zone10_replay_backplate.webp",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_DEDICATED_STATIC_PACKAGING",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "conditional_assets": [
+        {
+          "asset_id": "Z10_BATTLEFIELD_BOSS_CONTEXT",
+          "role": "conditional Battlefield Boss environment context",
+          "required": false,
+          "status": "CONDITIONAL_NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_zone_art_review/zone10/encounter/zone10_battlefield_boss_context.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/encounter/zone10_battlefield_boss_context.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/encounter/zone10_battlefield_boss_context.webp",
+          "runtime_admission": "ONLY_IF_CURRENT_RUNTIME_ADMITS_BATTLEFIELD_BOSS",
+          "canvas_contract": {
+            "source_master": "Owner-provided PNG source evidence",
+            "runtime_derivative": "WEBP after accepted source review",
+            "aspect_options": [
+              "16:9",
+              "4:3 portrait",
+              "4:3 landscape",
+              "9:16"
+            ],
+            "no_baked_text": true,
+            "no_baked_gameplay_state": true
+          }
+        }
+      ],
+      "forbidden_in_asset": [
+        "replacement Zone name",
+        "unlock/clear/star/reward authority",
+        "price/ownership/equipment/loadout state",
+        "Lord-as-Battlefield-Boss visual shortcut",
+        "baked text required for critical meaning",
+        "unreviewed historical concept treated as canonical"
+      ]
+    }
+  ],
+  "validation": {
+    "all_eight_canonical_zone_identities_exact": true,
+    "owner_style_b_preserved": true,
+    "photorealistic_drift": false,
+    "grimdark_drift": false,
+    "runtime_product_files_changed": false,
+    "gameplay_authority_changed": false,
+    "generated_art_files": 0
+  }
+}

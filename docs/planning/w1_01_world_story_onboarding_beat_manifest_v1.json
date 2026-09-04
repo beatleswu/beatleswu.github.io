@@ -1,0 +1,885 @@
+{
+  "manifest_id": "W1_01_WORLD_STORY_ONBOARDING_BEAT_MANIFEST_V1",
+  "schema_version": "1.0.0",
+  "status": "OWNER_APPROVED_DIRECTION_B_BEAT_SPEC_READY_WIRING_DEFERRED",
+  "task": "W1_01_WORLD_STYLE_B_LOCK_AND_ZONE3_10_CONTENT_PRODUCTION_003",
+  "canonical_base": "616d51b17abe010de1e862382ca4db7bec65936f",
+  "style_lock_candidate": "e5943e91c135085b10b7bcd1d1d5603ea3664eab",
+  "selected_direction": "B — STYLIZED_ADVENTURE",
+  "screenplay_authority": "docs/planning/e10_final_screenplay_v1.md",
+  "screenplay_changes_in_this_task": false,
+  "onboarding_spine": [
+    {
+      "beat_id": "ONB_01_OPENING",
+      "order": 1,
+      "surface": "Opening",
+      "specification": "Use the existing opening surface and short authored orientation; no tutorial wall.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_02_WORLD_REVEAL",
+      "order": 2,
+      "surface": "World reveal",
+      "specification": "Reveal the world map/route through the accepted shared E10 map vocabulary.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_03_HERO_COMPANION_INTRO",
+      "order": 3,
+      "surface": "Hero and Companion",
+      "specification": "Introduce the player Hero and nonverbal Water Spirit Horse without creating combat/equipment authority.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_04_FIRST_ADVENTURE_ACTION",
+      "order": 4,
+      "surface": "First Adventure action",
+      "specification": "Give one contextual next-action cue through the existing Adventure surface.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_05_FIRST_BOARD_INTERACTION",
+      "order": 5,
+      "surface": "First question/board",
+      "specification": "Show the canonical question/board interaction; correctness remains Engine/server-owned.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_06_ANSWER_FEEDBACK",
+      "order": 6,
+      "surface": "Answer feedback",
+      "specification": "Use visible correct/incorrect feedback and accessible text; do not fabricate judge results.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_07_CORRECT_ATTACK_HIT",
+      "order": 7,
+      "surface": "Correct → attack/hit",
+      "specification": "Present the existing action result after server/Engine correctness; visual hit is not progression authority.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_08_FIRST_VICTORY",
+      "order": 8,
+      "surface": "First victory",
+      "specification": "Celebrate server-confirmed victory without conflating Monster defeat and Zone clear.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_09_REWARD_REVEAL",
+      "order": 9,
+      "surface": "Reward reveal",
+      "specification": "Reveal only the reward returned by the authoritative operation; replay must suppress a second grant.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_10_APPEARANCE_EXPLANATION",
+      "order": 10,
+      "surface": "Canonical appearance explanation",
+      "specification": "Explain existing appearance/equipment concepts only; Acquire != Equip and no shop/loadout activation.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_11_XP_GROWTH",
+      "order": 11,
+      "surface": "XP/growth feedback",
+      "specification": "Show existing growth feedback as presentation; no client-derived progression.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_12_NEXT_ACTION",
+      "order": 12,
+      "surface": "Next-action guidance",
+      "specification": "Give one short contextual next action; Learn remains comparatively quiet.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_13_ZONE_PROGRESSION",
+      "order": 13,
+      "surface": "Zone progression",
+      "specification": "Use server-projected status/current_zone_key and shared node state; no client unlock authority.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    },
+    {
+      "beat_id": "ONB_14_ZONE3_ARRIVAL",
+      "order": 14,
+      "surface": "Zone 3 arrival",
+      "specification": "Apply the locked Goblin Cave entry beat; World style is no longer blocking, shell wiring remains separate.",
+      "status": "PREPARED_FOR_LATER_WIRING",
+      "replay_rule": "Guidance may replay; no reward, XP, item, star, unlock, or authority mutation"
+    }
+  ],
+  "journey_safety": {
+    "replay_never_duplicates_rewards": true,
+    "battle_zone_lord_authority_remains_server_owned": true,
+    "learn_remains_quiet": true,
+    "reduced_motion_supported_by_content_slots": true,
+    "skip_replay_semantics": "Skip may shorten authored presentation; it cannot create or suppress server rewards and must leave visible state complete",
+    "no_fake_tutorial_authority": true
+  },
+  "zones": [
+    {
+      "zone_number": 3,
+      "zone_key": "k16_20",
+      "canonical_identity": {
+        "name_zh": "哥布林洞穴",
+        "name_en": "Goblin Cave",
+        "stage": "LV3",
+        "level_band": "16–20級"
+      },
+      "lord": {
+        "id": "goblin_centurion",
+        "name_zh": "哥布林百夫長",
+        "name_en": "Goblin Centurion",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Goblin Caves",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "screenplay_source": "docs/planning/e10_final_screenplay_v1.md",
+      "screenplay_lifecycle": {
+        "pre_play_shots": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "handoff_after_shot": 7,
+        "mid_play_shots": [],
+        "post_clear_shots": [
+          8,
+          9,
+          10
+        ],
+        "post_clear_hook_shot": 10,
+        "true_mid_play_runtime_required": false,
+        "final_end_state": "ZONE_HOOK_OR_NEXT_ROUTE"
+      },
+      "production_beats": [
+        {
+          "beat_id": "Z3_B01_RETREAT",
+          "phase": "ENTRY",
+          "title": "Cave mouth and fleeing supplies; Hero restrains Wooden Sword.",
+          "specification": "Retreat, not raid; no ambush framing.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z3_B02_GRIK_TESTIMONY",
+          "phase": "PRE_PLAY",
+          "title": "Grik meets Hero at eye level and describes moving the cave wall.",
+          "specification": "Residents have agency; listen before gameplay.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z3_B03_NATURAL_BOARD_WALL",
+          "phase": "PRE_PLAY",
+          "title": "Cracked cave wall resolves compositionally as a natural Go board.",
+          "specification": "Photographic/lighting reveal; no magical grid explanation.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z3_B04_LAST_DOOR",
+          "phase": "PRE_PLAY",
+          "title": "Goblin Centurion stands still with spear planted as the final door.",
+          "specification": "Lord is recognition and a trust test, not an oversized monster.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z3_B05_CEASEFIRE_SHARD",
+          "phase": "POST_CLEAR",
+          "title": "Ceasefire allows passage; Grik hands over the Stone Shard and points to forest history.",
+          "specification": "Stone Shard is a Journey Relic; no magical pointer; no cave destruction.",
+          "status": "CONTENT_SPEC_READY"
+        }
+      ],
+      "protected_constraints": [
+        "Goblin Cave is retreat not raid",
+        "Stone Shard is Journey Relic and does not point magically",
+        "Goblin Centurion is Lord-only presentation"
+      ],
+      "replay_contract": {
+        "replay_allowed": true,
+        "server_state_required": true,
+        "reward_duplication": false,
+        "repeated_item_grant": false,
+        "repeated_star_or_unlock": false,
+        "client_authority": false
+      },
+      "onboarding_relationship": "ONB_14_ZONE3_ARRIVAL",
+      "new_dialogue_invented": false
+    },
+    {
+      "zone_number": 4,
+      "zone_key": "k11_15",
+      "canonical_identity": {
+        "name_zh": "迷霧森林",
+        "name_en": "Misty Forest",
+        "stage": "LV4",
+        "level_band": "11–15級"
+      },
+      "lord": {
+        "id": "misty_phantom_rabbit_king",
+        "name_zh": "迷霧幻影兔王",
+        "name_en": "Misty Phantom Rabbit King",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Mist Forest",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "screenplay_source": "docs/planning/e10_final_screenplay_v1.md",
+      "screenplay_lifecycle": {
+        "pre_play_shots": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "handoff_after_shot": 7,
+        "mid_play_shots": [],
+        "post_clear_shots": [
+          8,
+          9,
+          10
+        ],
+        "post_clear_hook_shot": 10,
+        "true_mid_play_runtime_required": false,
+        "final_end_state": "ZONE_HOOK_OR_NEXT_ROUTE"
+      },
+      "production_beats": [
+        {
+          "beat_id": "Z4_B01_FOG_EDGE",
+          "phase": "ENTRY",
+          "title": "Forest mist swallows the route while Water Spirit Horse remains stable.",
+          "specification": "Mystery without menace; Water Spirit Horse remains nonverbal.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z4_B02_PHANTOM_COPIES",
+          "phase": "PRE_PLAY",
+          "title": "Presentation-only phantom copies create uncertainty around the real Hero.",
+          "specification": "No duplicate combat entities or client authority.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z4_B03_RABBIT_RIDDLE",
+          "phase": "PRE_PLAY",
+          "title": "Rabbit King voice comes from the mist; no single humanoid face is required.",
+          "specification": "Riddle remains Lord presentation; no defeat speech.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z4_B04_TRUST_LINE",
+          "phase": "HANDOFF",
+          "title": "Hero says 小水。帶我走。 as visible/captioned protected dialogue.",
+          "specification": "Trust choice leads into gameplay.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z4_B05_FRUIT_PATH",
+          "phase": "POST_CLEAR",
+          "title": "Fog opens to Black/White Fruit and a safe path.",
+          "specification": "Journey Relic; no repeat acquisition; forest remains alive.",
+          "status": "CONTENT_SPEC_READY"
+        }
+      ],
+      "protected_constraints": [
+        "Water Spirit Horse remains nonverbal",
+        "phantom copies are presentation-only",
+        "Misty Phantom Rabbit King has no defeat speech"
+      ],
+      "replay_contract": {
+        "replay_allowed": true,
+        "server_state_required": true,
+        "reward_duplication": false,
+        "repeated_item_grant": false,
+        "repeated_star_or_unlock": false,
+        "client_authority": false
+      },
+      "onboarding_relationship": "FOLLOW_ON_FROM_ZONE3",
+      "new_dialogue_invented": false
+    },
+    {
+      "zone_number": 5,
+      "zone_key": "k6_10",
+      "canonical_identity": {
+        "name_zh": "獸人部落",
+        "name_en": "Orc Tribe",
+        "stage": "LV5",
+        "level_band": "6–10級"
+      },
+      "lord": {
+        "id": "iron_orc_chieftain",
+        "name_zh": "鋼鐵獸人酋長",
+        "name_en": "Iron Orc Chieftain",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Orc Tribe",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "screenplay_source": "docs/planning/e10_final_screenplay_v1.md",
+      "screenplay_lifecycle": {
+        "pre_play_shots": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "handoff_after_shot": 6,
+        "mid_play_shots": [],
+        "post_clear_shots": [
+          7,
+          8,
+          9
+        ],
+        "post_clear_hook_shot": 9,
+        "true_mid_play_runtime_required": false,
+        "final_end_state": "ZONE_HOOK_OR_NEXT_ROUTE"
+      },
+      "production_beats": [
+        {
+          "beat_id": "Z5_B01_ARENA_SCALE",
+          "phase": "ENTRY",
+          "title": "Red-earth arena, crowd, drum circles, and admired Chieftain establish community.",
+          "specification": "Approachable spectacle; no hateful caricature.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z5_B02_CORRUPTED_ORE",
+          "phase": "PRE_PLAY",
+          "title": "Smith-Elder warns about the axe/ore; Zone 2 Corrupted Crystal Fragment resonates once.",
+          "specification": "Corruption Evidence stays separate from Journey Relics.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z5_B03_CHIEFTAIN_CHALLENGE",
+          "phase": "HANDOFF",
+          "title": "Chieftain strikes the arena ground and asks Hero to enter.",
+          "specification": "Stakes without humiliation or attack authority change.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z5_B04_RESPECT_RELEASE",
+          "phase": "POST_CLEAR",
+          "title": "Pillar mark and voluntary axe release communicate earned respect.",
+          "specification": "No kneel-as-humiliation, death, or trophy.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z5_B05_NORTHWARD_ROUTE",
+          "phase": "POST_CLEAR_HOOK",
+          "title": "Smith-Elder gives geographic information; ore does not become an arrow.",
+          "specification": "Route comes from dialogue/geography.",
+          "status": "CONTENT_SPEC_READY"
+        }
+      ],
+      "protected_constraints": [
+        "Corrupted Crystal/Ore are Corruption Evidence, not Journey Relics",
+        "Chieftain does not kneel as humiliation",
+        "Chieftain voluntarily releases axe"
+      ],
+      "replay_contract": {
+        "replay_allowed": true,
+        "server_state_required": true,
+        "reward_duplication": false,
+        "repeated_item_grant": false,
+        "repeated_star_or_unlock": false,
+        "client_authority": false
+      },
+      "onboarding_relationship": "FOLLOW_ON_FROM_ZONE4",
+      "new_dialogue_invented": false
+    },
+    {
+      "zone_number": 6,
+      "zone_key": "k1_5",
+      "canonical_identity": {
+        "name_zh": "龍之谷",
+        "name_en": "Dragon Valley",
+        "stage": "LV6",
+        "level_band": "1–5級"
+      },
+      "lord": {
+        "id": "grand_temple_knight",
+        "name_zh": "聖殿大騎士長",
+        "name_en": "Grand Temple Knight",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Dragon Valley",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "screenplay_source": "docs/planning/e10_final_screenplay_v1.md",
+      "screenplay_lifecycle": {
+        "pre_play_shots": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "handoff_after_shot": 5,
+        "mid_play_shots": [
+          6,
+          7
+        ],
+        "post_clear_shots": [
+          8,
+          9,
+          10
+        ],
+        "post_clear_hook_shot": 10,
+        "true_mid_play_runtime_required": true,
+        "final_end_state": "ZONE_HOOK_OR_NEXT_ROUTE"
+      },
+      "production_beats": [
+        {
+          "beat_id": "Z6_B01_ORE_AND_VALLEY",
+          "phase": "ENTRY",
+          "title": "Warm Zone 5 ore leads into cliffs, wind, wyverns, and a fixed tower boundary.",
+          "specification": "Continuity without sentient-ore invention.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z6_B02_COMMAND_BOUNDARY",
+          "phase": "PRE_PLAY",
+          "title": "Grand Temple Knight states the no-approach order before gameplay.",
+          "specification": "Order is a character/fate boundary, not a new unlock rule.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z6_B03_MID_PLAY_PAUSE",
+          "phase": "MID_PLAY",
+          "title": "The same encounter pauses for the Knight’s question and Hero’s silence.",
+          "specification": "True pause/resume is required and deferred; no reset or second trial.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z6_B04_SCALE_AND_FATE",
+          "phase": "POST_CLEAR",
+          "title": "Dragon Scale enters the Journey Relic chain; Knight’s fate stays unresolved.",
+          "specification": "No death animation, corpse, or magical pointer to Zone 7.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z6_B05_STAR_MAP_HOOK",
+          "phase": "POST_CLEAR_HOOK",
+          "title": "A many-dead-node map has one visual match to the distant Sage Tower.",
+          "specification": "No relic points magically toward Zone 7.",
+          "status": "CONTENT_SPEC_READY"
+        }
+      ],
+      "protected_constraints": [
+        "Grand Temple Knight is not killed",
+        "MID_PLAY is same-encounter pause/resume and deferred",
+        "Dragon Scale is Journey Relic; no magical Zone 7 pointer"
+      ],
+      "replay_contract": {
+        "replay_allowed": true,
+        "server_state_required": true,
+        "reward_duplication": false,
+        "repeated_item_grant": false,
+        "repeated_star_or_unlock": false,
+        "client_authority": false
+      },
+      "onboarding_relationship": "FOLLOW_ON_FROM_ZONE5",
+      "new_dialogue_invented": false
+    },
+    {
+      "zone_number": 7,
+      "zone_key": "d1_2",
+      "canonical_identity": {
+        "name_zh": "賢者之塔",
+        "name_en": "Sage Tower",
+        "stage": "LV7",
+        "level_band": "1–2段"
+      },
+      "lord": {
+        "id": "archmage_phantom",
+        "name_zh": "大魔法師幻影",
+        "name_en": "Archmage Phantom",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Sage Tower",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "screenplay_source": "docs/planning/e10_final_screenplay_v1.md",
+      "screenplay_lifecycle": {
+        "pre_play_shots": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "handoff_after_shot": 4,
+        "mid_play_shots": [],
+        "post_clear_shots": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "post_clear_hook_shot": 8,
+        "true_mid_play_runtime_required": false,
+        "final_end_state": "ZONE_HOOK_OR_NEXT_ROUTE"
+      },
+      "production_beats": [
+        {
+          "beat_id": "Z7_B01_SPIRAL_ASCENT",
+          "phase": "ENTRY",
+          "title": "Hero climbs a starlit spiral tower with runes and footsteps.",
+          "specification": "Scale grows; keep central subject readable.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z7_B02_ARCHMAGE_REVEAL",
+          "phase": "PRE_PLAY",
+          "title": "Archmage meets arrival without a lecture and reveals the star-board.",
+          "specification": "Curiosity and evidence, not haunted wizard horror.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z7_B03_NOT_AN_EXAM",
+          "phase": "HANDOFF",
+          "title": "可棋不是考卷。 reframes correctness anxiety into choice and learning.",
+          "specification": "Local Go correctness remains Engine-owned.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z7_B04_HEARTSTONE_FORMATION",
+          "phase": "POST_CLEAR",
+          "title": "Heartstone remembers only eligible four Journey Relics and forms.",
+          "specification": "No physical relic consumed; clear-gated memories only.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z7_B05_DARKNESS_ROUTE",
+          "phase": "POST_CLEAR_HOOK",
+          "title": "Archmage points toward the dark frontier without naming a replacement object.",
+          "specification": "No invented lore or reward authority.",
+          "status": "CONTENT_SPEC_READY"
+        }
+      ],
+      "protected_constraints": [
+        "Heartstone fuses only eligible canonical four Journey Relics",
+        "No physical relic is consumed",
+        "可棋不是考卷。 remains protected"
+      ],
+      "replay_contract": {
+        "replay_allowed": true,
+        "server_state_required": true,
+        "reward_duplication": false,
+        "repeated_item_grant": false,
+        "repeated_star_or_unlock": false,
+        "client_authority": false
+      },
+      "onboarding_relationship": "FOLLOW_ON_FROM_ZONE6",
+      "new_dialogue_invented": false
+    },
+    {
+      "zone_number": 8,
+      "zone_key": "d3_4",
+      "canonical_identity": {
+        "name_zh": "魔王城前線",
+        "name_en": "Demon Castle Front",
+        "stage": "LV8",
+        "level_band": "3–4段"
+      },
+      "lord": {
+        "id": "chaos_lord",
+        "name_zh": "混沌領主",
+        "name_en": "Chaos Lord",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Demon Castle Frontline",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "screenplay_source": "docs/planning/e10_final_screenplay_v1.md",
+      "screenplay_lifecycle": {
+        "pre_play_shots": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "handoff_after_shot": 6,
+        "mid_play_shots": [],
+        "post_clear_shots": [
+          7,
+          8,
+          9
+        ],
+        "post_clear_hook_shot": 9,
+        "true_mid_play_runtime_required": false,
+        "final_end_state": "ZONE_HOOK_OR_NEXT_ROUTE"
+      },
+      "production_beats": [
+        {
+          "beat_id": "Z8_B01_FRONTLINE_MARCH",
+          "phase": "ENTRY",
+          "title": "Working frontline, blue flag, supply yard, and black spire establish scale.",
+          "specification": "Serel remains responsible for soldiers.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z8_B02_HEARTSTONE_RELATIONS",
+          "phase": "PRE_PLAY",
+          "title": "Heartstone reveals faint relationships; it does not control people or army.",
+          "specification": "No command authority from visual lines.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z8_B03_CHAOS_LORD_RUNE",
+          "phase": "HANDOFF",
+          "title": "Chaos Lord enters as a living rune with no conventional villain speech at entry.",
+          "specification": "Distinct Lord presentation above Battlefield Boss.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z8_B04_STABILIZE_NOT_KILL",
+          "phase": "POST_CLEAR",
+          "title": "One placed stone stabilizes distortion; Chaos Lord dissolves rather than dies.",
+          "specification": "CHAOS_LORD_KILLED_BY_HERO=FALSE; Serel remains commander.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z8_B05_ZONE9_HANDOFF",
+          "phase": "POST_CLEAR_HOOK",
+          "title": "Castle collapse leads into settled ash and ancient grief.",
+          "specification": "No victory corpse or kill count.",
+          "status": "CONTENT_SPEC_READY"
+        }
+      ],
+      "protected_constraints": [
+        "Chaos Lord dissolves, not killed",
+        "Chaos Lord does not command the army",
+        "Serel remains commander"
+      ],
+      "replay_contract": {
+        "replay_allowed": true,
+        "server_state_required": true,
+        "reward_duplication": false,
+        "repeated_item_grant": false,
+        "repeated_star_or_unlock": false,
+        "client_authority": false
+      },
+      "onboarding_relationship": "FOLLOW_ON_FROM_ZONE7",
+      "new_dialogue_invented": false
+    },
+    {
+      "zone_number": 9,
+      "zone_key": "d5_6",
+      "canonical_identity": {
+        "name_zh": "諸神黃昏",
+        "name_en": "Ragnarök",
+        "stage": "LV9",
+        "level_band": "5–6段"
+      },
+      "lord": {
+        "id": "fallen_war_god_statue",
+        "name_zh": "墮落戰神古像",
+        "name_en": "Fallen War-God Statue",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Ragnarok",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "screenplay_source": "docs/planning/e10_final_screenplay_v1.md",
+      "screenplay_lifecycle": {
+        "pre_play_shots": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "handoff_after_shot": 6,
+        "mid_play_shots": [],
+        "post_clear_shots": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "post_clear_hook_shot": 12,
+        "true_mid_play_runtime_required": false,
+        "final_end_state": "ZONE_HOOK_OR_NEXT_ROUTE"
+      },
+      "production_beats": [
+        {
+          "beat_id": "Z9_B01_SETTLED_ASH",
+          "phase": "ENTRY",
+          "title": "Hero enters old ash and faces the fallen War-God Statue’s scale.",
+          "specification": "Ancient grief, not immediate battle continuation.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z9_B02_MEMORY_OF_OVER_CORRECTION",
+          "phase": "PRE_PLAY",
+          "title": "Sincere ancient exhaustion appears through incomplete memory fragments.",
+          "specification": "Memory answers why; no technical exposition dump.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z9_B03_HERO_ACKNOWLEDGMENT",
+          "phase": "HANDOFF",
+          "title": "Hero acknowledges he may choose wrong but cannot remove everyone’s choice.",
+          "specification": "Protected DL-08; no combat execution.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z9_B04_SINGLE_COLOR_REFUSAL",
+          "phase": "POST_CLEAR",
+          "title": "The Gods’ single-color overlay destabilizes as consequence of refusal.",
+          "specification": "Heartstone remains carried; no final stone or consumption.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z9_B05_ZONE10_WOUND",
+          "phase": "POST_CLEAR_HOOK",
+          "title": "Light recedes and exposes the path into the true Source.",
+          "specification": "Do not use 走吧。 here; it belongs to Zone 10.",
+          "status": "CONTENT_SPEC_READY"
+        }
+      ],
+      "protected_constraints": [
+        "No Final Stone/Heartstone consumption",
+        "single-color failure is consequence of refusal",
+        "走吧。 is not spoken in Zone 9"
+      ],
+      "replay_contract": {
+        "replay_allowed": true,
+        "server_state_required": true,
+        "reward_duplication": false,
+        "repeated_item_grant": false,
+        "repeated_star_or_unlock": false,
+        "client_authority": false
+      },
+      "onboarding_relationship": "FOLLOW_ON_FROM_ZONE8",
+      "new_dialogue_invented": false
+    },
+    {
+      "zone_number": 10,
+      "zone_key": "d7_plus",
+      "canonical_identity": {
+        "name_zh": "上古終焉神殿",
+        "name_en": "Ancient Doom Temple",
+        "stage": "LV10",
+        "level_band": "7段＋"
+      },
+      "lord": {
+        "id": "source_of_black_white_order",
+        "name_zh": "黑白秩序之源",
+        "name_en": "Source of Black-White Order",
+        "hierarchy": "LORD"
+      },
+      "request_brief_alias": "Ancient Final Temple",
+      "request_alias_status": "REFERENCE_ONLY_NOT_RUNTIME_LABEL",
+      "screenplay_source": "docs/planning/e10_final_screenplay_v1.md",
+      "screenplay_lifecycle": {
+        "pre_play_shots": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "handoff_after_shot": 6,
+        "mid_play_shots": [],
+        "post_clear_shots": [
+          7,
+          8,
+          9,
+          10
+        ],
+        "post_clear_hook_shot": 11,
+        "true_mid_play_runtime_required": false,
+        "final_end_state": "FADE_TO_BLACK_AFTER_SHOT_11"
+      },
+      "production_beats": [
+        {
+          "beat_id": "Z10_B01_DREAM_GUARDIAN",
+          "phase": "ENTRY",
+          "title": "Lotus pond and Eastern Guardian gesture establish silent endgame space.",
+          "specification": "Guardian has no face/voice/dialogue/exposition authority.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z10_B02_MECHANISM_ANSWER",
+          "phase": "PRE_PLAY",
+          "title": "Pure image shows the Order Engine mechanism and unfinished game.",
+          "specification": "GO_LOGIC_GATE_01=OPEN; do not invent a board state.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z10_B03_SOURCE_SILENCE",
+          "phase": "HANDOFF",
+          "title": "Source manifests as silent environmental/mechanism confrontation.",
+          "specification": "FACE=NONE, VOICE=NONE, DIALOGUE=NONE, PERSONALITY=NONE.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z10_B04_FINAL_MOVE",
+          "phase": "POST_CLEAR",
+          "title": "Heartstone becomes Final Stone at canonical Shot 8, resolves half-point, then becomes ordinary stone.",
+          "specification": "No THROWN, DESTROYED, REMOVED, or SPENT_AS_GONE.",
+          "status": "CONTENT_SPEC_READY"
+        },
+        {
+          "beat_id": "Z10_B05_ORDINARY_EXIT",
+          "phase": "POST_CLEAR_HOOK",
+          "title": "Hero exits to ordinary ground; 走吧。 is the final spoken line and Shot 11 is ordinary ground.",
+          "specification": "No Origin Core, replacement name, final voice, grid, glow, or extra thesis line.",
+          "status": "CONTENT_SPEC_READY"
+        }
+      ],
+      "protected_constraints": [
+        "Source and Guardian have no canonical face/voice/dialogue authority",
+        "GO_LOGIC_GATE_01=OPEN; no invented board state",
+        "Heartstone becomes ordinary stone; no forbidden gone states"
+      ],
+      "replay_contract": {
+        "replay_allowed": true,
+        "server_state_required": true,
+        "reward_duplication": false,
+        "repeated_item_grant": false,
+        "repeated_star_or_unlock": false,
+        "client_authority": false
+      },
+      "onboarding_relationship": "FOLLOW_ON_FROM_ZONE9",
+      "new_dialogue_invented": false
+    }
+  ],
+  "integration_gates": {
+    "shell_wiring": "SEPARATE_LANE_PROHIBITED_IN_THIS_TASK",
+    "zone6_true_mid_play_pause_resume": "REQUIRED_DEFERRED",
+    "zone7_star_to_board_compositing": "REQUIRED_DEFERRED",
+    "zone10_go_logic_gate_01": "OPEN_REQUIRES_SEPARATE_VALIDATION",
+    "physical_device_acceptance": "REQUIRED_LATER"
+  },
+  "validation": {
+    "all_eight_canonical_zone_identities_exact": true,
+    "owner_style_b_preserved": true,
+    "replay_reward_regression_guard_defined": true,
+    "gameplay_authority_changed": false,
+    "runtime_product_files_changed": false,
+    "shared_shell_changed": false
+  }
+}

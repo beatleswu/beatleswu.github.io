@@ -1,0 +1,709 @@
+{
+  "manifest_version": "w1-zone3-10shot-owner-approved-v1",
+  "task": "W1_01_ZONE3_10SHOT_FINAL_ASSET_INGESTION_AND_RUNTIME_PREP_006",
+  "owner_approved": true,
+  "owner_package": {
+    "filename": "ZONE3_FINAL_10SHOT_OWNER_APPROVED.zip",
+    "sha256": "b3aa7e3e4d0d06c294d8f30eb3a05f5e9c5375721bbf4a4e16ccd6a1134ed1b8",
+    "sha256_match": true,
+    "source_bytes_preserved": true
+  },
+  "source_shot_count": 10,
+  "runtime_derivative_count": 10,
+  "rejected_asset_paths": [],
+  "canonical_zone": {
+    "zone_id": 3,
+    "name_zh": "哥布林洞穴",
+    "name_en": "Goblin Cave",
+    "identity_authority": "current canonical runtime/API identity"
+  },
+  "lifecycle": {
+    "FIRST_ENTRY": [
+      "SHOT01",
+      "SHOT02",
+      "SHOT03",
+      "SHOT04",
+      "SHOT05"
+    ],
+    "BOSS_READY": [
+      "SHOT06",
+      "SHOT07"
+    ],
+    "POST_CLEAR": [
+      "SHOT08",
+      "SHOT09",
+      "SHOT10"
+    ]
+  },
+  "runtime_delivery": {
+    "source_master_root": "assets/e10/art/zone3/cinematic/source/",
+    "runtime_derivative_root": "assets/e10/art/zone3/cinematic/",
+    "runtime_url_prefix": "/assets/e10/art/zone3/cinematic/",
+    "runtime_format": "image/webp",
+    "runtime_dimensions": "1536x864",
+    "runtime_aspect_ratio": "16:9",
+    "conversion_policy": "non-generative crop and resize only",
+    "source_master_untouched": true,
+    "stretching_used": false,
+    "text_inserted": false
+  },
+  "content_guards": {
+    "TEXT_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "ZONE_STATE_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "BOSS_STATE_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "ROUTE_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "REWARD_NOT_BAKED_INTO_BASE_IMAGE": true,
+    "GAMEPLAY_AUTHORITY_CHANGED": false
+  },
+  "stone_shard_contract": {
+    "shot": "SHOT09",
+    "ordinary": true,
+    "glowing": false,
+    "irregular": true,
+    "natural_marks_only": true,
+    "magic_map": false,
+    "rune_artifact": false,
+    "gameplay_authority_object": false
+  },
+  "replay_contract": {
+    "presentation_only": true,
+    "replay_reuses_same_runtime_paths": true,
+    "replay_changes_zone_state": false,
+    "replay_issues_rewards": false,
+    "replay_consumes_items": false
+  },
+  "world_hero_dependency_contract": {
+    "character_art_generation_in_scope": false,
+    "embedded_character_pixels_are_owner_approved": true,
+    "embedded_character_surfaces": [
+      "HERO",
+      "SHUI",
+      "GRIK",
+      "CENTURION"
+    ],
+    "hero_owned_follow_up": "Audit and maintain character continuity; do not overlay duplicate character art on these full-frame cinematic shots.",
+    "journey_binding_mode": "whole_frame_cinematic",
+    "separate_character_overlay_required": false,
+    "lord_boundary": "SHOT07 is an owner-approved trial cinematic frame. It does not create a Lord identity, Lord eligibility, Lord authority, or Lord character asset.",
+    "battlefield_boss_vs_lord_preserved": true,
+    "future_lord_ritual_result_backgrounds": "Bind as separate presentation-only slots if later approved; this package does not generate or authorize Lord art."
+  },
+  "character_continuity_audit": {
+    "HERO": {
+      "status": "PASS_WITH_LAYOUT_NOTES",
+      "note": "Approved set keeps the same stylized Hero presentation across movement, observation, trial, handoff, and hook beats."
+    },
+    "SHUI": {
+      "status": "PASS_WITH_EDGE_CROP_NOTES",
+      "note": "Approved blue Spirit presentation is consistent; Shui is near the left edge in several wide compositions and must not be used as the mobile crop anchor for every shot."
+    },
+    "GRIK": {
+      "status": "PASS",
+      "note": "Young Grik remains the same story actor across the meeting, water-route, truce, handoff, and Mist Forest hook frames."
+    },
+    "CENTURION": {
+      "status": "PASS",
+      "note": "Centurion presentation is consistent across the last-door, challenge, and fragile-truce frames; no character-art correction was made."
+    },
+    "VISUAL_CONTINUITY_NOTE": "These are complete approved cinematic frames with embedded story characters. Journey should bind them as whole frames and must not stack a second Hero, Shui, Grik, or Centurion render over the same pixels."
+  },
+  "shots": [
+    {
+      "SHOT_ID": "SHOT01",
+      "SHOT_NUMBER": 1,
+      "PHASE": "FIRST_ENTRY",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot01_moving_refugees_owner_approved.jpeg",
+      "SOURCE_SHA256": "381d94c09d1d37d921c461e3f6c80b9a37ba92ed0d63581e9015ac53440e470f",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot01.webp",
+      "RUNTIME_SHA256": "f689f568dc501452b6c00212d5cec50d341ef2ba5b6059ddb23ebaeebe8eeb8c",
+      "SOURCE_DIMENSIONS": "1536x864",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Goblin families move deeper into the cave.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot01_moving_refugees_owner_approved.jpeg",
+        "bytes": 545655,
+        "sha256": "381d94c09d1d37d921c461e3f6c80b9a37ba92ed0d63581e9015ac53440e470f",
+        "dimensions": "1536x864"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "16:9 resize; no crop; WebP quality 90",
+        "source_crop_box": [0, 0, 1536, 864],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Warm cave migration passage with families moving toward the deeper chamber.",
+        "CHARACTER_PLACEMENT": "Hero left foreground; Shui low left/center; families and belongings move toward the right/deeper route.",
+        "CAMERA": "Wide eye-level establishing frame; preserve the full horizontal travel direction.",
+        "LIGHTING": "Warm amber cave light with a cool blue Shui accent.",
+        "PALETTE": "Ochre amber, cave brown, muted teal, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Keep the full 16:9 frame letterboxed; a portrait cover crop cannot retain Hero, Shui, and the moving families together."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Use the full-frame contain fallback; do not crop the migration direction into a single character."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT02",
+      "SHOT_NUMBER": 2,
+      "PHASE": "FIRST_ENTRY",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot02_household_belongings_owner_approved.jpeg",
+      "SOURCE_SHA256": "f2af78399c1603ba1df453f5efb9df22f344999d9fe6721ebeb418527155bbc0",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot02.webp",
+      "RUNTIME_SHA256": "66dd93e017fa3f20e1e24f7deb1c7375da969384062d4987a7cad83f2d67cda6",
+      "SOURCE_DIMENSIONS": "1536x1024",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Hero realizes the carried objects are household belongings, not loot.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot02_household_belongings_owner_approved.jpeg",
+        "bytes": 663920,
+        "sha256": "f2af78399c1603ba1df453f5efb9df22f344999d9fe6721ebeb418527155bbc0",
+        "dimensions": "1536x1024"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "3:2 vertical crop and resize; WebP quality 90",
+        "source_crop_box": [0, 96, 1536, 960],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Cave shelter observation with household objects and blankets in the foreground.",
+        "CHARACTER_PLACEMENT": "Hero kneeling left; Shui center-left; belongings foreground center; goblin family right.",
+        "CAMERA": "Medium-wide observation frame biased down to retain the foreground belongings.",
+        "LIGHTING": "Soft warm amber shelter light with a cool blue Spirit accent.",
+        "PALETTE": "Cave brown, warm amber, muted cloth colors, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 54%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 54%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Use full-frame contain to retain Hero, the household belongings, and the family; portrait cover crop is not sufficient."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Do not crop to a single subject. If a focus crop is unavoidable, use 52% 56% and preserve the belongings in the lower center; full-frame contain is preferred."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT03",
+      "SHOT_NUMBER": 3,
+      "PHASE": "FIRST_ENTRY",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot03_meet_grik_owner_approved.jpeg",
+      "SOURCE_SHA256": "e7c08c827f213b3adc9db24ce419282d747cbfd7ee2ca08fbf2c4cfd32dad1a2",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot03.webp",
+      "RUNTIME_SHA256": "904d21f0f753eff5f3858d2f1a8c735c18ad35f96be61825977de1ad63180cc1",
+      "SOURCE_DIMENSIONS": "1536x1024",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Hero meets young Grik; mutual caution, no attack.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot03_meet_grik_owner_approved.jpeg",
+        "bytes": 621107,
+        "sha256": "e7c08c827f213b3adc9db24ce419282d747cbfd7ee2ca08fbf2c4cfd32dad1a2",
+        "dimensions": "1536x1024"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "3:2 centered vertical crop and resize; WebP quality 90",
+        "source_crop_box": [0, 80, 1536, 944],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Cave route meeting with a clear passage between Hero and Grik.",
+        "CHARACTER_PLACEMENT": "Hero left-center; Grik right; Shui near the left edge; route opening centered.",
+        "CAMERA": "Medium-wide eye-level two-character composition.",
+        "LIGHTING": "Warm cave light, with the blue Spirit accent and a readable face-to-face separation.",
+        "PALETTE": "Warm stone brown, amber, muted green, and cool blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Use contain to keep the cautious Hero/Grik spacing; a portrait cover crop loses one side of the meeting."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Keep the full frame or use a bounded focus near 58% 50% only when the Journey surface explicitly prioritizes Grik; do not invent a new crop."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT04",
+      "SHOT_NUMBER": 4,
+      "PHASE": "FIRST_ENTRY",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot04_shrinking_living_space_owner_approved.jpeg",
+      "SOURCE_SHA256": "bd4f1b818e49aa976a20cd82c5d48fef77c569c70ba23e4407942b50adb85a67",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot04.webp",
+      "RUNTIME_SHA256": "0dc20e776ec12dfe79aed8a988dbe3c7597982354885175a098871e9fda7e431",
+      "SOURCE_DIMENSIONS": "1536x1024",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Grik explains the shrinking living space.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot04_shrinking_living_space_owner_approved.jpeg",
+        "bytes": 591629,
+        "sha256": "bd4f1b818e49aa976a20cd82c5d48fef77c569c70ba23e4407942b50adb85a67",
+        "dimensions": "1536x1024"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "3:2 centered vertical crop and resize; WebP quality 90",
+        "source_crop_box": [0, 80, 1536, 944],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Cramped occupied cave shelter illustrating reduced living space.",
+        "CHARACTER_PLACEMENT": "Hero kneeling left-center; Grik right with explanatory gesture/map; Shui left; occupied shelter behind.",
+        "CAMERA": "Medium-wide explanatory frame that retains the cave pressure around the speakers.",
+        "LIGHTING": "Warm amber lantern and cave light with a restrained blue Spirit accent.",
+        "PALETTE": "Earth brown, ochre, muted moss green, cloth neutrals, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Use contain to preserve the Hero/Grik explanation and cramped-space context; do not isolate the map/gesture as a new asset."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Full-frame contain is required for the two-person explanation. A focus crop near 58% 50% may be used only as a bounded Journey fallback for Grik, not as a replacement image."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT05",
+      "SHOT_NUMBER": 5,
+      "PHASE": "FIRST_ENTRY",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot05_blocked_water_route_owner_approved.jpeg",
+      "SOURCE_SHA256": "f7261e5f42545327bb5960aec2d38f049ffba0cb94c11d405e2f2ac81d2d4f4f",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot05.webp",
+      "RUNTIME_SHA256": "ae506cfa36b766ff94fe0e3cdf690e9da9d9d1231b1eeecaf0db46f90c1d20e9",
+      "SOURCE_DIMENSIONS": "1536x864",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Rockfall blocks the water route; water remains visibly unreachable.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot05_blocked_water_route_owner_approved.jpeg",
+        "bytes": 711516,
+        "sha256": "f7261e5f42545327bb5960aec2d38f049ffba0cb94c11d405e2f2ac81d2d4f4f",
+        "dimensions": "1536x864"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "16:9 resize; no crop; WebP quality 90",
+        "source_crop_box": [0, 0, 1536, 864],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Collapsed rockfall at the mouth of a bright blue water route.",
+        "CHARACTER_PLACEMENT": "Hero and Shui left; Grik near center; rockfall and visibly unreachable water route right.",
+        "CAMERA": "Wide environmental proof frame; keep both the characters and the blocked route readable.",
+        "LIGHTING": "Warm cave foreground against the cool blue water-route opening.",
+        "PALETTE": "Amber stone, charcoal rockfall, cool cyan water, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Keep the full frame so Hero/Grik and the blocked blue water route remain simultaneously visible."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Do not choose between the people and the unreachable water with a cover crop. If Journey must focus, use a bounded 67% 50% position for the route and retain the full-frame fallback."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT06",
+      "SHOT_NUMBER": 6,
+      "PHASE": "BOSS_READY",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot06_last_door_centurion_owner_approved.jpeg",
+      "SOURCE_SHA256": "9309ba5bd565007a30666a018c904321df43d64baeeee3ac0286016dd4a8ab15",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot06.webp",
+      "RUNTIME_SHA256": "7722c6fe21d066ae6063072ba9e4c7c8e1df91f079711169d904506cc62af065",
+      "SOURCE_DIMENSIONS": "1536x1024",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Goblin Centurion is the last door, protecting the families behind him.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot06_last_door_centurion_owner_approved.jpeg",
+        "bytes": 619999,
+        "sha256": "9309ba5bd565007a30666a018c904321df43d64baeeee3ac0286016dd4a8ab15",
+        "dimensions": "1536x1024"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "3:2 centered vertical crop and resize; WebP quality 90",
+        "source_crop_box": [0, 80, 1536, 944],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Cave threshold where the Centurion stands between Hero and the protected families.",
+        "CHARACTER_PLACEMENT": "Hero left; Shui near left; Centurion center-right at the doorway; families behind/right.",
+        "CAMERA": "Wide threshold frame with a clear protective line and readable scale.",
+        "LIGHTING": "Stronger amber doorway light and darker cave recesses behind the Centurion.",
+        "PALETTE": "Deep cave brown, amber, muted red-brown armor, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Retain the full threshold composition; a cover crop cannot keep Hero, Centurion, and families together."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Use full-frame contain. A bounded 58% 50% focus may prioritize Centurion and families, but must not be treated as a replacement for the full shot."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT07",
+      "SHOT_NUMBER": 7,
+      "PHASE": "BOSS_READY",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot07_lord_trial_challenge_owner_approved.png",
+      "SOURCE_SHA256": "e861ef571c3b46ba7e8b93839da472a390ee8a9a25784cf860564a1c1627950f",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot07.webp",
+      "RUNTIME_SHA256": "c1bee63b305635ec4e65b52dc18424b92dddb3c895c38d3582275fccf4f2f780",
+      "SOURCE_DIMENSIONS": "1672x941",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Centurion challenges Hero to prove he is not here to take their land.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot07_lord_trial_challenge_owner_approved.png",
+        "bytes": 2545852,
+        "sha256": "e861ef571c3b46ba7e8b93839da472a390ee8a9a25784cf860564a1c1627950f",
+        "dimensions": "1672x941"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "minimal near-16:9 cover crop and resize; lossless WebP",
+        "source_crop_strategy": "ImageOps.fit cover crop to 16:9; no horizontal subject edit",
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Trial approach at the cave threshold with the Centurion confronting the Hero.",
+        "CHARACTER_PLACEMENT": "Hero left; Shui left; Centurion center-right; families and cave context right/background.",
+        "CAMERA": "Wide confrontation frame with greater scale and tension than the last-door approach.",
+        "LIGHTING": "Controlled dramatic amber light with readable faces and silhouette separation.",
+        "PALETTE": "Rich cave brown, amber, restrained red-brown, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Use the complete confrontation frame; if a focus crop is required, 55% 50% prioritizes Hero and Centurion but loses family context."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Use full-frame contain so the trial remains a relationship between Hero and Centurion. Do not turn the crop into a new Lord or boss portrait."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT08",
+      "SHOT_NUMBER": 8,
+      "PHASE": "POST_CLEAR",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot08_fragile_truce_owner_approved.png",
+      "SOURCE_SHA256": "ffecac99714b6f936df6e95aaccd4287f64bda73eeedf224bdcb7e93641edab2",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot08.webp",
+      "RUNTIME_SHA256": "7209bca8197b18dd498936caeb7d774051fa2733ddce3d7ec45a6cefd43ff238",
+      "SOURCE_DIMENSIONS": "1536x1024",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Post-trial fragile truce; families can finally put belongings down for the night.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot08_fragile_truce_owner_approved.png",
+        "bytes": 2527541,
+        "sha256": "ffecac99714b6f936df6e95aaccd4287f64bda73eeedf224bdcb7e93641edab2",
+        "dimensions": "1536x1024"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "3:2 centered vertical crop and resize; lossless WebP",
+        "source_crop_box": [0, 80, 1536, 944],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Warm cave resting area after the trial, with belongings set down and a guarded peace.",
+        "CHARACTER_PLACEMENT": "Hero kneeling left; Shui left; Grik center; Centurion center-right; families, bedrolls, and lanterns right.",
+        "CAMERA": "Wide group frame; retain the shared space and distance between former opponents.",
+        "LIGHTING": "Softer lantern warmth with subdued cave shadows and a cool blue Spirit accent.",
+        "PALETTE": "Warm amber, earthy brown, muted cloth tones, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Use contain to retain the fragile group truce and the belongings at rest; do not reduce this to a single face."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "NO",
+          "MODE": "contain",
+          "RECOMMENDATION": "Full-frame contain is required. If Journey needs a bounded focus, 60% 52% favors Grik, Centurion, and the resting families without changing the approved art."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT09",
+      "SHOT_NUMBER": 9,
+      "PHASE": "POST_CLEAR",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot09_stone_shard_handoff_owner_approved.jpeg",
+      "SOURCE_SHA256": "573e29b1176182705847dfbf89dc1cceff686567187a6514f6e8fe213b861344",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot09.webp",
+      "RUNTIME_SHA256": "b6d7456a485499f1ef25a32d23ca48ea70402aecb09912157f5d2994d09e739c",
+      "SOURCE_DIMENSIONS": "1536x1024",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Grik gives Hero the ordinary Stone Shard with natural marks.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot09_stone_shard_handoff_owner_approved.jpeg",
+        "bytes": 557654,
+        "sha256": "573e29b1176182705847dfbf89dc1cceff686567187a6514f6e8fe213b861344",
+        "dimensions": "1536x1024"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "3:2 centered vertical crop and resize; WebP quality 90",
+        "source_crop_box": [0, 80, 1536, 944],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Quiet handoff in the cave after the truce.",
+        "CHARACTER_PLACEMENT": "Hero left-center; Grik right holding the shard; Shui left; families remain background context.",
+        "CAMERA": "Medium-wide handoff composition with the shard and both speakers readable.",
+        "LIGHTING": "Gentle warm cave light; the Stone Shard has no glow or special effect.",
+        "PALETTE": "Earth brown, muted amber, natural gray-brown stone, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "58% 50%",
+          "RECOMMENDATION": "Focus crop may retain Hero, Grik, and the ordinary shard; Shui is optional context for this handoff beat."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "58% 50%",
+          "RECOMMENDATION": "Use only the bounded handoff focus when the Journey surface requires portrait cover; retain the non-glowing shard and both handoff participants."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT10",
+      "SHOT_NUMBER": 10,
+      "PHASE": "POST_CLEAR",
+      "SOURCE_PATH": "assets/e10/art/zone3/cinematic/source/zone3_shot10_mist_forest_hook_owner_approved.jpeg",
+      "SOURCE_SHA256": "06b276012e83971631a8ac352ba07325938bb06f61be3a49f6050314084e6646",
+      "RUNTIME_PATH": "assets/e10/art/zone3/cinematic/zone3_shot10.webp",
+      "RUNTIME_SHA256": "159b843ac507b814dcec91eb020d9dd45d4513de4aa0100d693d4d981f8da7e4",
+      "SOURCE_DIMENSIONS": "1536x1024",
+      "RUNTIME_DIMENSIONS": "1536x864",
+      "STORY_PURPOSE": "Grik points toward Mist Forest; Zone 4 hook.",
+      "OWNER_APPROVED": "YES",
+      "SOURCE_MASTER": {
+        "asset_class": "SOURCE_MASTER",
+        "filename": "zone3_shot10_mist_forest_hook_owner_approved.jpeg",
+        "bytes": 569654,
+        "sha256": "06b276012e83971631a8ac352ba07325938bb06f61be3a49f6050314084e6646",
+        "dimensions": "1536x1024"
+      },
+      "RUNTIME_DERIVATIVE": {
+        "asset_class": "RUNTIME_DERIVATIVE",
+        "format": "image/webp",
+        "dimensions": "1536x864",
+        "conversion": "3:2 centered vertical crop and resize; WebP quality 90",
+        "source_crop_box": [0, 80, 1536, 944],
+        "stretching_used": false
+      },
+      "VISUAL_SLOT": {
+        "SCENE": "Cave exit or threshold opening toward the misty route to Zone 4.",
+        "CHARACTER_PLACEMENT": "Hero center-left/back; Grik right pointing outward; Shui left; families in the right/background context.",
+        "CAMERA": "Wide directional hook frame; preserve the pointing gesture and the misty destination.",
+        "LIGHTING": "Warm cave foreground transitioning into cool diffused mist light.",
+        "PALETTE": "Amber cave brown, cool gray-green mist, muted moss, and blue."
+      },
+      "RESPONSIVE_NOTES": {
+        "DESKTOP_16_9": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_LANDSCAPE": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "50% 50%"
+        },
+        "IPAD_PORTRAIT": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "58% 50%",
+          "RECOMMENDATION": "Focus crop may retain Hero, Grik's pointing gesture, and the mist route; use the full frame when available."
+        },
+        "MOBILE_PORTRAIT": {
+          "SAFE": "YES",
+          "MODE": "cover",
+          "POSITION": "58% 50%",
+          "RECOMMENDATION": "Use the bounded hook focus only; do not add a baked Zone label or route marker. The Journey shell supplies state and navigation separately."
+        },
+        "PHYSICAL_DEVICE_ACCEPTANCE": "REQUIRED_LATER"
+      }
+    }
+  ],
+  "validation_contract": {
+    "required_source_shot_count": 10,
+    "required_runtime_derivative_count": 10,
+    "required_phase_mapping_exact": true,
+    "required_source_hashes": true,
+    "required_runtime_hashes": true,
+    "required_webp_decode": true,
+    "required_runtime_dimensions": "1536x864",
+    "required_no_duplicate_shot_ids": true,
+    "required_no_rejected_asset_paths": true,
+    "required_presentation_only_replay": true,
+    "physical_device_acceptance": "REQUIRED_LATER"
+  }
+}

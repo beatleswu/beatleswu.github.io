@@ -1,0 +1,36 @@
+{
+  "schema_version": "W1_04_ZONE3_FINAL_PRESENTATION_BINDING_EXTERNAL_INPUTS_V1",
+  "contract_path": "docs/contracts/w1_04_zone3_final_presentation_binding_contract_006.json",
+  "external_dependencies": [
+    {
+      "dependency_id": "W1-03-PRESENTATION-AUDIO-009",
+      "owner_task": "W1-03 _009",
+      "kind": "presentation_audio",
+      "status": "EXTERNAL_DEPENDENCY_PENDING",
+      "manifest_path": null,
+      "provided": false,
+      "required_classes": ["ambience", "event SFX", "transition"],
+      "placeholder_assets_allowed": false,
+      "must_not_generate": true,
+      "ready_condition": "Owner supplies exact manifest and approved files with hashes; scaffold then consumes them without changing this contract."
+    },
+    {
+      "dependency_id": "W1-03-BGM-009",
+      "owner_task": "W1-03 _009",
+      "kind": "BGM",
+      "status": "EXTERNAL_DEPENDENCY_PENDING",
+      "manifest_path": null,
+      "provided": false,
+      "required_classes": ["BGM"],
+      "placeholder_assets_allowed": false,
+      "must_not_generate": true,
+      "ready_condition": "Owner supplies exact BGM manifest and approved files with hashes; scaffold then consumes them without changing this contract."
+    }
+  ],
+  "negative_control_policy": {
+    "missing_dependency_result": "NOOP_PRESENTATION_ONLY",
+    "gameplay_available": true,
+    "cross_language_voice_fallback": 0,
+    "reward_or_progression_writes": 0
+  }
+}

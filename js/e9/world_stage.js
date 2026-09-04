@@ -808,11 +808,15 @@
   function introCinematicKeyForZone(zoneKey) {
     if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return ACTIVE_INTRO_CINEMATIC_KEY;
     if (zoneKey === 'k21_25') return 'e10_zone2_intro_v1';
+    if (zoneKey === 'k16_20') return 'e10_zone3_intro_v1';
     return null;
   }
 
   function introEntryInFlightKey(zoneKey) {
-    return zoneKey === ACTIVE_INTRO_ZONE_KEY ? 'zone1EntryInFlight' : 'zone2EntryInFlight';
+    if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return 'zone1EntryInFlight';
+    if (zoneKey === 'k21_25') return 'zone2EntryInFlight';
+    if (zoneKey === 'k16_20') return 'zone3EntryInFlight';
+    return 'zone2EntryInFlight';
   }
 
   function withLegacyAdventureReady(callback) {
@@ -850,6 +854,42 @@
     return (root && root.__e9WorldStageState) || null;
   }
 
+  function emitZone3JourneyEvent(type, zone, state, extra) {
+    if (!zone || zone.key !== 'k16_20'
+        || typeof window.emitZone3JourneyEvent !== 'function') return;
+    var detail = Object.assign({
+      authoritative: true,
+      source: 'adventure_bootstrap',
+      zoneKey: zone.key,
+      selectedZoneKey: state && state.selectedZoneKey || zone.key,
+      currentZoneKey: state && (state.authoritativeCurrentZoneKey || state.currentPlayerZoneKey) || null,
+      zone3: zone,
+      zones: state && state.zones || [],
+    }, extra || {});
+    window.emitZone3JourneyEvent(type, detail);
+  }
+
+  function emitZone3LordReady(zone, state) {
+    if (!zone || zone.key !== 'k16_20' || !state) return;
+    var contract = ctaContract(zone, state);
+    var ready = zone.bossAvailable === true
+      || zone.boss_available === true
+      || zone.boss_ready === true
+      || (contract && (contract.kind === 'challenge_lord' || contract.kind === 'replay_completed'));
+    if (!ready) return;
+    // This event is a projection of the latest bootstrap render. Do not make
+    // the in-memory presentation guard suppress a later render: the Journey
+    // component may mount after the first render, and the server snapshot is
+    // the only safe source for Lord readiness.
+    emitZone3JourneyEvent('journey:zone3-lord-ready', zone, state, {
+      lordReady: true,
+      autoStart: false,
+      primaryAction: state.primaryAction || null,
+      actionKind: contract && contract.kind || null,
+      presentationOnly: true,
+    });
+  }
+
   function dispatchZone1Entry(root, zone, state) {
     var cinematicKey = introCinematicKeyForZone(zone && zone.key);
     if (!zone || !cinematicKey || zone.locked || (state && state.authorityUnavailable)) return;
@@ -859,6 +899,13 @@
     var inFlightKey = introEntryInFlightKey(zone.key);
     if (state[inFlightKey]) return;
     state[inFlightKey] = true;
+    if (zone.key === 'k16_20') {
+      emitZone3JourneyEvent('journey:zone3-entry', zone, state, {
+        selectedZoneKey: zone.key,
+        entryMode: 'first_entry',
+        presentationOnly: true,
+      });
+    }
     var start = function () {
       if (typeof window.startAdventureStage !== 'function') {
         state[inFlightKey] = false;
@@ -902,7 +949,6 @@
   // question must hide the affordance rather than show a hopeful one.
   function zoneStoryReplayAvailable(zoneKey, zoneRecord) {
     if (!zoneKey) return false;
-
     // (1) Authoritative record. A caller that holds one passes it; otherwise
     // resolve from this component's own server-authoritative snapshot. Kept
     // free of hard references so the predicate stays independently evaluable
@@ -990,6 +1036,7 @@
     if (!root || !state || !zone) return false;
     state.zone1EntryInFlight = false;
     state.zone2EntryInFlight = false;
+    state.zone3EntryInFlight = false;
     renderSelectedZone(root, state.zones, zone.key, false);
     dispatchZoneSelection(root, zone, state);
     document.dispatchEvent(new CustomEvent('e9:zone-card-requested', {
@@ -1202,6 +1249,15 @@
     var detail = zoneSelectionDetail(zone, state);
     if (window.E9) window.E9.latestZoneSelection = detail;
     root.dispatchEvent(new CustomEvent('e9:zone-selected', { bubbles: true, detail: detail }));
+    if (zone && zone.key === 'k16_20') {
+      emitZone3JourneyEvent('journey:zone3-zone-selected', zone, state, {
+        selectedZoneKey: zone.key,
+        currentZoneKey: state.authoritativeCurrentZoneKey || state.currentPlayerZoneKey || null,
+        primaryAction: state.primaryAction || null,
+        selectionOnly: true,
+      });
+    }
+    emitZone3LordReady(zone, state);
   }
 
   // The small zone-tile badge only ever shows index.adv.boss_ready's
@@ -1372,6 +1428,7 @@
       secondaryAction: null,
       avatarPresentation: null,
       cinematics: {},
+      zone3EntryInFlight: false,
       generation: null,
     });
     if (!state.selectedZoneKey && authority.selected && typeof authority.selected.zone_key === 'string') {
@@ -1792,6 +1849,7 @@
       avatarPresentation: null,
       cinematics: {},
       authorityUnavailable: false,
+      zone3EntryInFlight: false,
       questionRuntimeState: questionRuntimeStateFromWindow(),
       generation: generation,
     };

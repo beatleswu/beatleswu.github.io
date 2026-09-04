@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zone 3 presentation binding fixture</title>
+  <link rel="stylesheet" href="/css/e9/zone3_presentation_fx.css">
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; min-height: 100vh; background: #0b1116; color: #eef4f2; font: 16px system-ui, sans-serif; }
+    main { width: min(100vw, 900px); margin: 0 auto; padding: 18px; box-sizing: border-box; }
+    #stage { position: relative; width: 100%; aspect-ratio: 16 / 9; border: 1px solid #35515a; border-radius: 12px; overflow: hidden; }
+    #stage-media { position: absolute; inset: 0; }
+    .film-shot { position: absolute; inset: 0; display: none; background: #101820; }
+    .film-shot.active { display: block; }
+    .film-shot img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: 50% 50%; }
+    #subtitle { position: absolute; left: 5%; right: 5%; bottom: 5%; z-index: 4; padding: 10px 14px; border-radius: 10px; background: rgba(0,0,0,.72); }
+    #status { min-height: 1.5em; color: #a9d8c8; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Zone 3 presentation binding</h1>
+    <div id="stage" class="z3-fx-stage" aria-label="presentation fixture">
+      <div id="stage-media" data-z3-camera-target></div>
+      <div id="subtitle" aria-live="polite"></div>
+    </div>
+    <p id="status">READY</p>
+  </main>
+  <script>
+    (() => {
+      let muted = true;
+      window.SFX = {};
+      Object.defineProperty(window.SFX, 'muted', {
+        configurable: true,
+        get: () => muted,
+        set: (value) => {
+          muted = Boolean(value);
+          document.dispatchEvent(new CustomEvent('go-odyssey-audio-mute-changed', { detail: { muted } }));
+        },
+      });
+    })();
+  </script>
+  <script src="/js/e9/zone3_presentation_fx.js"></script>
+  <script src="/js/e9/journey_zone3_vertical_slice_content.js"></script>
+  <script src="/js/e9/journey_zone3_presentation_audio.js"></script>
+  <script>
+    (() => {
+      const content = window.GoOdysseyJourneyZone3Content;
+      const stage = document.getElementById('stage');
+      const media = document.getElementById('stage-media');
+      const subtitle = document.getElementById('subtitle');
+      const status = document.getElementById('status');
+      const fx = window.GoOdysseyZone3PresentationFX.create({ root: stage, document, window });
+      const audio = window.GoOdysseyZone3PresentationAudio.create({ document, window });
+      const gameplay = { selectedZone: 'k16_20', progressionZone: 'k16_20', cleared: false, lordEligible: false, zone4Unlocked: false, rewardCount: 0 };
+      let locale = 'zh-TW';
+      let subtitleByLocale = {};
+      let dialogueByLocale = {};
+
+      function recordsForPhase(phase) {
+        return content.cinematicPresentation.lifecycle[phase].map((shotId) =>
+          content.cinematicPresentation.shots.find((shot) => shot.shotId === shotId));
+      }
+
+      function setupImages() {
+        if (media.children.length) return;
+        content.cinematicPresentation.shots.forEach((record) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'film-shot';
+          wrapper.dataset.shotId = record.shotId;
+          const image = document.createElement('img');
+          image.src = record.imagePath;
+          image.alt = '';
+          image.dataset.zone3ImageAssetId = record.imageAssetId;
+          image.style.objectPosition = record.mobilePresentation.objectPosition;
+          wrapper.appendChild(image);
+          media.appendChild(wrapper);
+        });
+      }
+
+      function applyRecord(record) {
+        const wrapper = media.querySelector(`[data-shot-id="${record.shotId}"]`);
+        if (!wrapper) return;
+        media.querySelectorAll('.film-shot').forEach((node) => node.classList.toggle('active', node === wrapper));
+        const image = wrapper.querySelector('img');
+        const slot = window.matchMedia('(orientation: portrait)').matches
+          ? (window.innerWidth <= 767 ? record.mobilePresentation : record.ipadPortraitPresentation)
+          : (window.innerWidth <= 1200 ? record.ipadLandscapePresentation : record.desktopPresentation);
+        image.style.objectFit = slot.mode;
+        image.style.objectPosition = slot.objectPosition;
+        const beat = record.beats[0];
+        const visible = subtitleByLocale[locale].find((entry) => entry.BEAT_ID === beat.beatId);
+        subtitle.textContent = visible ? visible.VISIBLE_TEXT : '';
+      }
+
+      function localeSnapshot() {
+        const record = content.cinematicPresentation.shots[0];
+        const beat = record.beats[0];
+        const subtitleBeat = subtitleByLocale[locale].find((entry) => entry.BEAT_ID === beat.beatId);
+        const audioBeat = dialogueByLocale[locale].find((entry) => entry.BEAT_ID === beat.beatId);
+        return {
+          locale,
+          text: subtitleBeat?.VISIBLE_TEXT || '',
+          voicePath: audioBeat?.AUDIO_PATH || '',
+          voiceId: audioBeat?.VOICE_ID || '',
+          beatId: beat.beatId,
+          i18nKey: beat.i18nKey,
+        };
+      }
+
+      function setLocale(nextLocale) {
+        if (!content.cinematicLocalization.supportedLocales.includes(nextLocale)) throw new Error('unsupported_locale');
+        locale = nextLocale;
+        document.documentElement.lang = nextLocale;
+        return localeSnapshot();
+      }
+
+      async function playPhase(phase) {
+        const records = recordsForPhase(phase);
+        const results = [];
+        let maxBgmStreams = 0;
+        for (const record of records) {
+          applyRecord(record);
+          fx.transitionShot(record.shotId, undefined, { reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
+          results.push(await audio.enterShot(record.shotId, { phase }));
+          maxBgmStreams = Math.max(maxBgmStreams, audio.getResourceStats().activeBgmCount);
+        }
+        return { phase, shotIds: records.map((record) => record.shotId), results, maxBgmStreams };
+      }
+
+      function stopPresentation() {
+        audio.stopAll();
+        fx.stopAll();
+      }
+
+      async function runAll() {
+        setupImages();
+        await Promise.all([
+          audio.load(),
+          fetch(content.cinematicLocalization.subtitleManifests['zh-TW']).then((response) => response.json()).then((value) => { subtitleByLocale['zh-TW'] = value.beats; }),
+          fetch(content.cinematicLocalization.subtitleManifests['en-US']).then((response) => response.json()).then((value) => { subtitleByLocale['en-US'] = value.beats; }),
+          fetch(content.cinematicLocalization.audioManifests['zh-TW']).then((response) => response.json()).then((value) => { dialogueByLocale['zh-TW'] = value.entries; }),
+          fetch(content.cinematicLocalization.audioManifests['en-US']).then((response) => response.json()).then((value) => { dialogueByLocale['en-US'] = value.entries; }),
+        ]);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        const beforeLocaleSwitch = { ...gameplay };
+        const zh = setLocale('zh-TW');
+        const en = setLocale('en-US');
+        const localeSwitchKeepsAuthority = JSON.stringify(beforeLocaleSwitch) === JSON.stringify(gameplay);
+
+        const phases = [];
+        for (const phase of ['FIRST_ENTRY', 'BOSS_READY', 'POST_CLEAR']) {
+          phases.push(await playPhase(phase));
+          stopPresentation();
+        }
+
+        const replayBefore = { ...gameplay };
+        await playPhase('POST_CLEAR');
+        audio.reset();
+        fx.stopAll();
+        const replay = await playPhase('POST_CLEAR');
+        const replayAfter = { ...gameplay };
+        stopPresentation();
+
+        window.SFX.muted = true;
+        await audio.enterShot('SHOT01', { phase: 'FIRST_ENTRY' });
+        const muteState = audio.getActiveAudioState();
+        stopPresentation();
+        window.SFX.muted = false;
+
+        fx.transitionShot('SHOT05', undefined, { reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
+        const reducedMotionState = fx.getResourceStats();
+        const reducedMotionActive = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const reducedMotionBehaviorVerified = reducedMotionActive
+          ? stage.classList.contains('z3-camera-reduced-motion') || reducedMotionState.activeCamera === false
+          : reducedMotionState.activeCamera === true;
+        fx.stopAll();
+
+        const failureBefore = { ...gameplay };
+        const image = media.querySelector('[data-shot-id="SHOT01"] img');
+        const originalSrc = image.src;
+        const failure = await new Promise((resolve) => {
+          image.onerror = () => resolve(true);
+          image.src = '/__zone3_presentation_missing__.webp';
+        });
+        image.onerror = null;
+        image.src = originalSrc;
+        const failureAfter = { ...gameplay };
+        stopPresentation();
+
+        const stressBefore = { ...gameplay };
+        for (let index = 0; index < 50; index += 1) {
+          fx.transitionShot('SHOT05', undefined, { reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
+          await audio.enterShot('SHOT05', { phase: 'FIRST_ENTRY' });
+          stopPresentation();
+        }
+        const stressAfter = { ...gameplay };
+        status.textContent = 'PASS';
+        audio.destroy();
+        fx.destroy();
+        return {
+          shotCount: content.cinematicPresentation.shots.length,
+          phaseLengths: phases.map((entry) => entry.shotIds.length),
+          zh,
+          en,
+          localeSwitchKeepsAuthority,
+          replayUsesSameIds: JSON.stringify(replay.shotIds) === JSON.stringify(recordsForPhase('POST_CLEAR').map((record) => record.shotId)),
+          replayKeepsAuthority: JSON.stringify(replayBefore) === JSON.stringify(replayAfter),
+          muteAllActive: muteState.length > 0 && muteState.every((entry) => entry.muted === true),
+          maxBgmStreams: Math.max(...phases.map((entry) => entry.maxBgmStreams)),
+          reducedMotionActive,
+          reducedMotionBehaviorVerified,
+          imageFailurePresentationOnly: failure === true && JSON.stringify(failureBefore) === JSON.stringify(failureAfter),
+          stressKeepsAuthority: JSON.stringify(stressBefore) === JSON.stringify(stressAfter),
+          finalAudio: audio.getResourceStats(),
+          finalFx: fx.getResourceStats(),
+          manifestCueCount: audio.getContract().categoryCounts.total,
+          noCrossLocaleVoiceFallback: zh.voicePath.includes('/zh-TW/') && en.voicePath.includes('/en-US/'),
+        };
+      }
+
+      window.__z3Ready = Promise.resolve().then(() => {
+        setupImages();
+        return audio.load();
+      });
+      window.__z3 = { content, fx, audio, gameplay, setLocale, playPhase, stopPresentation, runAll };
+    })();
+  </script>
+</body>
+</html>

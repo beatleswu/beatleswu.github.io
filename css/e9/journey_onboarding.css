@@ -1,0 +1,99 @@
+/* W1_03_JOURNEY_ONBOARDING_SPINE_001: short contextual guidance only. */
+.e9-journey {
+  min-width: 0;
+  padding: 0 12px 12px;
+  color: #2c261e;
+}
+
+.e9-journey[hidden] {
+  display: none;
+}
+
+.e9-journey__card {
+  display: grid;
+  gap: 6px;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 12px 14px;
+  border: 1px solid rgba(125, 99, 58, 0.22);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 6px 18px rgba(31, 45, 34, 0.10);
+}
+
+.e9-journey__kicker,
+.e9-journey__title,
+.e9-journey__body {
+  margin: 0;
+}
+
+.e9-journey__kicker {
+  color: #67573d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.e9-journey__title {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.e9-journey__body {
+  max-width: 58ch;
+  color: #67573d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.e9-journey__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.e9-journey__button {
+  min-height: 40px;
+  padding: 7px 12px;
+  border: 1px solid #6b5b3a;
+  border-radius: 999px;
+  background: #6b5b3a;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.e9-journey__button--quiet {
+  border-color: rgba(125, 99, 58, 0.35);
+  background: transparent;
+  color: #67573d;
+}
+
+.e9-journey__button:focus-visible {
+  outline: 2px solid #6b5b3a;
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .e9-journey {
+    padding: 0 8px 8px;
+  }
+
+  .e9-journey__card {
+    border-radius: 12px;
+  }
+
+  .e9-journey__button {
+    flex: 1 1 140px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .e9-journey__button {
+    transition: none;
+  }
+}

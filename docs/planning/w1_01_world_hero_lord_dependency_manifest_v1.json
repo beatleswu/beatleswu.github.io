@@ -1,0 +1,991 @@
+{
+  "manifest_id": "W1_01_WORLD_HERO_LORD_DEPENDENCY_MANIFEST_V1",
+  "schema_version": "1.0.0",
+  "status": "OWNER_APPROVED_DIRECTION_B_DEPENDENCY_SPEC_READY",
+  "task": "W1_01_WORLD_STYLE_B_LOCK_AND_ZONE3_10_CONTENT_PRODUCTION_003",
+  "canonical_base": "616d51b17abe010de1e862382ca4db7bec65936f",
+  "style_lock_candidate": "e5943e91c135085b10b7bcd1d1d5603ea3664eab",
+  "selected_direction": "B — STYLIZED_ADVENTURE",
+  "artwork_generation": "NOT_PERFORMED",
+  "authority_boundary": {
+    "world_owns": "canonical Zone/Lord identity, environment language, narrative/fate constraints, entry/clear/replay intent, and Lord/Battlefield Boss separation",
+    "hero_owns": "player Hero scene presentation, accepted Hero variants, Companion presentation inputs, and character cutouts/portraits",
+    "audio_owns": "Lord/dialogue/SFX recording and lock",
+    "runtime_owns": "later composition and server-backed state consumption",
+    "codex_owns": "this dependency manifest only",
+    "gameplay_authority": "server/Engine unchanged"
+  },
+  "shared_hero_inputs": [
+    {
+      "dependency_id": "HERO_PLAYER_SCENE_CUTOUT",
+      "proposed_path": "assets/hero/characters/wave1_world_lord/hero_scene_cutout_transparent.webp",
+      "source_path": "assets/hero/characters/wave1_world_lord/hero_scene_cutout_transparent.png",
+      "status": "NEW_PROPOSED_NOT_GENERATED",
+      "requirement": "Preserve player-selected canonical appearance; do not bake one gender/variant or equipment authority into World art"
+    },
+    {
+      "dependency_id": "HERO_PLAYER_PORTRAIT",
+      "proposed_path": "assets/hero/characters/wave1_world_lord/hero_portrait.webp",
+      "source_path": "assets/hero/characters/wave1_world_lord/hero_portrait.png",
+      "status": "NEW_PROPOSED_NOT_GENERATED",
+      "requirement": "Readable face/identity crop for dialogue where Hero speaks; not required for silent Source/Guardian"
+    },
+    {
+      "dependency_id": "WATER_SPIRIT_HORSE_IDLE",
+      "current_path": "assets/pets/horse_anim_v2/go_horse_idle.webp",
+      "status": "EXISTING_BUT_INCOMPLETE_ZONE_HANDOFF",
+      "requirement": "Reuse existing nonverbal Water Spirit Horse identity; no mount, weapon, player body, or combat class"
+    },
+    {
+      "dependency_id": "WATER_SPIRIT_HORSE_REACTION",
+      "current_path": "assets/pets/horse_anim_v2/go_horse_happy_glow.webp",
+      "status": "EXISTING_BUT_INCOMPLETE_ZONE_HANDOFF",
+      "requirement": "Use only where the accepted screenplay calls for a reaction; reduced-motion fallback is static"
+    }
+  ],
+  "conditional_companion_inputs": [
+    {
+      "dependency_id": "OWNED_COMPANION_CALLBACKS",
+      "existing_namespace": "assets/pets/",
+      "status": "EXISTING_BUT_INCOMPLETE_OWNERSHIP_HANDOFF",
+      "requirement": "Render optional companions only from server-confirmed ownership; never from catalog presence or static fallback"
+    }
+  ],
+  "lord_role_contract": [
+    "LORD_RITUAL_KEY_ART",
+    "LORD_CHALLENGE_BACKPLATE",
+    "LORD_FAILURE_BACKPLATE",
+    "FIRST_STAR_SUCCESS_BACKPLATE",
+    "LORD_PORTRAIT",
+    "SUCCESS_LORD_PORTRAIT"
+  ],
+  "zones": [
+    {
+      "zone_number": 3,
+      "zone_key": "k16_20",
+      "canonical_identity": {
+        "name_zh": "哥布林洞穴",
+        "name_en": "Goblin Cave",
+        "stage": "LV3",
+        "level_band": "16–20級"
+      },
+      "lord": {
+        "id": "goblin_centurion",
+        "name_zh": "哥布林百夫長",
+        "name_en": "Goblin Centurion",
+        "hierarchy": "LORD"
+      },
+      "presentation_status": "WORLD_ART_AND_HERO_DEPENDENCY_SPEC_READY_ASSETS_PENDING",
+      "world_supplied_contract": {
+        "environment_anchor": "assets/e10/art/zone3/environment/zone3_environment_master.webp",
+        "lord_entry_anchor": "assets/e10/art/zone3/lord_trial/zone3_lord_ritual_key_art.webp",
+        "lord_clear_anchor": "assets/e10/art/zone3/lord_trial/zone3_first_star_success_backplate.webp",
+        "lord_failure_anchor": "assets/e10/art/zone3/lord_trial/zone3_lord_failure_backplate.webp",
+        "hierarchy": "MONSTER < ELITE < BATTLEFIELD BOSS < LORD",
+        "replay": "presentation may replay; no reward/star/unlock duplication",
+        "narrative_constraint": "Goblin Centurion is last door; ceasefire/trust, not kill"
+      },
+      "lord_art_slots": [
+        {
+          "asset_id": "Z3_LORD_RITUAL_KEY_ART",
+          "role": "Lord entrance ritual / challenge-start visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone3/lord_trial/zone3_lord_ritual_key_art.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/lord_trial/zone3_lord_ritual_key_art.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/lord_trial/zone3_lord_ritual_key_art.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z3_LORD_CHALLENGE_BACKPLATE",
+          "role": "Lord challenge card backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone3/lord_trial/zone3_lord_challenge_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/lord_trial/zone3_lord_challenge_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/lord_trial/zone3_lord_challenge_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z3_LORD_FAILURE_BACKPLATE",
+          "role": "Lord retry/failure backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone3/lord_trial/zone3_lord_failure_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/lord_trial/zone3_lord_failure_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/lord_trial/zone3_lord_failure_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z3_FIRST_STAR_SUCCESS_BACKPLATE",
+          "role": "first-star success/recovery backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone3/lord_trial/zone3_first_star_success_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/lord_trial/zone3_first_star_success_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/lord_trial/zone3_first_star_success_backplate.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z3_LORD_PORTRAIT",
+          "role": "Lord challenge portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone3/lord_trial/zone3_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/lord_trial/zone3_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/lord_trial/zone3_lord_portrait.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z3_SUCCESS_LORD_PORTRAIT",
+          "role": "Lord success portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone3/lord_trial/zone3_success_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone3/lord_trial/zone3_success_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone3/lord_trial/zone3_success_lord_portrait.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        }
+      ],
+      "hero_return_contract": {
+        "proposed_event_name": "WORLD_LORD_PRESENTATION_READY",
+        "fields": [
+          "zone_key",
+          "lord_id",
+          "canonical_lord_name_zh",
+          "canonical_lord_name_en",
+          "presentation_hierarchy",
+          "environment_asset_ids",
+          "lord_asset_ids",
+          "hero_safe_area",
+          "companion_visibility_policy",
+          "replay_policy"
+        ],
+        "not_authority": [
+          "combat outcome",
+          "Zone clear",
+          "star/reward/unlock",
+          "Lord eligibility",
+          "equipment/loadout",
+          "payment/revenue"
+        ],
+        "implementation_status": "SPEC_ONLY_NO_RUNTIME_EVENT_ADDED"
+      }
+    },
+    {
+      "zone_number": 4,
+      "zone_key": "k11_15",
+      "canonical_identity": {
+        "name_zh": "迷霧森林",
+        "name_en": "Misty Forest",
+        "stage": "LV4",
+        "level_band": "11–15級"
+      },
+      "lord": {
+        "id": "misty_phantom_rabbit_king",
+        "name_zh": "迷霧幻影兔王",
+        "name_en": "Misty Phantom Rabbit King",
+        "hierarchy": "LORD"
+      },
+      "presentation_status": "WORLD_ART_AND_HERO_DEPENDENCY_SPEC_READY_ASSETS_PENDING",
+      "world_supplied_contract": {
+        "environment_anchor": "assets/e10/art/zone4/environment/zone4_environment_master.webp",
+        "lord_entry_anchor": "assets/e10/art/zone4/lord_trial/zone4_lord_ritual_key_art.webp",
+        "lord_clear_anchor": "assets/e10/art/zone4/lord_trial/zone4_first_star_success_backplate.webp",
+        "lord_failure_anchor": "assets/e10/art/zone4/lord_trial/zone4_lord_failure_backplate.webp",
+        "hierarchy": "MONSTER < ELITE < BATTLEFIELD BOSS < LORD",
+        "replay": "presentation may replay; no reward/star/unlock duplication",
+        "narrative_constraint": "Rabbit King voice-led; no defeat speech"
+      },
+      "lord_art_slots": [
+        {
+          "asset_id": "Z4_LORD_RITUAL_KEY_ART",
+          "role": "Lord entrance ritual / challenge-start visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone4/lord_trial/zone4_lord_ritual_key_art.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/lord_trial/zone4_lord_ritual_key_art.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/lord_trial/zone4_lord_ritual_key_art.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z4_LORD_CHALLENGE_BACKPLATE",
+          "role": "Lord challenge card backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone4/lord_trial/zone4_lord_challenge_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/lord_trial/zone4_lord_challenge_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/lord_trial/zone4_lord_challenge_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z4_LORD_FAILURE_BACKPLATE",
+          "role": "Lord retry/failure backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone4/lord_trial/zone4_lord_failure_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/lord_trial/zone4_lord_failure_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/lord_trial/zone4_lord_failure_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z4_FIRST_STAR_SUCCESS_BACKPLATE",
+          "role": "first-star success/recovery backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone4/lord_trial/zone4_first_star_success_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/lord_trial/zone4_first_star_success_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/lord_trial/zone4_first_star_success_backplate.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z4_LORD_PORTRAIT",
+          "role": "Lord challenge portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone4/lord_trial/zone4_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/lord_trial/zone4_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/lord_trial/zone4_lord_portrait.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z4_SUCCESS_LORD_PORTRAIT",
+          "role": "Lord success portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone4/lord_trial/zone4_success_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone4/lord_trial/zone4_success_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone4/lord_trial/zone4_success_lord_portrait.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        }
+      ],
+      "hero_return_contract": {
+        "proposed_event_name": "WORLD_LORD_PRESENTATION_READY",
+        "fields": [
+          "zone_key",
+          "lord_id",
+          "canonical_lord_name_zh",
+          "canonical_lord_name_en",
+          "presentation_hierarchy",
+          "environment_asset_ids",
+          "lord_asset_ids",
+          "hero_safe_area",
+          "companion_visibility_policy",
+          "replay_policy"
+        ],
+        "not_authority": [
+          "combat outcome",
+          "Zone clear",
+          "star/reward/unlock",
+          "Lord eligibility",
+          "equipment/loadout",
+          "payment/revenue"
+        ],
+        "implementation_status": "SPEC_ONLY_NO_RUNTIME_EVENT_ADDED"
+      }
+    },
+    {
+      "zone_number": 5,
+      "zone_key": "k6_10",
+      "canonical_identity": {
+        "name_zh": "獸人部落",
+        "name_en": "Orc Tribe",
+        "stage": "LV5",
+        "level_band": "6–10級"
+      },
+      "lord": {
+        "id": "iron_orc_chieftain",
+        "name_zh": "鋼鐵獸人酋長",
+        "name_en": "Iron Orc Chieftain",
+        "hierarchy": "LORD"
+      },
+      "presentation_status": "WORLD_ART_AND_HERO_DEPENDENCY_SPEC_READY_ASSETS_PENDING",
+      "world_supplied_contract": {
+        "environment_anchor": "assets/e10/art/zone5/environment/zone5_environment_master.webp",
+        "lord_entry_anchor": "assets/e10/art/zone5/lord_trial/zone5_lord_ritual_key_art.webp",
+        "lord_clear_anchor": "assets/e10/art/zone5/lord_trial/zone5_first_star_success_backplate.webp",
+        "lord_failure_anchor": "assets/e10/art/zone5/lord_trial/zone5_lord_failure_backplate.webp",
+        "hierarchy": "MONSTER < ELITE < BATTLEFIELD BOSS < LORD",
+        "replay": "presentation may replay; no reward/star/unlock duplication",
+        "narrative_constraint": "Chieftain respected; voluntary axe release; no humiliation"
+      },
+      "lord_art_slots": [
+        {
+          "asset_id": "Z5_LORD_RITUAL_KEY_ART",
+          "role": "Lord entrance ritual / challenge-start visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone5/lord_trial/zone5_lord_ritual_key_art.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/lord_trial/zone5_lord_ritual_key_art.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/lord_trial/zone5_lord_ritual_key_art.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z5_LORD_CHALLENGE_BACKPLATE",
+          "role": "Lord challenge card backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone5/lord_trial/zone5_lord_challenge_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/lord_trial/zone5_lord_challenge_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/lord_trial/zone5_lord_challenge_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z5_LORD_FAILURE_BACKPLATE",
+          "role": "Lord retry/failure backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone5/lord_trial/zone5_lord_failure_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/lord_trial/zone5_lord_failure_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/lord_trial/zone5_lord_failure_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z5_FIRST_STAR_SUCCESS_BACKPLATE",
+          "role": "first-star success/recovery backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone5/lord_trial/zone5_first_star_success_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/lord_trial/zone5_first_star_success_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/lord_trial/zone5_first_star_success_backplate.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z5_LORD_PORTRAIT",
+          "role": "Lord challenge portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone5/lord_trial/zone5_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/lord_trial/zone5_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/lord_trial/zone5_lord_portrait.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z5_SUCCESS_LORD_PORTRAIT",
+          "role": "Lord success portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone5/lord_trial/zone5_success_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone5/lord_trial/zone5_success_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone5/lord_trial/zone5_success_lord_portrait.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        }
+      ],
+      "hero_return_contract": {
+        "proposed_event_name": "WORLD_LORD_PRESENTATION_READY",
+        "fields": [
+          "zone_key",
+          "lord_id",
+          "canonical_lord_name_zh",
+          "canonical_lord_name_en",
+          "presentation_hierarchy",
+          "environment_asset_ids",
+          "lord_asset_ids",
+          "hero_safe_area",
+          "companion_visibility_policy",
+          "replay_policy"
+        ],
+        "not_authority": [
+          "combat outcome",
+          "Zone clear",
+          "star/reward/unlock",
+          "Lord eligibility",
+          "equipment/loadout",
+          "payment/revenue"
+        ],
+        "implementation_status": "SPEC_ONLY_NO_RUNTIME_EVENT_ADDED"
+      }
+    },
+    {
+      "zone_number": 6,
+      "zone_key": "k1_5",
+      "canonical_identity": {
+        "name_zh": "龍之谷",
+        "name_en": "Dragon Valley",
+        "stage": "LV6",
+        "level_band": "1–5級"
+      },
+      "lord": {
+        "id": "grand_temple_knight",
+        "name_zh": "聖殿大騎士長",
+        "name_en": "Grand Temple Knight",
+        "hierarchy": "LORD"
+      },
+      "presentation_status": "WORLD_ART_AND_HERO_DEPENDENCY_SPEC_READY_ASSETS_PENDING",
+      "world_supplied_contract": {
+        "environment_anchor": "assets/e10/art/zone6/environment/zone6_environment_master.webp",
+        "lord_entry_anchor": "assets/e10/art/zone6/lord_trial/zone6_lord_ritual_key_art.webp",
+        "lord_clear_anchor": "assets/e10/art/zone6/lord_trial/zone6_first_star_success_backplate.webp",
+        "lord_failure_anchor": "assets/e10/art/zone6/lord_trial/zone6_lord_failure_backplate.webp",
+        "hierarchy": "MONSTER < ELITE < BATTLEFIELD BOSS < LORD",
+        "replay": "presentation may replay; no reward/star/unlock duplication",
+        "narrative_constraint": "Knight not killed; fate intentionally unresolved"
+      },
+      "lord_art_slots": [
+        {
+          "asset_id": "Z6_LORD_RITUAL_KEY_ART",
+          "role": "Lord entrance ritual / challenge-start visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone6/lord_trial/zone6_lord_ritual_key_art.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/lord_trial/zone6_lord_ritual_key_art.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/lord_trial/zone6_lord_ritual_key_art.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z6_LORD_CHALLENGE_BACKPLATE",
+          "role": "Lord challenge card backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone6/lord_trial/zone6_lord_challenge_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/lord_trial/zone6_lord_challenge_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/lord_trial/zone6_lord_challenge_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z6_LORD_FAILURE_BACKPLATE",
+          "role": "Lord retry/failure backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone6/lord_trial/zone6_lord_failure_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/lord_trial/zone6_lord_failure_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/lord_trial/zone6_lord_failure_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z6_FIRST_STAR_SUCCESS_BACKPLATE",
+          "role": "first-star success/recovery backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone6/lord_trial/zone6_first_star_success_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/lord_trial/zone6_first_star_success_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/lord_trial/zone6_first_star_success_backplate.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z6_LORD_PORTRAIT",
+          "role": "Lord challenge portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone6/lord_trial/zone6_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/lord_trial/zone6_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/lord_trial/zone6_lord_portrait.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z6_SUCCESS_LORD_PORTRAIT",
+          "role": "Lord success portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone6/lord_trial/zone6_success_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone6/lord_trial/zone6_success_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone6/lord_trial/zone6_success_lord_portrait.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        }
+      ],
+      "hero_return_contract": {
+        "proposed_event_name": "WORLD_LORD_PRESENTATION_READY",
+        "fields": [
+          "zone_key",
+          "lord_id",
+          "canonical_lord_name_zh",
+          "canonical_lord_name_en",
+          "presentation_hierarchy",
+          "environment_asset_ids",
+          "lord_asset_ids",
+          "hero_safe_area",
+          "companion_visibility_policy",
+          "replay_policy"
+        ],
+        "not_authority": [
+          "combat outcome",
+          "Zone clear",
+          "star/reward/unlock",
+          "Lord eligibility",
+          "equipment/loadout",
+          "payment/revenue"
+        ],
+        "implementation_status": "SPEC_ONLY_NO_RUNTIME_EVENT_ADDED"
+      }
+    },
+    {
+      "zone_number": 7,
+      "zone_key": "d1_2",
+      "canonical_identity": {
+        "name_zh": "賢者之塔",
+        "name_en": "Sage Tower",
+        "stage": "LV7",
+        "level_band": "1–2段"
+      },
+      "lord": {
+        "id": "archmage_phantom",
+        "name_zh": "大魔法師幻影",
+        "name_en": "Archmage Phantom",
+        "hierarchy": "LORD"
+      },
+      "presentation_status": "WORLD_ART_AND_HERO_DEPENDENCY_SPEC_READY_ASSETS_PENDING",
+      "world_supplied_contract": {
+        "environment_anchor": "assets/e10/art/zone7/environment/zone7_environment_master.webp",
+        "lord_entry_anchor": "assets/e10/art/zone7/lord_trial/zone7_lord_ritual_key_art.webp",
+        "lord_clear_anchor": "assets/e10/art/zone7/lord_trial/zone7_first_star_success_backplate.webp",
+        "lord_failure_anchor": "assets/e10/art/zone7/lord_trial/zone7_lord_failure_backplate.webp",
+        "hierarchy": "MONSTER < ELITE < BATTLEFIELD BOSS < LORD",
+        "replay": "presentation may replay; no reward/star/unlock duplication",
+        "narrative_constraint": "Archmage is knowledge presence; Heartstone four-relic memory only"
+      },
+      "lord_art_slots": [
+        {
+          "asset_id": "Z7_LORD_RITUAL_KEY_ART",
+          "role": "Lord entrance ritual / challenge-start visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone7/lord_trial/zone7_lord_ritual_key_art.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/lord_trial/zone7_lord_ritual_key_art.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/lord_trial/zone7_lord_ritual_key_art.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z7_LORD_CHALLENGE_BACKPLATE",
+          "role": "Lord challenge card backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone7/lord_trial/zone7_lord_challenge_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/lord_trial/zone7_lord_challenge_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/lord_trial/zone7_lord_challenge_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z7_LORD_FAILURE_BACKPLATE",
+          "role": "Lord retry/failure backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone7/lord_trial/zone7_lord_failure_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/lord_trial/zone7_lord_failure_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/lord_trial/zone7_lord_failure_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z7_FIRST_STAR_SUCCESS_BACKPLATE",
+          "role": "first-star success/recovery backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone7/lord_trial/zone7_first_star_success_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/lord_trial/zone7_first_star_success_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/lord_trial/zone7_first_star_success_backplate.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z7_LORD_PORTRAIT",
+          "role": "Lord challenge portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone7/lord_trial/zone7_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/lord_trial/zone7_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/lord_trial/zone7_lord_portrait.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z7_SUCCESS_LORD_PORTRAIT",
+          "role": "Lord success portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone7/lord_trial/zone7_success_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone7/lord_trial/zone7_success_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone7/lord_trial/zone7_success_lord_portrait.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        }
+      ],
+      "hero_return_contract": {
+        "proposed_event_name": "WORLD_LORD_PRESENTATION_READY",
+        "fields": [
+          "zone_key",
+          "lord_id",
+          "canonical_lord_name_zh",
+          "canonical_lord_name_en",
+          "presentation_hierarchy",
+          "environment_asset_ids",
+          "lord_asset_ids",
+          "hero_safe_area",
+          "companion_visibility_policy",
+          "replay_policy"
+        ],
+        "not_authority": [
+          "combat outcome",
+          "Zone clear",
+          "star/reward/unlock",
+          "Lord eligibility",
+          "equipment/loadout",
+          "payment/revenue"
+        ],
+        "implementation_status": "SPEC_ONLY_NO_RUNTIME_EVENT_ADDED"
+      }
+    },
+    {
+      "zone_number": 8,
+      "zone_key": "d3_4",
+      "canonical_identity": {
+        "name_zh": "魔王城前線",
+        "name_en": "Demon Castle Front",
+        "stage": "LV8",
+        "level_band": "3–4段"
+      },
+      "lord": {
+        "id": "chaos_lord",
+        "name_zh": "混沌領主",
+        "name_en": "Chaos Lord",
+        "hierarchy": "LORD"
+      },
+      "presentation_status": "WORLD_ART_AND_HERO_DEPENDENCY_SPEC_READY_ASSETS_PENDING",
+      "world_supplied_contract": {
+        "environment_anchor": "assets/e10/art/zone8/environment/zone8_environment_master.webp",
+        "lord_entry_anchor": "assets/e10/art/zone8/lord_trial/zone8_lord_ritual_key_art.webp",
+        "lord_clear_anchor": "assets/e10/art/zone8/lord_trial/zone8_first_star_success_backplate.webp",
+        "lord_failure_anchor": "assets/e10/art/zone8/lord_trial/zone8_lord_failure_backplate.webp",
+        "hierarchy": "MONSTER < ELITE < BATTLEFIELD BOSS < LORD",
+        "replay": "presentation may replay; no reward/star/unlock duplication",
+        "narrative_constraint": "Chaos Lord dissolves; not killed; Serel remains commander"
+      },
+      "lord_art_slots": [
+        {
+          "asset_id": "Z8_LORD_RITUAL_KEY_ART",
+          "role": "Lord entrance ritual / challenge-start visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone8/lord_trial/zone8_lord_ritual_key_art.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/lord_trial/zone8_lord_ritual_key_art.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/lord_trial/zone8_lord_ritual_key_art.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z8_LORD_CHALLENGE_BACKPLATE",
+          "role": "Lord challenge card backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone8/lord_trial/zone8_lord_challenge_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/lord_trial/zone8_lord_challenge_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/lord_trial/zone8_lord_challenge_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z8_LORD_FAILURE_BACKPLATE",
+          "role": "Lord retry/failure backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone8/lord_trial/zone8_lord_failure_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/lord_trial/zone8_lord_failure_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/lord_trial/zone8_lord_failure_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z8_FIRST_STAR_SUCCESS_BACKPLATE",
+          "role": "first-star success/recovery backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone8/lord_trial/zone8_first_star_success_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/lord_trial/zone8_first_star_success_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/lord_trial/zone8_first_star_success_backplate.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z8_LORD_PORTRAIT",
+          "role": "Lord challenge portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone8/lord_trial/zone8_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/lord_trial/zone8_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/lord_trial/zone8_lord_portrait.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z8_SUCCESS_LORD_PORTRAIT",
+          "role": "Lord success portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone8/lord_trial/zone8_success_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone8/lord_trial/zone8_success_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone8/lord_trial/zone8_success_lord_portrait.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        }
+      ],
+      "hero_return_contract": {
+        "proposed_event_name": "WORLD_LORD_PRESENTATION_READY",
+        "fields": [
+          "zone_key",
+          "lord_id",
+          "canonical_lord_name_zh",
+          "canonical_lord_name_en",
+          "presentation_hierarchy",
+          "environment_asset_ids",
+          "lord_asset_ids",
+          "hero_safe_area",
+          "companion_visibility_policy",
+          "replay_policy"
+        ],
+        "not_authority": [
+          "combat outcome",
+          "Zone clear",
+          "star/reward/unlock",
+          "Lord eligibility",
+          "equipment/loadout",
+          "payment/revenue"
+        ],
+        "implementation_status": "SPEC_ONLY_NO_RUNTIME_EVENT_ADDED"
+      }
+    },
+    {
+      "zone_number": 9,
+      "zone_key": "d5_6",
+      "canonical_identity": {
+        "name_zh": "諸神黃昏",
+        "name_en": "Ragnarök",
+        "stage": "LV9",
+        "level_band": "5–6段"
+      },
+      "lord": {
+        "id": "fallen_war_god_statue",
+        "name_zh": "墮落戰神古像",
+        "name_en": "Fallen War-God Statue",
+        "hierarchy": "LORD"
+      },
+      "presentation_status": "WORLD_ART_AND_HERO_DEPENDENCY_SPEC_READY_ASSETS_PENDING",
+      "world_supplied_contract": {
+        "environment_anchor": "assets/e10/art/zone9/environment/zone9_environment_master.webp",
+        "lord_entry_anchor": "assets/e10/art/zone9/lord_trial/zone9_lord_ritual_key_art.webp",
+        "lord_clear_anchor": "assets/e10/art/zone9/lord_trial/zone9_first_star_success_backplate.webp",
+        "lord_failure_anchor": "assets/e10/art/zone9/lord_trial/zone9_lord_failure_backplate.webp",
+        "hierarchy": "MONSTER < ELITE < BATTLEFIELD BOSS < LORD",
+        "replay": "presentation may replay; no reward/star/unlock duplication",
+        "narrative_constraint": "War-God statue nonlethal; no Final Stone in Zone 9"
+      },
+      "lord_art_slots": [
+        {
+          "asset_id": "Z9_LORD_RITUAL_KEY_ART",
+          "role": "Lord entrance ritual / challenge-start visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone9/lord_trial/zone9_lord_ritual_key_art.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/lord_trial/zone9_lord_ritual_key_art.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/lord_trial/zone9_lord_ritual_key_art.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z9_LORD_CHALLENGE_BACKPLATE",
+          "role": "Lord challenge card backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone9/lord_trial/zone9_lord_challenge_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/lord_trial/zone9_lord_challenge_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/lord_trial/zone9_lord_challenge_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z9_LORD_FAILURE_BACKPLATE",
+          "role": "Lord retry/failure backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone9/lord_trial/zone9_lord_failure_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/lord_trial/zone9_lord_failure_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/lord_trial/zone9_lord_failure_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z9_FIRST_STAR_SUCCESS_BACKPLATE",
+          "role": "first-star success/recovery backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone9/lord_trial/zone9_first_star_success_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/lord_trial/zone9_first_star_success_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/lord_trial/zone9_first_star_success_backplate.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z9_LORD_PORTRAIT",
+          "role": "Lord challenge portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone9/lord_trial/zone9_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/lord_trial/zone9_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/lord_trial/zone9_lord_portrait.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z9_SUCCESS_LORD_PORTRAIT",
+          "role": "Lord success portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone9/lord_trial/zone9_success_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone9/lord_trial/zone9_success_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone9/lord_trial/zone9_success_lord_portrait.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        }
+      ],
+      "hero_return_contract": {
+        "proposed_event_name": "WORLD_LORD_PRESENTATION_READY",
+        "fields": [
+          "zone_key",
+          "lord_id",
+          "canonical_lord_name_zh",
+          "canonical_lord_name_en",
+          "presentation_hierarchy",
+          "environment_asset_ids",
+          "lord_asset_ids",
+          "hero_safe_area",
+          "companion_visibility_policy",
+          "replay_policy"
+        ],
+        "not_authority": [
+          "combat outcome",
+          "Zone clear",
+          "star/reward/unlock",
+          "Lord eligibility",
+          "equipment/loadout",
+          "payment/revenue"
+        ],
+        "implementation_status": "SPEC_ONLY_NO_RUNTIME_EVENT_ADDED"
+      }
+    },
+    {
+      "zone_number": 10,
+      "zone_key": "d7_plus",
+      "canonical_identity": {
+        "name_zh": "上古終焉神殿",
+        "name_en": "Ancient Doom Temple",
+        "stage": "LV10",
+        "level_band": "7段＋"
+      },
+      "lord": {
+        "id": "source_of_black_white_order",
+        "name_zh": "黑白秩序之源",
+        "name_en": "Source of Black-White Order",
+        "hierarchy": "LORD"
+      },
+      "presentation_status": "WORLD_ART_AND_HERO_DEPENDENCY_SPEC_READY_ASSETS_PENDING",
+      "world_supplied_contract": {
+        "environment_anchor": "assets/e10/art/zone10/environment/zone10_environment_master.webp",
+        "lord_entry_anchor": "assets/e10/art/zone10/lord_trial/zone10_lord_ritual_key_art.webp",
+        "lord_clear_anchor": "assets/e10/art/zone10/lord_trial/zone10_first_star_success_backplate.webp",
+        "lord_failure_anchor": "assets/e10/art/zone10/lord_trial/zone10_lord_failure_backplate.webp",
+        "hierarchy": "MONSTER < ELITE < BATTLEFIELD BOSS < LORD",
+        "replay": "presentation may replay; no reward/star/unlock duplication",
+        "narrative_constraint": "Source is silent mechanism; no face/voice; final move becomes ordinary stone"
+      },
+      "lord_art_slots": [
+        {
+          "asset_id": "Z10_LORD_RITUAL_KEY_ART",
+          "role": "Lord entrance ritual / challenge-start visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone10/lord_trial/zone10_lord_ritual_key_art.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/lord_trial/zone10_lord_ritual_key_art.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/lord_trial/zone10_lord_ritual_key_art.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z10_LORD_CHALLENGE_BACKPLATE",
+          "role": "Lord challenge card backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone10/lord_trial/zone10_lord_challenge_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/lord_trial/zone10_lord_challenge_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/lord_trial/zone10_lord_challenge_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z10_LORD_FAILURE_BACKPLATE",
+          "role": "Lord retry/failure backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone10/lord_trial/zone10_lord_failure_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/lord_trial/zone10_lord_failure_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/lord_trial/zone10_lord_failure_backplate.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z10_FIRST_STAR_SUCCESS_BACKPLATE",
+          "role": "first-star success/recovery backplate",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone10/lord_trial/zone10_first_star_success_backplate.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/lord_trial/zone10_first_star_success_backplate.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/lord_trial/zone10_first_star_success_backplate.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z10_LORD_PORTRAIT",
+          "role": "Lord challenge portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone10/lord_trial/zone10_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/lord_trial/zone10_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/lord_trial/zone10_lord_portrait.webp",
+          "consumer": "Lord presentation surface",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        },
+        {
+          "asset_id": "Z10_SUCCESS_LORD_PORTRAIT",
+          "role": "Lord success portrait/focal visual",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_lord_art_review/zone10/lord_trial/zone10_success_lord_portrait.png",
+          "proposed_canonical_source_path": "assets/e10/art/zone10/lord_trial/zone10_success_lord_portrait.png",
+          "proposed_runtime_path": "assets/e10/art/zone10/lord_trial/zone10_success_lord_portrait.webp",
+          "consumer": "server-confirmed success presentation",
+          "runtime_admission": "OWNER_ART_ACCEPTANCE_THEN_SEPARATE_LORD_RUNTIME_INTEGRATION"
+        }
+      ],
+      "hero_return_contract": {
+        "proposed_event_name": "WORLD_LORD_PRESENTATION_READY",
+        "fields": [
+          "zone_key",
+          "lord_id",
+          "canonical_lord_name_zh",
+          "canonical_lord_name_en",
+          "presentation_hierarchy",
+          "environment_asset_ids",
+          "lord_asset_ids",
+          "hero_safe_area",
+          "companion_visibility_policy",
+          "replay_policy"
+        ],
+        "not_authority": [
+          "combat outcome",
+          "Zone clear",
+          "star/reward/unlock",
+          "Lord eligibility",
+          "equipment/loadout",
+          "payment/revenue"
+        ],
+        "implementation_status": "SPEC_ONLY_NO_RUNTIME_EVENT_ADDED"
+      }
+    }
+  ],
+  "zone10_special_contract": {
+    "canonical_identity": "上古終焉神殿 / Ancient Doom Temple",
+    "lord_identity": "source_of_black_white_order / Source of Black-White Order",
+    "source_face": "NONE",
+    "source_voice": "NONE",
+    "guardian_face": "NO_CANONICAL_FACE_AUTHORITY",
+    "guardian_voice": "NONE",
+    "hero_requirement": "Hero scene cutout/portrait only where Hero speaks; final 走吧。 remains Hero line",
+    "forbidden_replacement_name": "Origin Core",
+    "forbidden_states": [
+      "THROWN",
+      "DESTROYED",
+      "REMOVED",
+      "SPENT_AS_GONE"
+    ]
+  },
+  "dependency_gates": {
+    "style_lock": "GRANTED",
+    "world_environment_art": "OWNER_PRODUCTION_PENDING",
+    "hero_cutouts_and_variants": "HERO_PRODUCTION_PENDING",
+    "lord_portraits_and_backplates": "OWNER_PRODUCTION_PENDING",
+    "audio": "AUDIO_PRODUCTION_PENDING",
+    "runtime_wiring": "SEPARATE_AUTHORIZED_TASK_REQUIRED"
+  },
+  "validation": {
+    "lord_boss_separation_defined": true,
+    "zone10_face_voice_boundary_defined": true,
+    "gameplay_authority_changed": false,
+    "runtime_product_files_changed": false,
+    "generated_art_files": 0
+  }
+}

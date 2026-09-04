@@ -68,6 +68,8 @@ def test_e9_shell_root_and_slots_present_with_correct_attributes():
         ("e9-world-stage-slot", "worldStage"),
         ("e9-right-cards-slot", "rightCards"),
         ("e9-bottom-dock-slot", "bottomDock"),
+        ("e9-journey-onboarding-slot", "journeyOnboarding"),
+        ("e9-zone3-vertical-slice-slot", "zone3VerticalSlice"),
     ]:
         assert f'id="{slot_id}"' in html
         assert f'data-e9-slot="{slot_attr}"' in html
@@ -283,6 +285,21 @@ E9_I18N_KEYS = [
     "e9.right_cards.empty", "e9.right_cards.error", "e9.bottom_dock.aria_label", "e9.bottom_dock.leaderboard",
     "e9.bottom_dock.achievements", "e9.bottom_dock.records", "e9.bottom_dock.friends",
     "e9.world_stage.aria_label", "e9.world_stage.loading", "e9.world_stage.error", "e9.world_stage.note",
+    "e9.journey.aria_label", "e9.journey.actions_aria_label", "e9.journey.skip", "e9.journey.replay",
+    "e9.zone3.aria_label", "e9.zone3.actions_aria_label",
+    "e9.zone3.entry_pending.kicker", "e9.zone3.entry_pending.title", "e9.zone3.entry_pending.body",
+    "e9.zone3.entry_cinematic.kicker", "e9.zone3.entry_cinematic.title", "e9.zone3.entry_cinematic.body",
+    "e9.zone3.gameplay_handoff.kicker", "e9.zone3.gameplay_handoff.title", "e9.zone3.gameplay_handoff.body",
+    "e9.zone3.map_battle.kicker", "e9.zone3.map_battle.title", "e9.zone3.map_battle.body",
+    "e9.zone3.battlefield_boss.kicker", "e9.zone3.battlefield_boss.title", "e9.zone3.battlefield_boss.body",
+    "e9.zone3.lord_ready.kicker", "e9.zone3.lord_ready.title", "e9.zone3.lord_ready.body",
+    "e9.zone3.lord_cta.kicker", "e9.zone3.lord_cta.title", "e9.zone3.lord_cta.body",
+    "e9.zone3.lord_trial.kicker", "e9.zone3.lord_trial.title", "e9.zone3.lord_trial.body",
+    "e9.zone3.clear_reward.kicker", "e9.zone3.clear_reward.title", "e9.zone3.clear_reward.body",
+    "e9.zone3.post_clear.kicker", "e9.zone3.post_clear.title", "e9.zone3.post_clear.body",
+    "e9.zone3.zone4_hook.kicker", "e9.zone3.zone4_hook.title", "e9.zone3.zone4_hook.body",
+    "e9.zone3.return.kicker", "e9.zone3.return.title", "e9.zone3.return.body",
+    "e9.zone3.pending_assets", "e9.zone3.status", "e9.zone3.action_lord", "e9.zone3.action_return",
 ]
 
 

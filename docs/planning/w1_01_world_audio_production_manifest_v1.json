@@ -1,0 +1,1458 @@
+{
+  "manifest_id": "W1_01_WORLD_AUDIO_PRODUCTION_MANIFEST_V1",
+  "schema_version": "1.0.0",
+  "status": "OWNER_APPROVED_DIRECTION_B_MANIFEST_READY",
+  "task": "W1_01_WORLD_STYLE_B_LOCK_AND_ZONE3_10_CONTENT_PRODUCTION_003",
+  "canonical_base": "616d51b17abe010de1e862382ca4db7bec65936f",
+  "style_lock_candidate": "e5943e91c135085b10b7bcd1d1d5603ea3664eab",
+  "selected_direction": "B — STYLIZED_ADVENTURE",
+  "audio_generation": "NOT_PERFORMED",
+  "voice_and_authority_rules": {
+    "dialogue_source": "docs/planning/e10_final_screenplay_v1.md",
+    "new_dialogue_invented": false,
+    "locales": [
+      "zh-TW",
+      "en"
+    ],
+    "locked_cast_reuse": [
+      "Hero",
+      "Narrator where already canonical",
+      "Elder/Messenger/Herder where applicable"
+    ],
+    "water_spirit_horse": "nonverbal",
+    "zone_lord_voice": "Only where the accepted screenplay has dialogue; Owner audio production required",
+    "zone10_guardian": "silent; no voice, subtitle, or exposition",
+    "zone10_source": "silent non-character; no face, voice, dialogue, personality, or villain speech",
+    "critical_state_visible_equivalent": true,
+    "audio_only_critical_information": false
+  },
+  "file_conventions": {
+    "bgm": "assets/e10/audio/zone{n}/bgm/zone{n}_bgm_<phase>.mp3",
+    "ambience": "assets/e10/audio/zone{n}/ambience/zone{n}_ambience_<identity>.mp3",
+    "sfx": "assets/e10/audio/zone{n}/sfx/zone{n}_sfx_<cue>.mp3",
+    "dialogue": "assets/e10/audio/zone{n}/dialogue/zone{n}_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+    "review_root": "tools/e10_world_audio_review/zone{n}/"
+  },
+  "shared_track_phases": [
+    "DISCOVERY",
+    "ESCALATION",
+    "POST_CLEAR"
+  ],
+  "file_ownership": {
+    "codex": "This manifest and exact slot specification only",
+    "owner_audio_production": "Recording/generation, audition, bilingual lock, source hashes, and acceptance",
+    "world_content": "Narrative cue intent, Lord/nonlethal boundaries, and visible-equivalent requirements",
+    "runtime_static_lane": "Later accepted-byte packaging only",
+    "secret_boundary": "No credential or secret-file inspection"
+  },
+  "zones": [
+    {
+      "zone_number": 3,
+      "zone_key": "k16_20",
+      "canonical_identity": {
+        "name_zh": "哥布林洞穴",
+        "name_en": "Goblin Cave",
+        "stage": "LV3",
+        "level_band": "16–20級"
+      },
+      "lord": {
+        "id": "goblin_centurion",
+        "name_zh": "哥布林百夫長",
+        "name_en": "Goblin Centurion",
+        "hierarchy": "LORD"
+      },
+      "production_status": "AUDIO_SLOTS_READY_FILES_NOT_GENERATED",
+      "direction": "cave ingenuity; retreat not raid; dry folk texture over cave air",
+      "ambience_direction": "cave air, fading footsteps, lantern hiss, rope tension, settling stone",
+      "sfx_direction": "stone, rope, supply movement, lantern metal, restrained Stone Shard handoff",
+      "dialogue": {
+        "status": "SCREENPLAY_REUSE_ONLY",
+        "proposed_path_template": "assets/e10/audio/zone3/dialogue/zone3_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "proposed_review_template": "tools/e10_world_audio_review/zone3/dialogue/zone3_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "screenplay_dialogue_shots": [
+          2,
+          3,
+          4,
+          6,
+          7,
+          9,
+          10
+        ],
+        "silent_shots": [
+          1,
+          5,
+          8
+        ],
+        "exact_script_source": "docs/planning/e10_final_screenplay_v1.md",
+        "no_new_lines": true
+      },
+      "tracks": [
+        {
+          "asset_id": "Z3_BGM_DISCOVERY",
+          "category": "bgm",
+          "phase": "FIRST_ENTRY",
+          "direction": "cave ingenuity; retreat not raid; dry folk texture over cave air; readable exploration and entry orientation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/bgm/zone3_bgm_discovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/bgm/zone3_bgm_discovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_BGM_ESCALATION",
+          "category": "bgm",
+          "phase": "ENCOUNTER_OR_LORD_READY",
+          "direction": "cave ingenuity; retreat not raid; dry folk texture over cave air; increase scale without grimdark or noise wall",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/bgm/zone3_bgm_escalation.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/bgm/zone3_bgm_escalation.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_BGM_RECOVERY",
+          "category": "bgm",
+          "phase": "POST_CLEAR",
+          "direction": "cave ingenuity; retreat not raid; dry folk texture over cave air; clear/recovery without reward authority",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/bgm/zone3_bgm_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/bgm/zone3_bgm_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_AMBIENCE_PRIMARY",
+          "category": "ambience",
+          "phase": "LOOP",
+          "direction": "cave air, fading footsteps, lantern hiss, rope tension, settling stone",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/ambience/zone3_ambience_primary.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/ambience/zone3_ambience_primary.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_AMBIENCE_RECOVERY",
+          "category": "ambience",
+          "phase": "POST_CLEAR_OR_REPLAY",
+          "direction": "cave air, fading footsteps, lantern hiss, rope tension, settling stone; quieter replay-safe bed",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/ambience/zone3_ambience_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/ambience/zone3_ambience_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_SFX_ENTRY",
+          "category": "sfx",
+          "phase": "ENTRY",
+          "direction": "Entry cue: stone, rope, supply movement, lantern metal, restrained Stone Shard handoff",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/sfx/zone3_sfx_entry.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/sfx/zone3_sfx_entry.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_SFX_ENCOUNTER",
+          "category": "sfx",
+          "phase": "MONSTER_OR_ELITE",
+          "direction": "Ordinary encounter texture: stone, rope, supply movement, lantern metal, restrained Stone Shard handoff",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/sfx/zone3_sfx_encounter.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/sfx/zone3_sfx_encounter.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_SFX_BATTLEFIELD_BOSS",
+          "category": "sfx",
+          "phase": "BATTLEFIELD_BOSS_ONLY",
+          "direction": "Conditional shared Battlefield Boss treatment; never a Lord cue",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/sfx/zone3_sfx_battlefield_boss.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/sfx/zone3_sfx_battlefield_boss.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_SFX_CLEAR",
+          "category": "sfx",
+          "phase": "CLEAR",
+          "direction": "Clear cue: stone, rope, supply movement, lantern metal, restrained Stone Shard handoff; no repeat reward implication",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/sfx/zone3_sfx_clear.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/sfx/zone3_sfx_clear.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_SFX_LORD_EMERGENCE",
+          "category": "sfx",
+          "phase": "LORD_ENTRY",
+          "direction": "Lord-specific emergence: Goblin Centurion; distinct from Battlefield Boss",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/sfx/zone3_sfx_lord_emergence.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/sfx/zone3_sfx_lord_emergence.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_SFX_LORD_RESOLUTION",
+          "category": "sfx",
+          "phase": "LORD_RESOLUTION",
+          "direction": "Canonical Lord resolution: Goblin Centurion; use nonlethal/environmental resolution where specified",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/sfx/zone3_sfx_lord_resolution.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/sfx/zone3_sfx_lord_resolution.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z3_SFX_LORD_FAILURE",
+          "category": "sfx",
+          "phase": "LORD_TRIAL_FAILURE",
+          "direction": "Training/retry cue; no reward or unlock mutation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone3/sfx/zone3_sfx_lord_failure.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone3/sfx/zone3_sfx_lord_failure.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        }
+      ]
+    },
+    {
+      "zone_number": 4,
+      "zone_key": "k11_15",
+      "canonical_identity": {
+        "name_zh": "迷霧森林",
+        "name_en": "Misty Forest",
+        "stage": "LV4",
+        "level_band": "11–15級"
+      },
+      "lord": {
+        "id": "misty_phantom_rabbit_king",
+        "name_zh": "迷霧幻影兔王",
+        "name_en": "Misty Phantom Rabbit King",
+        "hierarchy": "LORD"
+      },
+      "production_status": "AUDIO_SLOTS_READY_FILES_NOT_GENERATED",
+      "direction": "mist and trust; breathy woodwind and warm glass tones",
+      "ambience_direction": "leaves, damp steps, distant water, fog movement, moon-pool air",
+      "sfx_direction": "soft leaves, wet steps, moon-pool chimes, restrained copy whispers",
+      "dialogue": {
+        "status": "SCREENPLAY_REUSE_ONLY",
+        "proposed_path_template": "assets/e10/audio/zone4/dialogue/zone4_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "proposed_review_template": "tools/e10_world_audio_review/zone4/dialogue/zone4_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "screenplay_dialogue_shots": [
+          2,
+          5,
+          7
+        ],
+        "silent_shots": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9,
+          10
+        ],
+        "exact_script_source": "docs/planning/e10_final_screenplay_v1.md",
+        "no_new_lines": true
+      },
+      "tracks": [
+        {
+          "asset_id": "Z4_BGM_DISCOVERY",
+          "category": "bgm",
+          "phase": "FIRST_ENTRY",
+          "direction": "mist and trust; breathy woodwind and warm glass tones; readable exploration and entry orientation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/bgm/zone4_bgm_discovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/bgm/zone4_bgm_discovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_BGM_ESCALATION",
+          "category": "bgm",
+          "phase": "ENCOUNTER_OR_LORD_READY",
+          "direction": "mist and trust; breathy woodwind and warm glass tones; increase scale without grimdark or noise wall",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/bgm/zone4_bgm_escalation.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/bgm/zone4_bgm_escalation.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_BGM_RECOVERY",
+          "category": "bgm",
+          "phase": "POST_CLEAR",
+          "direction": "mist and trust; breathy woodwind and warm glass tones; clear/recovery without reward authority",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/bgm/zone4_bgm_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/bgm/zone4_bgm_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_AMBIENCE_PRIMARY",
+          "category": "ambience",
+          "phase": "LOOP",
+          "direction": "leaves, damp steps, distant water, fog movement, moon-pool air",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/ambience/zone4_ambience_primary.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/ambience/zone4_ambience_primary.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_AMBIENCE_RECOVERY",
+          "category": "ambience",
+          "phase": "POST_CLEAR_OR_REPLAY",
+          "direction": "leaves, damp steps, distant water, fog movement, moon-pool air; quieter replay-safe bed",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/ambience/zone4_ambience_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/ambience/zone4_ambience_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_SFX_ENTRY",
+          "category": "sfx",
+          "phase": "ENTRY",
+          "direction": "Entry cue: soft leaves, wet steps, moon-pool chimes, restrained copy whispers",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/sfx/zone4_sfx_entry.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/sfx/zone4_sfx_entry.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_SFX_ENCOUNTER",
+          "category": "sfx",
+          "phase": "MONSTER_OR_ELITE",
+          "direction": "Ordinary encounter texture: soft leaves, wet steps, moon-pool chimes, restrained copy whispers",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/sfx/zone4_sfx_encounter.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/sfx/zone4_sfx_encounter.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_SFX_BATTLEFIELD_BOSS",
+          "category": "sfx",
+          "phase": "BATTLEFIELD_BOSS_ONLY",
+          "direction": "Conditional shared Battlefield Boss treatment; never a Lord cue",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/sfx/zone4_sfx_battlefield_boss.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/sfx/zone4_sfx_battlefield_boss.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_SFX_CLEAR",
+          "category": "sfx",
+          "phase": "CLEAR",
+          "direction": "Clear cue: soft leaves, wet steps, moon-pool chimes, restrained copy whispers; no repeat reward implication",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/sfx/zone4_sfx_clear.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/sfx/zone4_sfx_clear.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_SFX_LORD_EMERGENCE",
+          "category": "sfx",
+          "phase": "LORD_ENTRY",
+          "direction": "Lord-specific emergence: Misty Phantom Rabbit King; distinct from Battlefield Boss",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/sfx/zone4_sfx_lord_emergence.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/sfx/zone4_sfx_lord_emergence.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_SFX_LORD_RESOLUTION",
+          "category": "sfx",
+          "phase": "LORD_RESOLUTION",
+          "direction": "Canonical Lord resolution: Misty Phantom Rabbit King; use nonlethal/environmental resolution where specified",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/sfx/zone4_sfx_lord_resolution.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/sfx/zone4_sfx_lord_resolution.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z4_SFX_LORD_FAILURE",
+          "category": "sfx",
+          "phase": "LORD_TRIAL_FAILURE",
+          "direction": "Training/retry cue; no reward or unlock mutation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone4/sfx/zone4_sfx_lord_failure.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone4/sfx/zone4_sfx_lord_failure.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        }
+      ]
+    },
+    {
+      "zone_number": 5,
+      "zone_key": "k6_10",
+      "canonical_identity": {
+        "name_zh": "獸人部落",
+        "name_en": "Orc Tribe",
+        "stage": "LV5",
+        "level_band": "6–10級"
+      },
+      "lord": {
+        "id": "iron_orc_chieftain",
+        "name_zh": "鋼鐵獸人酋長",
+        "name_en": "Iron Orc Chieftain",
+        "hierarchy": "LORD"
+      },
+      "production_status": "AUDIO_SLOTS_READY_FILES_NOT_GENERATED",
+      "direction": "communal respect; drums, low strings, and a grounded release",
+      "ambience_direction": "crowd murmur, forge, fire, wind, drum preparation, open-air dust",
+      "sfx_direction": "drums, forge strikes, axe whoosh/impact, pillar carving",
+      "dialogue": {
+        "status": "SCREENPLAY_REUSE_ONLY",
+        "proposed_path_template": "assets/e10/audio/zone5/dialogue/zone5_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "proposed_review_template": "tools/e10_world_audio_review/zone5/dialogue/zone5_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "screenplay_dialogue_shots": [
+          3,
+          6,
+          8,
+          9
+        ],
+        "silent_shots": [
+          1,
+          2,
+          4,
+          5,
+          7
+        ],
+        "exact_script_source": "docs/planning/e10_final_screenplay_v1.md",
+        "no_new_lines": true
+      },
+      "tracks": [
+        {
+          "asset_id": "Z5_BGM_DISCOVERY",
+          "category": "bgm",
+          "phase": "FIRST_ENTRY",
+          "direction": "communal respect; drums, low strings, and a grounded release; readable exploration and entry orientation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/bgm/zone5_bgm_discovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/bgm/zone5_bgm_discovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_BGM_ESCALATION",
+          "category": "bgm",
+          "phase": "ENCOUNTER_OR_LORD_READY",
+          "direction": "communal respect; drums, low strings, and a grounded release; increase scale without grimdark or noise wall",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/bgm/zone5_bgm_escalation.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/bgm/zone5_bgm_escalation.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_BGM_RECOVERY",
+          "category": "bgm",
+          "phase": "POST_CLEAR",
+          "direction": "communal respect; drums, low strings, and a grounded release; clear/recovery without reward authority",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/bgm/zone5_bgm_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/bgm/zone5_bgm_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_AMBIENCE_PRIMARY",
+          "category": "ambience",
+          "phase": "LOOP",
+          "direction": "crowd murmur, forge, fire, wind, drum preparation, open-air dust",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/ambience/zone5_ambience_primary.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/ambience/zone5_ambience_primary.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_AMBIENCE_RECOVERY",
+          "category": "ambience",
+          "phase": "POST_CLEAR_OR_REPLAY",
+          "direction": "crowd murmur, forge, fire, wind, drum preparation, open-air dust; quieter replay-safe bed",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/ambience/zone5_ambience_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/ambience/zone5_ambience_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_SFX_ENTRY",
+          "category": "sfx",
+          "phase": "ENTRY",
+          "direction": "Entry cue: drums, forge strikes, axe whoosh/impact, pillar carving",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/sfx/zone5_sfx_entry.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/sfx/zone5_sfx_entry.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_SFX_ENCOUNTER",
+          "category": "sfx",
+          "phase": "MONSTER_OR_ELITE",
+          "direction": "Ordinary encounter texture: drums, forge strikes, axe whoosh/impact, pillar carving",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/sfx/zone5_sfx_encounter.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/sfx/zone5_sfx_encounter.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_SFX_BATTLEFIELD_BOSS",
+          "category": "sfx",
+          "phase": "BATTLEFIELD_BOSS_ONLY",
+          "direction": "Conditional shared Battlefield Boss treatment; never a Lord cue",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/sfx/zone5_sfx_battlefield_boss.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/sfx/zone5_sfx_battlefield_boss.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_SFX_CLEAR",
+          "category": "sfx",
+          "phase": "CLEAR",
+          "direction": "Clear cue: drums, forge strikes, axe whoosh/impact, pillar carving; no repeat reward implication",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/sfx/zone5_sfx_clear.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/sfx/zone5_sfx_clear.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_SFX_LORD_EMERGENCE",
+          "category": "sfx",
+          "phase": "LORD_ENTRY",
+          "direction": "Lord-specific emergence: Iron Orc Chieftain; distinct from Battlefield Boss",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/sfx/zone5_sfx_lord_emergence.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/sfx/zone5_sfx_lord_emergence.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_SFX_LORD_RESOLUTION",
+          "category": "sfx",
+          "phase": "LORD_RESOLUTION",
+          "direction": "Canonical Lord resolution: Iron Orc Chieftain; use nonlethal/environmental resolution where specified",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/sfx/zone5_sfx_lord_resolution.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/sfx/zone5_sfx_lord_resolution.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z5_SFX_LORD_FAILURE",
+          "category": "sfx",
+          "phase": "LORD_TRIAL_FAILURE",
+          "direction": "Training/retry cue; no reward or unlock mutation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone5/sfx/zone5_sfx_lord_failure.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone5/sfx/zone5_sfx_lord_failure.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        }
+      ]
+    },
+    {
+      "zone_number": 6,
+      "zone_key": "k1_5",
+      "canonical_identity": {
+        "name_zh": "龍之谷",
+        "name_en": "Dragon Valley",
+        "stage": "LV6",
+        "level_band": "1–5級"
+      },
+      "lord": {
+        "id": "grand_temple_knight",
+        "name_zh": "聖殿大騎士長",
+        "name_en": "Grand Temple Knight",
+        "hierarchy": "LORD"
+      },
+      "production_status": "AUDIO_SLOTS_READY_FILES_NOT_GENERATED",
+      "direction": "high sky/fire tension; disciplined pulse fractured by silence",
+      "ambience_direction": "wind shear, distant wyverns, smoke, rope tension, crystal air, heat",
+      "sfx_direction": "wind, rope strain, wing beats, basalt/metal, crystal resonance",
+      "dialogue": {
+        "status": "SCREENPLAY_REUSE_ONLY",
+        "proposed_path_template": "assets/e10/audio/zone6/dialogue/zone6_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "proposed_review_template": "tools/e10_world_audio_review/zone6/dialogue/zone6_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "screenplay_dialogue_shots": [
+          2,
+          4,
+          5,
+          6,
+          8,
+          9,
+          10
+        ],
+        "silent_shots": [
+          1,
+          3,
+          7
+        ],
+        "exact_script_source": "docs/planning/e10_final_screenplay_v1.md",
+        "no_new_lines": true
+      },
+      "tracks": [
+        {
+          "asset_id": "Z6_BGM_DISCOVERY",
+          "category": "bgm",
+          "phase": "FIRST_ENTRY",
+          "direction": "high sky/fire tension; disciplined pulse fractured by silence; readable exploration and entry orientation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/bgm/zone6_bgm_discovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/bgm/zone6_bgm_discovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_BGM_ESCALATION",
+          "category": "bgm",
+          "phase": "ENCOUNTER_OR_LORD_READY",
+          "direction": "high sky/fire tension; disciplined pulse fractured by silence; increase scale without grimdark or noise wall",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/bgm/zone6_bgm_escalation.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/bgm/zone6_bgm_escalation.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_BGM_RECOVERY",
+          "category": "bgm",
+          "phase": "POST_CLEAR",
+          "direction": "high sky/fire tension; disciplined pulse fractured by silence; clear/recovery without reward authority",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/bgm/zone6_bgm_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/bgm/zone6_bgm_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_AMBIENCE_PRIMARY",
+          "category": "ambience",
+          "phase": "LOOP",
+          "direction": "wind shear, distant wyverns, smoke, rope tension, crystal air, heat",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/ambience/zone6_ambience_primary.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/ambience/zone6_ambience_primary.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_AMBIENCE_RECOVERY",
+          "category": "ambience",
+          "phase": "POST_CLEAR_OR_REPLAY",
+          "direction": "wind shear, distant wyverns, smoke, rope tension, crystal air, heat; quieter replay-safe bed",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/ambience/zone6_ambience_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/ambience/zone6_ambience_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_SFX_ENTRY",
+          "category": "sfx",
+          "phase": "ENTRY",
+          "direction": "Entry cue: wind, rope strain, wing beats, basalt/metal, crystal resonance",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/sfx/zone6_sfx_entry.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/sfx/zone6_sfx_entry.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_SFX_ENCOUNTER",
+          "category": "sfx",
+          "phase": "MONSTER_OR_ELITE",
+          "direction": "Ordinary encounter texture: wind, rope strain, wing beats, basalt/metal, crystal resonance",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/sfx/zone6_sfx_encounter.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/sfx/zone6_sfx_encounter.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_SFX_BATTLEFIELD_BOSS",
+          "category": "sfx",
+          "phase": "BATTLEFIELD_BOSS_ONLY",
+          "direction": "Conditional shared Battlefield Boss treatment; never a Lord cue",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/sfx/zone6_sfx_battlefield_boss.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/sfx/zone6_sfx_battlefield_boss.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_SFX_CLEAR",
+          "category": "sfx",
+          "phase": "CLEAR",
+          "direction": "Clear cue: wind, rope strain, wing beats, basalt/metal, crystal resonance; no repeat reward implication",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/sfx/zone6_sfx_clear.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/sfx/zone6_sfx_clear.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_SFX_LORD_EMERGENCE",
+          "category": "sfx",
+          "phase": "LORD_ENTRY",
+          "direction": "Lord-specific emergence: Grand Temple Knight; distinct from Battlefield Boss",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/sfx/zone6_sfx_lord_emergence.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/sfx/zone6_sfx_lord_emergence.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_SFX_LORD_RESOLUTION",
+          "category": "sfx",
+          "phase": "LORD_RESOLUTION",
+          "direction": "Canonical Lord resolution: Grand Temple Knight; use nonlethal/environmental resolution where specified",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/sfx/zone6_sfx_lord_resolution.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/sfx/zone6_sfx_lord_resolution.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z6_SFX_LORD_FAILURE",
+          "category": "sfx",
+          "phase": "LORD_TRIAL_FAILURE",
+          "direction": "Training/retry cue; no reward or unlock mutation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone6/sfx/zone6_sfx_lord_failure.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone6/sfx/zone6_sfx_lord_failure.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        }
+      ]
+    },
+    {
+      "zone_number": 7,
+      "zone_key": "d1_2",
+      "canonical_identity": {
+        "name_zh": "賢者之塔",
+        "name_en": "Sage Tower",
+        "stage": "LV7",
+        "level_band": "1–2段"
+      },
+      "lord": {
+        "id": "archmage_phantom",
+        "name_zh": "大魔法師幻影",
+        "name_en": "Archmage Phantom",
+        "hierarchy": "LORD"
+      },
+      "production_status": "AUDIO_SLOTS_READY_FILES_NOT_GENERATED",
+      "direction": "geometric curiosity; sparse arpeggios, brass, and four-stone convergence",
+      "ambience_direction": "tower air, paper, star resonance, footsteps, brass/ceramic movement",
+      "sfx_direction": "paper, ceramic, brass gear, stone placement, Heartstone formation",
+      "dialogue": {
+        "status": "SCREENPLAY_REUSE_ONLY",
+        "proposed_path_template": "assets/e10/audio/zone7/dialogue/zone7_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "proposed_review_template": "tools/e10_world_audio_review/zone7/dialogue/zone7_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "screenplay_dialogue_shots": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "silent_shots": [
+          1
+        ],
+        "exact_script_source": "docs/planning/e10_final_screenplay_v1.md",
+        "no_new_lines": true
+      },
+      "tracks": [
+        {
+          "asset_id": "Z7_BGM_DISCOVERY",
+          "category": "bgm",
+          "phase": "FIRST_ENTRY",
+          "direction": "geometric curiosity; sparse arpeggios, brass, and four-stone convergence; readable exploration and entry orientation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/bgm/zone7_bgm_discovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/bgm/zone7_bgm_discovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_BGM_ESCALATION",
+          "category": "bgm",
+          "phase": "ENCOUNTER_OR_LORD_READY",
+          "direction": "geometric curiosity; sparse arpeggios, brass, and four-stone convergence; increase scale without grimdark or noise wall",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/bgm/zone7_bgm_escalation.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/bgm/zone7_bgm_escalation.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_BGM_RECOVERY",
+          "category": "bgm",
+          "phase": "POST_CLEAR",
+          "direction": "geometric curiosity; sparse arpeggios, brass, and four-stone convergence; clear/recovery without reward authority",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/bgm/zone7_bgm_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/bgm/zone7_bgm_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_AMBIENCE_PRIMARY",
+          "category": "ambience",
+          "phase": "LOOP",
+          "direction": "tower air, paper, star resonance, footsteps, brass/ceramic movement",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/ambience/zone7_ambience_primary.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/ambience/zone7_ambience_primary.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_AMBIENCE_RECOVERY",
+          "category": "ambience",
+          "phase": "POST_CLEAR_OR_REPLAY",
+          "direction": "tower air, paper, star resonance, footsteps, brass/ceramic movement; quieter replay-safe bed",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/ambience/zone7_ambience_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/ambience/zone7_ambience_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_SFX_ENTRY",
+          "category": "sfx",
+          "phase": "ENTRY",
+          "direction": "Entry cue: paper, ceramic, brass gear, stone placement, Heartstone formation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/sfx/zone7_sfx_entry.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/sfx/zone7_sfx_entry.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_SFX_ENCOUNTER",
+          "category": "sfx",
+          "phase": "MONSTER_OR_ELITE",
+          "direction": "Ordinary encounter texture: paper, ceramic, brass gear, stone placement, Heartstone formation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/sfx/zone7_sfx_encounter.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/sfx/zone7_sfx_encounter.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_SFX_BATTLEFIELD_BOSS",
+          "category": "sfx",
+          "phase": "BATTLEFIELD_BOSS_ONLY",
+          "direction": "Conditional shared Battlefield Boss treatment; never a Lord cue",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/sfx/zone7_sfx_battlefield_boss.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/sfx/zone7_sfx_battlefield_boss.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_SFX_CLEAR",
+          "category": "sfx",
+          "phase": "CLEAR",
+          "direction": "Clear cue: paper, ceramic, brass gear, stone placement, Heartstone formation; no repeat reward implication",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/sfx/zone7_sfx_clear.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/sfx/zone7_sfx_clear.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_SFX_LORD_EMERGENCE",
+          "category": "sfx",
+          "phase": "LORD_ENTRY",
+          "direction": "Lord-specific emergence: Archmage Phantom; distinct from Battlefield Boss",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/sfx/zone7_sfx_lord_emergence.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/sfx/zone7_sfx_lord_emergence.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_SFX_LORD_RESOLUTION",
+          "category": "sfx",
+          "phase": "LORD_RESOLUTION",
+          "direction": "Canonical Lord resolution: Archmage Phantom; use nonlethal/environmental resolution where specified",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/sfx/zone7_sfx_lord_resolution.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/sfx/zone7_sfx_lord_resolution.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z7_SFX_LORD_FAILURE",
+          "category": "sfx",
+          "phase": "LORD_TRIAL_FAILURE",
+          "direction": "Training/retry cue; no reward or unlock mutation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone7/sfx/zone7_sfx_lord_failure.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone7/sfx/zone7_sfx_lord_failure.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        }
+      ]
+    },
+    {
+      "zone_number": 8,
+      "zone_key": "d3_4",
+      "canonical_identity": {
+        "name_zh": "魔王城前線",
+        "name_en": "Demon Castle Front",
+        "stage": "LV8",
+        "level_band": "3–4段"
+      },
+      "lord": {
+        "id": "chaos_lord",
+        "name_zh": "混沌領主",
+        "name_en": "Chaos Lord",
+        "hierarchy": "LORD"
+      },
+      "production_status": "AUDIO_SLOTS_READY_FILES_NOT_GENERATED",
+      "direction": "organized pressure; percussive march, low brass, distortion resolving",
+      "ambience_direction": "boots, supply yard, flags, rope, gate strain, marching, ash, fire",
+      "sfx_direction": "boots, metal, signal horn, gate, rune vibration, stabilization release",
+      "dialogue": {
+        "status": "SCREENPLAY_REUSE_ONLY",
+        "proposed_path_template": "assets/e10/audio/zone8/dialogue/zone8_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "proposed_review_template": "tools/e10_world_audio_review/zone8/dialogue/zone8_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "screenplay_dialogue_shots": [
+          2,
+          3,
+          4,
+          6,
+          8
+        ],
+        "silent_shots": [
+          1,
+          5,
+          7,
+          9
+        ],
+        "exact_script_source": "docs/planning/e10_final_screenplay_v1.md",
+        "no_new_lines": true
+      },
+      "tracks": [
+        {
+          "asset_id": "Z8_BGM_DISCOVERY",
+          "category": "bgm",
+          "phase": "FIRST_ENTRY",
+          "direction": "organized pressure; percussive march, low brass, distortion resolving; readable exploration and entry orientation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/bgm/zone8_bgm_discovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/bgm/zone8_bgm_discovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_BGM_ESCALATION",
+          "category": "bgm",
+          "phase": "ENCOUNTER_OR_LORD_READY",
+          "direction": "organized pressure; percussive march, low brass, distortion resolving; increase scale without grimdark or noise wall",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/bgm/zone8_bgm_escalation.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/bgm/zone8_bgm_escalation.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_BGM_RECOVERY",
+          "category": "bgm",
+          "phase": "POST_CLEAR",
+          "direction": "organized pressure; percussive march, low brass, distortion resolving; clear/recovery without reward authority",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/bgm/zone8_bgm_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/bgm/zone8_bgm_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_AMBIENCE_PRIMARY",
+          "category": "ambience",
+          "phase": "LOOP",
+          "direction": "boots, supply yard, flags, rope, gate strain, marching, ash, fire",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/ambience/zone8_ambience_primary.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/ambience/zone8_ambience_primary.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_AMBIENCE_RECOVERY",
+          "category": "ambience",
+          "phase": "POST_CLEAR_OR_REPLAY",
+          "direction": "boots, supply yard, flags, rope, gate strain, marching, ash, fire; quieter replay-safe bed",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/ambience/zone8_ambience_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/ambience/zone8_ambience_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_SFX_ENTRY",
+          "category": "sfx",
+          "phase": "ENTRY",
+          "direction": "Entry cue: boots, metal, signal horn, gate, rune vibration, stabilization release",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/sfx/zone8_sfx_entry.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/sfx/zone8_sfx_entry.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_SFX_ENCOUNTER",
+          "category": "sfx",
+          "phase": "MONSTER_OR_ELITE",
+          "direction": "Ordinary encounter texture: boots, metal, signal horn, gate, rune vibration, stabilization release",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/sfx/zone8_sfx_encounter.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/sfx/zone8_sfx_encounter.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_SFX_BATTLEFIELD_BOSS",
+          "category": "sfx",
+          "phase": "BATTLEFIELD_BOSS_ONLY",
+          "direction": "Conditional shared Battlefield Boss treatment; never a Lord cue",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/sfx/zone8_sfx_battlefield_boss.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/sfx/zone8_sfx_battlefield_boss.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_SFX_CLEAR",
+          "category": "sfx",
+          "phase": "CLEAR",
+          "direction": "Clear cue: boots, metal, signal horn, gate, rune vibration, stabilization release; no repeat reward implication",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/sfx/zone8_sfx_clear.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/sfx/zone8_sfx_clear.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_SFX_LORD_EMERGENCE",
+          "category": "sfx",
+          "phase": "LORD_ENTRY",
+          "direction": "Lord-specific emergence: Chaos Lord; distinct from Battlefield Boss",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/sfx/zone8_sfx_lord_emergence.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/sfx/zone8_sfx_lord_emergence.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_SFX_LORD_RESOLUTION",
+          "category": "sfx",
+          "phase": "LORD_RESOLUTION",
+          "direction": "Canonical Lord resolution: Chaos Lord; use nonlethal/environmental resolution where specified",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/sfx/zone8_sfx_lord_resolution.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/sfx/zone8_sfx_lord_resolution.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z8_SFX_LORD_FAILURE",
+          "category": "sfx",
+          "phase": "LORD_TRIAL_FAILURE",
+          "direction": "Training/retry cue; no reward or unlock mutation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone8/sfx/zone8_sfx_lord_failure.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone8/sfx/zone8_sfx_lord_failure.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        }
+      ]
+    },
+    {
+      "zone_number": 9,
+      "zone_key": "d5_6",
+      "canonical_identity": {
+        "name_zh": "諸神黃昏",
+        "name_en": "Ragnarök",
+        "stage": "LV9",
+        "level_band": "5–6段"
+      },
+      "lord": {
+        "id": "fallen_war_god_statue",
+        "name_zh": "墮落戰神古像",
+        "name_en": "Fallen War-God Statue",
+        "hierarchy": "LORD"
+      },
+      "production_status": "AUDIO_SLOTS_READY_FILES_NOT_GENERATED",
+      "direction": "mythic choice; wide strings, serene air, and deliberate silence",
+      "ambience_direction": "settled ash, rain, broad wind, sparse thunder, monument creak, breath",
+      "sfx_direction": "wind, stone fracture, cloth snap, glass chime, statue grind, instability",
+      "dialogue": {
+        "status": "SCREENPLAY_REUSE_ONLY",
+        "proposed_path_template": "assets/e10/audio/zone9/dialogue/zone9_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "proposed_review_template": "tools/e10_world_audio_review/zone9/dialogue/zone9_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "screenplay_dialogue_shots": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8,
+          9,
+          10
+        ],
+        "silent_shots": [
+          1,
+          7,
+          11,
+          12
+        ],
+        "exact_script_source": "docs/planning/e10_final_screenplay_v1.md",
+        "no_new_lines": true
+      },
+      "tracks": [
+        {
+          "asset_id": "Z9_BGM_DISCOVERY",
+          "category": "bgm",
+          "phase": "FIRST_ENTRY",
+          "direction": "mythic choice; wide strings, serene air, and deliberate silence; readable exploration and entry orientation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/bgm/zone9_bgm_discovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/bgm/zone9_bgm_discovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_BGM_ESCALATION",
+          "category": "bgm",
+          "phase": "ENCOUNTER_OR_LORD_READY",
+          "direction": "mythic choice; wide strings, serene air, and deliberate silence; increase scale without grimdark or noise wall",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/bgm/zone9_bgm_escalation.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/bgm/zone9_bgm_escalation.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_BGM_RECOVERY",
+          "category": "bgm",
+          "phase": "POST_CLEAR",
+          "direction": "mythic choice; wide strings, serene air, and deliberate silence; clear/recovery without reward authority",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/bgm/zone9_bgm_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/bgm/zone9_bgm_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_AMBIENCE_PRIMARY",
+          "category": "ambience",
+          "phase": "LOOP",
+          "direction": "settled ash, rain, broad wind, sparse thunder, monument creak, breath",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/ambience/zone9_ambience_primary.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/ambience/zone9_ambience_primary.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_AMBIENCE_RECOVERY",
+          "category": "ambience",
+          "phase": "POST_CLEAR_OR_REPLAY",
+          "direction": "settled ash, rain, broad wind, sparse thunder, monument creak, breath; quieter replay-safe bed",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/ambience/zone9_ambience_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/ambience/zone9_ambience_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_SFX_ENTRY",
+          "category": "sfx",
+          "phase": "ENTRY",
+          "direction": "Entry cue: wind, stone fracture, cloth snap, glass chime, statue grind, instability",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/sfx/zone9_sfx_entry.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/sfx/zone9_sfx_entry.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_SFX_ENCOUNTER",
+          "category": "sfx",
+          "phase": "MONSTER_OR_ELITE",
+          "direction": "Ordinary encounter texture: wind, stone fracture, cloth snap, glass chime, statue grind, instability",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/sfx/zone9_sfx_encounter.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/sfx/zone9_sfx_encounter.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_SFX_BATTLEFIELD_BOSS",
+          "category": "sfx",
+          "phase": "BATTLEFIELD_BOSS_ONLY",
+          "direction": "Conditional shared Battlefield Boss treatment; never a Lord cue",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/sfx/zone9_sfx_battlefield_boss.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/sfx/zone9_sfx_battlefield_boss.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_SFX_CLEAR",
+          "category": "sfx",
+          "phase": "CLEAR",
+          "direction": "Clear cue: wind, stone fracture, cloth snap, glass chime, statue grind, instability; no repeat reward implication",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/sfx/zone9_sfx_clear.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/sfx/zone9_sfx_clear.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_SFX_LORD_EMERGENCE",
+          "category": "sfx",
+          "phase": "LORD_ENTRY",
+          "direction": "Lord-specific emergence: Fallen War-God Statue; distinct from Battlefield Boss",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/sfx/zone9_sfx_lord_emergence.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/sfx/zone9_sfx_lord_emergence.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_SFX_LORD_RESOLUTION",
+          "category": "sfx",
+          "phase": "LORD_RESOLUTION",
+          "direction": "Canonical Lord resolution: Fallen War-God Statue; use nonlethal/environmental resolution where specified",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/sfx/zone9_sfx_lord_resolution.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/sfx/zone9_sfx_lord_resolution.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z9_SFX_LORD_FAILURE",
+          "category": "sfx",
+          "phase": "LORD_TRIAL_FAILURE",
+          "direction": "Training/retry cue; no reward or unlock mutation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone9/sfx/zone9_sfx_lord_failure.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone9/sfx/zone9_sfx_lord_failure.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        }
+      ]
+    },
+    {
+      "zone_number": 10,
+      "zone_key": "d7_plus",
+      "canonical_identity": {
+        "name_zh": "上古終焉神殿",
+        "name_en": "Ancient Doom Temple",
+        "stage": "LV10",
+        "level_band": "7段＋"
+      },
+      "lord": {
+        "id": "source_of_black_white_order",
+        "name_zh": "黑白秩序之源",
+        "name_en": "Source of Black-White Order",
+        "hierarchy": "LORD"
+      },
+      "production_status": "AUDIO_SLOTS_READY_FILES_NOT_GENERATED",
+      "direction": "ancient stillness; minimal temple air, stone resonance, near-silence",
+      "ambience_direction": "courtyard air, lotus/water, dust, distant stone, cloth, birdsong exit",
+      "sfx_direction": "gate mechanism, crystal crack, ordinary stone placement, quiet tail",
+      "dialogue": {
+        "status": "SCREENPLAY_REUSE_ONLY",
+        "proposed_path_template": "assets/e10/audio/zone10/dialogue/zone10_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "proposed_review_template": "tools/e10_world_audio_review/zone10/dialogue/zone10_final_shot{shot:02d}_beat{beat:02d}_{locale}_{speaker}.mp3",
+        "screenplay_dialogue_shots": [
+          8,
+          10
+        ],
+        "silent_shots": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          9,
+          11
+        ],
+        "exact_script_source": "docs/planning/e10_final_screenplay_v1.md",
+        "no_new_lines": true
+      },
+      "tracks": [
+        {
+          "asset_id": "Z10_BGM_DISCOVERY",
+          "category": "bgm",
+          "phase": "FIRST_ENTRY",
+          "direction": "ancient stillness; minimal temple air, stone resonance, near-silence; readable exploration and entry orientation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/bgm/zone10_bgm_discovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/bgm/zone10_bgm_discovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_BGM_ESCALATION",
+          "category": "bgm",
+          "phase": "ENCOUNTER_OR_LORD_READY",
+          "direction": "ancient stillness; minimal temple air, stone resonance, near-silence; increase scale without grimdark or noise wall",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/bgm/zone10_bgm_escalation.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/bgm/zone10_bgm_escalation.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_BGM_RECOVERY",
+          "category": "bgm",
+          "phase": "POST_CLEAR",
+          "direction": "ancient stillness; minimal temple air, stone resonance, near-silence; clear/recovery without reward authority",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/bgm/zone10_bgm_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/bgm/zone10_bgm_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_AMBIENCE_PRIMARY",
+          "category": "ambience",
+          "phase": "LOOP",
+          "direction": "courtyard air, lotus/water, dust, distant stone, cloth, birdsong exit",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/ambience/zone10_ambience_primary.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/ambience/zone10_ambience_primary.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_AMBIENCE_RECOVERY",
+          "category": "ambience",
+          "phase": "POST_CLEAR_OR_REPLAY",
+          "direction": "courtyard air, lotus/water, dust, distant stone, cloth, birdsong exit; quieter replay-safe bed",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/ambience/zone10_ambience_recovery.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/ambience/zone10_ambience_recovery.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_SFX_ENTRY",
+          "category": "sfx",
+          "phase": "ENTRY",
+          "direction": "Entry cue: gate mechanism, crystal crack, ordinary stone placement, quiet tail",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/sfx/zone10_sfx_entry.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/sfx/zone10_sfx_entry.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_SFX_ENCOUNTER",
+          "category": "sfx",
+          "phase": "MONSTER_OR_ELITE",
+          "direction": "Ordinary encounter texture: gate mechanism, crystal crack, ordinary stone placement, quiet tail",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/sfx/zone10_sfx_encounter.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/sfx/zone10_sfx_encounter.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_SFX_BATTLEFIELD_BOSS",
+          "category": "sfx",
+          "phase": "BATTLEFIELD_BOSS_ONLY",
+          "direction": "Conditional shared Battlefield Boss treatment; never a Lord cue",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/sfx/zone10_sfx_battlefield_boss.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/sfx/zone10_sfx_battlefield_boss.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_SFX_CLEAR",
+          "category": "sfx",
+          "phase": "CLEAR",
+          "direction": "Clear cue: gate mechanism, crystal crack, ordinary stone placement, quiet tail; no repeat reward implication",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/sfx/zone10_sfx_clear.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/sfx/zone10_sfx_clear.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_SFX_LORD_EMERGENCE",
+          "category": "sfx",
+          "phase": "LORD_ENTRY",
+          "direction": "Lord-specific emergence: Source of Black-White Order; distinct from Battlefield Boss",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/sfx/zone10_sfx_lord_emergence.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/sfx/zone10_sfx_lord_emergence.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_SFX_LORD_RESOLUTION",
+          "category": "sfx",
+          "phase": "LORD_RESOLUTION",
+          "direction": "Canonical Lord resolution: Source of Black-White Order; use nonlethal/environmental resolution where specified",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/sfx/zone10_sfx_lord_resolution.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/sfx/zone10_sfx_lord_resolution.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        },
+        {
+          "asset_id": "Z10_SFX_LORD_FAILURE",
+          "category": "sfx",
+          "phase": "LORD_TRIAL_FAILURE",
+          "direction": "Training/retry cue; no reward or unlock mutation",
+          "status": "NEW_PROPOSED_NOT_GENERATED",
+          "proposed_review_source_path": "tools/e10_world_audio_review/zone10/sfx/zone10_sfx_lord_failure.mp3",
+          "proposed_runtime_path": "assets/e10/audio/zone10/sfx/zone10_sfx_lord_failure.mp3",
+          "hash_status": "PENDING_OWNER_AUDIO_PRODUCTION",
+          "runtime_admission": "OWNER_AUDIO_LOCK_THEN_DEDICATED_STATIC_PACKAGING"
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "all_eight_canonical_zone_identities_exact": true,
+    "owner_style_b_preserved": true,
+    "lord_boss_separation_defined": true,
+    "audio_files_generated": 0,
+    "source_hashes_present": false,
+    "runtime_product_files_changed": false,
+    "gameplay_authority_changed": false
+  }
+}

@@ -1,0 +1,313 @@
+{
+  "MANIFEST_VERSION": "w1-zone3-presentation-fx-runtime-009-v1",
+  "TASK": "W1_01_WORLD_ZONE3_PRESENTATION_VISUAL_FX_RUNTIME_PACKAGE_009",
+  "SOURCE_TASK": "W1_01_WORLD_ZONE3_PRESENTATION_FX_CONTENT_AND_ASSET_PREFLIGHT_008A",
+  "SOURCE_008A_MANIFEST": "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+  "SOURCE_HEAD": "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+  "SOURCE_TREE": "fe6a277126d2f89bd88c993d92cd82012490f14c",
+  "ZONE": {
+    "KEY": "k16_20",
+    "NAME_ZH": "哥布林洞穴",
+    "NAME_EN": "Goblin Cave",
+    "STYLE": "STYLIZED_ADVENTURE"
+  },
+  "EFFECTS": [
+    {
+      "EFFECT_ID": "Z3_L01",
+      "CUE_ID": "Z3_L01",
+      "NAME": "SUBTLE_WARM_LIGHT_FLICKER",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "light",
+      "LOOP": true,
+      "PARTICLE_COUNT": 0,
+      "DEFAULT_DURATION_MS": 0,
+      "REDUCED_MOTION": "FREEZE_LIGHT_VALUE_KEEP_CONTRAST_AND_SILHOUETTES"
+    },
+    {
+      "EFFECT_ID": "Z3_V01",
+      "CUE_ID": "Z3_V01",
+      "NAME": "CAVE_DUST_MOTES",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "particles",
+      "LOOP": true,
+      "PARTICLE_COUNT": 12,
+      "DEFAULT_DURATION_MS": 0,
+      "REDUCED_MOTION": "DISABLE_PARTICLES_RETAIN_STATIC_DEPTH"
+    },
+    {
+      "EFFECT_ID": "Z3_V02",
+      "CUE_ID": "Z3_V02",
+      "NAME": "WATER_REFLECTION_SHIMMER",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "water",
+      "LOOP": true,
+      "PARTICLE_COUNT": 0,
+      "DEFAULT_DURATION_MS": 0,
+      "REDUCED_MOTION": "FREEZE_REFLECTION_RETAIN_COOL_WATER_VALUE"
+    },
+    {
+      "EFFECT_ID": "Z3_V03",
+      "CUE_ID": "Z3_V03",
+      "NAME": "SHUI_WATER_PARTICLES",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "particles",
+      "LOOP": true,
+      "PARTICLE_COUNT": 8,
+      "DEFAULT_DURATION_MS": 0,
+      "REDUCED_MOTION": "DISABLE_PARTICLES_KEEP_SHUI_VISIBLE_AS_STATIC_FORM"
+    },
+    {
+      "EFFECT_ID": "Z3_V04",
+      "CUE_ID": "Z3_V04",
+      "NAME": "SHUI_TRANSLUCENT_PULSE",
+      "STATUS_008A": "OPTIONAL",
+      "IMPLEMENTATION_KIND": "pulse",
+      "LOOP": false,
+      "PARTICLE_COUNT": 0,
+      "DEFAULT_DURATION_MS": 900,
+      "REDUCED_MOTION": "DISABLE_PULSE_RETAIN_STATIC_SHUI_READ"
+    },
+    {
+      "EFFECT_ID": "Z3_V05",
+      "CUE_ID": "Z3_V05",
+      "NAME": "ROCK_DUST_FALL",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "burst",
+      "LOOP": false,
+      "PARTICLE_COUNT": 7,
+      "DEFAULT_DURATION_MS": 900,
+      "REDUCED_MOTION": "REMOVE_BURST_RETAIN_STATIC_ROCKFALL_CONTEXT"
+    },
+    {
+      "EFFECT_ID": "Z3_V06",
+      "CUE_ID": "Z3_V06",
+      "NAME": "SMALL_ROCK_DEBRIS",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "debris",
+      "LOOP": false,
+      "PARTICLE_COUNT": 4,
+      "DEFAULT_DURATION_MS": 620,
+      "REDUCED_MOTION": "REMOVE_TRANSFORM_BURST_RETAIN_STATIC_DEBRIS"
+    },
+    {
+      "EFFECT_ID": "Z3_V07",
+      "CUE_ID": "Z3_V07",
+      "NAME": "BLOCKED_WATER_MIST",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "mist",
+      "LOOP": true,
+      "PARTICLE_COUNT": 0,
+      "DEFAULT_DURATION_MS": 0,
+      "REDUCED_MOTION": "FREEZE_MIST_RETAIN_COOL_VALUE"
+    },
+    {
+      "EFFECT_ID": "Z3_V08",
+      "CUE_ID": "Z3_V08",
+      "NAME": "CENTURION_SPEAR_DUST_IMPULSE",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "burst",
+      "LOOP": false,
+      "PARTICLE_COUNT": 5,
+      "DEFAULT_DURATION_MS": 540,
+      "REDUCED_MOTION": "REMOVE_IMPULSE_RETAIN_SPEAR_AND_BOUNDARY_READ"
+    },
+    {
+      "EFFECT_ID": "Z3_V09",
+      "CUE_ID": "Z3_V09",
+      "NAME": "TRIAL_SUBTLE_ENVIRONMENT_TENSION",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "tension",
+      "LOOP": true,
+      "PARTICLE_COUNT": 0,
+      "DEFAULT_DURATION_MS": 0,
+      "REDUCED_MOTION": "FREEZE_ENVIRONMENT_VARIATION_NO_SHAKE_OR_FLASH"
+    },
+    {
+      "EFFECT_ID": "Z3_V10",
+      "CUE_ID": "Z3_V10",
+      "NAME": "TRUCE_ENVIRONMENT_CALMING",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "settle",
+      "LOOP": false,
+      "PARTICLE_COUNT": 0,
+      "DEFAULT_DURATION_MS": 1000,
+      "REDUCED_MOTION": "SETTLE_TO_STATIC_NO_CELEBRATORY_SWELL"
+    },
+    {
+      "EFFECT_ID": "Z3_T01_VISUAL",
+      "CUE_ID": "Z3_T01",
+      "NAME": "MISTY_FOREST_FOG_TRANSITION",
+      "STATUS_008A": "REQUIRED",
+      "IMPLEMENTATION_KIND": "transition",
+      "LOOP": false,
+      "PARTICLE_COUNT": 0,
+      "DEFAULT_DURATION_MS": 1200,
+      "REDUCED_MOTION": "FREEZE_TRANSITION_RETAIN_COOL_COLOR_CUE"
+    }
+  ],
+  "SHOT_EFFECTS": {
+    "SHOT01": ["Z3_L01", "Z3_V01"],
+    "SHOT02": ["Z3_L01", "Z3_V01"],
+    "SHOT03": ["Z3_L01", "Z3_V01", "Z3_V03"],
+    "SHOT04": ["Z3_L01", "Z3_V01"],
+    "SHOT05": ["Z3_L01", "Z3_V01", "Z3_V02", "Z3_V03", "Z3_V05", "Z3_V06", "Z3_V07"],
+    "SHOT06": ["Z3_L01", "Z3_V01"],
+    "SHOT07": ["Z3_L01", "Z3_V01", "Z3_V08", "Z3_V09"],
+    "SHOT08": ["Z3_L01", "Z3_V01", "Z3_V03", "Z3_V10"],
+    "SHOT09": ["Z3_L01", "Z3_V01"],
+    "SHOT10": ["Z3_L01", "Z3_V01", "Z3_T01_VISUAL"]
+  },
+  "SHOT_OPTIONAL_EFFECTS": {
+    "SHOT03": ["Z3_V04"],
+    "SHOT05": ["Z3_V04"],
+    "SHOT08": ["Z3_V04"]
+  },
+  "CAMERA_CUES": {
+    "SHOT01": {
+      "MODE": "slow_push",
+      "DURATION_MS": 7000,
+      "SCALE_FROM": 1,
+      "SCALE_TO": 1.012,
+      "OBJECT_POSITION": "50% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT02": {
+      "MODE": "slow_drift",
+      "DURATION_MS": 6500,
+      "DX_PERCENT": -0.4,
+      "DY_PERCENT": 0.2,
+      "OBJECT_POSITION": "51% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT03": {
+      "MODE": "slow_push",
+      "DURATION_MS": 7000,
+      "SCALE_FROM": 1,
+      "SCALE_TO": 1.008,
+      "OBJECT_POSITION": "50% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT04": {
+      "MODE": "static_hold",
+      "DURATION_MS": 0,
+      "OBJECT_POSITION": "50% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT05": {
+      "MODE": "bounded_impact_impulse",
+      "DURATION_MS": 220,
+      "AMPLITUDE_PX": 2,
+      "REPETITIONS": 1,
+      "OBJECT_POSITION": "50% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT06": {
+      "MODE": "slow_push",
+      "DURATION_MS": 6500,
+      "SCALE_FROM": 1,
+      "SCALE_TO": 1.01,
+      "OBJECT_POSITION": "50% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT07": {
+      "MODE": "bounded_impact_impulse",
+      "DURATION_MS": 160,
+      "AMPLITUDE_PX": 1,
+      "REPETITIONS": 1,
+      "OBJECT_POSITION": "50% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT08": {
+      "MODE": "slow_pull",
+      "DURATION_MS": 7000,
+      "SCALE_FROM": 1.01,
+      "SCALE_TO": 1,
+      "OBJECT_POSITION": "50% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT09": {
+      "MODE": "static_hold",
+      "DURATION_MS": 0,
+      "OBJECT_POSITION": "50% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    },
+    "SHOT10": {
+      "MODE": "slow_drift",
+      "DURATION_MS": 6500,
+      "DX_PERCENT": 0.35,
+      "DY_PERCENT": -0.1,
+      "OBJECT_POSITION": "49% 50%",
+      "REDUCED_MOTION": "STATIC_HOLD"
+    }
+  },
+  "LIMITS": {
+    "PARTICLE_COUNT": 18,
+    "EFFECT_ANIMATION_DURATION_MS": 2800,
+    "CAMERA_ANIMATION_DURATION_MS": 8000,
+    "SIMULTANEOUS_EFFECT_COUNT": 12,
+    "ALLOCATION_POLICY": "FIXED_PARTICLE_POOL_PER_EFFECT_NO_PER_FRAME_DOM_ALLOCATION"
+  },
+  "STORY_GUARDS": {
+    "STONE_SHARD_MAGIC_GLOW": "NO",
+    "STONE_SHARD_MAGIC_PARTICLES": "NO",
+    "STONE_SHARD_RUNE_EFFECT": "NO",
+    "SHUI_NONVERBAL_VISUAL_CONTRACT": "PASS",
+    "CENTURION_PROTECTOR_VISUAL_CONTRACT": "PASS",
+    "SHOT08_NO_VICTORY_FIREWORKS": true,
+    "SHOT10_NO_ZONE4_UNLOCK": true
+  },
+  "LIFECYCLE": {
+    "API": [
+      "create",
+      "start",
+      "stop",
+      "stopAll",
+      "startCameraCue",
+      "stopCamera",
+      "transitionShot",
+      "getResourceStats",
+      "destroy"
+    ],
+    "CLEANUP_POINTS": [
+      "shot_change",
+      "cinematic_exit",
+      "replay_exit",
+      "route_change",
+      "interruption",
+      "error"
+    ],
+    "POST_CLEANUP": {
+      "ACTIVE_TIMER_COUNT": 0,
+      "ACTIVE_RAF_COUNT": 0,
+      "TEMPORARY_EFFECT_NODE_COUNT": 0,
+      "ACTIVE_EVENT_LISTENER_COUNT": 0
+    },
+    "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES"
+  },
+  "BOUNDARIES": {
+    "GAMEPLAY_AUTHORITY_EFFECT_COUNT": 0,
+    "NEW_RASTER_ASSET_COUNT": 0,
+    "NEW_AUDIO_FILE_COUNT": 0,
+    "VOICE_FILE_COUNT_CHANGED": 0,
+    "JOURNEY_RUNTIME_CONTROLLER_CHANGED": false,
+    "INDEX_HTML_SHARED_RUNTIME_CHANGED": false,
+    "APP_PY_CHANGED": false,
+    "GAMEPLAY_AUTHORITY_CHANGED": false,
+    "AUDIO_IMPLEMENTED": false,
+    "PARALLAX_IMPLEMENTED": false,
+    "PARALLAX_RECOMMENDED_CLASSIFICATION": "INTENTIONALLY_DIFFERENT_NOT_REQUIRED_FOR_ZONE3_V1"
+  },
+  "JOURNEY_BINDING": {
+    "READY": true,
+    "IMPLEMENTED": false,
+    "CONSUMER": "W1_03_JOURNEY_ZONE3_VERTICAL_SLICE_WIRING_002",
+    "BINDING_SCOPE": "Later Journey presentation binding only; no cue trigger code in this package"
+  },
+  "VALIDATION": {
+    "CODE_ONLY_PRESENTATION_EFFECT_COUNT": 12,
+    "CAMERA_CUE_COUNT": 10,
+    "REDUCED_MOTION_COVERAGE": "12/12 visual effects plus all camera cues",
+    "PRESENTATION_EFFECT_FAILURE_BLOCKS_GAMEPLAY": "NO",
+    "PHYSICAL_DEVICE_QA_REQUIRED": true
+  }
+}

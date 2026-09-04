@@ -1,0 +1,2327 @@
+{
+  "SCHEMA_VERSION": "W1_04_ZONE3_40ITEM_DOD_EVIDENCE_RECONCILIATION_V1",
+  "TASK": "W1_04_SYSTEMS_ZONE3_40ITEM_DOD_EVIDENCE_AND_STATUS_RECONCILIATION_005",
+  "SOURCE_AUDIT_HEAD": "291c1b64a8fbad84b8524a5393b3bafb6aba30c0",
+  "CANONICAL_MASTER_REFERENCE": "616d51b17abe010de1e862382ca4db7bec65936f",
+  "INPUTS": {
+    "WORLD_PRODUCT_HEAD": "39c587a216f6cc13efe572066d9d8f0299960f1b",
+    "WORLD_PRESENTATION_FX_PREFLIGHT_HEAD": "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+    "HERO_PRODUCT_HEAD": "8fa4184e775517403f66a3d56e7357d3470e67cf",
+    "JOURNEY_ZH_TW_COMPLETE_HEAD": "f77bce46302974c8a8aa9d296ae0ea548a707691",
+    "ZH_TW_INTEGRATION_CHECKPOINT_HEAD": "5fd9def812c230aa7089a8388be932bea8e7d0f7",
+    "ZH_TW_INTEGRATION_CHECKPOINT_TREE": "fc7ad4c566963aac8faa313974b0363aaafd75c0",
+    "QUALITY_SOURCE_ART_HEAD": "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf",
+    "EN_US_TASK": "W1_03_JOURNEY_ZONE3_EN_US_SCRIPT_AND_VOICE_AUTHORITY_RECOVERY_007",
+    "EN_US_TASK_STATUS": "TASK_BOOK_ISSUED_NOT_YET_COMPLETED",
+    "PLAYWRIGHT_INFRA_STATUS": "AVAILABLE",
+    "PLAYWRIGHT_INFRA_HEAD": "dddefed7b27ee17d65aba89823a47b0e0bd0d0ad",
+    "PREVIOUS_PLAYWRIGHT_BLOCKER_RESOLVED": true
+  },
+  "PRESERVED_TAXONOMY": {
+    "TOTAL_ITEMS": 40,
+    "PREVIOUS_COMPLETE": 6,
+    "PREVIOUS_PARTIAL": 25,
+    "PREVIOUS_MISSING": 8,
+    "PREVIOUS_NOT_APPLICABLE": 1,
+    "TAXONOMY_CHANGED": false
+  },
+  "STATUS_ARITHMETIC": {
+    "TOTAL_ITEMS": 40,
+    "COMPLETE": 6,
+    "PARTIAL": 25,
+    "MISSING": 8,
+    "NOT_APPLICABLE": 1,
+    "OPEN_REQUIRED_ITEM_COUNT": 33,
+    "ARITHMETIC_PASSES": true,
+    "EVERY_OPEN_REQUIRED_ITEM_HAS_ONE_ROW": true
+  },
+  "ZH_TW_RECONCILIATION": {
+    "SUBTITLE_BEATS": 97,
+    "VOICE_BEATS": 97,
+    "SPEAKER_COUNTS": {
+      "HERO": 41,
+      "GRIK": 37,
+      "CENTURION": 19
+    },
+    "MISSING": 0,
+    "DUPLICATE": 0,
+    "INTEGRATED_CHECKPOINT": "5fd9def812c230aa7089a8388be932bea8e7d0f7",
+    "ZH_TW_SUBTITLE_CONTENT_STATUS": "COMPLETE",
+    "ZH_TW_SUBTITLE_INTEGRATION_STATUS": "COMPLETE",
+    "ZH_TW_SUBTITLE_FINAL_ACCEPTANCE_STATUS": "NOT_YET_TESTED",
+    "ZH_TW_VOICE_CONTENT_STATUS": "COMPLETE",
+    "ZH_TW_VOICE_INTEGRATION_STATUS": "COMPLETE",
+    "ZH_TW_VOICE_PERCEPTUAL_QA_STATUS": "NOT_YET_TESTED",
+    "ZH_TW_VOICE_PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+    "FALLBACK_POLICY": "SUBTITLE_ONLY",
+    "CROSS_LANGUAGE_VOICE_FALLBACK": "FORBIDDEN"
+  },
+  "EN_US_RECONCILIATION": {
+    "EN_US_SCRIPT_STATUS": "PENDING_EXTERNAL_TASK",
+    "EN_US_VOICE_AUTHORITY_STATUS": "PENDING_EXTERNAL_TASK",
+    "EN_US_PRODUCTION_AUDIO_STATUS": "PENDING_EXTERNAL_TASK",
+    "EXISTING_CANONICAL_CONTENT": "legacy four-shot English subtitles and voice paths",
+    "FINAL_TEN_SHOT_CONTENT": "not present in accepted final Journey evidence",
+    "EN_US_SCRIPT_DEPENDS_ON_007": true,
+    "EN_US_VOICE_AUTHORITY_DEPENDS_ON_007": true,
+    "EN_US_PRODUCTION_AUDIO_DEPENDS_ON_OWNER_AUDITION": true,
+    "FALLBACK_POLICY": "SUBTITLE_ONLY",
+    "CROSS_LANGUAGE_VOICE_FALLBACK": "FORBIDDEN"
+  },
+  "PRESENTATION_FX_PREFLIGHT": {
+    "PREFLIGHT_HEAD": "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+    "PREFLIGHT_PATH": "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+    "PREFLIGHT_STATUS": "DESIGN/PREFLIGHT COMPLETE",
+    "IMPLEMENTATION_STATUS": "MISSING",
+    "RUNTIME_TRIGGER_CODE_DEFINED": false,
+    "ZONE3_REQUIRED_AMBIENCE_COUNT": 5,
+    "ZONE3_REQUIRED_EVENT_SFX_COUNT": 9,
+    "ZONE3_REQUIRED_VFX_COUNT": 9,
+    "ZONE3_OPTIONAL_VFX_COUNT": 1,
+    "ZONE3_REQUIRED_LIGHT_COUNT": 1,
+    "ZONE3_REQUIRED_TRANSITION_COUNT": 1,
+    "ZONE3_TOTAL_PRESENTATION_CUE_COUNT": 26,
+    "REUSABLE_AUDIO_ASSET_COUNT": 2,
+    "NEW_AUDIO_ASSET_COUNT_REQUIRED": 13,
+    "NEW_VFX_ASSET_COUNT_REQUIRED": 0,
+    "CODE_ONLY_VFX_COUNT": 12,
+    "AUDIO_EVALUATION_ROW_COUNT": 15,
+    "PRIMARY_AUDIO_CUE_COUNT": 14,
+    "TRANSITION_AUDIO_CUE_COUNT": 1,
+    "AUDIO_CUE_TO_ASSET_MAPPING_COMPLETE": true,
+    "COUNT_ROLLUP": {
+      "ZONE3_REQUIRED_AMBIENCE_COUNT": 5,
+      "ZONE3_REQUIRED_EVENT_SFX_COUNT": 9,
+      "ZONE3_REQUIRED_VFX_COUNT": 9,
+      "ZONE3_OPTIONAL_VFX_COUNT": 1,
+      "ZONE3_REQUIRED_LIGHT_COUNT": 1,
+      "ZONE3_REQUIRED_TRANSITION_COUNT": 1,
+      "ZONE3_TOTAL_PRESENTATION_CUE_COUNT": 26,
+      "CUE_CATEGORY_COUNTS": {
+        "AMBIENCE": 5,
+        "SFX": 9,
+        "VFX": 10,
+        "LIGHT": 1,
+        "TRANSITION": 1
+      }
+    },
+    "CUE_SHEET": [
+      {
+        "CUE_ID": "Z3_A01",
+        "SHOT_ID": [
+          "SHOT01",
+          "SHOT02",
+          "SHOT03",
+          "SHOT04",
+          "SHOT05",
+          "SHOT06",
+          "SHOT07",
+          "SHOT08",
+          "SHOT09",
+          "SHOT10"
+        ],
+        "CATEGORY": "AMBIENCE",
+        "STORY_PURPOSE": "Continuous inhabited limestone-cave bed.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "CAVE_ROOM_TONE",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_cave_room_tone.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_AUDIO_BED; NO_VISUAL_MOTION_DEPENDENCY",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_A02",
+        "SHOT_ID": [
+          "SHOT01",
+          "SHOT03",
+          "SHOT05",
+          "SHOT06",
+          "SHOT10"
+        ],
+        "CATEGORY": "AMBIENCE",
+        "STORY_PURPOSE": "Sparse cave-mouth and route depth wind.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "DISTANT_CAVE_WIND",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_distant_cave_wind.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_STATIC_OR_REDUCE_LOOP_RATE",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_A03",
+        "SHOT_ID": [
+          "SHOT01",
+          "SHOT04",
+          "SHOT06",
+          "SHOT08"
+        ],
+        "CATEGORY": "AMBIENCE",
+        "STORY_PURPOSE": "Low distant family life establishes an occupied settlement and protected families.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "DISTANT_FAMILY_ACTIVITY",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_distant_family_activity.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_AUDIO_BED; VISIBLE_SHELTER_CONTEXT_REMAINS",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_A04",
+        "SHOT_ID": [
+          "SHOT07"
+        ],
+        "CATEGORY": "AMBIENCE",
+        "STORY_PURPOSE": "Restrained pressure for the Centurion trial.",
+        "INTENSITY": "MEDIUM",
+        "LOOP": true,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "TRIAL_TENSION_AMBIENCE",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_trial_tension.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "REMOVE_PULSE_ESCALATION; KEEP_STABLE_BED",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_A05",
+        "SHOT_ID": [
+          "SHOT08"
+        ],
+        "CATEGORY": "AMBIENCE",
+        "STORY_PURPOSE": "Guarded, quiet peace after the trial.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "FRAGILE_TRUCE_AMBIENCE",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_fragile_truce.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "SETTLE_TO_STATIC; NO_CELEBRATORY_SWELL",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S01",
+        "SHOT_ID": [
+          "SHOT01"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Goblin families move deeper into the cave.",
+        "INTENSITY": "MEDIUM",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "REFUGEE_FOOTSTEPS",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_refugee_footsteps.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_EVENT_AUDIBLE; REMOVE_ANY_VISUAL_STEP_PULSE",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S02",
+        "SHOT_ID": [
+          "SHOT02"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Household belongings move with the families; the objects are not loot.",
+        "INTENSITY": "LOW",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "BELONGINGS_MOVEMENT",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_belongings_movement.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "NO_OBJECT_MOTION_REQUIRED_FOR_MEANING",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S03",
+        "SHOT_ID": [
+          "SHOT03",
+          "SHOT04",
+          "SHOT05"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Intermittent cave water detail around the occupied route.",
+        "INTENSITY": "LOW",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "WATER_DRIP",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_water_drip.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_SPARSE_EVENT; NO_VISUAL_DEPENDENCY",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S04",
+        "SHOT_ID": [
+          "SHOT03",
+          "SHOT05",
+          "SHOT08"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Shui communicates nonverbally through restrained water resonance.",
+        "INTENSITY": "LOW",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": "assets/e10/audio/zone2/sfx/zone2_sfx_shui_reaction_2.mp3",
+        "NEW_ASSET_REQUIRED": false,
+        "EVALUATION_ID": "SHUI_WATER_SPIRIT_SOUND",
+        "ASSET_PATH_OR_PLACEHOLDER": "assets/e10/audio/zone2/sfx/zone2_sfx_shui_reaction_2.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_NONVERBAL_CUE; NO_CHARACTER_SPEECH_SUBSTITUTE",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S05",
+        "SHOT_ID": [
+          "SHOT05"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Rockfall blocks the water route.",
+        "INTENSITY": "HIGH",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "ROCKFALL",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_rockfall.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_AUDIO_EVENT; NO_SCREEN_SHAKE_REQUIRED",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S06",
+        "SHOT_ID": [
+          "SHOT05"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Water remains present but unreachable after the collapse.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "BLOCKED_WATER_FLOW",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_blocked_water_flow.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_LOW_BED; NO_WATER_MOTION_REQUIRED_FOR_MEANING",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S07",
+        "SHOT_ID": [
+          "SHOT06"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Centurion arrives as the last door and protector.",
+        "INTENSITY": "MEDIUM",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "CENTURION_ARMOR",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_centurion_armor.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_GROUNDED_EVENT; NO_DEMONIC_REVERB",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S08",
+        "SHOT_ID": [
+          "SHOT07"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Centurion plants the spear as a physical boundary for the trial.",
+        "INTENSITY": "MEDIUM",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": true,
+        "EVALUATION_ID": "CENTURION_SPEAR_PLANT",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_centurion_spear_plant.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "KEEP_CONTACT_EVENT; NO_ATTACK_FLASH",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_S09",
+        "SHOT_ID": [
+          "SHOT09"
+        ],
+        "CATEGORY": "SFX",
+        "STORY_PURPOSE": "Ordinary Stone Shard is physically handed from Grik to Hero.",
+        "INTENSITY": "LOW",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": "assets/e10/audio/zone1/sfx/zone1_sfx_shot07_stone_placement.mp3",
+        "NEW_ASSET_REQUIRED": false,
+        "EVALUATION_ID": "STONE_SHARD_PHYSICAL_HANDOFF",
+        "ASSET_PATH_OR_PLACEHOLDER": "assets/e10/audio/zone1/sfx/zone1_sfx_shot07_stone_placement.mp3",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "NO_GLOW_OR_PULSE; KEEP_PHYSICAL_CONTACT_ONLY",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_L01",
+        "SHOT_ID": [
+          "SHOT01",
+          "SHOT02",
+          "SHOT03",
+          "SHOT04",
+          "SHOT05",
+          "SHOT06",
+          "SHOT07",
+          "SHOT08",
+          "SHOT09",
+          "SHOT10"
+        ],
+        "CATEGORY": "LIGHT",
+        "STORY_PURPOSE": "Bounded lantern warmth preserves the cave’s readable, approachable adventure language.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": false,
+        "EVALUATION_ID": "SUBTLE_WARM_LIGHT_FLICKER",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_LIGHT:SUBTLE_WARM_LIGHT_FLICKER",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "FREEZE_LIGHT_VALUE; KEEP_CONTRAST_AND_SILHOUETTES",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V01",
+        "SHOT_ID": [
+          "SHOT01",
+          "SHOT02",
+          "SHOT03",
+          "SHOT04",
+          "SHOT05",
+          "SHOT06",
+          "SHOT07",
+          "SHOT08",
+          "SHOT09",
+          "SHOT10"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Sparse cave dust motes provide depth without obscuring readable silhouettes.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": false,
+        "EVALUATION_ID": "CAVE_DUST_MOTES",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:CAVE_DUST_MOTES",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "DISABLE_PARTICLES; RETAIN_STATIC_DEPTH",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V02",
+        "SHOT_ID": [
+          "SHOT05"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Cool reflections keep the unreachable water route visibly present.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": false,
+        "EVALUATION_ID": "WATER_REFLECTION_SHIMMER",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:WATER_REFLECTION_SHIMMER",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "FREEZE_REFLECTION; RETAIN_COOL_WATER_VALUE",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V03",
+        "SHOT_ID": [
+          "SHOT03",
+          "SHOT05",
+          "SHOT08"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Restrained water particles support Shui’s nonverbal identity.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": false,
+        "EVALUATION_ID": "SHUI_WATER_PARTICLES",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:SHUI_WATER_PARTICLES",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "DISABLE_PARTICLES; KEEP_SHUI_VISIBLE_AS_STATIC_FORM",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V04",
+        "SHOT_ID": [
+          "SHOT03",
+          "SHOT05",
+          "SHOT08"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Optional small Shui response emphasis.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "NEW_ASSET_REQUIRED": false,
+        "EVALUATION_ID": "SHUI_TRANSLUCENT_PULSE",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:SHUI_TRANSLUCENT_PULSE",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "DISABLE_PULSE; RETAIN_STATIC_SHUI_READ",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V05",
+        "SHOT_ID": [
+          "SHOT05"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Residual dust falls after the blocked-water-route rockfall.",
+        "INTENSITY": "MEDIUM",
+        "LOOP": false,
+        "ASSET_REQUIRED": false,
+        "NEW_ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "EVALUATION_ID": "ROCK_DUST_FALL",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:ROCK_DUST_FALL",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "REMOVE_BURST; RETAIN_STATIC_ROCKFALL_CONTEXT",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V06",
+        "SHOT_ID": [
+          "SHOT05"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Small grounded debris makes the route closure readable.",
+        "INTENSITY": "LOW",
+        "LOOP": false,
+        "ASSET_REQUIRED": false,
+        "NEW_ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "EVALUATION_ID": "SMALL_ROCK_DEBRIS",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:SMALL_ROCK_DEBRIS",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "REMOVE_TRANSFORM_BURST; RETAIN_STATIC_DEBRIS",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V07",
+        "SHOT_ID": [
+          "SHOT05"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Cool mist emphasizes the water beyond the blockage.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": false,
+        "NEW_ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "EVALUATION_ID": "BLOCKED_WATER_MIST",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:BLOCKED_WATER_MIST",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "FREEZE_MIST; RETAIN_COOL_VALUE",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V08",
+        "SHOT_ID": [
+          "SHOT07"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Spear contact creates a physical dust impulse at the trial boundary.",
+        "INTENSITY": "MEDIUM",
+        "LOOP": false,
+        "ASSET_REQUIRED": false,
+        "NEW_ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "EVALUATION_ID": "CENTURION_SPEAR_DUST_IMPULSE",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:CENTURION_SPEAR_DUST_IMPULSE",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "REMOVE_IMPULSE; RETAIN_SPEAR_AND_BOUNDARY_READ",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V09",
+        "SHOT_ID": [
+          "SHOT07"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Slow environmental variation supports the moral trial without horror escalation.",
+        "INTENSITY": "LOW",
+        "LOOP": true,
+        "ASSET_REQUIRED": false,
+        "NEW_ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "EVALUATION_ID": "TRIAL_SUBTLE_ENVIRONMENT_TENSION",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:TRIAL_SUBTLE_ENVIRONMENT_TENSION",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "FREEZE_ENVIRONMENT_VARIATION; NO_SHAKE_OR_FLASH",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_V10",
+        "SHOT_ID": [
+          "SHOT08"
+        ],
+        "CATEGORY": "VFX",
+        "STORY_PURPOSE": "Dust and lantern activity settle into a fragile, guarded truce.",
+        "INTENSITY": "LOW",
+        "LOOP": false,
+        "ASSET_REQUIRED": false,
+        "NEW_ASSET_REQUIRED": false,
+        "REUSABLE_EXISTING_ASSET": null,
+        "EVALUATION_ID": "TRUCE_ENVIRONMENT_CALMING",
+        "ASSET_PATH_OR_PLACEHOLDER": "CODE_ONLY_VFX:TRUCE_ENVIRONMENT_CALMING",
+        "DIALOGUE_DUCKING_RECOMMENDED": "NO",
+        "REDUCED_MOTION_RECOMMENDATION": "USE_STATIC_CALM_STATE; NO_CELEBRATION_FLASH",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      },
+      {
+        "CUE_ID": "Z3_T01",
+        "SHOT_ID": [
+          "SHOT10"
+        ],
+        "CATEGORY": "TRANSITION",
+        "STORY_PURPOSE": "Natural cool wind and mist bridge the cave exit to the Mist Forest hook.",
+        "INTENSITY": "LOW",
+        "LOOP": false,
+        "ASSET_REQUIRED": true,
+        "NEW_ASSET_REQUIRED": true,
+        "REUSABLE_EXISTING_ASSET": null,
+        "EVALUATION_ID": [
+          "MISTY_FOREST_WIND_TRANSITION",
+          "MISTY_FOREST_FOG_TRANSITION"
+        ],
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/transition/zone3_to_zone4_misty_forest_wind.mp3;CODE_ONLY_VFX:MISTY_FOREST_FOG_TRANSITION",
+        "DIALOGUE_DUCKING_RECOMMENDED": "YES",
+        "REDUCED_MOTION_RECOMMENDATION": "USE_STATIC_COOL_GRADIENT; NO_FOG_SWEEP",
+        "REPLAY_RECOMMENDATION": "REUSE_PRESENTATION_NO_REWARD",
+        "RUNTIME_TRIGGER_CODE": "NOT_DEFINED_IN_008A"
+      }
+    ],
+    "AUDIO_EVALUATION": [
+      {
+        "ID": "CAVE_ROOM_TONE",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Continuous inhabited limestone-cave bed for the ten-shot package.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_cave_room_tone.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No Zone 3 ambience asset exists; Zone 1 village and Zone 2 plains/hive beds carry the wrong place identity."
+      },
+      {
+        "ID": "DISTANT_CAVE_WIND",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Sparse depth cue at the cave mouth, route, last door, and Zone 4 hook.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_distant_cave_wind.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No current Zone 3 wind bed is admitted."
+      },
+      {
+        "ID": "WATER_DRIP",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Small intermittent cave-water detail that keeps the blocked route grounded.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_water_drip.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "Existing Zone 1/2 SFX do not provide a neutral cave-water drip."
+      },
+      {
+        "ID": "REFUGEE_FOOTSTEPS",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Goblin families move deeper into the cave; retreat, not raid.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_refugee_footsteps.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No current family/footstep event asset is available."
+      },
+      {
+        "ID": "BELONGINGS_MOVEMENT",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Household objects move with the families and are recognized as belongings, not loot.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_belongings_movement.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No current prop-movement asset has the required household, non-loot reading."
+      },
+      {
+        "ID": "DISTANT_FAMILY_ACTIVITY",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Low, nonverbal life behind the occupied shelters and last door.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_distant_family_activity.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "Zone 1 village dawn is a different settlement identity and Zone 2 beds are plains/hive-specific."
+      },
+      {
+        "ID": "SHUI_WATER_SPIRIT_SOUND",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Nonverbal Shui presence expressed through a small water-resonance response.",
+        "ASSET_PATH_OR_PLACEHOLDER": "assets/e10/audio/zone2/sfx/zone2_sfx_shui_reaction_2.mp3",
+        "REUSABLE_EXISTING_ASSET": "assets/e10/audio/zone2/sfx/zone2_sfx_shui_reaction_2.mp3",
+        "CLASSIFICATION": "SAFE_REUSE",
+        "RATIONALE": "The existing file is a Shui reaction, not speech; reuse is limited to a restrained nonverbal response and must not become a voice line."
+      },
+      {
+        "ID": "ROCKFALL",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Rockfall closes the water route in Shot 05.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_rockfall.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No current Zone 1/2 event represents the bounded cave rockfall."
+      },
+      {
+        "ID": "BLOCKED_WATER_FLOW",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Water remains audible but visibly unreachable after the collapse.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_blocked_water_flow.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No current water-route bed is admitted for Zone 3."
+      },
+      {
+        "ID": "CENTURION_ARMOR",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "A grounded protector arrival cue for the last door, not a demonic threat cue.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_centurion_armor.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "Existing Lord and creature movements are semantically wrong for the Centurion protector."
+      },
+      {
+        "ID": "CENTURION_SPEAR_PLANT",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "The Centurion plants the spear as a boundary before the trial.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/sfx/zone3_sfx_centurion_spear_plant.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No current grounded spear/boundary event is available."
+      },
+      {
+        "ID": "TRIAL_TENSION_AMBIENCE",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Restrained stillness and boundary pressure for the Centurion challenge.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_trial_tension.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "Zone 2 escalation is a different boss identity and must not be reused as Zone 3 authority."
+      },
+      {
+        "ID": "FRAGILE_TRUCE_AMBIENCE",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Quiet guarded peace after the trial; families can put belongings down for the night.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/ambience/zone3_ambience_fragile_truce.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No current neutral post-trial cave bed exists; celebratory victory music is explicitly out of scope."
+      },
+      {
+        "ID": "STONE_SHARD_PHYSICAL_HANDOFF",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Ordinary Stone Shard contact at the Shot 09 handoff.",
+        "ASSET_PATH_OR_PLACEHOLDER": "assets/e10/audio/zone1/sfx/zone1_sfx_shot07_stone_placement.mp3",
+        "REUSABLE_EXISTING_ASSET": "assets/e10/audio/zone1/sfx/zone1_sfx_shot07_stone_placement.mp3",
+        "CLASSIFICATION": "SAFE_REUSE",
+        "RATIONALE": "A neutral physical stone-placement sound can support the handoff without glow, magic, rune, map, or reward semantics."
+      },
+      {
+        "ID": "MISTY_FOREST_WIND_TRANSITION",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Natural wind bridge from the cave threshold toward the Zone 4 hook.",
+        "ASSET_PATH_OR_PLACEHOLDER": "PLACEHOLDER_AUDIO:assets/e10/audio/zone3/transition/zone3_to_zone4_misty_forest_wind.mp3",
+        "REUSABLE_EXISTING_ASSET": null,
+        "CLASSIFICATION": "NEW_ASSET_REQUIRED",
+        "RATIONALE": "No current Zone 3-to-Zone 4 transition audio is admitted."
+      }
+    ],
+    "VFX_EVALUATION": [
+      {
+        "ID": "CAVE_DUST_MOTES",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Sparse depth motes reinforce inhabited cave air without obscuring silhouettes.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_SHARED_PRESENTATION_PRIMITIVE",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "Specify as bounded compositor/particle treatment; no dedicated raster asset is needed."
+      },
+      {
+        "ID": "SUBTLE_WARM_LIGHT_FLICKER",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Lantern warmth keeps the cave readable and lived-in.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_LIGHT_OPACITY_VARIATION",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "A small bounded opacity change is preferred over baked light animation or a new image."
+      },
+      {
+        "ID": "WATER_REFLECTION_SHIMMER",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Cool water remains present beyond the blocked route.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_SMALL_COMPOSITED_OVERLAY",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "Use a low-cost bounded shimmer layer; do not alter the approved Shot 05 source."
+      },
+      {
+        "ID": "SHUI_WATER_PARTICLES",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Nonverbal Shui identity through restrained water motion.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_BOUNDED_PARTICLES",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "No new image asset is needed; particles must remain sparse and character-supporting, not a combat aura."
+      },
+      {
+        "ID": "SHUI_TRANSLUCENT_PULSE",
+        "STATUS": "OPTIONAL",
+        "STORY_ROLE": "Very small translucent Shui response when a nonverbal reaction needs emphasis.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_SINGLE_BOUNDED_OPACITY_PULSE",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "Optional only; it must never read as power, damage, unlock, or Stone Shard magic."
+      },
+      {
+        "ID": "ROCK_DUST_FALL",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Small residual dust after the Shot 05 collapse.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_BOUNDED_PARTICLES",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "Use a short, finite burst only; no continuous emitter."
+      },
+      {
+        "ID": "SMALL_ROCK_DEBRIS",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Grounded debris makes the water route closure legible.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_SMALL_TRANSFORM_BURST",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "Runtime geometry/overlay only; never a gameplay collision or progression signal."
+      },
+      {
+        "ID": "BLOCKED_WATER_MIST",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Cool mist at the unreachable water opening.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_LOW_OPACITY_OVERLAY",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "A small overlay is sufficient; do not paint mist into approved art."
+      },
+      {
+        "ID": "CENTURION_SPEAR_DUST_IMPULSE",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Ground contact reinforces the Centurion as a protector setting a boundary.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_SINGLE_BOUNDED_BURST",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "Keep the impulse physical and restrained; no demonic aura or attack authority."
+      },
+      {
+        "ID": "TRIAL_SUBTLE_ENVIRONMENT_TENSION",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Quiet depth/lantern movement supports a moral trial without a horror treatment.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_SLOW_AMBIENT_VARIATION",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "Use low-frequency environmental change rather than screen shake or heavy bloom."
+      },
+      {
+        "ID": "TRUCE_ENVIRONMENT_CALMING",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Lantern and dust activity settle into a guarded, non-celebratory peace.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_FINITE_SETTLE",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "Calming is a presentation beat only; no victory flash, confetti, or reward signal."
+      },
+      {
+        "ID": "MISTY_FOREST_FOG_TRANSITION",
+        "STATUS": "REQUIRED",
+        "STORY_ROLE": "Natural cool mist carries the Shot 10 hook toward Mist Forest.",
+        "IMPLEMENTATION_MODE": "CODE_ONLY_BOUNDED_CROSSFADE_OVERLAY",
+        "ASSET_REQUIRED": false,
+        "CLASSIFICATION": "CODE_ONLY_VFX",
+        "RATIONALE": "A compositor transition can carry the atmosphere without baking a route or Zone state into art."
+      }
+    ],
+    "MAPPING_RECONCILIATION": "CUE_SHEET has 14 primary audio cues plus one transition row. AUDIO_EVALUATION has 2 SAFE_REUSE entries and 13 NEW_ASSET_REQUIRED entries; one cue may reference a reusable file, a placeholder, or code-only VFX and is not counted as one-file-per-cue."
+  },
+  "LAYER_RECONCILIATION": [
+    {
+      "ITEM_ID": "Z3-019",
+      "LAYER": "VFX",
+      "DESIGN_COMPLETE": true,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    },
+    {
+      "ITEM_ID": "Z3-020",
+      "LAYER": "PARTICLES",
+      "DESIGN_COMPLETE": true,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    },
+    {
+      "ITEM_ID": "Z3-021",
+      "LAYER": "LIGHTING",
+      "DESIGN_COMPLETE": true,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    },
+    {
+      "ITEM_ID": "Z3-022",
+      "LAYER": "CAMERA_FX",
+      "DESIGN_COMPLETE": false,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    },
+    {
+      "ITEM_ID": "Z3-024",
+      "LAYER": "TRANSITIONS",
+      "DESIGN_COMPLETE": true,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    },
+    {
+      "ITEM_ID": "Z3-030",
+      "LAYER": "REPLAY",
+      "DESIGN_COMPLETE": true,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    },
+    {
+      "ITEM_ID": "Z3-031",
+      "LAYER": "REDUCED_MOTION",
+      "DESIGN_COMPLETE": true,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    },
+    {
+      "ITEM_ID": "Z3-032",
+      "LAYER": "FAILURE_FALLBACK",
+      "DESIGN_COMPLETE": true,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    },
+    {
+      "ITEM_ID": "Z3-034",
+      "LAYER": "SCENE_CLEANUP",
+      "DESIGN_COMPLETE": true,
+      "IMPLEMENTATION_COMPLETE": false,
+      "AUTOMATED_QA_COMPLETE": true,
+      "FINAL_ACCEPTANCE_COMPLETE": false
+    }
+  ],
+  "BGM": {
+    "ZONE1_BGM_STATUS": "COMPLETE",
+    "ZONE2_BGM_STATUS": "COMPLETE",
+    "ZONE3_BGM_STATUS": "MISSING",
+    "V1_REQUIRED": true,
+    "INTENTIONALLY_NOT_REQUIRED": false,
+    "OWNER_DECISION_REQUIRED": false,
+    "OWNER_DECISION": "Preserve Z3-017 as V1_REQUIRED=YES; no new creative reclassification was made."
+  },
+  "AUDIO_CONTROLS": {
+    "AUDIO_SETTINGS_STATUS": "PARTIAL",
+    "MUTE_SUPPORT": {
+      "ZONE1": "COMPLETE",
+      "ZONE2": "COMPLETE",
+      "ZONE3": "INHERITS_GLOBAL_MUTE_NOT_FINAL_INTEGRATED"
+    },
+    "VOICE_VOLUME": {
+      "ZONE1": "FIXED_PLAYBACK_LEVEL_ONLY",
+      "ZONE2": "FIXED_PLAYBACK_LEVEL_ONLY",
+      "ZONE3": "FIXED_PLAYBACK_LEVEL_ONLY"
+    },
+    "SFX_VOLUME": {
+      "ZONE1": "FIXED_PLAYBACK_LEVEL_ONLY",
+      "ZONE2": "FIXED_PLAYBACK_LEVEL_ONLY",
+      "ZONE3": "FIXED_PLAYBACK_LEVEL_ONLY"
+    },
+    "AMBIENCE_VOLUME": {
+      "ZONE1": "FIXED_PLAYBACK_LEVEL_ONLY",
+      "ZONE2": "FIXED_PLAYBACK_LEVEL_ONLY",
+      "ZONE3": "NOT_INTEGRATED"
+    },
+    "BGM_VOLUME": {
+      "ZONE1": "FIXED_PLAYBACK_LEVEL_ONLY",
+      "ZONE2": "FIXED_PLAYBACK_LEVEL_ONLY",
+      "ZONE3": "NOT_INTEGRATED"
+    },
+    "USER_VOLUME_SLIDER_EVIDENCE": false,
+    "EVIDENCE": [
+      "sound.js",
+      "js/e9/top_hud.js"
+    ]
+  },
+  "BROWSER_QA": {
+    "PLAYWRIGHT_INFRA_AVAILABLE": "YES",
+    "PLAYWRIGHT_INFRA_HEAD": "dddefed7b27ee17d65aba89823a47b0e0bd0d0ad",
+    "PREVIOUS_PLAYWRIGHT_BLOCKER_RESOLVED": true,
+    "ZONE3_REAL_BROWSER_TEST_EXECUTED": "PARTIAL",
+    "DESKTOP_BROWSER_QA": "PARTIAL",
+    "IPAD_LANDSCAPE_BROWSER_QA": "NOT_YET_TESTED",
+    "IPAD_PORTRAIT_BROWSER_QA": "NOT_YET_TESTED",
+    "MOBILE_BROWSER_QA": "NOT_YET_TESTED",
+    "MEDIA_RUNTIME_BROWSER_QA": "NOT_YET_TESTED",
+    "LOCALE_SWITCH_BROWSER_QA": "NOT_YET_TESTED",
+    "REPLAY_BROWSER_QA": "PARTIAL",
+    "KNOWN_BROWSER_PRODUCT_TEST_DEBT_COUNT": 3,
+    "KNOWN_BROWSER_PRODUCT_TEST_DEBT": [
+      "E9 layout",
+      "E9 fetch",
+      "replay real-click final-return assertion"
+    ],
+    "PENDING_IS_NOT_FAILURE": true,
+    "PRODUCT_TEST_DEBT_IS_NOT_INFRASTRUCTURE_FAILURE": true
+  },
+  "BROWSER_PRODUCT_TEST_DEBT_RECONCILIATION": {
+    "E9_LAYOUT": {
+      "RELEVANT_DOD_ITEMS": [
+        "Z3-039"
+      ],
+      "EFFECT": "Keeps real-browser QA acceptance open; does not classify Playwright infrastructure as unavailable and does not downgrade accepted content."
+    },
+    "E9_FETCH": {
+      "RELEVANT_DOD_ITEMS": [
+        "Z3-039"
+      ],
+      "EFFECT": "Keeps browser/runtime transport evidence open; does not classify Playwright infrastructure as unavailable and does not create gameplay authority."
+    },
+    "REPLAY_REAL_CLICK_FINAL_RETURN_ASSERTION": {
+      "RELEVANT_DOD_ITEMS": [
+        "Z3-030",
+        "Z3-039"
+      ],
+      "EFFECT": "Keeps replay browser acceptance and replay integration closure open until the final-return assertion passes; replay remains presentation-only."
+    }
+  },
+  "HUMAN_PHYSICAL_QA": {
+    "PERCEPTUAL_AUDIO_QA": "NOT_YET_TESTED",
+    "PHYSICAL_IPAD_LANDSCAPE_QA": "NOT_YET_TESTED",
+    "PHYSICAL_IPAD_PORTRAIT_QA": "NOT_YET_TESTED",
+    "PHYSICAL_IPHONE_QA": "NOT_YET_TESTED"
+  },
+  "COMPLETION_GROUPS": [
+    {
+      "GROUP_ID": "COMPLETION_GROUP_A",
+      "OWNER_LANE": "WORLD/JOURNEY/HERO/SYSTEMS",
+      "ITEM_IDS": [
+        "Z3-001",
+        "Z3-002",
+        "Z3-003",
+        "Z3-006",
+        "Z3-007",
+        "Z3-009",
+        "Z3-018",
+        "Z3-025",
+        "Z3-028",
+        "Z3-029",
+        "Z3-032",
+        "Z3-033",
+        "Z3-034"
+      ],
+      "DEPENDENCY": "Accepted WORLD/HERO/JOURNEY packages plus server-owned progression/reward/Lord seams.",
+      "CAN_RUN_IN_PARALLEL_WITH": [
+        "COMPLETION_GROUP_B",
+        "COMPLETION_GROUP_C"
+      ],
+      "MUST_WAIT_FOR": "Final runtime integration boundary and server-fact-only handoff review."
+    },
+    {
+      "GROUP_ID": "COMPLETION_GROUP_B",
+      "OWNER_LANE": "JOURNEY/QUALITY",
+      "ITEM_IDS": [
+        "Z3-010",
+        "Z3-011",
+        "Z3-012",
+        "Z3-013",
+        "Z3-014",
+        "Z3-015",
+        "Z3-017"
+      ],
+      "DEPENDENCY": "008A cue mapping, 5fd zh-TW checkpoint, pending en-US _007, and Owner audio production/audition.",
+      "CAN_RUN_IN_PARALLEL_WITH": [
+        "COMPLETION_GROUP_A",
+        "COMPLETION_GROUP_C"
+      ],
+      "MUST_WAIT_FOR": "_007 for en-US script/voice authority and Owner audition before final en-US production acceptance."
+    },
+    {
+      "GROUP_ID": "COMPLETION_GROUP_C",
+      "OWNER_LANE": "WORLD/JOURNEY/QUALITY",
+      "ITEM_IDS": [
+        "Z3-019",
+        "Z3-020",
+        "Z3-021",
+        "Z3-022",
+        "Z3-023",
+        "Z3-024",
+        "Z3-030",
+        "Z3-031"
+      ],
+      "DEPENDENCY": "008A presentation FX design and final Journey visual slot/lifecycle.",
+      "CAN_RUN_IN_PARALLEL_WITH": [
+        "COMPLETION_GROUP_A",
+        "COMPLETION_GROUP_B"
+      ],
+      "MUST_WAIT_FOR": "Final runtime binding before implementation acceptance; Owner decision if parallax remains intentionally different."
+    },
+    {
+      "GROUP_ID": "COMPLETION_GROUP_D",
+      "OWNER_LANE": "SYSTEMS/QUALITY",
+      "ITEM_IDS": [
+        "Z3-026",
+        "Z3-035",
+        "Z3-036",
+        "Z3-039",
+        "Z3-040"
+      ],
+      "DEPENDENCY": "Integrated candidate with final audio/FX plus existing global settings.",
+      "CAN_RUN_IN_PARALLEL_WITH": [
+        "COMPLETION_GROUP_B",
+        "COMPLETION_GROUP_C"
+      ],
+      "MUST_WAIT_FOR": "Integrated candidate and audio for perceptual review, plus physical devices for device acceptance; Playwright infrastructure is available."
+    }
+  ],
+  "ALREADY_COMPLETE_CONTENT_REWORK_COUNT": 0,
+  "OPEN_REQUIRED_ITEMS": [
+    "Z3-001",
+    "Z3-002",
+    "Z3-003",
+    "Z3-006",
+    "Z3-007",
+    "Z3-009",
+    "Z3-010",
+    "Z3-011",
+    "Z3-012",
+    "Z3-013",
+    "Z3-014",
+    "Z3-015",
+    "Z3-017",
+    "Z3-018",
+    "Z3-019",
+    "Z3-020",
+    "Z3-021",
+    "Z3-022",
+    "Z3-023",
+    "Z3-024",
+    "Z3-025",
+    "Z3-026",
+    "Z3-028",
+    "Z3-029",
+    "Z3-030",
+    "Z3-031",
+    "Z3-032",
+    "Z3-033",
+    "Z3-034",
+    "Z3-035",
+    "Z3-036",
+    "Z3-039",
+    "Z3-040"
+  ],
+  "ITEMS": [
+    {
+      "ITEM_ID": "Z3-001",
+      "ITEM_NAME": "STORY",
+      "CATEGORY": "STORY",
+      "OWNER_LANE": "WORLD/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PENDING_EXTERNAL_TASK",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "39c587a216f6cc13efe572066d9d8f0299960f1b"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/audits/w1_04_zone3_full_vertical_slice_completeness_parity_audit_004.md",
+        "adventure_zone_progression_authority.py",
+        "tests/test_e055_zone3_vertical_slice.py"
+      ],
+      "OPEN_REASON": "Story content is accepted, but final candidate-to-canonical runtime handoff and final human/device acceptance remain open.",
+      "DEPENDENCIES": [
+        "final Journey runtime integration",
+        "server-owned progression authority",
+        "human/device acceptance"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Integrate the accepted story presentation through the existing server-fact handoff; prove presentation completion cannot mutate progression or reward authority."
+    },
+    {
+      "ITEM_ID": "Z3-002",
+      "ITEM_NAME": "CINEMATIC_ART",
+      "CATEGORY": "CINEMATIC_ART",
+      "OWNER_LANE": "WORLD/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PENDING_EXTERNAL_TASK",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "39c587a216f6cc13efe572066d9d8f0299960f1b",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+        "tests/test_w1_01_zone3_10shot_asset_ingestion.py"
+      ],
+      "OPEN_REASON": "Ten owner-approved runtime images pass candidate QA but are not integrated on canonical master.",
+      "DEPENDENCIES": [
+        "WORLD ten-shot package",
+        "Journey responsive slot"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Integrate ten runtime derivatives and preserve source hashes, replay presentation-only behavior, and failure fallback."
+    },
+    {
+      "ITEM_ID": "Z3-003",
+      "ITEM_NAME": "WORLD_ART",
+      "CATEGORY": "WORLD_ART",
+      "OWNER_LANE": "WORLD",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PENDING_EXTERNAL_TASK",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "39c587a216f6cc13efe572066d9d8f0299960f1b",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "assets/e10/art/zone3/zone3-world-asset-package.json",
+        "tests/test_w1_01_zone3_world_asset_package.py"
+      ],
+      "OPEN_REASON": "Environment and landmark content is accepted in the candidate but final world binding is open.",
+      "DEPENDENCIES": [
+        "WORLD asset package",
+        "responsive world binding"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Bind environment plate and landmark presentation without changing map/progression authority."
+    },
+    {
+      "ITEM_ID": "Z3-004",
+      "ITEM_NAME": "MONSTERS",
+      "CATEGORY": "MONSTERS",
+      "OWNER_LANE": "HERO/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_APPLICABLE",
+      "PHYSICAL_DEVICE_STATUS": "NOT_APPLICABLE",
+      "OVERALL_STATUS": "COMPLETE",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "adventure_zone3_monster_authority.py",
+        "tests/test_e055_zone3_vertical_slice.py"
+      ],
+      "OPEN_REASON": "",
+      "DEPENDENCIES": [
+        "server monster authority"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Preserve exact 13 normal IDs and zero elites."
+    },
+    {
+      "ITEM_ID": "Z3-005",
+      "ITEM_NAME": "BATTLEFIELD_BOSS",
+      "CATEGORY": "BATTLEFIELD_BOSS",
+      "OWNER_LANE": "HERO/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_APPLICABLE",
+      "PHYSICAL_DEVICE_STATUS": "NOT_APPLICABLE",
+      "OVERALL_STATUS": "COMPLETE",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "8fa4184e775517403f66a3d56e7357d3470e67cf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "tests/test_e055_zone3_vertical_slice.py",
+        "zone3_runtime_asset_bindings.py"
+      ],
+      "OPEN_REASON": "",
+      "DEPENDENCIES": [
+        "server boss binding",
+        "Lord boundary"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Preserve legacy_bf_03_boss as distinct from goblin_centurion."
+    },
+    {
+      "ITEM_ID": "Z3-006",
+      "ITEM_NAME": "LORD",
+      "CATEGORY": "LORD",
+      "OWNER_LANE": "HERO/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PENDING_EXTERNAL_TASK",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "8fa4184e775517403f66a3d56e7357d3470e67cf",
+        "616d51b17abe010de1e862382ca4db7bec65936f"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "zone3_runtime_asset_bindings.py",
+        "tests/test_w1_02_zone3_lord_final_asset_ingestion_005.py",
+        "tests/test_w1_02_zone3_monster_lord_runtime_asset_binding_004.py"
+      ],
+      "OPEN_REASON": "Six Lord presentation slots pass candidate checks but are not canonical integration; art cannot create eligibility.",
+      "DEPENDENCIES": [
+        "six-slot Lord presentation package",
+        "server Lord eligibility"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Bind six slots to existing goblin_centurion identity and eligibility; missing art hides the same identity."
+    },
+    {
+      "ITEM_ID": "Z3-007",
+      "ITEM_NAME": "GAMEPLAY_HANDOFF",
+      "CATEGORY": "GAMEPLAY_HANDOFF",
+      "OWNER_LANE": "JOURNEY/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PENDING_EXTERNAL_TASK",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "5fd9def812c230aa7089a8388be932bea8e7d0f7"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "adventure_zone_progression_authority.py",
+        "docs/planning/w1_03_journey_zone3_vertical_slice_wiring_002.md",
+        "tests/test_w1_03_journey_zone3_vertical_slice_wiring.py"
+      ],
+      "OPEN_REASON": "Authority seam exists, but final candidate-to-canonical handoff is not closed.",
+      "DEPENDENCIES": [
+        "server-selected Zone",
+        "existing progression authority",
+        "final Journey runtime"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Consume server facts only and prove cinematic completion cannot clear or unlock a Zone."
+    },
+    {
+      "ITEM_ID": "Z3-008",
+      "ITEM_NAME": "SERVER_AUTHORITY_BOUNDARIES",
+      "CATEGORY": "SERVER_AUTHORITY_BOUNDARIES",
+      "OWNER_LANE": "SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_APPLICABLE",
+      "PHYSICAL_DEVICE_STATUS": "NOT_APPLICABLE",
+      "OVERALL_STATUS": "COMPLETE",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "8fa4184e775517403f66a3d56e7357d3470e67cf",
+        "5fd9def812c230aa7089a8388be932bea8e7d0f7"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "adventure_zone3_monster_authority.py",
+        "adventure_zone_progression_authority.py",
+        "adventure_zone_star_progression.py",
+        "js/game/cinematic_replay.js"
+      ],
+      "OPEN_REASON": "",
+      "DEPENDENCIES": [
+        "existing authority modules"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Keep presentation read-only, fail closed, and separate from reward/progression/Lord state."
+    },
+    {
+      "ITEM_ID": "Z3-009",
+      "ITEM_NAME": "ZH_TW_SUBTITLES",
+      "CATEGORY": "ZH_TW_SUBTITLES",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "5fd9def812c230aa7089a8388be932bea8e7d0f7"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "assets/e10/i18n/zone3/zone3-cinematic-subtitles.json",
+        "tests/test_w1_03_journey_zone3_i18n_subtitle_voice_production.py",
+        "tests/test_w1_03_journey_zone3_vertical_slice_wiring.py"
+      ],
+      "OPEN_REASON": "97 beats, missing 0, duplicate 0; checkpoint integration is complete, final browser/device acceptance is not tested.",
+      "DEPENDENCIES": [
+        "5fd9def checkpoint",
+        "final acceptance"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Retain all 97 beats, locale scoping, duplicate rejection, and subtitle-only behavior."
+    },
+    {
+      "ITEM_ID": "Z3-010",
+      "ITEM_NAME": "ZH_TW_VOICE",
+      "CATEGORY": "ZH_TW_VOICE",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "5fd9def812c230aa7089a8388be932bea8e7d0f7"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
+        "tools/e10_zone3_audio/zone3_voice_audition_manifest.json",
+        "tests/test_w1_03_journey_zone3_final_audio_production.py"
+      ],
+      "OPEN_REASON": "97 locale-scoped voice refs are checkpoint-integrated; perceptual and physical acceptance are not tested.",
+      "DEPENDENCIES": [
+        "5fd9def checkpoint",
+        "Owner audition",
+        "physical playback"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Retain 97 zh-TW refs, forbid cross-language fallback, and close listening/device gates."
+    },
+    {
+      "ITEM_ID": "Z3-011",
+      "ITEM_NAME": "EN_US_SUBTITLES",
+      "CATEGORY": "EN_US_SUBTITLES",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "PENDING_EXTERNAL_TASK",
+      "INTEGRATION_STATUS": "PENDING_EXTERNAL_TASK",
+      "AUTOMATED_QA_STATUS": "NOT_YET_TESTED",
+      "HUMAN_QA_STATUS": "PENDING_EXTERNAL_TASK",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "index.html legacy four-shot Zone 3 configuration",
+        "i18n.js",
+        "W1_03_JOURNEY_ZONE3_EN_US_SCRIPT_AND_VOICE_AUTHORITY_RECOVERY_007"
+      ],
+      "OPEN_REASON": "Canonical legacy four-shot English path exists, but final ten-shot English script recovery _007 is not completed.",
+      "DEPENDENCIES": [
+        "pending _007 script authority",
+        "ten-shot content integration"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Complete and Owner-approve the ten-shot en-US script before binding it; do not infer it from zh-TW."
+    },
+    {
+      "ITEM_ID": "Z3-012",
+      "ITEM_NAME": "EN_US_VOICE",
+      "CATEGORY": "EN_US_VOICE",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "PENDING_EXTERNAL_TASK",
+      "INTEGRATION_STATUS": "PENDING_EXTERNAL_TASK",
+      "AUTOMATED_QA_STATUS": "NOT_YET_TESTED",
+      "HUMAN_QA_STATUS": "PENDING_EXTERNAL_TASK",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "index.html legacy four-shot English voice paths",
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
+        "W1_03_JOURNEY_ZONE3_EN_US_SCRIPT_AND_VOICE_AUTHORITY_RECOVERY_007"
+      ],
+      "OPEN_REASON": "Legacy four-shot English voice exists; final en-US authority/production is pending _007 and Owner audition.",
+      "DEPENDENCIES": [
+        "pending _007 voice authority",
+        "Owner audition",
+        "final en-US audio"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Complete en-US authority and production separately; missing voice remains subtitle-only with no zh-TW fallback."
+    },
+    {
+      "ITEM_ID": "Z3-013",
+      "ITEM_NAME": "AMBIENCE",
+      "CATEGORY": "AMBIENCE",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "MISSING",
+      "INTEGRATION_STATUS": "MISSING",
+      "AUTOMATED_QA_STATUS": "NOT_YET_TESTED",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "MISSING",
+      "EVIDENCE_HEAD": [
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+        "assets/e10/audio/zone3/ is absent at 008A source head",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "008A defines five required ambience cues but supplies placeholders only; no production Zone 3 ambience package is integrated.",
+      "DEPENDENCIES": [
+        "008A preflight mapping",
+        "audio production",
+        "loop lifecycle"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Produce and integrate five required ambience cues with mute, replay, autoplay fallback, and cleanup coverage."
+    },
+    {
+      "ITEM_ID": "Z3-014",
+      "ITEM_NAME": "EVENT_SFX",
+      "CATEGORY": "EVENT_SFX",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "MISSING",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+        "616d51b17abe010de1e862382ca4db7bec65936f"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+        "index.html legacy Zone 3 generic cues",
+        "tests/test_w1_01_world_zone3_presentation_fx_preflight.py"
+      ],
+      "OPEN_REASON": "Preflight contains nine required SFX slots, but final production assets are placeholders; legacy generic cues are only partial runtime coverage.",
+      "DEPENDENCIES": [
+        "008A preflight",
+        "new event SFX production",
+        "final Journey cue binding"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Produce and bind nine required event cues without gameplay triggers; retain replay no-reward semantics."
+    },
+    {
+      "ITEM_ID": "Z3-015",
+      "ITEM_NAME": "CREATURE_OR_CHARACTER_SFX",
+      "CATEGORY": "CREATURE_OR_CHARACTER_SFX",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "MISSING",
+      "INTEGRATION_STATUS": "MISSING",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "MISSING",
+      "EVIDENCE_HEAD": [
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+        "8fa4184e775517403f66a3d56e7357d3470e67cf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+        "assets/e10/audio/zone2/sfx/zone2_sfx_bee_close.mp3"
+      ],
+      "OPEN_REASON": "Zone 3-specific creature/character SFX are not produced; Zone 2 bee/slime cues cannot be reused as Zone 3 authority.",
+      "DEPENDENCIES": [
+        "audio design decision",
+        "new Zone 3 assets",
+        "missing-audio fallback"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Define and produce only required Zone 3 creature/character cues, with no Lord or reward semantics."
+    },
+    {
+      "ITEM_ID": "Z3-016",
+      "ITEM_NAME": "NONVERBAL_CHARACTER_AUDIO",
+      "CATEGORY": "NONVERBAL_CHARACTER_AUDIO",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": false,
+      "CONTENT_STATUS": "NOT_APPLICABLE",
+      "INTEGRATION_STATUS": "NOT_APPLICABLE",
+      "AUTOMATED_QA_STATUS": "NOT_APPLICABLE",
+      "HUMAN_QA_STATUS": "NOT_APPLICABLE",
+      "PHYSICAL_DEVICE_STATUS": "NOT_APPLICABLE",
+      "OVERALL_STATUS": "NOT_APPLICABLE",
+      "EVIDENCE_HEAD": [
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "008A STORY_CONTRACTS.SHUI_HUMAN_SPEAKING=false",
+        "existing 40-item taxonomy"
+      ],
+      "OPEN_REASON": "No separate approved nonverbal-only acceptance layer exists in the preserved taxonomy.",
+      "DEPENDENCIES": [
+        "Owner scope decision if changed"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Keep NOT_APPLICABLE unless Owner adds a distinct nonverbal production requirement."
+    },
+    {
+      "ITEM_ID": "Z3-017",
+      "ITEM_NAME": "BGM_OR_MUSIC",
+      "CATEGORY": "BGM_OR_MUSIC",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "MISSING",
+      "INTEGRATION_STATUS": "MISSING",
+      "AUTOMATED_QA_STATUS": "NOT_YET_TESTED",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "MISSING",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "assets/e10/audio/zone1/zone1-audio-package.json",
+        "assets/e10/audio/zone2/zone2-audio-package.json",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "Preserved 40-item definition marks Zone 3 BGM V1-required; no Zone 3 BGM production package is present.",
+      "DEPENDENCIES": [
+        "Owner-approved V1 music package",
+        "audio settings",
+        "replay/cleanup"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Produce and integrate required Zone 3 music, or obtain separate Owner reclassification before changing this row."
+    },
+    {
+      "ITEM_ID": "Z3-018",
+      "ITEM_NAME": "UI_AUDIO",
+      "CATEGORY": "UI_AUDIO",
+      "OWNER_LANE": "JOURNEY/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "sound.js",
+        "js/e9/top_hud.js",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "Global UI audio and mute exist, but Zone 3 final control/cue acceptance is not integrated.",
+      "DEPENDENCIES": [
+        "global UI audio",
+        "final Zone 3 controls"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Verify captions, buttons, replay, blocked, and handoff feedback under mute and final audio."
+    },
+    {
+      "ITEM_ID": "Z3-019",
+      "ITEM_NAME": "VFX",
+      "CATEGORY": "VFX",
+      "OWNER_LANE": "WORLD/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "MISSING",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "MISSING",
+      "EVIDENCE_HEAD": [
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+        "tests/test_w1_01_world_zone3_presentation_fx_preflight.py"
+      ],
+      "OPEN_REASON": "008A designates 12 code-only VFX definitions and zero new VFX assets, but no canonical Zone 3 implementation is integrated.",
+      "DEPENDENCIES": [
+        "008A code-only VFX contract",
+        "Journey runtime compositor"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Implement approved presentation-only VFX with reduced-motion and cleanup behavior."
+    },
+    {
+      "ITEM_ID": "Z3-020",
+      "ITEM_NAME": "PARTICLES",
+      "CATEGORY": "PARTICLES",
+      "OWNER_LANE": "WORLD/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "MISSING",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "MISSING",
+      "EVIDENCE_HEAD": [
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+        "tests/test_w1_01_world_zone3_presentation_fx_preflight.py"
+      ],
+      "OPEN_REASON": "Particle behavior is specified as code-only bounded particles, but no Zone 3 particle implementation exists on canonical master.",
+      "DEPENDENCIES": [
+        "code-only particle contract",
+        "lifecycle owner"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Implement bounded particles and prove cleanup at shot, exit, replay, and route transitions."
+    },
+    {
+      "ITEM_ID": "Z3-021",
+      "ITEM_NAME": "LIGHTING",
+      "CATEGORY": "LIGHTING",
+      "OWNER_LANE": "WORLD/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "MISSING",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+        "616d51b17abe010de1e862382ca4db7bec65936f"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+        "index.html generic cinematic overlay styles"
+      ],
+      "OPEN_REASON": "Preflight lighting contract is complete, but only generic canonical overlays exist; final Zone 3 lighting is not integrated.",
+      "DEPENDENCIES": [
+        "008A light cue",
+        "final runtime styling",
+        "reduced motion"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Bind authored Zone 3 lighting treatment and preserve reduced-motion behavior."
+    },
+    {
+      "ITEM_ID": "Z3-022",
+      "ITEM_NAME": "CAMERA_MOTION",
+      "CATEGORY": "CAMERA_MOTION",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "PARTIAL",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "index.html legacy storyboardDrift",
+        "css/e9/zone3_vertical_slice.css",
+        "tests/test_w1_03_journey_zone3_cinematic_asset_slot_responsive_binding.py"
+      ],
+      "OPEN_REASON": "Generic drift and responsive candidate positions exist, but final ten-shot camera treatment is not canonical.",
+      "DEPENDENCIES": [
+        "final ten-shot runtime",
+        "responsive camera contract"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Bind final shot camera treatment and reduced-motion behavior without changing gameplay state."
+    },
+    {
+      "ITEM_ID": "Z3-023",
+      "ITEM_NAME": "PARALLAX",
+      "CATEGORY": "PARALLAX",
+      "OWNER_LANE": "WORLD/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "MISSING",
+      "INTEGRATION_STATUS": "MISSING",
+      "AUTOMATED_QA_STATUS": "NOT_YET_TESTED",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "MISSING",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "previous 40-item audit",
+        "008A static art and code-only FX manifest"
+      ],
+      "OPEN_REASON": "No authored Zone 3 multi-plane parallax contract or implementation is evidenced.",
+      "DEPENDENCIES": [
+        "Owner art-direction decision",
+        "final layer model"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Provide bounded V1 parallax or obtain Owner intentional-difference reclassification."
+    },
+    {
+      "ITEM_ID": "Z3-024",
+      "ITEM_NAME": "TRANSITIONS",
+      "CATEGORY": "TRANSITIONS",
+      "OWNER_LANE": "JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+        "616d51b17abe010de1e862382ca4db7bec65936f"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/planning/w1_01_world_zone3_presentation_fx_cue_manifest_008a.json",
+        "index.html cinematic transition styles",
+        "tests/test_w1_01_world_zone3_presentation_fx_preflight.py"
+      ],
+      "OPEN_REASON": "One transition cue is preflight-complete and generic transitions exist, but final runtime sequencing and interruption cleanup are open.",
+      "DEPENDENCIES": [
+        "008A transition cue",
+        "final Journey timeline",
+        "cleanup"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Integrate transition sequencing, replay, reduced motion, and interruption cleanup."
+    },
+    {
+      "ITEM_ID": "Z3-025",
+      "ITEM_NAME": "UI_FEEDBACK",
+      "CATEGORY": "UI_FEEDBACK",
+      "OWNER_LANE": "JOURNEY/QUALITY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "index.html cinematic overlay/caption controls",
+        "components/adventure/zone3_vertical_slice.html",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "Generic UI feedback and candidate controls exist; final Zone 3 integrated entry/replay/handoff feedback is open.",
+      "DEPENDENCIES": [
+        "final Journey runtime",
+        "quality acceptance"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Verify entry, skip, replay, blocked, caption, and gameplay-handoff feedback states."
+    },
+    {
+      "ITEM_ID": "Z3-026",
+      "ITEM_NAME": "AUDIO_VOLUME_CONTROL",
+      "CATEGORY": "AUDIO_VOLUME_CONTROL",
+      "OWNER_LANE": "SYSTEMS/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "PARTIAL",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "sound.js",
+        "js/e9/top_hud.js",
+        "index.html playback role volume constants"
+      ],
+      "OPEN_REASON": "Architecture has fixed playback levels and global mute, but no user-facing volume control is evidenced.",
+      "DEPENDENCIES": [
+        "existing settings architecture",
+        "Owner V1 settings decision"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Preserve fixed role levels and close only the required user-settings contract; do not invent a mixer."
+    },
+    {
+      "ITEM_ID": "Z3-027",
+      "ITEM_NAME": "MUTE_BEHAVIOR",
+      "CATEGORY": "MUTE_BEHAVIOR",
+      "OWNER_LANE": "SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_APPLICABLE",
+      "PHYSICAL_DEVICE_STATUS": "NOT_APPLICABLE",
+      "OVERALL_STATUS": "COMPLETE",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "sound.js",
+        "js/e9/top_hud.js",
+        "js/game/cinematic_replay.js"
+      ],
+      "OPEN_REASON": "",
+      "DEPENDENCIES": [
+        "SFX.muted global behavior"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Keep all future Zone 3 audio paths mute-aware and replay-safe."
+    },
+    {
+      "ITEM_ID": "Z3-028",
+      "ITEM_NAME": "SUBTITLE_VISIBILITY",
+      "CATEGORY": "SUBTITLE_VISIBILITY",
+      "OWNER_LANE": "JOURNEY/QUALITY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "NOT_YET_TESTED",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "index.html caption rendering",
+        "assets/e10/i18n/zone3/zone3-cinematic-subtitles.json",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "Caption rendering exists, but final Zone 3 visibility across locale, replay, missing voice, and reduced motion is not accepted.",
+      "DEPENDENCIES": [
+        "global caption behavior",
+        "final Journey runtime",
+        "QA flows"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Add focused acceptance for subtitle visibility without changing subtitle content or authority."
+    },
+    {
+      "ITEM_ID": "Z3-029",
+      "ITEM_NAME": "LOCALE_SWITCHING",
+      "CATEGORY": "LOCALE_SWITCHING",
+      "OWNER_LANE": "JOURNEY/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "PARTIAL",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "5fd9def812c230aa7089a8388be932bea8e7d0f7"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "i18n.js",
+        "assets/e10/i18n/zone3/zone3-cinematic-subtitles.json",
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json"
+      ],
+      "OPEN_REASON": "Shell supports en/zh, but final en-US content is pending _007 and final Zone 3 locale parity is incomplete.",
+      "DEPENDENCIES": [
+        "en-US _007",
+        "zh-TW checkpoint",
+        "no cross-language fallback"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Ensure locale switching changes presentation only and issues no reward, progression, or completion mutation."
+    },
+    {
+      "ITEM_ID": "Z3-030",
+      "ITEM_NAME": "REPLAY",
+      "CATEGORY": "REPLAY",
+      "OWNER_LANE": "SYSTEMS/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "5fd9def812c230aa7089a8388be932bea8e7d0f7"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "js/game/cinematic_replay.js",
+        "index.html replay functions",
+        "tests/test_w1_03_journey_zone3_vertical_slice_wiring.py"
+      ],
+      "OPEN_REASON": "Authority-safe generic replay exists, but final ten-shot image/audio/VFX parity is not canonical and the replay real-click final-return assertion remains open.",
+      "DEPENDENCIES": [
+        "final content packages",
+        "replay presentation contract"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Preserve locale, subtitle, voice, image, SFX, ambience, VFX, and transition while proving no reward/clear/unlock/Lord mutation."
+    },
+    {
+      "ITEM_ID": "Z3-031",
+      "ITEM_NAME": "REDUCED_MOTION",
+      "CATEGORY": "REDUCED_MOTION",
+      "OWNER_LANE": "JOURNEY/QUALITY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "index.html reduced-motion CSS",
+        "css/e9/zone3_vertical_slice.css",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "Global reduced-motion behavior and candidate rules exist, but all final Zone 3 effects are not integrated and accepted.",
+      "DEPENDENCIES": [
+        "final VFX/camera/transition layers",
+        "global prefers-reduced-motion"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Ensure every new Zone 3 animation honors the existing reduced-motion control."
+    },
+    {
+      "ITEM_ID": "Z3-032",
+      "ITEM_NAME": "ASSET_FAILURE_FALLBACK",
+      "CATEGORY": "ASSET_FAILURE_FALLBACK",
+      "OWNER_LANE": "WORLD/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "39c587a216f6cc13efe572066d9d8f0299960f1b",
+        "8fa4184e775517403f66a3d56e7357d3470e67cf",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "tests/test_w1_01_zone3_10shot_asset_ingestion.py",
+        "tests/test_w1_02_zone3_lord_final_asset_ingestion_005.py",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "Candidate package rejection and same-identity fallback are tested, but final canonical runtime failure paths are open.",
+      "DEPENDENCIES": [
+        "final asset manifests",
+        "Journey integration",
+        "server authority"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Reject missing/hash-invalid/duplicate assets and degrade presentation only; never mutate Zone, reward, item, Lord, or mastery state."
+    },
+    {
+      "ITEM_ID": "Z3-033",
+      "ITEM_NAME": "AUDIO_FAILURE_FALLBACK",
+      "CATEGORY": "AUDIO_FAILURE_FALLBACK",
+      "OWNER_LANE": "JOURNEY/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "5fd9def812c230aa7089a8388be932bea8e7d0f7",
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
+        "tests/test_w1_03_journey_zone3_final_audio_production.py",
+        "tests/test_w1_01_world_zone3_presentation_fx_preflight.py"
+      ],
+      "OPEN_REASON": "Subtitle-only missing-voice policy is complete, but final ambience/SFX/BGM package integration is open.",
+      "DEPENDENCIES": [
+        "locale-scoped audio manifest",
+        "final audio packages",
+        "autoplay policy"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Make missing voice/SFX/ambience/BGM local presentation failures with no cross-language voice or gameplay mutation."
+    },
+    {
+      "ITEM_ID": "Z3-034",
+      "ITEM_NAME": "SCENE_CLEANUP",
+      "CATEGORY": "SCENE_CLEANUP",
+      "OWNER_LANE": "JOURNEY/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "COMPLETE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "index.html _stopIntroFilm",
+        "js/e9/shell.js",
+        "js/game/cinematic_replay.js",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "Generic cleanup is implemented and tested, but explicit Zone 3 route-change/resource-owner coverage is not closed.",
+      "DEPENDENCIES": [
+        "final runtime resource owner",
+        "route lifecycle",
+        "all future media/VFX"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Cover loops, timers, animation frames, particles, listeners, temporary DOM, and media on shot/exit/replay/route changes."
+    },
+    {
+      "ITEM_ID": "Z3-035",
+      "ITEM_NAME": "MOBILE_PERFORMANCE",
+      "CATEGORY": "MOBILE_PERFORMANCE",
+      "OWNER_LANE": "QUALITY/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "PARTIAL",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "index.html responsive cinematic styles",
+        "css/e9/zone3_vertical_slice.css",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "Responsive safeguards and candidate automation exist, but no measured final Zone 3 device profile is accepted.",
+      "DEPENDENCIES": [
+        "final integrated package",
+        "desktop/iPad/iPhone test matrix"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Measure animation cost, particle count, audio concurrency, memory cleanup, and blur/filter cost on required device classes."
+    },
+    {
+      "ITEM_ID": "Z3-036",
+      "ITEM_NAME": "PHYSICAL_DEVICE_ACCEPTANCE",
+      "CATEGORY": "PHYSICAL_DEVICE_ACCEPTANCE",
+      "OWNER_LANE": "QUALITY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "NOT_APPLICABLE",
+      "INTEGRATION_STATUS": "PENDING_EXTERNAL_TASK",
+      "AUTOMATED_QA_STATUS": "NOT_YET_TESTED",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "MISSING",
+      "EVIDENCE_HEAD": [
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md",
+        "docs/quality/w1_05_wave1_acceptance_matrix.md"
+      ],
+      "OPEN_REASON": "No physical iPad or iPhone acceptance evidence exists; this is a required later gate.",
+      "DEPENDENCIES": [
+        "integrated candidate",
+        "physical devices",
+        "Owner QA"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Run and record iPad landscape, iPad portrait, and iPhone/mobile acceptance."
+    },
+    {
+      "ITEM_ID": "Z3-037",
+      "ITEM_NAME": "AUTOMATED_ASSET_QA",
+      "CATEGORY": "AUTOMATED_ASSET_QA",
+      "OWNER_LANE": "QUALITY/WORLD/HERO",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "NOT_APPLICABLE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_APPLICABLE",
+      "PHYSICAL_DEVICE_STATUS": "NOT_APPLICABLE",
+      "OVERALL_STATUS": "COMPLETE",
+      "EVIDENCE_HEAD": [
+        "39c587a216f6cc13efe572066d9d8f0299960f1b",
+        "8fa4184e775517403f66a3d56e7357d3470e67cf",
+        "00dd5e07e67f2a83e9eb5a06b04d498e72af2e6d",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "tests/test_w1_01_zone3_10shot_asset_ingestion.py",
+        "tests/test_w1_01_world_zone3_presentation_fx_preflight.py",
+        "tests/test_w1_02_zone3_lord_final_asset_ingestion_005.py"
+      ],
+      "OPEN_REASON": "",
+      "DEPENDENCIES": [
+        "candidate manifests"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Retain hash, dimension, missing, duplicate, and package-boundary tests at final integration."
+    },
+    {
+      "ITEM_ID": "Z3-038",
+      "ITEM_NAME": "AUTOMATED_RUNTIME_QA",
+      "CATEGORY": "AUTOMATED_RUNTIME_QA",
+      "OWNER_LANE": "QUALITY/JOURNEY/SYSTEMS",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "NOT_APPLICABLE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_APPLICABLE",
+      "PHYSICAL_DEVICE_STATUS": "NOT_APPLICABLE",
+      "OVERALL_STATUS": "COMPLETE",
+      "EVIDENCE_HEAD": [
+        "616d51b17abe010de1e862382ca4db7bec65936f",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "5fd9def812c230aa7089a8388be932bea8e7d0f7",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "tests/test_e055_zone3_vertical_slice.py",
+        "tests/test_w1_03_journey_zone3_vertical_slice_wiring.py",
+        "tests/test_w1_03_journey_zone3_final_audio_production.py"
+      ],
+      "OPEN_REASON": "",
+      "DEPENDENCIES": [
+        "canonical authority",
+        "candidate focused suites"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Rerun focused suites after integration; do not use broad historical harness debt as a substitute."
+    },
+    {
+      "ITEM_ID": "Z3-039",
+      "ITEM_NAME": "REAL_BROWSER_QA",
+      "CATEGORY": "REAL_BROWSER_QA",
+      "OWNER_LANE": "QUALITY/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "NOT_APPLICABLE",
+      "INTEGRATION_STATUS": "PARTIAL",
+      "AUTOMATED_QA_STATUS": "PARTIAL",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_APPLICABLE",
+      "OVERALL_STATUS": "PARTIAL",
+      "EVIDENCE_HEAD": [
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf",
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "dddefed7b27ee17d65aba89823a47b0e0bd0d0ad"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md",
+        "tests/e2e/run_w1_03_journey_zone3_vertical_slice_wiring.mjs"
+      ],
+      "OPEN_REASON": "Playwright infrastructure is available at dddefed7b27ee17d65aba89823a47b0e0bd0d0ad and Zone 3 browser execution is PARTIAL. Three product-test debts remain: E9 layout, E9 fetch, and the replay real-click final-return assertion. These are product-test gaps, not infrastructure failures.",
+      "DEPENDENCIES": [
+        "integrated candidate",
+        "E9 layout and fetch product-test closure",
+        "replay real-click final-return assertion",
+        "Owner browser matrix"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Close E9 layout and fetch product tests plus the replay real-click final-return assertion, then complete the remaining desktop, iPad landscape/portrait, mobile, media, locale, and replay browser flows."
+    },
+    {
+      "ITEM_ID": "Z3-040",
+      "ITEM_NAME": "PERCEPTUAL_AUDIO_QA",
+      "CATEGORY": "PERCEPTUAL_AUDIO_QA",
+      "OWNER_LANE": "QUALITY/JOURNEY",
+      "V1_REQUIRED": true,
+      "CONTENT_STATUS": "NOT_APPLICABLE",
+      "INTEGRATION_STATUS": "COMPLETE",
+      "AUTOMATED_QA_STATUS": "COMPLETE",
+      "HUMAN_QA_STATUS": "NOT_YET_TESTED",
+      "PHYSICAL_DEVICE_STATUS": "NOT_YET_TESTED",
+      "OVERALL_STATUS": "MISSING",
+      "EVIDENCE_HEAD": [
+        "f77bce46302974c8a8aa9d296ae0ea548a707691",
+        "6522b776ab839b40e8b1a8a3eadc3e6a5eab4edf"
+      ],
+      "EVIDENCE_PATH_OR_TEST": [
+        "tools/e10_zone3_audio/zone3_voice_audition_manifest.json",
+        "docs/quality/w1_05_zone3_vertical_slice_acceptance_matrix.md",
+        "tests/test_w1_03_journey_zone3_final_audio_production.py"
+      ],
+      "OPEN_REASON": "Technical manifest/decode checks pass, but Owner perceptual listening acceptance is not tested.",
+      "DEPENDENCIES": [
+        "Owner audition",
+        "final audio package",
+        "physical playback"
+      ],
+      "MINIMUM_CLOSURE_SCOPE": "Complete human review for dialogue, ambience, SFX, BGM, fallback, and locale correctness."
+    }
+  ],
+  "NO_IMPLEMENTATION": {
+    "FILES_CHANGED": "AUDIT_DOCS_AND_MACHINE_READABLE_MATRIX_ONLY",
+    "APP_PY_CHANGED": false,
+    "RUNTIME_PRODUCT_FILES_CHANGED": false,
+    "GAMEPLAY_AUTHORITY_CHANGED": false,
+    "MERGE": false,
+    "DEPLOY": false,
+    "PRODUCTION_MUTATED": false
+  },
+  "STATUS": "PASS_ZONE3_40ITEM_DOD_EVIDENCE_RECONCILED"
+}
