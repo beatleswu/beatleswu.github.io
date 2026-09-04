@@ -37,6 +37,22 @@ RUNTIME_DEFECT_RECONCILIATION_PATHS = {
     "tests/e2e/run_e9_layout_contract.mjs",
     "tests/test_e10_replay_story_button_hotfix.py",
 }
+# W1-03 final-QA blocker repair 011 is bounded to the presentation/static
+# closure and its explicit regression contracts. Keep this list exact so the
+# historical lane guard cannot be satisfied by broad path exceptions.
+QA_BLOCKER_REPAIR_PATHS = {
+    "css/e9/reference_world_map.css",
+    "css/e9/zone3_presentation_fx.css",
+    "deploy/canonical-e10-zone3-static-pack-manifest.json",
+    "deploy/live-static-asset-inventory.json",
+    "index.html",
+    "js/e9/right_cards.js",
+    "js/e9/world_stage.js",
+    "scripts/release/generate_zone3_static_pack_manifest.py",
+    "tests/deployment/test_static_release_tooling.py",
+    "tests/test_release_fix_a2_asset_closure.py",
+    "tests/test_w1_03_journey_zone3_final_qa_blocker_repair.py",
+}
 WORLD_CANDIDATE = "39c587a216f6cc13efe572066d9d8f0299960f1b"
 WORLD_MANIFEST = ROOT / "assets" / "e10" / "art" / "zone3" / "zone3-world-asset-package.json"
 CINEMATIC_MANIFEST = (
@@ -71,7 +87,7 @@ def accepted_authority_paths() -> set[str]:
             check=True,
         )
         paths.update(normalized_path(item) for item in result.stdout.splitlines() if item)
-    return paths | INTEGRATION_PATHS | RUNTIME_DEFECT_RECONCILIATION_PATHS
+    return paths | INTEGRATION_PATHS | RUNTIME_DEFECT_RECONCILIATION_PATHS | QA_BLOCKER_REPAIR_PATHS
 
 
 def git_bytes(ref: str, path: str) -> bytes:

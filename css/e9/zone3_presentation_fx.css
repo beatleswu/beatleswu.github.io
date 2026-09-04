@@ -16,6 +16,17 @@
     background: #101b1d;
 }
 
+/* The shared cinematic host is an absolute, full-viewport slot.  Keep the
+   Zone 3 FX contract from changing that host into a zero-sized flow box:
+   controls and active-shot geometry must remain anchored to the overlay,
+   while the FX layer itself stays presentation-only. */
+.z3-fx-stage.intro-film-stage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
 .z3-fx-stage > [data-z3-camera-target] {
     position: relative;
     z-index: 0;

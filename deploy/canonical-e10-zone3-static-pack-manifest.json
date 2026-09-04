@@ -1,0 +1,1948 @@
+{
+  "$schema_note": "Canonical governed Zone 3 runtime static closure for QA blocker repair 011. The five first-entry cinematic WebP resources were present in the source checkout but absent from the failed image package; this closure also stages the complete Zone 3 runtime media/data set. Source JPEG/PNG masters are never staged.",
+  "manifest_version": "1.0.0",
+  "generated_for": "W1_03_JOURNEY_ZONE3_FINAL_QA_BLOCKER_REPAIR_011",
+  "source_head": "65dd8c00f217fc04942456d5b1dd02f52fc8f265",
+  "source_tree": "e227201cd0e12eeb0c82a15f5d46d45bf66397e9",
+  "prefix": "assets/e10/",
+  "total_files": 235,
+  "total_bytes": 28199521,
+  "curated_missing_resources": [
+    {
+      "resource_path": "assets/e10/art/zone3/cinematic/zone3_shot01.webp",
+      "source_present": true,
+      "candidate_manifest_present": false,
+      "image_present": false,
+      "static_package_present": true,
+      "runtime_requested": true,
+      "omission_origin": "PACKAGE_MANIFEST"
+    },
+    {
+      "resource_path": "assets/e10/art/zone3/cinematic/zone3_shot02.webp",
+      "source_present": true,
+      "candidate_manifest_present": false,
+      "image_present": false,
+      "static_package_present": true,
+      "runtime_requested": true,
+      "omission_origin": "PACKAGE_MANIFEST"
+    },
+    {
+      "resource_path": "assets/e10/art/zone3/cinematic/zone3_shot03.webp",
+      "source_present": true,
+      "candidate_manifest_present": false,
+      "image_present": false,
+      "static_package_present": true,
+      "runtime_requested": true,
+      "omission_origin": "PACKAGE_MANIFEST"
+    },
+    {
+      "resource_path": "assets/e10/art/zone3/cinematic/zone3_shot04.webp",
+      "source_present": true,
+      "candidate_manifest_present": false,
+      "image_present": false,
+      "static_package_present": true,
+      "runtime_requested": true,
+      "omission_origin": "PACKAGE_MANIFEST"
+    },
+    {
+      "resource_path": "assets/e10/art/zone3/cinematic/zone3_shot05.webp",
+      "source_present": true,
+      "candidate_manifest_present": false,
+      "image_present": false,
+      "static_package_present": true,
+      "runtime_requested": true,
+      "omission_origin": "PACKAGE_MANIFEST"
+    }
+  ],
+  "source_exclusion": {
+    "excluded_path_segment": "/source/",
+    "excluded_extensions": [
+      ".jpeg",
+      ".jpg",
+      ".png"
+    ],
+    "reason": "source masters are evidence, not runtime delivery bytes"
+  },
+  "files": [
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+      "size": 31056,
+      "sha256": "0f9dc58d7cfe203018d96773da518073f33c596f89e4c1e011b1035a9993055f",
+      "mime": "application/json",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot01.webp",
+      "size": 293626,
+      "sha256": "f689f568dc501452b6c00212d5cec50d341ef2ba5b6059ddb23ebaeebe8eeb8c",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot02.webp",
+      "size": 317118,
+      "sha256": "66dd93e017fa3f20e1e24f7deb1c7375da969384062d4987a7cad83f2d67cda6",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot03.webp",
+      "size": 299144,
+      "sha256": "904d21f0f753eff5f3858d2f1a8c735c18ad35f96be61825977de1ad63180cc1",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot04.webp",
+      "size": 272796,
+      "sha256": "0dc20e776ec12dfe79aed8a988dbe3c7597982354885175a098871e9fda7e431",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot05.webp",
+      "size": 414592,
+      "sha256": "ae506cfa36b766ff94fe0e3cdf690e9da9d9d1231b1eeecaf0db46f90c1d20e9",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot06.webp",
+      "size": 298992,
+      "sha256": "7722c6fe21d066ae6063072ba9e4c7c8e1df91f079711169d904506cc62af065",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot07.webp",
+      "size": 1679490,
+      "sha256": "c1bee63b305635ec4e65b52dc18424b92dddb3c895c38d3582275fccf4f2f780",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot08.webp",
+      "size": 1567524,
+      "sha256": "7209bca8197b18dd498936caeb7d774051fa2733ddce3d7ec45a6cefd43ff238",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot09.webp",
+      "size": 242272,
+      "sha256": "b6d7456a485499f1ef25a32d23ca48ea70402aecb09912157f5d2994d09e739c",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/cinematic/zone3_shot10.webp",
+      "size": 241688,
+      "sha256": "159b843ac507b814dcec91eb020d9dd45d4513de4aa0100d693d4d981f8da7e4",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/environment/zone3_environment_master.webp",
+      "size": 144274,
+      "sha256": "d4c1de8f3e40305f490b52cfcafcca2fced018329fb3ec3e84443cc340b25862",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+      "size": 31410,
+      "sha256": "c391799949568706ee58458421e1ec4c71161d5e3c71a8004ba2485a04e98db6",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/lord_trial/zone3_lord_01_ritual_key_art.webp",
+      "size": 2075572,
+      "sha256": "0cadd81786f9fc76d2555917aca28bffd48326fd76298521e15dddac23cff423",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/lord_trial/zone3_lord_02_challenge_backplate.webp",
+      "size": 1881166,
+      "sha256": "8c465f2f24a8adb15b81b40d2da5ce6bf16b5b73596ca9b4aa12d86163eee2d3",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/lord_trial/zone3_lord_03_failure_backplate.webp",
+      "size": 1767826,
+      "sha256": "73e5760c120f0c3bc0a4b720b7fbc096c6c1abb3d0d1c29a64c52b2d8f4aed0c",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/lord_trial/zone3_lord_04_first_star_success_backplate.webp",
+      "size": 1953140,
+      "sha256": "4cd9570539bf9253da800031c78465f90f18119db85654ced2375a181a15898f",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/lord_trial/zone3_lord_05_lord_portrait.webp",
+      "size": 1787506,
+      "sha256": "18f157d094d3f5bf5807400def5738f43cefa3a5db1b443c71ed18c83edbe35e",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/lord_trial/zone3_lord_06_success_lord_portrait.webp",
+      "size": 1685000,
+      "sha256": "13b4437bd72de85d51ba377264cdb8a11bac40b8e21d3e475cb511b4f19e7827",
+      "mime": "image/webp",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/art/zone3/zone3-world-asset-package.json",
+      "size": 22652,
+      "sha256": "016bd9e810fe4f4abc841210d0cd825cd1da2cc3be598bf057b44fa143dbd4c4",
+      "mime": "application/json",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/ambience/zone3_ambience_cave_room_tone.mp3",
+      "size": 193141,
+      "sha256": "088d40fe0025ea9c268848a8fdc07fef3edb1f4850a83bc64c9eab228ea9a946",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/ambience/zone3_ambience_distant_cave_wind.mp3",
+      "size": 193141,
+      "sha256": "2c92a9fdc2a7fd8de400a10dc454f7d87be1b3c932bc21b2a9f11f806bc93073",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/ambience/zone3_ambience_family_activity.mp3",
+      "size": 193141,
+      "sha256": "8c6d0f185fce429f6c491e507c461a16e0e65a38fe42dea5d6f59bf9ec9caaa7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/ambience/zone3_ambience_fragile_truce.mp3",
+      "size": 193141,
+      "sha256": "5b037d1f9eedfacbcf599697baff32b6bb06332a27dbe4dc1298693efa7ab84f",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/ambience/zone3_ambience_trial_tension.mp3",
+      "size": 193141,
+      "sha256": "ef3a82737d70081561604ed3c9913c48ea60d2b19b4f4d56c5952388371b6125",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/bgm/zone3_bgm_discovery.mp3",
+      "size": 479862,
+      "sha256": "47d9c6040103ba696d543586636469895b756bd52bc579c56662481874d93d82",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/bgm/zone3_bgm_escalation.mp3",
+      "size": 479862,
+      "sha256": "41885ce8cb22b1311c982894ff0d3850bc73ff37071b6707d039b779e373c97a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/bgm/zone3_bgm_recovery.mp3",
+      "size": 480698,
+      "sha256": "b005fe788623b394fcb68f72998c470164c9b69c96bac355e04314f9044851a5",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot01_b001_en-US_hero.mp3",
+      "size": 53542,
+      "sha256": "0ae7ef3bb19518ed12a9abd336e41ea998f1ae23766a81e71341181d325176b1",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot01_b002_en-US_hero.mp3",
+      "size": 82799,
+      "sha256": "5dff45995f81a777010583f00c2a41d65ace9c7e17255fe1ebdbfe56225c06c4",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot01_b003_en-US_hero.mp3",
+      "size": 29301,
+      "sha256": "a9c7500b81ae4f3cfcf5d96efb9f05920f78c2f5ec65ca0096acfcb0925ee460",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot01_b004_en-US_hero.mp3",
+      "size": 39332,
+      "sha256": "425cfb1f38adc41dfc84ad93e02c68273e7afe6fbd319cc05f79b94755402211",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b001_en-US_hero.mp3",
+      "size": 20106,
+      "sha256": "7b3d53e273c326f58aece1218f82e48af8949789fdc887e8c7c0624c7a3e2bb2",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b002_en-US_hero.mp3",
+      "size": 72768,
+      "sha256": "62215c19c7fb2f7656b7efe19b16aa2e826bc64c9c6e05f85ceaa1f663f4ab21",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b003_en-US_hero.mp3",
+      "size": 41839,
+      "sha256": "db0a203ebc93151203775e81069c5d53820598073f8c8d75c40f552428ea4a00",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b004_en-US_hero.mp3",
+      "size": 40586,
+      "sha256": "4335ef1b8e55342a722466c9ed5c927878610bd6ff1f6ea9461551699ee7ec10",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot02_b005_en-US_hero.mp3",
+      "size": 61066,
+      "sha256": "bd7ca0b0ed94a70432b0e9ddd6c2ed2a1385589f5c784a3d1f7e040a023020ee",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b001_en-US_grik.mp3",
+      "size": 21359,
+      "sha256": "0d7532cf17a29efcee7e7624b48207a91da697e7a88439483c083a0b4dc07df3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b002_en-US_grik.mp3",
+      "size": 33062,
+      "sha256": "661346aeacd8ee62094a1441b797bde0e5baa437b53c0108103d3361bf30c58a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b003_en-US_grik.mp3",
+      "size": 63991,
+      "sha256": "8470a2605b1a1cfdf7bb83ae08d1672f6fa4aa05012585da73fa9e9989e99140",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b004_en-US_hero.mp3",
+      "size": 23031,
+      "sha256": "96d7fe2f813db7ec43d7165d83556dd59b5ce32f23cbed0337a3f4a670083e0e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b005_en-US_hero.mp3",
+      "size": 38078,
+      "sha256": "5d72d0bdd5fe51ee3256ad65a1dfb3bda5d82a05e98c213a5a86b9a98febbb43",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b006_en-US_grik.mp3",
+      "size": 21359,
+      "sha256": "cccbd6e1aed5537c2d60479a2cae5293a78171936ad0ce6c4b0815b638816347",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b007_en-US_grik.mp3",
+      "size": 28047,
+      "sha256": "b4ad5ecda6ea0ad9776f2480056a7013ddf4ad6c1a603956021dcca18c74eae1",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b008_en-US_hero.mp3",
+      "size": 36824,
+      "sha256": "4d3ecb6e153a3fe5191f4cbcf63cd135d0b320856f801e3c4b7292d443f7812b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b009_en-US_grik.mp3",
+      "size": 57304,
+      "sha256": "6556864fa4dae9e8a4a6e97247973466853b983734a0a17591cdf3e423d33fec",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b010_en-US_grik.mp3",
+      "size": 12582,
+      "sha256": "75d95aaa6800a00c85b6f6afe71892e2a7dd6041d274074f3c706ac3e3461535",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot03_b011_en-US_grik.mp3",
+      "size": 65245,
+      "sha256": "0d559d7ee432ea4dbfdf042a9f33ee8aae3a8e2acacd75dbdcee4f90981fadc2",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b001_en-US_grik.mp3",
+      "size": 44765,
+      "sha256": "b82520dc99c13ecd6989d502ccc115a3d43320cb264d53366fbd32450464631e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b002_en-US_grik.mp3",
+      "size": 58558,
+      "sha256": "f348594e7fa3bf9a7344a37f17002c444c17a2f8443070b310f5595e1bf2d360",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b003_en-US_grik.mp3",
+      "size": 31808,
+      "sha256": "47e2fb72f7cf87ac59cdb2f115117a7004193b294ef76b63e8f035d38612e2a0",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b004_en-US_grik.mp3",
+      "size": 26793,
+      "sha256": "dd1beb46ae2e8b2e6b9a096d3cb65adb0eb07941944c88611ff39c785d902ee9",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b005_en-US_grik.mp3",
+      "size": 28047,
+      "sha256": "126201650ac4f7c90c74664812d5f720749aefe6ad589d0891d8a8be01b9fe7b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b006_en-US_grik.mp3",
+      "size": 44765,
+      "sha256": "5b3a7ae354db033a285fa68a7620e7277f84e5b11e0a31ae001822e23a80d3ca",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b007_en-US_grik.mp3",
+      "size": 39332,
+      "sha256": "2293b4dbd79fda2b749824d23758eea82d6bb25071d9445ccadd1edae485bdbd",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b008_en-US_hero.mp3",
+      "size": 44765,
+      "sha256": "8002ed32f5b23c81179b2f8003514d22f9bd97370f772732b1ff0019d8e3210f",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot04_b009_en-US_hero.mp3",
+      "size": 56050,
+      "sha256": "b46875f405fedb08c6cfbd74ba1218a2e70b28d69dd54423622305315d92ec01",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b001_en-US_hero.mp3",
+      "size": 26793,
+      "sha256": "5fe22f11720248b17a3fc40133a215ebb6334105763ebe117e82e0c4467d808d",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b002_en-US_grik.mp3",
+      "size": 31808,
+      "sha256": "f4a639fdafbebe3cda33c9f6b0f063d62e1f178a784ef19578f7af30c8b72346",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b003_en-US_grik.mp3",
+      "size": 33062,
+      "sha256": "dca172a7a73a44fd2132d96265ff5f265dab58b3dcbed62dd2016d573df7a46c",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b004_en-US_grik.mp3",
+      "size": 54796,
+      "sha256": "00a7e6140e202db0bc0deec999baf6e2687d8bf9720f12bff3f718bf3d5baa7e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b005_en-US_hero.mp3",
+      "size": 36824,
+      "sha256": "e4d91213aae2ef8f2ac3301de1556d2d95f932c5f3a376db37065fc4f5a97846",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b006_en-US_hero.mp3",
+      "size": 52288,
+      "sha256": "8a02f84fc5b0a7003d5ebeaaecd81e39d63fa26a8f474d36e9b1d35dbaa9d79e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot05_b007_en-US_hero.mp3",
+      "size": 57304,
+      "sha256": "4610e022d93122c5134df68ad8853459b387e3255731683e622e53b9113fd63c",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b001_en-US_hero.mp3",
+      "size": 24285,
+      "sha256": "ee61d6b40cd3525900b1092749cd51049dc94b0d8d7c66c387ceeae19c1a5612",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b002_en-US_centurion.mp3",
+      "size": 58558,
+      "sha256": "c65e7d146e4d93fbc57bb339df571f610fb1c5e3dee0cd917aa8503ddb837b27",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b003_en-US_centurion.mp3",
+      "size": 25539,
+      "sha256": "306d7d0c3df8afc42d53c2f3834b05bd67d770ad0de1f2f7cd4ad431bb611e06",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b004_en-US_centurion.mp3",
+      "size": 106205,
+      "sha256": "295202017dcd4c1a2253833ff782f3fbbffe1e7091decfa884298bb200acac61",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b005_en-US_hero.mp3",
+      "size": 59812,
+      "sha256": "488f592725931a3649dec168b5fc597ef8538719f465c91935c9b01c26a7a7f3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b006_en-US_centurion.mp3",
+      "size": 47273,
+      "sha256": "ac6573a0a7be678972a2fadb5e38c591f758b75faf37f0f7cd5d3aeda3343263",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b007_en-US_centurion.mp3",
+      "size": 52288,
+      "sha256": "a76bc404157f4e37bfe7defb599dacfbae0b2db81ddf59b18787a41b215f2297",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b008_en-US_centurion.mp3",
+      "size": 62319,
+      "sha256": "ba35183bf6ba116d1fda56190a5f1d3e6cb9b500587cfbd87f6cb26c455b4c31",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot06_b009_en-US_centurion.mp3",
+      "size": 38078,
+      "sha256": "40954056703e6b95e8800e110185a5f1e6824bc8f07d57ce2049ff41a3843cb3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b001_en-US_centurion.mp3",
+      "size": 28047,
+      "sha256": "397dea64a24144f02c31d272994c9f1ef6d4b9d8d96c680def793c6304456893",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b002_en-US_centurion.mp3",
+      "size": 72768,
+      "sha256": "05c01cac9a56c7e1d8503428ce1a13d9e71b828b9cdaeddb35a021fad15f2af5",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b003_en-US_hero.mp3",
+      "size": 21359,
+      "sha256": "2a1e31ec7aa2c070498b47e96ade9f24b630fb3e9d0641bc57f781e12dbd32fa",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b004_en-US_centurion.mp3",
+      "size": 41839,
+      "sha256": "5ea639cda1c7189b6c5adbb5d43f4e4732c0bf360d0a3d2553e1dbe6c61639cc",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b005_en-US_hero.mp3",
+      "size": 31808,
+      "sha256": "7a3a76c59942da0edcff924b95c1b8fd0c1c7af75b3961bb35462a3c660f3012",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b006_en-US_hero.mp3",
+      "size": 52288,
+      "sha256": "1973d382d360def5653e950af742d3f20bb12207754902a8bef6f04066bacb4a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b007_en-US_hero.mp3",
+      "size": 16344,
+      "sha256": "68f372bea542df520178c09503d19dda734d593ac03d6741a7fb224c2f24ea56",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b008_en-US_hero.mp3",
+      "size": 33062,
+      "sha256": "da3fa43a0d40182c53fff96c6bcc698baeb2e13e416dae625391e154eec2afc8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b009_en-US_hero.mp3",
+      "size": 57304,
+      "sha256": "7a3b610ab0a2ed5d5b281131259f4dcc2449d25b6b7b2ef72c36a5f24474606a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b010_en-US_centurion.mp3",
+      "size": 23031,
+      "sha256": "648fbef869f9415a65a9781405a946d8ac94e68118433d85057b31d680b94e98",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b011_en-US_centurion.mp3",
+      "size": 20106,
+      "sha256": "79b16c07ea45bcc09caa0c006b926633ecc656509d509b87c05ae5493651b7f3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot07_b012_en-US_centurion.mp3",
+      "size": 41839,
+      "sha256": "ad1d0d3576b50a844045f99793be721822b80e361371c2501e7d1d967c007cac",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b001_en-US_centurion.mp3",
+      "size": 61066,
+      "sha256": "4c26cce4ecad1cb04064db3bf4a44d0c9190712ebd06d596bca51cce2a00db29",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b002_en-US_centurion.mp3",
+      "size": 67753,
+      "sha256": "871ba2ea5e4cef0e3abe718056612056c4b2bd019095566a9243cc1dca01b053",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b003_en-US_hero.mp3",
+      "size": 17598,
+      "sha256": "662fd09ebe7034c5417de0e82e519a98558582be90e4cbbaf06b6a12cdf9b528",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b004_en-US_hero.mp3",
+      "size": 44765,
+      "sha256": "de5caadb142bfe69670e4ff8018dc426be66920f77378216eb914042df710c4b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b005_en-US_centurion.mp3",
+      "size": 79038,
+      "sha256": "ff184106c966cead06f3e2031434ba47736e2a71d1492c88b1f40d97b2f3d0dd",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b006_en-US_centurion.mp3",
+      "size": 30555,
+      "sha256": "303f3bc5dc525b970d09efa3a1e3765c11d2626ed40aa8b6b220c4079af0e482",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b007_en-US_centurion.mp3",
+      "size": 65245,
+      "sha256": "d41933d788ed89310779bc5bbf1bcaa9fa111b47fcd0e6b9533c375eb5c7d3ac",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b008_en-US_grik.mp3",
+      "size": 48527,
+      "sha256": "e82461344de833dc57464bd2697b3cc9c8591cba8c6161fdbc1573f3239051cb",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b009_en-US_centurion.mp3",
+      "size": 56050,
+      "sha256": "d6475abb5a0f0a6d4008eff4f394efc30ddc8bc0ae67f03bf32b1e0848ed7f58",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b010_en-US_hero.mp3",
+      "size": 29301,
+      "sha256": "4bf6f32ade156949ed2940fdf535bbad17ff957dbfd802e23dd8073319ce031e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot08_b011_en-US_hero.mp3",
+      "size": 53542,
+      "sha256": "589944bdff218f077d9a0241e2d63b487bd0ec79a0b6ec0e01868c9b9bb90ecf",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b001_en-US_grik.mp3",
+      "size": 23031,
+      "sha256": "2d4f7f251dc7100a32d5d0967f60665af529350a385c8b20d8ed62b9482ee58a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b002_en-US_hero.mp3",
+      "size": 11328,
+      "sha256": "d46b7e741e36c7c4b2a0e33a3e1f38d86c4c7c58eef4c5961905b03c64161e9a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b003_en-US_grik.mp3",
+      "size": 23031,
+      "sha256": "1d0ca0d9695e658e5aaeefb9f84d59414d994fb06a7df4acbe16c8545c5aad78",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b004_en-US_grik.mp3",
+      "size": 51035,
+      "sha256": "b2a4b9a104e0ed664e8ed591d31fb75ba5756886d8550f0c95f7c1317178792b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b005_en-US_grik.mp3",
+      "size": 44765,
+      "sha256": "12e67ab0a2621830d0d1036cbbfa46aae766b53210de7aca4a2919e143c35f84",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b006_en-US_grik.mp3",
+      "size": 44765,
+      "sha256": "681b97e7cbe91c18c16767a4a140ae282c1339cd8a515f43ed34a5d3e75901f2",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b007_en-US_grik.mp3",
+      "size": 41839,
+      "sha256": "a5b6a16706bd8ce44317922f38b61c598c4c4bc0c4c017c7e7ab3edd9799b7fb",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b008_en-US_hero.mp3",
+      "size": 28047,
+      "sha256": "4c02d01030c29c3bca5c62f9cdcc7adb8f9c59d247a95bb3768e9343d8e91b74",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b009_en-US_grik.mp3",
+      "size": 18852,
+      "sha256": "49d5f7bc40ea67367ba9ee33d9340d1b6e61b4859f7191955de8de557faa5fbc",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b010_en-US_grik.mp3",
+      "size": 34316,
+      "sha256": "8097c9767ac196631a76810c2e747540f261e6464c870e6641d87d091bd79414",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b011_en-US_grik.mp3",
+      "size": 46019,
+      "sha256": "04244bf9ab81587cc8593456218b2b134968aa33646c5f8c6517b00003742284",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b012_en-US_grik.mp3",
+      "size": 52288,
+      "sha256": "92cf5b2039c3718cc3a7726e60bbcdeae719c999d0dd09afa7ed5c302293763e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b013_en-US_hero.mp3",
+      "size": 16344,
+      "sha256": "e1dbf018cd0b7914f004dfb252acc0c72f7e15458ad63c4c1c27608cbe5d8b67",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot09_b014_en-US_hero.mp3",
+      "size": 41839,
+      "sha256": "9645f584bb441aafbbc944ef171697ee0177f55d57575cc3af8b981657a1b34d",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b001_en-US_hero.mp3",
+      "size": 43511,
+      "sha256": "d3b428cd1683f507492be0abe730f997595e72119e3b89954696562c2955bba0",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b002_en-US_grik.mp3",
+      "size": 20106,
+      "sha256": "75c85fb739f63f65983c0a2b6b7ad126a8d596fc8481ffb9211b4f6d7577445d",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b003_en-US_grik.mp3",
+      "size": 47273,
+      "sha256": "a40295187a15984df74df72c9b563936da26d9c170630687a08462e445320b87",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b004_en-US_grik.mp3",
+      "size": 67753,
+      "sha256": "d32481390126438323e191a5f0559dbe4289ff7f895f226874b58da938834edd",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b005_en-US_grik.mp3",
+      "size": 52288,
+      "sha256": "5401fbf3b77f27424a406f3a05b3a127a44d189edc82371598072a8811ab3423",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b006_en-US_grik.mp3",
+      "size": 34316,
+      "sha256": "e54909eb7681a7a02778cdd2d7fd8f2ec9b2ca325dc10f83912808068e3842bf",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b007_en-US_grik.mp3",
+      "size": 46019,
+      "sha256": "06bbf7e89a116193458e58e7e4f35a5871c0133fe22ee38d2b7436598f8e1c76",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b008_en-US_hero.mp3",
+      "size": 38078,
+      "sha256": "7bfa645b4bcd39a4b2fad1cc7af6076662df4618b30a6198aa69baf6c1fac808",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b009_en-US_hero.mp3",
+      "size": 52288,
+      "sha256": "3294bd0d923a3d7ad10566e25e3e821511ada8144581aabb31845c780830fbaf",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b010_en-US_hero.mp3",
+      "size": 28047,
+      "sha256": "b25efed049385a28392bc756685799d2052ef2ba1c92de280ab6ec10f32ce79e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b011_en-US_hero.mp3",
+      "size": 10075,
+      "sha256": "e3e2c9641dfb0bf332131ed228bfe891b1d2c80a57bde336f028fa1b8961d064",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b012_en-US_hero.mp3",
+      "size": 48527,
+      "sha256": "57339b0113e60e5f16883fb51aba9041de1f51e905bdf3d84233c11937ea16b6",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b013_en-US_hero.mp3",
+      "size": 33062,
+      "sha256": "2dd61c998025ea0de79002ae12d6b9fc2ed327a5b2dbe3c5d98b42899281f1bc",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b014_en-US_grik.mp3",
+      "size": 23031,
+      "sha256": "9c6c7be5f5dd78fc1f46545a478f51326745f9ba7f4d78aadc733d62796676b0",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/en-US/zone3_shot10_b015_en-US_grik.mp3",
+      "size": 30555,
+      "sha256": "3c7b9c5695fcbda83cd5c114aabb11a1048ce4d68a13d95020c521e843c40a50",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b001_zh-TW_hero.mp3",
+      "size": 43511,
+      "sha256": "85bd076c1d0cfc202f6a96bf1b6d8e8d7592e6a71ef150a669e79280fbe45d27",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b002_zh-TW_hero.mp3",
+      "size": 56050,
+      "sha256": "dabc232a707a87adcdb0088dfeac354ffc785f84d79cac2547108bfce6f8c5eb",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3",
+      "size": 23031,
+      "sha256": "cbaf2f668c66949899af4812d92b4d150ba89252feafb060e1a7814f180a63f4",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b004_zh-TW_hero.mp3",
+      "size": 49781,
+      "sha256": "290dfbbebd0e8793111c250697dbc5825def2ff8aaa47be03bf3092830c94348",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b001_zh-TW_hero.mp3",
+      "size": 23031,
+      "sha256": "77d151fbbf524a47c0ac658e50ab881b210eba102c8452d5197c6183a4992830",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b002_zh-TW_hero.mp3",
+      "size": 74022,
+      "sha256": "fb6197015a33d57744708ba63706bc6aae911ea27318322816c08222e4fb2e36",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b003_zh-TW_hero.mp3",
+      "size": 39332,
+      "sha256": "d4dfc112f1e0a1e636969c0387c4f341588abb96a7bfe8d78d604ea6d8e0aa30",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3",
+      "size": 36824,
+      "sha256": "587484800e84daf167107f6f781507b49d98aec9365591390905e6cae1a9f083",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b005_zh-TW_hero.mp3",
+      "size": 56050,
+      "sha256": "3a4806b419adedcc29804e71e8003f0632860502226454dada2012b37368de77",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b001_zh-TW_grik.mp3",
+      "size": 20106,
+      "sha256": "8538a9689b65cd59e19e888a566fc62fe4acddb843cbca178e5286652329a9ed",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b002_zh-TW_grik.mp3",
+      "size": 35570,
+      "sha256": "51811813818d60a15995fd9b041021cb2a9210f540af42aed3d56a396ecad7a3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b003_zh-TW_grik.mp3",
+      "size": 54796,
+      "sha256": "1385c1e470110b11d7239d981c2da5ece5d49b4c54dc916f82d73a4f310d8528",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b004_zh-TW_hero.mp3",
+      "size": 24285,
+      "sha256": "7708d89260a400cf55ce33ca332b0bfd32f1b9b5bcca9cb6b6ebb7a89b12fa6b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b005_zh-TW_hero.mp3",
+      "size": 51035,
+      "sha256": "e30fd0245a2271e5ce25140de7ef497e4b6fc87d6a1da8d8126209e8538e253c",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b006_zh-TW_grik.mp3",
+      "size": 24285,
+      "sha256": "af31827fa1147c6a5071e439e6be90fb7f2aea9e6749b5d15a7a0ec1170cba10",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b007_zh-TW_grik.mp3",
+      "size": 31808,
+      "sha256": "7e1a93c4aeed46a0e4c009eabb91ce363b3ac1be84f7cda511c17cd16dc57e45",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b008_zh-TW_hero.mp3",
+      "size": 30555,
+      "sha256": "d5ee7543bdbeb11f29aa7ea90fdc7dbbc902692565e52486b0b76e36ac2992c8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b009_zh-TW_grik.mp3",
+      "size": 70261,
+      "sha256": "0025dddd67a2700b3d6c4559509e7294ed23eaecfdaf08e9b25585e7f1d20ab0",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b010_zh-TW_grik.mp3",
+      "size": 21359,
+      "sha256": "07b4df505db1c638263609dac0c09597139238a7a4504a99801a82b56c0b9b6e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot03_b011_zh-TW_grik.mp3",
+      "size": 72768,
+      "sha256": "1323872988fdb8939a45e6ad479a0e7b698266b29b82b0707be936f588b3601f",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b001_zh-TW_grik.mp3",
+      "size": 40586,
+      "sha256": "77a985c1c15ceab3babb07c1fd95b99980cc29ca9cd070156a04ef2bcf23d68f",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b002_zh-TW_grik.mp3",
+      "size": 49781,
+      "sha256": "dceed91c9e2642ec14a8bcbd1198fbd912c4a73b2263faca3595c13a0b54ccf7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b003_zh-TW_grik.mp3",
+      "size": 31808,
+      "sha256": "f46e3d7db4d1ba69f63a3021e62888415c97303133fd7d69c80459466e185830",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b004_zh-TW_grik.mp3",
+      "size": 38078,
+      "sha256": "50e469cd771f1f01b5e1da8c3a8ee3e8aaeaac4c9f7c04875fe032d14e215fba",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b005_zh-TW_grik.mp3",
+      "size": 29301,
+      "sha256": "3b7546cbbc24135a89c9abdc3b8cdaa8b2df6e71d123dd54bb26c35d4106df93",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b006_zh-TW_grik.mp3",
+      "size": 41839,
+      "sha256": "d01212c7188d9356abfde2f929f04efb51ead23162e65e238f2d73c143a54a4b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b007_zh-TW_grik.mp3",
+      "size": 43511,
+      "sha256": "325d77a7ffe79e2853e240a5544b0246d8f1eb6ffa4f1056613443ddc0a34007",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b008_zh-TW_hero.mp3",
+      "size": 36824,
+      "sha256": "44d29f6657705c830f9f95122d59f483a9bccb206184e7829b1bb3cfb2ea1b15",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot04_b009_zh-TW_hero.mp3",
+      "size": 61066,
+      "sha256": "2753de201f185b3a8216f7584a27d6117221448f5a63dccb7156b48b9f1778d7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b001_zh-TW_hero.mp3",
+      "size": 33062,
+      "sha256": "92623dfb3869eba82130fa3211d1f60925ba90aac5d19a94b7db669e000073b8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b002_zh-TW_grik.mp3",
+      "size": 38078,
+      "sha256": "2c01889951400307b294a205b2c1fb89ccb400e5f65883da3b52da07596579df",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b003_zh-TW_grik.mp3",
+      "size": 44765,
+      "sha256": "344354e1b3ecd8ebfb4c705eafc69185e727c960be746273fe78c867c1ae304b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b004_zh-TW_grik.mp3",
+      "size": 52288,
+      "sha256": "99a6764ae45054e6991b230d04eacf8eb04480b7433015c7df8739519fc7c976",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b005_zh-TW_hero.mp3",
+      "size": 47273,
+      "sha256": "ad9c75805c3c0fd4d25360bb104442d4687ab43030b535d434da8683b39f1af4",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b006_zh-TW_hero.mp3",
+      "size": 48527,
+      "sha256": "43df19f38898eb7ae7aeda69ab354f9f78c7c0e24852ef6e6d264c5727ae2a49",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot05_b007_zh-TW_hero.mp3",
+      "size": 54796,
+      "sha256": "e62991221fbe4ddc5106c954963f19c4a55775446a6557050dcc775c98f28d74",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b001_zh-TW_hero.mp3",
+      "size": 25539,
+      "sha256": "2d5ee68b7162a7586cd1d96995b5f06f72645a65ba21aa262e331681ee38bb32",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b002_zh-TW_centurion.mp3",
+      "size": 15090,
+      "sha256": "1b6460a6a4504b570089b1f985263862f3043814557197e220eac51dee0839d2",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b003_zh-TW_centurion.mp3",
+      "size": 29301,
+      "sha256": "b9e43f896fefb379f40befb87b31367d78f3d853ec4ecda4f483a5930f754b95",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b004_zh-TW_centurion.mp3",
+      "size": 79038,
+      "sha256": "cc10f18d423d455b4b6b025b9e590c8eb993b0c1d712931323a1140e0abcc408",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b005_zh-TW_hero.mp3",
+      "size": 62319,
+      "sha256": "3bbe3c3433cbeec9c0a66211485993021c4baa2fdc60addcd7dbdc8c4a93d39c",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b006_zh-TW_centurion.mp3",
+      "size": 62319,
+      "sha256": "25f9f8a46bd912480eedfe1031f54db263287a349936c5d61c28455a0a5b5884",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b007_zh-TW_centurion.mp3",
+      "size": 63991,
+      "sha256": "342b41b72de852d525b51e6190743cc1b5f1ba5557b6c96e71008242167ce889",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b008_zh-TW_centurion.mp3",
+      "size": 48527,
+      "sha256": "9e9e4f39b98b8b9d1a5a6b08b57c4a998c2bf2a542d79c5eea613f051d382e90",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot06_b009_zh-TW_centurion.mp3",
+      "size": 28047,
+      "sha256": "659fcc88e07361241883042ce757bc6cc0e8e8ad3894aa99f9053c3390ebbeb7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b001_zh-TW_centurion.mp3",
+      "size": 28047,
+      "sha256": "6ba289ca0d3f09e7d23ded12c5b5845c36d606c3fecee2bd102bdc18885cd2ea",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b002_zh-TW_centurion.mp3",
+      "size": 91995,
+      "sha256": "e2f96c58aa3296eae2fe669d06d612b5becd5f9e273110691810b6528180e892",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b003_zh-TW_hero.mp3",
+      "size": 34316,
+      "sha256": "d407f9864fbc06e8cf0cf96bc0d8b17dfb6d395ef6bacf374aed46f98b236250",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b004_zh-TW_centurion.mp3",
+      "size": 49781,
+      "sha256": "48fc9954b9c838ea264a691f0550942af801a6036224b3a196580233ea7167f3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b005_zh-TW_hero.mp3",
+      "size": 28047,
+      "sha256": "915a51387720f0adbb086e1c1212a56fae9f07c57f137189b76da54ffec2495b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b006_zh-TW_hero.mp3",
+      "size": 58558,
+      "sha256": "b9c6e8cbc05fc03b2ac2f0fae379dceb6c60a2d8a614cda16e6520c023ca2c85",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b007_zh-TW_hero.mp3",
+      "size": 17598,
+      "sha256": "6d7bf33e31148ac328d075f9a179bd6928305a95d4ead6a5a760b49bbf2a2d07",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b008_zh-TW_hero.mp3",
+      "size": 23031,
+      "sha256": "c93287a8ed311a65393b6b5535ed2b4956d4b3a562bbf1029f85c48d797d5bb9",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b009_zh-TW_hero.mp3",
+      "size": 67753,
+      "sha256": "003e3d0b004126f6a13619f01fd02b727dec5a4a4bdc26b89080d0632d83faa7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b010_zh-TW_centurion.mp3",
+      "size": 16344,
+      "sha256": "af0c76c514a0cf8d49589d48789a6317e467cc6cbf5c35a3a42dbf7ba6014681",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b011_zh-TW_centurion.mp3",
+      "size": 20106,
+      "sha256": "9d13b744588f0bd7ff1848f19ae300e304bdc4d2f999d5ce1ae8c0fcc2bb7d68",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot07_b012_zh-TW_centurion.mp3",
+      "size": 48527,
+      "sha256": "05d368f49dca337afa1f1ff7214dc4e273f6218b44554575428f9d6ca364725d",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b001_zh-TW_centurion.mp3",
+      "size": 23031,
+      "sha256": "d8fa0df43a000a9ab03abc75f1ed845bc0ba5fae78eeacdb3a92d9e4ebfbf9fd",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b002_zh-TW_centurion.mp3",
+      "size": 66499,
+      "sha256": "6f55a97655f85d08c1c14b14d8107e015ad89c33ff665694d63a58f761a44bd8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b003_zh-TW_hero.mp3",
+      "size": 16344,
+      "sha256": "ef03c70f9fec817930a604eefafdba033c6d505b0c99c9c87184ad41edf45dc1",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b004_zh-TW_hero.mp3",
+      "size": 49781,
+      "sha256": "6630396858a58b288b35d9dc7c1db8ff9e0a2448d7db855ce1ef97fdcab90396",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b005_zh-TW_centurion.mp3",
+      "size": 25539,
+      "sha256": "5d249b3bad5001142a7017f0cafe99229464cc592d8f300f988a89d40fd06536",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b006_zh-TW_centurion.mp3",
+      "size": 24285,
+      "sha256": "dfed1927debdd12b2913cf39a77d9157005495bf9420a67a89e040f003e656c3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b007_zh-TW_centurion.mp3",
+      "size": 65245,
+      "sha256": "f6fd0ace3f992cc65485815a2d9ccb64b7f124284e83efa28472ecdea94b778f",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b008_zh-TW_grik.mp3",
+      "size": 44765,
+      "sha256": "00026cc406793d2ee506d45424bec845fabdf2ab2b7ff31063a0f6877e757d21",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b009_zh-TW_centurion.mp3",
+      "size": 28047,
+      "sha256": "4c97d5061ccc834f7fbebbce539123bba1346056d9f0849f8a738adf0fdf4c56",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b010_zh-TW_hero.mp3",
+      "size": 23031,
+      "sha256": "39f852abae480dffe4b16b9ba56a969e3bb50d0225441204a41844e686da6aa1",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot08_b011_zh-TW_hero.mp3",
+      "size": 53542,
+      "sha256": "96b40b2bd920f817225650a3e30d609330f84382e1fe24982a5356d645987ea7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b001_zh-TW_grik.mp3",
+      "size": 15090,
+      "sha256": "0a519654804a623cdbc3a2dca158a41212e23a78b45c9309782c579a99f54d7b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b002_zh-TW_hero.mp3",
+      "size": 15090,
+      "sha256": "c65d73de1a3b0f75117071067c0ac21e60bdfbf6d3ce55d1c7e37cf4f9affad6",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b003_zh-TW_grik.mp3",
+      "size": 23031,
+      "sha256": "f3e2d24e56988b0583abfc6a209c4479381bf897c2d594a9a3ad0a4a1378c170",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b004_zh-TW_grik.mp3",
+      "size": 65245,
+      "sha256": "7721a48884ebafd9378fa8afaa82ee8ea692d6f880754187f9d13a70574aea4a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b005_zh-TW_grik.mp3",
+      "size": 43511,
+      "sha256": "5f319ee7c89298bceaa692c1f2480f02f0831a33356effbc675f1d713abfebbc",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b006_zh-TW_grik.mp3",
+      "size": 53542,
+      "sha256": "18b92219ba3f1e7c2f8435de10bef78d3c8d35d928f6c3637cc7800565e9fa6a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b007_zh-TW_grik.mp3",
+      "size": 49781,
+      "sha256": "f226bfa731bcf22fdc58ca741b93297bc8f7a350048c1c2cb96ca95a23c769c7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b008_zh-TW_hero.mp3",
+      "size": 28047,
+      "sha256": "127f0ab241b51ac23bfc7895880ac56fdb456cca9a422d1abd6fc2d20a24b73b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b009_zh-TW_grik.mp3",
+      "size": 21359,
+      "sha256": "d808f9327df29d3033d10061c97d2a68462c63fd5939aa8bc7b7d9095b3345cd",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b010_zh-TW_grik.mp3",
+      "size": 23031,
+      "sha256": "617557477294f5acf9a9bdbad6242ac82c4f3f1d37fc9894c307741764f53eca",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b011_zh-TW_grik.mp3",
+      "size": 52288,
+      "sha256": "8530725c9d21c2376b8cadcca62f6ec13f0e815bb3aa464385e6597ea0509878",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b012_zh-TW_grik.mp3",
+      "size": 53542,
+      "sha256": "3fd381a0e4c2cecdd17a22108ca8f7f08c56687d56176cb3176e8da60c651336",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b013_zh-TW_hero.mp3",
+      "size": 17598,
+      "sha256": "291a925cf5c56e65f1622dd051c4f40c01ae4a71b8502a061c439f2ca259ea4f",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot09_b014_zh-TW_hero.mp3",
+      "size": 52288,
+      "sha256": "bf066a025936abcf80c1120cd9c43003a3c0f9d42576236d5b7a042cef076e21",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b001_zh-TW_hero.mp3",
+      "size": 52288,
+      "sha256": "1c87d9b6deb489a973a01aa983ceb14aa1237c8506b450803625811938fc1eff",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b002_zh-TW_grik.mp3",
+      "size": 17598,
+      "sha256": "c597c84e4553d62529fb32778e42ba26bce31ba39f804341149477e8a2e65df2",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b003_zh-TW_grik.mp3",
+      "size": 71515,
+      "sha256": "a25e46a56a7b849452343600209b369752917424a56ba8173db06ccaf877bcaa",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b004_zh-TW_grik.mp3",
+      "size": 70261,
+      "sha256": "60fc7377872416462e3c84b8b68cdf9b4b763a227885c2fb22f78e7cfbea53aa",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b005_zh-TW_grik.mp3",
+      "size": 35570,
+      "sha256": "2885bd73c4642077af80fabd554aecf1c132bb96bb4fb2437c8801303f2186d0",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b006_zh-TW_grik.mp3",
+      "size": 31808,
+      "sha256": "283334cbda24b139c47958bebcdfa6e7feacb45eb8d817e13b33eeddc483a58c",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b007_zh-TW_grik.mp3",
+      "size": 63991,
+      "sha256": "933754e9cae8e4e0f044d2fa0857062160e7b26f1160817ff27c72b772270566",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b008_zh-TW_hero.mp3",
+      "size": 36824,
+      "sha256": "f8f5662fc88cd39285a36bf9dfafaff34ba3c9f510d513278ce2756f1b4563f9",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b009_zh-TW_hero.mp3",
+      "size": 33062,
+      "sha256": "76118584648a276e6855291aa94b10bf5240f7cec9cdad3ad4dd14be89403a8b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b010_zh-TW_hero.mp3",
+      "size": 18852,
+      "sha256": "f267f0e0139ad3df1eef09dcab4a27911e101ff12f5987cf625b2e4661e61a13",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b011_zh-TW_hero.mp3",
+      "size": 23031,
+      "sha256": "e1f49eab80aabda9348feb87043c37926fc1b9ec94cd8f35cd3ea1fe1ec5529f",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b012_zh-TW_hero.mp3",
+      "size": 28047,
+      "sha256": "fe02cd77e126f5f956a16c42afa1dec1fa07282e9e9e048439cb23a66efd00aa",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b013_zh-TW_hero.mp3",
+      "size": 29301,
+      "sha256": "d591bacbd6ffb1fa4abb26cebfc195a12eb0fcd6cf4dc2553b9869b52e979a2f",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b014_zh-TW_grik.mp3",
+      "size": 20106,
+      "sha256": "b132806df8b92533238a8ccf6614e8ccb83a5aa42b3b9b2a3c02c65812d7c453",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot10_b015_zh-TW_grik.mp3",
+      "size": 35570,
+      "sha256": "0330adbad844547f645ff2fbb95c97102bd527513a0a1a5ddc5507602ac6e13b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/sfx/zone3_sfx_belongings_movement.mp3",
+      "size": 65245,
+      "sha256": "86e17ad583b757c34dba10a7ead97772e7c244361377d81c46295b9ba9309f3e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/sfx/zone3_sfx_blocked_water_flow.mp3",
+      "size": 160958,
+      "sha256": "d3c1a051fcd487d8f9be5c18cbc5a33327aa565dfa531a49391cb16bd746fd9e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/sfx/zone3_sfx_centurion_armor.mp3",
+      "size": 48945,
+      "sha256": "c00cd80ec2a9a1cc82bb8d736b8dfbffdb82981e99d6379f794529fe39e0a9d8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/sfx/zone3_sfx_centurion_spear_plant.mp3",
+      "size": 48945,
+      "sha256": "54a44480b12ae192d7d9bd96ad5210cfd9a519c54e34f04f77af5d17bcffb97a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/sfx/zone3_sfx_refugee_footsteps.mp3",
+      "size": 81128,
+      "sha256": "2a7d80ec4469365ec26cde57a3a2b83ffd8a228ce2419a3a40b70fa8223d9582",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/sfx/zone3_sfx_rockfall.mp3",
+      "size": 81128,
+      "sha256": "7f7abe717996b75e5dd56b295a841b97f28bba26a2ded834767a13bc583c2747",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/sfx/zone3_sfx_water_drip.mp3",
+      "size": 33062,
+      "sha256": "f5867f9703b3e290213cdb44318cb02a2c43a4883adaa978af65f6cf8330953e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/transition/zone3_to_zone4_misty_forest_wind.mp3",
+      "size": 81128,
+      "sha256": "4e4e95661f4492b565b894a0034daa4dbba828915c42c64cd6639400fedd091e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/zone3-cinematic-audio-manifest-en-US.json",
+      "size": 83650,
+      "sha256": "23f04435fbc15d99a8be72a822a149b55552cb126ed25054745f55a76ed1191a",
+      "mime": "application/json",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
+      "size": 71824,
+      "sha256": "621ed99a15e2c2b7da1e2a04eb829ad78e8374f764129bb559bbfac367ec0252",
+      "mime": "application/json",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
+      "size": 25111,
+      "sha256": "a7137f6b7ac80a9c129f77c2afbbab3123a454c2b7d7403421048eb11d7f2b80",
+      "mime": "application/json",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/i18n/zone3/zone3-cinematic-subtitles-en-US.json",
+      "size": 24376,
+      "sha256": "81393bfb65f24b6be2d569e8cd04cee158b915b270bf605f72ab703519617ce6",
+      "mime": "application/json",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    },
+    {
+      "path": "assets/e10/i18n/zone3/zone3-cinematic-subtitles.json",
+      "size": 21358,
+      "sha256": "4472391b6cf12e8e2c35dfc5f62df1f93d03835a6296494c35d53fc2f383d45e",
+      "mime": "application/json",
+      "provenance": "owner-approved-zone3-runtime-closure",
+      "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
+    }
+  ]
+}

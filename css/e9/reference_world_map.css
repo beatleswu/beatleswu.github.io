@@ -25,6 +25,57 @@ body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
   clip-path: inset(50%);
 }
 
+/* E10 owns the map viewport, but locale remains a shared presentation
+   control.  Keep the existing I18n-rendered switcher available as a compact
+   floating utility on every responsive surface; the shell's map and cards
+   remain the only gameplay/action owners. */
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
+  position: fixed;
+  z-index: 1000;
+  top: max(10px, env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  width: max-content;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  overflow: visible;
+  clip-path: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-inner {
+  display: block;
+  width: max-content;
+  height: auto;
+  margin: 0;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-actions {
+  display: inline-flex;
+  width: max-content;
+  min-width: 0;
+  gap: 0;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-user,
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-presence,
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-logout {
+  display: none;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-lang {
+  display: inline-flex;
+  pointer-events: auto;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] #lang-switcher-index,
+body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] #lang-switcher-index button {
+  pointer-events: auto;
+}
+
 body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
   position: relative;
   left: 50%;

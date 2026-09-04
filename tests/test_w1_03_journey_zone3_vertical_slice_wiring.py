@@ -39,6 +39,19 @@ RUNTIME_DEFECT_RECONCILIATION_PATHS = {
     "tests/e2e/run_e9_layout_contract.mjs",
     "tests/test_e10_replay_story_button_hotfix.py",
 }
+QA_BLOCKER_REPAIR_PATHS = {
+    "css/e9/reference_world_map.css",
+    "css/e9/zone3_presentation_fx.css",
+    "deploy/canonical-e10-zone3-static-pack-manifest.json",
+    "deploy/live-static-asset-inventory.json",
+    "index.html",
+    "js/e9/right_cards.js",
+    "js/e9/world_stage.js",
+    "scripts/release/generate_zone3_static_pack_manifest.py",
+    "tests/deployment/test_static_release_tooling.py",
+    "tests/test_release_fix_a2_asset_closure.py",
+    "tests/test_w1_03_journey_zone3_final_qa_blocker_repair.py",
+}
 CONTENT = ROOT / "js" / "e9" / "journey_zone3_vertical_slice_content.js"
 CONTROLLER = ROOT / "js" / "e9" / "journey_zone3_vertical_slice.js"
 VIEW = ROOT / "js" / "e9" / "journey_zone3_vertical_slice_view.js"
@@ -68,7 +81,7 @@ def accepted_authority_paths() -> set[str]:
             check=True,
         )
         paths.update(item.replace("\\", "/") for item in result.stdout.splitlines() if item)
-    return paths | INTEGRATION_PATHS | RUNTIME_DEFECT_RECONCILIATION_PATHS
+    return paths | INTEGRATION_PATHS | RUNTIME_DEFECT_RECONCILIATION_PATHS | QA_BLOCKER_REPAIR_PATHS
 
 
 def git_paths(*args: str) -> set[str]:

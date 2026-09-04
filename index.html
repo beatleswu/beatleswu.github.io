@@ -13000,6 +13000,7 @@ let _introAudioUnlockPromise = null;
 let _introAudioUnlocked = false;
 let _zone3PresentationFx = null;
 let _zone3PresentationAudio = null;
+let _zone3PresentationCleanupGeneration = null;
 // Tracks what the CURRENTLY-SHOWING (or most-recently-shown) intro-film
 // overlay run actually is, so skipIntroFilm()/replayIntroFilm() -- both
 // zone-key-driven, not caller-driven -- can resume/finish the SAME phase
@@ -13056,8 +13057,47 @@ function _ensureZone3PresentationRuntime() {
 }
 
 function _stopZone3PresentationRuntime() {
-    try { _zone3PresentationAudio?.stopAll(); } catch (error) {}
-    try { _zone3PresentationFx?.stopAll(); } catch (error) {}
+    // Service teardown must release document-owned listeners as well as
+    // active media/effects. The next presentation creates fresh services.
+    try { _zone3PresentationAudio?.destroy?.(); } catch (error) {}
+    try { _zone3PresentationFx?.destroy?.(); } catch (error) {}
+    _zone3PresentationAudio = null;
+    _zone3PresentationFx = null;
+    if (window.__GO_ZONE3_PRESENTATION_RUNTIME__) {
+        window.__GO_ZONE3_PRESENTATION_RUNTIME__ = { fx: null, audio: null };
+    }
+}
+
+function _registerZone3PresentationLifecycleCleanup() {
+    const e9 = window.E9;
+    if (!e9
+        || typeof e9.registerCleanup !== 'function'
+        || typeof e9.getLifecycleGeneration !== 'function') return;
+    const generation = e9.getLifecycleGeneration();
+    if (_zone3PresentationCleanupGeneration === generation) return;
+    _zone3PresentationCleanupGeneration = generation;
+    e9.registerCleanup(() => {
+        if (_zone3PresentationCleanupGeneration === generation) {
+            _zone3PresentationCleanupGeneration = null;
+        }
+        _stopIntroFilm();
+        const overlay = document.getElementById('boss-cinematic');
+        if (overlay && overlay.dataset.zone3EntryFlow === 'true') {
+            overlay.className = 'boss-cinematic';
+            overlay.setAttribute('aria-hidden', 'true');
+            delete overlay.dataset.zone3Safe;
+            delete overlay.dataset.zone3EntryFlow;
+            delete overlay.dataset.zone3Replay;
+            delete overlay.dataset.zone3Presentation;
+            delete overlay.dataset.zone3PresentationFailure;
+            delete overlay.dataset.zone3PresentationFailureHandled;
+            delete overlay.dataset.assetSlot;
+            delete overlay.dataset.assetStatus;
+        }
+        if (document.documentElement) {
+            delete document.documentElement.dataset.zone3PresentationFailsafe;
+        }
+    }, generation);
 }
 
 function _syncZone3PresentationMute() {
@@ -15050,9 +15090,12 @@ function markAdventureBossReadyFilmSeen(zone) {
     } catch {}
 }
 
-function applyIntroFilmShotAssets(timeline = []) {
+function applyIntroFilmShotAssets(timeline = [], options = {}) {
     const stage = document.getElementById('intro-film-stage');
     const shots = stage ? Array.from(stage.querySelectorAll('.film-shot')) : [];
+    const onPresentationFailure = typeof options.onPresentationFailure === 'function'
+        ? options.onPresentationFailure
+        : null;
     // Match by item.shot (the DOM slot index each item declares), not by
     // array position: a sub-timeline like Zone 1's postClearTimeline only
     // contains shots 8-9 at array positions 0-1, and must still land on DOM
@@ -15073,7 +15116,7 @@ function applyIntroFilmShotAssets(timeline = []) {
             delete shotEl.dataset.zone3ImageLoad;
             return;
         }
-        img.src = item.imageSrc;
+        const imageSrc = item.imageSrc;
         shotEl.style.setProperty('--film-backdrop-image', `url("${item.imageSrc}")`);
         if (item.imageAlt) img.alt = item.imageAlt;
         const presentation = item.presentation;
@@ -15100,19 +15143,45 @@ function applyIntroFilmShotAssets(timeline = []) {
             img.onerror = () => {
                 shotEl.classList.add('zone3-image-load-failed');
                 shotEl.dataset.zone3ImageLoad = 'failed_presentation_only';
+                if (onPresentationFailure) onPresentationFailure({ shot: item, element: shotEl });
             };
             img.onload = () => {
                 shotEl.classList.remove('zone3-image-load-failed');
                 shotEl.dataset.zone3ImageLoad = 'loaded';
             };
+            // Assign after the presentation-only handlers are installed so a
+            // fast 404 cannot miss the bounded fail-safe callback.
+            img.src = imageSrc;
         } else {
             img.onerror = null;
             img.onload = null;
             shotEl.classList.remove('zone3-image-load-failed');
             delete shotEl.dataset.zone3ImageAssetId;
             delete shotEl.dataset.zone3ImageLoad;
+            img.src = imageSrc;
         }
     });
+}
+
+function _failZone3PresentationOnly(zone, overlay) {
+    if (!overlay || overlay.dataset.zone3PresentationFailureHandled === 'true') return false;
+    const replay = overlay.dataset.zone3Replay === 'true';
+    overlay.dataset.zone3PresentationFailureHandled = 'true';
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic';
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.dataset.zone3PresentationFailure = 'presentation_only';
+    overlay.dataset.assetStatus = 'FAILED_PRESENTATION_ONLY';
+    if (document.documentElement) {
+        document.documentElement.dataset.zone3PresentationFailsafe = 'reached';
+    }
+    // Replay returns to the same authoritative card surface. First-entry
+    // failure stays on the selected map state. Neither branch writes
+    // progression, rewards, or unlock state.
+    if (replay && zone?.key && window.E9 && typeof window.E9.showAdventureZoneCard === 'function') {
+        window.E9.showAdventureZoneCard(zone.key);
+    }
+    return true;
 }
 
 async function _continueZone3SafeEntry(zone, source = 'continue') {
@@ -15202,6 +15271,7 @@ async function showZone3EntrySafeFallback(zone, options = {}) {
         window.location.href = firstQuestionHref(zone);
         return false;
     }
+    _registerZone3PresentationLifecycleCleanup();
     const presentation = _zone3CinematicPresentation();
     const manifestTimeline = _zone3CinematicTimeline('FIRST_ENTRY');
     const manifestReady = presentation?.responsiveManifestReconciled === true
@@ -15221,6 +15291,9 @@ async function showZone3EntrySafeFallback(zone, options = {}) {
         overlay.dataset.zone3EntryCompleted = 'false';
         overlay.dataset.assetSlot = 'zone3_entry_cinematic';
         overlay.dataset.assetStatus = 'READY';
+        delete overlay.dataset.zone3PresentationFailure;
+        delete overlay.dataset.zone3PresentationFailureHandled;
+        if (document.documentElement) delete document.documentElement.dataset.zone3PresentationFailsafe;
         const introStage = document.getElementById('intro-film-stage');
         if (introStage) introStage.classList.remove('show-title-card');
         if (monster) {
@@ -15239,6 +15312,10 @@ async function showZone3EntrySafeFallback(zone, options = {}) {
             timeline: manifestTimeline,
             phase: 'pre_play',
             mode,
+            onPresentationFailure: ({ shot } = {}) => {
+                _failZone3PresentationOnly(zone, overlay);
+                return shot || null;
+            },
             onComplete: () => _finishZone3EntryManifest(zone, mode),
         });
         return true;
@@ -17415,7 +17492,9 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
     stage.classList.remove('show-title-card');
     const shots = Array.from(stage.querySelectorAll('.film-shot'));
     const runId = _introFilmRunId;
-    applyIntroFilmShotAssets(timeline);
+    applyIntroFilmShotAssets(timeline, {
+        onPresentationFailure: opts.onPresentationFailure,
+    });
     // Shared pacing formula for how long a BEAT should visually hold when no
     // narration audio plays for it (used both by the TTS fallback below and
     // by the silent visual-hold path when recorded narration is missing or
@@ -17898,6 +17977,7 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
     const timeline = opts.timeline || [];
     const phase = opts.phase || 'pre_play';
     if (!overlay || !zone || zone.key !== 'k16_20' || !timeline.length) return false;
+    _registerZone3PresentationLifecycleCleanup();
     const slot = _zone3CinematicSlotForPhase(phase);
     const presentationOnly = opts.presentationOnly === true;
     const begin = () => {
@@ -17915,6 +17995,7 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
             phase,
             mode: opts.mode || (presentationOnly ? 'manual_replay' : 'legacy'),
             onComplete: opts.onComplete || null,
+            onPresentationFailure: () => _failZone3PresentationOnly(zone, overlay),
         });
     };
     if (_introAudioUnlocked) {

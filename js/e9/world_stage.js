@@ -1386,6 +1386,23 @@
             inline.appendChild(inlineSecondaryCta);
           }
         }
+        // Mobile owns the lower Zone Card surface, so expose the same
+        // authoritative replay action inline instead of relying on the
+        // hidden side drawer.  The predicate and dispatcher are shared with
+        // desktop/iPad landscape; this adds no progression or reward path.
+        if (zoneStoryReplayAvailable(zone.key, zone)) {
+          var inlineReplay = document.createElement('button');
+          inlineReplay.type = 'button';
+          inlineReplay.className = 'e9-zone__inline-cta e9-zone__inline-cta--secondary e9-adventure-cta';
+          inlineReplay.textContent = t('e10.world_stage.replay_story', 'Replay Story');
+          inlineReplay.setAttribute('data-e10-zone-replay', '');
+          inlineReplay.setAttribute('aria-disabled', 'false');
+          inlineReplay.addEventListener('click', function (evt) {
+            evt.stopPropagation();
+            replayAdventureIntro(zone.key);
+          });
+          inline.appendChild(inlineReplay);
+        }
         selectedTile.appendChild(inline);
       }
     }
