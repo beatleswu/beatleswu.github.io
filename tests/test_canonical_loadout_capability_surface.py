@@ -125,3 +125,214 @@ def test_legacy_bypass_is_not_reachable_when_disabled():
     # The unconditional 409 guard must precede any canonical/legacy branching,
     # so a disabled gate can never fall through to an equip writer.
     assert guard_at < canonical_at
+
+
+# ── equippability is projected from the canonical writer's own authority ─────
+
+@pytest.mark.parametrize(
+    "equip_id,expected_slot",
+    [("wooden_sword", "weapon"), ("leather_armor", "armor"), ("lucky_stone", "accessory")],
+)
+def test_equippable_items_project_their_canonical_slot(equip_id, expected_slot):
+    projection = app_module._canonical_equippability_projection(equip_id)
+    assert projection["canonical_equippable"] is True
+    assert projection["canonical_slot"] == expected_slot
+    assert projection["not_equippable_reason"] is None
+
+
+@pytest.mark.parametrize(
+    "equip_id,reason",
+    [
+        ("go_stone_black", "GO_STONE_BLACK_NOT_EQUIPPABLE"),
+        ("xp_amulet", "XP_AMULET_HOLD_FOR_AUTHORITY"),
+    ],
+)
+def test_non_equippable_items_project_the_servers_own_reason_code(equip_id, reason):
+    """The projected reason must be the exact code a real attempt returns."""
+    projection = app_module._canonical_equippability_projection(equip_id)
+    assert projection["canonical_equippable"] is False
+    assert projection["canonical_slot"] is None
+    assert projection["not_equippable_reason"] == reason
+
+
+def test_non_equippable_ids_match_the_loadout_writers_guard_exactly():
+    """The projection may not drift from the writer it mirrors."""
+    from migrations.equipment_canonical_slot_v1 import (
+        NON_FUNCTIONAL_EQUIPMENT_IDS,
+        build_slot_projection,
+    )
+    equippable = set(build_slot_projection(app_module.EQUIPMENT_DEFS))
+    for definition in app_module.EQUIPMENT_DEFS:
+        equip_id = definition["id"]
+        projected = app_module._canonical_equippability_projection(equip_id)
+        assert projected["canonical_equippable"] is (equip_id in equippable)
+        if equip_id in NON_FUNCTIONAL_EQUIPMENT_IDS:
+            assert projected["canonical_equippable"] is False
+
+
+def test_unknown_equipment_id_fails_closed():
+    projection = app_module._canonical_equippability_projection("not_a_real_item")
+    assert projection["canonical_equippable"] is False
+    assert projection["not_equippable_reason"] == "NON_FUNCTIONAL_EQUIPMENT"
+
+
+def test_inventory_payload_carries_the_equippability_projection():
+    equip = app_module._EQUIP_MAP["go_stone_black"]
+    payload = app_module._functional_equipment_payload(equip, inv_id=1)
+    assert payload["canonical_equippable"] is False
+    assert payload["not_equippable_reason"] == "GO_STONE_BLACK_NOT_EQUIPPABLE"
+    sword = app_module._functional_equipment_payload(
+        app_module._EQUIP_MAP["wooden_sword"], inv_id=2)
+    assert sword["canonical_equippable"] is True
+    assert sword["canonical_slot"] == "weapon"
+
+
+# ── the client no longer keeps its own non-equippable id list ────────────────
+
+def test_client_has_no_local_non_equippable_id_authority():
+    html = INVENTORY_HTML.read_text(encoding="utf-8")
+    assert "FUNCTIONAL_INVENTORY_ONLY_IDS" not in html
+    assert "'go_stone_black'" not in html and '"go_stone_black"' not in html
+    assert "item?.canonical_equippable === true" in html
+
+
+def test_client_disables_the_equip_control_for_non_equippable_items():
+    html = INVENTORY_HTML.read_text(encoding="utf-8")
+    assert "const notEquippable = !functionalItemEquippable(item) && !item.equipped;" in html
+    assert "const blocked = notEquippable || blockedNewEquip;" in html
+    assert "action.disabled = blocked;" in html
+    assert "action.onclick = blocked ? null :" in html
+
+
+def test_client_has_no_silent_failed_equip_path():
+    """Every refused click must surface a reason, never return silently."""
+    html = INVENTORY_HTML.read_text(encoding="utf-8")
+    start = html.index("async function performFunctionalEquipmentAction")
+    body = html[start:start + 1400]
+    assert "showBackpackToast(functionalItemBlockLabel(item));" in body
+    # Every refusal a player can actually trigger must announce itself. The
+    # only permitted bare return is the null-argument programming guard.
+    lines = body.splitlines()
+    silent = []
+    for i, line in enumerate(lines):
+        if not line.strip().endswith("return;"):
+            continue
+        if line.strip() == "if (!item || item.inv_id == null) return;":
+            continue  # null-argument programming guard, not a player path
+        announced = any(
+            "showBackpackToast" in lines[j] for j in range(max(0, i - 3), i)
+        )
+        if not announced:
+            silent.append(line.strip())
+    assert silent == [], f"refusals that fail silently: {silent}"
+
+
+def test_client_keeps_ownership_visible_for_non_equippable_items():
+    html = INVENTORY_HTML.read_text(encoding="utf-8")
+    assert "Collection / Trophy" in html
+    assert "functionalItemIsTrophy(item)" in html
+
+
+# ── true cross-player ownership isolation ────────────────────────────────────
+
+import sqlite3  # noqa: E402
+
+from migrations.equipment_canonical_slot_v1 import upgrade as _upgrade_b033  # noqa: E402
+
+
+class _DbContext:
+    def __init__(self, path):
+        self.path = path
+        self.conn = None
+
+    def __enter__(self):
+        self.conn = sqlite3.connect(self.path)
+        self.conn.row_factory = sqlite3.Row
+        return self.conn
+
+    def __exit__(self, exc_type, exc, tb):
+        if exc_type:
+            self.conn.rollback()
+        else:
+            self.conn.commit()
+        self.conn.close()
+
+
+def _two_player_inventory(path):
+    """PLAYER_A owns a sword; PLAYER_B owns a real, separate sword row."""
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            "CREATE TABLE player_inventory("
+            "id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,equip_id TEXT NOT NULL,"
+            "equipped INTEGER NOT NULL DEFAULT 0,obtained_at TEXT NOT NULL,"
+            "source TEXT NOT NULL DEFAULT 'drop')"
+        )
+        _upgrade_b033(conn, equipment_defs=app_module.EQUIPMENT_DEFS)
+        conn.execute(
+            "INSERT INTO player_inventory(id,user_id,equip_id,equipped,canonical_slot,"
+            "obtained_at,source) VALUES(1,1,'wooden_sword',0,NULL,'2026-09-04','drop')")
+        # PLAYER_B's row is real and already equipped, so a successful cross-user
+        # write would be visible as both a steal and a state change.
+        conn.execute(
+            "INSERT INTO player_inventory(id,user_id,equip_id,equipped,canonical_slot,"
+            "obtained_at,source) VALUES(2,2,'iron_sword',1,'weapon','2026-09-04','drop')")
+
+
+def _snapshot(path):
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        return [
+            dict(row)
+            for row in conn.execute(
+                "SELECT id,user_id,equip_id,equipped,canonical_slot FROM player_inventory"
+                " ORDER BY id")
+        ]
+
+
+def _client_as(path, monkeypatch, user_id):
+    monkeypatch.setattr(app_module, "get_db", lambda: _DbContext(path))
+    monkeypatch.setenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, "1")
+    app_module.app.config.update(TESTING=True)
+    client = app_module.app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = user_id
+        session["username"] = f"loadout-isolation-user-{user_id}"
+    return client
+
+
+@pytest.mark.parametrize("action", ["equip", "unequip"])
+def test_player_a_cannot_touch_player_b_real_inventory_row(tmp_path, monkeypatch, action):
+    """A real row owned by PLAYER_B must be unreachable by PLAYER_A.
+
+    This is deliberately not a nonexistent inv_id: row 2 exists, is valid, is
+    equippable and is currently equipped by PLAYER_B.
+    """
+    path = str(tmp_path / "isolation.db")
+    _two_player_inventory(path)
+    before = _snapshot(path)
+
+    client_a = _client_as(path, monkeypatch, user_id=1)
+    response = client_a.post(
+        "/api/player/inventory/equip", json={"inv_id": 2, "action": action}
+    )
+
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "找不到物品"}
+    # Nothing moved: not PLAYER_A's row, not PLAYER_B's row, not the equipped bit.
+    assert _snapshot(path) == before
+
+
+def test_player_b_can_still_use_their_own_row(tmp_path, monkeypatch):
+    """The isolation guard must not lock the legitimate owner out."""
+    path = str(tmp_path / "isolation-owner.db")
+    _two_player_inventory(path)
+
+    client_b = _client_as(path, monkeypatch, user_id=2)
+    response = client_b.post(
+        "/api/player/inventory/equip", json={"inv_id": 2, "action": "unequip"}
+    )
+    assert response.status_code == 200
+    assert response.get_json()["equipped"] is False
+    rows = {row["id"]: row for row in _snapshot(path)}
+    assert rows[2]["equipped"] == 0
+    assert rows[1]["user_id"] == 1 and rows[1]["equipped"] == 0
