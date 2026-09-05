@@ -8,12 +8,11 @@
   'use strict';
 
   const REGISTRY_URL = '/assets/hero/equipment/wearables/wearable_registry.json';
-  // These source files contain a baked opaque checkerboard/product field, so
-  // they are not honest wearable overlays. Keep the gameplay item available
-  // to the server projection, but fail closed for presentation until
-  // replacement art is approved. The renderer does not transform or mask
-  // these source pixels; unsuitable art never enters the wearable stage.
-  const ART_REPLACEMENT_REQUIRED_IDS = Object.freeze(['cloth_robe', 'fox_pelt']);
+  // Owner-approved transparent replacements are now integrated for the two
+  // formerly blocked items. Keep this explicit list as the presentation
+  // fail-closed seam for any future item that is not yet approved; it is not
+  // an authority source and never changes the server-owned equipment state.
+  const ART_REPLACEMENT_REQUIRED_IDS = Object.freeze([]);
   const ART_REPLACEMENT_REQUIRED = new Set(ART_REPLACEMENT_REQUIRED_IDS);
   let registryPromise = null;
 

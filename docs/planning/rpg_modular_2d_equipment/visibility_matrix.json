@@ -98,7 +98,7 @@
       "layer": "TORSO_ARMOR",
       "asset": "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
       "mask_policy": ["FACE_SAFE_ZONE_CLEARANCE", "BASE_OCCLUSION"],
-      "reason": "P3C face-safe clearance passed six-character armor review"
+      "reason": "Owner-approved replacement art integrated with the P3C face-safe clearance contract; Owner visual acceptance remains pending"
     },
     {
       "equipment_id": "leather_armor",
@@ -118,15 +118,15 @@
       "equipment_id": "fox_pelt",
       "slot": "armor",
       "canonical_identity": "orange-brown fox-fur shoulder mantle",
-      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "wearable_visibility": "VISIBLE_WEARABLE",
       "wearable_class": "ROBE_OR_BODY_OVERLAY",
       "template_id": "SHOULDER_MANTLE",
       "body_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
-      "anchor": "torso",
-      "layer": "TORSO_ARMOR",
+      "anchor": "shoulder_or_torso",
+      "layer": "BACK_BODY",
       "asset": "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
       "mask_policy": ["FACE_SAFE_ZONE_CLEARANCE", "BASE_OCCLUSION"],
-      "reason": "P3C neck-volume polish exists; production template requires controlled mantle QA"
+      "reason": "Owner-approved replacement art integrated with the shared SHOULDER_MANTLE geometry; Owner visual acceptance remains pending"
     },
     {
       "equipment_id": "dragon_scale",

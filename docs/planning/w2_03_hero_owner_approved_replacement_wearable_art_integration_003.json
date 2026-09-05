@@ -1,0 +1,194 @@
+{
+  "schema": "go-odyssey.w2-03.owner-approved-replacement-wearable-integration.v1",
+  "task_id": "W2_03_HERO_OWNER_APPROVED_REPLACEMENT_WEARABLE_ART_INTEGRATION_003",
+  "base": {
+    "head": "6fd716f49de8772b1c085ed9d51448371ef59439",
+    "tree": "a87f681b30a30d8e9007d779134daa0cec3e46e3"
+  },
+  "owner_approval": {
+    "status": "GRANTED",
+    "approved_assets": {
+      "cloth_robe": "cloth_robe_owner_approved.png",
+      "fox_pelt": "fox_pelt_owner_approved.png"
+    },
+    "visual_acceptance": {
+      "cloth_robe": "PENDING",
+      "fox_pelt": "PENDING"
+    }
+  },
+  "frame_contract": {
+    "frame_id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [1056, 1408],
+    "origin": "top_left",
+    "units": "normalized_0_to_1",
+    "body_frame_variants": 1,
+    "item_character_bespoke_redraws": 0
+  },
+  "items": {
+    "cloth_robe": {
+      "item_id": "cloth_robe",
+      "slot": "armor",
+      "source_copy": "docs/planning/w2_03_hero_owner_approved_replacement_wearable_sources/cloth_robe_owner_approved.png",
+      "source_sha256": "e4293e97746ef7b4eeb877025f89498556d41d034b33bf3ad4a08300cb45c311",
+      "source_dimensions": [1086, 1448],
+      "source_mode": "RGBA",
+      "source_alpha_bbox_px": [0, 120, 1086, 1424],
+      "output_path": "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
+      "output_sha256": "dd258bc5790064eb3292056a3c7befd2fba104a51b64688a715f1eec9321ab14",
+      "output_canvas": [1056, 1408],
+      "output_mode": "RGBA",
+      "output_alpha_bbox_px": [253, 310, 802, 950],
+      "target_body_region": "Hero torso from lower neck through waist and robe hem, with sleeves following the shared upper-arm silhouette",
+      "target_layer": "TORSO_ARMOR",
+      "anchor": "torso",
+      "anchor_normalized": [0.5, 0.35],
+      "target_alpha_bbox_normalized": [0.24, 0.22, 0.76, 0.69],
+      "reference": "dragon_scale.png geometry/alignment only",
+      "mask_requirements": ["BASE_OCCLUSION", "FACE_SAFE_ZONE_CLEARANCE"],
+      "normalization": {
+        "method": "transparent-bounds crop followed by uniform target-box fit and top-left frame placement",
+        "transparent_bounds_crop": true,
+        "preserve_aspect_ratio": true,
+        "distortion": false,
+        "design_changed": false,
+        "resized_content_px": [549, 659],
+        "paste_px": [253, 310]
+      },
+      "visual_contract": {
+        "transparent_background_only": true,
+        "face_visible": true,
+        "hands_visible": true,
+        "legs_preserved": true,
+        "rectangular_matte": false,
+        "owner_visual_acceptance": "PENDING"
+      }
+    },
+    "fox_pelt": {
+      "item_id": "fox_pelt",
+      "slot": "armor",
+      "source_copy": "docs/planning/w2_03_hero_owner_approved_replacement_wearable_sources/fox_pelt_owner_approved.png",
+      "source_sha256": "947b9f119aaeff73236f7b16cfce431e705e81533eaac23ba57938af59e43c4b",
+      "source_dimensions": [1086, 1448],
+      "source_mode": "RGBA",
+      "source_alpha_bbox_px": [38, 39, 1072, 1374],
+      "output_path": "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+      "output_sha256": "653b6c4c57d487d0af8af88ebc7c3d78529fcbdcd237328740ae7287559711ee",
+      "output_canvas": [1056, 1408],
+      "output_mode": "RGBA",
+      "output_alpha_bbox_px": [169, 310, 887, 1237],
+      "target_body_region": "Hero shoulders and upper back/side torso as a compact orange-brown fur mantle",
+      "target_layer": "BACK_BODY",
+      "anchor": "shoulder_or_torso",
+      "anchor_normalized": [0.5, 0.31],
+      "target_alpha_bbox_normalized": [0.16, 0.22, 0.84, 0.52],
+      "reference": "void_mantle.png geometry/alignment only",
+      "mask_requirements": ["BASE_OCCLUSION", "FACE_SAFE_ZONE_CLEARANCE"],
+      "normalization": {
+        "method": "transparent-bounds crop followed by uniform target-width fit and top-left shoulder placement",
+        "transparent_bounds_crop": true,
+        "preserve_aspect_ratio": true,
+        "distortion": false,
+        "design_changed": false,
+        "resized_content_px": [718, 927],
+        "paste_px": [169, 310],
+        "declared_shoulder_alignment_bbox_px": [169, 310, 887, 732],
+        "preserved_tail_extension_beyond_declared_bbox": true,
+        "tail_extension_requires_owner_review": true
+      },
+      "visual_contract": {
+        "transparent_background_only": true,
+        "face_head_silhouette_clear": true,
+        "torso_readable": true,
+        "legs_overlaid": false,
+        "rectangular_matte": false,
+        "owner_visual_acceptance": "PENDING"
+      }
+    }
+  },
+  "six_character_alignment": {
+    "status": "AUTOMATED_SHARED_FRAME_CHECK",
+    "characters": [
+      "apprentice_p1",
+      "mage_p1",
+      "paladin_p1",
+      "trail_apprentice_p1",
+      "night_runner_p1",
+      "constellation_apprentice_p1"
+    ],
+    "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [1056, 1408],
+    "body_frame_variants": 1,
+    "bespoke_replacement_art": false,
+    "cloth_robe": "PASS",
+    "fox_pelt": "PASS",
+    "owner_visual_acceptance": "PENDING"
+  },
+  "preserved_bindings": {
+    "wooden_sword": {
+      "presentation": "HAND_HELD",
+      "attachment": "RIGHT_PALM",
+      "layer": "FRONT_WEAPON"
+    },
+    "dragon_scale": "accepted TORSO_ARMOR presentation",
+    "lucky_stone": "accepted accessory presentation",
+    "xp_amulet": "HOLD_FOR_AUTHORITY",
+    "go_stone_black": "INVENTORY_ONLY"
+  },
+  "owner_visible_evidence": {
+    "root": "docs/evidence/w2_03_owner_approved_replacement_wearables_003",
+    "browser_case_count": 120,
+    "states": {
+      "base_no_armor": {
+        "desktop": "desktop-none.png",
+        "ipad_landscape": "ipad-landscape-none.png",
+        "ipad_portrait": "ipad-portrait-none.png",
+        "mobile_portrait": "mobile-portrait-none.png"
+      },
+      "cloth_robe": {
+        "desktop": "desktop-cloth.png",
+        "ipad_landscape": "ipad-landscape-cloth.png",
+        "ipad_portrait": "ipad-portrait-cloth.png",
+        "mobile_portrait": "mobile-portrait-cloth.png"
+      },
+      "fox_pelt": {
+        "desktop": "desktop-fox.png",
+        "ipad_landscape": "ipad-landscape-fox.png",
+        "ipad_portrait": "ipad-portrait-fox.png",
+        "mobile_portrait": "mobile-portrait-fox.png"
+      },
+      "wooden_sword_cloth_lucky": {
+        "desktop": "desktop-full_cloth.png",
+        "ipad_landscape": "ipad-landscape-full_cloth.png",
+        "ipad_portrait": "ipad-portrait-full_cloth.png",
+        "mobile_portrait": "mobile-portrait-full_cloth.png"
+      },
+      "wooden_sword_fox_lucky": {
+        "desktop": "desktop-full_fox.png",
+        "ipad_landscape": "ipad-landscape-full_fox.png",
+        "ipad_portrait": "ipad-portrait-full_fox.png",
+        "mobile_portrait": "mobile-portrait-full_fox.png"
+      }
+    },
+    "closeups": {
+      "cloth_robe": {
+        "desktop": "desktop-cloth-closeup.png",
+        "ipad_landscape": "ipad-landscape-cloth-closeup.png",
+        "ipad_portrait": "ipad-portrait-cloth-closeup.png",
+        "mobile_portrait": "mobile-portrait-cloth-closeup.png"
+      },
+      "fox_pelt": {
+        "desktop": "desktop-fox-closeup.png",
+        "ipad_landscape": "ipad-landscape-fox-closeup.png",
+        "ipad_portrait": "ipad-portrait-fox-closeup.png",
+        "mobile_portrait": "mobile-portrait-fox-closeup.png"
+      }
+    }
+  },
+  "authority": {
+    "presentation_consumes_server_equipped_projection": true,
+    "client_ownership_authority": false,
+    "client_equip_authority": false,
+    "auto_equip": false,
+    "gameplay_authority_changed": false
+  }
+}

@@ -1,0 +1,562 @@
+[
+  {
+    "viewport": "desktop",
+    "character": "apprentice",
+    "state": "none",
+    "data": {
+      "character": "apprentice",
+      "equipped": "",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": -1,
+      "clothIndex": -1,
+      "foxIndex": -1,
+      "accessoryIndex": -1,
+      "clothLayer": "",
+      "foxLayer": "",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/desktop-none.png"
+  },
+  {
+    "viewport": "desktop",
+    "character": "apprentice",
+    "state": "cloth",
+    "data": {
+      "character": "apprentice",
+      "equipped": "cloth_robe",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/cloth_robe.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": -1,
+      "clothIndex": 1,
+      "foxIndex": -1,
+      "accessoryIndex": -1,
+      "clothLayer": "TORSO_ARMOR",
+      "foxLayer": "",
+      "clothNaturalWidth": 1056,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/desktop-cloth.png",
+    "closePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/desktop-cloth-closeup.png"
+  },
+  {
+    "viewport": "desktop",
+    "character": "apprentice",
+    "state": "fox",
+    "data": {
+      "character": "apprentice",
+      "equipped": "fox_pelt",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+        "/assets/hero/characters/chibi_apprentice_normalized.webp"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": -1,
+      "clothIndex": -1,
+      "foxIndex": 0,
+      "accessoryIndex": -1,
+      "clothLayer": "",
+      "foxLayer": "BACK_BODY",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 1056
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/desktop-fox.png",
+    "closePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/desktop-fox-closeup.png"
+  },
+  {
+    "viewport": "desktop",
+    "character": "apprentice",
+    "state": "full_cloth",
+    "data": {
+      "character": "apprentice",
+      "equipped": "wooden_sword,cloth_robe,lucky_stone",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
+        "/assets/hero/equipment/wearables/overlays/lucky_stone.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": 1,
+      "clothIndex": 2,
+      "foxIndex": -1,
+      "accessoryIndex": 3,
+      "clothLayer": "TORSO_ARMOR",
+      "foxLayer": "",
+      "clothNaturalWidth": 1056,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/desktop-full_cloth.png"
+  },
+  {
+    "viewport": "desktop",
+    "character": "apprentice",
+    "state": "full_fox",
+    "data": {
+      "character": "apprentice",
+      "equipped": "wooden_sword,fox_pelt,lucky_stone",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/equipment/wearables/overlays/lucky_stone.png"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": 2,
+      "clothIndex": -1,
+      "foxIndex": 0,
+      "accessoryIndex": 3,
+      "clothLayer": "",
+      "foxLayer": "BACK_BODY",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 1056
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/desktop-full_fox.png"
+  },
+  {
+    "viewport": "ipad-landscape",
+    "character": "apprentice",
+    "state": "none",
+    "data": {
+      "character": "apprentice",
+      "equipped": "",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": -1,
+      "clothIndex": -1,
+      "foxIndex": -1,
+      "accessoryIndex": -1,
+      "clothLayer": "",
+      "foxLayer": "",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-landscape-none.png"
+  },
+  {
+    "viewport": "ipad-landscape",
+    "character": "apprentice",
+    "state": "cloth",
+    "data": {
+      "character": "apprentice",
+      "equipped": "cloth_robe",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/cloth_robe.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": -1,
+      "clothIndex": 1,
+      "foxIndex": -1,
+      "accessoryIndex": -1,
+      "clothLayer": "TORSO_ARMOR",
+      "foxLayer": "",
+      "clothNaturalWidth": 1056,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-landscape-cloth.png",
+    "closePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-landscape-cloth-closeup.png"
+  },
+  {
+    "viewport": "ipad-landscape",
+    "character": "apprentice",
+    "state": "fox",
+    "data": {
+      "character": "apprentice",
+      "equipped": "fox_pelt",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+        "/assets/hero/characters/chibi_apprentice_normalized.webp"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": -1,
+      "clothIndex": -1,
+      "foxIndex": 0,
+      "accessoryIndex": -1,
+      "clothLayer": "",
+      "foxLayer": "BACK_BODY",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 1056
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-landscape-fox.png",
+    "closePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-landscape-fox-closeup.png"
+  },
+  {
+    "viewport": "ipad-landscape",
+    "character": "apprentice",
+    "state": "full_cloth",
+    "data": {
+      "character": "apprentice",
+      "equipped": "wooden_sword,cloth_robe,lucky_stone",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
+        "/assets/hero/equipment/wearables/overlays/lucky_stone.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": 1,
+      "clothIndex": 2,
+      "foxIndex": -1,
+      "accessoryIndex": 3,
+      "clothLayer": "TORSO_ARMOR",
+      "foxLayer": "",
+      "clothNaturalWidth": 1056,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-landscape-full_cloth.png"
+  },
+  {
+    "viewport": "ipad-landscape",
+    "character": "apprentice",
+    "state": "full_fox",
+    "data": {
+      "character": "apprentice",
+      "equipped": "wooden_sword,fox_pelt,lucky_stone",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/equipment/wearables/overlays/lucky_stone.png"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": 2,
+      "clothIndex": -1,
+      "foxIndex": 0,
+      "accessoryIndex": 3,
+      "clothLayer": "",
+      "foxLayer": "BACK_BODY",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 1056
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-landscape-full_fox.png"
+  },
+  {
+    "viewport": "ipad-portrait",
+    "character": "apprentice",
+    "state": "none",
+    "data": {
+      "character": "apprentice",
+      "equipped": "",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": -1,
+      "clothIndex": -1,
+      "foxIndex": -1,
+      "accessoryIndex": -1,
+      "clothLayer": "",
+      "foxLayer": "",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-portrait-none.png"
+  },
+  {
+    "viewport": "ipad-portrait",
+    "character": "apprentice",
+    "state": "cloth",
+    "data": {
+      "character": "apprentice",
+      "equipped": "cloth_robe",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/cloth_robe.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": -1,
+      "clothIndex": 1,
+      "foxIndex": -1,
+      "accessoryIndex": -1,
+      "clothLayer": "TORSO_ARMOR",
+      "foxLayer": "",
+      "clothNaturalWidth": 1056,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-portrait-cloth.png",
+    "closePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-portrait-cloth-closeup.png"
+  },
+  {
+    "viewport": "ipad-portrait",
+    "character": "apprentice",
+    "state": "fox",
+    "data": {
+      "character": "apprentice",
+      "equipped": "fox_pelt",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+        "/assets/hero/characters/chibi_apprentice_normalized.webp"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": -1,
+      "clothIndex": -1,
+      "foxIndex": 0,
+      "accessoryIndex": -1,
+      "clothLayer": "",
+      "foxLayer": "BACK_BODY",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 1056
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-portrait-fox.png",
+    "closePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-portrait-fox-closeup.png"
+  },
+  {
+    "viewport": "ipad-portrait",
+    "character": "apprentice",
+    "state": "full_cloth",
+    "data": {
+      "character": "apprentice",
+      "equipped": "wooden_sword,cloth_robe,lucky_stone",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
+        "/assets/hero/equipment/wearables/overlays/lucky_stone.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": 1,
+      "clothIndex": 2,
+      "foxIndex": -1,
+      "accessoryIndex": 3,
+      "clothLayer": "TORSO_ARMOR",
+      "foxLayer": "",
+      "clothNaturalWidth": 1056,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-portrait-full_cloth.png"
+  },
+  {
+    "viewport": "ipad-portrait",
+    "character": "apprentice",
+    "state": "full_fox",
+    "data": {
+      "character": "apprentice",
+      "equipped": "wooden_sword,fox_pelt,lucky_stone",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/equipment/wearables/overlays/lucky_stone.png"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": 2,
+      "clothIndex": -1,
+      "foxIndex": 0,
+      "accessoryIndex": 3,
+      "clothLayer": "",
+      "foxLayer": "BACK_BODY",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 1056
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/ipad-portrait-full_fox.png"
+  },
+  {
+    "viewport": "mobile-portrait",
+    "character": "apprentice",
+    "state": "none",
+    "data": {
+      "character": "apprentice",
+      "equipped": "",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": -1,
+      "clothIndex": -1,
+      "foxIndex": -1,
+      "accessoryIndex": -1,
+      "clothLayer": "",
+      "foxLayer": "",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/mobile-portrait-none.png"
+  },
+  {
+    "viewport": "mobile-portrait",
+    "character": "apprentice",
+    "state": "cloth",
+    "data": {
+      "character": "apprentice",
+      "equipped": "cloth_robe",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/cloth_robe.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": -1,
+      "clothIndex": 1,
+      "foxIndex": -1,
+      "accessoryIndex": -1,
+      "clothLayer": "TORSO_ARMOR",
+      "foxLayer": "",
+      "clothNaturalWidth": 1056,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/mobile-portrait-cloth.png",
+    "closePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/mobile-portrait-cloth-closeup.png"
+  },
+  {
+    "viewport": "mobile-portrait",
+    "character": "apprentice",
+    "state": "fox",
+    "data": {
+      "character": "apprentice",
+      "equipped": "fox_pelt",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+        "/assets/hero/characters/chibi_apprentice_normalized.webp"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": -1,
+      "clothIndex": -1,
+      "foxIndex": 0,
+      "accessoryIndex": -1,
+      "clothLayer": "",
+      "foxLayer": "BACK_BODY",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 1056
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/mobile-portrait-fox.png",
+    "closePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/mobile-portrait-fox-closeup.png"
+  },
+  {
+    "viewport": "mobile-portrait",
+    "character": "apprentice",
+    "state": "full_cloth",
+    "data": {
+      "character": "apprentice",
+      "equipped": "wooden_sword,cloth_robe,lucky_stone",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
+        "/assets/hero/equipment/wearables/overlays/lucky_stone.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": 1,
+      "clothIndex": 2,
+      "foxIndex": -1,
+      "accessoryIndex": 3,
+      "clothLayer": "TORSO_ARMOR",
+      "foxLayer": "",
+      "clothNaturalWidth": 1056,
+      "foxNaturalWidth": 0
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/mobile-portrait-full_cloth.png"
+  },
+  {
+    "viewport": "mobile-portrait",
+    "character": "apprentice",
+    "state": "full_fox",
+    "data": {
+      "character": "apprentice",
+      "equipped": "wooden_sword,fox_pelt,lucky_stone",
+      "replacement": "",
+      "authority": "server_equipped_projection",
+      "gameplayAuthority": "none",
+      "stageState": "ready",
+      "images": [
+        "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+        "/assets/hero/characters/chibi_apprentice_normalized.webp",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/equipment/wearables/overlays/lucky_stone.png"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": 2,
+      "clothIndex": -1,
+      "foxIndex": 0,
+      "accessoryIndex": 3,
+      "clothLayer": "",
+      "foxLayer": "BACK_BODY",
+      "clothNaturalWidth": 0,
+      "foxNaturalWidth": 1056
+    },
+    "statePath": "docs/evidence/w2_03_owner_approved_replacement_wearables_003/mobile-portrait-full_fox.png"
+  }
+]

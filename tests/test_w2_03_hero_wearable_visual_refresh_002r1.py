@@ -74,7 +74,7 @@ def test_registry_and_assets_prove_the_two_replacement_candidates_are_not_invent
         assert (ROOT / item["asset"].lstrip("/")).is_file(), item_id
 
 
-def test_replacement_candidates_have_baked_opaque_fields_while_a_assets_are_true_alpha():
+def test_owner_approved_replacement_outputs_are_true_alpha_like_a_assets():
     def alpha_summary(item_id: str) -> tuple[int, int, float]:
         with Image.open(OVERLAY_ROOT / f"{item_id}.png") as image:
             rgba = image.convert("RGBA")
@@ -86,8 +86,9 @@ def test_replacement_candidates_have_baked_opaque_fields_while_a_assets_are_true
 
     for item_id in EXPECTED_C:
         nonzero, opaque, opaque_ratio = alpha_summary(item_id)
-        assert nonzero == opaque
-        assert opaque_ratio > 0.10, item_id
+        assert nonzero > 0, item_id
+        assert opaque > 0, item_id
+        assert opaque_ratio < 0.50, item_id
 
     for item_id in EXPECTED_A:
         nonzero, opaque, opaque_ratio = alpha_summary(item_id)
@@ -95,9 +96,9 @@ def test_replacement_candidates_have_baked_opaque_fields_while_a_assets_are_true
         assert opaque_ratio < 0.10, item_id
 
 
-def test_renderer_fails_closed_before_dom_layer_creation_for_c_class_assets():
+def test_renderer_has_no_blocked_ids_after_owner_approved_replacement_integration():
     renderer = RENDERER.read_text(encoding="utf-8")
-    assert "ART_REPLACEMENT_REQUIRED_IDS = Object.freeze(['cloth_robe', 'fox_pelt'])" in renderer
+    assert "ART_REPLACEMENT_REQUIRED_IDS = Object.freeze([])" in renderer
     assert "ART_REPLACEMENT_REQUIRED.has(id)" in renderer
     assert "const replacementIds = requestedIds.filter(id => ART_REPLACEMENT_REQUIRED.has(id));" in renderer
     assert "stage.dataset.replacementIds = replacementIds.join(',');" in renderer

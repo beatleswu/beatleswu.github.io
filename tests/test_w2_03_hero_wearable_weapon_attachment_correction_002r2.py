@@ -74,7 +74,7 @@ def test_replacement_and_authority_policies_remain_held():
     runtime = RUNTIME.read_text(encoding="utf-8")
     hero = HERO.read_text(encoding="utf-8")
     app = APP.read_text(encoding="utf-8")
-    assert "ART_REPLACEMENT_REQUIRED_IDS = Object.freeze(['cloth_robe', 'fox_pelt'])" in runtime
+    assert "ART_REPLACEMENT_REQUIRED_IDS = Object.freeze([])" in runtime
     assert "go_stone_black" in hero
     assert "fetch('/api/player/inventory/equip'" not in hero
     assert "def equip_item()" in app
