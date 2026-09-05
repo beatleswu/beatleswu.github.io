@@ -8,6 +8,13 @@
   'use strict';
 
   const REGISTRY_URL = '/assets/hero/equipment/wearables/wearable_registry.json';
+  // These source files contain a baked opaque checkerboard/product field, so
+  // they are not honest wearable overlays. Keep the gameplay item available
+  // to the server projection, but fail closed for presentation until
+  // replacement art is approved. The renderer does not transform or mask
+  // these source pixels; unsuitable art never enters the wearable stage.
+  const ART_REPLACEMENT_REQUIRED_IDS = Object.freeze(['cloth_robe', 'fox_pelt']);
+  const ART_REPLACEMENT_REQUIRED = new Set(ART_REPLACEMENT_REQUIRED_IDS);
   let registryPromise = null;
 
   function ensureStyles() {
@@ -57,7 +64,10 @@
     (Array.isArray(equipped) ? equipped : []).forEach(value => {
       const id = equipmentId(value);
       const item = registry.equipment?.[id];
-      if (!item || item.wearable_visibility === 'INVENTORY_ONLY' || !item.asset) return;
+      if (!item
+        || item.wearable_visibility === 'INVENTORY_ONLY'
+        || ART_REPLACEMENT_REQUIRED.has(id)
+        || !item.asset) return;
       if (bySlot.has(item.slot)) return;
       bySlot.set(item.slot, id);
     });
@@ -113,7 +123,11 @@
     stage.hidden = false;
     stage.dataset.supported = 'true';
     setFallback(fallback, false);
-    const selectedIds = normalizeEquipped(equipped, registry);
+    const requestedIds = [...new Set(
+      (Array.isArray(equipped) ? equipped : []).map(equipmentId).filter(Boolean),
+    )];
+    const replacementIds = requestedIds.filter(id => ART_REPLACEMENT_REQUIRED.has(id));
+    const selectedIds = normalizeEquipped(requestedIds, registry);
     const selected = new Set(selectedIds);
     const entries = selectedIds.map(id => registry.equipment[id]).filter(Boolean);
     const appendEntries = layer => entries
@@ -133,12 +147,14 @@
       if (maskAsset) appendLayer(stage, maskAsset, 'character-hair-front-mask layer-hair-front-mask', 'reusable character hair mask');
     }
     stage.dataset.equippedIds = selectedIds.join(',');
+    stage.dataset.replacementIds = replacementIds.join(',');
     stage.dataset.authority = 'server_equipped_projection';
     stage.dataset.gameplayAuthority = 'none';
     return {
       supported: true,
       character: characterKey,
       equipped: selectedIds,
+      replacementRequired: replacementIds,
       frame: registry.player_frame.id,
     };
   }
@@ -149,6 +165,7 @@
         stage.innerHTML = '';
         stage.hidden = true;
         stage.dataset.supported = 'false';
+        stage.dataset.replacementIds = '';
         stage.dataset.renderError = error.message || 'wearable_render_failed';
       }
       if (options?.fallbackElement) setFallback(options.fallbackElement, true);
@@ -162,5 +179,6 @@
     render,
     renderSafe,
     registryUrl: REGISTRY_URL,
+    artReplacementRequiredIds: ART_REPLACEMENT_REQUIRED_IDS,
   };
 })(window);

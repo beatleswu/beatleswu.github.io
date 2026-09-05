@@ -1,0 +1,205 @@
+{
+  "schema": "go-odyssey.w2-03.hero-wearable-visual-refresh.v1",
+  "task_id": "W2_03_HERO_WEARABLE_VISUAL_REFRESH_002R1",
+  "base_head": "5b713a4cac285ffde3f9cd1ca911d61dd284e511",
+  "base_tree": "55bf9016733546b2b3b4ea28908ff3bfdb4cf46b",
+  "player_frame": {
+    "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [1056, 1408],
+    "body_frame_variants": 1
+  },
+  "authority": {
+    "ownership": "player_inventory",
+    "equipped": "player_inventory.equipped",
+    "character": "player_appearance.character_key",
+    "effects": "server EQUIPMENT_DEFS",
+    "projection": "read_only",
+    "client_combat_authority": false,
+    "visual_wearable_gameplay_authority": false
+  },
+  "classification": {
+    "A_READY_TRANSPARENT_WEARABLE": [
+      "wooden_sword",
+      "iron_sword",
+      "fox_fang",
+      "dragon_claw",
+      "celestial_blade",
+      "leather_armor",
+      "dragon_scale",
+      "void_mantle",
+      "lucky_stone",
+      "xp_amulet",
+      "fox_mask",
+      "dragon_eye"
+    ],
+    "B_COMPOSITING_FIX_REQUIRED": [],
+    "C_ART_REPLACEMENT_REQUIRED": [
+      "cloth_robe",
+      "fox_pelt"
+    ]
+  },
+  "counts": {
+    "total_wearable_overlays": 14,
+    "ready_transparent_wearable": 12,
+    "compositing_fix_required": 0,
+    "art_replacement_required": 2
+  },
+  "items": [
+    {
+      "item_id": "wooden_sword",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "weapon",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "evidence": "RGBA normalized-frame overlay; isolated sheathed sword reads as waist-attached in baseline projection",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "iron_sword",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "weapon",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "evidence": "RGBA normalized-frame overlay; isolated sword and sheath read as waist-attached in baseline projection",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "fox_fang",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "weapon",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "evidence": "RGBA normalized-frame overlay; curved short weapon reads as attached carry",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "dragon_claw",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "weapon",
+      "anchor": "forearm",
+      "layer": "FRONT_BODY",
+      "evidence": "RGBA normalized-frame overlay; forearm gear follows the hand-side silhouette",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "celestial_blade",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "weapon",
+      "anchor": "back_hilt",
+      "layer": "BACK_WEAPON",
+      "evidence": "RGBA normalized-frame overlay; long blade reads as back-carried and remains behind the base",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "cloth_robe",
+      "class": "C",
+      "classification": "ART_REPLACEMENT_REQUIRED",
+      "slot": "armor",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "evidence": "Source contains a large opaque checkerboard/product field; direct compositing leaves a rectangular white field over the torso",
+      "runtime_policy": "fail_closed_until_replacement"
+    },
+    {
+      "item_id": "leather_armor",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "armor",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "evidence": "RGBA normalized-frame overlay; cuirass follows torso and shoulder proportions",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "fox_pelt",
+      "class": "C",
+      "classification": "ART_REPLACEMENT_REQUIRED",
+      "slot": "armor",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "evidence": "Source contains a large opaque checkerboard/product field; direct compositing leaves a rectangular field around the mantle",
+      "runtime_policy": "fail_closed_until_replacement"
+    },
+    {
+      "item_id": "dragon_scale",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "armor",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "evidence": "RGBA normalized-frame overlay; scale armor follows torso and shoulder proportions",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "void_mantle",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "armor",
+      "anchor": "torso",
+      "layer": "BACK_BODY",
+      "evidence": "RGBA normalized-frame overlay; mantle shoulders and hem read as attached behind the torso",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "lucky_stone",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "accessory",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "evidence": "RGBA normalized-frame overlay; necklace and stone read as chest-attached",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "xp_amulet",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "accessory",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "evidence": "RGBA normalized-frame overlay; chain and pendant read as chest-attached",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "fox_mask",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "accessory",
+      "anchor": "face",
+      "layer": "HEAD_FACE",
+      "evidence": "RGBA normalized-frame face overlay with reusable hair-front mask; intentional face coverage is coherent",
+      "runtime_policy": "render"
+    },
+    {
+      "item_id": "dragon_eye",
+      "class": "A",
+      "classification": "READY_TRANSPARENT_WEARABLE",
+      "slot": "accessory",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "evidence": "RGBA normalized-frame overlay; brooch reads as a chest-attached accessory",
+      "runtime_policy": "render"
+    }
+  ],
+  "representative_proof": {
+    "no_functional_equipment": [],
+    "weapon": ["wooden_sword"],
+    "armor": ["dragon_scale"],
+    "accessory": ["lucky_stone"],
+    "full_loadout": ["wooden_sword", "dragon_scale", "lucky_stone"],
+    "excluded_from_representative_proof": ["xp_amulet", "go_stone_black"]
+  },
+  "fallback_contract": {
+    "replacement_items_are_not_rendered": true,
+    "replacement_items_remain_in_server_projection": true,
+    "replacement_items_show_explicit_pending_status": true,
+    "css_crop_or_background_mask_used": false,
+    "new_art_created": false
+  },
+  "status": "PASS_W2_03_COMPOSITING_COMPLETE_WITH_TARGETED_ART_REPLACEMENTS_IDENTIFIED"
+}

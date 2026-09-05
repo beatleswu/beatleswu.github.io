@@ -561,6 +561,8 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .hero-functional-projection-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hero-functional-projection-effect { display: block; color: #f6d98a; font: 700 8px/1.35 'DM Mono', monospace; overflow-wrap:anywhere; }
 .hero-functional-projection-state { display: block; margin-top: 2px; color: rgba(255,255,255,.58); font: 700 8px/1.3 'DM Mono', monospace; }
+.hero-functional-projection-item[data-presentation-state="art-replacement-required"] { border-color: rgba(253,186,116,.62); }
+.hero-functional-projection-state[data-presentation-state="art-replacement-required"] { color: #fed7aa; }
 .hero-functional-projection-status { color: rgba(255,255,255,.62); font-size: 10px; line-height: 1.4; }
 .hero-functional-projection[data-state="unavailable"] { border-color: rgba(252,165,165,.5); }
 .hero-style-projection {
@@ -3926,6 +3928,9 @@ const FUNCTIONAL_WEARABLE_MASKS_BY_CHARACTER = {
   night_runner: `${FUNCTIONAL_WEARABLE_MASK_ROOT}night_runner_hair_front.png`,
   constellation_apprentice: `${FUNCTIONAL_WEARABLE_MASK_ROOT}constellation_apprentice_hair_front.png`,
 };
+const FUNCTIONAL_WEARABLE_ART_REPLACEMENT_IDS = new Set(
+  window.GoOdysseyWearableRenderer?.artReplacementRequiredIds || ['cloth_robe', 'fox_pelt'],
+);
 
 function functionalWearableDescriptor(item) {
   if (!item || item.functional_equipment !== true || item.equipped !== true) return null;
@@ -4062,13 +4067,19 @@ function functionalProjectionEffectText(item) {
 function functionalProjectionItemHTML(item) {
   const slot = FUNCTIONAL_SLOT_LABELS[item.slot] || { zh: '裝備', en: 'Equipment' };
   const slotLabel = isEn() ? slot.en : slot.zh;
+  const itemId = String(item.item_id || item.id || '');
+  const artReplacementRequired = FUNCTIONAL_WEARABLE_ART_REPLACEMENT_IDS.has(itemId);
   const name = escapeHTML(functionalProjectionName(item));
   const effect = escapeHTML(functionalProjectionEffectText(item));
   const icon = functionalProjectionIconHTML(item);
-  return `<div class="hero-functional-projection-item" data-functional-item-id="${escapeHTML(item.item_id || item.id || '')}" data-presentation-mode="${escapeHTML(item.presentation?.mode || 'ICON_ONLY')}">
+  const state = artReplacementRequired
+    ? (isEn() ? 'Equipped · wearable art pending replacement' : '已裝備 · 穿戴圖待替換')
+    : (isEn() ? 'Equipped' : '已裝備');
+  const presentationState = artReplacementRequired ? 'art-replacement-required' : 'equipped';
+  return `<div class="hero-functional-projection-item" data-functional-item-id="${escapeHTML(itemId)}" data-presentation-mode="${escapeHTML(item.presentation?.mode || 'ICON_ONLY')}" data-presentation-state="${presentationState}">
     <a href="/inventory?equipment=${encodeURIComponent(item.inv_id ?? '')}" aria-label="${name} · ${escapeHTML(slotLabel)}">
       <span class="hero-functional-projection-icon">${icon}</span>
-      <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${escapeHTML(slotLabel)}</span><span class="hero-functional-projection-state">${isEn() ? 'Equipped' : '已裝備'}</span><span class="hero-functional-projection-effect">${effect}</span></span>
+      <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${escapeHTML(slotLabel)}</span><span class="hero-functional-projection-state" data-presentation-state="${presentationState}">${state}</span><span class="hero-functional-projection-effect">${effect}</span></span>
     </a>
   </div>`;
 }
