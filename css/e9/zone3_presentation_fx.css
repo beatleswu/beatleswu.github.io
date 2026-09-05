@@ -1,0 +1,433 @@
+/* W1 Zone 3 presentation FX.  Composited overlays only; no source-art edits. */
+
+.z3-fx-stage {
+    --z3-camera-duration: 7000ms;
+    --z3-camera-x: 50%;
+    --z3-camera-y: 50%;
+    --z3-camera-scale-from: 1;
+    --z3-camera-scale-to: 1;
+    --z3-camera-dx: 0%;
+    --z3-camera-dy: 0%;
+    --z3-camera-amplitude: 0px;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    contain: layout paint;
+    background: #101b1d;
+}
+
+/* The shared cinematic host is an absolute, full-viewport slot.  Keep the
+   Zone 3 FX contract from changing that host into a zero-sized flow box:
+   controls and active-shot geometry must remain anchored to the overlay,
+   while the FX layer itself stays presentation-only. */
+.z3-fx-stage.intro-film-stage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.z3-fx-stage > [data-z3-camera-target] {
+    position: relative;
+    z-index: 0;
+    transform-origin: var(--z3-camera-x) var(--z3-camera-y);
+    will-change: auto;
+}
+
+/* The shared intro-film slots stay unchanged; this wrapper gives the
+   manifest-owned camera cue a bounded media target without moving captions or
+   controls with the art. */
+.z3-fx-stage > .intro-film-stage-media[data-z3-camera-target] {
+    position: absolute;
+    inset: 0;
+}
+
+.z3-fx-stage > [data-z3-camera-target] > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+}
+
+.z3-fx-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: block;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+}
+
+.z3-fx-effect {
+    opacity: 1;
+    isolation: isolate;
+}
+
+.z3-fx-accent {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+}
+
+.z3-effect-z3-l01 .z3-fx-accent {
+    background: radial-gradient(ellipse at 50% 54%, rgba(255, 185, 74, .18), transparent 58%);
+    animation: z3WarmFlicker 2400ms ease-in-out infinite;
+}
+
+.z3-effect-z3-v01 .z3-fx-particle,
+.z3-effect-z3-v03 .z3-fx-particle {
+    position: absolute;
+    left: var(--z3-particle-x);
+    top: var(--z3-particle-y);
+    width: calc(var(--z3-particle-size) + 1px);
+    height: calc(var(--z3-particle-size) + 1px);
+    border-radius: 50%;
+    background: rgba(250, 231, 191, .62);
+    box-shadow: 0 0 5px rgba(255, 222, 153, .34);
+    opacity: .52;
+    animation: z3DustMote var(--z3-particle-duration) ease-in-out var(--z3-particle-delay) infinite alternate;
+}
+
+.z3-effect-z3-v03 .z3-fx-particle {
+    background: rgba(117, 232, 239, .78);
+    box-shadow: 0 0 8px rgba(88, 224, 235, .55);
+    opacity: .68;
+    animation-name: z3ShuiParticle;
+}
+
+.z3-effect-z3-v02 .z3-fx-accent {
+    inset: 26% -8% 26% 42%;
+    background:
+        repeating-linear-gradient(168deg, transparent 0 12%, rgba(143, 241, 237, .18) 14% 17%, transparent 19% 30%),
+        linear-gradient(164deg, transparent 12%, rgba(110, 215, 211, .18) 47%, transparent 78%);
+    opacity: .92;
+    mix-blend-mode: screen;
+    animation: z3WaterShimmer 1800ms ease-in-out infinite alternate;
+}
+
+.z3-effect-z3-v04 .z3-fx-accent {
+    inset: 40% 62% 28% 18%;
+    border: 2px solid rgba(133, 232, 228, .62);
+    border-radius: 50%;
+    background: rgba(109, 213, 214, .12);
+    box-shadow: 0 0 18px rgba(92, 221, 228, .38);
+    animation: z3ShuiPulse 900ms ease-out both;
+}
+
+.z3-effect-z3-v05 .z3-fx-particle,
+.z3-effect-z3-v06 .z3-fx-particle,
+.z3-effect-z3-v08 .z3-fx-particle {
+    position: absolute;
+    left: var(--z3-particle-x);
+    top: var(--z3-particle-y);
+    width: var(--z3-particle-size);
+    height: var(--z3-particle-size);
+    border-radius: 38% 62% 55% 45%;
+    background: rgba(224, 183, 132, .78);
+    box-shadow: 0 0 7px rgba(202, 157, 105, .32);
+    opacity: .82;
+    animation: z3RockDust 1250ms ease-out var(--z3-particle-delay) both;
+}
+
+.z3-effect-z3-v05::before {
+    content: '';
+    position: absolute;
+    left: 42%;
+    top: 36%;
+    width: 39%;
+    height: 44%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(217, 176, 125, .30), rgba(173, 126, 84, .12) 44%, transparent 72%);
+    filter: blur(3px);
+    opacity: .42;
+    animation: z3RockDustCloud 1250ms ease-out both;
+}
+
+.z3-effect-z3-v06 .z3-fx-particle {
+    border-radius: 2px;
+    background: rgba(122, 110, 96, .90);
+    box-shadow: 0 1px 4px rgba(31, 23, 17, .46);
+    animation-name: z3RockDebris;
+    animation-duration: 900ms;
+}
+
+.z3-effect-z3-v06::before {
+    content: '';
+    position: absolute;
+    left: 46%;
+    top: 54%;
+    width: 31%;
+    height: 25%;
+    background: radial-gradient(ellipse, rgba(120, 108, 94, .28), transparent 72%);
+    opacity: .72;
+    animation: z3DebrisCloud 900ms ease-out both;
+}
+
+.z3-effect-z3-v08 .z3-fx-particle {
+    background: rgba(221, 180, 127, .76);
+    animation-name: z3SpearDustImpulse;
+    animation-duration: 800ms;
+}
+
+.z3-effect-z3-v08::before {
+    content: '';
+    position: absolute;
+    left: 42%;
+    top: 71%;
+    width: 20%;
+    height: 18%;
+    border: 3px solid rgba(239, 200, 145, .62);
+    border-radius: 50%;
+    box-shadow: 0 0 16px rgba(218, 169, 104, .46);
+    opacity: .84;
+    animation: z3SpearContact 800ms ease-out both;
+}
+
+.z3-effect-z3-v07 .z3-fx-accent {
+    inset: 28% -8% 25% 58%;
+    background:
+        repeating-linear-gradient(166deg, transparent 0 17%, rgba(169, 235, 230, .18) 20% 24%, transparent 27% 39%),
+        linear-gradient(180deg, transparent 0%, rgba(128, 203, 201, .22) 56%, rgba(90, 165, 172, .34) 100%);
+    opacity: .92;
+    filter: blur(1px);
+    mix-blend-mode: screen;
+    animation: z3BlockedWaterMist 2600ms ease-in-out infinite alternate;
+}
+
+.z3-effect-z3-v09 .z3-fx-accent {
+    background:
+        radial-gradient(ellipse at 63% 46%, rgba(255, 177, 83, .16), transparent 54%),
+        linear-gradient(90deg, transparent 18%, rgba(87, 117, 137, .12) 50%, transparent 82%);
+    opacity: .86;
+    mix-blend-mode: screen;
+    animation: z3TrialTension 2800ms ease-in-out infinite alternate;
+}
+
+.z3-effect-z3-v10 .z3-fx-accent {
+    background: linear-gradient(180deg, rgba(235, 218, 166, .04), rgba(114, 188, 174, .02));
+    animation: z3TruceCalming 1000ms ease-out both;
+}
+
+.z3-effect-z3-t01-visual .z3-fx-accent {
+    background:
+        radial-gradient(ellipse at 68% 42%, rgba(185, 225, 235, .26), transparent 54%),
+        linear-gradient(110deg, rgba(245, 178, 92, .12) 0%, transparent 38%, rgba(127, 195, 219, .38) 76%, rgba(127, 195, 219, .22) 100%);
+    opacity: .92;
+    mix-blend-mode: screen;
+    animation: z3MistyForestTransition 1200ms ease-in-out both;
+}
+
+.z3-effect-z3-t01-visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 76% 46%, rgba(214, 242, 247, .38), transparent 46%),
+        linear-gradient(100deg, rgba(255, 174, 88, .10) 0%, transparent 34%, rgba(96, 180, 211, .28) 78%, rgba(96, 180, 211, .16) 100%);
+    mix-blend-mode: screen;
+    opacity: .54;
+    animation: z3ForestFogSweep 1400ms ease-out both;
+}
+
+.z3-fx-stage.z3-camera-slow-push > [data-z3-camera-target] {
+    animation: z3CameraPush var(--z3-camera-duration) ease-out both;
+}
+
+.z3-fx-stage.z3-camera-slow-pull > [data-z3-camera-target] {
+    animation: z3CameraPull var(--z3-camera-duration) ease-out both;
+}
+
+.z3-fx-stage.z3-camera-slow-drift > [data-z3-camera-target] {
+    animation: z3CameraDrift var(--z3-camera-duration) ease-in-out both;
+}
+
+.z3-fx-stage.z3-camera-bounded-impact-impulse > [data-z3-camera-target] {
+    animation: z3CameraImpulse var(--z3-camera-duration) ease-out both;
+}
+
+.z3-fx-stage > [data-z3-camera-target].z3-camera-target-active {
+    will-change: transform;
+}
+
+@keyframes z3WarmFlicker {
+    0%, 100% { opacity: .68; }
+    43% { opacity: .98; }
+    68% { opacity: .76; }
+}
+
+@keyframes z3DustMote {
+    from { transform: translate3d(-2px, 3px, 0); opacity: .26; }
+    to { transform: translate3d(3px, -7px, 0); opacity: .72; }
+}
+
+@keyframes z3ShuiParticle {
+    from { transform: translate3d(0, 4px, 0); opacity: .32; }
+    to { transform: translate3d(3px, -9px, 0); opacity: .86; }
+}
+
+@keyframes z3WaterShimmer {
+    from { transform: translateX(-2.5%); opacity: .52; }
+    to { transform: translateX(2.5%); opacity: .98; }
+}
+
+@keyframes z3ShuiPulse {
+    0% { transform: scale(.86); opacity: .08; }
+    55% { transform: scale(1); opacity: .48; }
+    100% { transform: scale(1.04); opacity: .04; }
+}
+
+@keyframes z3RockDust {
+    from { transform: translate3d(0, -7px, 0) scale(.72); opacity: .14; }
+    35% { opacity: .92; }
+    to { transform: translate3d(-4px, 28px, 0) scale(1.12); opacity: 0; }
+}
+
+@keyframes z3RockDustCloud {
+    from { transform: scale(.72); opacity: .12; }
+    38% { transform: scale(1); opacity: .72; }
+    to { transform: scale(1.12); opacity: .06; }
+}
+
+@keyframes z3RockDebris {
+    from { transform: translate3d(0, -4px, 0) scale(.8); opacity: .18; }
+    to { transform: translate3d(-7px, 16px, 0) scale(1.1); opacity: 0; }
+}
+
+@keyframes z3DebrisCloud {
+    from { transform: scale(.78); opacity: .14; }
+    40% { transform: scale(1); opacity: .68; }
+    to { transform: scale(1.14); opacity: .04; }
+}
+
+@keyframes z3SpearDustImpulse {
+    from { transform: translate3d(0, 1px, 0) scale(.55); opacity: .18; }
+    35% { opacity: .82; }
+    to { transform: translate3d(7px, 14px, 0) scale(1.12); opacity: 0; }
+}
+
+@keyframes z3SpearContact {
+    from { transform: scale(.48); opacity: .18; }
+    34% { transform: scale(1); opacity: .94; }
+    to { transform: scale(1.45); opacity: 0; }
+}
+
+@keyframes z3BlockedWaterMist {
+    from { transform: translate3d(-1.5%, 0, 0); opacity: .52; }
+    to { transform: translate3d(1.5%, -2%, 0); opacity: .94; }
+}
+
+@keyframes z3TrialTension {
+    from { opacity: .50; }
+    to { opacity: .94; }
+}
+
+@keyframes z3TruceCalming {
+    from { opacity: .86; }
+    to { opacity: .25; }
+}
+
+@keyframes z3MistyForestTransition {
+    from { transform: translateY(8%); opacity: .12; }
+    to { transform: translateY(0); opacity: .96; }
+}
+
+@keyframes z3ForestFogSweep {
+    from { transform: translate3d(10%, 3%, 0); opacity: .12; }
+    48% { opacity: .68; }
+    to { transform: translate3d(-3%, 0, 0); opacity: .46; }
+}
+
+@keyframes z3CameraPush {
+    from { transform: scale(var(--z3-camera-scale-from)); }
+    to { transform: scale(var(--z3-camera-scale-to)); }
+}
+
+@keyframes z3CameraPull {
+    from { transform: scale(var(--z3-camera-scale-from)); }
+    to { transform: scale(var(--z3-camera-scale-to)); }
+}
+
+@keyframes z3CameraDrift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(var(--z3-camera-dx), var(--z3-camera-dy), 0) scale(1.004); }
+}
+
+@keyframes z3CameraImpulse {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    32% { transform: translate3d(var(--z3-camera-amplitude), 0, 0); }
+    66% { transform: translate3d(calc(var(--z3-camera-amplitude) * -1), 0, 0); }
+}
+
+.z3-fx-stage.z3-reduced-motion .z3-fx-effect,
+.z3-fx-stage.z3-reduced-motion .z3-fx-particle,
+.z3-fx-stage.z3-reduced-motion .z3-fx-accent,
+.z3-fx-stage.z3-reduced-motion > [data-z3-camera-target],
+.z3-fx-stage.z3-camera-reduced-motion > [data-z3-camera-target],
+.z3-fx-reduced-motion,
+.z3-fx-reduced-motion * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    will-change: auto !important;
+}
+
+.z3-fx-stage.z3-reduced-motion .z3-fx-particle {
+    opacity: .48;
+}
+
+.z3-fx-stage.z3-reduced-motion .z3-effect-z3-v05::before,
+.z3-fx-stage.z3-reduced-motion .z3-effect-z3-v06::before,
+.z3-fx-stage.z3-reduced-motion .z3-effect-z3-v08::before,
+.z3-fx-stage.z3-reduced-motion .z3-effect-z3-t01-visual::before {
+    opacity: .42;
+    animation: none;
+    transform: none;
+}
+
+.z3-fx-stage.z3-reduced-motion .z3-effect-z3-v02 .z3-fx-accent,
+.z3-fx-stage.z3-reduced-motion .z3-effect-z3-v07 .z3-fx-accent,
+.z3-fx-stage.z3-reduced-motion .z3-effect-z3-v09 .z3-fx-accent,
+.z3-fx-stage.z3-reduced-motion .z3-effect-z3-t01-visual .z3-fx-accent {
+    opacity: .56;
+    transform: none;
+}
+
+@media (orientation: portrait) {
+    /* The approved frames use contain on portrait devices.  Keep the
+       composited effects inside the same central art band instead of
+       spending their contrast in the blurred letterbox fill. */
+    .z3-fx-stage > .z3-fx-layer {
+        top: 28%;
+        bottom: 28%;
+    }
+}
+
+@media (orientation: portrait) and (max-width: 767px) {
+    .z3-fx-stage > .z3-fx-layer {
+        top: 31%;
+        bottom: 31%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .z3-fx-effect,
+    .z3-fx-effect *,
+    .z3-fx-stage > [data-z3-camera-target] {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+        will-change: auto !important;
+    }
+
+    .z3-effect-z3-v05::before,
+    .z3-effect-z3-v06::before,
+    .z3-effect-z3-v08::before,
+    .z3-effect-z3-t01-visual::before {
+        animation: none !important;
+        opacity: .42;
+        transform: none !important;
+    }
+}

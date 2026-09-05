@@ -4093,6 +4093,132 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
             top: 30%;
         }
     }
+    /* W1-03 owner-acceptance repair: a cleared-zone story replay is
+       presentation-only. The shared cinematic overlay still owns the
+       first-clear title/progression DOM, so hide those first-clear fields
+       whenever the explicit replay context is active. */
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-kicker,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-title,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-books,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-progress,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-monster,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-rules,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-reward-presentation {
+        display: none !important;
+    }
+    /* Zone 3 Lord rechallenge uses the existing Owner-approved Centurion
+       challenge backplate. Its lower plaque remains available for live
+       copy and controls; no art or gameplay path is created here. */
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-scene {
+        display: block;
+        overflow: hidden;
+        min-height: 0;
+        width: min(600px, 66.6667vh, 90vw);
+        width: min(600px, calc((100dvh - 48px) * .666667), 90vw);
+        aspect-ratio: 2 / 3;
+        padding: 0;
+        background-color: #17120d;
+        background-image: url('/assets/e10/art/zone3/lord_trial/zone3_lord_02_challenge_backplate.webp');
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center top;
+        border-color: rgba(245, 201, 112, .68);
+        box-shadow: 0 24px 90px rgba(0,0,0,.6), inset 0 0 36px rgba(245,201,112,.12);
+        animation: lordCardFrameReveal .6s ease-out both;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-monster {
+        display: none;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-content {
+        position: absolute;
+        left: 5%;
+        right: 5%;
+        bottom: 5%;
+        z-index: 5;
+        box-sizing: border-box;
+        max-height: 58%;
+        overflow: auto;
+        padding: 13px 16px;
+        border: 1px solid rgba(245, 201, 112, .42);
+        border-radius: 14px;
+        background: rgba(15, 14, 10, .76);
+        backdrop-filter: blur(7px);
+        text-align: center;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-kicker,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-title,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-books,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-line,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-rules {
+        margin-bottom: 6px;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-title {
+        font-size: clamp(22px, 3.4vw, 34px);
+        background: linear-gradient(90deg, #f5c970, #e8f4e0 45%, #2dd4bf);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress {
+        margin: 0 0 8px;
+        padding: 0;
+        border: 0;
+        background: none;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-title,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-boss,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-zone,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-count {
+        display: none;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-body {
+        margin-top: 0;
+        font-size: 13px;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-rules {
+        margin: 4px 0 10px;
+        gap: 6px;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-rules span {
+        font-size: 10px;
+        padding: 5px 8px;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-actions {
+        gap: 7px;
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-scene {
+            width: min(92vw, calc((100dvh - 32px) * .666667));
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-content {
+            left: 4%;
+            right: 4%;
+            bottom: 4%;
+            max-height: 62%;
+            padding: 10px 12px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-title {
+            font-size: clamp(18px, 5.5vw, 26px);
+            margin-bottom: 3px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-kicker {
+            margin-bottom: 4px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-line {
+            margin-bottom: 5px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-actions {
+            flex-direction: column;
+            gap: 6px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-actions button {
+            width: 100%;
+            min-height: 44px;
+            padding: 9px 14px;
+            font-size: 13px;
+        }
+    }
     .adventure-ritual-toast,
     .zone-softfall-toast {
         position: fixed;
@@ -7231,6 +7357,9 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <link rel="stylesheet" href="/css/e9/reference_world_map.css?v=20260828e040s1">
     <link rel="stylesheet" href="/css/e9/art_directed_runtime.css?v=20260801e10art1">
     <link rel="stylesheet" href="/css/e9/adventure_spirit_unlock.css?v=20260828d036">
+    <link rel="stylesheet" href="/css/e9/journey_onboarding.css?v=20260903w103">
+    <link rel="stylesheet" href="/css/e9/zone3_vertical_slice.css?v=20260903w103">
+    <link rel="stylesheet" href="/css/e9/zone3_presentation_fx.css?v=20260904w1010">
 </head>
 <body data-sgf-report-surface="main_practice">
 <div id="world-presentation-pending" role="status" aria-live="polite">
@@ -7492,6 +7621,8 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
                     <main id="e9-world-stage-slot" data-e9-slot="worldStage"></main>
                     <aside id="e9-right-cards-slot" data-e9-slot="rightCards"></aside>
                 </div>
+                <div id="e9-journey-onboarding-slot" data-e9-slot="journeyOnboarding"></div>
+                <div id="e9-zone3-vertical-slice-slot" data-e9-slot="zone3VerticalSlice"></div>
                 <nav id="e9-bottom-dock-slot" data-e9-slot="bottomDock"></nav>
             </section>
 
@@ -7850,12 +7981,13 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
 <div id="boss-cinematic" class="boss-cinematic" aria-hidden="true">
     <div class="boss-cinematic-scene modal-system-card">
         <button type="button" class="boss-cinematic-close-x" id="boss-cinematic-close-x" onclick="cancelBossCinematic()" aria-label="關閉，返回地圖" title="關閉，返回地圖" data-i18n-aria-label="index.adv.stage_intro_close" data-i18n-title="index.adv.stage_intro_close">&times;</button>
-        <div class="intro-film-stage" id="intro-film-stage" aria-hidden="true">
+        <div class="intro-film-stage z3-fx-stage" id="intro-film-stage" aria-hidden="true">
             <div class="film-caption" id="intro-film-caption" data-i18n="index.film.caption">00:00 覺醒</div>
             <div class="intro-film-controls">
                 <button class="intro-replay-btn" type="button" onclick="replayIntroFilm()" data-i18n="index.film.replay">播放動畫</button>
                 <button class="intro-skip-btn" type="button" onclick="skipIntroFilm()" data-i18n="index.film.skip">略過動畫</button>
             </div>
+            <div class="intro-film-stage-media" data-z3-camera-target>
             <div class="film-shot film-shot-1" data-shot="0">
                 <img id="intro-film-shot-1" src="/assets/storyboards/go_starter_village_scene_01.webp" alt="覺醒" data-i18n-alt="index.film.alt1" loading="lazy" decoding="async">
             </div>
@@ -7885,6 +8017,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
             </div>
             <div class="film-shot film-shot-10" data-shot="9">
                 <img id="intro-film-shot-10" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
+            </div>
             </div>
             <div class="film-title-card" data-i18n="index.film.title_card">圍棋新手村：木劍的試煉</div>
         </div>
@@ -8358,6 +8491,9 @@ async function loadPlayerAvatar() {
         const backEl   = document.getElementById('player-avatar-back');
         if (backItem) { backEl.textContent = backItem.emoji; backEl.style.opacity = '1'; }
         else          { backEl.style.opacity = '0'; }
+
+        _journeyHeroReady = true;
+        _maybeEmitJourneyHeroCompanion();
 
         // ── Nav 頭像同步 fallback ──
         const navBase = document.getElementById('nav-avatar-base');
@@ -9617,6 +9753,19 @@ async function submitSRS(grade){
     };
     if (_bossMode) {
         bossAnswerContext.reviewResult = data;
+        if (_bossZone?.key === 'k16_20' && _bossAttemptId) {
+            emitZone3JourneyEvent('journey:zone3-lord-trial-progress', {
+                authoritative: true,
+                source: 'adventure_boss_review',
+                serverBound: true,
+                committed: true,
+                zoneKey: _bossZone.key,
+                attemptId: String(_bossAttemptId),
+                questionId: Number(bossAnswerContext.questionId),
+                grade,
+                eventId: `zone3-lord-review-${_bossAttemptId}-${bossAnswerContext.index}-${bossAnswerContext.questionId}`,
+            });
+        }
         try {
             await _handleBossAnswer(grade, bossAnswerContext);
         } catch (error) {
@@ -9854,6 +10003,8 @@ async function loadQuizPet() {
         if (!d || !d.pet) return;          // 尚未選擇棋靈夥伴
         const petDisplayName = _petLineEn() ? (d.pet.nickname_en || d.pet.name_en || 'Spirit Companion') : d.pet.nickname;
         _quizPet = { key:d.pet.pet_key, nickname:petDisplayName, accent:d.pet.accent || '#0b6f69' };
+        _journeyCompanionReady = true;
+        _maybeEmitJourneyHeroCompanion();
         const fig = document.getElementById('quiz-pet');
         const img = document.getElementById('quiz-pet-img');
         if (!fig || !img) return;
@@ -10297,6 +10448,34 @@ async function _submitMapBattleV1IfActive(moves) {
             || _mapBattleV1State !== submittedState
             || _mapBattleV1State?.attemptId !== submittedAttemptId) {
             return null;
+        }
+        const submittedZoneKey = submittedState?.zoneKey || _mapBattleV1Context?.zoneKey;
+        if (submittedZoneKey === 'k16_20' && response && submittedAttemptId) {
+            const monsterDefeated = response.monster_defeated === true
+                || _mapBattleV1State?.monsterDefeated === true;
+            const battleDetail = {
+                authoritative: response.accepted === true || response.duplicate === true,
+                source: 'map_battle_v1',
+                serverBound: true,
+                zoneKey: submittedZoneKey,
+                attemptId: String(submittedAttemptId),
+                questionId: submittedQuestionId,
+                result: response.result || null,
+                damage_to_monster: Number(response.damage_to_monster || 0),
+                next_action: response.next_action || null,
+                monster_defeated: monsterDefeated,
+                monsterDefeated,
+                duplicate: response.duplicate === true,
+                adventureMonster: _mapBattleV1State?.adventureMonster || null,
+                eventId: `zone3-map-answer-${submittedAttemptId}-${submittedQuestionId}-${response.battle_revision || 'current'}`,
+            };
+            emitZone3JourneyEvent('journey:zone3-map-battle', battleDetail);
+            if (monsterDefeated) {
+                emitZone3JourneyEvent('journey:zone3-battlefield-boss-progress', {
+                    ...battleDetail,
+                    eventId: `${battleDetail.eventId}-battlefield`,
+                });
+            }
         }
         const freshCorrect = response && response.duplicate !== true
             && response.result === 'CORRECT'
@@ -11759,6 +11938,30 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         setMsg(I18n.t('index.boss.question_load_fail'), 'err');
         return false;
     }
+    const mapZoneKey = _mapBattleV1State?.zoneKey || _mapBattleV1Context?.zoneKey;
+    if (mapZoneKey === 'k16_20' && _mapBattleV1State?.attemptId) {
+        emitZone3JourneyEvent('journey:zone3-gameplay-handoff', {
+            authoritative: true,
+            source: 'canonical_adventure_entry',
+            serverBound: true,
+            started: true,
+            zoneKey: mapZoneKey,
+            attemptId: String(_mapBattleV1State.attemptId),
+            questionId: String(_mapBattleV1State.questionId || questionId),
+            eventId: `zone3-gameplay-${_mapBattleV1State.attemptId}-${questionId}`,
+        });
+        emitZone3JourneyEvent('journey:zone3-map-battle', {
+            authoritative: true,
+            source: 'map_battle_v1',
+            serverBound: true,
+            zoneKey: mapZoneKey,
+            attemptId: String(_mapBattleV1State.attemptId),
+            questionId: String(_mapBattleV1State.questionId || questionId),
+            boardReady: true,
+            adventureMonster: _mapBattleV1State.adventureMonster || null,
+            eventId: `zone3-map-board-${_mapBattleV1State.attemptId}-${questionId}`,
+        });
+    }
     _publishMapBattleV1Lifecycle();
     _e10AcceptanceTrace('BOARD_RENDER_FINGERPRINT', { qid: questionId, fingerprint: _e10BoardRenderFingerprint(q) });
     _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: true, qid: questionId, generation });
@@ -12844,6 +13047,50 @@ let _adventureProgress = [];
 // Missing keys are intentionally unseen; this object is never populated from
 // browser storage and is not gameplay progression.
 let _adventureCinematicState = {};
+
+// W1_03 journey bridge. Events are page-memory presentation facts only. A
+// non-critical E9 fragment can arrive after authenticated bootstrap or a
+// question response, so retain a bounded queue until its view mounts. The
+// queue is never used as progression/reward authority and is not persisted.
+function _queueJourneyBridgeEvent(queueName, payload) {
+    const queue = Array.isArray(window[queueName]) ? window[queueName] : [];
+    queue.push(payload);
+    if (queue.length > 128) queue.splice(0, queue.length - 128);
+    window[queueName] = queue;
+}
+
+function emitJourneyEvent(type, detail = {}) {
+    const payload = { type, detail: { ...(detail || {}) } };
+    _queueJourneyBridgeEvent('__GO_JOURNEY_ONBOARDING_EVENT_QUEUE__', payload);
+    if (typeof document !== 'undefined' && typeof CustomEvent === 'function') {
+        document.dispatchEvent(new CustomEvent('journey:onboarding-event', { detail: payload }));
+    }
+    return payload;
+}
+
+function emitZone3JourneyEvent(type, detail = {}) {
+    const payload = { type, detail: { ...(detail || {}) } };
+    _queueJourneyBridgeEvent('__GO_ZONE3_JOURNEY_EVENT_QUEUE__', payload);
+    if (typeof document !== 'undefined' && typeof CustomEvent === 'function') {
+        document.dispatchEvent(new CustomEvent('journey:zone3-event', { detail: payload }));
+    }
+    return payload;
+}
+
+window.emitJourneyEvent = emitJourneyEvent;
+window.emitZone3JourneyEvent = emitZone3JourneyEvent;
+let _journeyFirstSessionGate = false;
+let _journeyHeroReady = false;
+let _journeyCompanionReady = false;
+function _maybeEmitJourneyHeroCompanion() {
+    if (!_journeyFirstSessionGate || !_journeyHeroReady || !_journeyCompanionReady) return;
+    emitJourneyEvent('journey:hero-companion-introduced', {
+        eventId: `journey-profile-${_currentUserId || 'session'}`,
+        heroReady: true,
+        companionReady: true,
+        authoritySource: 'existing_profile',
+    });
+}
 let _activeBossZone = null;
 let _bossMode = false;
 let _bossZone = null;
@@ -12877,6 +13124,9 @@ let _introSfxAudio = null;
 let _introFilmRunId = 0;
 let _introAudioUnlockPromise = null;
 let _introAudioUnlocked = false;
+let _zone3PresentationFx = null;
+let _zone3PresentationAudio = null;
+let _zone3PresentationCleanupGeneration = null;
 // Tracks what the CURRENTLY-SHOWING (or most-recently-shown) intro-film
 // overlay run actually is, so skipIntroFilm()/replayIntroFilm() -- both
 // zone-key-driven, not caller-driven -- can resume/finish the SAME phase
@@ -12895,6 +13145,99 @@ let _introFilmActiveOpts = { timeline: null, onComplete: null, phase: 'pre_play'
 let _introVoiceOptions = [];
 let _introVoiceIndex = 0;
 let _introZhPresetIndex = 0;
+
+// Zone 3's accepted World FX and presentation-audio packages are attached to
+// the existing cinematic stage only. These helpers deliberately expose no
+// progression/reward callbacks; the Adventure/Lord state machines remain the
+// sole gameplay authorities.
+function _ensureZone3PresentationRuntime() {
+    const stage = document.getElementById('intro-film-stage');
+    if (!stage) return null;
+    try {
+        if (!_zone3PresentationFx && window.GoOdysseyZone3PresentationFX?.create) {
+            _zone3PresentationFx = window.GoOdysseyZone3PresentationFX.create({
+                root: stage,
+                document,
+                window,
+            });
+        }
+        if (!_zone3PresentationAudio && window.GoOdysseyZone3PresentationAudio?.create) {
+            _zone3PresentationAudio = window.GoOdysseyZone3PresentationAudio.create({
+                document,
+                window,
+            });
+            void _zone3PresentationAudio.load().catch(() => {});
+        }
+        window.__GO_ZONE3_PRESENTATION_RUNTIME__ = {
+            fx: _zone3PresentationFx,
+            audio: _zone3PresentationAudio,
+        };
+    } catch (error) {
+        // Presentation packages are fail-open: an unavailable effect or cue
+        // never changes the cinematic's subtitle/pacing or game state.
+    }
+    return {
+        fx: _zone3PresentationFx,
+        audio: _zone3PresentationAudio,
+    };
+}
+
+function _stopZone3PresentationRuntime() {
+    // Service teardown must release document-owned listeners as well as
+    // active media/effects. The next presentation creates fresh services.
+    try { _zone3PresentationAudio?.destroy?.(); } catch (error) {}
+    try { _zone3PresentationFx?.destroy?.(); } catch (error) {}
+    _zone3PresentationAudio = null;
+    _zone3PresentationFx = null;
+    if (window.__GO_ZONE3_PRESENTATION_RUNTIME__) {
+        window.__GO_ZONE3_PRESENTATION_RUNTIME__ = { fx: null, audio: null };
+    }
+}
+
+function _registerZone3PresentationLifecycleCleanup() {
+    const e9 = window.E9;
+    if (!e9
+        || typeof e9.registerCleanup !== 'function'
+        || typeof e9.getLifecycleGeneration !== 'function') return;
+    const generation = e9.getLifecycleGeneration();
+    if (_zone3PresentationCleanupGeneration === generation) return;
+    _zone3PresentationCleanupGeneration = generation;
+    e9.registerCleanup(() => {
+        if (_zone3PresentationCleanupGeneration === generation) {
+            _zone3PresentationCleanupGeneration = null;
+        }
+        _stopIntroFilm();
+        _zoneCinematicPresentationOnly = false;
+        _zoneCinematicAdvanceSegment = null;
+        _zoneCinematicSequenceRunId += 1;
+        const overlay = document.getElementById('boss-cinematic');
+        if (overlay && overlay.dataset.zone3EntryFlow === 'true') {
+            overlay.className = 'boss-cinematic';
+            overlay.setAttribute('aria-hidden', 'true');
+            delete overlay.dataset.zone3Safe;
+            delete overlay.dataset.zone3EntryFlow;
+            delete overlay.dataset.zone3Replay;
+            delete overlay.dataset.zone3Presentation;
+            delete overlay.dataset.zone3PresentationFailure;
+            delete overlay.dataset.zone3PresentationFailureHandled;
+            delete overlay.dataset.assetSlot;
+            delete overlay.dataset.assetStatus;
+        }
+        if (document.documentElement) {
+            delete document.documentElement.dataset.zone3PresentationFailsafe;
+        }
+    }, generation);
+}
+
+function _syncZone3PresentationMute() {
+    const muted = Boolean(window.SFX?.muted);
+    [_introAudio, _introBgmAudio, _introAmbienceAudio, _introSfxAudio]
+        .filter(Boolean)
+        .forEach((audio) => { try { audio.muted = muted; } catch (error) {} });
+    try { _zone3PresentationAudio?.syncMute(); } catch (error) {}
+}
+
+document.addEventListener('go-odyssey-audio-mute-changed', _syncZone3PresentationMute);
 const ADVENTURE_SELECTED_STAGE_STORAGE_KEY = 'adventure_selected_stage_v1';
 const INTRO_NARRATOR_PREFERRED_NAME = 'Google UK English Female';
 const INTRO_ZH_NARRATOR_PRESETS = [
@@ -14625,6 +14968,10 @@ function updateMapProgress(data) {
         // Zone 2 uses the same account-scoped pending/seen presentation
         // bridge for its POST_CLEAR Shots 8-10.
         _resumeZone2PostClearIfPending();
+        // Zone 3 uses the World-owned ten-shot package for its post-clear
+        // tail. This remains a presentation recovery only; clear and unlock
+        // facts are still read from this bootstrap payload.
+        _resumeZone3PostClearIfPending();
         // BOSS_READY announcement (Shots 7-8, E10-Z1-CINEMATIC-TRIGGER-
         // REALIGNMENT): also runs on every fresh load, a no-op unless
         // _adventureBossReady(k26_30) is newly true and not yet seen.
@@ -14632,6 +14979,9 @@ function updateMapProgress(data) {
         // Zone 2 uses the same presentational, re-derivable readiness model
         // with its own Shots 5-7 slots. No gameplay state is written here.
         _maybeTriggerZone2BossReadyFilm(zones);
+        // Zone 3 BOSS_READY (Shots 6-7) is re-derived from the same
+        // authoritative readiness fact and never starts the Lord Trial.
+        _maybeTriggerZone3BossReadyFilm(zones);
         if (!zones.length) {
             _activeBossZone = null;
             _setAdventureStoredSelectedStageKey('');
@@ -14686,7 +15036,7 @@ async function startAdventureStage(zoneKey, options = {}) {
     // This function is reached from the real map CTA user gesture.  Zone 2's
     // first spoken beat intentionally starts on Shot 2 (Shot 1 is silent), so
     // prime the reusable media elements before the cinematic's silent hold.
-    if (zone.key === 'k21_25') {
+    if (zone.key === 'k21_25' || zone.key === 'k16_20') {
         await _unlockIntroAudioFromGesture();
     }
     await showStageIntroCinematic(zone, {
@@ -14869,9 +15219,12 @@ function markAdventureBossReadyFilmSeen(zone) {
     } catch {}
 }
 
-function applyIntroFilmShotAssets(timeline = []) {
+function applyIntroFilmShotAssets(timeline = [], options = {}) {
     const stage = document.getElementById('intro-film-stage');
     const shots = stage ? Array.from(stage.querySelectorAll('.film-shot')) : [];
+    const onPresentationFailure = typeof options.onPresentationFailure === 'function'
+        ? options.onPresentationFailure
+        : null;
     // Match by item.shot (the DOM slot index each item declares), not by
     // array position: a sub-timeline like Zone 1's postClearTimeline only
     // contains shots 8-9 at array positions 0-1, and must still land on DOM
@@ -14885,14 +15238,266 @@ function applyIntroFilmShotAssets(timeline = []) {
         const img = shotEl.querySelector('img');
         const item = byShotIndex.get(index);
         shotEl.style.display = item ? '' : 'none';
-        if (!img || !item?.imageSrc) return;
-        img.src = item.imageSrc;
+        if (!img || !item?.imageSrc) {
+            if (img) img.onerror = null;
+            shotEl.classList.remove('zone3-image-load-failed');
+            delete shotEl.dataset.zone3ImageAssetId;
+            delete shotEl.dataset.zone3ImageLoad;
+            return;
+        }
+        const imageSrc = item.imageSrc;
         shotEl.style.setProperty('--film-backdrop-image', `url("${item.imageSrc}")`);
         if (item.imageAlt) img.alt = item.imageAlt;
+        const presentation = item.presentation;
+        const isZone3Presentation = Boolean(presentation?.shotId);
+        if (isZone3Presentation) {
+            const responsiveSlots = [
+                ['desktop', presentation.desktopPresentation],
+                ['ipad-landscape', presentation.ipadLandscapePresentation],
+                ['ipad-portrait', presentation.ipadPortraitPresentation],
+                ['mobile', presentation.mobilePresentation],
+            ];
+            shotEl.dataset.zone3ImageAssetId = presentation.imageAssetId || '';
+            shotEl.dataset.zone3PresentationPhase = presentation.phase || '';
+            responsiveSlots.forEach(([name, slot]) => {
+                if (!slot) return;
+                shotEl.style.setProperty(`--zone3-${name}-object-fit`, slot.mode || 'cover');
+                shotEl.style.setProperty(`--zone3-${name}-object-position`, slot.objectPosition || '50% 50%');
+            });
+            shotEl.classList.remove('zone3-image-load-failed');
+            delete shotEl.dataset.zone3ImageLoad;
+            // Presentation failure keeps the current frame/subtitle path
+            // alive and records no gameplay fact.  There is intentionally no
+            // progression, reward, or navigation callback here.
+            img.onerror = () => {
+                shotEl.classList.add('zone3-image-load-failed');
+                shotEl.dataset.zone3ImageLoad = 'failed_presentation_only';
+                if (onPresentationFailure) onPresentationFailure({ shot: item, element: shotEl });
+            };
+            img.onload = () => {
+                shotEl.classList.remove('zone3-image-load-failed');
+                shotEl.dataset.zone3ImageLoad = 'loaded';
+            };
+            // Assign after the presentation-only handlers are installed so a
+            // fast 404 cannot miss the bounded fail-safe callback.
+            img.src = imageSrc;
+        } else {
+            img.onerror = null;
+            img.onload = null;
+            shotEl.classList.remove('zone3-image-load-failed');
+            delete shotEl.dataset.zone3ImageAssetId;
+            delete shotEl.dataset.zone3ImageLoad;
+            img.src = imageSrc;
+        }
     });
 }
 
+function _failZone3PresentationOnly(zone, overlay) {
+    if (!overlay || overlay.dataset.zone3PresentationFailureHandled === 'true') return false;
+    const replay = overlay.dataset.zone3Replay === 'true';
+    overlay.dataset.zone3PresentationFailureHandled = 'true';
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic';
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.dataset.zone3PresentationFailure = 'presentation_only';
+    overlay.dataset.assetStatus = 'FAILED_PRESENTATION_ONLY';
+    if (document.documentElement) {
+        document.documentElement.dataset.zone3PresentationFailsafe = 'reached';
+    }
+    // Replay returns to the same authoritative card surface. First-entry
+    // failure stays on the selected map state. Neither branch writes
+    // progression, rewards, or unlock state.
+    if (replay && zone?.key && window.E9 && typeof window.E9.showAdventureZoneCard === 'function') {
+        window.E9.showAdventureZoneCard(zone.key);
+    }
+    return true;
+}
+
+async function _continueZone3SafeEntry(zone, source = 'continue') {
+    const overlay = document.getElementById('boss-cinematic');
+    if (!zone || zone.key !== 'k16_20' || overlay?.dataset.zone3EntryCompleted === 'true') return false;
+    if (overlay?.dataset.zone3Replay === 'true') {
+        _finishZoneCinematicReplay(zone);
+        return true;
+    }
+    if (!(await enterAdventureZoneInPage(zone))) {
+        window.location.href = firstQuestionHref(zone);
+        return false;
+    }
+    if (overlay) {
+        overlay.dataset.zone3EntryCompleted = 'true';
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+    const manifestPresentation = overlay?.dataset.zone3Presentation === 'world_manifest'
+        && overlay?.dataset.assetStatus === 'READY';
+    if (typeof emitZone3JourneyEvent === 'function') {
+        emitZone3JourneyEvent('journey:zone3-first-entry-cinematic', {
+            authoritative: true,
+            source: manifestPresentation ? 'world_manifest' : 'manifest_safe_fallback',
+            completed: true,
+            safeFallback: !manifestPresentation,
+            presentationOnly: true,
+            assetSlot: 'zone3_entry_cinematic',
+            assetStatus: manifestPresentation ? 'READY' : 'PENDING_FINAL_ASSETS',
+            replay: false,
+            completionSource: source,
+            eventId: `zone3-entry-${manifestPresentation ? 'manifest' : 'fallback'}-${Date.now()}`,
+        });
+    }
+    return true;
+}
+
+async function _finishZone3EntryManifest(zone, mode = 'legacy') {
+    _zoneCinematicPresentationOnly = false;
+    if (mode === 'manual_replay') {
+        _finishZoneCinematicReplay(zone);
+        return;
+    }
+    if (mode === 'first_entry') await markAdventureIntroSeen(zone);
+    else if (mode === 'legacy') void markAdventureIntroSeen(zone);
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    if (!overlay || !btn) return;
+    overlay.classList.add('ready');
+    overlay.dataset.zone3EntryCompleted = 'false';
+    if (kicker) kicker.textContent = I18n.t('e9.zone3.gameplay_handoff.kicker');
+    if (title) title.textContent = I18n.t('e9.zone3.gameplay_handoff.title');
+    if (books) books.textContent = I18n.t('adventure.zone3.encounter_title');
+    if (line) line.textContent = I18n.t('e9.zone3.gameplay_handoff.body');
+    if (rules) {
+        rules.innerHTML = `<span>${I18n.t('adventure.zone3.encounter_objective')}</span>`;
+        rules.hidden = false;
+    }
+    btn.disabled = false;
+    btn.textContent = I18n.t('adventure.zone3.continue');
+    btn.onclick = () => {
+        btn.disabled = true;
+        void _continueZone3SafeEntry(zone, 'continue')
+            .then(started => { if (!started) btn.disabled = false; });
+    };
+}
+
+async function showZone3EntrySafeFallback(zone, options = {}) {
+    const mode = options.mode || 'legacy';
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    if (!zone || zone.key !== 'k16_20') return false;
+    if (!overlay || !title || !btn) {
+        window.location.href = firstQuestionHref(zone);
+        return false;
+    }
+    _registerZone3PresentationLifecycleCleanup();
+    const presentation = _zone3CinematicPresentation();
+    const manifestTimeline = _zone3CinematicTimeline('FIRST_ENTRY');
+    const manifestReady = presentation?.responsiveManifestReconciled === true
+        && presentation?.shots?.length === 10
+        && manifestTimeline.length === 5;
+    _pendingBossZone = null;
+    _activeBossZone = zone;
+    _stopIntroFilm();
+    if (manifestReady) {
+        overlay.className = 'boss-cinematic show intro-film';
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.dataset.zoneKey = zone.key;
+        overlay.dataset.zone3Safe = 'true';
+        overlay.dataset.zone3EntryFlow = 'true';
+        overlay.dataset.zone3Replay = mode === 'manual_replay' ? 'true' : 'false';
+        overlay.dataset.zone3PresentationOnly = mode === 'manual_replay' ? 'true' : 'false';
+        overlay.dataset.zone3Presentation = 'world_manifest';
+        overlay.dataset.zone3EntryCompleted = 'false';
+        overlay.dataset.assetSlot = 'zone3_entry_cinematic';
+        overlay.dataset.assetStatus = 'READY';
+        delete overlay.dataset.zone3PresentationFailure;
+        delete overlay.dataset.zone3PresentationFailureHandled;
+        if (document.documentElement) delete document.documentElement.dataset.zone3PresentationFailsafe;
+        const introStage = document.getElementById('intro-film-stage');
+        if (introStage) introStage.classList.remove('show-title-card');
+        if (monster) {
+            monster.textContent = '';
+            monster.hidden = true;
+        }
+        if (progress) progress.style.display = '';
+        if (cancelBtn) cancelBtn.style.display = '';
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+            cancelBtn.onclick = () => _zone3ReturnToMap('entry_cancel');
+        }
+        btn.disabled = true;
+        btn.textContent = I18n.t('adventure.zone3.continue');
+        await playNewbieVillageIntroFilm(zone, {
+            timeline: manifestTimeline,
+            phase: 'pre_play',
+            mode,
+            onPresentationFailure: ({ shot } = {}) => {
+                _failZone3PresentationOnly(zone, overlay);
+                return shot || null;
+            },
+            onComplete: () => _finishZone3EntryManifest(zone, mode),
+        });
+        return true;
+    }
+    overlay.className = 'boss-cinematic show phase-zone3-entry-safe';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key;
+    overlay.dataset.zone3Safe = 'true';
+    overlay.dataset.zone3EntryFlow = 'true';
+    overlay.dataset.zone3Presentation = 'safe_fallback';
+    overlay.dataset.zone3Replay = mode === 'manual_replay' ? 'true' : 'false';
+    overlay.dataset.zone3PresentationOnly = mode === 'manual_replay' ? 'true' : 'false';
+    overlay.dataset.zone3EntryCompleted = 'false';
+    overlay.dataset.assetSlot = 'zone3_entry_cinematic';
+    overlay.dataset.assetStatus = 'PENDING_FINAL_ASSETS';
+    const introStage = document.getElementById('intro-film-stage');
+    if (introStage) introStage.classList.remove('show-title-card');
+    if (monster) {
+        monster.textContent = '';
+        monster.hidden = true;
+    }
+    if (progress) progress.style.display = '';
+    if (cancelBtn) cancelBtn.style.display = '';
+    if (kicker) kicker.textContent = I18n.t('e9.zone3.entry_cinematic.kicker');
+    title.textContent = I18n.t('e9.zone3.entry_cinematic.title');
+    if (books) books.textContent = I18n.t('adventure.zone3.encounter_title');
+    if (line) line.textContent = I18n.t('e9.zone3.entry_cinematic.body');
+    if (rules) {
+        rules.innerHTML = `<span>${I18n.t('adventure.zone3.encounter_objective')}</span>`;
+        rules.hidden = false;
+    }
+    if (cancelBtn) {
+        cancelBtn.disabled = false;
+        cancelBtn.onclick = () => _zone3ReturnToMap('entry_cancel');
+    }
+    btn.disabled = false;
+    btn.textContent = I18n.t('adventure.zone3.continue');
+    btn.onclick = () => {
+        btn.disabled = true;
+        void _continueZone3SafeEntry(zone, mode === 'manual_replay' ? 'replay' : 'continue')
+            .then(started => { if (!started) btn.disabled = false; });
+    };
+    return true;
+}
+
 async function showStageIntroCinematic(zone, options = {}) {
+    if (zone?.key === 'k16_20') {
+        // The Zone 3 visual package is a WORLD-owned slot. The helper keeps a
+        // text-safe fallback if delivery is unavailable, but never passes
+        // Zone 3 through the historical ADVENTURE_STORY/storyboard path.
+        return showZone3EntrySafeFallback(zone, options);
+    }
     const mode = options.mode || 'legacy';
     const story = ADVENTURE_STORY[zone.key] || {};
     const overlay = document.getElementById('boss-cinematic');
@@ -14903,6 +15508,8 @@ async function showStageIntroCinematic(zone, options = {}) {
     const line = document.getElementById('boss-cinematic-line');
     const rules = document.getElementById('boss-cinematic-rules');
     const btn = document.getElementById('boss-cinematic-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
     if (!overlay || !title || !btn) {
         window.location.href = firstQuestionHref(zone);
         return;
@@ -14910,6 +15517,10 @@ async function showStageIntroCinematic(zone, options = {}) {
     _pendingBossZone = null;
     _activeBossZone = zone;
     _stopIntroFilm();
+    if (monster) monster.hidden = false;
+    if (rules) rules.hidden = false;
+    if (progress) progress.style.display = '';
+    if (cancelBtn) cancelBtn.style.display = '';
     const hasIntroFilm = zone.key === 'k26_30' || zone.key === 'k21_25' || zone.key === 'k16_20' || zone.key === 'k11_15' || zone.key === 'k6_10' || zone.key === 'k1_5' || zone.key === 'd1_2' || zone.key === 'd3_4' || zone.key === 'd5_6' || zone.key === 'd7_plus';
     overlay.className = hasIntroFilm
         ? 'boss-cinematic show intro-film'
@@ -15160,7 +15771,7 @@ function _startIntroBgm(src, opts = {}) {
         audio.onended = null;
         audio.onerror = null;
         audio.loop = loop;
-        audio.muted = false;
+        audio.muted = isZone3Presentation ? Boolean(window.SFX?.muted) : false;
         audio.volume = volume;
         _introBgmBaseVolume = volume;
         _introBgmAudio = audio;
@@ -15242,6 +15853,7 @@ function _playIntroSfxAsset(src, opts = {}) {
 
 function _stopIntroFilm() {
     _introFilmRunId++;
+    _stopZone3PresentationRuntime();
     _introFilmTimers.forEach(id => clearTimeout(id));
     _introFilmTimers = [];
     _introSpeechTimers.forEach(id => clearTimeout(id));
@@ -16021,100 +16633,6 @@ function _getIntroFilmLocaleConfigBase(zone) {
             ],
         };
     }
-    if (zone?.key === 'k16_20') {
-        if (isEnglish) {
-            return {
-                uiLang: 'en',
-                preferredLang: 'en-GB',
-                filmTitle: zone?.filmTitle || ADVENTURE_STORY_EN[zone?.key]?.filmTitle || 'Goblin Cave: The Stonewall Endgame',
-                finalCaption: 'Final beat: The Sound of Breakthrough',
-                finalLine: 'The narrow passage is your path of play. Black and white weave like stones, and the goblins scatter, crying out. You lift a fallen shard, and its veins fit seamlessly into that thousand-year-old unfinished game. This move, someone left it waiting for you.',
-                timeline: [
-                    {
-                        shot: 0,
-                        caption: 'Shot 1: The Cave Whispers',
-                        text: 'The sunlight of the plains is far behind; from the deep dark comes an unknown whisper. You clutch the glowing crystal, the one eye in this blackness willing to open for you. Every step sinks deeper into the maze.',
-                        audioSrc: '/assets/storyboards/go_goblin_cave_voice_en_01.mp3',
-                        imageSrc: '/assets/storyboards/go_goblin_cave_scene_01.webp',
-                        imageAlt: 'A child entering the goblin cave',
-                        sfx: 'mystic',
-                    },
-                    {
-                        shot: 1,
-                        caption: 'Shot 2: The Shadow Game',
-                        text: 'The goblins\' firelight tears the silence. They guard the cave, and they are new stones on your board. Hold your breath. Watch. Where the firelight cannot reach is where the true move waits.',
-                        audioSrc: '/assets/storyboards/go_goblin_cave_voice_en_02.mp3',
-                        imageSrc: '/assets/storyboards/go_goblin_cave_scene_02.webp',
-                        imageAlt: 'Goblins patrolling with torches',
-                        sfx: 'pulse',
-                    },
-                    {
-                        shot: 2,
-                        caption: 'Shot 3: The Wall Reveals',
-                        text: 'This cold stone wall is a board the earth itself has carved. These crossing lines are no mere cracks, they are a game left unfinished. Read the veins, set the stone, break the wall! Stones of rock, a board of caverns, you have found a new battlefield.',
-                        audioSrc: '/assets/storyboards/go_goblin_cave_voice_en_03.mp3',
-                        imageSrc: '/assets/storyboards/go_goblin_cave_scene_03.webp',
-                        imageAlt: 'The cave wall glowing like a board',
-                        sfx: 'woodhit',
-                    },
-                    {
-                        shot: 3,
-                        caption: 'Shot 4: Breakthrough in the Pass',
-                        text: 'The narrow passage is your path of play. Black and white weave like stones; the goblins scatter, crying out. You lift a fallen shard, and its veins fit seamlessly into that thousand-year-old unfinished game. This move... someone left it waiting for you.',
-                        audioSrc: '/assets/storyboards/go_goblin_cave_voice_en_04.mp3',
-                        imageSrc: '/assets/storyboards/go_goblin_cave_scene_04.webp',
-                        imageAlt: 'Breaking through the goblin cave',
-                        sfx: 'journey',
-                    },
-                ],
-            };
-        }
-        return {
-            uiLang: 'zh',
-            preferredLang: 'zh-TW',
-            filmTitle: zone?.filmTitle || ADVENTURE_STORY[zone?.key]?.filmTitle || '哥布林洞穴：石壁殘局',
-            finalCaption: '終幕：突圍的棋聲',
-            finalLine: '窄道，是你的棋路。黑白能量穿梭如子，哥布林在驚呼中潰散。你拾起一塊崩落的石片，上頭的紋路竟與那局千年殘棋，嚴絲合縫。這一手，早有人替你留著。',
-            timeline: [
-                {
-                    shot: 0,
-                    caption: '第一段：洞穴的低語',
-                    text: '平原的陽光已遠，黑暗深處，傳來未知的低語。你握緊發光的晶石，它是這片黑裡，唯一肯為你亮起的眼睛。每一步，都踏入更深的迷宮。',
-                    audioSrc: '/assets/storyboards/go_goblin_cave_voice_01.mp3',
-                    imageSrc: '/assets/storyboards/go_goblin_cave_scene_01.webp',
-                    imageAlt: '洞穴的低語',
-                    sfx: 'mystic',
-                },
-                {
-                    shot: 1,
-                    caption: '第二段：暗影的棋局',
-                    text: '哥布林的火光，劃破沉寂。他們是洞穴的守衛，也是你盤上的新子。屏息，觀察。火光照不到的地方，才是落子的位置。',
-                    audioSrc: '/assets/storyboards/go_goblin_cave_voice_02.mp3',
-                    imageSrc: '/assets/storyboards/go_goblin_cave_scene_02.webp',
-                    imageAlt: '暗影的棋局',
-                    sfx: 'pulse',
-                },
-                {
-                    shot: 2,
-                    caption: '第三段：石壁的啟示',
-                    text: '冰冷的石壁，竟是一張天然的棋盤。紋路交錯，那不是裂痕，是一局沒下完的棋。讀脈，點石，破壁！以石為子，以洞為局，你找到了新的戰場。',
-                    audioSrc: '/assets/storyboards/go_goblin_cave_voice_03.mp3',
-                    imageSrc: '/assets/storyboards/go_goblin_cave_scene_03.webp',
-                    imageAlt: '石壁的啟示',
-                    sfx: 'woodhit',
-                },
-                {
-                    shot: 3,
-                    caption: '第四段：突圍的棋聲',
-                    text: '窄道，是你的棋路。黑白能量穿梭如子，哥布林在驚呼中潰散。你拾起一塊崩落的石片，上頭的紋路，竟與那局千年殘棋，嚴絲合縫。這一手，早有人替你留著。',
-                    audioSrc: '/assets/storyboards/go_goblin_cave_voice_04.mp3',
-                    imageSrc: '/assets/storyboards/go_goblin_cave_scene_04.webp',
-                    imageAlt: '突圍的棋聲',
-                    sfx: 'journey',
-                },
-            ],
-        };
-    }
     if (zone?.key === 'k21_25') {
         if (isEnglish) {
             return {
@@ -16761,7 +17279,76 @@ function _zone2CinematicPhaseSlots(locale, isEnglish) {
     };
 }
 
+function _zone3LocalizedText(key) {
+    const value = window.I18n && typeof window.I18n.t === 'function'
+        ? window.I18n.t(key)
+        : '';
+    return value && value !== key ? value : '';
+}
+
+function _zone3CinematicPresentation() {
+    return window.GoOdysseyJourneyZone3Content?.cinematicPresentation || null;
+}
+
+function _zone3CinematicTimeline(phase) {
+    const presentation = _zone3CinematicPresentation();
+    if (!presentation || !Array.isArray(presentation.shots)) return [];
+    const uiLang = typeof getCurrentUiLang === 'function' ? getCurrentUiLang() : 'zh';
+    const selectedLocale = uiLang === 'en' ? 'en-US' : 'zh-TW';
+    return presentation.shots
+        .filter(record => record && record.phase === phase)
+        .map(record => ({
+            shot: Number(record.shotNumber) - 1,
+            // The WORLD frame has no baked text.  Subtitle text is resolved
+            // only from the selected application's i18n dictionary below.
+            caption: '',
+            imageSrc: record.imagePath,
+            imageAlt: '',
+            presentation: record,
+            sfxCues: [],
+            beats: (record.beats || []).map(beat => {
+                const voiceStatus = beat.voiceStatusByLocale?.[selectedLocale]
+                    || (selectedLocale === 'zh-TW' ? beat.voiceStatus : null);
+                const audioSrc = beat.audioPathByLocale?.[selectedLocale]
+                    || (selectedLocale === 'zh-TW' ? beat.audioPath : '');
+                const hasApprovedVoice = voiceStatus === 'OWNER_APPROVED_PRODUCTION'
+                    && Boolean(audioSrc);
+                return {
+                    beatId: beat.beatId,
+                    i18nKey: beat.i18nKey,
+                    text: _zone3LocalizedText(beat.i18nKey),
+                    locale: selectedLocale,
+                    voiceName: beat.voiceNameByLocale?.[selectedLocale] || null,
+                    voiceId: beat.voiceIdByLocale?.[selectedLocale] || null,
+                    audioManifest: beat.audioManifestByLocale?.[selectedLocale] || null,
+                    audioSrc: hasApprovedVoice ? audioSrc : '',
+                    allowTtsFallback: false,
+                    ownerAudioPending: !hasApprovedVoice,
+                };
+            }),
+        }));
+}
+
+function _zone3CinematicLocaleConfig(zone) {
+    const uiLang = typeof getCurrentUiLang === 'function' ? getCurrentUiLang() : 'zh';
+    const presentation = _zone3CinematicPresentation();
+    return {
+        uiLang,
+        preferredLang: uiLang === 'en' ? 'en-US' : 'zh-TW',
+        filmTitle: _zone3LocalizedText('adventure.zone3.encounter_title'),
+        finalCaption: '',
+        finalLine: '',
+        timeline: _zone3CinematicTimeline('FIRST_ENTRY'),
+        bossReadyTimeline: _zone3CinematicTimeline('BOSS_READY'),
+        postClearTimeline: _zone3CinematicTimeline('POST_CLEAR'),
+        presentationManifest: presentation,
+        missingVoicePolicy: 'SUBTITLE_ONLY',
+        crossLocaleVoiceFallback: 'FORBIDDEN',
+    };
+}
+
 function getIntroFilmLocaleConfig(zone) {
+    if (zone?.key === 'k16_20') return _zone3CinematicLocaleConfig(zone);
     const locale = _getIntroFilmLocaleConfigBase(zone);
     if (zone?.key !== 'k21_25' || !locale) return locale;
     const isEnglish = locale.uiLang === 'en';
@@ -16901,6 +17488,16 @@ async function finishIntroFilm(zone) {
 function skipIntroFilm() {
     _introFilmRunId++;
     const zone = getCurrentIntroZone();
+    if (zone?.key === 'k16_20') _stopZone3PresentationRuntime();
+    if (zone?.key === 'k16_20'
+        && document.getElementById('boss-cinematic')?.dataset.zone3EntryFlow === 'true') {
+        if (document.getElementById('boss-cinematic')?.dataset.zone3Replay === 'true') {
+            _finishZoneCinematicReplay(zone);
+            return;
+        }
+        void _continueZone3SafeEntry(zone, 'skip');
+        return;
+    }
     _introFilmTimers.forEach(id => clearTimeout(id));
     _introFilmTimers = [];
     _introSpeechTimers.forEach(id => clearTimeout(id));
@@ -16984,6 +17581,10 @@ async function replayIntroFilm() {
     if (_introFilmActiveOpts.phase === 'boss_ready') {
         if (_replayActiveCinematicPhase(zone, 'boss_ready', () => finishBossReadyFilm(zone))) return;
     }
+    if (zone.key === 'k16_20') {
+        await showZone3EntrySafeFallback(zone, { mode: 'manual_replay' });
+        return;
+    }
     // Zone 1/2 replay is presentation-only.  Do not inherit a prior
     // first-entry mode from the completed run, or the replay button could
     // re-submit the seen marker on the way back to the Zone Card.
@@ -17009,6 +17610,9 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
     const locale = getIntroFilmLocaleConfig(zone);
     const phase = opts.phase || 'pre_play';
     const timeline = opts.timeline || locale.timeline;
+    const isZone3Presentation = zone?.key === 'k16_20';
+    const zone3Runtime = isZone3Presentation ? _ensureZone3PresentationRuntime() : null;
+    if (zone3Runtime?.audio) void zone3Runtime.audio.load().catch(() => {});
     _introFilmActiveOpts = {
         timeline: opts.timeline || null,
         onComplete: opts.onComplete || null,
@@ -17019,7 +17623,9 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
     stage.classList.remove('show-title-card');
     const shots = Array.from(stage.querySelectorAll('.film-shot'));
     const runId = _introFilmRunId;
-    applyIntroFilmShotAssets(timeline);
+    applyIntroFilmShotAssets(timeline, {
+        onPresentationFailure: opts.onPresentationFailure,
+    });
     // Shared pacing formula for how long a BEAT should visually hold when no
     // narration audio plays for it (used both by the TTS fallback below and
     // by the silent visual-hold path when recorded narration is missing or
@@ -17206,6 +17812,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             // must not bleed into whatever comes next (gameplay handoff,
             // or the overlay closing), even though the short POST_CLEAR
             // urgency cue will typically have already finished on its own.
+            if (isZone3Presentation) _stopZone3PresentationRuntime();
             _stopIntroBgm();
             _stopIntroAmbience();
             if (opts.onComplete) {
@@ -17218,10 +17825,25 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         }
         activeShotNumber = Number(item.shot) + 1;
         shots.forEach((el, idx) => el.classList.toggle('active', idx === item.shot));
+        if (isZone3Presentation) {
+            const shotId = item.presentation?.shotId || `SHOT${String(activeShotNumber).padStart(2, '0')}`;
+            const presentationPhase = phase === 'boss_ready'
+                ? 'BOSS_READY'
+                : phase === 'post_clear' ? 'POST_CLEAR' : 'FIRST_ENTRY';
+            let reducedMotion = false;
+            try { reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches); }
+            catch (error) {}
+            try {
+                zone3Runtime?.fx?.transitionShot(shotId, undefined, { reducedMotion });
+            } catch (error) {}
+            try {
+                void zone3Runtime?.audio?.enterShot(shotId, { phase: presentationPhase });
+            } catch (error) {}
+        }
         // Each cinematic phase is its own audio session.  Zone 2 uses the
         // Owner-locked A3/B3/C3 cues; Zone 1 keeps its historical fallback
         // fields and therefore remains byte/behavior compatible.
-        if (shotIndex === 0) {
+        if (shotIndex === 0 && !isZone3Presentation) {
             const phaseBgm = phase === 'boss_ready'
                 ? (locale.bgmBossReady || locale.bgmMainTheme)
                 : phase === 'post_clear'
@@ -17244,7 +17866,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         // Legacy Zone 1 starts its short urgency cue on its final post-clear
         // shot.  Zone 2 has an explicit locked recovery BGM and must not
         // replace it with the Zone 1 cue.
-        if (item.shot === 9 && phase === 'post_clear' && !locale.bgmPostClear) {
+        if (!isZone3Presentation && item.shot === 9 && phase === 'post_clear' && !locale.bgmPostClear) {
             _startIntroBgm(locale.bgmPostClearUrgency, { loop: false, volume: 0.4 });
         }
         const sfxCues = (Array.isArray(item.sfxCues)
@@ -17254,7 +17876,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         // than one approved cue, stagger them instead of starting all of
         // them in the same tick (the later cue would otherwise cancel the
         // earlier one).
-        sfxCues.forEach((cue, cueIndex) => {
+        if (!isZone3Presentation) sfxCues.forEach((cue, cueIndex) => {
             const cueTimer = setTimeout(() => {
                 if (runId === _introFilmRunId) _playIntroSfxAsset(cue);
             }, cueIndex * 760);
@@ -17274,8 +17896,8 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             caption.style.display = zone?.key === 'k26_30' ? 'none' : '';
             caption.textContent = item.caption || '';
         }
-        if (item.sfx) playBossSfx(item.sfx);
-        if (item.shot === 0) {
+        if (!isZone3Presentation && item.sfx) playBossSfx(item.sfx);
+        if (!isZone3Presentation && item.shot === 0) {
             _introFilmTimers.push(setTimeout(() => playBossSfx('grub'), 620));
         }
         // Old-shape items (every existing non-Zone-1 zone) carry a flat
@@ -17471,6 +18093,143 @@ function playZone2BossReadyFilm(zone) {
     });
 }
 
+function _zone3CinematicSlotForPhase(phase) {
+    if (phase === 'boss_ready') return 'zone3_boss_ready_cinematic';
+    if (phase === 'post_clear') return 'zone3_post_clear_cinematic';
+    return 'zone3_entry_cinematic';
+}
+
+// Zone 3 uses the same gesture bridge as Zone 2, but its timeline comes from
+// the World candidate manifest and its subtitle/audio beats are locale-bound.
+// The bridge only controls media playback; it never starts a battle or writes
+// progression/reward state.
+function _startZone3CinematicWithGesture(zone, opts = {}) {
+    const overlay = document.getElementById('boss-cinematic');
+    const timeline = opts.timeline || [];
+    const phase = opts.phase || 'pre_play';
+    if (!overlay || !zone || zone.key !== 'k16_20' || !timeline.length) return false;
+    _registerZone3PresentationLifecycleCleanup();
+    const slot = _zone3CinematicSlotForPhase(phase);
+    const presentationOnly = opts.presentationOnly === true;
+    let begun = false;
+    const begin = () => {
+        if (begun) return;
+        begun = true;
+        overlay.classList.remove('ready');
+        delete overlay.dataset.zone3AudioGesturePending;
+        overlay.dataset.zone3Presentation = 'world_manifest';
+        overlay.dataset.zone3EntryFlow = phase === 'pre_play' ? 'true' : 'false';
+        overlay.dataset.zone3Replay = presentationOnly ? 'true' : 'false';
+        overlay.dataset.zone3PresentationOnly = presentationOnly ? 'true' : 'false';
+        overlay.dataset.assetSlot = slot;
+        overlay.dataset.assetStatus = 'READY';
+        const btn = document.getElementById('boss-cinematic-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.onclick = null;
+        }
+        if (typeof opts.onStarted === 'function') opts.onStarted();
+        void playNewbieVillageIntroFilm(zone, {
+            timeline,
+            phase,
+            mode: opts.mode || (presentationOnly ? 'manual_replay' : 'legacy'),
+            onComplete: opts.onComplete || null,
+            onPresentationFailure: () => _failZone3PresentationOnly(zone, overlay),
+        });
+    };
+    if (_introAudioUnlocked) {
+        begin();
+        return true;
+    }
+    _stopIntroFilm();
+    _introFilmActiveOpts = {
+        timeline,
+        onComplete: opts.onComplete || null,
+        phase,
+        mode: opts.mode || (presentationOnly ? 'manual_replay' : 'legacy'),
+    };
+    overlay.className = 'boss-cinematic show intro-film ready';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key || '';
+    overlay.dataset.zone3Safe = 'true';
+    overlay.dataset.zone3Presentation = 'world_manifest';
+    overlay.dataset.zone3EntryFlow = phase === 'pre_play' ? 'true' : 'false';
+    overlay.dataset.zone3Replay = presentationOnly ? 'true' : 'false';
+    overlay.dataset.zone3PresentationOnly = presentationOnly ? 'true' : 'false';
+    overlay.dataset.zone3AudioGesturePending = phase;
+    overlay.dataset.assetSlot = slot;
+    overlay.dataset.assetStatus = 'READY';
+    document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
+    const line = document.getElementById('boss-cinematic-line');
+    if (line) line.textContent = I18n.t('index.film.audio_gesture_required');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const installExplicitGesture = () => {
+        if (begun || _introFilmRunId !== pendingRunId
+            || overlay.dataset.zone3AudioGesturePending !== phase) return;
+        if (!btn) return;
+        btn.disabled = false;
+        btn.textContent = I18n.t('index.film.replay');
+        btn.onclick = async () => {
+            if (begun) return;
+            btn.disabled = true;
+            await _unlockIntroAudioFromGesture();
+            if (begun) return;
+            if (!_introAudioUnlocked) {
+                btn.disabled = false;
+                if (line) line.textContent = I18n.t('index.film.audio_gesture_required');
+                return;
+            }
+            begin();
+        };
+    };
+    // A real Replay Story click already supplied the media gesture to
+    // _unlockIntroAudioFromGesture(), but the reusable media elements settle
+    // asynchronously.  Continue through the same bridge once that exact
+    // unlock completes instead of requiring a second click.  Automatic
+    // presentation triggers do not pass this option and retain the existing
+    // explicit prompt behavior.
+    const pendingUnlock = opts.audioUnlockPromise;
+    const pendingRunId = _introFilmRunId;
+    if (pendingUnlock && typeof pendingUnlock.then === 'function') {
+        if (btn) {
+            btn.disabled = true;
+            btn.onclick = null;
+        }
+        const continueAfterPendingUnlock = () => {
+            if (begun || pendingRunId !== _introFilmRunId
+                || overlay.dataset.zone3AudioGesturePending !== phase) return;
+            // Replay is presentation-only.  The originating click has
+            // already supplied the gesture; muted media priming is best
+            // effort and must never strand the visual sequence when a
+            // browser rejects one optional bed or voice asset.
+            begin();
+        };
+        void Promise.resolve(pendingUnlock).then(continueAfterPendingUnlock, continueAfterPendingUnlock);
+    } else {
+        installExplicitGesture();
+    }
+    return false;
+}
+
+function _maybeTriggerZone3BossReadyFilm(zones) {
+    const zone = (zones || _adventureProgress || []).find(z => z.key === 'k16_20');
+    if (!zone || !_adventureBossReady(zone) || adventureBossReadyFilmSeen(zone)) return;
+    if (_introFilmActiveOpts.phase === 'boss_ready') return;
+    playZone3BossReadyFilm(zone);
+}
+
+function playZone3BossReadyFilm(zone) {
+    if (!zone || zone.key !== 'k16_20') return false;
+    const locale = getIntroFilmLocaleConfig(zone);
+    const timeline = locale.bossReadyTimeline || [];
+    return _startZone3CinematicWithGesture(zone, {
+        timeline,
+        phase: 'boss_ready',
+        onComplete: () => finishBossReadyFilm(zone),
+        onStarted: () => markAdventureBossReadyFilmSeen(zone),
+    });
+}
+
 // Reload/close recovery after a real Lord success: called whenever fresh
 // adventure progress loads. If the authoritative clear left POST_CLEAR
 // pending but never reached normal completion/skip, safely replay Shots 9-10
@@ -17495,6 +18254,14 @@ function _resumeZone2PostClearIfPending() {
     if (!zone || !zone.cleared || adventurePostClearSeen(zone)) return;
     if (!adventurePostClearPending(zone) || _introFilmActiveOpts.phase === 'post_clear') return;
     playZone2PostClearFilm(zone);
+}
+
+function _resumeZone3PostClearIfPending() {
+    const zone = (_adventureProgress || []).find(z => z.key === 'k16_20')
+        || ADVENTURE_ZONES.find(z => z.key === 'k16_20');
+    if (!zone || !zone.cleared || adventurePostClearSeen(zone)) return;
+    if (!adventurePostClearPending(zone) || _introFilmActiveOpts.phase === 'post_clear') return;
+    playZone3PostClearFilm(zone);
 }
 
 // Plays Zone 1's POST_CLEAR follow-up (Shots 9-10) in the existing
@@ -17541,6 +18308,17 @@ function playZone2PostClearFilm(zone) {
     });
 }
 
+function playZone3PostClearFilm(zone) {
+    if (!zone || zone.key !== 'k16_20' || !zone.cleared) return false;
+    const locale = getIntroFilmLocaleConfig(zone);
+    const timeline = locale.postClearTimeline || [];
+    return _startZone3CinematicWithGesture(zone, {
+        timeline,
+        phase: 'post_clear',
+        onComplete: () => finishPostClearFilm(zone),
+    });
+}
+
 // Ends POST_CLEAR exactly on Shot 10's own dialogue -- no Hero response, no
 // legacy title-card thesis, no additional line (Owner review, Fix 2). The
 // overlay simply closes once Shot 10's last beat finishes holding. This is
@@ -17561,6 +18339,7 @@ function finishPostClearFilm(zone) {
     // if that state hasn't actually landed yet (e.g. a stale/offline
     // _adventureProgress), rather than showing a false promise.
     if (zone?.key === 'k21_25') showZone2UnlockReveal(zone);
+    else if (zone?.key === 'k16_20') _emitZone3Zone4Hook(_adventureProgress);
     else showZone1UnlockReveal(zone);
 }
 
@@ -17740,7 +18519,7 @@ function _playZoneCinematicSequence(zone, segments, opts = {}) {
         document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
         const btn = document.getElementById('boss-cinematic-btn');
         if (btn) btn.disabled = true;
-        const started = _startZoneCinematicSegment(zone, segment, advance);
+        const started = _startZoneCinematicSegment(zone, segment, advance, opts);
         if (started === false) {
             // The gesture bridge is now waiting on the player; it will resume
             // this same chain from its own begin() via onComplete.
@@ -17753,7 +18532,7 @@ function _playZoneCinematicSequence(zone, segments, opts = {}) {
 
 // Starts one segment. Returns false when playback is deferred behind an
 // explicit audio gesture, in which case the bridge owns the continuation.
-function _startZoneCinematicSegment(zone, segment, onComplete) {
+function _startZoneCinematicSegment(zone, segment, onComplete, sequenceOptions = {}) {
     const opts = {
         timeline: segment.timeline,
         phase: segment.phase,
@@ -17761,6 +18540,13 @@ function _startZoneCinematicSegment(zone, segment, onComplete) {
     };
     if (zone.key === 'k21_25') {
         return _startZone2CinematicWithGesture(zone, opts);
+    }
+    if (zone.key === 'k16_20') {
+        return _startZone3CinematicWithGesture(zone, {
+            ...opts,
+            presentationOnly: _zoneCinematicPresentationOnly,
+            audioUnlockPromise: sequenceOptions.audioUnlockPromise,
+        });
     }
     void playNewbieVillageIntroFilm(zone, opts);
     return true;
@@ -17779,8 +18565,12 @@ function playZoneStoryReplay(zoneKey) {
     if (!model || !zone) return false;
     const sequence = model.replaySequence(zone);
     if (!sequence.length) return false;
+    const replayOptions = arguments[1] && typeof arguments[1] === 'object'
+        ? arguments[1]
+        : {};
     return _playZoneCinematicSequence(zone, sequence, {
         presentationOnly: true,
+        audioUnlockPromise: replayOptions.audioUnlockPromise,
         onComplete: () => _finishZoneCinematicReplay(zone),
     });
 }
@@ -17789,6 +18579,7 @@ function playZoneStoryReplay(zoneKey) {
 // the player to the Zone Card they came from. Writes nothing.
 function _finishZoneCinematicReplay(zone) {
     _zoneCinematicPresentationOnly = false;
+    _zoneCinematicAdvanceSegment = null;
     hideBossCinematic();
     if (zone?.key && window.E9 && typeof window.E9.showAdventureZoneCard === 'function') {
         window.E9.showAdventureZoneCard(zone.key);
@@ -18118,6 +18909,10 @@ async function startBossBattle(zoneKey) {
         showZone2LordChallengeCard(zone);
         return;
     }
+    if (zone.key === 'k16_20') {
+        showZone3LordChallengeCard(zone);
+        return;
+    }
     await showBossCinematic(zone);
 }
 
@@ -18142,7 +18937,107 @@ async function openAdventureBossFromQuestCard(zoneKey) {
         showZone2LordChallengeCard(zone);
         return true;
     }
+    if (zone.key === 'k16_20') {
+        showZone3LordChallengeCard(zone);
+        return true;
+    }
     await showBossCinematic(zone);
+    return true;
+}
+
+// Zone 3 Lord-ready presentation follows the World-owned BOSS_READY frames;
+// this compact card remains the explicit CTA boundary. Its button hands off
+// to confirmBossBattle -> the existing server-owned Lord Trial start route;
+// this card never starts an attempt and never infers readiness from progress.
+function showZone3LordChallengeCard(zone) {
+    if (!zone || zone.key !== 'k16_20') return false;
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
+    if (!overlay || !title || !btn) {
+        _pendingBossZone = null;
+        setMsg(I18n.t('index.boss.start_fail'), 'warn');
+        return false;
+    }
+    _pendingBossZone = zone;
+    _activeBossZone = zone;
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic show phase-zone3-lord-card';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key;
+    overlay.dataset.zone3Safe = 'true';
+    overlay.dataset.zone3EntryFlow = 'false';
+    overlay.dataset.zone3Presentation = 'none';
+    overlay.dataset.zone3Replay = 'false';
+    overlay.dataset.zone3PresentationOnly = 'false';
+    overlay.dataset.zone3LordAsset = '/assets/e10/art/zone3/lord_trial/zone3_lord_02_challenge_backplate.webp';
+    delete overlay.dataset.assetSlot;
+    overlay.dataset.assetStatus = 'PENDING_FINAL_ASSETS';
+    const introStage = document.getElementById('intro-film-stage');
+    if (introStage) introStage.classList.remove('show-title-card');
+    if (monster) {
+        monster.textContent = '';
+        monster.hidden = true;
+    }
+    if (progress) progress.style.display = '';
+    if (cancelBtn) cancelBtn.style.display = '';
+    const replay = _adventureBossReplayAvailable(zone);
+    if (kicker) kicker.textContent = I18n.t('e9.zone3.lord_cta.kicker');
+    title.textContent = I18n.t('e9.zone3.lord_cta.title');
+    if (books) {
+        books.textContent = I18n.t('adventure.zone3.encounter_title');
+        books.dataset.authoritySource = '/api/adventure/bootstrap';
+    }
+    if (line) {
+        line.textContent = replay
+            ? I18n.t('e9.zone3.clear_reward.body')
+            : I18n.t('e9.zone3.lord_cta.body');
+    }
+    if (rules) {
+        const readNumber = value => {
+            const number = Number(value);
+            return Number.isFinite(number) && number >= 0 ? number : null;
+        };
+        const examSize = readNumber(zone.boss_exam_size);
+        const passScore = readNumber(zone.boss_pass_score);
+        const cooldown = readNumber(zone.cooldown_required);
+        const ruleLines = [];
+        if (examSize !== null && passScore !== null) {
+            ruleLines.push(`${I18n.t('index.boss.rule_trial').replace('{n}', examSize)}`);
+            ruleLines.push(`${I18n.t('index.boss.rule_breakthrough').replace('{n}', passScore)}`);
+        }
+        if (cooldown !== null) {
+            ruleLines.push(`${I18n.t('index.boss.rule_fail').replace('{n}', cooldown)}`);
+        }
+        rules.innerHTML = ruleLines.map(text => `<span>${text}</span>`).join('');
+        rules.hidden = ruleLines.length === 0;
+        rules.dataset.authoritySource = '/api/adventure/bootstrap';
+    }
+    if (cancelBtn) {
+        cancelBtn.disabled = false;
+        cancelBtn.onclick = () => _zone3ReturnToMap('lord_cta_cancel');
+    }
+    btn.disabled = false;
+    btn.textContent = replay ? I18n.t('e9.zone3.action_lord') : I18n.t('e9.zone3.action_lord');
+    btn.onclick = confirmBossBattle;
+    // The existing map CTA and the Journey rail both converge here. Emit a
+    // presentation-only click projection so a direct map entry still advances
+    // the Journey controller before the server issues the Lord attempt.
+    emitZone3JourneyEvent('journey:zone3-lord-cta', {
+        clicked: true,
+        presentationOnly: true,
+        source: 'existing_lord_cta',
+        autoStart: false,
+        zoneKey: zone.key,
+        eventId: `zone3-lord-cta-${Date.now()}`,
+    });
     return true;
 }
 
@@ -18232,6 +19127,9 @@ function showZone1LordChallengeCard(zone) {
     overlay.className = 'boss-cinematic show phase-lord-card';
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key || '';
+    if (monster) monster.hidden = false;
+    if (rules) rules.hidden = false;
+    if (cancelBtn) cancelBtn.style.display = '';
     // The shared #boss-cinematic-kicker is hidden by CSS for this phase --
     // its text now lives on the art's own top plaque instead (Owner polish
     // request). Keep both in sync anyway so nothing looks stale if the CSS
@@ -18298,6 +19196,9 @@ function showZone2LordChallengeCard(zone) {
     overlay.className = 'boss-cinematic show phase-lord-card';
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key || '';
+    if (monster) monster.hidden = false;
+    if (rules) rules.hidden = false;
+    if (cancelBtn) cancelBtn.style.display = '';
     if (kicker) kicker.textContent = _zone2I18n('e10.zone2.lord.kicker');
     if (plaqueTitle) plaqueTitle.textContent = _zone2I18n('e10.zone2.lord.kicker');
     if (challengePortrait) challengePortrait.src = '/assets/e10/art/zone2/lord_trial/zone2_lord_portrait.webp';
@@ -18508,6 +19409,7 @@ async function showBossCinematic(zone) {
     const rules = document.getElementById('boss-cinematic-rules');
     const btn = document.getElementById('boss-cinematic-btn');
     const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
     const progressBoss = document.getElementById('boss-cinematic-progress-boss');
     const progressZone = document.getElementById('boss-cinematic-progress-zone');
     const progressCount = document.getElementById('boss-cinematic-progress-count');
@@ -18518,9 +19420,19 @@ async function showBossCinematic(zone) {
     }
     overlay.className = 'boss-cinematic show phase-seal';
     overlay.setAttribute('aria-hidden', 'false');
+    delete overlay.dataset.zone3Safe;
+    delete overlay.dataset.zone3EntryCompleted;
+    delete overlay.dataset.assetSlot;
+    delete overlay.dataset.assetStatus;
+    if (progress) progress.style.display = '';
+    if (cancelBtn) cancelBtn.style.display = '';
+    if (rules) rules.hidden = false;
     if (kicker) kicker.textContent = I18n.t('index.boss.kicker');
     const story = ADVENTURE_STORY[zone.key] || {};
-    if (monster) monster.textContent = story.avatar || zone.icon || '🔥';
+    if (monster) {
+        monster.hidden = false;
+        monster.textContent = story.avatar || zone.icon || '🔥';
+    }
     title.textContent = I18n.t('index.boss.title');
     if (books) books.textContent = _storyField(zone.key, story, 'books') || '';
     if (line) line.textContent = replay
@@ -18533,9 +19445,9 @@ async function showBossCinematic(zone) {
             <span>${I18n.t('index.boss.rule_fail').replace('{n}', zone.cooldown_required || 30)}</span>`;
     }
     const bossDisplayName = zone.boss?.name || _storyField(zone.key, story, 'boss') || I18n.t('index.adv.quest_boss');
-    const progress = zone.progress && typeof zone.progress === 'object' ? zone.progress : null;
-    const completedCount = progress?.completed_count ?? zone.seen ?? 0;
-    const totalCount = progress?.total_count ?? zone.total ?? 0;
+    const zoneProgress = zone.progress && typeof zone.progress === 'object' ? zone.progress : null;
+    const completedCount = zoneProgress?.completed_count ?? zone.seen ?? 0;
+    const totalCount = zoneProgress?.total_count ?? zone.total ?? 0;
     // Use _adventureText (I18n.t with an ADVENTURE_MAP_TEXT_FALLBACKS
     // rescue) rather than raw I18n.t here: this overlay is not covered by
     // _normalizeAdventureMapCopy, so it's the only thing standing between a
@@ -18611,6 +19523,19 @@ async function _startBossBattleNow(zone) {
         }
         _bossAttemptId = data.attempt_id;
         _bossZone = data.zone || zone;
+        if (data.zone?.key === 'k16_20') {
+            emitZone3JourneyEvent('journey:zone3-lord-trial-started', {
+                authoritative: true,
+                source: 'adventure_boss_start',
+                serverBound: true,
+                zoneKey: data.zone.key,
+                zone3: data.zone,
+                attemptId: String(data.attempt_id),
+                replay: _bossReplay === true,
+                endpoint: '/api/adventure/boss/start',
+                eventId: `zone3-lord-start-${data.attempt_id}`,
+            });
+        }
         _bossQueue = data.question_ids || [];
         const serverResumeIndex = Number(data.resume_index);
         const serverCorrect = Number(data.correct);
@@ -18653,6 +19578,14 @@ function hideBossCinematic() {
         overlay.className = 'boss-cinematic';
         overlay.setAttribute('aria-hidden', 'true');
         delete overlay.dataset.zone2AudioGesturePending;
+        delete overlay.dataset.zone3Safe;
+        delete overlay.dataset.zone3EntryCompleted;
+        delete overlay.dataset.zone3Replay;
+        delete overlay.dataset.zone3Presentation;
+        delete overlay.dataset.zone3PresentationOnly;
+        delete overlay.dataset.zone3LordAsset;
+        delete overlay.dataset.assetSlot;
+        delete overlay.dataset.assetStatus;
     }
     _pendingBossZone = null;
 }
@@ -18884,6 +19817,8 @@ async function _finishBossBattle() {
     _bossFinishInFlight = true;
     const total = _bossQueue.length;
     const correct = _bossCorrect;
+    const lordAttemptId = _bossAttemptId;
+    const lordZoneKey = _bossZone?.key || null;
     const zoneName = _bossZone?.nameEn || _bossZone?.name || I18n.t('index.boss.zone_default');
     _bossMode = false;
     _syncBossNextButton();
@@ -18922,7 +19857,7 @@ async function _finishBossBattle() {
             });
         }
         if (data.ok) {
-            const finishedZoneKey = _bossZone?.key;
+            const finishedZoneKey = lordZoneKey || _bossZone?.key;
             _adventureProgress = data.zones || _adventureProgress;
             const finishedZone = (_adventureProgress || []).find(z => z.key === finishedZoneKey)
                 || _bossZone;
@@ -18970,6 +19905,67 @@ async function _finishBossBattle() {
                     bossExamSize: Number.isFinite(serverTotal) ? serverTotal : null,
                     bossPassScore: Number.isFinite(serverPassScore) ? serverPassScore : null,
                     replay,
+                }, finishedZone);
+            } else if (finishedZone?.key === 'k16_20') {
+                const serverPassed = data.passed === true;
+                const serverFirstClear = data.reward?.first_clear === true;
+                const rewardEventId = data.reward?.entitlement_id
+                    || data.reward?.source_operation_id
+                    || null;
+                const rewardSettled = serverPassed
+                    && replay !== true
+                    && serverFirstClear
+                    && rewardPresentation?.valid === true
+                    && rewardPresentation?.hasReward === true
+                    && typeof rewardEventId === 'string'
+                    && rewardEventId.trim() !== '';
+                const serverZoneCleared = finishedZone?.cleared === true
+                    || finishedZone?.completed === true
+                    || finishedZone?.status === 'completed';
+                if (serverPassed && serverZoneCleared && lordAttemptId) {
+                    emitZone3JourneyEvent('journey:zone3-lord-clear', {
+                        authoritative: true,
+                        source: 'adventure_boss_finish',
+                        serverBound: true,
+                        passed: true,
+                        zoneCleared: true,
+                        firstClear: serverFirstClear,
+                        replay,
+                        attemptId: String(lordAttemptId),
+                        zoneKey: finishedZone.key,
+                        zone3: finishedZone,
+                        zones: data.zones || [],
+                        correct: serverCorrect,
+                        total: serverTotal,
+                        eventId: `zone3-lord-clear-${lordAttemptId}`,
+                    });
+                }
+                if (rewardSettled) {
+                    emitZone3JourneyEvent('journey:zone3-reward', {
+                        authoritative: true,
+                        source: 'battlefield_reward_consumer',
+                        rewardProjection: true,
+                        firstClear: true,
+                        entitlementConsumed: true,
+                        replay: false,
+                        rewardEventId: rewardEventId.trim(),
+                        rewardStatus: data.reward.status,
+                        rewardZoneKey: finishedZone.key,
+                        reward: data.reward,
+                        eventId: `zone3-reward-${rewardEventId.trim()}`,
+                    });
+                }
+                showZone3LordResultCard({
+                    passed: serverPassed,
+                    correct: serverCorrect,
+                    total: serverTotal,
+                    cooldown: Number.isFinite(Number(data.cooldown_left))
+                        ? Number(data.cooldown_left) : null,
+                    replay,
+                    firstClear: serverFirstClear,
+                    rewardSettled,
+                    zones: data.zones || [],
+                    attemptId: lordAttemptId,
                 }, finishedZone);
             } else {
                 await showBossResultCinematic({
@@ -19188,6 +20184,171 @@ function showZone2LordResultCard(result, zone) {
         _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordRumble, { volume: 0.7 });
     }
 }
+
+function _emitZone3Zone4Hook(zones) {
+    if (!Array.isArray(zones)) return false;
+    const zone3 = zones.find(zone => zone?.key === 'k16_20');
+    const zone4 = zones.find(zone => zone?.key === 'k11_15');
+    const zone3Cleared = zone3?.cleared === true || zone3?.completed === true || zone3?.status === 'completed';
+    if (!zone3 || !zone4 || !zone3Cleared || !_adventureCanEnter(zone4)) return false;
+    emitZone3JourneyEvent('journey:zone4-hook', {
+        authoritative: true,
+        source: 'adventure_bootstrap',
+        zone3Cleared: true,
+        hookOnly: true,
+        autoNavigate: false,
+        zone3,
+        zone4,
+        zones,
+        zone4Key: 'k11_15',
+        targetZoneKey: 'k11_15',
+        eventId: `zone3-zone4-hook-${zone4.key}`,
+    });
+    return true;
+}
+
+function _zone3ReturnToMap(source = 'post_clear_card') {
+    emitZone3JourneyEvent('journey:zone3-return', {
+        presentationOnly: true,
+        replaySafe: true,
+        source: 'canonical_return',
+        returnSource: source,
+        eventId: `zone3-return-${Date.now()}`,
+    });
+    hideBossCinematic();
+    returnToAdventureMapAfterEncounter();
+}
+
+function _triggerZone3PostClearFromBossWin(zone, options = {}) {
+    if (!zone || zone.key !== 'k16_20') return false;
+    const zone3Cleared = zone.cleared === true || zone.completed === true || zone.status === 'completed';
+    const replay = options.replay === true;
+    if (!zone3Cleared || (!replay && options.rewardSettled !== true)) return false;
+    const zones = Array.isArray(options.zones) ? options.zones : _adventureProgress;
+    const started = _triggerZonePostClearFromBossWin(zone, options);
+    if (!started) return false;
+    const overlay = document.getElementById('boss-cinematic');
+    if (overlay) {
+        overlay.dataset.zone3Presentation = 'world_manifest';
+        overlay.dataset.zone3EntryFlow = 'false';
+        overlay.dataset.zone3Replay = replay ? 'true' : 'false';
+        overlay.dataset.assetSlot = 'zone3_post_clear_cinematic';
+        overlay.dataset.assetStatus = 'READY';
+    }
+    // The authoritative clear/reward has already been accepted by the
+    // existing Lord finish path. This event only tells the Journey rail that
+    // the manifest-backed presentation began; it cannot clear, unlock, or
+    // issue anything.
+    emitZone3JourneyEvent('journey:zone3-post-clear', {
+        authoritative: true,
+        authoritativeClear: true,
+        presentationOnly: true,
+        safeFallback: false,
+        source: 'world_manifest',
+        assetSlot: 'zone3_post_clear_cinematic',
+        assetStatus: 'READY',
+        replay,
+        rewardSettled: options.rewardSettled === true,
+        attemptId: options.attemptId || null,
+        zoneKey: 'k16_20',
+        zone3: zone,
+        zones,
+        eventId: `zone3-post-clear-${options.attemptId || (replay ? 'replay' : 'first')}-${Date.now()}`,
+    });
+    return true;
+}
+
+function showZone3LordResultCard(result, zone) {
+    _stopIntroFilm();
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    if (!overlay || !title || !btn || !zone || zone.key !== 'k16_20') return false;
+    const passed = result?.passed === true;
+    const replay = result?.replay === true;
+    overlay.className = `boss-cinematic show ${passed ? 'result-zone3-win' : 'result-zone3-fail'}`;
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key;
+    overlay.dataset.zone3Safe = 'true';
+    overlay.dataset.zone3PresentationOnly = 'false';
+    delete overlay.dataset.zone3LordAsset;
+    delete overlay.dataset.assetSlot;
+    delete overlay.dataset.assetStatus;
+    if (monster) {
+        monster.textContent = '';
+        monster.hidden = true;
+    }
+    if (progress) {
+        progress.style.display = 'none';
+        progress.textContent = '';
+    }
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (kicker) kicker.textContent = passed
+        ? I18n.t('e9.zone3.clear_reward.kicker')
+        : I18n.t('e9.zone3.battlefield_boss.kicker');
+    title.textContent = passed
+        ? I18n.t('e9.zone3.clear_reward.title')
+        : I18n.t('e9.zone3.battlefield_boss.title');
+    if (books) {
+        books.textContent = Number.isFinite(Number(result?.correct)) && Number.isFinite(Number(result?.total))
+            ? `${I18n.t('adventure.zone3.encounter_title')} · ${Number(result.correct)} / ${Number(result.total)}`
+            : I18n.t('adventure.zone3.encounter_title');
+        books.dataset.authoritySource = '/api/adventure/boss/finish';
+    }
+    if (line) line.textContent = passed
+        ? (replay ? I18n.t('e9.zone3.return.body') : I18n.t('e9.zone3.clear_reward.body'))
+        : I18n.t('e9.zone3.battlefield_boss.body');
+    if (rules) {
+        rules.innerHTML = passed
+            ? ''
+            : `<span>${I18n.t('e9.zone3.return.body')}</span>`;
+        rules.hidden = passed;
+    }
+    if (passed) {
+        btn.disabled = false;
+        btn.textContent = I18n.t('adventure.zone3.continue');
+        btn.onclick = () => {
+            if (!replay && result.rewardSettled !== true) {
+                setMsg(I18n.t('e9.zone3.clear_reward.body'), 'warn');
+                return;
+            }
+            hideBossCinematic();
+            setTimeout(() => _triggerZone3PostClearFromBossWin(zone, {
+                replay,
+                rewardSettled: result.rewardSettled === true,
+                zones: result.zones,
+                attemptId: result.attemptId,
+            }), 0);
+        };
+    } else {
+        btn.disabled = false;
+        btn.textContent = I18n.t('adventure.zone3.return_map');
+        btn.onclick = () => _zone3ReturnToMap('lord_result');
+    }
+    return true;
+}
+
+document.addEventListener('journey:zone3-command', event => {
+    const detail = event?.detail || {};
+    if (detail.zoneKey !== 'k16_20') return;
+    if (detail.action === 'lord-cta') {
+        const zone = (_adventureProgress || []).find(item => item.key === 'k16_20');
+        // Re-check current server bootstrap facts at the existing Lord CTA
+        // boundary. The contextual view cannot unlock or start an attempt.
+        if (!zone || !_adventureCanEnter(zone)
+            || !(_adventureBossReady(zone) || _adventureBossReplayAvailable(zone))) return;
+        void openAdventureBossFromQuestCard(zone.key);
+    } else if (detail.action === 'return') {
+        _zone3ReturnToMap('journey_view');
+    }
+});
 
 async function showBossResultCinematic(result) {
     _stopIntroFilm();
@@ -19940,6 +21101,24 @@ window.onload = async () => {
     if (window.E9 && typeof window.E9.initShell === 'function') {
         window.E9.initShell();
     }
+    // First-session eligibility is read from the authenticated server
+    // response. Browser tour/storage markers are deliberately not used as a
+    // source of onboarding authority.
+    _journeyFirstSessionGate = me.tour_done === false && me.needs_onboarding_choice === false;
+    if (_journeyFirstSessionGate) {
+        emitJourneyEvent('journey:opening-ready', {
+            eventId: `journey-opening-${me.user_id || 'session'}`,
+            authenticated: true,
+            firstSession: true,
+            authoritySource: 'existing_onboarding',
+        });
+        emitJourneyEvent('journey:world-revealed', {
+            eventId: `journey-world-${me.user_id || 'session'}`,
+            visible: true,
+            presentationState: window.__GO_E9_ACTIVE_SHELL__ === 'e9' ? 'e9' : 'legacy',
+            authoritySource: 'existing_shell',
+        });
+    }
 // ── 偵測使用者切換，清除前一帳號遺留的 localStorage 設定 ──
 (function(uid){
     const _k = 'last_session_uid_v1';
@@ -20020,8 +21199,25 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
     let mistakeStats={total:0};
     let adventureQuestionSrsReady = !e9ShellRequested;
     if (needsImmediatePracticeState || e9ShellRequested) {
-        try{initData=await SRS.init(onNewBadge);adventureQuestionSrsReady=true;}catch(e){notifyAdventureQuestionRuntimeError('srs', e);console.error('[INIT] Adventure question SRS readiness failed:',e);}
-        try{mistakeStats=await fetch('/api/mistakes/stats').then(r=>r.json());}catch(e){}
+        const e9ActivityState = e9ShellRequested
+            ? (window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState)
+            : null;
+        try {
+            initData = await SRS.init(onNewBadge, undefined, undefined,
+                e9ActivityState ? { activityState: e9ActivityState } : undefined);
+            adventureQuestionSrsReady = true;
+        } catch(e) {
+            notifyAdventureQuestionRuntimeError('srs', e);
+            console.error('[INIT] Adventure question SRS readiness failed:',e);
+        }
+        try {
+            if (e9ActivityState && typeof e9ActivityState.fetchMistakes === 'function') {
+                const activityResult = await e9ActivityState.fetchMistakes();
+                if (activityResult && activityResult.ok === true) mistakeStats = activityResult.data;
+            } else {
+                mistakeStats = await fetch('/api/mistakes/stats').then(r=>r.json());
+            }
+        } catch(e) {}
     } else if (legacyWelcomeShellActive) {
         ensureLegacyHomeAmbientState();
     }
@@ -21188,6 +22384,8 @@ window.addEventListener('appinstalled', () => {
 </script>
 <script src="/sound.js?v=20260707a"></script>
 <script src="/js/e9/adventure_spirit_unlock_presentation.js?v=20260828d036r2"></script>
+<script src="/js/e9/zone3_presentation_fx.js?v=20260904w1010"></script>
+<script src="/js/e9/journey_zone3_presentation_audio.js?v=20260904w1010"></script>
 
 <!-- E9 Adventure Shell (feature-flagged, default OFF). Order matters:
      feature_flags -> component_loader -> per-component inits -> shell (shell
@@ -21215,6 +22413,12 @@ window.addEventListener('appinstalled', () => {
 <script src="/js/e9/right_cards.js?v=20260828e040s1"></script>
 <script src="/js/e9/bottom_dock.js?v=20260801e10art1"></script>
 <script src="/js/e9/world_stage.js?v=20260828e042s1"></script>
+<script src="/js/e9/journey_onboarding_content.js?v=20260903w103"></script>
+<script src="/js/e9/journey_onboarding_spine.js?v=20260903w103"></script>
+<script src="/js/e9/journey_onboarding_view.js?v=20260903w103"></script>
+<script src="/js/e9/journey_zone3_vertical_slice_content.js?v=20260903w103"></script>
+<script src="/js/e9/journey_zone3_vertical_slice.js?v=20260903w103"></script>
+<script src="/js/e9/journey_zone3_vertical_slice_view.js?v=20260903w103"></script>
 <script src="/js/e9/shell.js?v=20260804e10navcache1"></script>
 <script src="/sgf_report_widget.js?v=a032r1" defer></script>
 </body>

@@ -1,0 +1,293 @@
+{
+  "MANIFEST_VERSION": "w1-zone3-presentation-fx-binding-handoff-010-v1",
+  "TASK": "W1_01_WORLD_ZONE3_PRESENTATION_FX_BINDING_CONTRACT_AND_HANDOFF_010",
+  "SOURCE_TASK": "W1_01_WORLD_ZONE3_PRESENTATION_VISUAL_FX_RUNTIME_PACKAGE_009",
+  "SOURCE_RUNTIME_PACKAGE": "docs/planning/w1_01_world_zone3_presentation_fx_runtime_package_009.json",
+  "SOURCE_HEAD": "9c57faf4435fd3fa6a64ddf2d3b3559deec88d93",
+  "SOURCE_TREE": "2bb6aada1e75725955e5c6cc4d259b7e4624754d",
+  "SOURCE_BRANCH": "codex/w1-01-world-style-b-lock",
+  "ZONE": {
+    "KEY": "k16_20",
+    "NAME_ZH": "哥布林洞穴",
+    "NAME_EN": "Goblin Cave",
+    "STYLE": "STYLIZED_ADVENTURE"
+  },
+  "ACCEPTED_IMPLEMENTATION": {
+    "CODE_ONLY_EFFECT_COUNT": 12,
+    "EFFECT_IDS": [
+      "Z3_L01",
+      "Z3_V01",
+      "Z3_V02",
+      "Z3_V03",
+      "Z3_V04",
+      "Z3_V05",
+      "Z3_V06",
+      "Z3_V07",
+      "Z3_V08",
+      "Z3_V09",
+      "Z3_V10",
+      "Z3_T01_VISUAL"
+    ],
+    "CAMERA_CUE_COUNT": 10,
+    "PARALLAX_IMPLEMENTED": false,
+    "PARALLAX_CLASSIFICATION": "INTENTIONALLY_DIFFERENT_NOT_REQUIRED_FOR_ZONE3_V1"
+  },
+  "SHOT_BINDINGS": [
+    {
+      "SHOT_ID": "SHOT01",
+      "ENTRY_EFFECT_IDS": [],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT01",
+      "REDUCED_MOTION_BEHAVIOR": "Freeze warm-light and dust animation; retain the readable cave stage and story image.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT02",
+      "ENTRY_EFFECT_IDS": [],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT02",
+      "REDUCED_MOTION_BEHAVIOR": "Freeze warm-light and dust animation; retain the readable belongings context and story image.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT03",
+      "ENTRY_EFFECT_IDS": [],
+      "OPTIONAL_ENTRY_EFFECT_IDS": ["Z3_V04"],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01", "Z3_V03"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT03",
+      "REDUCED_MOTION_BEHAVIOR": "Freeze cave and Shui motion; preserve Shui as a static nonverbal visual read.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT04",
+      "ENTRY_EFFECT_IDS": [],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT04",
+      "REDUCED_MOTION_BEHAVIOR": "Use a static hold with no additional motion so the story image remains primary.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT05",
+      "ENTRY_EFFECT_IDS": ["Z3_V05", "Z3_V06"],
+      "OPTIONAL_ENTRY_EFFECT_IDS": ["Z3_V04"],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01", "Z3_V02", "Z3_V03", "Z3_V07"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT05",
+      "REDUCED_MOTION_BEHAVIOR": "Remove rockfall/debris impulse and freeze water/Shui motion; retain the blocked-route image and cool-water value.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT06",
+      "ENTRY_EFFECT_IDS": [],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT06",
+      "REDUCED_MOTION_BEHAVIOR": "Freeze cave motion and retain the grounded protector presentation without intimidation movement.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT07",
+      "ENTRY_EFFECT_IDS": ["Z3_V08"],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01", "Z3_V09"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT07",
+      "REDUCED_MOTION_BEHAVIOR": "Remove spear-contact impulse and freeze environmental tension; retain the Centurion boundary and trial meaning.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT08",
+      "ENTRY_EFFECT_IDS": ["Z3_V10"],
+      "OPTIONAL_ENTRY_EFFECT_IDS": ["Z3_V04"],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01", "Z3_V03"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT08",
+      "REDUCED_MOTION_BEHAVIOR": "Use a static guarded-truce hold after the finite settle; no celebratory motion or reward signal.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT09",
+      "ENTRY_EFFECT_IDS": [],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01"],
+      "EXIT_EFFECT_IDS": [],
+      "CAMERA_CUE_ID": "SHOT09",
+      "REDUCED_MOTION_BEHAVIOR": "Static hold; no pulse, glow, rune, particle, or camera treatment for the ordinary Stone Shard.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    },
+    {
+      "SHOT_ID": "SHOT10",
+      "ENTRY_EFFECT_IDS": [],
+      "PERSISTENT_EFFECT_IDS": ["Z3_L01", "Z3_V01"],
+      "EXIT_EFFECT_IDS": ["Z3_T01_VISUAL"],
+      "CAMERA_CUE_ID": "SHOT10",
+      "VISUAL_TRANSITION": "Z3_T01_VISUAL",
+      "TRANSITION_TARGET": "MISTY_FOREST",
+      "REDUCED_MOTION_BEHAVIOR": "Freeze the cool fog transition and use a static hold; do not infer or change the next Zone state.",
+      "FAILURE_BEHAVIOR": "STATIC_PRESENTATION_CONTINUES",
+      "CLEANUP_BEHAVIOR": {
+        "SHOT_CHANGE": "stopAll_before_starting_next_shot",
+        "CINEMATIC_EXIT": "stopAll",
+        "REPLAY_EXIT": "stopAll",
+        "ROUTE_CHANGE": "destroy",
+        "INTERRUPTION_OR_ERROR": "stopAll"
+      }
+    }
+  ],
+  "LIFETIME_SEMANTICS": {
+    "EVENT_EFFECT_IDS": [
+      "Z3_V04",
+      "Z3_V05",
+      "Z3_V06",
+      "Z3_V08",
+      "Z3_V10",
+      "Z3_T01_VISUAL"
+    ],
+    "SHOT_DURATION_ENVIRONMENT_EFFECT_IDS": [
+      "Z3_L01",
+      "Z3_V01",
+      "Z3_V02",
+      "Z3_V03",
+      "Z3_V07",
+      "Z3_V09"
+    ],
+    "EFFECT_ANIMATION_DURATION_CAP_MS": 2800,
+    "CAP_APPLIES_TO": "bounded animation/event instances only",
+    "EVENT_EFFECT_DURATION_BOUNDED": true,
+    "SHOT_DURATION_ENVIRONMENT_EFFECT_LIFETIME": "SHOT_LIFECYCLE_CONTROLLED",
+    "STOP_API_CONTROLS_FINAL_LIFETIME": true
+  },
+  "REDUCED_MOTION": {
+    "REDUCED_MOTION_EFFECT_COVERAGE": "12/12",
+    "REDUCED_MOTION_CAMERA_COVERAGE": "10/10",
+    "BEHAVIORAL_GUARDS": [
+      "NO_ABRUPT_SHAKE",
+      "NO_UNNECESSARY_CAMERA_MOTION",
+      "NO_MISSING_STORY_STATE",
+      "NO_GAMEPLAY_IMPACT"
+    ]
+  },
+  "STORY_GUARDS": {
+    "STONE_SHARD_GLOW_EFFECT_COUNT": 0,
+    "STONE_SHARD_RUNE_EFFECT_COUNT": 0,
+    "STONE_SHARD_MAGIC_EFFECT_COUNT": 0,
+    "CENTURION_DEMONIC_AURA_COUNT": 0,
+    "CENTURION_BERSERKER_EFFECT_COUNT": 0,
+    "SHUI_NONVERBAL_VISUAL_CONTRACT": "PASS",
+    "FAILURE_BLOCKS_GAMEPLAY": "NO"
+  },
+  "CLEANUP_CONTRACT": {
+    "API": [
+      "create",
+      "start",
+      "stop",
+      "stopAll",
+      "startCameraCue",
+      "stopCamera",
+      "transitionShot",
+      "getResourceStats",
+      "destroy"
+    ],
+    "EXPECTED_RESOURCE_STATE_AFTER_STOP": {
+      "ACTIVE_TIMER_COUNT": 0,
+      "ACTIVE_RAF_COUNT": 0,
+      "TEMPORARY_EFFECT_NODE_COUNT": 0,
+      "ACTIVE_EVENT_LISTENER_COUNT": 0
+    },
+    "TASK_OWNED_RESOURCE_LEAK": "NO"
+  },
+  "JOURNEY_USAGE_ORDER": [
+    "create_once_for_the_mounted_presentation_stage",
+    "resolve_the_SHOT_ID_record_from_this_manifest",
+    "stopAll_before_any_shot_change_or_replay_restart",
+    "start_ENTRY_EFFECT_IDS_in_record_order",
+    "start_OPTIONAL_ENTRY_EFFECT_IDS_only_when_the_optional_cue_is_selected",
+    "start_PERSISTENT_EFFECT_IDS_for_the_current_shot_lifecycle",
+    "startCameraCue_using_CAMERA_CUE_ID",
+    "stop_bounded_EXIT_EFFECT_IDS_when_the_shot_exit_contract_requires_it",
+    "stopAll_on_cinematic_exit_replay_exit_interruption_or_error",
+    "destroy_on_route_unmount",
+    "keep_dialogue_captions_audio_and_game_state_owners_outside_this_package"
+  ],
+  "BOUNDARIES": {
+    "JOURNEY_RUNTIME_CONTROLLER_CHANGED": false,
+    "AUDIO_CHANGED": false,
+    "APP_PY_CHANGED": false,
+    "GAMEPLAY_CHANGED": false,
+    "DB_SCHEMA_CHANGED": false,
+    "PRODUCTION_MUTATED": false,
+    "MERGED": false,
+    "DEPLOYED": false
+  },
+  "VALIDATION": {
+    "SHOT_BINDING_RECORD_COUNT": 10,
+    "UNKNOWN_EFFECT_REFERENCE_COUNT": 0,
+    "UNKNOWN_CAMERA_CUE_COUNT": 0,
+    "READY_FOR_FINAL_JOURNEY_BINDING": true
+  }
+}

@@ -317,7 +317,14 @@
 
   window.SFX = {
     get muted() { return localStorage.getItem('sfx_muted') === '1'; },
-    set muted(v) { localStorage.setItem('sfx_muted', v ? '1' : '0'); },
+    set muted(v) {
+      localStorage.setItem('sfx_muted', v ? '1' : '0');
+      try {
+        document.dispatchEvent(new CustomEvent('go-odyssey-audio-mute-changed', {
+          detail: { muted: Boolean(v) }
+        }));
+      } catch (e) {}
+    },
     play: function (name) {
       if (this.muted) return;
       try { var fn = SOUNDS[name]; if (fn) fn(); } catch (e) {}

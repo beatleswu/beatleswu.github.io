@@ -18,16 +18,22 @@
       "js/e9/quest_definitions.js", "js/e9/quest_evaluator.js",
       "js/e9/quest_store.js", "js/e9/right_cards.js",
       "js/e9/top_hud.js", "js/e9/world_stage.js", "js/e9/adventure_spirit_unlock_presentation.js",
+      "js/e9/journey_onboarding_content.js", "js/e9/journey_onboarding_spine.js", "js/e9/journey_onboarding_view.js",
+      "js/e9/journey_zone3_presentation_audio.js", "js/e9/journey_zone3_vertical_slice.js", "js/e9/journey_zone3_vertical_slice_content.js",
+      "js/e9/journey_zone3_vertical_slice_view.js", "js/e9/zone3_presentation_fx.js",
       "css/e9/art_directed_runtime.css", "css/e9/cards.css",
       "css/e9/immersive_rpg.css", "css/e9/navigation.css",
       "css/e9/quests.css", "css/e9/reference_world_map.css",
       "css/e9/rwd.css", "css/e9/shell.css", "css/e9/top_hud.css",
       "css/e9/world_stage.css", "css/e9/adventure_spirit_unlock.css",
+      "css/e9/journey_onboarding.css", "css/e9/zone3_presentation_fx.css", "css/e9/zone3_vertical_slice.css",
       "components/adventure/bottom_dock.html",
+      "components/adventure/journey_onboarding.html",
       "components/adventure/left_nav.html",
       "components/adventure/right_cards.html",
       "components/adventure/top_hud.html",
       "components/adventure/world_stage.html",
+      "components/adventure/zone3_vertical_slice.html",
       "manifest.json", "robots.txt", "sitemap.xml",
       "login.html", "landing.html", "index.html", "terms.html",
       "manage.html", "admin.html", "shadow_dashboard.html", "bot.html", "daily_challenge.html",
@@ -52,7 +58,7 @@
     ]
   },
   "required_subtrees": {
-    "description": "RELEASE-FIX-A2 (see docs/incidents/2026-07-12-full-site-asset-outage.md): RELEASE-FIX-A's narrow i18n.js/sw.js-only scope left assets/ management to whatever the production host happened to have mounted -- an undocumented, untracked 757MB tree that RELEASE-FIX-A's own generation switch silently orphaned, breaking every image on the site. assets/ is no longer excluded_prefixes; it is now release-bound and generation-managed, staged from the declarative closure manifests below -- NOT by copying an entire directory tree wholesale (that reintroduces exactly the untracked-content problem this fixes). RELEASE-FIX-A3 superseded the original 180-file runtime-reference-derived closure with the complete verified historical image pack (1,298 files) -- a runtime reference scan proved to be an incomplete ownership boundary (query-string and dynamically-constructed paths were invisible to it; see docs/incidents/2026-07-12-full-site-asset-outage.md's RELEASE-FIX-A3 addendum). Reference scanning remains a regression/observability layer (tests/test_release_fix_a2_asset_closure.py), not the source of truth for what ships. A second, narrower entry was added for assets/storyboards/*.mp3 narration audio (2026-07-15) -- canonical-image-pack-manifest.json is validated image/*-MIME-only (test_manifest_contains_only_image_mime_types) and its own $schema_note documents deliberately excluding these 90 files, so a companion audio-specific closure manifest governs them instead of weakening the image contract. Dedicated E10 Zone 1 and Zone 2 media entries keep Owner-locked namespaces separate from the historical image pack and storyboard narration audio.",
+    "description": "RELEASE-FIX-A2 (see docs/incidents/2026-07-12-full-site-asset-outage.md): RELEASE-FIX-A's narrow i18n.js/sw.js-only scope left assets/ management to whatever the production host happened to have mounted -- an undocumented, untracked 757MB tree that RELEASE-FIX-A's own generation switch silently orphaned, breaking every image on the site. assets/ is no longer excluded_prefixes; it is now release-bound and generation-managed, staged from the declarative closure manifests below -- NOT by copying an entire directory tree wholesale (that reintroduces exactly the untracked-content problem this fixes). RELEASE-FIX-A3 superseded the original 180-file runtime-reference-derived closure with the complete verified historical image pack (1,298 files) -- a runtime reference scan proved to be an incomplete ownership boundary (query-string and dynamically-constructed paths were invisible to it; see docs/incidents/2026-07-12-full-site-asset-outage.md's RELEASE-FIX-A3 addendum). Reference scanning remains a regression/observability layer (tests/test_release_fix_a2_asset_closure.py), not the source of truth for what ships. A second, narrower entry was added for assets/storyboards/*.mp3 narration audio (2026-07-15) -- canonical-image-pack-manifest.json is validated image/*-MIME-only (test_manifest_contains_only_image_mime_types) and its own $schema_note documents deliberately excluding these 90 files, so a companion audio-specific closure manifest governs them instead of weakening the image contract. Dedicated E10 Zone 1 and Zone 2 media entries keep Owner-locked namespaces separate from the historical image pack and storyboard narration audio. Zone 3 uses a dedicated exact runtime closure so its five QA-proven first-entry cinematic resources and the complete current art/audio/i18n package are staged from tracked bytes.",
     "entries": [
       {
         "prefix": "assets/",
@@ -83,6 +89,11 @@
         "prefix": "assets/e10/audio/zone2/",
         "manifest": "deploy/canonical-e10-zone2-audio-pack-manifest.json",
         "staging_rule": "Stage exactly the twenty-three Owner-locked bilingual Zone 2 audio files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage an E10 Zone 2 audio file that is not in this manifest. This namespace is disjoint from Zone 1 audio and storyboard narration audio."
+      },
+      {
+        "prefix": "assets/e10/",
+        "manifest": "deploy/canonical-e10-zone3-static-pack-manifest.json",
+        "staging_rule": "Stage exactly the Zone 3 runtime derivatives, locale manifests, and audio files listed in the dedicated closure manifest, at their declared `path`, verified against their declared `sha256`. Source JPEG/PNG masters are evidence only and are never staged. File membership is disjoint from the existing historical image, storyboard, Zone 1, and Zone 2 closure manifests."
       }
     ]
   },

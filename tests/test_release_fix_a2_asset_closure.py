@@ -53,6 +53,10 @@ ACTIVE_E10_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone1-
 ACTIVE_E10_ZONE2_ART_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-art-pack-manifest.json"
 ACTIVE_E10_ZONE2_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-audio-pack-manifest.json"
 ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-lord-trial-art-pack-manifest.json"
+# W1-03 Zone 3 final-QA repair adds a dedicated, exact runtime closure for
+# the current Zone 3 art/audio/i18n namespace.  It is deliberately separate
+# from the historical image pack and the earlier E10 zone closures.
+ACTIVE_E10_ZONE3_STATIC_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone3-static-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 BUILD_MANIFEST = REPO_ROOT / "deploy" / "build-manifest.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
@@ -74,6 +78,26 @@ INTENTIONAL_NON_PACKAGED_REFERENCES = {
     "/assets/hero/characters/wave2_p1/paladin_p1.png",
     "/assets/hero/characters/wave2_p1/trail_apprentice_p1.png",
     "/assets/hero/equipment/wearables/overlays/go_stone_black.png",
+    # Zone 3 planning records retain proposed visual slot names for design
+    # traceability. They are not runtime URLs and have no approved source
+    # assets; keep these exact historical references outside the release
+    # closure rather than broadening the scanner's ignore rules.
+    "/assets/e10/art/zone3/cinematic/zone3_shot05_board_wall_reveal.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_shot06_last_door_approach.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_shot09_stone_shard_handoff.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_shot10_zone4_hook.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_entry_backplate.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_clear_backplate.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_battlefield_boss_context.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_lord_result_background.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_lord_ritual_background.webp",
+    "/assets/e10/art/zone3/cinematic/zone3_replay_backplate.webp",
+    "/assets/e10/art/zone3/clear/zone3_clear_backplate.webp",
+    "/assets/e10/art/zone3/encounter/zone3_battlefield_boss_context.webp",
+    "/assets/e10/art/zone3/entry/zone3_entry_backplate.webp",
+    "/assets/e10/art/zone3/lord_trial/zone3_lord_result_background.webp",
+    "/assets/e10/art/zone3/lord_trial/zone3_lord_ritual_background.webp",
+    "/assets/e10/art/zone3/replay/zone3_replay_backplate.webp",
 }
 
 # The legacy RPG V1 newbie-quest UI was retired in 751f942bd and merged into
@@ -168,6 +192,8 @@ def test_every_runtime_image_reference_resolves_to_governed_closure():
     # fixture, but must not become a second source of truth for new assets.
     manifest = _load_active_image_manifest()
     governed = {"/" + f["path"] for f in manifest["files"]}
+    zone3_manifest = json.loads(_read(ACTIVE_E10_ZONE3_STATIC_SUBTREE_MANIFEST))
+    governed |= {"/" + f["path"] for f in zone3_manifest["files"]}
     lord_trial_manifest = json.loads(_read(ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST))
     governed |= {"/" + f["path"] for f in lord_trial_manifest["files"]}
     governed |= _load_build_input_image_paths()
@@ -265,6 +291,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
     e10_zone2_art_manifest = json.loads(_read(ACTIVE_E10_ZONE2_ART_SUBTREE_MANIFEST))
     e10_zone2_audio_manifest = json.loads(_read(ACTIVE_E10_ZONE2_AUDIO_SUBTREE_MANIFEST))
     e10_zone2_lord_trial_art_manifest = json.loads(_read(ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST))
+    e10_zone3_static_manifest = json.loads(_read(ACTIVE_E10_ZONE3_STATIC_SUBTREE_MANIFEST))
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
@@ -300,6 +327,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             | {f["path"] for f in e10_zone2_art_manifest["files"]}
             | {f["path"] for f in e10_zone2_audio_manifest["files"]}
             | {f["path"] for f in e10_zone2_lord_trial_art_manifest["files"]}
+            | {f["path"] for f in e10_zone3_static_manifest["files"]}
             | flat_governed_paths
             | closure_paths
         )

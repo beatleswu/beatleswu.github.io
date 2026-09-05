@@ -1,0 +1,63 @@
+{
+  "SCHEMA_VERSION": "E10_ZONE3_HERO_TARGETED_REPAIR_V1",
+  "TASK": "W1_03_JOURNEY_ZONE3_OWNER_HUMAN_ACCEPTANCE_AUDIO_VFX_REPAIR_014R1",
+  "STATUS": "PENDING_TARGETED_AUDIO_GENERATION",
+  "LOCALE": "zh-TW",
+  "VOICE_ID": "XXxvxx0YUt8icTEFE3c6",
+  "VOICE_NAME": "Roy",
+  "MODEL_ID": "eleven_v3",
+  "CANONICAL_SUBTITLE_UNCHANGED": true,
+  "RUNTIME_AUDIO_SCOPE": "Only the four canonical beats with exact subtitle matches may replace runtime files. Visible subtitles remain unchanged; TTS input contains only spoken Chinese, with audio-only homophone substitutions where needed. Bracketed directions and English notes are forbidden in TTS input.",
+  "items": [
+    {
+      "BEAT_ID": "Z3_S01_B001",
+      "SHOT": "SHOT01",
+      "SPEAKER": "HERO",
+      "EXACT_SUBTITLE": "奇怪……大家怎麼都背著行李？",
+      "REQUIRED_READING": "奇怪 = qí guài; 背著 = bēi zhe; not bèi; natural Taiwan Mandarin",
+      "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b001_zh-TW_hero.mp3",
+      "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot01_owner_line_a.mp3",
+      "TTS_INPUT_TEXT": "奇怪……大家怎麼都悲著行李？",
+      "REPAIR_REASON": "Owner-confirmed 奇怪 delivery and polyphonic 背著 pronunciation defect. Audio-only 悲 replaces 背 to force bēi; visible subtitle remains unchanged and no non-spoken directions are sent to TTS.",
+      "AUDITION_ONLY": false
+    },
+    {
+      "BEAT_ID": "Z3_S02_B002",
+      "SHOT": "SHOT02",
+      "SPEAKER": "HERO",
+      "EXACT_SUBTITLE": "水壺、毯子、鍋子……都是平常生活用的東西。",
+      "REQUIRED_READING": "水壺 = shuǐ hú; 毯子 = tǎn zi; 鍋子 = guō zi",
+      "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b002_zh-TW_hero.mp3",
+      "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot02_owner_line_b.mp3",
+      "TTS_INPUT_TEXT": "水胡、坦子、郭子……都是平常生活用的東西。",
+      "REPAIR_REASON": "Owner-confirmed unnatural pronunciation and rhythm across the household-item list. Audio-only 水胡／坦子／郭子 substitutions force shuǐ hú／tǎn zi／guō zi; visible subtitle remains unchanged and no non-spoken directions are sent to TTS.",
+      "AUDITION_ONLY": false
+    },
+    {
+      "BEAT_ID": "Z3_S01_B003",
+      "SHOT": "SHOT01",
+      "SPEAKER": "HERO",
+      "EXACT_SUBTITLE": "他們好像是在搬家。",
+      "OWNER_REPORTED_TEXT": "……他們要搬家？",
+      "OWNER_REPORTED_LINE_EXACT_CURRENT_MATCH": false,
+      "REQUIRED_READING": "他們 = tā men; 搬家 = bān jiā; no English-like phoneme substitution",
+      "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3",
+      "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot01_owner_line_c.mp3",
+      "TTS_INPUT_TEXT": "她們好像是在搬家。",
+      "REPAIR_REASON": "Owner-reported 他們 pronunciation defect mapped to the actual canonical runtime beat. Audio-only 她們 forces two Mandarin syllables tā men instead of an English-like they; the visible canonical sentence remains unchanged.",
+      "AUDITION_ONLY": false
+    },
+    {
+      "BEAT_ID": "Z3_S02_B004",
+      "SHOT": "SHOT02",
+      "SPEAKER": "HERO",
+      "EXACT_SUBTITLE": "他們是真的非走不可。",
+      "REQUIRED_READING": "他們 = tā men; 非走不可 = fēi zǒu bù kě; no English-like phonemes",
+      "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3",
+      "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot02_owner_line_d.mp3",
+      "TTS_INPUT_TEXT": "她們是真的非走不可。",
+      "REPAIR_REASON": "Owner-confirmed 他們 pronunciation defect in Shot 2. Audio-only 她們 forces two Mandarin syllables tā men instead of an English-like they; visible subtitle remains unchanged.",
+      "AUDITION_ONLY": false
+    }
+  ]
+}

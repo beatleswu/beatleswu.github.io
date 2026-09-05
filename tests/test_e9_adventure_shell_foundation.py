@@ -27,6 +27,8 @@ FRAGMENTS = {
     "right_cards.html": "right-cards",
     "bottom_dock.html": "bottom-dock",
     "world_stage.html": "adventure-stage",
+    "journey_onboarding.html": "journey-onboarding",
+    "zone3_vertical_slice.html": "zone3-vertical-slice",
 }
 
 SLOT_TO_FRAGMENT = {
@@ -35,6 +37,8 @@ SLOT_TO_FRAGMENT = {
     "#e9-world-stage-slot": "/components/adventure/world_stage.html",
     "#e9-right-cards-slot": "/components/adventure/right_cards.html",
     "#e9-bottom-dock-slot": "/components/adventure/bottom_dock.html",
+    "#e9-journey-onboarding-slot": "/components/adventure/journey_onboarding.html",
+    "#e9-zone3-vertical-slice-slot": "/components/adventure/zone3_vertical_slice.html",
 }
 
 PRODUCTION_FLAG_NAMES = [
@@ -84,10 +88,10 @@ def test_shell_js_slot_mapping_matches_contract():
         assert f"src: '{src}'" in shell_js, f"shell.js missing fragment src {src} for {selector}"
 
 
-def test_shell_js_references_exactly_five_slots():
+def test_shell_js_references_exactly_seven_slots():
     shell_js = _read(JS_DIR / "shell.js")
     # crude but effective: count "selector:" occurrences in the SLOTS array
-    assert shell_js.count("selector:") == 5
+    assert shell_js.count("selector:") == 7
 
 
 # ---------------------------------------------------------------------------
@@ -254,11 +258,12 @@ def test_index_html_shell_wiring_state_is_tracked():
 
 
 # ---------------------------------------------------------------------------
-# 9. CSS is preloaded independent of fragment fetch (all 6 stylesheets exist)
+# 9. CSS is preloaded independent of fragment fetch (all 8 stylesheets exist)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("filename", [
     "shell.css", "top_hud.css", "navigation.css", "cards.css", "world_stage.css", "rwd.css",
+    "journey_onboarding.css", "zone3_vertical_slice.css",
 ])
 def test_css_module_exists(filename):
     assert (CSS_DIR / filename).is_file()
@@ -280,6 +285,8 @@ FRAGMENT_ARIA_MARKERS = {
     "right_cards.html": ("aria-label=",),
     "bottom_dock.html": ("role=\"toolbar\"", "aria-label="),
     "world_stage.html": ("aria-label=",),
+    "journey_onboarding.html": ("role=\"region\"", "data-i18n-aria-label="),
+    "zone3_vertical_slice.html": ("role=\"region\"", "data-i18n-aria-label="),
 }
 
 

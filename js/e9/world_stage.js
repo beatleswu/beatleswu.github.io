@@ -808,11 +808,15 @@
   function introCinematicKeyForZone(zoneKey) {
     if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return ACTIVE_INTRO_CINEMATIC_KEY;
     if (zoneKey === 'k21_25') return 'e10_zone2_intro_v1';
+    if (zoneKey === 'k16_20') return 'e10_zone3_intro_v1';
     return null;
   }
 
   function introEntryInFlightKey(zoneKey) {
-    return zoneKey === ACTIVE_INTRO_ZONE_KEY ? 'zone1EntryInFlight' : 'zone2EntryInFlight';
+    if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return 'zone1EntryInFlight';
+    if (zoneKey === 'k21_25') return 'zone2EntryInFlight';
+    if (zoneKey === 'k16_20') return 'zone3EntryInFlight';
+    return 'zone2EntryInFlight';
   }
 
   function withLegacyAdventureReady(callback) {
@@ -850,15 +854,64 @@
     return (root && root.__e9WorldStageState) || null;
   }
 
+  function emitZone3JourneyEvent(type, zone, state, extra) {
+    if (!zone || zone.key !== 'k16_20'
+        || typeof window.emitZone3JourneyEvent !== 'function') return;
+    var detail = Object.assign({
+      authoritative: true,
+      source: 'adventure_bootstrap',
+      zoneKey: zone.key,
+      selectedZoneKey: state && state.selectedZoneKey || zone.key,
+      currentZoneKey: state && (state.authoritativeCurrentZoneKey || state.currentPlayerZoneKey) || null,
+      zone3: zone,
+      zones: state && state.zones || [],
+    }, extra || {});
+    window.emitZone3JourneyEvent(type, detail);
+  }
+
+  function emitZone3LordReady(zone, state) {
+    if (!zone || zone.key !== 'k16_20' || !state) return;
+    var contract = ctaContract(zone, state);
+    var ready = zone.bossAvailable === true
+      || zone.boss_available === true
+      || zone.boss_ready === true
+      || (contract && (contract.kind === 'challenge_lord' || contract.kind === 'replay_completed'));
+    if (!ready) return;
+    // This event is a projection of the latest bootstrap render. Do not make
+    // the in-memory presentation guard suppress a later render: the Journey
+    // component may mount after the first render, and the server snapshot is
+    // the only safe source for Lord readiness.
+    emitZone3JourneyEvent('journey:zone3-lord-ready', zone, state, {
+      lordReady: true,
+      autoStart: false,
+      primaryAction: state.primaryAction || null,
+      actionKind: contract && contract.kind || null,
+      presentationOnly: true,
+    });
+  }
+
   function dispatchZone1Entry(root, zone, state) {
     var cinematicKey = introCinematicKeyForZone(zone && zone.key);
     if (!zone || !cinematicKey || zone.locked || (state && state.authorityUnavailable)) return;
+    // A cleared zone is already past its first-entry lifecycle. It still
+    // remains selectable for inspection and Replay Story, but selecting it
+    // must not queue the old first-entry cinematic behind the replay click.
+    // The queued start used to race the presentation-only replay and reopen
+    // the overlay with first-entry state after the player had dismissed it.
+    if (zone.cleared === true || zone.status === 'completed') return;
     // The bootstrap snapshot is server-authoritative. Missing state means
     // unseen, so a fresh account cannot be silently promoted by browser data.
     if (cinematicSeen(state, cinematicKey)) return;
     var inFlightKey = introEntryInFlightKey(zone.key);
     if (state[inFlightKey]) return;
     state[inFlightKey] = true;
+    if (zone.key === 'k16_20') {
+      emitZone3JourneyEvent('journey:zone3-entry', zone, state, {
+        selectedZoneKey: zone.key,
+        entryMode: 'first_entry',
+        presentationOnly: true,
+      });
+    }
     var start = function () {
       if (typeof window.startAdventureStage !== 'function') {
         state[inFlightKey] = false;
@@ -902,7 +955,6 @@
   // question must hide the affordance rather than show a hopeful one.
   function zoneStoryReplayAvailable(zoneKey, zoneRecord) {
     if (!zoneKey) return false;
-
     // (1) Authoritative record. A caller that holds one passes it; otherwise
     // resolve from this component's own server-authoritative snapshot. Kept
     // free of hard references so the predicate stays independently evaluable
@@ -954,11 +1006,20 @@
     var state = root && root.__e9WorldStageState;
     if (state && state.authorityUnavailable) return false;
     if (!zoneStoryReplayAvailable(zoneKey)) return false;
+    var audioUnlockPromise = null;
     if (typeof window._unlockIntroAudioFromGesture === 'function') {
-      try { window._unlockIntroAudioFromGesture(); } catch (error) { /* best-effort priming only */ }
+      try {
+        // Keep the promise created by this real click so the existing
+        // Zone-specific gesture bridge can continue the same replay after
+        // reusable media priming settles.  Fire-and-forget priming leaves a
+        // Zone 3 replay stranded at the audio-gesture-pending screen.
+        audioUnlockPromise = window._unlockIntroAudioFromGesture();
+      } catch (error) { /* best-effort priming only */ }
     }
     var api = window.E10Cinematic;
-    if (api && typeof api.playStoryReplay === 'function' && api.playStoryReplay(zoneKey)) {
+    if (api && typeof api.playStoryReplay === 'function' && api.playStoryReplay(zoneKey, {
+      audioUnlockPromise: audioUnlockPromise,
+    })) {
       return true;
     }
     // Narrow fail-safe: only reached when the E10Cinematic model itself is
@@ -990,6 +1051,7 @@
     if (!root || !state || !zone) return false;
     state.zone1EntryInFlight = false;
     state.zone2EntryInFlight = false;
+    state.zone3EntryInFlight = false;
     renderSelectedZone(root, state.zones, zone.key, false);
     dispatchZoneSelection(root, zone, state);
     document.dispatchEvent(new CustomEvent('e9:zone-card-requested', {
@@ -1055,6 +1117,18 @@
     } else {
       button.addEventListener('click', button.__e9AdventureHandler);
     }
+  }
+
+  function suppressAdventureButton(button) {
+    if (!button) return;
+    if (button.__e9AdventureHandler) {
+      button.removeEventListener('click', button.__e9AdventureHandler);
+      button.__e9AdventureHandler = null;
+    }
+    button.hidden = true;
+    button.disabled = true;
+    button.setAttribute('aria-disabled', 'true');
+    button.removeAttribute('data-challenge-target-zone');
   }
 
   function configureSecondaryAdventureButton(button, zone, contract) {
@@ -1202,6 +1276,15 @@
     var detail = zoneSelectionDetail(zone, state);
     if (window.E9) window.E9.latestZoneSelection = detail;
     root.dispatchEvent(new CustomEvent('e9:zone-selected', { bubbles: true, detail: detail }));
+    if (zone && zone.key === 'k16_20') {
+      emitZone3JourneyEvent('journey:zone3-zone-selected', zone, state, {
+        selectedZoneKey: zone.key,
+        currentZoneKey: state.authoritativeCurrentZoneKey || state.currentPlayerZoneKey || null,
+        primaryAction: state.primaryAction || null,
+        selectionOnly: true,
+      });
+    }
+    emitZone3LordReady(zone, state);
   }
 
   // The small zone-tile badge only ever shows index.adv.boss_ready's
@@ -1261,14 +1344,13 @@
     configurePrimaryCta(root, zone, state);
 
     if (cta) {
-      // Portrait tablets use this lower detail card as their only actionable
-      // Zone CTA.  It must always receive the freshly-derived selected-zone
-      // contract, including completed Zone 1 replay semantics.  The separate
-      // Beginner Village tutorial panel is hidden on this responsive surface;
-      // suppressing this button for k26_30 left its prior zone's label/action
-      // attached while landscape continued to use the correctly configured
-      // map/panel CTA.
-      configureAdventureButton(cta, zone, ctaContract(zone, state));
+      // Beginner Village has a surface-owned CTA on every responsive layout:
+      // the immersive map CTA, the tutorial panel on portrait tablets, or
+      // the selected tile's inline CTA on mobile. The generic lower detail
+      // CTA is intentionally suppressed for this zone so it cannot become a
+      // second visible owner or retain a stale handler.
+      if (zone.key === ACTIVE_INTRO_ZONE_KEY) suppressAdventureButton(cta);
+      else configureAdventureButton(cta, zone, ctaContract(zone, state));
     }
     if (secondaryCta) {
       configureSecondaryAdventureButton(secondaryCta, zone, secondaryCtaContract(zone, state));
@@ -1312,6 +1394,23 @@
             });
             inline.appendChild(inlineSecondaryCta);
           }
+        }
+        // Mobile owns the lower Zone Card surface, so expose the same
+        // authoritative replay action inline instead of relying on the
+        // hidden side drawer.  The predicate and dispatcher are shared with
+        // desktop/iPad landscape; this adds no progression or reward path.
+        if (zoneStoryReplayAvailable(zone.key, zone)) {
+          var inlineReplay = document.createElement('button');
+          inlineReplay.type = 'button';
+          inlineReplay.className = 'e9-zone__inline-cta e9-zone__inline-cta--secondary e9-adventure-cta';
+          inlineReplay.textContent = t('e10.world_stage.replay_story', 'Replay Story');
+          inlineReplay.setAttribute('data-e10-zone-replay', '');
+          inlineReplay.setAttribute('aria-disabled', 'false');
+          inlineReplay.addEventListener('click', function (evt) {
+            evt.stopPropagation();
+            replayAdventureIntro(zone.key);
+          });
+          inline.appendChild(inlineReplay);
         }
         selectedTile.appendChild(inline);
       }
@@ -1372,6 +1471,7 @@
       secondaryAction: null,
       avatarPresentation: null,
       cinematics: {},
+      zone3EntryInFlight: false,
       generation: null,
     });
     if (!state.selectedZoneKey && authority.selected && typeof authority.selected.zone_key === 'string') {
@@ -1544,6 +1644,10 @@
             bubbles: true,
             detail: selectionDetail,
           }));
+          // Locked/unenterable zones remain inspectable, but their pointer
+          // activation is a non-navigating no-op. Keyboard activation below
+          // applies the same guard; neither path may start progression.
+          if (zone.locked || zone.canEnter === false) return;
           dispatchZone1Entry(root, zone, state);
       };
       var keyActivate = function (evt) {
@@ -1792,6 +1896,7 @@
       avatarPresentation: null,
       cinematics: {},
       authorityUnavailable: false,
+      zone3EntryInFlight: false,
       questionRuntimeState: questionRuntimeStateFromWindow(),
       generation: generation,
     };

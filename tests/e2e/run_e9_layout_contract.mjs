@@ -147,7 +147,9 @@ async function collectMetrics(page, state, viewport, origin, requestLog, screens
   });
   await page.waitForTimeout(1000);
   const cta = state === 'on'
-    ? await page.evaluate(() => {
+      ? await page.evaluate(() => {
+        const root = document.getElementById('e9-world-stage-slot');
+        if (!root) throw new Error('missing E9 world-stage root');
         const inspectButton = (selector) => {
           const el = document.querySelector(selector);
           if (!el) return null;
@@ -195,10 +197,22 @@ async function collectMetrics(page, state, viewport, origin, requestLog, screens
         const focusOutlineStyle = anotherGenericElement
           ? getComputedStyle(anotherGenericElement).outlineStyle
           : null;
-        const selectedBeforeLocked = document.querySelector('[aria-pressed="true"]')?.getAttribute('data-zone');
-        const locked = document.querySelector('[data-zone="k11_15"]');
+        const selectedBeforeLocked = root.querySelector('[data-zone][aria-pressed="true"]')?.getAttribute('data-zone');
+        const locked = root.querySelector('[data-zone="k11_15"]');
+        const overlay = document.getElementById('boss-cinematic');
+        const overlayBeforeLocked = overlay?.className || '';
+        locked?.focus({ preventScroll: true });
+        const lockedFocusable = document.activeElement === locked;
         locked?.click();
-        const selectedAfterLocked = document.querySelector('[aria-pressed="true"]')?.getAttribute('data-zone');
+        const pointerOverlayAfterLocked = overlay?.className || '';
+        const enterDispatchAllowed = locked?.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'Enter', bubbles: true, cancelable: true
+        }));
+        const spaceDispatchAllowed = locked?.dispatchEvent(new KeyboardEvent('keydown', {
+          key: ' ', bubbles: true, cancelable: true
+        }));
+        const keyboardOverlayAfterLocked = overlay?.className || '';
+        const selectedAfterLocked = root.querySelector('[data-zone][aria-pressed="true"]')?.getAttribute('data-zone');
 
         return {
           beginner,
@@ -209,8 +223,16 @@ async function collectMetrics(page, state, viewport, origin, requestLog, screens
           anotherGeneric,
           focusOutlineStyle,
           lockedAriaDisabled: locked?.getAttribute('aria-disabled'),
+          lockedAriaLabel: locked?.getAttribute('aria-label'),
+          lockedDisabled: locked?.disabled,
+          lockedTabIndex: locked?.tabIndex,
+          lockedFocusable,
+          lockedPointerNonNavigating: pointerOverlayAfterLocked === overlayBeforeLocked,
+          lockedKeyboardNonNavigating: keyboardOverlayAfterLocked === overlayBeforeLocked,
+          lockedEnterDefaultPrevented: enterDispatchAllowed === false,
+          lockedSpaceDefaultPrevented: spaceDispatchAllowed === false,
           selectedBeforeLocked,
-          selectedAfterLocked
+          selectedAfterLocked,
         };
       })
     : null;
@@ -351,6 +373,16 @@ function assertContracts(results) {
       failures.push(`${viewport} ON: Generic CTA lacks a visible focus outline`);
     }
     if (cta?.lockedAriaDisabled !== 'true') failures.push(`${viewport} ON: locked zone is actionable`);
+    if (!cta?.lockedAriaLabel) failures.push(`${viewport} ON: locked zone lacks an accessible label`);
+    if (cta?.lockedDisabled !== false || (cta?.lockedTabIndex ?? -1) < 0 || !cta?.lockedFocusable) {
+      failures.push(`${viewport} ON: locked zone is not discoverable/focusable for assistive technology`);
+    }
+    if (!cta?.lockedPointerNonNavigating || !cta?.lockedKeyboardNonNavigating) {
+      failures.push(`${viewport} ON: locked zone navigation semantics changed on pointer/keyboard activation`);
+    }
+    if (!cta?.lockedEnterDefaultPrevented || !cta?.lockedSpaceDefaultPrevented) {
+      failures.push(`${viewport} ON: locked zone keyboard activation was not canceled`);
+    }
     if (cta?.selectedBeforeLocked !== cta?.selectedAfterLocked) {
       failures.push(`${viewport} ON: clicking locked zone changed selection`);
     }

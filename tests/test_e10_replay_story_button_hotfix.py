@@ -175,7 +175,13 @@ def test_replay_story_writes_no_domain_state(tablet_report):
     is that nothing about that seeded state changes across two full replay
     dispatches (this fixture's first_click/repeat_click)."""
     evidence = tablet_report["evidence"]
-    assert evidence["replay_story_e9"]["mechanism"] == "adventure_boss_progress.cleared = 1"
+    replay_sources = evidence["replay_story_e9"]
+    assert isinstance(replay_sources, list)
+    assert replay_sources
+    assert all(
+        source["mechanism"] == "adventure_boss_progress.cleared = 1"
+        for source in replay_sources
+    )
     # The runner's own finish/return checks already prove the overlay
     # terminator (_finishZoneCinematicReplay) ran, which is the codebase's
     # own pinned guarantee (test_e10_generic_cinematic_replay.py) that no

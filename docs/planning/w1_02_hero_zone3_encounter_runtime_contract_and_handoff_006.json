@@ -1,0 +1,272 @@
+{
+  "SCHEMA_VERSION": "W1_02_ZONE3_HERO_ENCOUNTER_RUNTIME_HANDOFF_V1",
+  "TASK": "W1_02_HERO_ZONE3_ENCOUNTER_RUNTIME_CONTRACT_AND_HANDOFF_006",
+  "BASE": "8fa4184e775517403f66a3d56e7357d3470e67cf",
+  "BASE_TREE": "e9132e285f7a4d657414a598d6cf8008ae481946",
+  "ZONE": 3,
+  "OWNER_STYLE": "B — STYLIZED_ADVENTURE",
+  "NORMAL_MONSTERS": {
+    "COUNT": 13,
+    "ENCOUNTER_CLASS": "NORMAL",
+    "ENTITY_IDS": [
+      "M022",
+      "M023",
+      "M024",
+      "M025",
+      "M026",
+      "M027",
+      "M028",
+      "M029",
+      "M030",
+      "M031",
+      "M032",
+      "M033",
+      "M060"
+    ],
+    "REUSE_AS_IS": true,
+    "REDRAW_REQUIRED": false
+  },
+  "ELITES": {
+    "COUNT": 0,
+    "ENTITY_IDS": [],
+    "CREATE_MISSING": false
+  },
+  "BATTLEFIELD_BOSS": {
+    "ENTITY_ID": "legacy_bf_03_boss",
+    "IDENTITY_ZH": "LV3 做眼厚壁兵",
+    "IDENTITY_EN": "LV3 Eye-Shape Shield Guard",
+    "ENCOUNTER_CLASS": "BATTLEFIELD_BOSS",
+    "ASSET_PATH": "/assets/monsters/orc_shield_chibi.png",
+    "DISTINCT_FROM_LORD": true
+  },
+  "LORD": {
+    "ENTITY_ID": "goblin_centurion",
+    "LORD_ONLY": true,
+    "ASSET_COUNT": 6,
+    "ASSET_SLOT_IDS": [
+      "Z3_LORD_RITUAL_KEY_ART",
+      "Z3_LORD_CHALLENGE_BACKPLATE",
+      "Z3_LORD_FAILURE_BACKPLATE",
+      "Z3_FIRST_STAR_SUCCESS_BACKPLATE",
+      "Z3_LORD_PORTRAIT",
+      "Z3_SUCCESS_LORD_PORTRAIT"
+    ],
+    "CHARACTER_SEMANTICS": [
+      "middle-aged",
+      "seasoned",
+      "protector",
+      "restrained",
+      "not demonic",
+      "not berserker",
+      "not generic evil boss"
+    ]
+  },
+  "STATE_BINDINGS": [
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M022",
+      "ASSET_PATH": "/assets/monsters/orc_grunt_chibi.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M022.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M023",
+      "ASSET_PATH": "/art/monsters/M023_coppercap_goblin.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M023.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M024",
+      "ASSET_PATH": "/art/monsters/M024_echo_bat.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M024.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M025",
+      "ASSET_PATH": "/art/monsters/M025_pickaxe_moleworker.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M025.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M026",
+      "ASSET_PATH": "/art/monsters/M026_fungus_lantern_imp.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M026.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M027",
+      "ASSET_PATH": "/art/monsters/M027_rope_ladder_lizard.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M027.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M028",
+      "ASSET_PATH": "/art/monsters/M028_ironbucket_beetle.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M028.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M029",
+      "ASSET_PATH": "/art/monsters/M029_crevice_snake.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M029.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M030",
+      "ASSET_PATH": "/art/monsters/M030_cartcap_crawler.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M030.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M031",
+      "ASSET_PATH": "/art/monsters/M031_crystal_ore_gob.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M031.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M032",
+      "ASSET_PATH": "/art/monsters/M032_cavern_slinger.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M032.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M033",
+      "ASSET_PATH": "/art/monsters/M033_stalactite_tortoise.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M033.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "NORMAL",
+      "ENTITY_ROLE": "NORMAL_MONSTER",
+      "ENTITY_ID": "M060",
+      "ASSET_PATH": "/art/monsters/M060_crystalhorn_lizard.png",
+      "ENTRY_CONDITION": "The existing Zone 3 normal encounter selects canonical Monster M060.",
+      "DISPLAY_ROLE": "Zone 3 normal Monster body presentation.",
+      "MUST_NOT_BE_USED_AS": ["ELITE", "BF_BOSS", "LORD"]
+    },
+    {
+      "STATE_ID": "BF_BOSS",
+      "ENTITY_ROLE": "BATTLEFIELD_BOSS",
+      "ENTITY_ID": "legacy_bf_03_boss",
+      "ASSET_PATH": "/assets/monsters/orc_shield_chibi.png",
+      "ENTRY_CONDITION": "The existing Zone 3 Battlefield Boss presentation resolves to legacy_bf_03_boss.",
+      "DISPLAY_ROLE": "Zone 3 Battlefield Boss presentation; not a Lord presentation.",
+      "MUST_NOT_BE_USED_AS": ["NORMAL_MONSTER", "ELITE", "LORD"]
+    },
+    {
+      "STATE_ID": "LORD_RITUAL",
+      "ENTITY_ROLE": "LORD_RITUAL",
+      "ENTITY_ID": "goblin_centurion",
+      "PRESENTATION_SLOT_ID": "Z3_LORD_RITUAL_KEY_ART",
+      "ASSET_PATH": "/assets/e10/art/zone3/lord_trial/zone3_lord_01_ritual_key_art.webp",
+      "ENTRY_CONDITION": "The existing Goblin Centurion Lord presentation flow requests the ritual key-art slot.",
+      "DISPLAY_ROLE": "Goblin Centurion ritual/approach presentation.",
+      "MUST_NOT_BE_USED_AS": ["NORMAL_MONSTER", "ELITE", "BF_BOSS", "COMBAT_AUTHORITY"]
+    },
+    {
+      "STATE_ID": "LORD_CHALLENGE",
+      "ENTITY_ROLE": "LORD_CHALLENGE",
+      "ENTITY_ID": "goblin_centurion",
+      "PRESENTATION_SLOT_ID": "Z3_LORD_CHALLENGE_BACKPLATE",
+      "ASSET_PATH": "/assets/e10/art/zone3/lord_trial/zone3_lord_02_challenge_backplate.webp",
+      "ENTRY_CONDITION": "The existing Goblin Centurion Lord presentation flow requests the challenge backplate slot.",
+      "DISPLAY_ROLE": "Goblin Centurion Lord Challenge Card presentation.",
+      "MUST_NOT_BE_USED_AS": ["NORMAL_MONSTER", "ELITE", "BF_BOSS", "COMBAT_AUTHORITY"]
+    },
+    {
+      "STATE_ID": "LORD_FAILURE",
+      "ENTITY_ROLE": "LORD_FAILURE",
+      "ENTITY_ID": "goblin_centurion",
+      "PRESENTATION_SLOT_ID": "Z3_LORD_FAILURE_BACKPLATE",
+      "ASSET_PATH": "/assets/e10/art/zone3/lord_trial/zone3_lord_03_failure_backplate.webp",
+      "ENTRY_CONDITION": "The existing Goblin Centurion Lord presentation flow requests the failure backplate slot.",
+      "DISPLAY_ROLE": "Goblin Centurion Lord failure/retraining presentation.",
+      "MUST_NOT_BE_USED_AS": ["NORMAL_MONSTER", "ELITE", "BF_BOSS", "COMBAT_AUTHORITY"]
+    },
+    {
+      "STATE_ID": "LORD_FIRST_STAR_SUCCESS",
+      "ENTITY_ROLE": "LORD_FIRST_STAR_SUCCESS",
+      "ENTITY_ID": "goblin_centurion",
+      "PRESENTATION_SLOT_ID": "Z3_FIRST_STAR_SUCCESS_BACKPLATE",
+      "ASSET_PATH": "/assets/e10/art/zone3/lord_trial/zone3_lord_04_first_star_success_backplate.webp",
+      "ENTRY_CONDITION": "The existing Goblin Centurion Lord presentation flow requests the first-star success backplate slot.",
+      "DISPLAY_ROLE": "Goblin Centurion first-star success/recovery presentation.",
+      "MUST_NOT_BE_USED_AS": ["NORMAL_MONSTER", "ELITE", "BF_BOSS", "COMBAT_AUTHORITY"]
+    },
+    {
+      "STATE_ID": "LORD_PORTRAIT",
+      "ENTITY_ROLE": "LORD_PORTRAIT",
+      "ENTITY_ID": "goblin_centurion",
+      "PRESENTATION_SLOT_ID": "Z3_LORD_PORTRAIT",
+      "ASSET_PATH": "/assets/e10/art/zone3/lord_trial/zone3_lord_05_lord_portrait.webp",
+      "ENTRY_CONDITION": "The existing Goblin Centurion Lord presentation flow requests the pre-trial portrait slot.",
+      "DISPLAY_ROLE": "Goblin Centurion pre-trial portrait.",
+      "MUST_NOT_BE_USED_AS": ["NORMAL_MONSTER", "ELITE", "BF_BOSS", "COMBAT_AUTHORITY"]
+    },
+    {
+      "STATE_ID": "LORD_SUCCESS_PORTRAIT",
+      "ENTITY_ROLE": "LORD_SUCCESS_PORTRAIT",
+      "ENTITY_ID": "goblin_centurion",
+      "PRESENTATION_SLOT_ID": "Z3_SUCCESS_LORD_PORTRAIT",
+      "ASSET_PATH": "/assets/e10/art/zone3/lord_trial/zone3_lord_06_success_lord_portrait.webp",
+      "ENTRY_CONDITION": "The existing Goblin Centurion Lord presentation flow requests the post-success portrait slot.",
+      "DISPLAY_ROLE": "Goblin Centurion post-success portrait.",
+      "MUST_NOT_BE_USED_AS": ["NORMAL_MONSTER", "ELITE", "BF_BOSS", "COMBAT_AUTHORITY"]
+    }
+  ],
+  "INVARIANTS": {
+    "BF_BOSS_EQ_LORD": false,
+    "ACQUIRE_EQ_EQUIP": false,
+    "LORD_CLEAR_EQ_BF_BOSS_CLEAR": false,
+    "NORMAL_MONSTER_PROMOTED_TO_ELITE": false,
+    "ELITE_COUNT": 0,
+    "SOURCE_ART_MUTATED": false,
+    "GAMEPLAY_AUTHORITY_CHANGED": false,
+    "JOURNEY_RUNTIME_CHANGED": false,
+    "COMBAT_AUTHORITY_FROM_ASSET_LOAD": false,
+    "NO_FALLBACK_TO_ORDINARY_MONSTER": true
+  },
+  "AUTHORITATIVE_SOURCES": [
+    "adventure_zone3_monster_authority.py",
+    "zone3_runtime_asset_bindings.py",
+    "tests/test_w1_02_zone3_monster_lord_runtime_asset_binding_004.py",
+    "tests/test_w1_02_zone3_lord_final_asset_ingestion_005.py"
+  ],
+  "NO_NEW_DIALOGUE": true,
+  "FINAL_JOURNEY_BINDING": "OUT_OF_SCOPE"
+}

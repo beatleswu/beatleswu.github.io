@@ -421,7 +421,18 @@
         if (evt.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') setOpen(false, true);
       };
       var onAdventure = function () { setOpen(false, false); };
-      var onZoneSelected = function (evt) { updateDrawerZoneSummary(root, evt.detail); };
+      var onZoneSelected = function (evt) {
+        updateDrawerZoneSummary(root, evt.detail);
+        // Side-panel surfaces have no lower Zone Card to own the selected
+        // zone's replay action. Open the already-rendered drawer only when
+        // the shared replay predicate made that action genuinely available;
+        // portrait/mobile ownership remains unchanged.
+        var replay = root.querySelector('[data-e10-zone-replay]');
+        var lowerOwner = root.getAttribute('data-e10-detail-owner') === 'lower-card';
+        if (!lowerOwner && replay && !replay.hidden && !replay.disabled) {
+          setOpen(true, false);
+        }
+      };
       var onZoneCardRequested = function () {
         if (window.E9 && window.E9.latestZoneSelection) {
           updateDrawerZoneSummary(root, window.E9.latestZoneSelection);

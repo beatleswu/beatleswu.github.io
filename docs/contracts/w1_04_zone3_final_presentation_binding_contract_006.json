@@ -1,0 +1,288 @@
+{
+  "schema_version": "W1_04_ZONE3_FINAL_PRESENTATION_BINDING_CONTRACT_V1",
+  "task": "W1_04_SYSTEMS_ZONE3_FINAL_PRESENTATION_BINDING_CONTRACT_AND_TEST_SCAFFOLD_006",
+  "source": {
+    "source_head": "7da9bb235b6727f87f36d46c5890b337264260e2",
+    "source_tree": "5e14f3e0b2a1cb77b9814976b15563955c10aea4",
+    "canonical_master": "616d51b17abe010de1e862382ca4db7bec65936f",
+    "world_fx_reference_head": "9c57faf4435fd3fa6a64ddf2d3b3559deec88d93",
+    "journey_voice_reference_head": "6e5d0b9d8999476776d1a48277c0604c26589916",
+    "playwright_reference_head": "dddefed7b27ee17d65aba89823a47b0e0bd0d0ad",
+    "integration_checkpoint_reference": "5fd9def812c230aa7089a8388be932bea8e7d0f7"
+  },
+  "scope": {
+    "binding_implemented": false,
+    "journey_runtime_changed": false,
+    "w1_01_fx_implementation_changed": false,
+    "voice_or_audio_assets_changed": false,
+    "app_py_changed": false,
+    "gameplay_authority_changed": false,
+    "database_changed": false,
+    "production_mutated": false,
+    "final_runtime_binding_owner": "W1-03 Journey single writer",
+    "consumer_rule": "Consume this contract and the referenced immutable manifests; do not infer missing values from presentation text, asset names, or client selection."
+  },
+  "expected_components": {
+    "cinematic_shots": {
+      "count": 10,
+      "sequence": ["SHOT01", "SHOT02", "SHOT03", "SHOT04", "SHOT05", "SHOT06", "SHOT07", "SHOT08", "SHOT09", "SHOT10"],
+      "phase_map": {
+        "FIRST_ENTRY": ["SHOT01", "SHOT02", "SHOT03", "SHOT04", "SHOT05"],
+        "BOSS_READY": ["SHOT06", "SHOT07"],
+        "POST_CLEAR": ["SHOT08", "SHOT09", "SHOT10"]
+      },
+      "manifest_ref": {
+        "head": "9c57faf4435fd3fa6a64ddf2d3b3559deec88d93",
+        "path": "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+        "owner_approved": true,
+        "runtime_derivative_count": 10
+      }
+    },
+    "world_support_images": {
+      "count": 2,
+      "paths": [
+        "assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+        "assets/e10/art/zone3/environment/zone3_environment_master.webp"
+      ],
+      "authority": "presentation only; map node, route, CTA, zone state, boss state, Lord state, and reward remain runtime/server facts"
+    },
+    "normal_monsters": {
+      "count": 13,
+      "elite_count": 0,
+      "zone_key": "k16_20",
+      "ids": ["M022", "M023", "M024", "M025", "M026", "M027", "M028", "M029", "M030", "M031", "M032", "M033", "M060"],
+      "authority_ref": {
+        "head": "616d51b17abe010de1e862382ca4db7bec65936f",
+        "path": "adventure_zone3_monster_authority.py",
+        "selection": "server-owned immutable binding; never derive identity from presentation asset or array position"
+      }
+    },
+    "battlefield_boss": {
+      "runtime_id": "legacy_bf_03_boss",
+      "distinct_from_lord": true,
+      "lord_id": "goblin_centurion",
+      "authority_ref": "current server battlefield/boss authority; a Battlefield Boss defeat cannot call Lord clear authority"
+    },
+    "lord": {
+      "lord_id": "goblin_centurion",
+      "asset_count": 6,
+      "slot_ids": [
+        "Z3_LORD_RITUAL_KEY_ART",
+        "Z3_LORD_CHALLENGE_BACKPLATE",
+        "Z3_LORD_FAILURE_BACKPLATE",
+        "Z3_FIRST_STAR_SUCCESS_BACKPLATE",
+        "Z3_LORD_PORTRAIT",
+        "Z3_SUCCESS_LORD_PORTRAIT"
+      ],
+      "authority_rules": [
+        "Lord art present does not create Lord eligibility.",
+        "Lord art missing resolves to presentation fallback/hide for the same Lord identity.",
+        "Lord presentation slot cannot change Lord identity.",
+        "No Monster or Battlefield Boss asset may be used as a Lord fallback."
+      ],
+      "binding_ref": {
+        "head": "8fa4184e775517403f66a3d56e7357d3470e67cf",
+        "path": "zone3_runtime_asset_bindings.py"
+      }
+    },
+    "visual_fx": {
+      "count": 12,
+      "required_count": 11,
+      "optional_count": 1,
+      "effect_ids": ["Z3_L01", "Z3_V01", "Z3_V02", "Z3_V03", "Z3_V04", "Z3_V05", "Z3_V06", "Z3_V07", "Z3_V08", "Z3_V09", "Z3_V10", "Z3_T01_VISUAL"],
+      "camera_cue_count": 10,
+      "camera_shot_ids": ["SHOT01", "SHOT02", "SHOT03", "SHOT04", "SHOT05", "SHOT06", "SHOT07", "SHOT08", "SHOT09", "SHOT10"],
+      "runtime_package_ref": {
+        "head": "9c57faf4435fd3fa6a64ddf2d3b3559deec88d93",
+        "path": "docs/planning/w1_01_world_zone3_presentation_fx_runtime_package_009.json",
+        "journey_binding_ready": true,
+        "journey_binding_implemented": false,
+        "runtime_trigger_code_in_this_task": false
+      },
+      "shot_effects": {
+        "SHOT01": ["Z3_L01", "Z3_V01"],
+        "SHOT02": ["Z3_L01", "Z3_V01"],
+        "SHOT03": ["Z3_L01", "Z3_V01", "Z3_V03"],
+        "SHOT04": ["Z3_L01", "Z3_V01"],
+        "SHOT05": ["Z3_L01", "Z3_V01", "Z3_V02", "Z3_V03", "Z3_V05", "Z3_V06", "Z3_V07"],
+        "SHOT06": ["Z3_L01", "Z3_V01"],
+        "SHOT07": ["Z3_L01", "Z3_V01", "Z3_V08", "Z3_V09"],
+        "SHOT08": ["Z3_L01", "Z3_V01", "Z3_V03", "Z3_V10"],
+        "SHOT09": ["Z3_L01", "Z3_V01"],
+        "SHOT10": ["Z3_L01", "Z3_V01", "Z3_T01_VISUAL"]
+      },
+      "optional_shot_effects": {
+        "Z3_V04": ["SHOT03", "SHOT05", "SHOT08"]
+      },
+      "limits_ref": {
+        "particle_count": 18,
+        "simultaneous_effect_count": 12,
+        "allocation_policy": "FIXED_PARTICLE_POOL_PER_EFFECT_NO_PER_FRAME_DOM_ALLOCATION"
+      }
+    }
+  },
+  "locale_contract": {
+    "supported_production_locales": ["zh-TW", "en-US"],
+    "cross_language_voice_fallback": 0,
+    "fallback_policy": "subtitle-only; fail closed",
+    "voice_language_mismatch": "FORBIDDEN",
+    "locales": {
+      "zh-TW": {
+        "application_key": "zh",
+        "subtitle_beats": 97,
+        "dialogue_voice_beats": 97,
+        "voice_language": "zh",
+        "subtitle_manifest_ref": {
+          "head": "6e5d0b9d8999476776d1a48277c0604c26589916",
+          "path": "assets/e10/i18n/zone3/zone3-cinematic-subtitles.json"
+        },
+        "voice_manifest_ref": {
+          "head": "6e5d0b9d8999476776d1a48277c0604c26589916",
+          "path": "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json"
+        }
+      },
+      "en-US": {
+        "application_key": "en",
+        "subtitle_beats": 97,
+        "dialogue_voice_beats": 97,
+        "voice_language": "en",
+        "subtitle_manifest_ref": {
+          "head": "6e5d0b9d8999476776d1a48277c0604c26589916",
+          "path": "assets/e10/i18n/zone3/zone3-cinematic-subtitles-en-US.json"
+        },
+        "voice_manifest_ref": {
+          "head": "6e5d0b9d8999476776d1a48277c0604c26589916",
+          "path": "assets/e10/audio/zone3/zone3-cinematic-audio-manifest-en-US.json"
+        }
+      }
+    },
+    "switch_rules": [
+      "Locale switch changes presentation selection only.",
+      "Locale switch cannot issue reward or mark cinematic progression complete.",
+      "Missing/invalid locale voice renders subtitle-only and never selects another locale voice.",
+      "Beat IDs are manifest data, not client authority; forged or duplicated IDs are rejected/no-op."
+    ]
+  },
+  "audio_controls": {
+    "global_mute_required": true,
+    "new_volume_slider": false,
+    "new_audio_mixer_ui": false,
+    "preserve_existing_fixed_playback_level_architecture": true,
+    "muted_audio_classes": ["dialogue", "ambience", "SFX", "BGM", "transition"],
+    "presentation_audio_dependency": {
+      "owner_task": "W1-03 _009",
+      "status": "EXTERNAL_DEPENDENCY_PENDING",
+      "kind": "presentation audio / ambience / event SFX / transition",
+      "manifest_path": null,
+      "provided_in_source_tree": false,
+      "placeholder_assets_allowed": false,
+      "generate_missing_assets": false,
+      "fail_closed_if_missing": true
+    },
+    "bgm_dependency": {
+      "owner_task": "W1-03 _009",
+      "status": "EXTERNAL_DEPENDENCY_PENDING",
+      "kind": "BGM",
+      "manifest_path": null,
+      "provided_in_source_tree": false,
+      "placeholder_assets_allowed": false,
+      "generate_missing_assets": false,
+      "fail_closed_if_missing": true
+    }
+  },
+  "replay_contract": {
+    "canonical_sequence": "same 10-shot sequence",
+    "selected_locale": "current server/application selected locale",
+    "subtitles": "same-locale subtitle manifest",
+    "voice": "same-locale voice only; subtitle-only fallback",
+    "presentation_fx": "retrigger allowed from immutable FX package",
+    "persistent_resource_policy": "reuse/replace owned resources; no duplicate loops, timers, frames, nodes, listeners, or media objects",
+    "final_state": "canonical state at replay exit; no presentation-owned authority mutation",
+    "cases": {
+      "FIRST_ENTRY": ["SHOT01", "SHOT02", "SHOT03", "SHOT04", "SHOT05"],
+      "BOSS_READY": ["SHOT06", "SHOT07"],
+      "POST_CLEAR": ["SHOT08", "SHOT09", "SHOT10"],
+      "REPLAY": ["SHOT01", "SHOT02", "SHOT03", "SHOT04", "SHOT05", "SHOT06", "SHOT07", "SHOT08", "SHOT09", "SHOT10"]
+    },
+    "persistent_mutations": {
+      "reward": false,
+      "zone_clear": false,
+      "zone_unlock": false,
+      "lord_state": false,
+      "coins": false,
+      "items": false,
+      "historical_mastery": false
+    }
+  },
+  "reduced_motion_contract": {
+    "story_content_available": true,
+    "camera_motion": "reduced/disabled according to FX package cue; retain static hold and composition",
+    "nonessential_visual_motion": "suppressed",
+    "audio_semantics_unchanged": true,
+    "gameplay_affected": false,
+    "fx_source_of_truth": "world FX runtime package reduced-motion values"
+  },
+  "cleanup_contract": {
+    "cleanup_points": ["shot_change", "locale_change", "replay", "cinematic_exit", "route_exit", "runtime_presentation_failure"],
+    "owned_resources": ["audio loops", "one-shot audio", "timers", "animation frames", "particle emitters", "event listeners", "temporary DOM nodes", "media objects"],
+    "post_cleanup_requirements": {
+      "orphan_audio": false,
+      "duplicate_audio": false,
+      "orphan_timers": false,
+      "orphan_animation_frames": false,
+      "presentation_owned_resource_leak": false,
+      "gameplay_available": true
+    },
+    "fx_package_cleanup_points": ["shot_change", "cinematic_exit", "replay_exit", "route_change", "interruption", "error"]
+  },
+  "failure_contract": {
+    "presentation_failure_must_not_block_gameplay": true,
+    "failures": [
+      "cinematic image missing",
+      "wrong/invalid asset hash",
+      "missing locale voice",
+      "missing presentation audio",
+      "missing BGM",
+      "VFX initialization failure",
+      "browser autoplay denial",
+      "forged/duplicated beat identifier"
+    ],
+    "behavior": "presentation fallback or no-op, subtitle-only when voice is unavailable, no cross-language fallback, no gameplay authority mutation"
+  },
+  "authority_boundary": {
+    "presentation_write_authority": false,
+    "presentation_must_not_invoke": [
+      "zone clear",
+      "zone unlock/progression mutation",
+      "reward grant/regrant",
+      "Lord eligibility or Lord defeat",
+      "Battlefield Boss-to-Lord conversion",
+      "Coins grant",
+      "item grant",
+      "purchase",
+      "equip",
+      "acquire",
+      "consume",
+      "payment or revenue authority"
+    ],
+    "selected_zone_is_not_progression_zone": true,
+    "cinematic_completion_is_not_zone_clear": true,
+    "replay_is_not_reward_replay": true,
+    "asset_or_locale_event_authority_writes": 0
+  },
+  "master_dod_mapping": {
+    "note": "Reference only; does not reopen or reclassify the 40-item audit.",
+    "locales_and_voice_isolation": ["Z3-009", "Z3-010", "Z3-011", "Z3-012", "Z3-028", "Z3-029", "Z3-039", "Z3-040"],
+    "presentation_audio_and_mute": ["Z3-013", "Z3-014", "Z3-015", "Z3-017", "Z3-018", "Z3-026", "Z3-033", "Z3-039", "Z3-040"],
+    "vfx_camera_transition_reduced_motion": ["Z3-019", "Z3-020", "Z3-021", "Z3-022", "Z3-024", "Z3-031", "Z3-032", "Z3-035", "Z3-039"],
+    "replay_cleanup_failure": ["Z3-030", "Z3-032", "Z3-033", "Z3-034", "Z3-039"],
+    "authority_safe_handoff": ["Z3-007", "Z3-030"]
+  },
+  "scaffold_rules": {
+    "audio_manifest_required_to_run_now": false,
+    "external_dependency_fixture_required": true,
+    "fake_production_audio_allowed": false,
+    "placeholder_audio_assets_allowed": false,
+    "test_mode": "contract and negative-control validation only; no runtime binding"
+  }
+}
