@@ -74,13 +74,29 @@
     return [...bySlot.values()];
   }
 
-  function appendLayer(stage, source, className, alt) {
+  function appendLayer(stage, source, className, alt, presentation) {
     const image = document.createElement('img');
     image.className = `rpg-wearable-layer ${className}`;
     image.src = source;
     image.alt = alt || '';
     image.decoding = 'async';
     image.draggable = false;
+    const transform = presentation?.presentation_transform;
+    if (transform && typeof transform === 'object') {
+      const offset = transform.offset_percent || {};
+      const x = Number(offset.x);
+      const y = Number(offset.y);
+      const scale = Number(transform.scale);
+      if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(scale)
+        && Math.abs(x) <= 30 && Math.abs(y) <= 30 && scale > 0.5 && scale <= 1.1) {
+        image.style.transform = `translate(${x}%, ${y}%) scale(${scale})`;
+        image.style.transformOrigin = typeof transform.transform_origin === 'string'
+          ? transform.transform_origin
+          : 'center center';
+        image.dataset.presentationMode = transform.mode || '';
+        image.dataset.presentationOcclusion = transform.occlusion || '';
+      }
+    }
     image.addEventListener('error', () => {
       image.hidden = true;
       stage.dataset.assetError = source;
@@ -132,7 +148,7 @@
     const entries = selectedIds.map(id => registry.equipment[id]).filter(Boolean);
     const appendEntries = layer => entries
       .filter(item => item.layer === layer)
-      .forEach(item => appendLayer(stage, item.asset, `equipment-${item.id} layer-${layer.toLowerCase()}`, item.canonical_identity));
+      .forEach(item => appendLayer(stage, item.asset, `equipment-${item.id} layer-${layer.toLowerCase()}`, item.canonical_identity, item));
 
     appendEntries('BACK_WEAPON');
     appendEntries('BACK_BODY');

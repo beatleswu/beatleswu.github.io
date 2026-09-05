@@ -95,6 +95,16 @@
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
       "wearable_visibility": "VISIBLE_IF_SUPPORTED",
       "template_id": "WEAPON_WAIST",
+      "presentation_transform": {
+        "mode": "CARRIED_AT_HIP",
+        "offset_percent": {
+          "x": -12,
+          "y": -7
+        },
+        "scale": 0.95,
+        "transform_origin": "center center",
+        "occlusion": "BACK_WEAPON"
+      },
       "mask_policy": [
         "BASE_OCCLUSION"
       ],
