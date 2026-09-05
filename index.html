@@ -4093,6 +4093,132 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
             top: 30%;
         }
     }
+    /* W1-03 owner-acceptance repair: a cleared-zone story replay is
+       presentation-only. The shared cinematic overlay still owns the
+       first-clear title/progression DOM, so hide those first-clear fields
+       whenever the explicit replay context is active. */
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-kicker,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-title,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-books,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-progress,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-monster,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-cinematic-rules,
+    #boss-cinematic[data-zone3-presentation-only="true"] .boss-reward-presentation {
+        display: none !important;
+    }
+    /* Zone 3 Lord rechallenge uses the existing Owner-approved Centurion
+       challenge backplate. Its lower plaque remains available for live
+       copy and controls; no art or gameplay path is created here. */
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-scene {
+        display: block;
+        overflow: hidden;
+        min-height: 0;
+        width: min(600px, 66.6667vh, 90vw);
+        width: min(600px, calc((100dvh - 48px) * .666667), 90vw);
+        aspect-ratio: 2 / 3;
+        padding: 0;
+        background-color: #17120d;
+        background-image: url('/assets/e10/art/zone3/lord_trial/zone3_lord_02_challenge_backplate.webp');
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center top;
+        border-color: rgba(245, 201, 112, .68);
+        box-shadow: 0 24px 90px rgba(0,0,0,.6), inset 0 0 36px rgba(245,201,112,.12);
+        animation: lordCardFrameReveal .6s ease-out both;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-monster {
+        display: none;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-content {
+        position: absolute;
+        left: 5%;
+        right: 5%;
+        bottom: 5%;
+        z-index: 5;
+        box-sizing: border-box;
+        max-height: 58%;
+        overflow: auto;
+        padding: 13px 16px;
+        border: 1px solid rgba(245, 201, 112, .42);
+        border-radius: 14px;
+        background: rgba(15, 14, 10, .76);
+        backdrop-filter: blur(7px);
+        text-align: center;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-kicker,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-title,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-books,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-line,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-rules {
+        margin-bottom: 6px;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-title {
+        font-size: clamp(22px, 3.4vw, 34px);
+        background: linear-gradient(90deg, #f5c970, #e8f4e0 45%, #2dd4bf);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress {
+        margin: 0 0 8px;
+        padding: 0;
+        border: 0;
+        background: none;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-title,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-boss,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-zone,
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-count {
+        display: none;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-progress-body {
+        margin-top: 0;
+        font-size: 13px;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-rules {
+        margin: 4px 0 10px;
+        gap: 6px;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-rules span {
+        font-size: 10px;
+        padding: 5px 8px;
+    }
+    .boss-cinematic.phase-zone3-lord-card .boss-cinematic-actions {
+        gap: 7px;
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-scene {
+            width: min(92vw, calc((100dvh - 32px) * .666667));
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-content {
+            left: 4%;
+            right: 4%;
+            bottom: 4%;
+            max-height: 62%;
+            padding: 10px 12px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-title {
+            font-size: clamp(18px, 5.5vw, 26px);
+            margin-bottom: 3px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-kicker {
+            margin-bottom: 4px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-line {
+            margin-bottom: 5px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-actions {
+            flex-direction: column;
+            gap: 6px;
+        }
+        .boss-cinematic.phase-zone3-lord-card .boss-cinematic-actions button {
+            width: 100%;
+            min-height: 44px;
+            padding: 9px 14px;
+            font-size: 13px;
+        }
+    }
     .adventure-ritual-toast,
     .zone-softfall-toast {
         position: fixed;
@@ -15290,6 +15416,7 @@ async function showZone3EntrySafeFallback(zone, options = {}) {
         overlay.dataset.zone3Safe = 'true';
         overlay.dataset.zone3EntryFlow = 'true';
         overlay.dataset.zone3Replay = mode === 'manual_replay' ? 'true' : 'false';
+        overlay.dataset.zone3PresentationOnly = mode === 'manual_replay' ? 'true' : 'false';
         overlay.dataset.zone3Presentation = 'world_manifest';
         overlay.dataset.zone3EntryCompleted = 'false';
         overlay.dataset.assetSlot = 'zone3_entry_cinematic';
@@ -15330,6 +15457,7 @@ async function showZone3EntrySafeFallback(zone, options = {}) {
     overlay.dataset.zone3EntryFlow = 'true';
     overlay.dataset.zone3Presentation = 'safe_fallback';
     overlay.dataset.zone3Replay = mode === 'manual_replay' ? 'true' : 'false';
+    overlay.dataset.zone3PresentationOnly = mode === 'manual_replay' ? 'true' : 'false';
     overlay.dataset.zone3EntryCompleted = 'false';
     overlay.dataset.assetSlot = 'zone3_entry_cinematic';
     overlay.dataset.assetStatus = 'PENDING_FINAL_ASSETS';
@@ -17987,10 +18115,12 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
     const begin = () => {
         if (begun) return;
         begun = true;
+        overlay.classList.remove('ready');
         delete overlay.dataset.zone3AudioGesturePending;
         overlay.dataset.zone3Presentation = 'world_manifest';
         overlay.dataset.zone3EntryFlow = phase === 'pre_play' ? 'true' : 'false';
         overlay.dataset.zone3Replay = presentationOnly ? 'true' : 'false';
+        overlay.dataset.zone3PresentationOnly = presentationOnly ? 'true' : 'false';
         overlay.dataset.assetSlot = slot;
         overlay.dataset.assetStatus = 'READY';
         const btn = document.getElementById('boss-cinematic-btn');
@@ -18025,6 +18155,7 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
     overlay.dataset.zone3Presentation = 'world_manifest';
     overlay.dataset.zone3EntryFlow = phase === 'pre_play' ? 'true' : 'false';
     overlay.dataset.zone3Replay = presentationOnly ? 'true' : 'false';
+    overlay.dataset.zone3PresentationOnly = presentationOnly ? 'true' : 'false';
     overlay.dataset.zone3AudioGesturePending = phase;
     overlay.dataset.assetSlot = slot;
     overlay.dataset.assetStatus = 'READY';
@@ -18845,6 +18976,8 @@ function showZone3LordChallengeCard(zone) {
     overlay.dataset.zone3EntryFlow = 'false';
     overlay.dataset.zone3Presentation = 'none';
     overlay.dataset.zone3Replay = 'false';
+    overlay.dataset.zone3PresentationOnly = 'false';
+    overlay.dataset.zone3LordAsset = '/assets/e10/art/zone3/lord_trial/zone3_lord_02_challenge_backplate.webp';
     delete overlay.dataset.assetSlot;
     overlay.dataset.assetStatus = 'PENDING_FINAL_ASSETS';
     const introStage = document.getElementById('intro-film-stage');
@@ -19447,6 +19580,10 @@ function hideBossCinematic() {
         delete overlay.dataset.zone2AudioGesturePending;
         delete overlay.dataset.zone3Safe;
         delete overlay.dataset.zone3EntryCompleted;
+        delete overlay.dataset.zone3Replay;
+        delete overlay.dataset.zone3Presentation;
+        delete overlay.dataset.zone3PresentationOnly;
+        delete overlay.dataset.zone3LordAsset;
         delete overlay.dataset.assetSlot;
         delete overlay.dataset.assetStatus;
     }
@@ -20140,6 +20277,8 @@ function showZone3LordResultCard(result, zone) {
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key;
     overlay.dataset.zone3Safe = 'true';
+    overlay.dataset.zone3PresentationOnly = 'false';
+    delete overlay.dataset.zone3LordAsset;
     delete overlay.dataset.assetSlot;
     delete overlay.dataset.assetStatus;
     if (monster) {
