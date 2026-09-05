@@ -1,0 +1,110 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "label": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "proof": {
+        "ready": true,
+        "state": "GRIP",
+        "bones": 15,
+        "slots": 18,
+        "drawn": 5,
+        "missing": [],
+        "lifecycle": {
+          "mount_count": 1,
+          "destroy_count": 0,
+          "active_raf": 0,
+          "active_timers": 0,
+          "active_listeners": 1,
+          "active_animation_instances": 1
+        },
+        "rightHandState": "GRIP",
+        "equipment": [
+          "wooden_sword"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "label": "ipad-portrait",
+      "width": 820,
+      "height": 1180,
+      "proof": {
+        "ready": true,
+        "state": "GRIP",
+        "bones": 15,
+        "slots": 18,
+        "drawn": 5,
+        "missing": [],
+        "lifecycle": {
+          "mount_count": 1,
+          "destroy_count": 0,
+          "active_raf": 0,
+          "active_timers": 0,
+          "active_listeners": 1,
+          "active_animation_instances": 1
+        },
+        "rightHandState": "GRIP",
+        "equipment": [
+          "wooden_sword"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "label": "mobile-portrait",
+      "width": 430,
+      "height": 932,
+      "proof": {
+        "ready": true,
+        "state": "GRIP",
+        "bones": 15,
+        "slots": 18,
+        "drawn": 5,
+        "missing": [],
+        "lifecycle": {
+          "mount_count": 1,
+          "destroy_count": 0,
+          "active_raf": 0,
+          "active_timers": 0,
+          "active_listeners": 1,
+          "active_animation_instances": 1
+        },
+        "rightHandState": "GRIP",
+        "equipment": [
+          "wooden_sword"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "label": "desktop-debug-slow-motion",
+      "width": 1440,
+      "height": 1000,
+      "proof": {
+        "ready": true,
+        "state": "GRIP",
+        "bones": 15,
+        "slots": 18,
+        "drawn": 5,
+        "missing": [],
+        "lifecycle": {
+          "mount_count": 1,
+          "destroy_count": 0,
+          "active_raf": 0,
+          "active_timers": 0,
+          "active_listeners": 1,
+          "active_animation_instances": 1
+        },
+        "rightHandState": "GRIP",
+        "equipment": [
+          "wooden_sword"
+        ],
+        "debug": true
+      },
+      "errors": []
+    }
+  ]
+}

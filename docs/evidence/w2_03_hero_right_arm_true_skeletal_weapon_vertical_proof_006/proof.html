@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>W2-03 right arm true skeletal weapon proof</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #0d1721; color: #f8f0e2; }
+    main { width: min(100%, 1180px); margin: 0 auto; padding: 18px; }
+    header { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: clamp(1.2rem, 3vw, 1.9rem); }
+    p { color: #c7d6e0; line-height: 1.45; max-width: 76ch; }
+    .notice { border: 1px solid #c98c45; background: #2d2118; border-radius: 12px; padding: 10px 12px; color: #ffe0ae; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; align-items: start; }
+    .stage { height: min(78vh, 760px); min-height: 460px; border: 1px solid #36536c; border-radius: 16px; overflow: hidden; background: radial-gradient(circle at 50% 30%, #314b61, #101a26 70%); }
+    canvas { display: block; width: 100%; height: 100%; }
+    aside { display: grid; gap: 12px; }
+    .panel { background: #172635; border: 1px solid #2d4a61; border-radius: 13px; padding: 13px; }
+    .panel h2 { margin: 0 0 9px; font-size: 1rem; }
+    .controls { display: grid; gap: 8px; }
+    button { border: 1px solid #628bab; border-radius: 9px; padding: 9px 10px; background: #1d3a50; color: #fff; text-align: left; cursor: pointer; }
+    button:hover, button:focus-visible { background: #2b5d7b; outline: 2px solid #f2bf6c; outline-offset: 2px; }
+    button[data-active="true"] { background: #82502b; border-color: #f2bf6c; }
+    dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; margin: 0; font-size: .86rem; }
+    dt { color: #9fb6c6; }
+    dd { margin: 0; color: #f5d28b; text-align: right; }
+    code { color: #f5d28b; word-break: break-word; }
+    .small { font-size: .78rem; color: #aebfca; }
+    @media (max-width: 760px) {
+      main { padding: 11px; }
+      .layout { grid-template-columns: 1fr; }
+      .stage { height: 70vh; min-height: 430px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>apprentice_p1 · right arm true skeletal weapon proof</h1>
+        <p>Technical evidence for the real chain SHOULDER_R → UPPER_ARM_R → FOREARM_R → HAND_R → wooden_sword. The open and grip states are local presentation previews only.</p>
+      </div>
+      <div class="notice" role="status">Owner visual acceptance remains pending.</div>
+    </header>
+    <section class="layout" aria-label="right arm skeletal proof">
+      <div class="stage"><canvas id="rig-canvas" aria-label="Animated apprentice right arm skeletal weapon proof close-up"></canvas></div>
+      <aside>
+        <div class="panel">
+          <h2>Hand state</h2>
+          <div class="controls">
+            <button type="button" data-state="OPEN">A · open hand idle</button>
+            <button type="button" data-state="GRIP">B · wooden sword grip idle</button>
+            <button type="button" data-action="debug">Show / hide bone debug</button>
+            <button type="button" data-action="pause">Pause / resume</button>
+          </div>
+          <p class="small">The sword is independently selected as wooden_sword and is drawn between the grip-back and grip-front attachments.</p>
+        </div>
+        <div class="panel">
+          <h2>Runtime evidence</h2>
+          <dl>
+            <dt>state</dt><dd id="state">loading</dd>
+            <dt>bones</dt><dd id="bones">—</dd>
+            <dt>slots</dt><dd id="slots">—</dd>
+            <dt>drawn</dt><dd id="drawn">—</dd>
+            <dt>missing</dt><dd id="missing">—</dd>
+            <dt>clock</dt><dd id="clock">—</dd>
+          </dl>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <script src="/js/e9/hero_skeletal_rig.js"></script>
+  <script>
+    (async function () {
+      'use strict';
+      const api = window.GoOdysseyHeroSkeletalRig;
+      const manifest = await api.loadManifest('/docs/planning/w2_03_hero_true_2d_skeletal_rig_vertical_slice_005r2/apprentice_p1_right_arm_manifest.json');
+      const assets = await api.loadAssets(manifest);
+      const canvas = document.getElementById('rig-canvas');
+      const rig = new api.SkeletalRig(manifest);
+      let state = 'OPEN';
+      let running = true;
+      let lastFrameAt = null;
+      rig.setEquipment([]);
+      rig.mount(canvas, assets);
+      window.__rightArmRig = rig;
+      window.__rightArmAssets = assets;
+      window.__rightArmManifest = manifest;
+
+      function setState(next) {
+        state = next;
+        rig.setEquipment(next === 'GRIP' ? ['wooden_sword'] : []);
+        document.querySelectorAll('[data-state]').forEach(button => {
+          button.dataset.active = String(button.dataset.state === state);
+        });
+      }
+      document.querySelectorAll('[data-state]').forEach(button => {
+        button.addEventListener('click', () => setState(button.dataset.state));
+      });
+      document.querySelector('[data-action="pause"]').addEventListener('click', event => {
+        if (running) {
+          running = false;
+          lastFrameAt = null;
+          event.currentTarget.textContent = 'Pause / resume';
+        } else {
+          running = true;
+          lastFrameAt = null;
+          requestAnimationFrame(frame);
+          event.currentTarget.textContent = 'Pause / resume';
+        }
+      });
+      document.querySelector('[data-action="debug"]').addEventListener('click', () => {
+        window.__rightArmDebug = !window.__rightArmDebug;
+      });
+      setState('OPEN');
+
+      function drawDebugOverlay() {
+        if (!window.__rightArmDebug) return;
+        const context = rig.context;
+        const width = canvas.width;
+        const height = canvas.height;
+        const layout = rig.layoutFor(width, height);
+        const zoom = 2.1;
+        const camera = {x: 760, y: 590};
+        const point = bone => ({
+          x: layout.offset_x + width / 2 + (bone.world.tx - camera.x) * layout.scale * zoom,
+          y: layout.offset_y + height / 2 + (bone.world.ty - camera.y) * layout.scale * zoom,
+        });
+        const chain = ['SHOULDER_R', 'UPPER_ARM_R', 'FOREARM_R', 'HAND_R'];
+        context.save();
+        context.strokeStyle = '#f6cc6e';
+        context.fillStyle = '#f6cc6e';
+        context.lineWidth = Math.max(2, 3 * window.devicePixelRatio);
+        context.font = `${Math.max(12, 18 * window.devicePixelRatio)}px system-ui`;
+        chain.forEach((boneId, index) => {
+          const bone = rig.bones.get(boneId);
+          const current = point(bone);
+          if (index > 0) {
+            const parent = point(rig.bones.get(chain[index - 1]));
+            context.beginPath();
+            context.moveTo(parent.x, parent.y);
+            context.lineTo(current.x, current.y);
+            context.stroke();
+          }
+          context.beginPath();
+          context.arc(current.x, current.y, Math.max(4, 7 * window.devicePixelRatio), 0, Math.PI * 2);
+          context.fill();
+          context.fillText(boneId, current.x + 10, current.y - 10);
+        });
+        context.restore();
+      }
+
+      function frame(now) {
+        if (!running) return;
+        const current = Number.isFinite(now) ? now : performance.now();
+        const delta = lastFrameAt === null ? 0 : Math.min(100, Math.max(0, current - lastFrameAt));
+        lastFrameAt = current;
+        rig.update(delta);
+        rig.resize();
+        const attachmentIds = state === 'GRIP'
+          ? ['right_arm_upper_arm_R', 'right_arm_forearm_R', 'right_arm_hand_R_grip_back', 'wooden_sword_hand_r', 'right_arm_hand_R_grip_front']
+          : ['right_arm_upper_arm_R', 'right_arm_forearm_R', 'right_arm_hand_R_open'];
+        const draw = rig.draw(rig.context, assets, {
+          attachment_ids: attachmentIds,
+          camera: {x: 760, y: 590, zoom: 2.1},
+        });
+        drawDebugOverlay();
+        document.getElementById('state').textContent = state;
+        document.getElementById('bones').textContent = rig.bones.size;
+        document.getElementById('slots').textContent = rig.slots.size;
+        document.getElementById('drawn').textContent = draw.drawn_attachment_count;
+        document.getElementById('missing').textContent = draw.missing_assets.length;
+        document.getElementById('clock').textContent = `${Math.round(rig.clockMs)} ms`;
+        window.__rightArmProof = {
+          ready: true,
+          state,
+          bones: rig.bones.size,
+          slots: rig.slots.size,
+          drawn: draw.drawn_attachment_count,
+          missing: draw.missing_assets,
+          lifecycle: rig.lifecycleSnapshot(),
+          rightHandState: rig.rightHandState,
+          equipment: rig.getEquipment(),
+        };
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }()).catch(error => {
+      document.body.dataset.rigError = error.message;
+      document.querySelector('.notice').textContent = `Right-arm proof failed: ${error.message}`;
+    });
+  </script>
+</body>
+</html>

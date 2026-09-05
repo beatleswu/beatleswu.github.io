@@ -96,6 +96,43 @@
     );
   }
 
+  function cloneManifest(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function composeManifest(baseManifest, variantManifest) {
+    if (!baseManifest || !variantManifest) throw new Error('base and variant manifests are required');
+    if (baseManifest.schema !== 'go-odyssey.hero-true-2d-skeletal-rig.v1' ||
+        variantManifest.schema !== baseManifest.schema) {
+      throw new Error('unsupported skeletal manifest variant');
+    }
+    const result = cloneManifest(baseManifest);
+    const replaceIds = new Set(variantManifest.replace_attachment_ids || []);
+    result.assets = {...(result.assets || {}), ...(variantManifest.assets || {})};
+    result.attachments = (result.attachments || [])
+      .filter(attachment => !replaceIds.has(attachment.id))
+      .concat(cloneManifest(variantManifest.add_attachments || []));
+    const attachmentOverrides = variantManifest.attachment_overrides || {};
+    result.attachments = result.attachments.map(attachment =>
+      attachmentOverrides[attachment.id]
+        ? {...attachment, ...cloneManifest(attachmentOverrides[attachment.id])}
+        : attachment);
+    const boneOverrides = variantManifest.bone_overrides || {};
+    result.bones = (result.bones || []).map(bone =>
+      boneOverrides[bone.id]
+        ? {...bone, ...cloneManifest(boneOverrides[bone.id])}
+        : bone);
+    if (variantManifest.items) result.items = {...(result.items || {}), ...cloneManifest(variantManifest.items)};
+    if (variantManifest.right_arm) result.right_arm = cloneManifest(variantManifest.right_arm);
+    if (variantManifest.proof_contract) result.proof_contract = {
+      ...(result.proof_contract || {}),
+      ...cloneManifest(variantManifest.proof_contract),
+    };
+    if (variantManifest.task) result.task = variantManifest.task;
+    if (variantManifest.variant) result.variant = variantManifest.variant;
+    return result;
+  }
+
   class Bone {
     constructor(definition, parent) {
       this.id = definition.id;
@@ -159,6 +196,8 @@
       this.clip_polygon = Array.isArray(definition.clip_polygon)
         ? definition.clip_polygon.map(point => [numberOr(point[0], 0), numberOr(point[1], 0)])
         : null;
+      this.right_hand_state = definition.right_hand_state || definition.presentation_state || null;
+      this.semantic_role = definition.semantic_role || null;
       this.draw_order = numberOr(definition.draw_order, 0);
     }
 
@@ -200,6 +239,7 @@
       });
       this.items = manifest.items || {};
       this.selectedItemIds = [];
+      this.rightHandState = manifest.right_arm?.default_state || 'OPEN';
       this.clockMs = 0;
       this.playing = false;
       this.canvas = null;
@@ -230,7 +270,17 @@
     setEquipment(itemIds) {
       const values = Array.isArray(itemIds) ? itemIds : [];
       this.selectedItemIds = [...new Set(values.filter(itemId => Boolean(this.items[itemId])))];
+      if (this.manifest.right_arm) {
+        this.rightHandState = this.selectedItemIds.includes('wooden_sword') ? 'GRIP' : 'OPEN';
+      }
       return this.getEquipment();
+    }
+
+    setRightHandState(state) {
+      const next = String(state || '').toUpperCase();
+      if (next !== 'OPEN' && next !== 'GRIP') throw new Error(`unsupported right hand state ${state}`);
+      this.rightHandState = next;
+      return this.rightHandState;
     }
 
     getEquipment() {
@@ -285,10 +335,23 @@
       return multiply(bone.world, attachment.localMatrix());
     }
 
-    getDrawList() {
+    getDrawList(options) {
+      const opts = options || {};
       const selected = new Set(this.selectedItemIds);
       return [...this.attachments.values()]
         .filter(attachment => !attachment.item_id || selected.has(attachment.item_id))
+        .filter(attachment => {
+          const state = attachment.right_hand_state || attachment.presentation_state;
+          return !state || state === 'ANY' || state === this.rightHandState;
+        })
+        .filter(attachment => {
+          if (!Array.isArray(opts.attachment_ids) || opts.attachment_ids.length === 0) return true;
+          return opts.attachment_ids.includes(attachment.id);
+        })
+        .filter(attachment => {
+          if (!Array.isArray(opts.semantic_roles) || opts.semantic_roles.length === 0) return true;
+          return opts.semantic_roles.includes(attachment.semantic_role);
+        })
         .map(attachment => {
           const slot = this.slots.get(attachment.slot);
           return {
@@ -330,12 +393,22 @@
       const width = numberOr(opts.width, context.canvas?.width || this.manifest.design_space.width);
       const height = numberOr(opts.height, context.canvas?.height || this.manifest.design_space.height);
       const layout = this.layoutFor(width, height);
-      const drawList = this.getDrawList();
+      const drawList = this.getDrawList(opts);
       const missingAssets = [];
       context.save();
       context.clearRect(0, 0, width, height);
-      context.translate(layout.offset_x, layout.offset_y);
-      context.scale(layout.scale, layout.scale);
+      const camera = opts.camera || null;
+      if (camera) {
+        const zoom = Math.max(0.01, numberOr(camera.zoom, 1));
+        const cameraX = numberOr(camera.x, layout.design_width / 2);
+        const cameraY = numberOr(camera.y, layout.design_height / 2);
+        context.translate(layout.offset_x + width / 2, layout.offset_y + height / 2);
+        context.scale(layout.scale * zoom, layout.scale * zoom);
+        context.translate(-cameraX, -cameraY);
+      } else {
+        context.translate(layout.offset_x, layout.offset_y);
+        context.scale(layout.scale, layout.scale);
+      }
       drawList.forEach(entry => {
         const image = assets?.[entry.attachment.asset];
         if (!image) {
@@ -501,7 +574,11 @@
     if (typeof fetch !== 'function') throw new Error('fetch is unavailable');
     const response = await fetch(url, {cache: 'no-store'});
     if (!response.ok) throw new Error(`skeletal manifest HTTP ${response.status}`);
-    return response.json();
+    const manifest = await response.json();
+    if (!manifest.base_manifest) return manifest;
+    const baseUrl = new URL(manifest.base_manifest, response.url || url).toString();
+    const baseManifest = await loadManifest(baseUrl);
+    return composeManifest(baseManifest, manifest);
   }
 
   function loadImage(url) {
@@ -526,6 +603,7 @@
     Slot,
     Attachment,
     SkeletalRig,
+    composeManifest,
     composeTransform,
     identityMatrix,
     multiply,

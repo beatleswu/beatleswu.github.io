@@ -1,0 +1,201 @@
+{
+  "schema": "go-odyssey.hero-true-2d-skeletal-rig.v1",
+  "variant": "apprentice_p1_right_arm_weapon_proof_v1",
+  "task": "W2_03_HERO_RIGHT_ARM_TRUE_SKELETAL_WEAPON_VERTICAL_PROOF_006",
+  "hero_id": "apprentice_p1",
+  "base_manifest": "apprentice_p1_skeletal_manifest.json",
+  "presentation_only": true,
+  "source_art_mutated": false,
+  "new_art_generated": false,
+  "replace_attachment_ids": [
+    "body_upper_arm_r",
+    "body_forearm_r",
+    "body_hand_r"
+  ],
+  "assets": {
+    "right_arm_upper_arm_R": {
+      "path": "/assets/hero/rigs/apprentice_p1/right_arm/upper_arm_R.png",
+      "dimensions": [860, 1119],
+      "sha256": "35d2d30d7cf956353ae18e8d00379d1b9a7ccc9d086070794733a790b73f04f1",
+      "role": "owner_approved_art_01_technical_segment",
+      "derived": true,
+      "true_alpha": true
+    },
+    "right_arm_forearm_R": {
+      "path": "/assets/hero/rigs/apprentice_p1/right_arm/forearm_R.png",
+      "dimensions": [788, 964],
+      "sha256": "0bec423268a8d04fab47fc05bfa3f57ae2561d849b70860fd175265e3da521bc",
+      "role": "owner_approved_art_02_technical_segment",
+      "derived": true,
+      "true_alpha": true
+    },
+    "right_arm_hand_R_open": {
+      "path": "/assets/hero/rigs/apprentice_p1/right_arm/hand_R_open.png",
+      "dimensions": [644, 485],
+      "sha256": "287e86b063048072f5b749aaa0292a733d32a0518cf8e4648361a5a5056069b4",
+      "role": "owner_approved_art_03_technical_hand_wrist_segment",
+      "derived": true,
+      "true_alpha": true
+    },
+    "right_arm_hand_R_grip_back": {
+      "path": "/assets/hero/rigs/apprentice_p1/right_arm/hand_R_grip_back.png",
+      "dimensions": [703, 736],
+      "sha256": "082223d9f0bccfcb88955a1515867ebab1064afb13732ffd83eb88d6405ebe15",
+      "role": "owner_approved_art_04_technical_grip_back_segment",
+      "derived": true,
+      "true_alpha": true
+    },
+    "right_arm_hand_R_grip_front": {
+      "path": "/assets/hero/rigs/apprentice_p1/right_arm/hand_R_grip_front.png",
+      "dimensions": [286, 299],
+      "sha256": "047165d77a070e2db48103f6528c947fd504ea06e1614687132d9f371175c16a",
+      "role": "owner_approved_art_05_hand_finger_thumb_only",
+      "derived": true,
+      "true_alpha": true
+    }
+  },
+  "art_source_provenance": [
+    {
+      "asset_id": "ART_01",
+      "source_filename": "1-照片-1.jpg",
+      "source_format": "JPEG",
+      "source_dimensions": [1254, 1254],
+      "source_sha256": "ae0e37d7cb27f82baf4f929a578a4aedbdd92549f2c390766b13224c5b629eb6",
+      "derived_asset": "upper_arm_R",
+      "technical_operation": "border-connected white background alpha extraction and alpha trim"
+    },
+    {
+      "asset_id": "ART_02",
+      "source_filename": "2-照片-2.jpg",
+      "source_format": "JPEG",
+      "source_dimensions": [1254, 1254],
+      "source_sha256": "eed155532a97550b8007eb5791d77169f0283cc0668193c524508a0f8867d0d6",
+      "derived_asset": "forearm_R",
+      "technical_operation": "border-connected white background alpha extraction and alpha trim"
+    },
+    {
+      "asset_id": "ART_03",
+      "source_filename": "3-照片-3.jpg",
+      "source_format": "JPEG",
+      "source_dimensions": [1275, 1233],
+      "source_sha256": "db9419761e3b6cd6284072508bc0dd8c244223c352b74034d415e7b65a993d93",
+      "derived_asset": "hand_R_open",
+      "technical_operation": "source-only warm hand/wrist segmentation after cuff boundary; no redraw"
+    },
+    {
+      "asset_id": "ART_04",
+      "source_filename": "4-照片-4.jpg",
+      "source_format": "JPEG",
+      "source_dimensions": [1254, 1254],
+      "source_sha256": "002f2885e6997a09b3dbd84a0c9edb85e9a0373a1f6a5b045a3d53ef03f3d877",
+      "derived_asset": "hand_R_grip_back",
+      "technical_operation": "border-connected white background alpha extraction and alpha trim"
+    },
+    {
+      "asset_id": "ART_05",
+      "source_filename": "5-照片-5.jpg",
+      "source_format": "JPEG",
+      "source_dimensions": [1276, 1233],
+      "source_sha256": "7cfbbfdafde06218165c15019e9cacc4f684a418c5899391ba45c7c05241dee1",
+      "derived_asset": "hand_R_grip_front",
+      "technical_operation": "source-only hand/finger/thumb polygon and warm-skin segmentation; wooden sword pixels excluded"
+    }
+  ],
+  "right_arm": {
+    "default_state": "OPEN",
+    "states": ["OPEN", "GRIP"],
+    "chain": ["SHOULDER_R", "UPPER_ARM_R", "FOREARM_R", "HAND_R"],
+    "equipment_socket": "HAND_R",
+    "source_pixel_policy": "technical extraction only; no generated or painted pixels",
+    "grip_front_policy": "ART_05 supplies only existing hand/finger/thumb pixels; the reference sword is never retained",
+    "responsive_rule": "same design-space skeleton and bone-local attachment transforms at every viewport",
+    "proof_scope": "right arm plus canonical wooden_sword only"
+  },
+  "attachment_overrides": {
+    "wooden_sword_hand_r": {
+      "right_hand_state": "GRIP",
+      "semantic_role": "WOODEN_SWORD",
+      "draw_order": 20,
+      "local_transform": {"x": 40, "y": 42, "rotation_deg": 0, "scale": 0.65}
+    }
+  },
+  "add_attachments": [
+    {
+      "id": "right_arm_upper_arm_R",
+      "item_id": null,
+      "slot": "SHOULDER_R",
+      "asset": "right_arm_upper_arm_R",
+      "attachment_type": "region",
+      "source_rect": [0, 0, 860, 1119],
+      "pivot": [587, 29],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": -50, "scale": 0.27},
+      "right_hand_state": "ANY",
+      "semantic_role": "UPPER_ARM_R",
+      "draw_order": 0
+    },
+    {
+      "id": "right_arm_forearm_R",
+      "item_id": null,
+      "slot": "FOREARM_R",
+      "asset": "right_arm_forearm_R",
+      "attachment_type": "region",
+      "source_rect": [0, 0, 788, 964],
+      "pivot": [15, 45],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 13, "scale": 0.16},
+      "right_hand_state": "ANY",
+      "semantic_role": "FOREARM_R",
+      "draw_order": 0
+    },
+    {
+      "id": "right_arm_hand_R_open",
+      "item_id": null,
+      "slot": "HAND_R",
+      "asset": "right_arm_hand_R_open",
+      "attachment_type": "region",
+      "source_rect": [0, 0, 644, 485],
+      "pivot": [0, 42],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.22},
+      "right_hand_state": "OPEN",
+      "semantic_role": "HAND_R_OPEN",
+      "draw_order": 0
+    },
+    {
+      "id": "right_arm_hand_R_grip_back",
+      "item_id": null,
+      "slot": "HAND_R",
+      "asset": "right_arm_hand_R_grip_back",
+      "attachment_type": "region",
+      "source_rect": [0, 0, 703, 736],
+      "pivot": [0, 116],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.2},
+      "right_hand_state": "GRIP",
+      "semantic_role": "HAND_R_GRIP_BACK",
+      "draw_order": 0
+    },
+    {
+      "id": "right_arm_hand_R_grip_front",
+      "item_id": null,
+      "slot": "FRONT",
+      "asset": "right_arm_hand_R_grip_front",
+      "attachment_type": "region",
+      "source_rect": [0, 0, 286, 299],
+      "pivot": [0, 0],
+      "local_transform": {"x": 42, "y": 30, "rotation_deg": 0, "scale": 0.2},
+      "right_hand_state": "GRIP",
+      "semantic_role": "HAND_R_GRIP_FRONT",
+      "draw_order": 40
+    }
+  ],
+  "proof_contract": {
+    "right_arm_true_skeletal_proof": true,
+    "upper_arm_R_bone": "UPPER_ARM_R",
+    "forearm_R_bone": "FOREARM_R",
+    "hand_R_bone": "HAND_R",
+    "wooden_sword_socket": "HAND_R",
+    "grip_draw_order": ["HAND_R_GRIP_BACK", "WOODEN_SWORD", "HAND_R_GRIP_FRONT"],
+    "open_state_uses_hand_R_open": true,
+    "grip_state_uses_hand_R_grip_back_and_front": true,
+    "combat_authority": "none",
+    "inventory_authority": "player_inventory"
+  }
+}
