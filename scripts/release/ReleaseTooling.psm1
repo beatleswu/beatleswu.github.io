@@ -2000,6 +2000,75 @@ function Get-RemoteStaticGenerationSourceGitSha {
     return $gitSha
 }
 
+function Get-RemoteContainerImageId {
+    <#
+    .SYNOPSIS
+    Reads the image content digest a named Production container is actually
+    running, over SSH, as a single value.
+    .DESCRIPTION
+    Sibling of Get-RemoteImageSourceGitSha/Get-RemoteStaticGenerationSourceGitSha.
+    The simplified canonical deploy path (deploy-production.ps1) needs the
+    running app/scheduler image IDs so it can resolve their OCI revision
+    labels into real source Git SHAs. It deliberately reads them directly
+    instead of scraping another script's human-readable stdout: the value
+    returned here is one line produced by a --format template, not a log.
+    An image ID is a content digest and is NEVER a Git SHA -- callers must
+    resolve it through Get-RemoteImageSourceGitSha before any SHA compare.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [int]$TimeoutSeconds = 30
+    )
+    if ([string]::IsNullOrWhiteSpace($ContainerName)) {
+        throw 'Get-RemoteContainerImageId: ContainerName is required.'
+    }
+    $command = "docker inspect $(Quote-PosixShellArgument $ContainerName) --format '{{.Image}}'"
+    $result = Invoke-BoundedSshCommand -SshAlias $SshAlias -Command $command -TimeoutSeconds $TimeoutSeconds -OperationLabel 'read remote container image id'
+    if ($result.exit_code -ne 0) {
+        throw "Could not read image id for container $ContainerName over SSH (exit $($result.exit_code)): $($result.output)"
+    }
+    $imageId = Get-SafeFirstOutputLine ($result.stdout -split "`r?`n")
+    if ([string]::IsNullOrWhiteSpace($imageId)) {
+        throw "Container $ContainerName reported no image id."
+    }
+    return $imageId
+}
+
+function Get-RemoteStaticCurrentGenerationPath {
+    <#
+    .SYNOPSIS
+    Resolves the remote static `current` symlink to the real generation
+    directory path it points at, over SSH, as a single value.
+    .DESCRIPTION
+    Sibling of the two remote identity readers above. This returns a
+    FILESYSTEM PATH, never a Git SHA -- feed it to
+    Get-RemoteStaticGenerationSourceGitSha to obtain the SHA, and to
+    rollback-static-release.ps1 -TargetGenerationPath to restore a
+    baseline. Conflating the two domains is the exact class of mistake the
+    canonical identity readers exist to prevent.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$StaticReleaseRoot,
+        [int]$TimeoutSeconds = 30
+    )
+    if ([string]::IsNullOrWhiteSpace($StaticReleaseRoot)) {
+        throw 'Get-RemoteStaticCurrentGenerationPath: StaticReleaseRoot is required.'
+    }
+    $currentPath = "$($StaticReleaseRoot.TrimEnd('/'))/current"
+    $command = "readlink -f $(Quote-PosixShellArgument $currentPath)"
+    $result = Invoke-BoundedSshCommand -SshAlias $SshAlias -Command $command -TimeoutSeconds $TimeoutSeconds -OperationLabel 'resolve remote static current generation path'
+    if ($result.exit_code -ne 0) {
+        throw "Could not resolve $currentPath over SSH (exit $($result.exit_code)): $($result.output)"
+    }
+    $resolved = Get-SafeFirstOutputLine ($result.stdout -split "`r?`n")
+    if ([string]::IsNullOrWhiteSpace($resolved)) {
+        throw "$currentPath resolved to an empty path."
+    }
+    return $resolved
+}
+
 function New-ReleaseManifestObject {
     param(
         [Parameter(Mandatory = $true)][string]$GitSha,
@@ -3107,6 +3176,8 @@ Export-ModuleMember -Function @(
     'Get-ImageLabels',
     'Get-RemoteImageSourceGitSha',
     'Get-RemoteStaticGenerationSourceGitSha',
+    'Get-RemoteContainerImageId',
+    'Get-RemoteStaticCurrentGenerationPath',
     'Get-OriginMasterSha',
     'Get-SafeFirstOutputLine',
     'Get-GitCommonDirectory',
