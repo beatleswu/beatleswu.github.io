@@ -204,26 +204,29 @@ let previousHand = null;
 let previousSword = null;
 let swordDetachCount = 0;
 let swordFrameLagCount = 0;
-for (const time of [0, 120, 300, 600, 900, 1200, 1500, 1800, 2100, 2399, 2400, 3600]) {
-  rig.setTime(time);
-  const handWorld = rig.bones.get('HAND_R').world;
-  const sword = rig.getAttachmentWorldTransform('wooden_sword_hand_r');
-  const swordExpected = api.multiply(handWorld, rig.attachments.get('wooden_sword_hand_r').localMatrix());
-  assert(near(sword.tx, swordExpected.tx) && near(sword.ty, swordExpected.ty), 'sword is not composed from HAND_R local transform');
-  assert([sword.a, sword.b, sword.c, sword.d, sword.tx, sword.ty].every(finite), 'non-finite sword transform');
-  for (const id of ['right_arm_hand_R_grip_back', 'right_arm_hand_R_grip_front']) {
-    const attachment = rig.attachments.get(id);
-    const actual = rig.getAttachmentWorldTransform(id);
-    const expected = api.multiply(handWorld, attachment.localMatrix());
-    assert(near(actual.tx, expected.tx) && near(actual.ty, expected.ty), `${id} is not composed from HAND_R`);
+const idleSampleTimes = [0, 120, 300, 600, 900, 1200, 1500, 1800, 2100, 2399];
+for (let loop = 0; loop < 50; loop += 1) {
+  for (const time of idleSampleTimes) {
+    rig.setTime(loop * 2400 + time);
+    const handWorld = rig.bones.get('HAND_R').world;
+    const sword = rig.getAttachmentWorldTransform('wooden_sword_hand_r');
+    const swordExpected = api.multiply(handWorld, rig.attachments.get('wooden_sword_hand_r').localMatrix());
+    assert(near(sword.tx, swordExpected.tx) && near(sword.ty, swordExpected.ty), 'sword is not composed from HAND_R local transform');
+    assert([sword.a, sword.b, sword.c, sword.d, sword.tx, sword.ty].every(finite), 'non-finite sword transform');
+    for (const id of ['right_arm_hand_R_grip_back', 'right_arm_hand_R_grip_front']) {
+      const attachment = rig.attachments.get(id);
+      const actual = rig.getAttachmentWorldTransform(id);
+      const expected = api.multiply(handWorld, attachment.localMatrix());
+      assert(near(actual.tx, expected.tx) && near(actual.ty, expected.ty), `${id} is not composed from HAND_R`);
+    }
+    if (previousHand && previousSword) {
+      const handMoved = !near(previousHand.tx, handWorld.tx) || !near(previousHand.ty, handWorld.ty);
+      const swordMoved = !near(previousSword.tx, sword.tx) || !near(previousSword.ty, sword.ty);
+      if (handMoved && !swordMoved) swordFrameLagCount += 1;
+    }
+    previousHand = handWorld;
+    previousSword = sword;
   }
-  if (previousHand && previousSword) {
-    const handMoved = !near(previousHand.tx, handWorld.tx) || !near(previousHand.ty, handWorld.ty);
-    const swordMoved = !near(previousSword.tx, sword.tx) || !near(previousSword.ty, sword.ty);
-    if (handMoved && !swordMoved) swordFrameLagCount += 1;
-  }
-  previousHand = handWorld;
-  previousSword = sword;
 }
 assert(swordDetachCount === 0, 'sword detached');
 assert(swordFrameLagCount === 0, 'sword lagged behind HAND_R');
@@ -251,7 +254,8 @@ console.log(JSON.stringify({
   sword_follows_hand: true,
   sword_detach_count: swordDetachCount,
   sword_frame_lag_count: swordFrameLagCount,
-  idle_samples: 12,
+  idle_loops: 50,
+  idle_samples_per_loop: idleSampleTimes.length,
   responsive_viewports: 4,
   mount_destroy_50x: true,
 }));
@@ -278,7 +282,8 @@ def test_node_runtime_proves_right_arm_chain_states_draw_order_resize_and_cleanu
         "sword_follows_hand": True,
         "sword_detach_count": 0,
         "sword_frame_lag_count": 0,
-        "idle_samples": 12,
+        "idle_loops": 50,
+        "idle_samples_per_loop": 10,
         "responsive_viewports": 4,
         "mount_destroy_50x": True,
     }
