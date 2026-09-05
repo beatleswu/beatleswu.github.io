@@ -2,11 +2,11 @@
   "$schema_note": "Canonical governed Zone 3 runtime static closure for QA blocker repair 011. The five first-entry cinematic WebP resources were present in the source checkout but absent from the failed image package; this closure also stages the complete Zone 3 runtime media/data set. Source JPEG/PNG masters are never staged.",
   "manifest_version": "1.0.0",
   "generated_for": "W1_03_JOURNEY_ZONE3_FINAL_QA_BLOCKER_REPAIR_011",
-  "source_head": "65dd8c00f217fc04942456d5b1dd02f52fc8f265",
-  "source_tree": "e227201cd0e12eeb0c82a15f5d46d45bf66397e9",
+  "source_head": "33e06fa027fbbac2545e5ab4a26e01435b00be34",
+  "source_tree": "1600f0e122800c2a350e4aa5653876d5203dbceb",
   "prefix": "assets/e10/",
   "total_files": 235,
-  "total_bytes": 28206574,
+  "total_bytes": 28204698,
   "curated_missing_resources": [
     {
       "resource_path": "assets/e10/art/zone3/cinematic/zone3_shot01.webp",
@@ -1914,8 +1914,8 @@
     },
     {
       "path": "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
-      "size": 75532,
-      "sha256": "f1140b87101db017fb6ecb03181c2af3413f04017b85692e3e4ae961b3f7f743",
+      "size": 73656,
+      "sha256": "1d0badaedbf8ba4556b1f3b251a964231d3e88a6a760b64664ec43f868c82cb6",
       "mime": "application/json",
       "provenance": "owner-approved-zone3-runtime-closure",
       "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
