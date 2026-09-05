@@ -6,7 +6,7 @@
   "source_tree": "e227201cd0e12eeb0c82a15f5d46d45bf66397e9",
   "prefix": "assets/e10/",
   "total_files": 235,
-  "total_bytes": 28199521,
+  "total_bytes": 28922560,
   "curated_missing_resources": [
     {
       "resource_path": "assets/e10/art/zone3/cinematic/zone3_shot01.webp",
@@ -1066,8 +1066,8 @@
     },
     {
       "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b001_zh-TW_hero.mp3",
-      "size": 43511,
-      "sha256": "85bd076c1d0cfc202f6a96bf1b6d8e8d7592e6a71ef150a669e79280fbe45d27",
+      "size": 164719,
+      "sha256": "04fef0f7c86fb7c2ab884b1d0c991de41d90ec8130d8566d7608a932c1f90599",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-zone3-runtime-closure",
       "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
@@ -1082,8 +1082,8 @@
     },
     {
       "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3",
-      "size": 23031,
-      "sha256": "cbaf2f668c66949899af4812d92b4d150ba89252feafb060e1a7814f180a63f4",
+      "size": 248311,
+      "sha256": "e5ab576bb06fb5bc529732374e35ab7ae56c013b8f67910d3d70c64e14c66679",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-zone3-runtime-closure",
       "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
@@ -1106,8 +1106,8 @@
     },
     {
       "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b002_zh-TW_hero.mp3",
-      "size": 74022,
-      "sha256": "fb6197015a33d57744708ba63706bc6aae911ea27318322816c08222e4fb2e36",
+      "size": 305572,
+      "sha256": "4f12f40b1afb67d164c42bbb9468fef71344de35f981f3ce765e37fe4958f5ba",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-zone3-runtime-closure",
       "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
@@ -1122,8 +1122,8 @@
     },
     {
       "path": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3",
-      "size": 36824,
-      "sha256": "587484800e84daf167107f6f781507b49d98aec9365591390905e6cae1a9f083",
+      "size": 177676,
+      "sha256": "5832d1ae3d196ff18a687167ecb85aee174e4ef76c81738205e48439416497fc",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-zone3-runtime-closure",
       "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
@@ -1914,8 +1914,8 @@
     },
     {
       "path": "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
-      "size": 71824,
-      "sha256": "621ed99a15e2c2b7da1e2a04eb829ad78e8374f764129bb559bbfac367ec0252",
+      "size": 75973,
+      "sha256": "c9a7f8ced61196f7afa9463dad22efd18b8aa57ebc562e83cd9ccdf476e88fbd",
       "mime": "application/json",
       "provenance": "owner-approved-zone3-runtime-closure",
       "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."

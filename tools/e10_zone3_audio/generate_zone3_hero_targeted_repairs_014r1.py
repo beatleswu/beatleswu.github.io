@@ -1,4 +1,4 @@
-"""Generate only the three Owner-confirmed Zone 3 Hero zh-TW repairs.
+"""Generate only the targeted Owner-confirmed Zone 3 Hero zh-TW repairs.
 
 Each target is resolved against the current canonical subtitle manifest.  The
 Owner-reported wording for target C is retained as forensic metadata, while
@@ -68,8 +68,8 @@ def _find_subtitle(subtitles: dict, beat_id: str) -> dict:
 
 def _validate_inputs(repair: dict, subtitles: dict) -> tuple[list[dict], dict]:
     items = repair.get("items")
-    if not isinstance(items, list) or len(items) != 3:
-        raise ValueError("targeted repair manifest must contain exactly three items")
+    if not isinstance(items, list) or len(items) != 4:
+        raise ValueError("targeted repair manifest must contain exactly four items")
     by_id = {beat.get("BEAT_ID"): beat for beat in subtitles.get("beats", [])}
     runtime_items = []
     for item in items:
@@ -123,7 +123,7 @@ def main() -> int:
     subtitles = _load_json(SUBTITLE_MANIFEST_PATH)
     runtime_items, _ = _validate_inputs(repair, subtitles)
     audition_only_count = sum(1 for item in repair["items"] if item.get("AUDITION_ONLY"))
-    print("OWNER_CONFIRMED_REPAIR_COUNT=3")
+    print("OWNER_CONFIRMED_REPAIR_COUNT=4")
     print(f"RUNTIME_TARGET_COUNT={len(runtime_items)}")
     print(f"AUDITION_ONLY_TARGET_COUNT={audition_only_count}")
     print("OWNER_AUDIO_ACCEPTANCE=PENDING")

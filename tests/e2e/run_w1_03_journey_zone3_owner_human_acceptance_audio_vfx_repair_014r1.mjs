@@ -153,21 +153,24 @@ function inspectAudioIntegrity() {
         false,
         'Owner line C must not be silently added to the canonical subtitle source',
     );
-    assert.equal(targeted.items.length, 3);
-    assert.equal(targeted.items.filter((item) => item.AUDITION_ONLY === false).length, 3);
+    assert.equal(targeted.items.length, 4);
+    assert.equal(targeted.items.filter((item) => item.AUDITION_ONLY === false).length, 4);
     assert.equal(targeted.items.filter((item) => item.AUDITION_ONLY === true).length, 0);
     const lineC = targeted.items.find((item) => item.BEAT_ID === 'Z3_S01_B003');
     assert.equal(lineC?.EXACT_SUBTITLE, '他們好像是在搬家。');
     assert.equal(lineC?.OWNER_REPORTED_TEXT, '……他們要搬家？');
     assert.equal(lineC?.OWNER_REPORTED_LINE_EXACT_CURRENT_MATCH, false);
     assert.equal(lineC?.RUNTIME_AUDIO_PATH, 'assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3');
+    const lineD = targeted.items.find((item) => item.BEAT_ID === 'Z3_S02_B004');
+    assert.equal(lineD?.EXACT_SUBTITLE, '他們是真的非走不可。');
+    assert.equal(lineD?.RUNTIME_AUDIO_PATH, 'assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3');
 
     assert.equal(fs.existsSync(GENERATED_REPAIR_MANIFEST), true, 'targeted generated manifest is required after authorized generation');
     const generated = readJson(GENERATED_REPAIR_MANIFEST);
     assert.equal(generated.GENERATED, true);
     assert.equal(generated.AUTOMATED_VALIDATION, 'PASS');
     assert.equal(generated.OWNER_AUDIO_ACCEPTANCE, 'PENDING');
-    assert.equal(generated.generated.length, 3);
+    assert.equal(generated.generated.length, 4);
     for (const record of generated.generated) {
         assert.equal(record.GENERATED, true);
         assert.equal(record.AUTOMATED_VALIDATION, 'PASS');
@@ -190,7 +193,7 @@ function inspectAudioIntegrity() {
         runtimeBeatId: lineC.BEAT_ID,
         runtimeVisibleText: lineC.EXACT_SUBTITLE,
         runtimeAudioPath: lineC.RUNTIME_AUDIO_PATH,
-        ownerTargetedRuntimeCount: 3,
+        ownerTargetedRuntimeCount: 4,
         targetedGeneratedCount: generated.generated.length,
         ownerAuditionFileCount: generated.generated.filter((record) => record.AUDITION_AUDIO_PATH).length,
     };
