@@ -29,8 +29,8 @@
       "REQUIRED_READING": "水壺 = shuǐ hú; 毯子 = tǎn zi; 鍋子 = guō zi",
       "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b002_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot02_owner_line_b.mp3",
-      "TTS_INPUT_TEXT": "水湖、坦子、郭子……都是平常生活用的東西。",
-      "REPAIR_REASON": "Owner-confirmed unnatural pronunciation and rhythm across the household-item list. Audio-only 水湖／坦子／郭子 substitutions force shuǐ hú／tǎn zi／guō zi; visible subtitle remains unchanged and no non-spoken directions are sent to TTS.",
+      "TTS_INPUT_TEXT": "水胡、坦子、郭子……都是平常生活用的東西。",
+      "REPAIR_REASON": "Owner-confirmed unnatural pronunciation and rhythm across the household-item list. Audio-only 水胡／坦子／郭子 substitutions force shuǐ hú／tǎn zi／guō zi; visible subtitle remains unchanged and no non-spoken directions are sent to TTS.",
       "AUDITION_ONLY": false
     },
     {
@@ -43,8 +43,8 @@
       "REQUIRED_READING": "他們 = tā men; 搬家 = bān jiā; no English-like phoneme substitution",
       "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot01_owner_line_c.mp3",
-      "TTS_INPUT_TEXT": "他們好像是在搬家。",
-      "REPAIR_REASON": "Owner-reported 他們 pronunciation defect mapped to the actual canonical runtime beat. Plain canonical Chinese is sent to TTS so no English guidance text can be spoken; the visible canonical sentence remains unchanged.",
+      "TTS_INPUT_TEXT": "她們好像是在搬家。",
+      "REPAIR_REASON": "Owner-reported 他們 pronunciation defect mapped to the actual canonical runtime beat. Audio-only 她們 forces two Mandarin syllables tā men instead of an English-like they; the visible canonical sentence remains unchanged.",
       "AUDITION_ONLY": false
     },
     {
@@ -55,8 +55,8 @@
       "REQUIRED_READING": "他們 = tā men; 非走不可 = fēi zǒu bù kě; no English-like phonemes",
       "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot02_owner_line_d.mp3",
-      "TTS_INPUT_TEXT": "他們是真的非走不可。",
-      "REPAIR_REASON": "Owner-confirmed 他們 pronunciation defect in Shot 2. Plain canonical Chinese is sent to TTS so no English guidance text can be spoken; visible subtitle remains unchanged.",
+      "TTS_INPUT_TEXT": "她們是真的非走不可。",
+      "REPAIR_REASON": "Owner-confirmed 他們 pronunciation defect in Shot 2. Audio-only 她們 forces two Mandarin syllables tā men instead of an English-like they; visible subtitle remains unchanged.",
       "AUDITION_ONLY": false
     }
   ]
