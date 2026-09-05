@@ -29,6 +29,7 @@ RENDERER = ROOT / "js/rpg_wave2_wearable_renderer.js"
 
 EXPECTED_TEMPLATES = {
     "WEAPON_WAIST",
+    "WEAPON_HAND_HELD",
     "WEAPON_BACK",
     "FOREARM_GEAR",
     "TORSO_ARMOR",

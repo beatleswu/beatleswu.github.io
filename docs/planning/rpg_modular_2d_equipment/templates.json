@@ -62,6 +62,18 @@
       "occlusion_rule": "sheath_or_lower_weapon_behind_body; handle_visible; no_hand_grip_pose",
       "mobile_visibility_rule": "silhouette_and_handle_must_read_at_hero_mobile_size"
     },
+    "WEAPON_HAND_HELD": {
+      "anchor": "right_palm",
+      "anchor_point": [0.79, 0.52],
+      "bounding_box": [0.56, 0.34, 0.99, 0.78],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "MUST_REMAIN_BELOW_NECK_ZONE",
+      "shoulder_limit": "MUST_NOT_REQUIRE_SHOULDER_OR_POSE_REDESIGN",
+      "waist_limit": "blade_may_extend_toward_lower_outboard_silhouette_but_must_not_cross_torso_unnaturally",
+      "front_back_layer": ["FRONT_WEAPON"],
+      "occlusion_rule": "handle_and_guard_align_to_declared_palm; no_wrist_only_attachment; no_hero_anatomy_redraw",
+      "mobile_visibility_rule": "handle_and_grip_must_remain_attached_and_readable_at_hero_mobile_size"
+    },
     "WEAPON_BACK": {
       "anchor": "back_hilt",
       "anchor_point": [0.62, 0.22],

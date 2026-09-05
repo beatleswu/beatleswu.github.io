@@ -1,0 +1,76 @@
+{
+  "schema": "go-odyssey.w2-03.hand-held-promotion-and-replacement-art-prep.v1",
+  "task_id": "W2_03_HERO_WEARABLE_WEAPON_HAND_HELD_PROMOTION_AND_REPLACEMENT_ART_PREP_002R4",
+  "base_head": "0221f4e0ac58eb808cd2fb824aa3648959adb9cd",
+  "owner_decision": "OWNER_SELECT_B_HAND_HELD",
+  "new_art_created": false,
+  "canonical_wooden_sword": {
+    "item_id": "wooden_sword",
+    "presentation": "HAND_HELD",
+    "attachment": "RIGHT_PALM",
+    "layer": "FRONT_WEAPON",
+    "mode": "FRONT_WEAPON_HAND_ALIGNED",
+    "source_asset": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+    "transform": {
+      "offset_percent": {"x": 5, "y": 3},
+      "rotation_deg": 0,
+      "scale": 0.95,
+      "transform_origin": "center center",
+      "occlusion": "FRONT_WEAPON"
+    },
+    "runtime_paths": 1,
+    "review_only_override": false
+  },
+  "replacement_art": [
+    {
+      "item_id": "cloth_robe",
+      "slot": "armor",
+      "current_defect": "Existing source contains a baked opaque rectangular/product-image field over the Hero torso; it cannot be made into an honest wearable through crop, mask, stretch, blur, or background matching.",
+      "target_body_region": "Hero torso from the lower neck/collar transition through the waist and robe hem, including sleeves that follow the shared upper-arm silhouette.",
+      "target_layer": "TORSO_ARMOR",
+      "target_silhouette": "Open-neck teal and seafoam robe with dark teal seams; fitted to the shared torso and shoulder contour, natural garment hem, no opaque canvas rectangle, and no repaint of face, hands, or legs.",
+      "transparent_background_required": true,
+      "hero_body_alignment_requirement": "Use PLAYER_FRAME_A_STANDARD_CHIBI at 1056x1408; collar, shoulders, sleeves, waist, and hem must align to the normalized Hero frame and remain reusable across the six supported characters.",
+      "occlusion_requirement": "Keep FACE_SAFE_ZONE and jaw readable; the garment may cover the base torso only, while base hands, face, and lower-body silhouette remain visible through correct alpha and reusable body occlusion.",
+      "canvas_anchor_requirement": {
+        "canvas": [1056, 1408],
+        "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+        "anchor": "torso",
+        "anchor_point_normalized": [0.5, 0.35],
+        "target_alpha_bounding_box_normalized": [0.24, 0.22, 0.76, 0.69]
+      }
+    },
+    {
+      "item_id": "fox_pelt",
+      "slot": "armor",
+      "current_defect": "Existing source contains a baked opaque rectangular/product-image field around the fox-pelt artwork; it is not a transparent shoulder wearable and cannot be honestly repaired by compositing the current pixels.",
+      "target_body_region": "Hero shoulders and upper back/side torso as a compact orange-brown fur mantle; preserve the central neck opening and the underlying body silhouette.",
+      "target_layer": "BACK_BODY",
+      "target_silhouette": "Attached shoulder mantle with a readable fur edge across the shoulders and controlled side/back volume; it must not become a full-body redraw, leg overlay, or face-covering hood.",
+      "transparent_background_required": true,
+      "hero_body_alignment_requirement": "Use PLAYER_FRAME_A_STANDARD_CHIBI at 1056x1408; shoulder crest, neck opening, and side mantle edges must align to the normalized Hero frame and remain reusable across the six supported characters.",
+      "occlusion_requirement": "Place the mantle behind the character base; preserve face, jaw, hands, and torso readability, with only the declared shoulder/back pixels behind the body and no opaque field or matte halo.",
+      "canvas_anchor_requirement": {
+        "canvas": [1056, 1408],
+        "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+        "anchor": "shoulder_or_torso",
+        "anchor_point_normalized": [0.5, 0.31],
+        "target_alpha_bounding_box_normalized": [0.16, 0.22, 0.84, 0.52]
+      }
+    }
+  ],
+  "policy": {
+    "xp_amulet": "HOLD_FOR_AUTHORITY",
+    "go_stone_black": "INVENTORY_ONLY",
+    "ownership_authority": "player_inventory",
+    "equipped_authority": "player_inventory.equipped",
+    "effects_authority": "server EQUIPMENT_DEFS",
+    "renderer_gameplay_authority": false
+  },
+  "preserved": {
+    "dragon_scale": true,
+    "lucky_stone": true,
+    "hero_pose": true,
+    "weapon_art_reused": true
+  }
+}

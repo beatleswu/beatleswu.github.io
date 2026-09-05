@@ -14,6 +14,7 @@
       "BACK_WEAPON",
       "BACK_BODY",
       "CHARACTER_BASE",
+      "FRONT_WEAPON",
       "TORSO_ARMOR",
       "FRONT_BODY",
       "FRONT_ACCESSORY",
@@ -52,8 +53,15 @@
   },
   "static_weapon_contract": {
     "primary": "WAIST_SHEATHED",
+    "owner_selected_per_item": {
+      "wooden_sword": {
+        "presentation": "HAND_HELD",
+        "attachment": "RIGHT_PALM",
+        "layer": "FRONT_WEAPON"
+      }
+    },
     "fallback": "BACK_MOUNTED",
-    "hand_held_static_mode": "FORBIDDEN",
+    "hand_held_static_mode": "OWNER_SELECTED_PER_ITEM",
     "fake_hand_grip": "FORBIDDEN"
   },
   "evidence": {

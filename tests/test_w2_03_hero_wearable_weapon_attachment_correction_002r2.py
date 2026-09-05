@@ -17,19 +17,22 @@ def _json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_wooden_sword_uses_bounded_carried_at_hip_presentation_metadata():
+def test_wooden_sword_r2_path_is_superseded_by_owner_selected_hand_held_metadata():
     registry = _json(REGISTRY)
     wooden_sword = registry["equipment"]["wooden_sword"]
     assert wooden_sword["slot"] == "weapon"
-    assert wooden_sword["anchor"] == "waist_right"
-    assert wooden_sword["layer"] == "BACK_WEAPON"
+    assert wooden_sword["anchor"] == "right_palm"
+    assert wooden_sword["layer"] == "FRONT_WEAPON"
     assert wooden_sword["presentation_only"] is True
+    assert wooden_sword["presentation_mode"] == "HAND_HELD"
+    assert wooden_sword["presentation_attachment"] == "RIGHT_PALM"
     assert wooden_sword["presentation_transform"] == {
-        "mode": "CARRIED_AT_HIP",
-        "offset_percent": {"x": -12, "y": -7},
+        "mode": "FRONT_WEAPON_HAND_ALIGNED",
+        "offset_percent": {"x": 5, "y": 3},
+        "rotation_deg": 0,
         "scale": 0.95,
         "transform_origin": "center center",
-        "occlusion": "BACK_WEAPON",
+        "occlusion": "FRONT_WEAPON",
     }
 
 
@@ -64,7 +67,7 @@ def test_occlusion_and_accepted_armor_accessory_layers_are_preserved():
         assert item["layer"] == layer
         assert item["frame"] == "PLAYER_FRAME_A_STANDARD_CHIBI"
         assert item["presentation_only"] is True
-    assert registry["equipment"]["wooden_sword"]["presentation_transform"]["occlusion"] == "BACK_WEAPON"
+    assert registry["equipment"]["wooden_sword"]["presentation_transform"]["occlusion"] == "FRONT_WEAPON"
 
 
 def test_replacement_and_authority_policies_remain_held():

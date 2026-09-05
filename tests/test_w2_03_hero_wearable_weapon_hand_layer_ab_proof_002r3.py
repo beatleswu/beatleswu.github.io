@@ -17,43 +17,41 @@ def _registry() -> dict:
     return json.loads(REGISTRY.read_text(encoding="utf-8"))
 
 
-def test_r2_default_remains_the_canonical_variant_and_b_is_review_only():
+def test_owner_selected_variant_b_is_now_the_single_canonical_variant():
     wooden_sword = _registry()["equipment"]["wooden_sword"]
-    assert wooden_sword["layer"] == "BACK_WEAPON"
+    assert wooden_sword["layer"] == "FRONT_WEAPON"
+    assert wooden_sword["anchor"] == "right_palm"
+    assert wooden_sword["presentation_mode"] == "HAND_HELD"
+    assert wooden_sword["presentation_attachment"] == "RIGHT_PALM"
     assert wooden_sword["presentation_transform"] == {
-        "mode": "CARRIED_AT_HIP",
-        "offset_percent": {"x": -12, "y": -7},
+        "mode": "FRONT_WEAPON_HAND_ALIGNED",
+        "offset_percent": {"x": 5, "y": 3},
+        "rotation_deg": 0,
         "scale": 0.95,
         "transform_origin": "center center",
-        "occlusion": "BACK_WEAPON",
+        "occlusion": "FRONT_WEAPON",
     }
-    variant = wooden_sword["review_presentation_variants"]["FRONT_WEAPON_HAND_ALIGNED"]
-    assert variant["review_only"] is True
-    assert variant["owner_selection_required"] is True
-    assert variant["target"] == "RIGHT_PALM"
-    assert variant["layer"] == "FRONT_WEAPON"
-    assert variant["presentation_transform"]["mode"] == "FRONT_WEAPON_HAND_ALIGNED"
-    assert variant["presentation_transform"]["occlusion"] == "FRONT_WEAPON"
+    assert "review_presentation_variants" not in wooden_sword
 
 
-def test_only_wooden_sword_has_the_owner_review_variant():
+def test_no_runtime_item_keeps_a_review_only_presentation_variant():
     equipment = _registry()["equipment"]
     assert [item_id for item_id, item in equipment.items()
-            if "review_presentation_variants" in item] == ["wooden_sword"]
+            if "review_presentation_variants" in item] == []
 
 
-def test_renderer_keeps_variant_opt_in_and_preserves_authority_boundary():
+def test_renderer_promotes_canonical_layer_and_preserves_authority_boundary():
     runtime = RUNTIME.read_text(encoding="utf-8")
-    assert "options?.presentationVariant" in runtime
-    assert "variant.review_only !== true" in runtime
     assert "appendEntries('FRONT_WEAPON')" in runtime
     assert "server_equipped_projection" in runtime
     assert "gameplayAuthority = 'none'" in runtime
+    assert "presentationVariant" not in runtime
+    assert "review_presentation_variants" not in runtime
     assert "method: 'POST'" not in runtime
     assert "localStorage" not in runtime
 
 
-def test_review_page_uses_existing_art_and_requires_owner_selection():
+def test_historical_review_page_uses_existing_art_and_remains_non_runtime_evidence():
     review = REVIEW.read_text(encoding="utf-8")
     assert "wooden_sword" in review
     assert "presentationVariant = 'FRONT_WEAPON_HAND_ALIGNED'" in review

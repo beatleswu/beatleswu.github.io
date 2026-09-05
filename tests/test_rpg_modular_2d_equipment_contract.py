@@ -21,7 +21,7 @@ def _json(path: Path) -> dict:
 def test_modular_2d_contract_validator_passes():
     result = _validate()
     assert result["MODULAR_2D_ARCHITECTURE"] == "PASS"
-    assert result["TEMPLATE_COUNT"] == 10
+    assert result["TEMPLATE_COUNT"] == 11
     assert result["VISIBLE_WEARABLE_COUNT"] == 4
     assert result["VISIBLE_IF_SUPPORTED_COUNT"] == 10
     assert result["INVENTORY_ONLY_COUNT"] == 1
@@ -63,7 +63,8 @@ def test_contract_preserves_static_weapon_and_frame_authority():
     assert registry["player_frame"]["id"] == "PLAYER_FRAME_A_STANDARD_CHIBI"
     assert registry["player_frame"]["body_frame_variants"] == 1
     assert registry["provenance"]["static_sword_mode"] == "WAIST_SHEATHED"
-    assert registry["provenance"]["hand_held_static_mode"] == "FORBIDDEN"
+    assert registry["provenance"]["hand_held_static_mode"] == "OWNER_SELECTED_PER_ITEM"
+    assert registry["provenance"]["owner_selected_hand_held_item"] == "wooden_sword"
     assert registry["authority"]["ownership"] == "player_inventory"
     assert registry["authority"]["equipped"] == "player_inventory.equipped"
     assert registry["authority"]["effects"] == "server EQUIPMENT_DEFS"

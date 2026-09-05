@@ -19,14 +19,16 @@
       "slot": "weapon",
       "canonical_identity": "slim warm-tan wooden sword with brown grip",
       "wearable_visibility": "VISIBLE_IF_SUPPORTED",
-      "wearable_class": "WEAPON_WAIST",
-      "template_id": "WEAPON_WAIST",
+      "wearable_class": "WEAPON_HAND_HELD",
+      "template_id": "WEAPON_HAND_HELD",
       "body_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
-      "anchor": "waist_right",
-      "layer": "BACK_WEAPON",
+      "anchor": "right_palm",
+      "layer": "FRONT_WEAPON",
       "asset": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
       "mask_policy": ["BASE_OCCLUSION"],
-      "reason": "short_sheathed_weapon_identity is compatible; requires production six-character QA"
+      "presentation_mode": "HAND_HELD",
+      "presentation_attachment": "RIGHT_PALM",
+      "reason": "Owner-selected R3 Variant B hand-held presentation; uses existing universal sword art and per-item transform"
     },
     {
       "equipment_id": "iron_sword",

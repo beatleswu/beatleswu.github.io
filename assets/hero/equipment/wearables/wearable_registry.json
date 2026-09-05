@@ -4,7 +4,8 @@
     "master_base_sha": "ac182ed173620a11e66bebeb6003c121b9ceee95",
     "p2b_parent_sha": "91202655dd5ce5c3d61c2fe20e21b517c29fdfba",
     "static_sword_mode": "WAIST_SHEATHED",
-    "hand_held_static_mode": "FORBIDDEN"
+    "hand_held_static_mode": "OWNER_SELECTED_PER_ITEM",
+    "owner_selected_hand_held_item": "wooden_sword"
   },
   "modular_contract": {
     "schema": "go-odyssey.static-modular-2d-equipment.visibility-matrix.v1",
@@ -32,6 +33,7 @@
     "BACK_WEAPON",
     "BACK_BODY",
     "CHARACTER_BASE",
+    "FRONT_WEAPON",
     "TORSO_ARMOR",
     "FRONT_BODY",
     "FRONT_ACCESSORY",
@@ -80,48 +82,33 @@
     "wooden_sword": {
       "slot": "weapon",
       "canonical_identity": "slim warm-tan wooden sword with brown grip",
-      "wearable_class": "WEAPON_WAIST",
-      "anchor": "waist_right",
-      "layer": "BACK_WEAPON",
+      "wearable_class": "WEAPON_HAND_HELD",
+      "anchor": "right_palm",
+      "layer": "FRONT_WEAPON",
       "mask_requirements": [
         "BASE_OCCLUSION"
       ],
       "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
-      "production_status": "READY_WITH_REUSABLE_MASK",
+      "production_status": "READY_OWNER_SELECTED_HAND_HELD",
       "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/wooden_sword.png",
       "canonical_icon": "assets/hero/equipment/functional/wooden_sword.svg",
       "id": "wooden_sword",
       "asset": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
       "wearable_visibility": "VISIBLE_IF_SUPPORTED",
-      "template_id": "WEAPON_WAIST",
+      "template_id": "WEAPON_HAND_HELD",
+      "presentation_mode": "HAND_HELD",
+      "presentation_attachment": "RIGHT_PALM",
       "presentation_transform": {
-        "mode": "CARRIED_AT_HIP",
+        "mode": "FRONT_WEAPON_HAND_ALIGNED",
         "offset_percent": {
-          "x": -12,
-          "y": -7
+          "x": 5,
+          "y": 3
         },
+        "rotation_deg": 0,
         "scale": 0.95,
         "transform_origin": "center center",
-        "occlusion": "BACK_WEAPON"
-      },
-      "review_presentation_variants": {
-        "FRONT_WEAPON_HAND_ALIGNED": {
-          "review_only": true,
-          "owner_selection_required": true,
-          "target": "RIGHT_PALM",
-          "layer": "FRONT_WEAPON",
-          "presentation_transform": {
-            "mode": "FRONT_WEAPON_HAND_ALIGNED",
-            "offset_percent": {
-              "x": 5,
-              "y": 3
-            },
-            "scale": 0.95,
-            "transform_origin": "center center",
-            "occlusion": "FRONT_WEAPON"
-          }
-        }
+        "occlusion": "FRONT_WEAPON"
       },
       "mask_policy": [
         "BASE_OCCLUSION"

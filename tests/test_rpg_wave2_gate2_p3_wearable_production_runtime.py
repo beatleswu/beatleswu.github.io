@@ -80,7 +80,7 @@ def test_registry_preserves_authority_and_static_weapon_decision():
         "visual_wearable_gameplay_authority": False,
     }
     assert registry["layer_order"] == [
-        "BACK_WEAPON", "BACK_BODY", "CHARACTER_BASE", "TORSO_ARMOR",
+        "BACK_WEAPON", "BACK_BODY", "CHARACTER_BASE", "FRONT_WEAPON", "TORSO_ARMOR",
         "FRONT_BODY", "FRONT_ACCESSORY", "HEAD_FACE", "HAIR_FRONT_MASK",
     ]
     assert registry["equipment"]["iron_sword"]["wearable_class"] == "WEAPON_WAIST"
