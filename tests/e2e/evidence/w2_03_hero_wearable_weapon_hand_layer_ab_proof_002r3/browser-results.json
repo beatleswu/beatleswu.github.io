@@ -1,0 +1,149 @@
+[
+  {
+    "viewport": "desktop",
+    "width": 1440,
+    "height": 1000,
+    "variantA": {
+      "supported": "true",
+      "presentationState": "",
+      "order": [
+        "rpg-wearable-layer equipment-wooden_sword layer-back_weapon",
+        "rpg-wearable-layer character-base"
+      ],
+      "sources": [
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/characters/wave2_p1/apprentice_p1.png"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": 0,
+      "weaponMode": "CARRIED_AT_HIP",
+      "weaponLayer": "BACK_WEAPON",
+      "weaponVariant": "",
+      "weaponOcclusion": "BACK_WEAPON",
+      "weaponTransform": "matrix(0.95, 0, 0, 0.95, -43.2, -33.6)",
+      "weaponNaturalWidth": 1056,
+      "weaponNaturalHeight": 1408
+    },
+    "variantB": {
+      "supported": "true",
+      "presentationState": "",
+      "order": [
+        "rpg-wearable-layer character-base",
+        "rpg-wearable-layer equipment-wooden_sword layer-front_weapon"
+      ],
+      "sources": [
+        "/assets/hero/characters/wave2_p1/apprentice_p1.png",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": 1,
+      "weaponMode": "FRONT_WEAPON_HAND_ALIGNED",
+      "weaponLayer": "FRONT_WEAPON",
+      "weaponVariant": "FRONT_WEAPON_HAND_ALIGNED",
+      "weaponOcclusion": "FRONT_WEAPON",
+      "weaponTransform": "matrix(0.95, 0, 0, 0.95, 18, 14.4)",
+      "weaponNaturalWidth": 1056,
+      "weaponNaturalHeight": 1408
+    },
+    "fullPath": "D:\\go-website-w2-03-ab-proof-002r3\\tests\\e2e\\evidence\\w2_03_hero_wearable_weapon_hand_layer_ab_proof_002r3\\desktop-ab.png",
+    "closePath": "D:\\go-website-w2-03-ab-proof-002r3\\tests\\e2e\\evidence\\w2_03_hero_wearable_weapon_hand_layer_ab_proof_002r3\\desktop-right-hand-closeup.png"
+  },
+  {
+    "viewport": "ipad-portrait",
+    "width": 820,
+    "height": 1180,
+    "variantA": {
+      "supported": "true",
+      "presentationState": "",
+      "order": [
+        "rpg-wearable-layer equipment-wooden_sword layer-back_weapon",
+        "rpg-wearable-layer character-base"
+      ],
+      "sources": [
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/characters/wave2_p1/apprentice_p1.png"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": 0,
+      "weaponMode": "CARRIED_AT_HIP",
+      "weaponLayer": "BACK_WEAPON",
+      "weaponVariant": "",
+      "weaponOcclusion": "BACK_WEAPON",
+      "weaponTransform": "matrix(0.95, 0, 0, 0.95, -41.64, -32.3859)",
+      "weaponNaturalWidth": 1056,
+      "weaponNaturalHeight": 1408
+    },
+    "variantB": {
+      "supported": "true",
+      "presentationState": "",
+      "order": [
+        "rpg-wearable-layer character-base",
+        "rpg-wearable-layer equipment-wooden_sword layer-front_weapon"
+      ],
+      "sources": [
+        "/assets/hero/characters/wave2_p1/apprentice_p1.png",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": 1,
+      "weaponMode": "FRONT_WEAPON_HAND_ALIGNED",
+      "weaponLayer": "FRONT_WEAPON",
+      "weaponVariant": "FRONT_WEAPON_HAND_ALIGNED",
+      "weaponOcclusion": "FRONT_WEAPON",
+      "weaponTransform": "matrix(0.95, 0, 0, 0.95, 17.35, 13.8797)",
+      "weaponNaturalWidth": 1056,
+      "weaponNaturalHeight": 1408
+    },
+    "fullPath": "D:\\go-website-w2-03-ab-proof-002r3\\tests\\e2e\\evidence\\w2_03_hero_wearable_weapon_hand_layer_ab_proof_002r3\\ipad-portrait-ab.png",
+    "closePath": "D:\\go-website-w2-03-ab-proof-002r3\\tests\\e2e\\evidence\\w2_03_hero_wearable_weapon_hand_layer_ab_proof_002r3\\ipad-portrait-right-hand-closeup.png"
+  },
+  {
+    "viewport": "mobile-portrait",
+    "width": 430,
+    "height": 932,
+    "variantA": {
+      "supported": "true",
+      "presentationState": "",
+      "order": [
+        "rpg-wearable-layer equipment-wooden_sword layer-back_weapon",
+        "rpg-wearable-layer character-base"
+      ],
+      "sources": [
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+        "/assets/hero/characters/wave2_p1/apprentice_p1.png"
+      ],
+      "baseIndex": 1,
+      "weaponIndex": 0,
+      "weaponMode": "CARRIED_AT_HIP",
+      "weaponLayer": "BACK_WEAPON",
+      "weaponVariant": "",
+      "weaponOcclusion": "BACK_WEAPON",
+      "weaponTransform": "matrix(0.95, 0, 0, 0.95, -19.68, -15.3059)",
+      "weaponNaturalWidth": 1056,
+      "weaponNaturalHeight": 1408
+    },
+    "variantB": {
+      "supported": "true",
+      "presentationState": "",
+      "order": [
+        "rpg-wearable-layer character-base",
+        "rpg-wearable-layer equipment-wooden_sword layer-front_weapon"
+      ],
+      "sources": [
+        "/assets/hero/characters/wave2_p1/apprentice_p1.png",
+        "/assets/hero/equipment/wearables/overlays/wooden_sword.png"
+      ],
+      "baseIndex": 0,
+      "weaponIndex": 1,
+      "weaponMode": "FRONT_WEAPON_HAND_ALIGNED",
+      "weaponLayer": "FRONT_WEAPON",
+      "weaponVariant": "FRONT_WEAPON_HAND_ALIGNED",
+      "weaponOcclusion": "FRONT_WEAPON",
+      "weaponTransform": "matrix(0.95, 0, 0, 0.95, 8.2, 6.55969)",
+      "weaponNaturalWidth": 1056,
+      "weaponNaturalHeight": 1408
+    },
+    "fullPath": "D:\\go-website-w2-03-ab-proof-002r3\\tests\\e2e\\evidence\\w2_03_hero_wearable_weapon_hand_layer_ab_proof_002r3\\mobile-portrait-ab.png",
+    "closePath": "D:\\go-website-w2-03-ab-proof-002r3\\tests\\e2e\\evidence\\w2_03_hero_wearable_weapon_hand_layer_ab_proof_002r3\\mobile-portrait-right-hand-closeup.png"
+  }
+]

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>W2-03 wooden sword A/B hand-layer proof</title>
+  <script src="/js/rpg_wave2_wearable_renderer.js?v=w2-03-ab-proof-002r3"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #24384b;
+      background: #edf3f6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #edf3f6; }
+    .page { max-width: 1120px; margin: 0 auto; }
+    header {
+      padding: 20px 22px; border: 1px solid #bdd0da; border-radius: 16px;
+      background: #fff; box-shadow: 0 8px 24px rgba(30, 58, 74, .08);
+    }
+    h1 { margin: 0 0 8px; font-size: clamp(22px, 3vw, 32px); color: #173f58; }
+    h2 { margin: 0; font-size: 20px; color: #173f58; }
+    p { line-height: 1.5; }
+    .lede { margin: 0; color: #4d6573; }
+    .guard {
+      margin-top: 14px; padding: 11px 13px; border-left: 4px solid #2b7a78;
+      background: #e7f4f2; color: #24565b; line-height: 1.5;
+    }
+    .guard code { font-weight: 700; }
+    .viewport-label {
+      display: inline-block; margin-top: 16px; padding: 6px 10px; border-radius: 999px;
+      background: #173f58; color: #fff; font-size: 13px; letter-spacing: .04em;
+    }
+    .ab-grid, .closeup-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px; margin-top: 18px;
+    }
+    .variant-card, .closeup-card {
+      min-width: 0; padding: 14px; border: 1px solid #c5d4db; border-radius: 14px;
+      background: #fff; box-shadow: 0 5px 18px rgba(30, 58, 74, .07);
+    }
+    .variant-card[data-variant-card="B"] { border-color: #d6a35b; }
+    .card-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .card-head small { color: #647783; }
+    .hero-frame {
+      position: relative; width: min(100%, 360px); aspect-ratio: 3 / 4; margin: 0 auto;
+      overflow: hidden; border-radius: 12px; background:
+        radial-gradient(circle at 50% 18%, rgba(255,255,255,.88), transparent 48%),
+        linear-gradient(180deg, #f9fbfc, #dce8ec);
+      box-shadow: inset 0 0 0 1px rgba(23,63,88,.1);
+    }
+    .proof-stage { position: absolute; inset: 0; overflow: visible; }
+    .proof-stage img.rpg-wearable-layer { image-rendering: auto; }
+    .status { margin: 9px 0 0; min-height: 20px; color: #2b7a78; font: 600 12px/1.4 Consolas, monospace; }
+    .closeup-card { overflow: hidden; }
+    .closeup-card h2 { font-size: 16px; }
+    .closeup-crop {
+      position: relative; width: 100%; height: 360px; overflow: hidden; border-radius: 10px;
+      background: linear-gradient(180deg, #f9fbfc, #dce8ec);
+      box-shadow: inset 0 0 0 1px rgba(23,63,88,.1);
+    }
+    .closeup-stage {
+      /* Renderer CSS sets inset:0 after page CSS; override it so the crop
+         centers the Hero's right palm instead of drifting to the other hand. */
+      position: absolute;
+      inset: auto !important;
+      left: calc(50% - 274px) !important;
+      top: calc(50% - 250px) !important;
+      right: auto !important;
+      bottom: auto !important;
+      width: 360px;
+      height: 480px;
+    }
+    .closeup-stage img.rpg-wearable-layer { image-rendering: auto; }
+    .closeup-caption { margin: 9px 0 0; color: #4d6573; font-size: 12px; }
+    .fine { margin: 18px 0 0; color: #647783; font-size: 12px; }
+    @media (max-width: 720px) {
+      body { padding: 12px; }
+      .hero-frame { width: min(100%, 330px); }
+      .closeup-crop { height: 300px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>木劍持握 A/B 視覺證據 / Wooden sword hand-layer A/B proof</h1>
+      <p class="lede">Existing Hero base art and existing <code>wooden_sword</code> asset only. Variant A is the accepted R2 carried-at-hip baseline; Variant B is a review-only foreground test aligned to the Hero's right palm.</p>
+      <div class="guard">
+        <strong>Authority guard:</strong> this page is presentation evidence only. The default product path remains <code>CARRIED_AT_HIP / BACK_WEAPON</code>. Variant B is <code>review_only</code>, does not change inventory, loadout, combat, or server authority, and requires Owner selection before promotion.
+      </div>
+      <span class="viewport-label" id="viewport-label">VIEWPORT=loading</span>
+    </header>
+
+    <section class="ab-grid" aria-label="A/B full body comparison">
+      <article class="variant-card" data-variant-card="A">
+        <div class="card-head"><h2>A · R2 hip/back carry</h2><small>CARRIED_AT_HIP · BACK_WEAPON</small></div>
+        <div class="hero-frame"><div class="proof-stage rpg-wearable-stage" id="stage-a" data-variant="A"></div></div>
+        <p class="status" id="status-a">Rendering…</p>
+      </article>
+      <article class="variant-card" data-variant-card="B">
+        <div class="card-head"><h2>B · front weapon / palm aligned</h2><small>FRONT_WEAPON_HAND_ALIGNED · RIGHT_PALM</small></div>
+        <div class="hero-frame"><div class="proof-stage rpg-wearable-stage" id="stage-b" data-variant="B"></div></div>
+        <p class="status" id="status-b">Rendering…</p>
+      </article>
+    </section>
+
+    <section class="closeup-grid" aria-label="Right hand and sword handle close comparison">
+      <article class="closeup-card">
+        <h2>A close-up · right hand + handle</h2>
+        <div class="closeup-crop"><div class="proof-stage closeup-stage rpg-wearable-stage" id="closeup-a" data-variant="A"></div></div>
+        <p class="closeup-caption">R2 back-layer control: the base Hero remains in front of the weapon.</p>
+      </article>
+      <article class="closeup-card">
+        <h2>B close-up · right hand + handle</h2>
+        <div class="closeup-crop"><div class="proof-stage closeup-stage rpg-wearable-stage" id="closeup-b" data-variant="B"></div></div>
+        <p class="closeup-caption">Review-only foreground overlap: the handle crosses the visible right palm for Owner judgment.</p>
+      </article>
+    </section>
+
+    <p class="fine">OWNER_SELECTION_REQUIRED=YES · Possible decisions: OWNER_SELECT_A_HIP_CARRY · OWNER_SELECT_B_HAND_HELD · OWNER_REJECT_BOTH</p>
+  </main>
+  <script>
+    (() => {
+      const BASE = '/assets/hero/characters/wave2_p1/apprentice_p1.png';
+      const EQUIPPED = [{ equipment_id: 'wooden_sword', slot: 'weapon', equipped: true }];
+      const viewport = new URLSearchParams(location.search).get('viewport') || 'unspecified';
+      document.getElementById('viewport-label').textContent = `VIEWPORT=${viewport}`;
+
+      async function renderStage(stage, variant) {
+        const options = { baseAsset: BASE };
+        if (variant === 'B') options.presentationVariant = 'FRONT_WEAPON_HAND_ALIGNED';
+        return window.GoOdysseyWearableRenderer.renderSafe(stage, 'apprentice', EQUIPPED, options);
+      }
+
+      async function boot() {
+        const pairs = [
+          ['stage-a', 'A'], ['stage-b', 'B'], ['closeup-a', 'A'], ['closeup-b', 'B'],
+        ];
+        const results = [];
+        for (const [id, variant] of pairs) {
+          const result = await renderStage(document.getElementById(id), variant);
+          results.push({ id, variant, result });
+          const status = document.getElementById(`status-${variant.toLowerCase()}`);
+          if (status) status.textContent = result.supported ? `READY ${variant}` : `FAIL ${variant}`;
+        }
+        document.documentElement.dataset.proofReady = results.every(item => item.result?.supported) ? 'yes' : 'no';
+        window.__W2_03_AB_PROOF__ = { viewport, results };
+      }
+      boot().catch(error => {
+        document.documentElement.dataset.proofReady = 'no';
+        document.documentElement.dataset.proofError = error.message;
+      });
+    })();
+  </script>
+</body>
+</html>

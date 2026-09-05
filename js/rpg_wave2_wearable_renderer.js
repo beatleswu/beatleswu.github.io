@@ -97,12 +97,27 @@
         image.dataset.presentationOcclusion = transform.occlusion || '';
       }
     }
+    image.dataset.presentationLayer = presentation?.layer || '';
+    image.dataset.presentationVariant = presentation?.presentation_variant || '';
     image.addEventListener('error', () => {
       image.hidden = true;
       stage.dataset.assetError = source;
     }, { once: true });
     stage.appendChild(image);
     return image;
+  }
+
+  function resolvePresentation(item, options) {
+    const variantId = options?.presentationVariant || '';
+    const variants = item?.review_presentation_variants;
+    const variant = variantId && variants && variants[variantId];
+    if (!variant || variant.review_only !== true) return item;
+    return {
+      ...item,
+      layer: variant.layer || item.layer,
+      presentation_transform: variant.presentation_transform || item.presentation_transform,
+      presentation_variant: variantId,
+    };
   }
 
   function setFallback(fallback, visible) {
@@ -145,7 +160,8 @@
     const replacementIds = requestedIds.filter(id => ART_REPLACEMENT_REQUIRED.has(id));
     const selectedIds = normalizeEquipped(requestedIds, registry);
     const selected = new Set(selectedIds);
-    const entries = selectedIds.map(id => registry.equipment[id]).filter(Boolean);
+    const entries = selectedIds.map(id => registry.equipment[id]).filter(Boolean)
+      .map(item => resolvePresentation(item, opts));
     const appendEntries = layer => entries
       .filter(item => item.layer === layer)
       .forEach(item => appendLayer(stage, item.asset, `equipment-${item.id} layer-${layer.toLowerCase()}`, item.canonical_identity, item));
@@ -153,6 +169,10 @@
     appendEntries('BACK_WEAPON');
     appendEntries('BACK_BODY');
     appendLayer(stage, baseCharacter.base, 'character-base', `${characterKey} character base`);
+    // FRONT_WEAPON is intentionally a review-only escape hatch. The default
+    // product path remains the normalized base-first composition, while the
+    // W2-03 A/B fixture can test a single wooden-sword foreground variant.
+    if (opts?.presentationVariant) appendEntries('FRONT_WEAPON');
     appendEntries('TORSO_ARMOR');
     appendEntries('FRONT_BODY');
     appendEntries('FRONT_ACCESSORY');

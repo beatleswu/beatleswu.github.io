@@ -105,6 +105,24 @@
         "transform_origin": "center center",
         "occlusion": "BACK_WEAPON"
       },
+      "review_presentation_variants": {
+        "FRONT_WEAPON_HAND_ALIGNED": {
+          "review_only": true,
+          "owner_selection_required": true,
+          "target": "RIGHT_PALM",
+          "layer": "FRONT_WEAPON",
+          "presentation_transform": {
+            "mode": "FRONT_WEAPON_HAND_ALIGNED",
+            "offset_percent": {
+              "x": 5,
+              "y": 3
+            },
+            "scale": 0.95,
+            "transform_origin": "center center",
+            "occlusion": "FRONT_WEAPON"
+          }
+        }
+      },
       "mask_policy": [
         "BASE_OCCLUSION"
       ],
