@@ -419,6 +419,93 @@ def test_shop_on_loadout_off_grants_ownership_only(tmp_path, monkeypatch):
     assert _inventory_rows(path) == [(1, "cloth_robe", 0, "coin_shop")]
     assert _state(path)["equipped"] == 0
 
+    equip = client.post(
+        "/api/player/inventory/equip",
+        json={"inv_id": 1, "action": "equip"},
+    )
+    unequip = client.post(
+        "/api/player/inventory/equip",
+        json={"inv_id": 1, "action": "unequip"},
+    )
+    assert equip.status_code == 409
+    assert equip.get_json() == {"error": "LOADOUT_DISABLED"}
+    assert unequip.status_code == 409
+    assert unequip.get_json() == {"error": "LOADOUT_DISABLED"}
+    assert _inventory_rows(path) == [(1, "cloth_robe", 0, "coin_shop")]
+    assert _state(path)["equipped"] == 0
+
+
+def test_shop_off_loadout_on_keeps_purchase_closed_but_loadout_available(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "shop-off-loadout-on.sqlite"
+    _create_db(path, post_b033=True, purchase_schema=True, coins=1000)
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            "INSERT INTO player_inventory"
+            "(user_id,equip_id,equipped,canonical_slot,obtained_at,source) "
+            "VALUES(1,'wooden_sword',0,NULL,'2026-09-05','test')"
+        )
+    _set_shop_flag(monkeypatch, None)
+    monkeypatch.setenv(LOADOUT_FLAG, "1")
+    client = _client(path, monkeypatch)
+
+    before = _state(path)
+    purchase = client.post(
+        "/api/shop/buy",
+        json={
+            "item_id": "cloth_robe",
+            "purchase_operation_id": "c048-r2-shop-off-loadout-on",
+        },
+    )
+    assert purchase.status_code == 409
+    assert purchase.get_json() == DISABLED
+    assert _state(path) == before
+
+    equip = client.post(
+        "/api/player/inventory/equip",
+        json={"inv_id": 1, "action": "equip"},
+    )
+    unequip = client.post(
+        "/api/player/inventory/equip",
+        json={"inv_id": 1, "action": "unequip"},
+    )
+    assert equip.status_code == 200
+    assert unequip.status_code == 200
+    assert _inventory_rows(path) == [(1, "wooden_sword", 0, "test")]
+
+
+def test_shop_on_loadout_on_purchase_stays_unequipped(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "shop-on-loadout-on.sqlite"
+    _create_db(path, post_b033=True, purchase_schema=True, coins=1000)
+    _set_shop_flag(monkeypatch, "1")
+    monkeypatch.setenv(LOADOUT_FLAG, "1")
+    client = _client(path, monkeypatch)
+
+    purchase = client.post(
+        "/api/shop/buy",
+        json={
+            "item_id": "wooden_sword",
+            "purchase_operation_id": "c048-r2-shop-on-loadout-on",
+        },
+    )
+    assert purchase.status_code == 200
+    assert _inventory_rows(path) == [(1, "wooden_sword", 0, "coin_shop")]
+
+    equip = client.post(
+        "/api/player/inventory/equip",
+        json={"inv_id": 1, "action": "equip"},
+    )
+    unequip = client.post(
+        "/api/player/inventory/equip",
+        json={"inv_id": 1, "action": "unequip"},
+    )
+    assert equip.status_code == 200
+    assert unequip.status_code == 200
+    assert _inventory_rows(path) == [(1, "wooden_sword", 0, "coin_shop")]
+
 
 def test_cross_player_purchase_ownership_isolation(tmp_path, monkeypatch):
     path = tmp_path / "shop-cross-player.sqlite"

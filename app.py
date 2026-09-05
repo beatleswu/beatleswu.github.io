@@ -18759,13 +18759,13 @@ def equip_item():
                            (inv_id, uid)).fetchone()
         if not row:
             return jsonify({'error': '找不到物品'}), 404
+        loadout_enabled = _equipment_canonical_loadout_enabled()
         # A disabled Loadout must be a server-side authority boundary, not
-        # merely a hidden client control.  Preserve the narrowly approved
-        # legacy unequip recovery below, but never let the compatibility route
-        # equip or replace a functional item while canonical Loadout is off.
-        if act == 'equip' and not _equipment_canonical_loadout_enabled():
+        # merely a hidden client control.  Neither compatibility action may
+        # mutate the equipped state while canonical Loadout is off.
+        if not loadout_enabled:
             return jsonify({'error': 'LOADOUT_DISABLED'}), 409
-        if _equipment_canonical_loadout_enabled():
+        if loadout_enabled:
             try:
                 if act == 'equip':
                     loadout_result = equip_owned_item(

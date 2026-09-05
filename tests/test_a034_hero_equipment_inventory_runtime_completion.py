@@ -241,7 +241,7 @@ def test_duplicate_acquisition_is_distinct_owned_rows_and_unknown_fails_closed(
     ).status_code == 404
 
 
-def test_locked_items_stay_out_of_new_equip_but_legacy_xp_unequip_recovers(
+def test_locked_items_stay_out_of_loadout_when_disabled(
     tmp_path: Path, monkeypatch
 ):
     path = tmp_path / "a034-locks.sqlite"
@@ -265,13 +265,13 @@ def test_locked_items_stay_out_of_new_equip_but_legacy_xp_unequip_recovers(
 
     with sqlite3.connect(path) as conn:
         conn.execute("UPDATE player_inventory SET equipped=1 WHERE id=?", (xp.row_id,))
-    recovered = client.post(
+    blocked_unequip = client.post(
         "/api/player/inventory/equip",
         json={"inv_id": xp.row_id, "action": "unequip"},
     )
-    assert recovered.status_code == 200
-    assert recovered.get_json()["equipped"] is False
-    assert _rows(path)[0][2] == 0
+    assert blocked_unequip.status_code == 409
+    assert blocked_unequip.get_json()["error"] == "LOADOUT_DISABLED"
+    assert _rows(path)[0][2] == 1
 
     with sqlite3.connect(path) as conn:
         conn.row_factory = sqlite3.Row

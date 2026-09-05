@@ -108,9 +108,9 @@ def test_client_does_not_grant_ownership_from_the_capability():
 def test_capability_is_presentation_only_and_not_the_write_authority():
     """The equip route must enforce the flag itself, not trust the client."""
     source = (ROOT / "app.py").read_text(encoding="utf-8")
-    guard = "if act == 'equip' and not _equipment_canonical_loadout_enabled():"
+    guard = "loadout_enabled = _equipment_canonical_loadout_enabled()"
     assert guard in source, (
-        "the 1862ce65d legacy-fallback closure must remain intact"
+        "the disabled Loadout server-side fail-closed guard must remain intact"
     )
     assert "LOADOUT_DISABLED" in source
 
@@ -120,11 +120,12 @@ def test_legacy_bypass_is_not_reachable_when_disabled():
     source = (ROOT / "app.py").read_text(encoding="utf-8")
     start = source.index("def equip_item():")
     body = source[start:start + 4000]
-    guard_at = body.index("not _equipment_canonical_loadout_enabled()")
-    canonical_at = body.index("_equipment_canonical_loadout_enabled():", guard_at + 1)
+    snapshot_at = body.index("loadout_enabled = _equipment_canonical_loadout_enabled()")
+    guard_at = body.index("if not loadout_enabled:", snapshot_at)
+    canonical_at = body.index("if loadout_enabled:", guard_at + 1)
     # The unconditional 409 guard must precede any canonical/legacy branching,
     # so a disabled gate can never fall through to an equip writer.
-    assert guard_at < canonical_at
+    assert snapshot_at < guard_at < canonical_at
 
 
 # ── equippability is projected from the canonical writer's own authority ─────

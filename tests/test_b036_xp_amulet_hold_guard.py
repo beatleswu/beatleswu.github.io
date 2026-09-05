@@ -126,7 +126,7 @@ def test_xp_amulet_rejection_preserves_existing_accessory(tmp_path, monkeypatch)
     ]
 
 
-def test_malformed_equipped_xp_amulet_can_still_be_unequipped(tmp_path, monkeypatch):
+def test_disabled_equipped_xp_amulet_cannot_be_unequipped(tmp_path, monkeypatch):
     path = tmp_path / "xp-amulet-unequip.sqlite"
     _create_inventory_db(path, [(1, "xp_amulet", 1)])
     client = _client(path, monkeypatch)
@@ -136,14 +136,9 @@ def test_malformed_equipped_xp_amulet_can_still_be_unequipped(tmp_path, monkeypa
         json={"inv_id": 1, "action": "unequip"},
     )
 
-    assert response.status_code == 200
-    assert response.get_json() == {
-        "ok": True,
-        "item_id": "xp_amulet",
-        "inv_id": 1,
-        "equipped": False,
-    }
-    assert _inventory(path) == [(1, "xp_amulet", 0)]
+    assert response.status_code == 409
+    assert response.get_json() == {"error": "LOADOUT_DISABLED"}
+    assert _inventory(path) == [(1, "xp_amulet", 1)]
 
 
 def test_go_stone_black_equip_remains_rejected(tmp_path, monkeypatch):
@@ -192,8 +187,8 @@ def test_normal_weapon_and_armor_equip_still_succeed(tmp_path, monkeypatch, equi
 
 def test_normal_unequip_still_succeeds(tmp_path, monkeypatch):
     path = tmp_path / "unequip.sqlite"
-    _create_inventory_db(path, [(1, "iron_sword", 1)])
-    client = _client(path, monkeypatch)
+    _create_inventory_db(path, [(1, "iron_sword", 1)], b033=True)
+    client = _client(path, monkeypatch, loadout_enabled=True)
 
     response = client.post(
         "/api/player/inventory/equip",
