@@ -124,7 +124,7 @@ async function exercisePage(page, reducedMotion) {
         }
 
         const defaultShotResults = shotIds.map((shotId) => {
-            const expected = fx.getShotEffects(shotId);
+            const expected = fx.getShotEffects(shotId, true);
             const result = fx.transitionShot(shotId, undefined, {
                 reducedMotion: reduced,
             });

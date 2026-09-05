@@ -46,11 +46,11 @@
         }),
         SHOT06: Object.freeze({
             ambience: Object.freeze(['Z3_TRIAL_TENSION']),
-            events: Object.freeze(['Z3_CENTURION_ARMOR', 'Z3_CENTURION_SPEAR_PLANT']),
+            events: Object.freeze(['Z3_CENTURION_ARMOR']),
         }),
         SHOT07: Object.freeze({
             ambience: Object.freeze(['Z3_TRIAL_TENSION']),
-            events: Object.freeze([]),
+            events: Object.freeze(['Z3_CENTURION_SPEAR_PLANT']),
         }),
         SHOT08: Object.freeze({
             ambience: Object.freeze(['Z3_FRAGILE_TRUCE']),

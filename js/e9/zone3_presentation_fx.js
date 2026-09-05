@@ -127,7 +127,7 @@
             loop: false,
             required: true,
             particleCount: 7,
-            durationMs: 900,
+            durationMs: 1250,
         }),
         Z3_V06: Object.freeze({
             cueId: 'Z3_V06',
@@ -136,7 +136,7 @@
             loop: false,
             required: true,
             particleCount: 4,
-            durationMs: 620,
+            durationMs: 900,
         }),
         Z3_V07: Object.freeze({
             cueId: 'Z3_V07',
@@ -154,7 +154,7 @@
             loop: false,
             required: true,
             particleCount: 5,
-            durationMs: 540,
+            durationMs: 800,
         }),
         Z3_V09: Object.freeze({
             cueId: 'Z3_V09',
@@ -181,7 +181,7 @@
             loop: false,
             required: true,
             particleCount: 0,
-            durationMs: 1200,
+            durationMs: 2200,
         }),
     });
 
@@ -203,16 +203,16 @@
             scaleFrom: 1, scaleTo: 1, x: 50, y: 50,
         }),
         SHOT05: Object.freeze({
-            mode: 'bounded_impact_impulse', durationMs: 220,
-            amplitudePx: 2, repetitions: 1, x: 50, y: 50,
+            mode: 'bounded_impact_impulse', durationMs: 260,
+            amplitudePx: 4, repetitions: 1, x: 50, y: 50,
         }),
         SHOT06: Object.freeze({
             mode: 'slow_push', durationMs: 6500,
             scaleFrom: 1, scaleTo: 1.01, x: 50, y: 50,
         }),
         SHOT07: Object.freeze({
-            mode: 'bounded_impact_impulse', durationMs: 160,
-            amplitudePx: 1, repetitions: 1, x: 50, y: 50,
+            mode: 'bounded_impact_impulse', durationMs: 220,
+            amplitudePx: 3, repetitions: 1, x: 50, y: 50,
         }),
         SHOT08: Object.freeze({
             mode: 'slow_pull', durationMs: 7000,
@@ -273,6 +273,32 @@
             delay: (value % 700) / 1000,
             duration: 1.5 + ((value >>> 16) % 12) / 10,
             size: 2 + ((value >>> 24) % 3),
+        };
+    }
+
+    // A particle pool is still deterministic and bounded, but priority cues
+    // need to land on the story action rather than at arbitrary full-frame
+    // coordinates.  These are presentation coordinates only; they do not
+    // inspect or alter gameplay state.  The fallbacks preserve the original
+    // sparse full-frame depth treatment for every other shot/effect pair.
+    function storyParticlePosition(effectId, shotId, index) {
+        const bounds = {
+            'SHOT05:Z3_V03': { x: [18, 38], y: [36, 82] },
+            'SHOT05:Z3_V05': { x: [43, 77], y: [38, 78] },
+            'SHOT05:Z3_V06': { x: [48, 79], y: [50, 84] },
+            'SHOT07:Z3_V08': { x: [43, 56], y: [68, 88] },
+        }[`${shotId || ''}:${effectId}`];
+        const position = fixedParticlePosition(
+            hashSeed(`${shotId || ''}:${effectId}`),
+            index,
+        );
+        if (!bounds) return position;
+        const span = (range) => range[0] + ((position.x / 100) * (range[1] - range[0]));
+        const ySpan = (range) => range[0] + ((position.y / 100) * (range[1] - range[0]));
+        return {
+            ...position,
+            x: span(bounds.x),
+            y: ySpan(bounds.y),
         };
     }
 
@@ -447,14 +473,13 @@
             scope.nodes.length = 0;
         }
 
-        function appendParticlePool(layer, definition, effectId) {
+        function appendParticlePool(layer, definition, effectId, shotId) {
             if (!documentImpl?.createElement) throw new Error('zone3_fx_dom_unavailable');
             const requested = Math.max(0, Math.floor(definition.particleCount || 0));
             const count = Math.min(requested, LIMITS.PARTICLE_COUNT);
-            const seed = hashSeed(effectId);
             for (let index = 0; index < count; index += 1) {
                 const particle = documentImpl.createElement('span');
-                const position = fixedParticlePosition(seed, index);
+                const position = storyParticlePosition(effectId, shotId, index);
                 particle.className = 'z3-fx-particle';
                 setAttribute(particle, 'aria-hidden', 'true');
                 particle.style?.setProperty('--z3-particle-x', `${position.x}%`);
@@ -484,7 +509,7 @@
             layer.style?.setProperty('--z3-fx-intensity', String(request?.intensity || 'low'));
             if (definition.kind === 'particles' || definition.kind === 'burst'
                 || definition.kind === 'debris') {
-                appendParticlePool(layer, definition, effectId);
+                appendParticlePool(layer, definition, effectId, request?.shotId);
             } else {
                 const accent = documentImpl.createElement('span');
                 accent.className = 'z3-fx-accent';
@@ -662,7 +687,12 @@
             const id = String(shotId || '');
             if (!validShot(id)) return result(false, { skipped: true, reason: 'unknown_shot', shotId: id });
             stopAll();
-            const ids = Array.isArray(effectIds) ? effectIds : (SHOT_EFFECTS[id] || []);
+            // The normal runtime path does not supply an explicit list.  Include
+            // the shot's optional presentation cues there as well; otherwise
+            // SHOT_OPTIONAL_EFFECTS is contract-only and cues such as the Shui
+            // pulse never reach the real transition lifecycle.  Explicit lists
+            // remain a low-level override for bounded tests/tools.
+            const ids = Array.isArray(effectIds) ? effectIds : getShotEffects(id, true);
             const started = ids.map((effectId) => start(effectId, { ...(request || {}), shotId: id }));
             const camera = startCameraCue(id, request);
             return result(true, { shotId: id, effects: started, camera });
