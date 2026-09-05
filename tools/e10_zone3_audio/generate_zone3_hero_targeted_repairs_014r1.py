@@ -3,7 +3,9 @@
 Each target is resolved against the current canonical subtitle manifest.  The
 Owner-reported wording for target C is retained as forensic metadata, while
 the actual runtime beat (Z3_S01_B003) is regenerated with a targeted
-pronunciation instruction and its visible canonical subtitle is unchanged.
+audio-only text override and its visible canonical subtitle is unchanged.
+TTS input is spoken Chinese only: bracketed directions and English guidance
+are forbidden.
 
 The tool reads ELEVENLABS_API_KEY only from the current process environment.
 It never reads, prints, hashes, copies, or moves credential files.
@@ -143,6 +145,10 @@ def main() -> int:
         output_text = item.get("TTS_INPUT_TEXT")
         if not isinstance(output_text, str) or not output_text:
             raise ValueError(f"empty TTS input: {item.get('BEAT_ID')}")
+        if "[" in output_text or "]" in output_text:
+            raise ValueError(
+                f"TTS input must contain spoken text only; bracketed directions are forbidden: {item.get('BEAT_ID')}"
+            )
         output_key = "AUDITION_AUDIO_PATH" if item.get("AUDITION_ONLY") else "RUNTIME_AUDIO_PATH"
         output_path_value = item.get(output_key)
         if not output_path_value:

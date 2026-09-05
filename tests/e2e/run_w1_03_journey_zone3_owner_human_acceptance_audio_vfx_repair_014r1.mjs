@@ -156,6 +156,11 @@ function inspectAudioIntegrity() {
     assert.equal(targeted.items.length, 4);
     assert.equal(targeted.items.filter((item) => item.AUDITION_ONLY === false).length, 4);
     assert.equal(targeted.items.filter((item) => item.AUDITION_ONLY === true).length, 0);
+    for (const item of targeted.items) {
+        assert.equal(item.TTS_INPUT_TEXT.includes('['), false, `${item.BEAT_ID} must not send bracketed directions to TTS`);
+        assert.equal(item.TTS_INPUT_TEXT.includes(']'), false, `${item.BEAT_ID} must not send bracketed directions to TTS`);
+        assert.equal(/[A-Za-z]/.test(item.TTS_INPUT_TEXT), false, `${item.BEAT_ID} TTS input must not contain English guidance`);
+    }
     const lineC = targeted.items.find((item) => item.BEAT_ID === 'Z3_S01_B003');
     assert.equal(lineC?.EXACT_SUBTITLE, '他們好像是在搬家。');
     assert.equal(lineC?.OWNER_REPORTED_TEXT, '……他們要搬家？');

@@ -7,7 +7,7 @@
   "VOICE_NAME": "Roy",
   "MODEL_ID": "eleven_v3",
   "CANONICAL_SUBTITLE_UNCHANGED": true,
-  "RUNTIME_AUDIO_SCOPE": "Only the four canonical beats with exact subtitle matches may replace runtime files. Visible subtitles remain unchanged; pronunciation is supplied through targeted TTS input text.",
+  "RUNTIME_AUDIO_SCOPE": "Only the four canonical beats with exact subtitle matches may replace runtime files. Visible subtitles remain unchanged; TTS input contains only spoken Chinese, with audio-only homophone substitutions where needed. Bracketed directions and English notes are forbidden in TTS input.",
   "items": [
     {
       "BEAT_ID": "Z3_S01_B001",
@@ -17,8 +17,8 @@
       "REQUIRED_READING": "奇怪 = qí guài; 背著 = bēi zhe; not bèi; natural Taiwan Mandarin",
       "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b001_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot01_owner_line_a.mp3",
-      "TTS_INPUT_TEXT": "[natural contemporary Taiwan Mandarin; warm, curious connected-speech delivery; clearly pronounce 奇怪 as qí guài and 背著 as bēi zhe, never bèi; do not use English-like phonemes] 奇怪……大家怎麼都背著行李？",
-      "REPAIR_REASON": "Owner-confirmed 奇怪 prosody/pronunciation defect plus polyphonic 背著 pronunciation defect and foreign-accent delivery review.",
+      "TTS_INPUT_TEXT": "奇怪……大家怎麼都悲著行李？",
+      "REPAIR_REASON": "Owner-confirmed 奇怪 delivery and polyphonic 背著 pronunciation defect. Audio-only 悲 replaces 背 to force bēi; visible subtitle remains unchanged and no non-spoken directions are sent to TTS.",
       "AUDITION_ONLY": false
     },
     {
@@ -29,8 +29,8 @@
       "REQUIRED_READING": "水壺 = shuǐ hú; 毯子 = tǎn zi; 鍋子 = guō zi",
       "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b002_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot02_owner_line_b.mp3",
-      "TTS_INPUT_TEXT": "[natural contemporary Taiwan Mandarin; clear connected speech and natural rhythm; pronounce 水壺 as shuǐ hú, 毯子 as tǎn zi, and 鍋子 as guō zi; do not read the item list as isolated foreign-accent syllables] 水壺、毯子、鍋子……都是平常生活用的東西。",
-      "REPAIR_REASON": "Owner-confirmed unnatural pronunciation and rhythm across the household-item list.",
+      "TTS_INPUT_TEXT": "水湖、坦子、郭子……都是平常生活用的東西。",
+      "REPAIR_REASON": "Owner-confirmed unnatural pronunciation and rhythm across the household-item list. Audio-only 水湖／坦子／郭子 substitutions force shuǐ hú／tǎn zi／guō zi; visible subtitle remains unchanged and no non-spoken directions are sent to TTS.",
       "AUDITION_ONLY": false
     },
     {
@@ -43,8 +43,8 @@
       "REQUIRED_READING": "他們 = tā men; 搬家 = bān jiā; no English-like phoneme substitution",
       "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot01_owner_line_c.mp3",
-      "TTS_INPUT_TEXT": "[natural contemporary Taiwan Mandarin; clearly pronounce 他們 as tā men, two natural Mandarin syllables and not English they, and 搬家 as bān jiā; never use English-like phonemes] 他們好像是在搬家。",
-      "REPAIR_REASON": "Owner-reported 他們 pronunciation defect mapped to the actual canonical runtime beat; the visible canonical sentence remains unchanged.",
+      "TTS_INPUT_TEXT": "他們好像是在搬家。",
+      "REPAIR_REASON": "Owner-reported 他們 pronunciation defect mapped to the actual canonical runtime beat. Plain canonical Chinese is sent to TTS so no English guidance text can be spoken; the visible canonical sentence remains unchanged.",
       "AUDITION_ONLY": false
     },
     {
@@ -55,8 +55,8 @@
       "REQUIRED_READING": "他們 = tā men; 非走不可 = fēi zǒu bù kě; no English-like phonemes",
       "RUNTIME_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot02_owner_line_d.mp3",
-      "TTS_INPUT_TEXT": "[natural contemporary Taiwan Mandarin; calm but concerned connected-speech delivery; clearly pronounce 他們 as tā men, two natural Mandarin syllables and not English they; pronounce 非走不可 as fēi zǒu bù kě; never use English-like phonemes] 他們是真的非走不可。",
-      "REPAIR_REASON": "Owner-confirmed 他們 pronunciation defect in Shot 2; visible subtitle remains unchanged.",
+      "TTS_INPUT_TEXT": "他們是真的非走不可。",
+      "REPAIR_REASON": "Owner-confirmed 他們 pronunciation defect in Shot 2. Plain canonical Chinese is sent to TTS so no English guidance text can be spoken; visible subtitle remains unchanged.",
       "AUDITION_ONLY": false
     }
   ],
@@ -73,14 +73,14 @@
       "OLD_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b001_zh-TW_hero.mp3",
       "NEW_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b001_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot01_owner_line_a.mp3",
-      "REPAIR_REASON": "Owner-confirmed 奇怪 prosody/pronunciation defect plus polyphonic 背著 pronunciation defect and foreign-accent delivery review.",
+      "REPAIR_REASON": "Owner-confirmed 奇怪 delivery and polyphonic 背著 pronunciation defect. Audio-only 悲 replaces 背 to force bēi; visible subtitle remains unchanged and no non-spoken directions are sent to TTS.",
       "AUDITION_ONLY": false,
       "GENERATED": true,
       "AUTOMATED_VALIDATION": "PASS",
       "OWNER_AUDIO_ACCEPTANCE": "PENDING",
-      "DURATION_MS": 10266,
-      "BYTES": 164719,
-      "SHA256": "04fef0f7c86fb7c2ab884b1d0c991de41d90ec8130d8566d7608a932c1f90599"
+      "DURATION_MS": 2429,
+      "BYTES": 39332,
+      "SHA256": "9655b58b03218cf4fc4b6762db5888582f016faaf596c45c9303fddfcba3a3ac"
     },
     {
       "BEAT_ID": "Z3_S02_B002",
@@ -91,14 +91,14 @@
       "OLD_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b002_zh-TW_hero.mp3",
       "NEW_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b002_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot02_owner_line_b.mp3",
-      "REPAIR_REASON": "Owner-confirmed unnatural pronunciation and rhythm across the household-item list.",
+      "REPAIR_REASON": "Owner-confirmed unnatural pronunciation and rhythm across the household-item list. Audio-only 水湖／坦子／郭子 substitutions force shuǐ hú／tǎn zi／guō zi; visible subtitle remains unchanged and no non-spoken directions are sent to TTS.",
       "AUDITION_ONLY": false,
       "GENERATED": true,
       "AUTOMATED_VALIDATION": "PASS",
       "OWNER_AUDIO_ACCEPTANCE": "PENDING",
-      "DURATION_MS": 19069,
-      "BYTES": 305572,
-      "SHA256": "4f12f40b1afb67d164c42bbb9468fef71344de35f981f3ce765e37fe4958f5ba"
+      "DURATION_MS": 4754,
+      "BYTES": 76530,
+      "SHA256": "edd146df03d7b498813aedb95339fa0799bdbd4ac24a83e7766f76058c724a4d"
     },
     {
       "BEAT_ID": "Z3_S01_B003",
@@ -109,14 +109,14 @@
       "OLD_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3",
       "NEW_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot01_b003_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot01_owner_line_c.mp3",
-      "REPAIR_REASON": "Owner-reported 他們 pronunciation defect mapped to the actual canonical runtime beat; the visible canonical sentence remains unchanged.",
+      "REPAIR_REASON": "Owner-reported 他們 pronunciation defect mapped to the actual canonical runtime beat. Plain canonical Chinese is sent to TTS so no English guidance text can be spoken; the visible canonical sentence remains unchanged.",
       "AUDITION_ONLY": false,
       "GENERATED": true,
       "AUTOMATED_VALIDATION": "PASS",
       "OWNER_AUDIO_ACCEPTANCE": "PENDING",
-      "DURATION_MS": 15491,
-      "BYTES": 248311,
-      "SHA256": "e5ab576bb06fb5bc529732374e35ab7ae56c013b8f67910d3d70c64e14c66679"
+      "DURATION_MS": 1646,
+      "BYTES": 26793,
+      "SHA256": "bf24890fd894fd86aa7268fcee8ef5a10967be4afaa73d5ac663db82d68237cc"
     },
     {
       "BEAT_ID": "Z3_S02_B004",
@@ -127,14 +127,14 @@
       "OLD_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3",
       "NEW_AUDIO_PATH": "assets/e10/audio/zone3/dialogue/zh-TW/zone3_shot02_b004_zh-TW_hero.mp3",
       "AUDITION_AUDIO_PATH": "tools/e10_zone3_audio/_local_review/targeted_repairs_014r1/zh-TW/hero_shot02_owner_line_d.mp3",
-      "REPAIR_REASON": "Owner-confirmed 他們 pronunciation defect in Shot 2; visible subtitle remains unchanged.",
+      "REPAIR_REASON": "Owner-confirmed 他們 pronunciation defect in Shot 2. Plain canonical Chinese is sent to TTS so no English guidance text can be spoken; visible subtitle remains unchanged.",
       "AUDITION_ONLY": false,
       "GENERATED": true,
       "AUTOMATED_VALIDATION": "PASS",
       "OWNER_AUDIO_ACCEPTANCE": "PENDING",
-      "DURATION_MS": 11076,
-      "BYTES": 177676,
-      "SHA256": "5832d1ae3d196ff18a687167ecb85aee174e4ef76c81738205e48439416497fc"
+      "DURATION_MS": 2273,
+      "BYTES": 36824,
+      "SHA256": "abf06f92f2d8533f4e4f6222287e53fbb5b9c12ce6834d6b0fca0cd1f6981177"
     }
   ]
 }
