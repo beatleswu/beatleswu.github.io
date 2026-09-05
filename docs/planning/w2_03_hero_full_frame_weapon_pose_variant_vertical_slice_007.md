@@ -26,6 +26,11 @@ FINAL_AMENDMENT_1_FIX_R15_SCOPE=APPLIED
 FINAL_AMENDMENT_2_DISAMBIGUATE_PALM_VS_GRIP=APPLIED
 FINAL_AMENDMENT_3_R10_BACK_LAYER_SEMANTICS=APPLIED
 FINAL_AMENDMENT_4_R14_ALPHA_HARD_RGB_DIAGNOSTIC=APPLIED
+PREFLIGHT_AMENDMENT_1_R15_NAMING_AND_CUFF_COVERAGE=APPLIED
+PREFLIGHT_AMENDMENT_2_DETERMINISTIC_GRIP_AXIS=APPLIED
+IMPLEMENTATION_SPEC=APPROVED
+DO_NOT_OPEN_OR_MERGE_PR_YET=YES
+DO_NOT_MOVE_MASTER=YES
 TASK_BRIEF_STATUS=APPROVED_FOR_PLANNING_BRANCH_PUBLICATION
 NO_MASTER_MUTATION  NO_MERGE  NO_DEPLOY  NO_PRODUCTION_MUTATION
 ```
@@ -122,7 +127,7 @@ Normalized `0..1`, origin top-left, matching `templates.json` `coordinate_system
 | Right hand bounding box (skin) | x 0.692–0.789, y 0.472–0.596 | x 731–833, y 664–839 |
 | **`MEASURED_PALM_CENTER_R`** (canonical **open**-hand skin centroid) | **(0.734, 0.542)** | (775, 763) |
 | **`GRIP_ANCHOR_R`** | **`DERIVED_FROM_OWNER_ART` — see §3.3** | — |
-| `SLEEVE_CUFF_PRESERVATION_MASK` (§3.4) | ROI ∩ y ≤ 0.478 | x 676–840, y 641–673 |
+| `SLEEVE_ENTRY_PRESERVATION_MASK` (§3.4) | ROI ∩ y ≤ 0.478 | x 676–840, y 641–673 |
 | **`HAND_CHANGE_REGION_R`** (revised — see §3.1) | **x 0.640–0.795, y 0.455–0.600** | **x 676–840, y 641–845** |
 | Body/leg silhouette below the hand (y 0.60–0.95) | x 0.35–0.65 | x 370–686 |
 | Existing canonical sword length / width | 0.257 H / 0.294 W | 362 / 310 |
@@ -186,21 +191,76 @@ GRIP_ANCHOR_R=DERIVED_FROM_OWNER_ART     STATUS=MEASURED_AFTER_DELIVERY
 - `wooden_sword_held.png` placement and gate R6 are both evaluated against that **derived** value.
 - No numeric grip anchor may be hard-coded in the renderer, tests, or templates ahead of delivery.
 
-### 3.4 `SLEEVE_CUFF_PRESERVATION_MASK`
+### 3.4 `SLEEVE_ENTRY_PRESERVATION_MASK` — and what it deliberately does **not** cover
 
 ```
-SLEEVE_CUFF_PRESERVATION_MASK = HAND_CHANGE_REGION_R ∩ (y <= 0.478)
-                              = x 0.640–0.795, y 0.455–0.478
+SLEEVE_ENTRY_PRESERVATION_MASK = HAND_CHANGE_REGION_R ∩ (y <= 0.478)
+                               = x 0.640–0.795, y 0.455–0.478
 ```
 
 Verified against the canonical base: that band contains **exactly one** skin-chroma pixel
-(a stray antialiasing sample at y 0.4787) out of ~5,400 — the lowest skin pixel otherwise sits at
-y 0.4716 outside the ROI's x range, and continuous hand skin begins at y 0.496. The band is
-therefore fabric-or-transparent, and the boundary is set at **0.478** rather than at the cuff
-(0.489) precisely so that **no hand pixel can ever fall inside the mask.**
+(a stray antialiasing sample at y 0.4787) out of ~5,400 — continuous hand skin begins at y 0.496.
+The band is therefore fabric-or-transparent, and the boundary is set at **0.478** rather than at
+the cuff (0.489) precisely so that **no hand pixel can ever fall inside the mask.** That is what
+makes R15 safe against rejecting a correctly drawn compact fist.
 
-This is what makes R15 safe: the mask protects the sleeve the arm hangs from, and cannot reject a
-correctly drawn fist. See R15.
+**Naming correction.** This mask was previously called `SLEEVE_CUFF_PRESERVATION_MASK`, which
+overstated its coverage. The measured cuff occupies **y 0.489–0.512** — entirely *below* the mask.
+So this mask protects the **sleeve entry only**, not the cuff. Claiming otherwise would leave a
+real gap: if the owner's patch tore a transparent hole through the cuff-to-wrist join, a
+y ≤ 0.478 mask would not notice.
+
+Protecting the cuff must not be done by skin-versus-cloth RGB classification — the tunic's cream
+fabric (≈ rgb 230,200,165) is too close to the skin tone (≈ rgb 252,190,135) for that to be
+reliable. It is covered instead by **R16, a pure alpha-topology gate** (see §9), which needs no
+colour classification at all. The cuff's *appearance* remains owner visual authority (Q1–Q5).
+
+### 3.5 `GRIP_AXIS` — how `GRIP_ANCHOR_R` is derived, deterministically
+
+`GRIP_ANCHOR_R = DERIVED_FROM_OWNER_ART` is not a specification on its own. "Measure the grip
+channel centre" has no unique mathematical answer on a transparent hand image — it could mean the
+centroid of the gap between back and front fingers, the thumb-web centre, the palm opening centre,
+or the grip-axis midpoint, and nothing fixes the blade direction. Left undefined, the coordinate
+would end up eyeballed by a human or by Codex, which is the previous failure wearing a new label.
+
+**Contract: the owner's hand delivery includes grip-axis metadata.** Two coordinate pairs in a
+JSON sidecar — **not** a third piece of artwork, and **not** a skeletal pivot. This is ordinary
+equipment-socket metadata.
+
+```json
+{
+  "schema": "go-odyssey.hero-grip-axis.v1",
+  "character": "apprentice",
+  "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+  "coordinate_space": "normalized_0_to_1_of_1056x1408",
+  "grip_axis_p1": [x1, y1],
+  "grip_axis_p2": [x2, y2]
+}
+```
+
+- `grip_axis_p1` = the **pommel-side** end of the grip channel (nearer the thumb web).
+- `grip_axis_p2` = the **blade-side** end. The vector P1 → P2 therefore points along the blade.
+  This ordering is normative; swapping the points inverts the sword.
+
+Codex derives, with no judgement calls:
+
+```
+GRIP_ANCHOR_R      = midpoint(P1, P2)
+GRIP_ORIENTATION_R = degrees(atan2(y2 - y1, x2 - x1))
+```
+
+Both are written into `characters.apprentice` and reported. The canonical sword carries its own
+one-time axis measurement on its artwork (`equipment.wooden_sword.canonical_grip_axis`, two points
+in the same space), and the held overlay is baked by mapping the sword's axis onto the character's
+axis.
+
+**The bake is translate + rotate ONLY. Never scale.** The sword must keep its canonical size, so
+its opaque pixel count is preserved through the bake (gate R6b). If the character's grip-axis
+length disagrees with the sword's grip length, that is an **art mismatch to report**, not something
+to fix by resizing the sword — resizing to satisfy a number is exactly the class of correction that
+produced the previous failure.
+
+Runtime remains `scale=1 / translate=0 / rotation=0`. All placement is baked once into the asset.
 
 ### 3.2 The six characters do NOT share a hand position — measured
 
@@ -222,8 +282,8 @@ misplaced by up to ~80 px on other characters — plainly visible. A common cros
 therefore **NOT proven**, and must not be forced.
 
 ```
-APPRENTICE_GRIP_ANCHOR_R=(0.734,0.525)   STATUS=HARD_CONTRACT
-COMMON_GRIP_ANCHOR_R=(0.734,0.525)       STATUS=SCALABILITY_TARGET_NOT_YET_PROVEN
+APPRENTICE_GRIP_ANCHOR_R=DERIVED_FROM_OWNER_GRIP_AXIS   STATUS=PENDING_ART   (§3.5)
+COMMON_GRIP_ANCHOR_R=NONE                STATUS=SCALABILITY_TARGET_NOT_YET_PROVEN
 ```
 
 Do not force any future character's anatomy to this coordinate. Visual anatomy outranks an
@@ -260,7 +320,7 @@ Grounds, all measured above:
 4. **A lowered sword will not be occluded.** The hand sits at x 0.695–0.793; the body/leg
    silhouette below it spans only x 0.35–0.65. The hand is entirely clear of the body, so a sword
    hanging down from `GRIP_ANCHOR_R` occupies open space beside the figure.
-5. **The sword fits the canvas.** It is 0.257 canvas-heights long; from grip y 0.525 the tip lands
+5. **The sword fits the canvas.** It is 0.257 canvas-heights long; from a grip around y 0.54 the tip lands
    at roughly y 0.78 — clear air, above the feet line (~0.95), inside the frame.
 6. **`MUST_NOT_REQUIRE_SHOULDER_REDESIGN` then holds trivially** instead of by hope.
 
@@ -337,6 +397,7 @@ that technique was correct.
 |---|---|
 | `hand_grip_back` | **The complete opaque content of `HAND_CHANGE_REGION_R`**: the sleeve fragment entering at the top-left, the full slanted cuff, the wrist, and the closed grip hand including the fingers that pass **behind** the sword grip. |
 | `hand_grip_front` | **Only** the thumb and the fingers that pass **in front** of the sword grip. Nothing else. No sword pixels, ever. |
+| `grip_axis.json` | Two coordinate pairs — `grip_axis_p1` (pommel side) and `grip_axis_p2` (blade side) — in normalized frame space (§3.5). **Metadata, not artwork**: it is what makes the grip socket deterministic instead of eyeballed. |
 
 Both must be delivered on a transparent **1056 × 1408** canvas, positioned in place — not cropped,
 not centred, not trimmed. The fist should sit roughly at `MEASURED_PALM_CENTER_R = (0.734, 0.542)`
@@ -416,21 +477,34 @@ unchanged for backward compatibility:
 },
 "hand_front_mask_r": "/assets/hero/equipment/wearables/masks/apprentice_p1_weapon_grip_hand_front.png",
 "measured_palm_center_r": [0.734, 0.542],
+"grip_axis_r": null,
 "grip_anchor_r": null,
-"grip_anchor_status": "DERIVED_FROM_OWNER_ART",
+"grip_orientation_r_deg": null,
+"grip_anchor_status": "DERIVED_FROM_OWNER_GRIP_AXIS",
 "hand_change_region_r": [0.640, 0.455, 0.795, 0.600],
-"sleeve_cuff_preservation_mask": [0.640, 0.455, 0.795, 0.478]
+"sleeve_entry_preservation_mask": [0.640, 0.455, 0.795, 0.478]
 ```
 
-`grip_anchor_r` ships as `null` and is filled in by Codex **after** measuring the delivered
-`hand_grip_back` (§3.3). It becomes `HARD_CONTRACT` for `apprentice` only once written from real
-art. `measured_palm_center_r` is informational and must never be used as the sword anchor.
+`grip_axis_r` is filled from the owner's `grip_axis.json`; `grip_anchor_r` and
+`grip_orientation_r_deg` are then **computed** from it by the closed formula in §3.5 — never typed
+in by hand, never eyeballed. All three ship as `null` and become `HARD_CONTRACT` for `apprentice`
+only once written from real art. `measured_palm_center_r` is informational and must never be used
+as the sword anchor.
+
+**f. `equipment.wooden_sword`** also gains a one-time axis measurement on its own canonical
+artwork, so the bake has something to map *from*:
+
+```json
+"canonical_grip_axis": [[x1, y1], [x2, y2]]
+```
+
+Same coordinate space, same P1 = pommel / P2 = blade ordering.
 
 `grip_anchor_r` is stored **per character**, never globally. Add alongside it, at registry root:
 
 ```json
 "common_grip_anchor_r": {
-  "value": [0.734, 0.525],
+  "value": null,
   "status": "SCALABILITY_TARGET_NOT_YET_PROVEN",
   "note": "measured palm centroids differ by up to 82px x / 93px y across the six shipped bases; do not force future character anatomy to this coordinate"
 }
@@ -448,7 +522,8 @@ Do not remove or alter existing fields:
   "asset": "/assets/hero/equipment/wearables/overlays/wooden_sword_held.png",
   "requires_base_variant": "WEAPON_GRIP_R",
   "requires_hand_front": "hand_front_mask_r",
-  "grip_anchor": [0.734, 0.525],
+  "grip_anchor": null,
+  "grip_anchor_source": "characters.<character>.grip_anchor_r (derived, §3.5)",
   "production_status": "OWNER_REVIEW_PENDING"
 }
 ```
@@ -467,7 +542,8 @@ This file currently **forbids** what this task introduces. Amend it explicitly �
 - `templates.WEAPON_WAIST.occlusion_rule` retains `no_hand_grip_pose` — correct for the sheathed
   template. **Leave it alone.**
 - Add an 11th template `WEAPON_HELD`:
-  - `anchor: "hand_right"`, `anchor_point: [0.734, 0.525]`
+  - `anchor: "hand_right"`, `anchor_point: null` — resolved per character from the derived
+    `grip_anchor_r` (§3.5); **no literal coordinate may be written into the template**
   - `bounding_box` containing the sword art; must not intersect `FACE_SAFE_ZONE` or `NECK_ZONE`
   - `front_back_layer: ["HELD_WEAPON", "HAND_FRONT"]`
   - `requires_base_variant: "WEAPON_GRIP_R"`
@@ -566,16 +642,24 @@ a transform is forbidden** — that is exactly the defect that produced the prev
 | R13 | `SHOULDER_ZONE` (y 0.25–0.43) pixels | modified — V1 must not touch the shoulder. `SHOULDER_ZONE_PIXEL_DIFF_COUNT != 0` |
 | **R14a** | **ROI border alpha continuity — HARD GATE.** At the sleeve crossing (top edge x 0.639–0.719; left edge y 0.460–0.477): wherever the canonical base is opaque immediately *outside* the border, the patch must be opaque immediately *inside*, and wherever it is transparent outside, the patch must not bleed opaque inside | any alpha mismatch across the border. This is the structural test that the arm is not severed at the ROI edge |
 | R14b | **ROI border RGB seam metric — DIAGNOSTIC ONLY.** Mean per-channel delta between the 1-px ring inside and outside the border, at the sleeve crossing | *nothing.* **Reported, not blocking.** A provisional reference value of 8/255 is recorded for observation. It may be promoted to a hard gate **only after** its tolerance has been calibrated against a known-good conforming patch — an uncalibrated RGB threshold would false-reject normal antialiasing and shading, which is the same "pretty number measuring the wrong thing" failure as the 50-loop gate |
-| **R15** | **`R15_SLEEVE_CUFF_PRESERVATION` — scoped to `SLEEVE_CUFF_PRESERVATION_MASK` only** (ROI ∩ y ≤ 0.478, §3.4). Within that mask: `ORIGINAL_OPAQUE_AND_NEW_TRANSPARENT_COUNT` | `!= 0`. **This rule must NOT be applied to the whole `HAND_CHANGE_REGION_R`.** Canonical open-hand finger pixels *are expected and permitted to disappear* — a correct closed grip is more compact than a spread palm, so a broad "no opaque may become transparent" rule would reject correct art. Only sleeve/cuff fabric the arm hangs from is protected, and the mask boundary at 0.478 is set so that no hand pixel can fall inside it |
+| **R15** | **`R15_SLEEVE_ENTRY_PRESERVATION` — scoped to `SLEEVE_ENTRY_PRESERVATION_MASK` only** (ROI ∩ y ≤ 0.478, §3.4). Within that mask: `ORIGINAL_OPAQUE_AND_NEW_TRANSPARENT_COUNT` | `!= 0`. **This rule must NOT be applied to the whole `HAND_CHANGE_REGION_R`.** Canonical open-hand finger pixels *are expected and permitted to disappear* — a correct closed grip is more compact than a spread palm, so a broad "no opaque may become transparent" rule would reject correct art. This gate protects **the sleeve entry only**; it does not reach the cuff (y 0.489–0.512) — that is R16's job |
+| **R16** | **`CUFF_TO_WRIST_ALPHA_CONTINUITY` — HARD GATE, pure alpha topology, no colour classification.** On the composed pose base, restricted to the ROI: **(a) connectivity** — flood-fill 4-connected through opaque pixels, seeded from the opaque pixels at the sleeve-entry border crossing (top edge x 0.639–0.719 at y 0.455; left edge y 0.460–0.477 at x 0.640); every opaque pixel in the ROI must belong to that single component. **(b) enclosed-hole detection** — flood-fill 4-connected through *transparent* pixels seeded from the ROI border; any transparent pixel not reached is enclosed by opaque pixels and is a hole | (a) any opaque pixel in the ROI is not connected to the sleeve entry → a detached fist / floating hand / stray island; or (b) `ENCLOSED_TRANSPARENT_HOLE_PIXEL_COUNT != 0` → a tear through the cuff-to-wrist join. This is what actually guarantees the arm is one continuous piece from sleeve through cuff to fist, and it needs no skin-versus-cloth judgement |
+| **R6b** | **Sword bake preserves canonical size.** Opaque pixel count of `wooden_sword_held.png` vs canonical `wooden_sword.png` | differs by more than antialiasing tolerance (0.5%). Proves the bake was translate + rotate only, never scale (§3.5) |
+| R17 | `grip_axis` metadata validity: both points inside the ROI; `midpoint(P1,P2)` falls on an opaque pixel of `hand_grip_back`; `\|P2 − P1\|` ≥ 1% of canvas diagonal | any condition fails. A degenerate or out-of-region axis makes `GRIP_ORIENTATION_R` numerically unstable |
 
 **Load-bearing gates.** R2 + R13 make "different body, different scale, different character,
 shoulder drift" mechanically impossible — the exact class of defect that reached the owner's screen
 last time. R10 makes leftover open-hand fingers impossible. R14a makes a severed arm at the ROI
-edge impossible. R15 makes a hole in the sleeve impossible **without** rejecting a correct fist.
+border impossible. R15 protects the sleeve entry **without** rejecting a correct fist. **R16 is the
+one that actually guarantees a continuous arm** — sleeve → cuff → wrist → fist as a single opaque
+component with no enclosed tear — and it does so on alpha topology alone, so no fragile
+skin-versus-cloth colour test ever enters a release gate.
 
-**Deliberately not a blocker:** R14b. Hard-thresholding an RGB average before calibration is how
-gates start measuring their own arithmetic instead of the picture. The final visual authority is
-the owner's still review (§12), not R14b.
+**Deliberately not blockers:** R14b (RGB seam average, pending calibration) and cuff *aesthetics*.
+Hard-thresholding an RGB average before calibration is how gates start measuring their own
+arithmetic instead of the picture. Whether the cuff *looks* right is owner visual authority
+(§12), not a numeric gate. What the gates guarantee is structural: nothing is severed, nothing is
+holed, nothing drifted, nothing was resized.
 
 ---
 
@@ -584,7 +668,7 @@ the owner's still review (§12), not R14b.
 Additive. Do not weaken or delete existing tests.
 
 `tests/test_w2_03_hero_full_frame_weapon_pose_variant_vertical_slice_007.py`
-- R1–R15 as executable checks against the real asset bytes.
+- R1–R17 as executable checks against the real asset bytes.
 - **Explicitly asserts the pose base was built by clear-then-composite, not alpha-over**: inside
   the ROI, `apprentice_p1_weapon_grip.png` must equal `hand_grip_back` byte-for-byte (R10). A test
   fixture must additionally prove the naive alpha-over construction **fails** this assertion, so
@@ -592,12 +676,19 @@ Additive. Do not weaken or delete existing tests.
 - Asserts `grip_anchor_r` is per-character and `common_grip_anchor_r.status ==
   "SCALABILITY_TARGET_NOT_YET_PROVEN"`.
 - **Asserts R15 is scoped, not broad**: a fixture in which the fist correctly vacates canonical
-  open-finger pixels **outside** `SLEEVE_CUFF_PRESERVATION_MASK` must PASS, and a fixture that
+  open-finger pixels **outside** `SLEEVE_ENTRY_PRESERVATION_MASK` must PASS, and a fixture that
   leaves a hole **inside** the mask must FAIL. Both directions must be exercised, so the scope fix
   is proven live rather than assumed.
 - Asserts no literal grip-anchor coordinate is hard-coded in the renderer, templates, or tests;
   the value must be read from the registry after derivation.
 - Asserts R14a (alpha continuity) blocks and R14b (RGB delta) does not.
+- **R16 both directions**: a fixture with a transparent tear through the cuff-to-wrist join must
+  FAIL; a fixture with a correct continuous arm must PASS; a fixture with a fist detached from the
+  sleeve must FAIL on connectivity. Asserts the implementation contains **no** RGB/chroma test.
+- **Grip derivation is a closed formula**: given a `grip_axis.json` fixture, the computed
+  `grip_anchor_r` and `grip_orientation_r_deg` must equal `midpoint(P1,P2)` and
+  `atan2(P2−P1)` exactly. Asserts no literal anchor constant exists in renderer, templates or tests.
+- **R6b**: a fixture where the sword was scaled during the bake must FAIL.
 - Registry schema: `layer_order` contains `HELD_WEAPON` and `HAND_FRONT` in the specified
   positions; `body_frame_variants == 2`; `item_character_bespoke_redraws == 0`;
   `base_variants` keyed by **name**; `wooden_sword.held_presentation` well-formed; existing waist
@@ -644,7 +735,7 @@ State D costs zero new art and gives early warning of a torso-occlusion problem.
 pose-compatibility either way. Record what is observed; that is all. Torso-armour compatibility is
 a separate follow-up task.
 
-Plus `browser-results.json` and `reject_conditions.json` recording measured R1–R15 per deliverable.
+Plus `browser-results.json` and `reject_conditions.json` recording measured R1–R17 per deliverable.
 
 **No GIF. No 50-loop sampling.** If the still is wrong, animation cannot save it.
 
@@ -652,7 +743,7 @@ Plus `browser-results.json` and `reject_conditions.json` recording measured R1�
 
 ## 12. Acceptance gate
 
-1. R1–R15 all PASS, recorded in `reject_conditions.json`.
+1. R1–R17 all PASS, recorded in `reject_conditions.json`.
 2. All §10 tests PASS.
 3. **Owner static visual acceptance.** Owner views the gating stills and answers:
 
@@ -722,12 +813,22 @@ POSE_BASE_ROI_RGBA_EQUALS_OWNER_HAND_GRIP_BACK=   (must be YES)
 HAND_FRONT_BAKED_INTO_POSE_BASE=NO                (YES is a FAIL)
 R14a_BORDER_ALPHA_CONTINUITY=                     (HARD; must be PASS)
 R14b_BORDER_RGB_MEAN_DELTA=                       (DIAGNOSTIC ONLY; not blocking)
-R15_SLEEVE_CUFF_MASK=x0.640-0.795,y0.455-0.478
+R15_SLEEVE_ENTRY_MASK=x0.640-0.795,y0.455-0.478
 R15_ORIGINAL_OPAQUE_AND_NEW_TRANSPARENT_COUNT=    (must be 0, within mask only)
 R15_APPLIED_TO_WHOLE_ROI=NO                       (YES is a spec violation)
+R15_CLAIMS_TO_COVER_CUFF=NO                       (it does not; cuff is R16)
+R16_CUFF_TO_WRIST_ALPHA_CONTINUITY=               (HARD; must be PASS)
+R16_ROI_OPAQUE_NOT_CONNECTED_TO_SLEEVE_ENTRY=     (must be 0)
+R16_ENCLOSED_TRANSPARENT_HOLE_PIXEL_COUNT=        (must be 0)
+R16_USED_RGB_CLASSIFICATION=NO                    (YES is a spec violation)
 MEASURED_PALM_CENTER_R=(0.734,0.542)              STATUS=INFORMATIONAL
-GRIP_ANCHOR_R_DERIVED=                            (measured from delivered hand_grip_back)
+GRIP_AXIS_P1_R=                GRIP_AXIS_P2_R=    (from owner grip_axis.json)
+GRIP_ANCHOR_R_DERIVED=                            (= midpoint(P1,P2), computed)
+GRIP_ORIENTATION_R_DEG=                           (= atan2(P2-P1), computed)
+GRIP_ANCHOR_DERIVATION=CLOSED_FORMULA             (EYEBALLED is a FAIL)
 GRIP_ANCHOR_R_HARDCODED_AHEAD_OF_DELIVERY=NO
+SWORD_BAKE_OPS=TRANSLATE_ROTATE_ONLY              (any scale is a FAIL)
+R6b_SWORD_OPAQUE_PIXEL_COUNT_DELTA=               (must be <= 0.5%)
 COMMON_GRIP_ANCHOR_R_STATUS=SCALABILITY_TARGET_NOT_YET_PROVEN
 FORCED_FUTURE_CHARACTER_TO_COMMON_ANCHOR=NO
 CHARACTER_SPECIFIC_DERIVED_HELD_OVERLAY=YES       (expected, not a defect)
@@ -780,7 +881,7 @@ STATUS=PASS_W2_03_FULL_FRAME_WEAPON_POSE_VARIANT_READY_FOR_OWNER_STATIC_REVIEW
 | Seam risk | 3 drawn cut faces | 1 ROI edge, hidden at an existing sleeve cuff |
 | New weapon cost | segment art per weapon | 1 overlay PNG |
 | Torso overlays in scope | 5 (shoulder shared) | **0** (shoulder untouched) |
-| Gate | 50-loop geometry PASS | R1–R15 + **owner's eye on a still** |
+| Gate | 50-loop geometry PASS | R1–R17 + **owner's eye on a still** |
 
 ## Appendix B — divergences from the reviewing proposal, and why
 
@@ -794,8 +895,10 @@ STATUS=PASS_W2_03_FULL_FRAME_WEAPON_POSE_VARIANT_READY_FOR_OWNER_STATIC_REVIEW
 | Owner eye is the highest gate | Adopted, with reviewer's Q1–Q5 verbatim and `PENDING_OWNER` mandated in the report | Agreed |
 | `EXPECTED_CURRENT_CANONICAL_HEAD=3dc517bf…` | **Verified correct in-session** and retained, with a STOP rule if master moves | Confirmed: `origin/master` = `3dc517bfbf789da378f971b092980fb53e7a5e2f` |
 | Amendment 1: clear the old open hand before compositing, don't alpha-over | **Adopted, and the clear rule corrected.** Clearing "everything in the ROI below the cuff" would have punched a hole in the sleeve, because the cuff is **slanted** (y 0.489 at x 0.735 → y 0.512 at x 0.648). Rule is now: clear the **entire ROI rectangle**; the owner's patch re-supplies sleeve fragment + cuff + fist. Gates R10 (residual = 0), R15 (no hole), R14 (no visible rectangle edge). ROI revised to x 0.640–0.795, y 0.455–0.600. §3.1, §6 |
-| Final amendment 1: R15 as written would reject a correct fist | **Accepted — this was a real logic bug in my gate.** A closed grip is more compact than a spread palm, so open-hand finger pixels *must* be allowed to vanish. R15 is now scoped to `SLEEVE_CUFF_PRESERVATION_MASK` (ROI ∩ y ≤ 0.478) only, with the boundary measured so no hand pixel can fall inside it. §3.4, R15 |
+| Final amendment 1: R15 as written would reject a correct fist | **Accepted — this was a real logic bug in my gate.** A closed grip is more compact than a spread palm, so open-hand finger pixels *must* be allowed to vanish. R15 is now scoped to `SLEEVE_ENTRY_PRESERVATION_MASK` (ROI ∩ y ≤ 0.478) only, with the boundary measured so no hand pixel can fall inside it. §3.4, R15 |
 | Final amendment 2: two different apprentice Y values | **Accepted, and the cause found: 0.525 was my transcription error** of the measurement 0.5316 — which was itself a sleeve-contaminated figure, not a palm centre. Three measurements are now separately labelled, and `GRIP_ANCHOR_R` is `DERIVED_FROM_OWNER_ART` rather than pre-guessed, because the canonical hand is open and the fist does not exist yet. §3.3 |
 | Final amendment 3: R10 must name the back layer | **Adopted verbatim.** R10 compares the pose base ROI against `hand_grip_back` only; baking `hand_grip_front` into the pose base is an explicit FAIL, since it must stay a runtime layer in front of the weapon |
+| Preflight amendment 1: R15's mask sits above the cuff, so it cannot claim to preserve it | **Accepted — the name overstated the coverage.** Measured cuff is y 0.489–0.512; the mask is y ≤ 0.478. Renamed to `R15_SLEEVE_ENTRY_PRESERVATION` with the same safe cloth-only mask, and the cuff is now covered by **R16 `CUFF_TO_WRIST_ALPHA_CONTINUITY`** — pure alpha topology (single connected component from sleeve entry to fist, plus enclosed-hole detection), explicitly no skin/cloth RGB classification. Cuff aesthetics stay owner authority. §3.4, R16 |
+| Preflight amendment 2: `DERIVED_FROM_OWNER_ART` needs an actual algorithm | **Accepted — without one it was an eyeballed coordinate with a better name.** Owner now supplies `grip_axis_p1` (pommel) / `grip_axis_p2` (blade) as JSON metadata, not artwork. Codex computes `GRIP_ANCHOR_R = midpoint(P1,P2)` and `GRIP_ORIENTATION_R = atan2(P2−P1)` by closed formula. Two points also fix the blade angle, which the brief previously left as prose ("hanging downward"). Bake is **translate + rotate only**, never scale (R6b), runtime stays identity. §3.5 |
 | Final amendment 4: alpha continuity hard, RGB threshold not a blocker yet | **Adopted.** Split into R14a (hard, alpha) and R14b (diagnostic, RGB). An uncalibrated 8/255 average would false-reject antialiasing and shading — the same "measuring its own arithmetic" failure mode as the 50-loop gate |
 | Amendment 2: common six-character anchor is not yet proven | **Adopted, and now empirically confirmed.** Measured palm centroids on all six shipped bases differ by up to 82 px x / 93 px y; `mage` could not even be measured reliably. `grip_anchor_r` is stored per character; `common_grip_anchor_r.status = SCALABILITY_TARGET_NOT_YET_PROVEN`. Reuse is preserved by Codex re-*placing* the one canonical sword artwork per character, never redrawing it. §3.2 |
