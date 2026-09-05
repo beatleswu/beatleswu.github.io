@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>apprentice_p1 skeletal foundation probe</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #101923; color: #f6f0e4; }
+    main { width: min(100%, 1120px); margin: 0 auto; padding: 20px; }
+    header { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: clamp(1.35rem, 3vw, 2rem); }
+    p { color: #c8d5df; max-width: 75ch; line-height: 1.5; }
+    .notice { border: 1px solid #c77d36; background: #2b2017; border-radius: 12px; padding: 12px 14px; color: #ffe0b2; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
+    .stage { min-height: min(74vh, 760px); height: min(74vh, 760px); border: 1px solid #385168; border-radius: 18px; overflow: hidden; background: radial-gradient(circle at 50% 28%, #293c50, #101923 72%); }
+    canvas { display: block; width: 100%; height: 100%; }
+    aside { display: grid; gap: 12px; }
+    .panel { background: #172432; border: 1px solid #2e485e; border-radius: 14px; padding: 14px; }
+    .panel h2 { margin: 0 0 10px; font-size: 1rem; }
+    .presets { display: grid; gap: 8px; }
+    button { border: 1px solid #5c86a5; border-radius: 9px; padding: 9px 11px; background: #1c3448; color: #fff; text-align: left; cursor: pointer; }
+    button:hover, button:focus-visible { background: #28516e; outline: 2px solid #f0bd68; outline-offset: 2px; }
+    button[data-active="true"] { background: #83502c; border-color: #f0bd68; }
+    dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; font-size: .9rem; }
+    dt { color: #9eb5c5; }
+    dd { margin: 0; color: #f7d693; text-align: right; }
+    code { color: #f7d693; word-break: break-word; }
+    .small { font-size: .82rem; color: #aebfca; }
+    @media (max-width: 760px) {
+      main { padding: 12px; }
+      .layout { grid-template-columns: 1fr; }
+      .stage { height: 68vh; min-height: 440px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>apprentice_p1 · skeletal foundation probe</h1>
+        <p>Bone-driven engineering evidence only. Select a presentation preset to inspect the same fixed-space skeleton with different attachments.</p>
+      </div>
+      <div class="notice" role="status">Final visual rig proof: blocked pending Owner-approved rig art.</div>
+    </header>
+    <section class="layout" aria-label="skeletal rig proof surface">
+      <div class="stage"><canvas id="rig-canvas" aria-label="Animated apprentice skeletal rig foundation"></canvas></div>
+      <aside>
+        <div class="panel">
+          <h2>Attachment presets</h2>
+          <div id="presets" class="presets"></div>
+          <p class="small">These controls only change a local presentation preview. They do not call inventory or loadout authority.</p>
+        </div>
+        <div class="panel">
+          <h2>Runtime evidence</h2>
+          <dl>
+            <dt>active preset</dt><dd id="active-preset">loading</dd>
+            <dt>bone count</dt><dd id="bone-count">—</dd>
+            <dt>slot count</dt><dd id="slot-count">—</dd>
+            <dt>drawn attachments</dt><dd id="draw-count">—</dd>
+            <dt>design space</dt><dd>1056×1408</dd>
+            <dt>missing assets</dt><dd id="missing-assets">—</dd>
+            <dt>rig clock</dt><dd id="rig-clock">—</dd>
+          </dl>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <script src="/js/e9/hero_skeletal_rig.js"></script>
+  <script>
+    (async function () {
+      'use strict';
+      const api = window.GoOdysseyHeroSkeletalRig;
+      const manifestUrl = '../../planning/w2_03_hero_true_2d_skeletal_rig_vertical_slice_005r2/apprentice_p1_skeletal_manifest.json';
+      const manifest = await api.loadManifest(manifestUrl);
+      const assets = await api.loadAssets(manifest);
+      const canvas = document.getElementById('rig-canvas');
+      const rig = new api.SkeletalRig(manifest);
+      const presets = {
+        base: [],
+        wooden_sword: ['wooden_sword'],
+        cloth_robe: ['cloth_robe'],
+        fox_pelt: ['fox_pelt'],
+        full_loadout: ['wooden_sword', 'cloth_robe', 'fox_pelt', 'lucky_stone'],
+      };
+      const labels = {
+        base: 'A · apprentice base idle',
+        wooden_sword: 'B · wooden sword idle',
+        cloth_robe: 'C · cloth robe idle',
+        fox_pelt: 'D · fox pelt idle',
+        full_loadout: 'E · full loadout idle',
+      };
+      let preset = 'full_loadout';
+      const presetRoot = document.getElementById('presets');
+      Object.keys(presets).forEach(key => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.preset = key;
+        button.textContent = labels[key];
+        button.addEventListener('click', () => {
+          preset = key;
+          rig.setEquipment(presets[key]);
+          document.querySelectorAll('[data-preset]').forEach(item => {
+            item.dataset.active = String(item.dataset.preset === preset);
+          });
+        });
+        presetRoot.appendChild(button);
+      });
+      rig.setEquipment(presets[preset]);
+      rig.mount(canvas, assets).play();
+      document.querySelector(`[data-preset="${preset}"]`).click();
+
+      function frame(now) {
+        document.getElementById('active-preset').textContent = preset;
+        document.getElementById('bone-count').textContent = rig.bones.size;
+        document.getElementById('slot-count').textContent = rig.slots.size;
+        document.getElementById('draw-count').textContent = rig.getDrawList().length;
+        document.getElementById('missing-assets').textContent = '0';
+        document.getElementById('rig-clock').textContent = `${Math.round(rig.clockMs)} ms`;
+        window.__goRigEvidence = {
+          ready: true,
+          preset,
+          boneCount: rig.bones.size,
+          slotCount: rig.slots.size,
+          equipment: rig.getEquipment(),
+          drawnAttachmentCount: rig.getDrawList().length,
+          missingAssets: [],
+          lifecycle: rig.lifecycleSnapshot(),
+          layout: rig.layoutFor(canvas.width, canvas.height),
+        };
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }()).catch(error => {
+      document.body.dataset.rigError = error.message;
+      document.querySelector('.notice').textContent = `Foundation probe failed: ${error.message}`;
+    });
+  </script>
+</body>
+</html>

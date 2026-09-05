@@ -1,0 +1,397 @@
+{
+  "schema": "go-odyssey.hero-true-2d-skeletal-rig.v1",
+  "task": "W2_03_HERO_TRUE_2D_SKELETAL_EQUIPMENT_RIG_VERTICAL_SLICE_005R2",
+  "hero_id": "apprentice_p1",
+  "architecture": "deterministic_canvas2d_bone_slot_attachment_runtime",
+  "presentation_only": true,
+  "source_art_mutated": false,
+  "new_art_created": false,
+  "foundation_status": {
+    "bone_hierarchy": "IMPLEMENTED",
+    "slot_contract": "IMPLEMENTED",
+    "attachment_metadata": "IMPLEMENTED",
+    "animation_timeline": "IMPLEMENTED",
+    "responsive_runtime": "IMPLEMENTED",
+    "lifecycle_cleanup": "IMPLEMENTED",
+    "production_visual_rig": "BLOCKED_WAIT_OWNER_APPROVED_RIG_ART"
+  },
+  "design_space": {
+    "width": 1056,
+    "height": 1408,
+    "coordinate_system": "x-right_y-down",
+    "responsive_rule": "fit_design_space_inside_canvas_without_changing_skeleton_coordinates"
+  },
+  "assets": {
+    "hero_atlas": {
+      "path": "/assets/hero/characters/wave2_p1/apprentice_p1.png",
+      "dimensions": [1056, 1408],
+      "sha256": "0b03cbc512186fabd49678fd4c0e66e3603176f63b7f948be83493fcd0b288a7",
+      "role": "approved_source_atlas",
+      "derived": false
+    },
+    "wooden_sword": {
+      "path": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+      "dimensions": [1056, 1408],
+      "sha256": "12b4bbe4150d05bca39b507787c250f1418c2ad154fafb8d8e2df557186e4523",
+      "role": "approved_source_atlas",
+      "derived": false
+    },
+    "cloth_robe": {
+      "path": "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
+      "dimensions": [1056, 1408],
+      "sha256": "dd258bc5790064eb3292056a3c7befd2fba104a51b64688a715f1eec9321ab14",
+      "role": "approved_source_atlas",
+      "derived": false
+    },
+    "fox_pelt": {
+      "path": "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+      "dimensions": [1056, 1408],
+      "sha256": "653b6c4c57d487d0af8af88ebc7c3d78529fcbdcd237328740ae7287559711ee",
+      "role": "approved_source_atlas",
+      "derived": false
+    },
+    "lucky_stone": {
+      "path": "/assets/hero/equipment/wearables/overlays/lucky_stone.png",
+      "dimensions": [1056, 1408],
+      "sha256": "ffb107dcad7fe35706f0de870063a9fd87b48b97db4a6f4013343c2709870ebf",
+      "role": "approved_source_atlas",
+      "derived": false
+    }
+  },
+  "bones": [
+    {"id": "ROOT", "parent": null, "x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+    {"id": "PELVIS", "parent": "ROOT", "x": 528, "y": 820, "rotation_deg": 0, "scale": 1},
+    {"id": "LOWER_BODY", "parent": "PELVIS", "x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+    {"id": "TORSO", "parent": "PELVIS", "x": 0, "y": -300, "rotation_deg": 0, "scale": 1},
+    {"id": "CHEST", "parent": "TORSO", "x": 0, "y": -145, "rotation_deg": 0, "scale": 1},
+    {"id": "NECK", "parent": "CHEST", "x": 0, "y": -10, "rotation_deg": 0, "scale": 1},
+    {"id": "HEAD", "parent": "NECK", "x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+    {"id": "SHOULDER_L", "parent": "CHEST", "x": -128, "y": 20, "rotation_deg": 0, "scale": 1},
+    {"id": "UPPER_ARM_L", "parent": "SHOULDER_L", "x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+    {"id": "FOREARM_L", "parent": "UPPER_ARM_L", "x": -74, "y": 220, "rotation_deg": 0, "scale": 1},
+    {"id": "HAND_L", "parent": "FOREARM_L", "x": -53, "y": 121, "rotation_deg": 0, "scale": 1},
+    {"id": "SHOULDER_R", "parent": "CHEST", "x": 128, "y": 20, "rotation_deg": 0, "scale": 1},
+    {"id": "UPPER_ARM_R", "parent": "SHOULDER_R", "x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+    {"id": "FOREARM_R", "parent": "UPPER_ARM_R", "x": 74, "y": 220, "rotation_deg": 0, "scale": 1},
+    {"id": "HAND_R", "parent": "FOREARM_R", "x": 65, "y": 120, "rotation_deg": 0, "scale": 1}
+  ],
+  "slots": [
+    {"id": "BACK", "bone": "TORSO", "draw_order": 5},
+    {"id": "BODY_LOWER", "bone": "LOWER_BODY", "draw_order": 20},
+    {"id": "TORSO", "bone": "TORSO", "draw_order": 30},
+    {"id": "SHOULDER", "bone": "CHEST", "draw_order": 31},
+    {"id": "SHOULDER_L", "bone": "UPPER_ARM_L", "draw_order": 32},
+    {"id": "SHOULDER_R", "bone": "UPPER_ARM_R", "draw_order": 32},
+    {"id": "FOREARM_L", "bone": "FOREARM_L", "draw_order": 34},
+    {"id": "FOREARM_R", "bone": "FOREARM_R", "draw_order": 34},
+    {"id": "TORSO_ROBE", "bone": "TORSO", "draw_order": 40},
+    {"id": "ROBE_SHOULDER_L", "bone": "UPPER_ARM_L", "draw_order": 42},
+    {"id": "ROBE_SHOULDER_R", "bone": "UPPER_ARM_R", "draw_order": 42},
+    {"id": "ROBE_FOREARM_L", "bone": "FOREARM_L", "draw_order": 44},
+    {"id": "ROBE_FOREARM_R", "bone": "FOREARM_R", "draw_order": 44},
+    {"id": "HAND_L", "bone": "HAND_L", "draw_order": 50},
+    {"id": "HAND_R", "bone": "HAND_R", "draw_order": 50},
+    {"id": "HEAD", "bone": "HEAD", "draw_order": 60},
+    {"id": "CHEST_ACCESSORY", "bone": "CHEST", "draw_order": 70},
+    {"id": "FRONT", "bone": "HAND_R", "draw_order": 80}
+  ],
+  "attachments": [
+    {
+      "id": "body_lower_body",
+      "item_id": null,
+      "slot": "BODY_LOWER",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [330, 760, 400, 630],
+      "pivot": [198, 60],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[90, 30], [280, 30], [340, 90], [310, 170], [305, 500], [350, 580], [220, 600], [155, 560], [80, 600], [30, 580], [75, 500], [70, 170], [45, 90]]
+    },
+    {
+      "id": "body_torso",
+      "item_id": null,
+      "slot": "TORSO",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [350, 300, 360, 560],
+      "pivot": [178, 220],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[125, 45], [225, 45], [300, 75], [315, 170], [300, 300], [330, 530], [30, 530], [60, 300], [45, 170], [55, 75]]
+    },
+    {
+      "id": "body_upper_arm_l",
+      "item_id": null,
+      "slot": "SHOULDER_L",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [295, 360, 180, 285],
+      "pivot": [105, 30],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[105, 10], [150, 25], [176, 80], [145, 160], [100, 250], [55, 280], [20, 260], [28, 180], [55, 90]]
+    },
+    {
+      "id": "body_forearm_l",
+      "item_id": null,
+      "slot": "FOREARM_L",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [245, 555, 170, 205],
+      "pivot": [81, 55],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[80, 5], [145, 10], [155, 70], [115, 150], [80, 195], [20, 185], [8, 120], [25, 45]]
+    },
+    {
+      "id": "body_hand_l",
+      "item_id": null,
+      "slot": "HAND_L",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [200, 690, 160, 165],
+      "pivot": [75, 43],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[80, 5], [135, 20], [145, 60], [130, 120], [95, 150], [55, 140], [25, 100], [10, 50], [25, 20]]
+    },
+    {
+      "id": "body_upper_arm_r",
+      "item_id": null,
+      "slot": "SHOULDER_R",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [585, 360, 180, 285],
+      "pivot": [72, 30],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[72, 10], [30, 25], [4, 80], [35, 160], [80, 250], [125, 280], [160, 260], [152, 180], [125, 90]]
+    },
+    {
+      "id": "body_forearm_r",
+      "item_id": null,
+      "slot": "FOREARM_R",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [700, 555, 150, 205],
+      "pivot": [30, 55],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[30, 5], [5, 10], [0, 70], [40, 150], [70, 195], [130, 185], [142, 120], [125, 45]]
+    },
+    {
+      "id": "body_hand_r",
+      "item_id": null,
+      "slot": "HAND_R",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [760, 690, 150, 165],
+      "pivot": [40, 43],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[40, 5], [15, 20], [5, 60], [20, 120], [55, 150], [95, 140], [125, 100], [140, 50], [125, 20]]
+    },
+    {
+      "id": "body_head",
+      "item_id": null,
+      "slot": "HEAD",
+      "asset": "hero_atlas",
+      "attachment_type": "region",
+      "source_rect": [330, 35, 400, 350],
+      "pivot": [198, 330],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 1},
+      "clip_polygon": [[85, 15], [275, 15], [350, 75], [365, 170], [345, 265], [285, 330], [115, 330], [55, 265], [35, 170], [50, 75]]
+    },
+    {
+      "id": "fox_pelt_mantle",
+      "item_id": "fox_pelt",
+      "slot": "BACK",
+      "asset": "fox_pelt",
+      "attachment_type": "region",
+      "source_rect": [170, 425, 715, 755],
+      "pivot": [358, 95],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.8},
+      "clip_polygon": [[350, 0], [500, 0], [715, 260], [715, 755], [0, 755], [0, 260]]
+    },
+    {
+      "id": "cloth_robe_body",
+      "item_id": "cloth_robe",
+      "slot": "TORSO_ROBE",
+      "asset": "cloth_robe",
+      "attachment_type": "region",
+      "source_rect": [330, 300, 400, 570],
+      "pivot": [198, 220],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.88},
+      "clip_polygon": [[100, 15], [300, 15], [360, 80], [345, 260], [370, 520], [330, 565], [45, 565], [30, 520], [55, 260], [40, 80]]
+    },
+    {
+      "id": "cloth_robe_skirt",
+      "item_id": "cloth_robe",
+      "slot": "TORSO_ROBE",
+      "asset": "cloth_robe",
+      "attachment_type": "region",
+      "source_rect": [300, 500, 470, 470],
+      "pivot": [228, 20],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.88},
+      "clip_polygon": [[75, 0], [395, 0], [465, 80], [430, 390], [350, 470], [100, 470], [35, 390], [0, 80]]
+    },
+    {
+      "id": "cloth_robe_sleeve_l_upper",
+      "item_id": "cloth_robe",
+      "slot": "ROBE_SHOULDER_L",
+      "asset": "cloth_robe",
+      "attachment_type": "region",
+      "source_rect": [270, 350, 190, 270],
+      "pivot": [130, 40],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.88},
+      "clip_polygon": [[130, 5], [180, 30], [185, 100], [155, 205], [125, 270], [40, 250], [0, 160], [30, 60]]
+    },
+    {
+      "id": "cloth_robe_sleeve_r_upper",
+      "item_id": "cloth_robe",
+      "slot": "ROBE_SHOULDER_R",
+      "asset": "cloth_robe",
+      "attachment_type": "region",
+      "source_rect": [585, 350, 190, 270],
+      "pivot": [60, 40],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.88},
+      "clip_polygon": [[60, 5], [10, 30], [5, 100], [35, 205], [65, 270], [150, 250], [190, 160], [160, 60]]
+    },
+    {
+      "id": "cloth_robe_sleeve_l_forearm",
+      "item_id": "cloth_robe",
+      "slot": "ROBE_FOREARM_L",
+      "asset": "cloth_robe",
+      "attachment_type": "region",
+      "source_rect": [235, 540, 200, 280],
+      "pivot": [95, 70],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.88},
+      "clip_polygon": [[95, 0], [190, 20], [200, 130], [165, 245], [130, 280], [25, 250], [0, 130], [35, 30]]
+    },
+    {
+      "id": "cloth_robe_sleeve_r_forearm",
+      "item_id": "cloth_robe",
+      "slot": "ROBE_FOREARM_R",
+      "asset": "cloth_robe",
+      "attachment_type": "region",
+      "source_rect": [620, 540, 200, 280],
+      "pivot": [105, 70],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.88},
+      "clip_polygon": [[105, 0], [10, 20], [0, 130], [35, 245], [70, 280], [175, 250], [200, 130], [165, 30]]
+    },
+    {
+      "id": "lucky_stone_chest",
+      "item_id": "lucky_stone",
+      "slot": "CHEST_ACCESSORY",
+      "asset": "lucky_stone",
+      "attachment_type": "region",
+      "source_rect": [522, 395, 124, 144],
+      "pivot": [62, 40],
+      "local_transform": {"x": 0, "y": 70, "rotation_deg": 0, "scale": 0.85}
+    },
+    {
+      "id": "wooden_sword_hand_r",
+      "item_id": "wooden_sword",
+      "slot": "FRONT",
+      "asset": "wooden_sword",
+      "attachment_type": "region",
+      "source_rect": [673, 628, 314, 366],
+      "pivot": [32, 25],
+      "local_transform": {"x": 0, "y": 0, "rotation_deg": 0, "scale": 0.65}
+    }
+  ],
+  "items": {
+    "wooden_sword": {
+      "item_id": "wooden_sword",
+      "slot": "HAND_R",
+      "bone_or_socket": "HAND_R",
+      "attachments": ["wooden_sword_hand_r"],
+      "presentation_only": true,
+      "visual_grip_requires_new_art": true
+    },
+    "cloth_robe": {
+      "item_id": "cloth_robe",
+      "slot": "TORSO",
+      "bone_or_socket": "TORSO,CHEST,UPPER_ARM_L,FOREARM_L,UPPER_ARM_R,FOREARM_R",
+      "attachments": ["cloth_robe_body", "cloth_robe_skirt", "cloth_robe_sleeve_l_upper", "cloth_robe_sleeve_r_upper", "cloth_robe_sleeve_l_forearm", "cloth_robe_sleeve_r_forearm"],
+      "presentation_only": true,
+      "new_art_required_for_professional_deformation": true
+    },
+    "fox_pelt": {
+      "item_id": "fox_pelt",
+      "slot": "BACK",
+      "bone_or_socket": "TORSO",
+      "attachments": ["fox_pelt_mantle"],
+      "presentation_only": true,
+      "new_art_required": true
+    },
+    "lucky_stone": {
+      "item_id": "lucky_stone",
+      "slot": "CHEST_ACCESSORY",
+      "bone_or_socket": "CHEST",
+      "attachments": ["lucky_stone_chest"],
+      "presentation_only": true
+    }
+  },
+  "animation": {
+    "id": "idle",
+    "duration_ms": 2400,
+    "loop": true,
+    "timeline_type": "linear_local_bone_keyframes",
+    "tracks": {
+      "TORSO": {"y": [[0, -300], [600, -302], [1200, -300], [1800, -298], [2400, -300]], "rotation_deg": [[0, -0.35], [600, 0.35], [1200, -0.35], [1800, 0.35], [2400, -0.35]]},
+      "CHEST": {"y": [[0, -145], [600, -146], [1200, -145], [1800, -144], [2400, -145]], "rotation_deg": [[0, 0.4], [600, -0.4], [1200, 0.4], [1800, -0.4], [2400, 0.4]]},
+      "SHOULDER_L": {"rotation_deg": [[0, 0.7], [600, -0.5], [1200, 0.7], [1800, -0.5], [2400, 0.7]]},
+      "UPPER_ARM_L": {"rotation_deg": [[0, -0.6], [600, 0.8], [1200, -0.6], [1800, 0.8], [2400, -0.6]]},
+      "FOREARM_L": {"rotation_deg": [[0, 0.7], [600, -0.7], [1200, 0.7], [1800, -0.7], [2400, 0.7]]},
+      "HAND_L": {"rotation_deg": [[0, -0.8], [600, 0.8], [1200, -0.8], [1800, 0.8], [2400, -0.8]]},
+      "SHOULDER_R": {"rotation_deg": [[0, -0.7], [600, 0.5], [1200, -0.7], [1800, 0.5], [2400, -0.7]]},
+      "UPPER_ARM_R": {"rotation_deg": [[0, 0.6], [600, -0.8], [1200, 0.6], [1800, -0.8], [2400, 0.6]]},
+      "FOREARM_R": {"rotation_deg": [[0, -0.7], [600, 0.7], [1200, -0.7], [1800, 0.7], [2400, -0.7]]},
+      "HAND_R": {"rotation_deg": [[0, 0.8], [600, -0.8], [1200, 0.8], [1800, -0.8], [2400, 0.8]]},
+      "HEAD": {"rotation_deg": [[0, -0.45], [600, 0.45], [1200, -0.45], [1800, 0.45], [2400, -0.45]]}
+    }
+  },
+  "proof_contract": {
+    "real_bones": true,
+    "real_slots": true,
+    "real_attachments": true,
+    "real_animation_timeline": true,
+    "bone_driven_transforms": true,
+    "equipment_follows_bones": true,
+    "wooden_sword_bound_to_hand_r": true,
+    "cloth_robe_arm_binding": true,
+    "fox_pelt_rear_draw_order": true,
+    "lucky_stone_bound_to_chest": true,
+    "combat_authority": "none",
+    "inventory_authority": "player_inventory",
+    "legacy_overlay_renderer": "fallback_reference_only"
+  },
+  "art_dependencies": [
+    {
+      "id": "apprentice_head_hair_rig_patch",
+      "status": "WAIT_OWNER_APPROVED_ART",
+      "minimum": "hidden back/scalp/side-head pixels, clean front/back hair separation, and head-motion underlap"
+    },
+    {
+      "id": "apprentice_torso_pelvis_rig_patches",
+      "status": "WAIT_OWNER_APPROVED_ART",
+      "minimum": "torso underlap, shoulder caps, inner shoulder/armpit regions, and pelvis/robe underlap"
+    },
+    {
+      "id": "apprentice_arm_hand_rig_patches",
+      "status": "WAIT_OWNER_APPROVED_ART",
+      "minimum": "upper-arm and forearm inner regions, wrist underlap, articulated hands, and right_hand_closed_grip"
+    },
+    {
+      "id": "cloth_robe_skeletal_segments",
+      "status": "WAIT_OWNER_APPROVED_ART",
+      "minimum": "torso garment, left/right sleeves, lower robe, and hidden sleeve/underarm overlap"
+    },
+    {
+      "id": "fox_pelt_skeletal_mantle_segments",
+      "status": "WAIT_OWNER_APPROVED_ART",
+      "minimum": "back mantle, shoulder underside, shoulder/front overlap pieces, and articulation-ready geometry"
+    }
+  ],
+  "source_art_limitations": {
+    "hero_hidden_pixel_blocker": true,
+    "hero_art_requirement": "Provide owner-authored hidden shoulder, sleeve underside, hand-grip, and behind-torso pixels before broad-angle or production animation.",
+    "wooden_sword_grip_requirement": "Provide a right_hand_closed_grip variant or hand paintover; this slice binds the approved sword to HAND_R without altering hand pixels.",
+    "cloth_robe_requirement": "Provide sleeve underside and underarm/side-seam pixels for deformation beyond the subtle idle range.",
+    "fox_pelt_requirement": "Provide shoulder underside and small shoulder/front overlap segments so the mantle can articulate with the torso and shoulders without scaling or positional hacks."
+  }
+}
