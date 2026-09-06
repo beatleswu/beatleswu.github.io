@@ -1,8 +1,9 @@
-/* SGF Workbench V2-A: human review core, not a repair editor. */
+/* SGF Workbench V2-A: human review plus governed Map Battle shadow staging. */
 (function () {
   "use strict";
 
   const API = "/api/admin/sgf-workbench-v2a";
+  const SHADOW_API = "/api/admin/sgf-answer-review/shadow";
   const labels = {
     CORRECT: ["1", "正確"], WRONG_ROOT: ["2", "根答案錯"],
     MISSING_ANSWER: ["3", "漏正解"], MISSING_VARIATION: ["4", "漏變化"],
@@ -11,7 +12,8 @@
   const state = {
     items: [], current: null, selectedNode: "0", fullBoard: false, replay: null,
     filter: "ALL", search: "", navigation: {}, csrfHeader: "", csrfToken: "",
-    currentPosition: 0, total: 0, busy: false,
+    currentPosition: 0, total: 0, busy: false, shadow: null,
+    candidateMove: null, selectedAuthorityMove: null,
   };
 
   const esc = (value) => String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -45,6 +47,7 @@
             </div>
             <aside class="v2a-side"><div class="v2a-card"><div class="v2a-card-title">Answer tree</div><div id="v2a-tree" class="v2a-tree"></div></div>
               <div class="v2a-card v2a-info"><div class="v2a-card-title">Question</div><div id="v2a-info"></div></div>
+              <div class="v2a-card"><div class="v2a-card-title">Map Battle 影子 authority</div><div id="v2a-authority"></div><div id="v2a-shadow-actions" class="v2a-shadow-actions"></div><p class="v2a-hint">current accepted_moves 只展示為既有資料，並非 trusted。影子審定只進入 Workbench staging/audit，不影響玩家、Adventure 或 progression。</p></div>
               <div class="v2a-card"><div class="v2a-card-title">人工分類</div><div id="v2a-classifications" class="v2a-classifications"></div><p class="v2a-hint">分類只記錄人工觀察，不會修改題庫。←/→ 題目、Space 下一手、Backspace 上一手、Home 初始、↑/↓ sibling、Enter 選擇。</p></div>
             </aside>
           </section>
@@ -54,7 +57,7 @@
     const style = document.createElement("style");
     style.textContent = `
       :root{color-scheme:dark;--a-bg:#0d1511;--a-panel:#17231d;--a-panel2:#1e3026;--a-line:#385244;--a-text:#f4f1e4;--a-muted:#a9b8ad;--a-green:#63d696;--a-gold:#e5bd68;--a-red:#ff8a7c}
-      *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 12% -12%,#2a4a35 0,transparent 34rem),var(--a-bg);color:var(--a-text);font:14px Inter,"Noto Sans TC",system-ui,sans-serif}.v2a-app{min-height:100vh}.v2a-top{position:sticky;top:0;z-index:4;display:flex;justify-content:space-between;align-items:center;padding:12px max(14px,env(safe-area-inset-left)) 12px max(14px,env(safe-area-inset-right));background:rgba(13,21,17,.94);border-bottom:1px solid var(--a-line);backdrop-filter:blur(12px)}.v2a-top b{display:block;font-size:18px}.v2a-top small{display:block;color:var(--a-muted);margin-top:3px}.v2a-top-actions{display:flex;align-items:center;gap:8px}.v2a-chip{padding:7px 11px;border:1px solid var(--a-line);border-radius:99px;color:var(--a-muted)}.v2a-button{min-height:44px;padding:8px 13px;border:1px solid var(--a-line);border-radius:12px;background:#20372b;color:var(--a-text);font-weight:750;cursor:pointer}.v2a-button.primary{background:#267847;border-color:#66ce91}.v2a-button:disabled{opacity:.4;cursor:not-allowed}.v2a-shell{width:min(1500px,100%);margin:auto;padding:14px max(12px,env(safe-area-inset-left)) 40px max(12px,env(safe-area-inset-right))}.v2a-toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:12px}.v2a-toolbar label{display:flex;flex-direction:column;gap:5px;color:var(--a-muted);font-size:12px;min-width:190px}.v2a-toolbar input,.v2a-toolbar select{min-height:43px;padding:8px 10px;border:1px solid var(--a-line);border-radius:10px;background:#15231b;color:var(--a-text)}.v2a-count{margin-left:auto;color:var(--a-muted);padding-bottom:12px}.v2a-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:12px;align-items:start}.v2a-board-panel,.v2a-card{background:linear-gradient(160deg,rgba(30,48,38,.98),rgba(18,30,24,.98));border:1px solid var(--a-line);border-radius:18px;box-shadow:0 16px 45px rgba(0,0,0,.24)}.v2a-board-panel{padding:14px}.v2a-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;min-height:28px;color:var(--a-muted)}#v2a-board{display:block;width:min(100%,760px);height:auto;aspect-ratio:1;margin:8px auto;background:#c79c59;border-radius:8px;touch-action:none}.v2a-board-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}.v2a-side{display:grid;gap:12px;position:sticky;top:78px}.v2a-card{padding:13px}.v2a-card-title{font-weight:850;color:var(--a-gold);margin-bottom:9px;letter-spacing:.04em}.v2a-tree{max-height:46vh;overflow:auto;padding-right:3px}.v2a-tree button{display:block;width:100%;text-align:left;border:0;border-left:3px solid transparent;background:transparent;color:var(--a-text);padding:7px 8px;border-radius:7px;cursor:pointer}.v2a-tree button:hover,.v2a-tree button.selected{background:#2b533b;border-left-color:var(--a-green)}.v2a-tree .tree-indent{display:inline-block}.v2a-info{line-height:1.8;color:var(--a-muted)}.v2a-info strong{color:var(--a-text)}.v2a-classifications{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.v2a-classifications button{min-height:56px;border:1px solid var(--a-line);border-radius:11px;background:#1a3024;color:var(--a-text);cursor:pointer;text-align:left;padding:7px 9px}.v2a-classifications button.current{border-color:var(--a-green);box-shadow:0 0 0 2px rgba(99,214,150,.2)}.v2a-classifications b{display:block;color:var(--a-gold);font-size:17px}.v2a-hint{color:var(--a-muted);font-size:12px;line-height:1.55;margin:10px 0 0}.v2a-warning{margin:7px 0;padding:8px 10px;border:1px solid #8c6334;border-radius:9px;color:#ffd99d;background:#3b2a16}.v2a-empty{padding:40px;text-align:center;color:var(--a-muted)}.v2a-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);padding:10px 15px;border:1px solid var(--a-line);border-radius:12px;background:#172c20;opacity:0;pointer-events:none;transition:opacity .2s;z-index:8}.v2a-toast.show{opacity:1}@media(max-width:900px){.v2a-layout{grid-template-columns:1fr}.v2a-side{position:static}.v2a-board-panel{order:0}.v2a-tree{max-height:260px}}@media(max-width:550px){.v2a-toolbar label{min-width:calc(50% - 5px);flex:1}.v2a-count{width:100%;margin:0;padding:0}.v2a-board-actions .v2a-button{flex:1}.v2a-top{align-items:flex-start}.v2a-chip{font-size:11px}}.v2a-focus .v2a-meta,.v2a-focus .v2a-info{display:none}.v2a-focus .v2a-layout{grid-template-columns:minmax(0,1fr) 330px}.v2a-focus .v2a-side{gap:8px}
+      *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 12% -12%,#2a4a35 0,transparent 34rem),var(--a-bg);color:var(--a-text);font:14px Inter,"Noto Sans TC",system-ui,sans-serif}.v2a-app{min-height:100vh}.v2a-top{position:sticky;top:0;z-index:4;display:flex;justify-content:space-between;align-items:center;padding:12px max(14px,env(safe-area-inset-left)) 12px max(14px,env(safe-area-inset-right));background:rgba(13,21,17,.94);border-bottom:1px solid var(--a-line);backdrop-filter:blur(12px)}.v2a-top b{display:block;font-size:18px}.v2a-top small{display:block;color:var(--a-muted);margin-top:3px}.v2a-top-actions{display:flex;align-items:center;gap:8px}.v2a-chip{padding:7px 11px;border:1px solid var(--a-line);border-radius:99px;color:var(--a-muted)}.v2a-button{min-height:44px;padding:8px 13px;border:1px solid var(--a-line);border-radius:12px;background:#20372b;color:var(--a-text);font-weight:750;cursor:pointer}.v2a-button.primary{background:#267847;border-color:#66ce91}.v2a-button:disabled{opacity:.4;cursor:not-allowed}.v2a-shell{width:min(1500px,100%);margin:auto;padding:14px max(12px,env(safe-area-inset-left)) 40px max(12px,env(safe-area-inset-right))}.v2a-toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:12px}.v2a-toolbar label{display:flex;flex-direction:column;gap:5px;color:var(--a-muted);font-size:12px;min-width:190px}.v2a-toolbar input,.v2a-toolbar select{min-height:43px;padding:8px 10px;border:1px solid var(--a-line);border-radius:10px;background:#15231b;color:var(--a-text)}.v2a-count{margin-left:auto;color:var(--a-muted);padding-bottom:12px}.v2a-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:12px;align-items:start}.v2a-board-panel,.v2a-card{background:linear-gradient(160deg,rgba(30,48,38,.98),rgba(18,30,24,.98));border:1px solid var(--a-line);border-radius:18px;box-shadow:0 16px 45px rgba(0,0,0,.24)}.v2a-board-panel{padding:14px}.v2a-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;min-height:28px;color:var(--a-muted)}#v2a-board{display:block;width:min(100%,760px);height:auto;aspect-ratio:1;margin:8px auto;background:#c79c59;border-radius:8px;touch-action:none}.v2a-board-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}.v2a-side{display:grid;gap:12px;position:sticky;top:78px}.v2a-card{padding:13px}.v2a-card-title{font-weight:850;color:var(--a-gold);margin-bottom:9px;letter-spacing:.04em}.v2a-tree{max-height:46vh;overflow:auto;padding-right:3px}.v2a-tree button{display:block;width:100%;text-align:left;border:0;border-left:3px solid transparent;background:transparent;color:var(--a-text);padding:7px 8px;min-height:44px;border-radius:7px;cursor:pointer}.v2a-tree button:focus-visible,.v2a-tree button.selected{background:#2b533b;border-left-color:var(--a-green)}.v2a-tree .tree-indent{display:inline-block}.v2a-info{line-height:1.8;color:var(--a-muted)}.v2a-info strong{color:var(--a-text)}.v2a-authority{line-height:1.55;color:var(--a-muted)}.v2a-authority strong{color:var(--a-text)}.v2a-authority .unresolved{color:#ffb8a9}.v2a-authority .resolved{color:var(--a-green)}.v2a-move-list,.v2a-shadow-actions{display:grid;gap:7px;margin-top:9px}.v2a-move-list button,.v2a-shadow-actions button{min-height:44px;border:1px solid var(--a-line);border-radius:10px;background:#1a3024;color:var(--a-text);padding:8px 10px;text-align:left;cursor:pointer}.v2a-move-list button.selected,.v2a-shadow-actions button.primary{border-color:var(--a-green);box-shadow:0 0 0 2px rgba(99,214,150,.18)}.v2a-shadow-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.v2a-shadow-actions button:disabled{opacity:.4;cursor:not-allowed}.v2a-classifications{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.v2a-classifications button{min-height:56px;border:1px solid var(--a-line);border-radius:11px;background:#1a3024;color:var(--a-text);cursor:pointer;text-align:left;padding:7px 9px}.v2a-classifications button.current{border-color:var(--a-green);box-shadow:0 0 0 2px rgba(99,214,150,.2)}.v2a-classifications b{display:block;color:var(--a-gold);font-size:17px}.v2a-hint{color:var(--a-muted);font-size:12px;line-height:1.55;margin:10px 0 0}.v2a-warning{margin:7px 0;padding:8px 10px;border:1px solid #8c6334;border-radius:9px;color:#ffd99d;background:#3b2a16}.v2a-empty{padding:40px;text-align:center;color:var(--a-muted)}.v2a-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);padding:10px 15px;border:1px solid var(--a-line);border-radius:12px;background:#172c20;opacity:0;pointer-events:none;transition:opacity .2s;z-index:8}.v2a-toast.show{opacity:1}@media(max-width:900px){.v2a-layout{grid-template-columns:1fr}.v2a-side{position:static}.v2a-board-panel{order:0}.v2a-tree{max-height:260px}}@media(orientation:portrait){.v2a-layout{grid-template-columns:1fr}.v2a-side{position:static}.v2a-shadow-actions{grid-template-columns:1fr}}@media(max-width:550px){.v2a-toolbar label{min-width:calc(50% - 5px);flex:1}.v2a-count{width:100%;margin:0;padding:0}.v2a-board-actions .v2a-button{flex:1}.v2a-top{align-items:flex-start}.v2a-chip{font-size:11px}}.v2a-focus .v2a-meta,.v2a-focus .v2a-info{display:none}.v2a-focus .v2a-layout{grid-template-columns:minmax(0,1fr) 330px}.v2a-focus .v2a-side{gap:8px}
     `;
     document.head.appendChild(style);
   }
@@ -71,7 +74,8 @@
       state.items = payload.items || []; state.current = payload.current || null; state.replay = state.current?.playback || null; state.navigation = payload.navigation || {};
       state.currentPosition = Number(payload.current_position || 0); state.total = Number(payload.total || 0);
       state.csrfHeader = payload.security?.csrf_header || ""; state.csrfToken = payload.security?.csrf_token || "";
-      state.selectedNode = "0"; render(); setSync("已同步", "saved");
+      state.selectedNode = "0"; state.candidateMove = null; state.selectedAuthorityMove = null;
+      state.shadow = null; render(); await loadShadowContext(); setSync("已同步", "saved");
     } catch (error) { setSync("載入失敗", "error"); toast(error.message); }
   }
   async function loadQuestion(index) {
@@ -85,8 +89,21 @@
       state.currentPosition = Number(payload.current_position || state.currentPosition || 0);
       state.total = Number(payload.total || state.total || 0);
       state.csrfHeader = payload.security?.csrf_header || state.csrfHeader; state.csrfToken = payload.security?.csrf_token || state.csrfToken;
-      render(); setSync("已同步", "saved");
+      state.candidateMove = null; state.selectedAuthorityMove = null; state.shadow = null;
+      render(); await loadShadowContext(); setSync("已同步", "saved");
     } catch (error) { toast(error.message); } finally { state.busy = false; }
+  }
+  async function loadShadowContext() {
+    const q = state.current; if (!q) { state.shadow = null; renderAuthority(); return; }
+    const params = new URLSearchParams({ record_index: String(q.record_index), legacy_question_id: String(q.legacy_question_id), reviewed_record_sha256: q.reviewed_record_sha256 });
+    try {
+      state.shadow = await jsonFetch(`${SHADOW_API}/context?${params}`);
+      state.csrfHeader = state.shadow.security?.csrf_header || state.csrfHeader;
+      state.csrfToken = state.shadow.security?.csrf_token || state.csrfToken;
+    } catch (error) {
+      state.shadow = { ok: false, error: error.payload?.error || error.message, detail: error.payload?.detail || "影子 authority context unavailable" };
+    }
+    renderAuthority();
   }
   function currentNode() { return (state.current?.tree?.nodes || []).find((node) => node.id === state.selectedNode); }
   function replayClient(tree, nodeId) {
@@ -135,6 +152,88 @@
     root.innerHTML = Object.entries(labels).map(([key, value]) => `<button type="button" data-classification="${key}" class="${key === current ? "current" : ""}"><b>${value[0]}</b>${value[1]}</button>`).join("");
     root.querySelectorAll("[data-classification]").forEach((button) => button.addEventListener("click", () => classify(button.dataset.classification)));
   }
+  function moveText(move) {
+    if (!move || !Number.isInteger(Number(move.x)) || !Number.isInteger(Number(move.y))) return "未選取棋步";
+    return `${formatGoCoordinate(Number(move.x), Number(move.y), state.current?.tree?.board_size || 19)} (${Number(move.x)},${Number(move.y)})`;
+  }
+  function nodeCandidate() {
+    const move = currentNode()?.move;
+    if (!move || move.pass || move.invalid || !Number.isInteger(Number(move.x)) || !Number.isInteger(Number(move.y))) return null;
+    return {x: Number(move.x), y: Number(move.y)};
+  }
+  function actionCandidate(operation) {
+    if (operation === "REMOVE_INCORRECT_ACCEPTED_MOVE") return state.selectedAuthorityMove;
+    return state.candidateMove || nodeCandidate();
+  }
+  function renderAuthority() {
+    const root = document.getElementById("v2a-authority"); const actions = document.getElementById("v2a-shadow-actions");
+    if (!root || !actions) return;
+    const shadow = state.shadow;
+    if (!shadow || shadow.ok === false) {
+      root.innerHTML = `<div class="v2a-authority unresolved"><strong>影子 authority context 未可用</strong><div>${esc(shadow?.detail || shadow?.error || "尚未載入")}</div></div>`;
+      actions.innerHTML = ""; return;
+    }
+    const identity = shadow.identity || {};
+    const authority = shadow.authority || {};
+    const currentMoves = authority.current_accepted_moves || [];
+    const reviewed = authority.reviewed_authority;
+    const workbench = shadow.workbench;
+    const exact = identity.status === "EXACT" && identity.authority_review_can_be_admitted === true;
+    const identityLine = exact
+      ? `<div class="resolved"><strong>source_record_uuid</strong> ${esc(identity.source_record_uuid)} · EXACT</div>`
+      : `<div class="unresolved"><strong>identity unresolved</strong> ${esc(identity.status || "UNKNOWN")} · ${esc(identity.reason || "不允許 attach shadow authority")}</div>`;
+    const moveButtons = currentMoves.length
+      ? currentMoves.map((move) => {
+          const selected = state.selectedAuthorityMove && state.selectedAuthorityMove.x === move.x && state.selectedAuthorityMove.y === move.y;
+          return `<button type="button" class="${selected ? "selected" : ""}" data-shadow-move-x="${esc(move.x)}" data-shadow-move-y="${esc(move.y)}">current accepted ${esc(moveText(move))}${selected ? " · 已選取" : ""}</button>`;
+        }).join("")
+      : `<span class="v2a-hint">目前沒有可用 accepted_moves。</span>`;
+    const candidate = actionCandidate("ADD_ALTERNATIVE_CORRECT_MOVE");
+    const latestLine = reviewed
+      ? `<div><strong>shadow reviewed</strong> ${esc(reviewed.review_verdict || "—")} · validation ${esc(reviewed.validation_status || "PENDING")} · retest ${esc(reviewed.retest_result?.status || "PENDING")}</div>`
+      : `<div class="v2a-hint">尚無 shadow reviewed authority。</div>`;
+    root.innerHTML = `${identityLine}<div><strong>候選棋步</strong> ${esc(moveText(candidate))}${state.candidateMove ? " · board touch" : ""}</div><div><strong>current accepted_moves</strong> · HELPFUL_BUT_NOT_AUTHORITATIVE / 非 trusted</div><div class="v2a-move-list">${moveButtons}</div>${latestLine}`;
+    root.querySelectorAll("[data-shadow-move-x]").forEach((button) => button.addEventListener("click", () => {
+      state.selectedAuthorityMove = {x: Number(button.dataset.shadowMoveX), y: Number(button.dataset.shadowMoveY)};
+      state.candidateMove = state.selectedAuthorityMove; renderAuthority();
+    }));
+    const canStage = exact && !!state.current;
+    const buttonSpec = [
+      ["ADD_ALTERNATIVE_CORRECT_MOVE", "加入另解", !canStage || !candidate],
+      ["REPLACE_CORRECT_ANSWER", "取代正解", !canStage || !candidate],
+      ["REMOVE_INCORRECT_ACCEPTED_MOVE", "移除選取 accepted", !canStage || !state.selectedAuthorityMove],
+      ["MARK_NEEDS_RESEARCH", "標記待研究", !canStage],
+      ["DISABLE_BROKEN_QUESTION", "標記壞題 / 停用", !canStage],
+      ["REJECT_NO_CHANGE", "拒絕 / 不變更", !canStage],
+    ];
+    actions.innerHTML = buttonSpec.map(([operation, label, disabled]) => `<button type="button" data-shadow-operation="${operation}" ${disabled ? "disabled" : ""}>${label}</button>`).join("")
+      + (workbench?.repair_id ? `<button type="button" class="primary" data-shadow-retest="1">同題 validation / retest</button>` : "");
+    actions.querySelectorAll("[data-shadow-operation]").forEach((button) => button.addEventListener("click", () => stageShadow(button.dataset.shadowOperation)));
+    actions.querySelector("[data-shadow-retest]")?.addEventListener("click", retestShadow);
+  }
+  async function stageShadow(operation) {
+    const q = state.current; if (!q || state.busy) return;
+    const candidate = actionCandidate(operation);
+    if (["ADD_ALTERNATIVE_CORRECT_MOVE", "REPLACE_CORRECT_ANSWER", "REMOVE_INCORRECT_ACCEPTED_MOVE"].includes(operation) && !candidate) { toast("請先在棋盤點選棋步，或選取 accepted move"); return; }
+    state.busy = true; setSync("影子 staging", "pending");
+    try {
+      await jsonFetch(`${SHADOW_API}/review`, { method:"POST", headers:{"Content-Type":"application/json", [state.csrfHeader]: state.csrfToken}, body:JSON.stringify({
+        operation, record_index:q.record_index, legacy_question_id:q.legacy_question_id,
+        reviewed_record_sha256:q.reviewed_record_sha256, candidate_move:candidate,
+        selected_node_id:state.selectedNode,
+      }) });
+      state.candidateMove = null; state.selectedAuthorityMove = null;
+      await loadShadowContext(); setSync("影子已 staging", "saved"); toast("已進入 Workbench staging；尚未影響 runtime");
+    } catch (error) { toast(error.message); setSync("影子 staging 失敗", "error"); } finally { state.busy = false; }
+  }
+  async function retestShadow() {
+    const workbench = state.shadow?.workbench; if (!workbench?.workbench_item_id || !workbench?.repair_id || state.busy) return;
+    state.busy = true; setSync("同題驗證中", "pending");
+    try {
+      const payload = await jsonFetch(`/api/admin/sgf-workbench/items/${encodeURIComponent(workbench.workbench_item_id)}/validate`, { method:"POST", headers:{"Content-Type":"application/json", [state.csrfHeader]: state.csrfToken}, body:JSON.stringify({repair_id:workbench.repair_id}) });
+      await loadShadowContext(); setSync(payload.status === "PASS" ? "validation / retest PASS" : "validation 已記錄", payload.status === "PASS" ? "saved" : "error");
+    } catch (error) { toast(error.message); setSync("validation / retest 失敗", "error"); await loadShadowContext(); } finally { state.busy = false; }
+  }
   function boardGeometry(canvas, viewport) {
     const width = canvas.clientWidth || 640; const dpr = window.devicePixelRatio || 1; canvas.width = width * dpr; canvas.height = width * dpr;
     const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); const pad = Math.max(22, width * .055);
@@ -152,7 +251,21 @@
     const selected = currentNode()?.move; if (selected && !selected.pass && Number.isInteger(selected.x) && Number.isInteger(selected.y)) { ctx.beginPath(); ctx.arc(x(selected.x),y(selected.y),Math.max(3,radius*.28),0,Math.PI*2); ctx.fillStyle="#e46759"; ctx.fill(); }
     ctx.fillStyle="#2a1f12"; ctx.font="11px system-ui"; ctx.fillText(viewport.touch_top ? "上邊" : "", pad, 14); ctx.fillText(viewport.touch_left ? "左邊" : "", 3, pad + 4);
   }
-  function render() { const empty = document.getElementById("v2a-empty"); empty.hidden = !!state.current; renderMeta(); renderTree(); renderClassifications(); renderBoard(); }
+  function boardMoveFromPointer(event) {
+    const q = state.current; const canvas = document.getElementById("v2a-board"); if (!q || !canvas) return null;
+    const viewport = q.viewport?.mode === "FULL" && !state.fullBoard ? q.viewport : (state.fullBoard ? {...q.viewport, mode:"FULL", x0:0,y0:0,x1:(q.tree.board_size||19)-1,y1:(q.tree.board_size||19)-1} : q.viewport);
+    if (!viewport) return null;
+    const rect = canvas.getBoundingClientRect(); const width = rect.width || 640; const pad = Math.max(22, width * .055);
+    const cols = Math.max(1, viewport.x1 - viewport.x0); const rows = Math.max(1, viewport.y1 - viewport.y0); const step = Math.min((width - pad * 2) / cols, (width - pad * 2) / rows);
+    const x = Math.round(viewport.x0 + (event.clientX - rect.left - pad) / step); const y = Math.round(viewport.y0 + (event.clientY - rect.top - pad) / step);
+    if (x < viewport.x0 || x > viewport.x1 || y < viewport.y0 || y > viewport.y1) return null;
+    return {x, y};
+  }
+  function handleBoardPointer(event) {
+    const move = boardMoveFromPointer(event); if (!move) return;
+    state.candidateMove = move; state.selectedAuthorityMove = null; renderAuthority(); toast(`已選候選棋步 ${moveText(move)}，可進行影子 staging`);
+  }
+  function render() { const empty = document.getElementById("v2a-empty"); empty.hidden = !!state.current; renderMeta(); renderTree(); renderClassifications(); renderBoard(); renderAuthority(); }
   async function saveProgress() {
     const q = state.current; if (!q) return;
     await jsonFetch(`${API}/progress`, { method:"POST", headers:{"Content-Type":"application/json", [state.csrfHeader]: state.csrfToken}, body:JSON.stringify({record_index:q.record_index}) });
@@ -178,6 +291,7 @@
     const search = document.getElementById("v2a-search"); search.addEventListener("keydown", (event) => { if (event.key === "Enter") { state.search = search.value; loadBootstrap(); } });
     document.getElementById("v2a-prev").addEventListener("click", goPrevious); document.getElementById("v2a-next").addEventListener("click", goNext);
     document.getElementById("v2a-viewport").addEventListener("click", () => { state.fullBoard = !state.fullBoard; renderBoard(); });
+    document.getElementById("v2a-board").addEventListener("pointerup", handleBoardPointer);
     document.getElementById("v2a-focus").addEventListener("click", () => document.body.classList.toggle("v2a-focus"));
     window.addEventListener("keydown", handleKey); window.addEventListener("resize", renderBoard);
   }

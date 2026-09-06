@@ -40,6 +40,27 @@ WORKBENCH_ACTIONS = (
     "DISABLE_BROKEN_QUESTION",
     "NEEDS_RESEARCH",
 )
+# Shadow review is deliberately not part of the legacy action allow-list used
+# by the existing general-purpose stage endpoint.  The dedicated shadow
+# service below may persist it through the same staged-repair table, while a
+# legacy caller cannot accidentally promote it by posting this value to the
+# old endpoint.
+SHADOW_REVIEWED_AUTHORITY_ACTION = "SHADOW_REVIEWED_AUTHORITY"
+SHADOW_REVIEW_VERDICTS = (
+    "APPROVED_CORRECT_MOVE_SET",
+    "NEEDS_RESEARCH",
+    "BROKEN_OR_DISABLE",
+    "REJECTED_NO_CHANGE",
+)
+SHADOW_REVIEW_OPERATIONS = (
+    "ADD_ALTERNATIVE_CORRECT_MOVE",
+    "REPLACE_CORRECT_ANSWER",
+    "REMOVE_INCORRECT_ACCEPTED_MOVE",
+    "MARK_NEEDS_RESEARCH",
+    "DISABLE_BROKEN_QUESTION",
+    "REJECT_NO_CHANGE",
+)
+SHADOW_REVIEW_SOURCE = "MAP_BATTLE_SHADOW_REVIEW"
 WORKBENCH_REPORT_REASONS = (
     "ALTERNATIVE_CORRECT_MOVE",
     "SYSTEM_ANSWER_INCORRECT",
@@ -277,6 +298,14 @@ class DirectApplyRetestFailed(WorkbenchPersistenceError):
 
 class DirectApplyRecoveryError(WorkbenchPersistenceError):
     """The canonical bytes could not be restored after a failed mutation."""
+
+
+class ShadowReviewIdentityError(WorkbenchPersistenceError):
+    """A shadow review cannot attach to an unresolved LC019 identity."""
+
+
+class ShadowReviewStaleError(StaleWorkbenchState):
+    """A shadow review basis no longer describes the current question."""
 
 
 def direct_apply_policy_check(current: dict, proposed: dict) -> None:
@@ -644,6 +673,345 @@ def _normalize_move(move: Any) -> dict | None:
     if move.get("color") in ("B", "W"):
         result["color"] = move["color"]
     return result
+
+
+def _shadow_move(move: Any) -> dict | None:
+    """Return the coordinate-only representation used by shadow review.
+
+    A reviewer may see colors, SGF coordinates, or other display metadata in
+    the Workbench, but a proposed answer is persisted as the existing
+    coordinate pair only.  This keeps the shadow state compatible with the
+    current staged-repair representation and prevents display metadata from
+    becoming a correctness signal.
+    """
+    normalized = _normalize_move(move)
+    if normalized is None:
+        return None
+    if not (0 <= normalized["x"] < 19 and 0 <= normalized["y"] < 19):
+        return None
+    return {"x": normalized["x"], "y": normalized["y"]}
+
+
+def _shadow_move_list(moves: Any, *, allow_empty: bool = True) -> list[dict]:
+    if moves is None:
+        moves = []
+    if not isinstance(moves, list):
+        raise ValueError("shadow_reviewed_moves_must_be_list")
+    result = []
+    seen = set()
+    for move in moves:
+        normalized = _shadow_move(move)
+        if normalized is None:
+            raise ValueError("shadow_reviewed_move_invalid")
+        key = (normalized["x"], normalized["y"])
+        if key in seen:
+            raise ValueError("shadow_reviewed_move_duplicate")
+        seen.add(key)
+        result.append(normalized)
+    if not allow_empty and not result:
+        raise ValueError("shadow_reviewed_move_set_empty")
+    return result
+
+
+def _identity_resolution_payload(legacy_question_id: Any, *, status: str,
+                                 source_record_uuid: Any = None,
+                                 reason: str = "", candidates: Any = None,
+                                 reader_kind: str | None = None) -> dict:
+    """Normalize LC019 read-window output for Workbench consumers.
+
+    This function intentionally has no UUID-generation path.  A UUID can only
+    enter the returned payload when the read-only identity adapter returned an
+    EXACT, attachable binding.
+    """
+    value = str(legacy_question_id)
+    normalized_status = str(status or "UNKNOWN").upper()
+    if normalized_status == "RETIRED":
+        normalized_status = "RETIRED_NON_ATTACHABLE"
+    if normalized_status not in {
+        "EXACT", "RETIRED_NON_ATTACHABLE", "AMBIGUOUS", "MISSING", "UNAVAILABLE", "UNKNOWN"
+    }:
+        normalized_status = "UNKNOWN"
+    attached = normalized_status == "EXACT" and bool(str(source_record_uuid or "").strip())
+    return {
+        "legacy_question_id": value,
+        "status": normalized_status,
+        "source_record_uuid": str(source_record_uuid) if attached else None,
+        "source_record_uuid_attached": attached,
+        "authority_review_can_be_admitted": attached,
+        "reason": str(reason or "")[:300],
+        "candidates": [str(candidate) for candidate in (candidates or [])][:32],
+        "reader_kind": str(reader_kind or "")[:40],
+    }
+
+
+def resolve_source_record_identity(conn, legacy_question_id: Any, *, resolver=None) -> dict:
+    """Resolve a Workbench legacy locator through the LC019 read adapter.
+
+    ``resolver`` is an injectable read-only seam for isolated tests and
+    callers that already hold an adapter instance.  The default path uses
+    ``identity_key_for_read``.  EXACT is the sole attachable result; legacy,
+    ambiguous, retired, unavailable, and unknown results all fail closed.
+    """
+    if legacy_question_id in (None, ""):
+        return _identity_resolution_payload(legacy_question_id, status="UNKNOWN", reason="legacy_question_id_missing")
+    try:
+        if resolver is None:
+            from identity_read_adapter import identity_key_for_read
+
+            raw = identity_key_for_read(conn, legacy_question_id)
+        else:
+            raw = resolver(legacy_question_id)
+    except Exception:
+        # Do not expose adapter/database details to an admin browser and do not
+        # turn a reader outage into an attachable legacy identity.
+        return _identity_resolution_payload(
+            legacy_question_id, status="UNAVAILABLE", reason="identity_reader_unavailable"
+        )
+
+    if isinstance(raw, dict):
+        status = str(raw.get("status") or "").upper()
+        source_uuid = raw.get("source_record_uuid")
+        kind = str(raw.get("kind") or "").lower()
+        attachable = raw.get("attachable")
+        retired = bool(raw.get("retired"))
+        reason = raw.get("reason") or raw.get("detail") or ""
+        candidates = raw.get("candidates")
+    else:
+        status = str(getattr(raw, "status", "") or "").upper()
+        source_uuid = getattr(raw, "value", None)
+        kind = str(getattr(raw, "kind", "") or "").lower()
+        attachable = getattr(raw, "attachable", None)
+        retired = bool(getattr(raw, "retired", False))
+        reason = getattr(raw, "reason", "")
+        candidates = getattr(raw, "candidates", ())
+
+    # IdentityKey uses ``kind=uuid`` and the adapter's attachable bit.  The
+    # dict branch also accepts the admin lookup shape for future read callers.
+    if status == "EXACT" or (kind == "uuid" and not retired):
+        if attachable is not False and str(source_uuid or "").strip():
+            return _identity_resolution_payload(
+                legacy_question_id, status="EXACT", source_record_uuid=source_uuid,
+                reason=reason or "exact single binding", reader_kind=kind,
+            )
+        return _identity_resolution_payload(
+            legacy_question_id, status="UNKNOWN", reason="exact_binding_not_attachable", reader_kind=kind
+        )
+    if status in {"RETIRED", "RETIRED_NON_ATTACHABLE"} or retired:
+        return _identity_resolution_payload(
+            legacy_question_id, status="RETIRED_NON_ATTACHABLE",
+            reason=reason or "retired identity is history-only", reader_kind=kind,
+        )
+    if status == "AMBIGUOUS" or kind == "unresolved":
+        return _identity_resolution_payload(
+            legacy_question_id, status="AMBIGUOUS",
+            reason=reason or "ambiguous identity; no candidate selected",
+            candidates=candidates, reader_kind=kind,
+        )
+    if status == "UNAVAILABLE" or kind == "unavailable":
+        return _identity_resolution_payload(
+            legacy_question_id, status="UNAVAILABLE",
+            reason=reason or "identity tables unavailable", reader_kind=kind,
+        )
+    if status in {"MISSING", "LEGACY", ""} or kind == "legacy":
+        return _identity_resolution_payload(
+            legacy_question_id, status="MISSING",
+            reason=reason or "no current source_record_uuid binding", reader_kind=kind,
+        )
+    return _identity_resolution_payload(
+        legacy_question_id, status="UNKNOWN", reason=reason or "unrecognized identity result", reader_kind=kind
+    )
+
+
+def shadow_review_basis_check(shadow_review: Any, *, current_content_sha256: str | None,
+                              current_record_hash: str | None) -> dict:
+    """Check identity and revision evidence before a shadow review is used."""
+    result = {"ok": True, "status": "PASS", "stale": False, "errors": []}
+    if not isinstance(shadow_review, dict):
+        return {"ok": False, "status": "FAIL", "stale": False, "errors": ["shadow_review_missing"]}
+    identity_status = str(shadow_review.get("source_record_uuid_status") or "").upper()
+    source_uuid = shadow_review.get("source_record_uuid")
+    if (
+        identity_status != "EXACT"
+        or not shadow_review.get("source_record_uuid_attached")
+        or not shadow_review.get("authority_review_can_be_admitted")
+        or not source_uuid
+    ):
+        result.update(ok=False, status="FAIL")
+        result["errors"].append("shadow_identity_not_attachable")
+    basis = shadow_review.get("basis")
+    if not isinstance(basis, dict):
+        result.update(ok=False, status="FAIL")
+        result["errors"].append("shadow_review_basis_missing")
+    else:
+        staged_content = basis.get("content_sha256")
+        staged_record = basis.get("record_hash")
+        if not staged_content or not current_content_sha256:
+            result.update(ok=False, status="FAIL")
+            result["errors"].append("canonical_content_basis_missing")
+        elif str(staged_content) != str(current_content_sha256):
+            result.update(ok=False, status="STALE", stale=True)
+            result["errors"].append("canonical_content_basis_changed")
+        if not staged_record or not current_record_hash:
+            result.update(ok=False, status="FAIL")
+            result["errors"].append("canonical_record_basis_missing")
+        elif str(staged_record) != str(current_record_hash):
+            result.update(ok=False, status="STALE", stale=True)
+            result["errors"].append("canonical_record_basis_changed")
+    if shadow_review.get("stale"):
+        result.update(ok=False, status="STALE", stale=True)
+        result["errors"].append("shadow_review_marked_stale")
+    result["errors"] = sorted(set(result["errors"]))
+    return result
+
+
+def build_shadow_reviewed_authority(*, identity: dict, reviewed_moves: Any,
+                                    verdict: str, reviewer_id: int,
+                                    reviewed_at: str, current_content_sha256: str | None,
+                                    current_record_hash: str | None,
+                                    source_provenance: Any = None,
+                                    validation_status: str = "PENDING",
+                                    retest_result: Any = None,
+                                    stale: bool = False) -> dict:
+    """Build a non-runtime, human-governed Map Battle authority evidence row."""
+    verdict = str(verdict or "").strip().upper()
+    if verdict not in SHADOW_REVIEW_VERDICTS:
+        raise ValueError("invalid_shadow_review_verdict")
+    try:
+        reviewer_id = int(reviewer_id)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_shadow_reviewer") from exc
+    if reviewer_id <= 0 or not str(reviewed_at or "").strip():
+        raise ValueError("shadow_reviewer_context_required")
+    moves = _shadow_move_list(reviewed_moves, allow_empty=verdict != "APPROVED_CORRECT_MOVE_SET")
+    identity = identity if isinstance(identity, dict) else {}
+    identity_status = str(identity.get("status") or "UNKNOWN").upper()
+    source_uuid = identity.get("source_record_uuid") if identity_status == "EXACT" else None
+    attached = (
+        identity_status == "EXACT"
+        and identity.get("source_record_uuid_attached") is True
+        and identity.get("authority_review_can_be_admitted") is True
+        and bool(str(source_uuid or "").strip())
+    )
+    if stale:
+        attached = False
+    provenance = source_provenance if isinstance(source_provenance, dict) else {}
+    return {
+        "mode": "SHADOW",
+        "authority": "HUMAN_REVIEWED_MAP_BATTLE",
+        "source": SHADOW_REVIEW_SOURCE,
+        "runtime_authority": False,
+        "affects_progression": False,
+        "review_verdict": verdict,
+        "reviewed_moves": moves,
+        "source_record_uuid": str(source_uuid) if attached else None,
+        "source_record_uuid_status": identity_status,
+        "source_record_uuid_attached": attached,
+        "authority_review_can_be_admitted": attached,
+        "identity": {
+            "legacy_question_id": identity.get("legacy_question_id"),
+            "status": identity_status,
+            "reason": identity.get("reason", ""),
+            "candidates": list(identity.get("candidates") or []),
+        },
+        "reviewer_id": reviewer_id,
+        "reviewed_at": str(reviewed_at),
+        "basis": {
+            "content_sha256": str(current_content_sha256 or "") or None,
+            "record_hash": str(current_record_hash or "") or None,
+        },
+        "validation_status": str(validation_status or "PENDING").upper(),
+        "retest_result": retest_result if isinstance(retest_result, dict) else {"status": "PENDING"},
+        "stale": bool(stale),
+        "review_provenance": provenance,
+    }
+
+
+def stage_shadow_reviewed_authority(conn, *, item_id: int, reviewer_id: int,
+                                    identity: dict, reviewed_moves: Any,
+                                    verdict: str, original_state: Any,
+                                    current_content_sha256: str,
+                                    current_record_hash: str,
+                                    reason: str = "", source_provenance: Any = None,
+                                    mutation_key: str | None = None,
+                                    expected_item_updated_at: str | None = None,
+                                    now: str | None = None) -> dict:
+    """Persist SHADOW authority using the existing staged-repair/audit flow."""
+    if not current_content_sha256 or not current_record_hash:
+        raise ShadowReviewStaleError("shadow_review_basis_required")
+    shadow = build_shadow_reviewed_authority(
+        identity=identity, reviewed_moves=reviewed_moves, verdict=verdict,
+        reviewer_id=reviewer_id, reviewed_at=_now(now),
+        current_content_sha256=current_content_sha256,
+        current_record_hash=current_record_hash,
+        source_provenance=source_provenance,
+    )
+    gate = shadow_review_basis_check(
+        shadow, current_content_sha256=current_content_sha256,
+        current_record_hash=current_record_hash,
+    )
+    if not gate["ok"]:
+        if gate.get("stale"):
+            raise ShadowReviewStaleError("shadow_review_stale")
+        raise ShadowReviewIdentityError("shadow_identity_not_attachable")
+    if not isinstance(original_state, dict):
+        raise ValueError("shadow_original_state_required")
+    identity_legacy_id = identity.get("legacy_question_id") if isinstance(identity, dict) else None
+    original_question_id = original_state.get("question_id")
+    if identity_legacy_id not in (None, "") and original_question_id not in (None, ""):
+        if str(identity_legacy_id) != str(original_question_id):
+            raise ShadowReviewIdentityError("shadow_identity_legacy_locator_mismatch")
+    proposed = json.loads(json.dumps(original_state))
+    if shadow["review_verdict"] == "APPROVED_CORRECT_MOVE_SET":
+        proposed["accepted_moves"] = shadow["reviewed_moves"]
+        proposed["solution_state"] = "shadow_reviewed_correct_move_set"
+    elif shadow["review_verdict"] == "BROKEN_OR_DISABLE":
+        proposed["enabled"] = False
+        proposed["solution_state"] = "shadow_reviewed_broken_or_disable"
+    elif shadow["review_verdict"] == "NEEDS_RESEARCH":
+        proposed["solution_state"] = "shadow_needs_research"
+    provenance = dict(source_provenance) if isinstance(source_provenance, dict) else {}
+    provenance["source"] = SHADOW_REVIEW_SOURCE
+    provenance["canonical_record_hash"] = current_record_hash
+    provenance["shadow_reviewed_authority"] = shadow
+    candidate = shadow["reviewed_moves"][0] if shadow["reviewed_moves"] else None
+    repair = stage_workbench_repair(
+        conn, item_id=item_id, reviewer_id=int(reviewer_id),
+        action=SHADOW_REVIEWED_AUTHORITY_ACTION,
+        original_state=original_state, proposed_state=proposed,
+        candidate_move=candidate, reason=reason or shadow["review_verdict"],
+        source_provenance=provenance, baseline_sha256=current_content_sha256,
+        mutation_key=mutation_key, now=now,
+        expected_item_updated_at=expected_item_updated_at,
+    )
+    if not repair.get("duplicate"):
+        row = conn.execute(
+            "SELECT authority_json, provenance_json FROM sgf_workbench_review_items WHERE id=?",
+            (int(item_id),),
+        ).fetchone()
+        authority = _loads(row["authority_json"] if row is not None else None, {})
+        item_provenance = _loads(row["provenance_json"] if row is not None else None, {})
+        if not isinstance(authority, dict):
+            authority = {}
+        if not isinstance(item_provenance, dict):
+            item_provenance = {}
+        authority["shadow_reviewed_authority"] = shadow
+        item_provenance["shadow_reviewed_authority"] = shadow
+        conn.execute(
+            "UPDATE sgf_workbench_review_items SET authority_json=?, provenance_json=? WHERE id=?",
+            (_json(authority), _json(item_provenance), int(item_id)),
+        )
+        _audit(
+            conn, "sgf_workbench_staged_repair", int(repair["id"]), int(reviewer_id),
+            "SHADOW_AUTHORITY_REVIEWED", {
+                "review_item_id": int(item_id),
+                "source_record_uuid": shadow.get("source_record_uuid"),
+                "review_verdict": shadow.get("review_verdict"),
+                "runtime_authority": False,
+            }, _now(now),
+        )
+    repair["shadow_reviewed_authority"] = shadow
+    repair["runtime_authority"] = False
+    return repair
 
 
 def _serialize_direct_version(row: Any) -> dict:
@@ -1133,7 +1501,7 @@ def stage_workbench_repair(conn, *, item_id: int, reviewer_id: int,
                            expected_item_updated_at: str | None = None) -> dict:
     ensure_sgf_workbench_tables(conn)
     action = str(action or "").strip().upper()
-    if action not in WORKBENCH_ACTIONS:
+    if action not in WORKBENCH_ACTIONS and action != SHADOW_REVIEWED_AUTHORITY_ACTION:
         raise ValueError("invalid_workbench_action")
     timestamp = _now(now)
     mutation_key = str(mutation_key or _sha256(_json({"item": item_id, "action": action, "proposed": proposed_state})))
@@ -1261,7 +1629,52 @@ def validate_staged_repair(conn, *, repair_id: int, actor_id: int,
             if not result["checks"]["question_identity_preserved"]:
                 result["status"] = "FAIL"
                 errors.append("question_identity_changed")
-            if action == "NEEDS_RESEARCH":
+            if action == SHADOW_REVIEWED_AUTHORITY_ACTION:
+                shadow = provenance.get("shadow_reviewed_authority")
+                shadow_check = shadow_review_basis_check(
+                    shadow,
+                    current_content_sha256=current_content_sha256,
+                    current_record_hash=current_record_hash,
+                )
+                result["checks"]["shadow_authority_basis"] = shadow_check
+                if not shadow_check.get("ok"):
+                    result["status"] = shadow_check.get("status") or "FAIL"
+                    errors.extend(str(error) for error in shadow_check.get("errors", []))
+                shadow_verdict = str((shadow or {}).get("review_verdict") or "").upper()
+                if shadow_verdict not in SHADOW_REVIEW_VERDICTS:
+                    result["status"] = "FAIL"
+                    errors.append("invalid_shadow_review_verdict")
+                else:
+                    try:
+                        shadow_moves = _shadow_move_list(
+                            (shadow or {}).get("reviewed_moves"),
+                            allow_empty=shadow_verdict != "APPROVED_CORRECT_MOVE_SET",
+                        )
+                    except ValueError as error:
+                        shadow_moves = []
+                        result["status"] = "FAIL"
+                        errors.append(str(error))
+                    shadow_move_keys = {(move["x"], move["y"]) for move in shadow_moves}
+                    proposed_move_keys = {
+                        (move["x"], move["y"])
+                        for move in (proposed.get("accepted_moves") or [])
+                        if _shadow_move(move) is not None
+                    }
+                    result["checks"]["reviewed_move_set"] = {
+                        "verdict": shadow_verdict,
+                        "reviewed_moves": shadow_moves,
+                        "proposed_moves": sorted(proposed_move_keys),
+                    }
+                    if shadow_verdict == "APPROVED_CORRECT_MOVE_SET" and shadow_move_keys != proposed_move_keys:
+                        result["status"] = "FAIL"
+                        errors.append("reviewed_move_set_not_in_proposed_answers")
+                    if shadow_verdict in {"NEEDS_RESEARCH", "REJECTED_NO_CHANGE"}:
+                        result["status"] = "FAIL"
+                        errors.append("shadow_verdict_not_batchable")
+                    if shadow_verdict == "BROKEN_OR_DISABLE" and proposed.get("enabled", True) is not False:
+                        result["status"] = "FAIL"
+                        errors.append("shadow_disable_state_missing")
+            elif action == "NEEDS_RESEARCH":
                 result["status"] = "FAIL"
                 errors.append("needs_research_not_batchable")
             elif candidate_key is None and action in {
@@ -1307,10 +1720,47 @@ def validate_staged_repair(conn, *, repair_id: int, actor_id: int,
                 if action == "REMOVE_INCORRECT_ACCEPTED_MOVE" and after is True:
                     result["status"] = "CONFLICT"
                     errors.append("removed_candidate_still_accepted_by_runtime")
+            if action == SHADOW_REVIEWED_AUTHORITY_ACTION:
+                shadow = provenance.get("shadow_reviewed_authority")
+                if isinstance(shadow, dict) and shadow.get("review_verdict") == "APPROVED_CORRECT_MOVE_SET":
+                    regression = result.get("checks", {}).get("same_question_regression")
+                    if regression is None:
+                        if result["status"] == "PASS":
+                            result["status"] = "FAIL"
+                        errors.append("shadow_retest_required")
+                    elif regression.get("after") is not True:
+                        if result["status"] == "PASS":
+                            result["status"] = "FAIL"
+                        errors.append("shadow_retest_failed")
             result["checks"]["validation_record_hash"] = direct_record_hash(proposed)
         result["errors"] = sorted(set(errors))
         result["ok"] = result["status"] == "PASS"
         validation_provenance = dict(provenance)
+        if action == SHADOW_REVIEWED_AUTHORITY_ACTION:
+            shadow = validation_provenance.get("shadow_reviewed_authority")
+            if isinstance(shadow, dict):
+                shadow = json.loads(json.dumps(shadow))
+                shadow["validation_status"] = result["status"]
+                if result["status"] != "PASS":
+                    shadow["authority_review_can_be_admitted"] = False
+                if result["status"] == "STALE":
+                    shadow["stale"] = True
+                shadow["validation"] = {
+                    "status": result["status"],
+                    "ok": result["ok"],
+                    "validated_at": timestamp,
+                    "validated_by": actor_id,
+                }
+                regression = result.get("checks", {}).get("same_question_regression")
+                if isinstance(regression, dict):
+                    shadow["retest_result"] = {
+                        "status": "PASS" if regression.get("after") is True else "FAIL",
+                        "checked_at": timestamp,
+                        "result": regression,
+                    }
+                elif not isinstance(shadow.get("retest_result"), dict):
+                    shadow["retest_result"] = {"status": "NOT_RUN"}
+                validation_provenance["shadow_reviewed_authority"] = shadow
         validation_provenance["workflow"] = {
             "validation": result,
             "validated_at": timestamp,
@@ -1564,4 +2014,14 @@ def workbench_constants() -> dict:
         ],
         "human_review_identity": "VERSION_SCOPED_RECORD_LOCATOR",
         "canonical_identity_decision": "DEFERRED",
+        "shadow_review": {
+            "mode": "SHADOW",
+            "action": SHADOW_REVIEWED_AUTHORITY_ACTION,
+            "source": SHADOW_REVIEW_SOURCE,
+            "verdicts": list(SHADOW_REVIEW_VERDICTS),
+            "operations": list(SHADOW_REVIEW_OPERATIONS),
+            "runtime_authority": False,
+            "affects_progression": False,
+            "direct_apply_enabled": False,
+        },
     }

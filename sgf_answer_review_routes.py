@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from flask import Blueprint, Response, jsonify, request, send_from_directory, session
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 import secrets
@@ -19,6 +22,17 @@ from sgf_answer_review_queue import (
     save_owner_progress,
     undo_group_review,
 )
+from sgf_admin_workbench import (
+    ShadowReviewIdentityError,
+    ShadowReviewStaleError,
+    capture_workbench_report,
+    direct_record_hash,
+    ensure_sgf_workbench_tables,
+    get_workbench_item,
+    resolve_source_record_identity,
+    stage_shadow_reviewed_authority,
+)
+from sgf_workbench_v2a import build_question_context
 
 
 _SOURCE_CACHE = {}
@@ -124,6 +138,161 @@ def _review_csrf_failure():
             403,
         )
     return None
+
+
+def _shadow_source_path() -> Path:
+    configured = os.environ.get("QUESTIONS_JSON_PATH", "questions.json").strip()
+    return Path(configured or "questions.json")
+
+
+def _load_shadow_records() -> list[dict]:
+    """Read the current question source without creating a second source/cache."""
+    path = _shadow_source_path()
+    with path.open("r", encoding="utf-8") as handle:
+        values = json.load(handle)
+    if not isinstance(values, list):
+        raise ValueError("question corpus must be a list")
+    return values
+
+
+def _shadow_content_sha256(record: dict) -> str:
+    content = record.get("content")
+    if not isinstance(content, str):
+        content = record.get("sgf")
+    if not isinstance(content, str):
+        raise ValueError("question_content_unavailable")
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def _shadow_moves(record: dict) -> list[dict]:
+    raw_moves = record.get("accepted_moves") or record.get("accepted_answers") or []
+    if isinstance(raw_moves, dict):
+        raw_moves = [raw_moves]
+    if not isinstance(raw_moves, list):
+        return []
+    result = []
+    seen = set()
+    for raw in raw_moves:
+        if isinstance(raw, dict):
+            x, y = raw.get("x"), raw.get("y")
+        elif isinstance(raw, (list, tuple)) and len(raw) >= 2:
+            x, y = raw[0], raw[1]
+        else:
+            continue
+        try:
+            move = {"x": int(x), "y": int(y)}
+        except (TypeError, ValueError):
+            continue
+        if not (0 <= move["x"] < 19 and 0 <= move["y"] < 19):
+            continue
+        key = (move["x"], move["y"])
+        if key not in seen:
+            seen.add(key)
+            result.append(move)
+    return result
+
+
+def _shadow_move(value: object, *, board_size: int = 19) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    try:
+        x, y = int(value.get("x")), int(value.get("y"))
+    except (TypeError, ValueError):
+        return None
+    if not (0 <= x < int(board_size) and 0 <= y < int(board_size)):
+        return None
+    return {"x": x, "y": y}
+
+
+def _shadow_question_context(payload: dict, *, reviewer_id: int) -> dict:
+    try:
+        record_index = int(payload.get("record_index"))
+    except (TypeError, ValueError) as error:
+        raise ValueError("invalid_record_index") from error
+    if record_index < 0:
+        raise ValueError("invalid_record_index")
+    records = _load_shadow_records()
+    if record_index >= len(records) or not isinstance(records[record_index], dict):
+        raise LookupError("question_not_found")
+    record = records[record_index]
+    legacy_id = record.get("id", record.get("question_id"))
+    if legacy_id in (None, ""):
+        raise ValueError("legacy_question_id_missing")
+    if payload.get("legacy_question_id") not in (None, "") and str(payload.get("legacy_question_id")) != str(legacy_id):
+        raise ShadowReviewStaleError("stale_shadow_locator")
+    try:
+        question_id = int(legacy_id)
+    except (TypeError, ValueError) as error:
+        raise ValueError("invalid_question_id") from error
+    content_sha256 = _shadow_content_sha256(record)
+    record_hash = direct_record_hash(record)
+    expected_hash = payload.get("reviewed_record_sha256")
+    if expected_hash not in (None, "") and str(expected_hash).lower() != record_hash:
+        raise ShadowReviewStaleError("stale_shadow_review_locator")
+    context = build_question_context(
+        record, record_index=record_index, reviewer_id=int(reviewer_id), review_state=None
+    )
+    return {
+        "question_id": question_id,
+        "record_index": record_index,
+        "legacy_question_id": legacy_id,
+        "record": record,
+        "record_hash": record_hash,
+        "content_sha256": content_sha256,
+        "accepted_moves": _shadow_moves(record),
+        "context": context,
+        "state": {
+            "question_id": question_id,
+            "record_index": record_index,
+            "content_sha256": content_sha256,
+            "record_hash": record_hash,
+            "enabled": bool(record.get("enabled", True)),
+            "solution_state": record.get("solution_state"),
+            "accepted_moves": _shadow_moves(record),
+            "native_sgf": record.get("native_answer") or record.get("solution"),
+            "historical_katago_best_move": record.get("katago_best_move"),
+        },
+    }
+
+
+def _latest_shadow_review(conn, *, question_id: int, record_index: int,
+                          record_hash: str) -> dict | None:
+    ensure_sgf_workbench_tables(conn)
+    rows = conn.execute(
+        "SELECT id FROM sgf_workbench_review_items "
+        "WHERE question_id=? AND record_index=? ORDER BY updated_at DESC, id DESC",
+        (int(question_id), int(record_index)),
+    ).fetchall()
+    for row in rows:
+        item = get_workbench_item(conn, int(row["id"] if hasattr(row, "keys") else row[0]))
+        if not item:
+            continue
+        for repair in reversed(item.get("staged_repairs") or []):
+            provenance = repair.get("source_provenance")
+            shadow = provenance.get("shadow_reviewed_authority") if isinstance(provenance, dict) else None
+            if not isinstance(shadow, dict):
+                continue
+            if str((shadow.get("basis") or {}).get("record_hash") or "") != str(record_hash):
+                continue
+            return {
+                "workbench_item_id": int(item["id"]),
+                "workbench_item_status": item.get("status"),
+                "item_updated_at": item.get("updated_at"),
+                "repair_id": int(repair["id"]),
+                "repair_status": repair.get("status"),
+                "shadow_reviewed_authority": shadow,
+            }
+    return None
+
+
+def _shadow_issue_type(operation: str) -> str:
+    if operation == "ADD_ALTERNATIVE_CORRECT_MOVE":
+        return "ALTERNATIVE_CORRECT_MOVE"
+    if operation in {"REPLACE_CORRECT_ANSWER", "REMOVE_INCORRECT_ACCEPTED_MOVE"}:
+        return "SYSTEM_ANSWER_INCORRECT"
+    if operation in {"MARK_NEEDS_RESEARCH", "DISABLE_BROKEN_QUESTION"}:
+        return "QUESTION_CONTENT_PROBLEM"
+    return "OTHER"
 
 
 def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
@@ -320,5 +489,222 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
             return _json_no_store(result)
         except ReviewQueueError as error:
             return _error_response(error)
+
+    def shadow_context():
+        origin_failure = _review_origin_failure()
+        if origin_failure is not None:
+            return origin_failure
+        try:
+            reviewer_id = int(session["user_id"])
+            context = _shadow_question_context(request.args.to_dict(), reviewer_id=reviewer_id)
+            with get_db_provider() as conn:
+                identity = resolve_source_record_identity(conn, context["question_id"])
+                latest = _latest_shadow_review(
+                    conn,
+                    question_id=context["question_id"],
+                    record_index=context["record_index"],
+                    record_hash=context["record_hash"],
+                )
+            return _json_no_store({
+                "ok": True,
+                "question_id": context["question_id"],
+                "record_index": context["record_index"],
+                "legacy_question_id": context["legacy_question_id"],
+                "reviewed_record_sha256": context["record_hash"],
+                "content_sha256": context["content_sha256"],
+                "identity": identity,
+                "authority": {
+                    "current_accepted_moves": context["accepted_moves"],
+                    "accepted_moves_classification": "HELPFUL_BUT_NOT_AUTHORITATIVE",
+                    "reviewed_authority": (latest or {}).get("shadow_reviewed_authority"),
+                    "runtime_authority": False,
+                    "affects_progression": False,
+                },
+                "workbench": latest,
+                "security": {
+                    "csrf_header": _REVIEW_CSRF_HEADER,
+                    "csrf_token": _review_csrf_token(),
+                },
+                "safety": {
+                    "canonical_questions_mutated": False,
+                    "map_battle_runtime_changed": False,
+                    "progression_changed": False,
+                    "direct_apply_enabled": False,
+                },
+            })
+        except ShadowReviewStaleError as error:
+            return _json_no_store({"ok": False, "error": "stale_shadow_review", "detail": str(error)}, 409)
+        except LookupError as error:
+            return _json_no_store({"ok": False, "error": str(error)}, 404)
+        except (OSError, TypeError, ValueError) as error:
+            return _json_no_store({"ok": False, "error": "shadow_context_unavailable", "detail": str(error)}, 400)
+
+    def shadow_review():
+        origin_failure = _review_origin_failure()
+        if origin_failure is not None:
+            return origin_failure
+        csrf_failure = _review_csrf_failure()
+        if csrf_failure is not None:
+            return csrf_failure
+        if not request.is_json:
+            return _json_no_store({"ok": False, "error": "json_required"}, 415)
+        payload = request.get_json(silent=True) or {}
+        operation = str(payload.get("operation") or "").strip().upper()
+        verdict_by_operation = {
+            "ADD_ALTERNATIVE_CORRECT_MOVE": "APPROVED_CORRECT_MOVE_SET",
+            "REPLACE_CORRECT_ANSWER": "APPROVED_CORRECT_MOVE_SET",
+            "REMOVE_INCORRECT_ACCEPTED_MOVE": "APPROVED_CORRECT_MOVE_SET",
+            "MARK_NEEDS_RESEARCH": "NEEDS_RESEARCH",
+            "DISABLE_BROKEN_QUESTION": "BROKEN_OR_DISABLE",
+            "REJECT_NO_CHANGE": "REJECTED_NO_CHANGE",
+        }
+        if operation not in verdict_by_operation:
+            return _json_no_store({"ok": False, "error": "invalid_shadow_operation"}, 400)
+        try:
+            reviewer_id = int(session["user_id"])
+            context = _shadow_question_context(payload, reviewer_id=reviewer_id)
+            board_size = int((context["context"].get("tree") or {}).get("board_size") or 19)
+            candidate = None
+            if operation in {
+                "ADD_ALTERNATIVE_CORRECT_MOVE",
+                "REPLACE_CORRECT_ANSWER",
+                "REMOVE_INCORRECT_ACCEPTED_MOVE",
+            }:
+                candidate = _shadow_move(
+                    payload.get("candidate_move") or payload.get("selected_move"),
+                    board_size=board_size,
+                )
+                if candidate is None:
+                    return _json_no_store({"ok": False, "error": "candidate_move_required"}, 400)
+            current_moves = list(context["accepted_moves"])
+            current_keys = {(move["x"], move["y"]) for move in current_moves}
+            candidate_key = (candidate["x"], candidate["y"]) if candidate else None
+            if operation == "ADD_ALTERNATIVE_CORRECT_MOVE":
+                if candidate_key in current_keys:
+                    return _json_no_store({"ok": False, "error": "candidate_already_accepted"}, 409)
+                reviewed_moves = [*current_moves, candidate]
+            elif operation == "REPLACE_CORRECT_ANSWER":
+                reviewed_moves = [candidate]
+            elif operation == "REMOVE_INCORRECT_ACCEPTED_MOVE":
+                if candidate_key not in current_keys:
+                    return _json_no_store({"ok": False, "error": "candidate_not_currently_accepted"}, 409)
+                reviewed_moves = [move for move in current_moves if (move["x"], move["y"]) != candidate_key]
+                if not reviewed_moves:
+                    return _json_no_store({"ok": False, "error": "empty_reviewed_move_set"}, 409)
+            else:
+                reviewed_moves = current_moves
+
+            with get_db_provider() as conn:
+                identity = resolve_source_record_identity(conn, context["question_id"])
+                if not identity.get("authority_review_can_be_admitted"):
+                    return _json_no_store({
+                        "ok": False,
+                        "error": "identity_unresolved",
+                        "identity": identity,
+                        "source_record_uuid_attached": False,
+                        "authority_review_can_be_admitted": False,
+                        "runtime_authority_changed": False,
+                    }, 409)
+                timestamp = datetime.now(timezone.utc).isoformat()
+                authority_snapshot = {
+                    "current_accepted_moves": current_moves,
+                    "accepted_moves_classification": "HELPFUL_BUT_NOT_AUTHORITATIVE",
+                    "source_record_uuid": identity.get("source_record_uuid"),
+                    "source_record_uuid_status": identity.get("status"),
+                    "source_record_uuid_attached": True,
+                    "runtime_authority": False,
+                    "affects_progression": False,
+                }
+                source_provenance = {
+                    "source": "MAP_BATTLE_SHADOW_REVIEW",
+                    "map_battle_shadow_review": True,
+                    "operation": operation,
+                    "identity": identity,
+                    "canonical_record_hash": context["record_hash"],
+                    "reviewed_record_sha256": context["record_hash"],
+                }
+                material = {
+                    "question_id": context["question_id"],
+                    "record_index": context["record_index"],
+                    "record_hash": context["record_hash"],
+                    "operation": operation,
+                    "reviewed_moves": reviewed_moves,
+                }
+                digest = hashlib.sha256(
+                    json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                ).hexdigest()
+                capture = capture_workbench_report(
+                    conn,
+                    source="ADMIN_PLAY",
+                    reporter_id=reviewer_id,
+                    question_id=context["question_id"],
+                    record_index=context["record_index"],
+                    issue_type=_shadow_issue_type(operation),
+                    candidate_move=candidate,
+                    observed_system_verdict="UNDETERMINED",
+                    gameplay_surface="map_battle_shadow_review",
+                    sgf_identity=context["content_sha256"],
+                    node_identity=str(payload.get("selected_node_id") or "shadow-review")[:120],
+                    board_state={"review_surface": "map_battle", "shadow": True},
+                    question_content_sha256=context["content_sha256"],
+                    authority=authority_snapshot,
+                    comment=str(payload.get("note") or "")[:1000],
+                    source_provenance=source_provenance,
+                    external_key=f"map-battle-shadow-report:{digest}",
+                    now=timestamp,
+                )
+                source_provenance["review_report_id"] = capture["report"].get("id")
+                repair = stage_shadow_reviewed_authority(
+                    conn,
+                    item_id=int(capture["review_item_id"]),
+                    reviewer_id=reviewer_id,
+                    identity=identity,
+                    reviewed_moves=reviewed_moves,
+                    verdict=verdict_by_operation[operation],
+                    original_state=context["state"],
+                    current_content_sha256=context["content_sha256"],
+                    current_record_hash=context["record_hash"],
+                    reason=str(payload.get("note") or operation)[:1000],
+                    source_provenance=source_provenance,
+                    mutation_key=f"map-battle-shadow-repair:{reviewer_id}:{digest}",
+                    expected_item_updated_at=payload.get("expected_item_updated_at"),
+                    now=timestamp,
+                )
+                item = get_workbench_item(conn, int(capture["review_item_id"]))
+            return _json_no_store({
+                "ok": True,
+                "shadow_reviewed_authority": repair.get("shadow_reviewed_authority"),
+                "repair": repair,
+                "item": item,
+                "review_item_id": capture["review_item_id"],
+                "runtime_authority_changed": False,
+                "progression_changed": False,
+                "canonical_questions_mutated": False,
+                "direct_apply_enabled": False,
+                "security": {
+                    "csrf_header": _REVIEW_CSRF_HEADER,
+                    "csrf_token": _review_csrf_token(),
+                },
+            })
+        except ShadowReviewIdentityError as error:
+            return _json_no_store({"ok": False, "error": "identity_unresolved", "detail": str(error)}, 409)
+        except ShadowReviewStaleError as error:
+            return _json_no_store({"ok": False, "error": "stale_shadow_review", "detail": str(error)}, 409)
+        except LookupError as error:
+            return _json_no_store({"ok": False, "error": str(error)}, 404)
+        except (TypeError, ValueError, OSError) as error:
+            return _json_no_store({"ok": False, "error": "shadow_review_rejected", "detail": str(error)}, 400)
+
+    blueprint.add_url_rule(
+        "/api/admin/sgf-answer-review/shadow/context",
+        endpoint="shadow_context_admin",
+        view_func=admin_required(shadow_context),
+    )
+    blueprint.add_url_rule(
+        "/api/admin/sgf-answer-review/shadow/review",
+        endpoint="shadow_review_admin",
+        view_func=admin_required(shadow_review),
+        methods=["POST"],
+    )
 
     return blueprint
