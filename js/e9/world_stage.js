@@ -91,7 +91,7 @@
   var ZONE_LANDMARKS = {
     k26_30: '/assets/maps/e10-vs1f-landmarks/zone-01-beginner-village.webp',
     k21_25: '/assets/maps/e10-vs1f-landmarks/zone-02-slime-plains.webp',
-    k16_20: '/assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp',
+    k16_20: '/assets/e10/art/zone3/environment/zone3_map_landmark.webp',
     k11_15: '/assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp',
     k6_10: '/assets/maps/e10-vs1f-landmarks/zone-05-sky-tower.webp',
     k1_5: '/assets/maps/e10-vs1f-landmarks/zone-06-royal-castle.webp',

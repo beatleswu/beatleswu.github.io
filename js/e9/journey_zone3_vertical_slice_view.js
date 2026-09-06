@@ -90,6 +90,11 @@
     root.setAttribute('aria-hidden', hidden ? 'true' : 'false');
     if (hidden) return;
 
+    var presentationSlot = state.phase === 'POST_CLEAR_CINEMATIC'
+      ? (content.assetSlots && content.assetSlots.zone3PostClear)
+      : (content.assetSlots && content.assetSlots.zone3Entry);
+    var presentationReady = !!(presentationSlot && presentationSlot.status === 'READY');
+
     root.setAttribute('data-zone3-phase', state.phase);
     var prefix = copyKey;
     setCopyKey(root.querySelector('[data-zone3-kicker]'), prefix + '.kicker');
@@ -97,7 +102,8 @@
     setCopyKey(root.querySelector('[data-zone3-body]'), prefix + '.body');
     setCopyKey(root.querySelector('[data-zone3-status]'),
       state.phase === 'ENTRY_CINEMATIC' || state.phase === 'POST_CLEAR_CINEMATIC'
-        ? 'e9.zone3.pending_assets' : 'e9.zone3.status');
+        ? (presentationReady ? 'e9.zone3.presentation_ready' : 'e9.zone3.pending_assets')
+        : 'e9.zone3.status');
     var cta = root.querySelector('[data-zone3-action="lord-cta"]');
     var back = root.querySelector('[data-zone3-action="return"]');
     if (cta) {
