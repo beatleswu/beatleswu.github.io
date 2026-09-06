@@ -23,7 +23,9 @@ from pathlib import Path
 
 import pytest
 
-_REPO = Path(__file__).resolve().parents[1]
+from tests.support.repo_root import find_repo_root
+
+_REPO = find_repo_root(__file__)
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
@@ -195,7 +197,7 @@ def test_non_collision_genesis_unchanged(conn):
 # ---------------------------------------------------------------- full 42,804 (C:-gated)
 
 _C_REPO = Path(r"C:\go-website")
-_FROZEN = _REPO.parents[2] / "questions.json"
+_FROZEN = _REPO / "questions.json"
 _DE7 = "de7cd979d838b441bd570e4d0eec3b3a46ef0c5c"
 _RECEIPT_PATH = _REPO / "docs" / "planning" / "lc012_p2_genesis_receipt.json"
 _RENAME_MAP_PATH = _REPO / "docs" / "planning" / "lc012_p2_historical_rename_map.json"

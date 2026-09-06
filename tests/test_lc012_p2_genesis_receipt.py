@@ -15,7 +15,9 @@ from pathlib import Path
 
 import pytest
 
-_REPO = Path(__file__).resolve().parents[1]
+from tests.support.repo_root import find_repo_root
+
+_REPO = find_repo_root(__file__)
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
@@ -23,7 +25,7 @@ from tools import lc012_p2_genesis_freeze as p2  # noqa: E402
 from tools.lc012_sgf_source_tree_freeze import tree_inventory  # noqa: E402
 
 _C_REPO = Path(r"C:\go-website")
-_FROZEN = _REPO.parents[2] / "questions.json"  # D:\go-website\questions.json
+_FROZEN = _REPO / "questions.json"
 _B162 = "b162f9e72b93b73c08c1b044f365cb9287efae70"
 _DE7 = "de7cd979d838b441bd570e4d0eec3b3a46ef0c5c"
 
