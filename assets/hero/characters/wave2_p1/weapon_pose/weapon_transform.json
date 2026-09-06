@@ -1,0 +1,36 @@
+{
+  "schema": "go-odyssey.hero-weapon-transform.v1",
+  "source_asset": "assets/hero/equipment/wearables/overlays/wooden_sword.png",
+  "source_sha256": "12b4bbe4150d05bca39b507787c250f1418c2ad154fafb8d8e2df557186e4523",
+  "source_grip_axis": {
+    "p1": {
+      "x": 691.0,
+      "y": 650.0
+    },
+    "p2": {
+      "x": 729.0,
+      "y": 707.0
+    }
+  },
+  "target_grip_axis": {
+    "p1": {
+      "x": 722.0,
+      "y": 757.0
+    },
+    "p2": {
+      "x": 760.0,
+      "y": 814.0
+    }
+  },
+  "translate_x": 31.0,
+  "translate_y": 107.0,
+  "rotation_degrees": 0.0,
+  "scale_x": 1.0,
+  "scale_y": 1.0,
+  "shear": 0,
+  "mirrored": false,
+  "perspective": false,
+  "resampling_method": "PIL.Image.Resampling.BICUBIC",
+  "runtime_transform": "identity",
+  "transform_contract": "translate+rotate only; no scale/shear/mirror/perspective"
+}

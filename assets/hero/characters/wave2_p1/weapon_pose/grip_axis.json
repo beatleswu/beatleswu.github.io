@@ -1,0 +1,35 @@
+{
+  "schema": "go-odyssey.hero-grip-axis.v1",
+  "character": "apprentice",
+  "hand": "right",
+  "canvas_width": 1056,
+  "canvas_height": 1408,
+  "hand_roi": {
+    "x1": 676,
+    "y1": 641,
+    "x2": 840,
+    "y2": 845
+  },
+  "grip_pivot": {
+    "x": 741.0,
+    "y": 785.5
+  },
+  "grip_axis": {
+    "p1": {
+      "x": 722.0,
+      "y": 757.0
+    },
+    "p2": {
+      "x": 760.0,
+      "y": 814.0
+    }
+  },
+  "grip_axis_length_px": 68.5054742338158,
+  "coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI pixels; origin top-left",
+  "owner_pose_reference_path": "C:\\Users\\beatl\\.codex\\codex-remote-attachments\\01a073fc-8a20-71f1-9eb5-526858fb8370\\E58D741E-D24C-4F9E-9252-9F56A43A4091\\1-照片-1.jpg",
+  "owner_pose_reference_sha256": "d98b70c78804992c895a53fcf5453e8b67b67e7528416c6aafff93dec2785dd9",
+  "hand_art_assist_sha256": "626d210e366e1674c70b61901e512a65ba2419d70f429cab09661f73c2bde0ce",
+  "hand_art_assist_scope": "right-hand/minimal-wrist ROI only; no canonical character or weapon pixels",
+  "layer_split": "back is the hand layer behind the handle plus canonical cuff pixels; front is the thumb-side foreground mask",
+  "runtime_integration": "not enabled"
+}
