@@ -1,0 +1,456 @@
+{
+  "contract_id": "W1-C1-ZONE3-REFERENCE-VERTICAL-SLICE-TEMPLATE-001",
+  "task": "W1-C1-ZONE3-CLOSURE-REFERENCE-TEMPLATE-FREEZE-001",
+  "domain": "L2_WORLD_AND_CONTENT",
+  "wave": "WAVE_1",
+  "wave_package": "W1-C1",
+  "status": "PASS_Z3_CONTENT_CANDIDATE_READY",
+  "reference_template_frozen": true,
+  "purpose": "Canonical Zone 3 closure contract and reusable acceptance baseline for Zone 4 and later zones.",
+  "scope_locks": {
+    "implementation_scope": "Zone 3 closure, integration, verification, and template freeze",
+    "monster_art_generation": false,
+    "monster_art_created": 0,
+    "mass_98_monster_integration": false,
+    "zone4_implementation": false,
+    "w1_a2_semantics_implementation": false,
+    "app_py_mutation": false,
+    "shop_reopened": false,
+    "loadout_reopened": false,
+    "production_mutation": false,
+    "merge_granted": false,
+    "deploy_granted": false
+  },
+  "canonical_base": {
+    "ref": "origin/master",
+    "sha": "3dc517bfbf789da378f971b092980fb53e7a5e2f",
+    "tree": "f794a931c7243a5cea6655b2ab71313bd563c19a",
+    "planning_authority_local_head": "9dda8945e74cbda2902fa30ddd973ba125fbd203"
+  },
+  "zone": {
+    "number": 3,
+    "key": "k16_20",
+    "name_zh": "哥布林洞穴",
+    "name_en": "Goblin Cave",
+    "stage": "LV3",
+    "level_band": "16-20",
+    "theme": "Goblin families retreat deeper into the cave; the Hero listens to Grik, recognizes a natural board-wall boundary, and earns passage through trust rather than a raid.",
+    "learning_books": [
+      "5哥布林洞穴",
+      "6哥布林巡邏隊"
+    ],
+    "lord": {
+      "id": "goblin_centurion",
+      "name_zh": "哥布林百夫長",
+      "name_en": "Goblin Centurion",
+      "classification": "LORD_ONLY"
+    }
+  },
+  "components": {
+    "environment": {
+      "status": "READY_CANONICAL_LANDMARK_REBOUND",
+      "visual_language": "B — STYLIZED_ADVENTURE",
+      "map": {
+        "runtime_path": "/assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+        "display_contract": "320x320",
+        "legacy_reference_preserved": "/assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp",
+        "legacy_reference_runtime_use": false,
+        "runtime_binding": "js/e9/world_stage.js ZONE_LANDMARKS[k16_20]"
+      },
+      "background": {
+        "player_facing_cinematic_surface": "WORLD-owned whole-frame ten-shot cinematic package",
+        "environment_master": "/assets/e10/art/zone3/environment/zone3_environment_master.webp",
+        "environment_master_role": "general_zone_environment_only support asset; no state, text, UI, boss, Lord, or clear authority",
+        "separate_environment_master_card": false
+      },
+      "world_art": {
+        "manifest": "assets/e10/art/zone3/zone3-world-asset-package.json",
+        "owner_approved": true,
+        "visual_asset_count": 12,
+        "category_counts": {
+          "CINEMATIC_SHOT": 10,
+          "WORLD_MAP_LANDMARK": 1,
+          "WORLD_ENVIRONMENT_PLATE": 1
+        },
+        "fallback": "SAFE_TEXT_ONLY only on manifest or image-load failure"
+      },
+      "player_visible_surfaces": [
+        "authenticated world-map Zone 3 detail landmark on tablet/mobile card",
+        "Zone 3 first-entry, boss-ready, and post-clear whole-frame cinematic stages"
+      ],
+      "evidence": [
+        "assets/e10/art/zone3/zone3-world-asset-package.json",
+        "assets/e10/art/zone3/environment/zone3_map_landmark.webp",
+        "assets/e10/art/zone3/environment/zone3_environment_master.webp",
+        "deploy/canonical-e10-zone3-static-pack-manifest.json",
+        "js/e9/world_stage.js"
+      ]
+    },
+    "monster_roster": {
+      "status": "READY_13_NORMALS_SERVER_BOUND_NO_NEW_ART",
+      "encounter_class": "NORMAL",
+      "count": 13,
+      "monster_ids": [
+        "M022",
+        "M023",
+        "M024",
+        "M025",
+        "M026",
+        "M027",
+        "M028",
+        "M029",
+        "M030",
+        "M031",
+        "M032",
+        "M033",
+        "M060"
+      ],
+      "allocation_source": "docs/planning/monster_art_content_zone_assignment_v1.json",
+      "runtime_authority": "adventure_zone3_monster_authority.py",
+      "presentation_binding": {
+        "new_canonical_art_paths": 12,
+        "protected_legacy_runtime_anchor_count": 1,
+        "protected_legacy_anchor": "M022 -> /assets/monsters/orc_grunt_chibi.png",
+        "identity_derived_from_art_filename": false
+      },
+      "cross_zone_roster_leakage_guard": true,
+      "intended_encounter_availability": "enabled through the existing authenticated Map Battle path",
+      "art_created_in_this_task": 0,
+      "evidence": [
+        "docs/planning/monster_art_content_zone_assignment_v1.json",
+        "adventure_zone3_monster_authority.py",
+        "tests/test_e055_zone3_vertical_slice.py",
+        "tests/test_w1_02_zone3_monster_lord_runtime_asset_binding_004.py"
+      ]
+    },
+    "encounter_profiles": {
+      "status": "READY_PROFILE_REACHABLE_DROP_HANDOFF",
+      "profile_version": "e055.zone3.normal.v1",
+      "selection_source": "server-owned Zone 3 binding selector",
+      "combat_profile": {
+        "encounter_class": "NORMAL",
+        "max_hp": 100,
+        "attack": 8,
+        "profile_id_pattern": "adventure_z3_normal_Mxxx"
+      },
+      "reachability": {
+        "attempt_endpoint": "/api/adventure/map-battles/v1/attempts",
+        "answer_endpoint": "/api/adventure/map-battles/v1/answers",
+        "server_projection": "adventure_monster"
+      },
+      "elite_count": 0,
+      "battlefield_boss_is_separate": true,
+      "drop_reward_boundary": "References existing settlement registries; W1-C3 remains the drop-reachability authority and is not duplicated here.",
+      "evidence": [
+        "adventure_zone3_monster_authority.py",
+        "tests/test_e055_zone3_vertical_slice.py",
+        "tests/test_w1_02_hero_zone3_encounter_runtime_contract_and_handoff_006.py"
+      ]
+    },
+    "story_npc": {
+      "status": "READY_GRIK_STORY_ROLE_PLAYER_VISIBLE",
+      "screenplay": "docs/planning/e10_final_screenplay_v1.md",
+      "beat_manifest": "docs/planning/w1_01_world_story_onboarding_beat_manifest_v1.json",
+      "production_beats": [
+        "Z3_B01_RETREAT",
+        "Z3_B02_GRIK_TESTIMONY",
+        "Z3_B03_NATURAL_BOARD_WALL",
+        "Z3_B04_LAST_DOOR",
+        "Z3_B05_CEASEFIRE_SHARD"
+      ],
+      "grik": {
+        "role": "non-combat story actor and witness",
+        "player_visible_surface": "embedded in approved SHOT03, SHOT04, SHOT05, SHOT08, SHOT09, and SHOT10 frames",
+        "canonical_role_preserved": true,
+        "dedicated_world_npc_registry_record": false
+      },
+      "npc_registry": {
+        "authority": "docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json",
+        "zone3_canonical_world_npc_added": false,
+        "reason": "The frozen World NPC registry has no Zone 3 record; Grik is retained as the screenplay/cinematic story actor, not reclassified as a registry NPC."
+      },
+      "dialogue": {
+        "zh_tw_beats": 97,
+        "en_us_beats": 97,
+        "missing_voice_policy": "SUBTITLE_ONLY",
+        "cross_locale_voice_fallback": false
+      },
+      "identity_separation": {
+        "goblin_centurion_is_lord": true,
+        "goblin_centurion_is_npc": false,
+        "battlefield_boss_is_lord": false
+      },
+      "evidence": [
+        "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+        "assets/e10/i18n/zone3/zone3-cinematic-subtitles.json",
+        "assets/e10/i18n/zone3/zone3-cinematic-subtitles-en-US.json",
+        "rpg_world_npc_registry.py"
+      ]
+    },
+    "cinematic": {
+      "status": "READY_10_SHOTS_PHASE_BOUND_SAFE_PRESENTATION_FALLBACK",
+      "manifest": "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+      "runtime_controller": "index.html",
+      "presentation_contract": "js/e9/journey_zone3_vertical_slice_content.js",
+      "shot_count": 10,
+      "lifecycle": {
+        "FIRST_ENTRY": [
+          "SHOT01",
+          "SHOT02",
+          "SHOT03",
+          "SHOT04",
+          "SHOT05"
+        ],
+        "BOSS_READY": [
+          "SHOT06",
+          "SHOT07"
+        ],
+        "POST_CLEAR": [
+          "SHOT08",
+          "SHOT09",
+          "SHOT10"
+        ]
+      },
+      "trigger_points": {
+        "first_entry": "showStageIntroCinematic -> showZone3EntrySafeFallback -> full manifest timeline",
+        "boss_ready": "server-authoritative Lord-ready event -> Zone 3 boss-ready film",
+        "post_clear": "server-authoritative clear/reward result -> post-clear film",
+        "replay": "same presentation paths, no state or reward mutation"
+      },
+      "fallback": "Compact text-safe presentation only when the package is unavailable or an image load fails; failure has no gameplay authority.",
+      "embedded_character_overlay": false,
+      "evidence": [
+        "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+        "js/e9/journey_zone3_vertical_slice_content.js",
+        "index.html",
+        "tests/test_w1_03_journey_zone3_final_presentation_single_writer_binding_010.py"
+      ]
+    },
+    "audio": {
+      "status": "READY_CURRENT_E10_PACKAGE_RUNTIME_BOUND_OWNER_LOCK_OPEN",
+      "presentation_manifest": "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
+      "runtime_bridge": "js/e9/journey_zone3_presentation_audio.js",
+      "cinematic_audio_manifests": [
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest-en-US.json"
+      ],
+      "current_package_inventory": {
+        "ambience_mp3": 5,
+        "bgm_mp3": 3,
+        "battle_event_sfx_mp3": 7,
+        "transition_mp3": 1,
+        "dialogue_mp3_zh_tw": 97,
+        "dialogue_mp3_en_us": 97,
+        "presentation_cues": 18
+      },
+      "runtime_phase_bgm": {
+        "FIRST_ENTRY": "Z3_BGM_DISCOVERY",
+        "BOSS_READY": "Z3_BGM_ESCALATION",
+        "POST_CLEAR": "Z3_BGM_RECOVERY"
+      },
+      "locale_policy": {
+        "supported": [
+          "zh-TW",
+          "en-US"
+        ],
+        "missing_voice": "SUBTITLE_ONLY",
+        "cross_locale_fallback": false
+      },
+      "owner_gate": "New presentation cues remain OWNER_AUDIO_LOCK open in the package manifest; this task does not promote or regenerate audio.",
+      "bindings_changed_in_this_task": false,
+      "evidence": [
+        "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest-en-US.json",
+        "js/e9/journey_zone3_presentation_audio.js",
+        "index.html",
+        "tests/test_w1_03_journey_zone3_presentation_audio_package_009.py"
+      ]
+    },
+    "learning_binding": {
+      "status": "BINDING_READY_SEMANTICS_DEFERRED",
+      "books": [
+        "5哥布林洞穴",
+        "6哥布林巡邏隊"
+      ],
+      "zone_binding_source": "existing ADVENTURE_ZONES and server question loader",
+      "encounter_binding": "Zone 3 Map Battle uses the existing server-owned question/answer path and projects the selected Zone 3 Monster binding.",
+      "correctness_authority": "existing Engine/server semantics",
+      "w1_d1_dependency": "Owner ruling required for final semantics",
+      "w1_a2_dependency": "later W1-A2 semantics implementation required",
+      "changes_in_this_task": false,
+      "evidence": [
+        "app.py",
+        "js/e9/journey_zone3_vertical_slice_content.js",
+        "tests/test_e055_zone3_vertical_slice.py"
+      ]
+    },
+    "drops_rewards": {
+      "status": "EXISTING_SETTLEMENT_AUTHORITY_HANDOFF",
+      "normal_profile_refs": {
+        "drop_profile_id": "drop_legacy_goblin",
+        "reward_profile_id": "reward_battlefield_legacy"
+      },
+      "lord_reward_consumer": "BattlefieldBossRewardConsumer",
+      "clear_reward_source": "server_finish_response",
+      "w1_c3_boundary": "Drop reachability and settlement authority remain external; no duplicate reward implementation is introduced.",
+      "replay_policy": "NO_REWARD",
+      "evidence": [
+        "adventure_zone3_monster_authority.py",
+        "monster_drop_profiles.py",
+        "monster_reward_profiles.py",
+        "js/e9/journey_zone3_vertical_slice_content.js"
+      ]
+    },
+    "lord_presentation": {
+      "status": "READY_6_SLOTS_BATTLEFIELD_BOSS_DISTINCT_SERVER_ELIGIBILITY",
+      "lord_id": "goblin_centurion",
+      "lord_classification": "LORD_ONLY",
+      "asset_binding_module": "zone3_runtime_asset_bindings.py",
+      "owner_approved_runtime_slot_count": 6,
+      "lord_runtime_root": "/assets/e10/art/zone3/lord_trial/",
+      "encounter": {
+        "start_endpoint": "/api/adventure/boss/start",
+        "finish_endpoint": "/api/adventure/boss/finish",
+        "eligibility": "server-authoritative bootstrap and boss-start response"
+      },
+      "battlefield_boss": {
+        "runtime_id": "legacy_bf_03_boss",
+        "asset": "/assets/monsters/orc_shield_chibi.png",
+        "classification": "BATTLEFIELD_BOSS",
+        "distinct_from_lord": true
+      },
+      "presentation_identity": "Centurion is the quiet last door/trust test; SHOT07 is a cinematic frame and does not itself grant Lord identity or eligibility.",
+      "evidence": [
+        "zone3_runtime_asset_bindings.py",
+        "assets/e10/art/zone3/lord_trial/",
+        "tests/test_w1_02_zone3_monster_lord_runtime_asset_binding_004.py",
+        "tests/test_w1_02_zone3_lord_final_asset_ingestion_005.py"
+      ]
+    },
+    "progression": {
+      "status": "SERVER_AUTHORITY_DEFERRED_TO_L3",
+      "current_zone_authority": "server current_zone_key",
+      "selected_zone_role": "presentation selection only",
+      "zone_clear_authority": "server-authoritative boss finish / progression response",
+      "monster_defeat_is_zone_clear": false,
+      "quest_is_progression_authority": false,
+      "client_unlock_authority": false,
+      "zone4_hook": "presentation-only hook; no auto-navigation or unlock mutation",
+      "m2_gate": "first-clear -> reward -> Zone star -> next-Zone unlock must be proven in deployed authenticated acceptance",
+      "evidence": [
+        "js/e9/journey_zone3_vertical_slice_content.js",
+        "js/e9/world_stage.js",
+        "app.py"
+      ]
+    },
+    "replay": {
+      "status": "READY_PRESENTATION_ONLY_SAFE",
+      "same_source": true,
+      "same_locale_manifest": true,
+      "replay_changes_zone_state": false,
+      "replay_issues_reward": false,
+      "replay_consumes_items": false,
+      "replay_unlocks_zone4": false,
+      "lifecycle_cleanup": "audio, VFX, cinematic timers, and E9 listeners are cleaned through the existing presentation lifecycle",
+      "evidence": [
+        "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+        "js/e9/journey_zone3_vertical_slice.js",
+        "js/e9/journey_zone3_presentation_audio.js",
+        "js/e9/zone3_presentation_fx.js"
+      ]
+    },
+    "responsive_device_acceptance": {
+      "status": "READY_FOR_LATER_BROWSER_DEVICE_ACCEPTANCE",
+      "supported_review_surfaces": [
+        "desktop",
+        "iPad landscape",
+        "iPad portrait",
+        "mobile portrait"
+      ],
+      "presentation_policy": "whole-frame contain is the safe baseline; SHOT09 and SHOT10 retain reviewed portrait/mobile custom positions",
+      "layout_blockers": [],
+      "mobile_blockers": [],
+      "tablet_blockers": [],
+      "audio_cinematic_interaction_blockers": [],
+      "physical_device_tested": false,
+      "authenticated_walkthrough_tested": false,
+      "owner_visual_audio_acceptance": "still required as a separate gate",
+      "evidence": [
+        "assets/e10/art/zone3/zone3-world-asset-package.json",
+        "assets/e10/art/zone3/cinematic/zone3-cinematic-asset-package.json",
+        "js/e9/journey_zone3_vertical_slice_content.js",
+        "tests/test_w1_03_journey_zone3_cinematic_asset_slot_responsive_binding.py"
+      ]
+    }
+  },
+  "integration_dependencies": {
+    "L1_presentation": {
+      "status": "BOUND_CANDIDATE_SHARED_SHELL_REVIEW_REMAINS_SEPARATE",
+      "dependency": "world_stage.js canonical landmark binding and shared cinematic host"
+    },
+    "L3_progression": {
+      "status": "M2_BLOCKER",
+      "dependency": "server clear, star, current-zone, and next-zone unlock proof"
+    },
+    "L4_rewards": {
+      "status": "REFERENCED_EXISTING_AUTHORITY",
+      "dependency": "settlement and idempotent reward evidence; no duplicate implementation"
+    },
+    "L5_learning": {
+      "status": "OWNER_AND_SEMANTICS_GATE",
+      "dependency": "W1-D1 Owner ruling and later W1-A2 implementation"
+    },
+    "L6_release": {
+      "status": "NOT_GRANTED",
+      "dependency": "deployment, authenticated walkthrough, and release/physical acceptance remain separate gates"
+    }
+  },
+  "verification": {
+    "automated_contract_test": "tests/test_w1_c1_zone3_reference_vertical_slice_template.py",
+    "focused_existing_tests": [
+      "tests/test_e055_zone3_vertical_slice.py",
+      "tests/test_w1_02_zone3_monster_lord_runtime_asset_binding_004.py",
+      "tests/test_w1_02_zone3_lord_final_asset_ingestion_005.py",
+      "tests/test_w1_01_zone3_world_asset_package.py",
+      "tests/test_w1_03_journey_zone3_presentation_audio_package_009.py",
+      "tests/test_w1_03_journey_zone3_vertical_slice_wiring.py",
+      "tests/test_w1_03_journey_zone3_final_presentation_single_writer_binding_010.py",
+      "tests/test_e10_vs1f_integrated_world_map.py"
+    ],
+    "javascript_syntax_checks": [
+      "js/e9/journey_zone3_vertical_slice_view.js",
+      "js/e9/journey_zone3_vertical_slice_content.js",
+      "js/e9/journey_zone3_presentation_audio.js",
+      "js/e9/zone3_presentation_fx.js"
+    ],
+    "not_claimed": [
+      "physical-device acceptance",
+      "deployed authenticated gameplay walkthrough",
+      "M2 acceptance",
+      "merge",
+      "deploy"
+    ]
+  },
+  "open_blockers": [
+    "M2 requires W1-A1 closure.",
+    "M2 requires the W1-D1 Owner semantics ruling.",
+    "M2 requires W1-A2 closure; this task does not implement W1-A2.",
+    "M2 requires deployed authenticated first-clear -> reward -> Zone star -> next-Zone unlock proof and safe replay proof.",
+    "Owner audio lock/perceptual acceptance for the current presentation package remains a separate gate.",
+    "Physical desktop/tablet/mobile acceptance remains a later gate; no physical-device claim is made.",
+    "L6 deployment and release authority are not granted by this content candidate."
+  ],
+  "provenance": {
+    "app_py_touched": false,
+    "monster_art_created": 0,
+    "monster_art_regenerated": 0,
+    "zone4_implemented": false,
+    "w1_a2_implemented": false,
+    "shop_reopened": false,
+    "loadout_reopened": false,
+    "merge": false,
+    "deploy": false,
+    "production_mutation": false
+  }
+}

@@ -16,6 +16,7 @@ INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 FLAGS = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 LANDMARK_DIR = ROOT / "assets/maps/e10-vs1f-landmarks"
+CANONICAL_ZONE3_LANDMARK = "assets/e10/art/zone3/environment/zone3_map_landmark.webp"
 CONTRACT = "e10-vs1f-integrated-world-map"
 LANDMARK_NAMES = [
     "zone-01-beginner-village.webp",
@@ -50,7 +51,7 @@ def test_exact_v218_static_runtime_version_coupling():
     assert INDEX.count("20260801e10art1") >= 8
 
 
-def test_ten_original_landmarks_are_runtime_referenced_and_governed():
+def test_original_landmarks_and_canonical_zone3_landmark_are_runtime_referenced_and_governed():
     actual = sorted(path.name for path in LANDMARK_DIR.glob("*.webp"))
     assert actual == LANDMARK_NAMES
     closure = _manifest("deploy/canonical-asset-closure-manifest.json")
@@ -59,14 +60,27 @@ def test_ten_original_landmarks_are_runtime_referenced_and_governed():
     image_by_path = {entry["path"]: entry for entry in image_pack["files"]}
     for name in LANDMARK_NAMES:
         relative = f"assets/maps/e10-vs1f-landmarks/{name}"
-        assert f"/{relative}" in WORLD_JS
         data = (ROOT / relative).read_bytes()
+        if name == "zone-03-goblin-cave.webp":
+            assert f"/{relative}" not in WORLD_JS
+        else:
+            assert f"/{relative}" in WORLD_JS
         for governed in (closure_by_path[relative], image_by_path[relative]):
             assert governed["size"] == len(data)
             assert governed["sha256"] == hashlib.sha256(data).hexdigest()
             assert governed["mime"] == "image/webp"
             assert governed["width"] == governed["height"] == 320
             assert governed["provenance"] == "owner-approved-project-created"
+
+    static_pack = _manifest("deploy/canonical-e10-zone3-static-pack-manifest.json")
+    static_by_path = {entry["path"]: entry for entry in static_pack["files"]}
+    assert f"/{CANONICAL_ZONE3_LANDMARK}" in WORLD_JS
+    canonical_data = (ROOT / CANONICAL_ZONE3_LANDMARK).read_bytes()
+    governed = static_by_path[CANONICAL_ZONE3_LANDMARK]
+    assert governed["size"] == len(canonical_data)
+    assert governed["sha256"] == hashlib.sha256(canonical_data).hexdigest()
+    assert governed["mime"] == "image/webp"
+    assert governed["provenance"] == "owner-approved-zone3-runtime-closure"
 
 
 def test_landmarks_are_decorative_and_only_created_for_mobile_cards():
