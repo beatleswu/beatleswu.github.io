@@ -182,6 +182,16 @@ from review_contracts import (
 from review_service import MapBattleReviewHandoff, ReviewService, ReviewServiceStatus
 from event_outbox import DuplicateOutboxEvent, append_event, get_event_by_idempotency_key
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
+from adventure_first_clear_convergence import (
+    FirstClearProjectionReceiptError,
+    FirstClearProjectionReceiptSchemaUnavailable,
+    completion_exists as first_clear_projection_completion_exists,
+    ensure_receipt_schema as ensure_first_clear_projection_receipt_schema,
+    pending_receipts as pending_first_clear_projection_receipts,
+    record_completion as record_first_clear_projection_completion,
+    record_failure as record_first_clear_projection_failure,
+    record_pending_receipt as record_first_clear_projection_receipt,
+)
 from migrations.historical_leaderboard_evidence_v1 import (
     upgrade as upgrade_historical_leaderboard_evidence_schema,
 )
@@ -12377,6 +12387,265 @@ def _persist_next_zone_unlock(conn, uid, zone_key, now):
     return next_zone_key
 
 
+def _adventure_first_clear_projection_error_code(exc):
+    """Return a stable, non-sensitive code for durable retry diagnostics."""
+
+    explicit_code = getattr(exc, 'projection_error_code', None)
+    if explicit_code:
+        return explicit_code
+    if isinstance(exc, ZoneStarSchemaUnavailable):
+        return 'zone_star_schema_unavailable'
+    if isinstance(exc, FirstClearProjectionReceiptSchemaUnavailable):
+        return 'first_clear_receipt_schema_unavailable'
+    if isinstance(exc, FirstClearProjectionReceiptError):
+        return 'first_clear_receipt_error'
+    error_type = re.sub(
+        r'[^a-z0-9_.-]+',
+        '_',
+        type(exc).__name__.lower(),
+    ).strip('_')
+    return error_type or 'projection_error'
+
+
+class _AdventureFirstClearProjectionStageError(RuntimeError):
+    """Classify a projection-stage failure without exposing DB details."""
+
+    def __init__(self, projection_error_code, cause=None):
+        self.projection_error_code = projection_error_code
+        super().__init__(projection_error_code)
+        if cause is not None:
+            self.__cause__ = cause
+
+
+def _adventure_settle_first_clear_projection(
+    conn,
+    uid,
+    zone_key,
+    operation_id,
+    now,
+):
+    """Settle Zone-star and immediate unlock in their own transaction.
+
+    The caller commits this connection only after both writes have succeeded.
+    The star ledger and unlock table each own their own idempotency boundary;
+    this helper never touches Boss progress, first-clear reward, Spirit, or
+    Incident018-owned result state.
+    """
+
+    try:
+        star_result = award_zone_star_from_boss_clear(
+            conn,
+            uid,
+            zone_key,
+            operation_id,
+            now,
+        )
+        stars = int(star_result.get('stars') or 0)
+    except ZoneStarSchemaUnavailable:
+        raise
+    except Exception as exc:
+        raise _AdventureFirstClearProjectionStageError(
+            'zone_star_projection_error',
+            cause=exc,
+        ) from exc
+    if stars < FIRST_MAP_MILESTONE_STAR:
+        raise _AdventureFirstClearProjectionStageError(
+            'zone_star_first_clear_projection_incomplete'
+        )
+    try:
+        next_zone_key = _persist_next_zone_unlock(conn, uid, zone_key, now)
+    except Exception as exc:
+        raise _AdventureFirstClearProjectionStageError(
+            'next_zone_unlock_projection_error',
+            cause=exc,
+        ) from exc
+    return {
+        'zone_key': zone_key,
+        'stars': stars,
+        'star_status': star_result.get('status'),
+        'next_zone_key': next_zone_key,
+        'next_zone_status': 'not_applicable' if next_zone_key is None else 'committed',
+    }
+
+
+def _adventure_record_first_clear_projection_failure(
+    uid,
+    zone_key,
+    operation_id,
+    error_code,
+    now,
+):
+    """Persist one bounded diagnostic without masking the pending receipt."""
+
+    try:
+        with get_db() as conn:
+            diagnostic = record_first_clear_projection_failure(
+                conn,
+                user_id=uid,
+                zone_key=zone_key,
+                operation_id=operation_id,
+                error_code=error_code,
+                occurred_at=now,
+            )
+            conn.commit()
+            return diagnostic
+    except Exception:
+        # The pending receipt is already the recoverable authority.  A broken
+        # diagnostic connection must never turn a valid Boss settlement into
+        # an error response or suppress the next reconciliation attempt.
+        app.logger.exception(
+            'Adventure first-clear projection diagnostic failed for user %s zone %s',
+            uid,
+            zone_key,
+        )
+        return None
+
+
+def _adventure_attempt_first_clear_projection(
+    uid,
+    zone_key,
+    operation_id,
+    now,
+    receipt=None,
+    trigger='initial_settlement',
+):
+    """Try convergence and return a client/log-safe status payload.
+
+    The core receipt is committed before this function is called.  Projection
+    failures therefore return a successful Boss result with ``PENDING``
+    convergence, while the next Adventure read/start or explicit internal
+    reconciliation can retry the separate projection transaction.
+    """
+
+    status_payload = {
+        'status': 'PENDING',
+        'converged': False,
+        'retryable': True,
+        'zone_key': zone_key,
+        'operation_id': operation_id,
+    }
+    if receipt:
+        status_payload['receipt_event_id'] = receipt.get('receipt_event_id')
+
+    try:
+        with get_db() as conn:
+            if first_clear_projection_completion_exists(
+                conn,
+                user_id=uid,
+                zone_key=zone_key,
+            ):
+                _clear_adventure_state_cache(uid)
+                return {
+                    **status_payload,
+                    'status': 'COMPLETED',
+                    'converged': True,
+                    'retryable': False,
+                    'source': 'existing_completion_receipt',
+                }
+
+        with get_db() as zone_star_conn:
+            projection = _adventure_settle_first_clear_projection(
+                zone_star_conn,
+                uid,
+                zone_key,
+                operation_id,
+                now,
+            )
+            # This is deliberately a different transaction from the core
+            # Boss/reward/Spirit settlement.  A projection failure rolls back
+            # only this connection and leaves the valid core settlement intact.
+            zone_star_conn.commit()
+
+        with get_db() as receipt_conn:
+            completion = record_first_clear_projection_completion(
+                receipt_conn,
+                user_id=uid,
+                zone_key=zone_key,
+                operation_id=operation_id,
+                occurred_at=now,
+                projection=projection,
+            )
+            receipt_conn.commit()
+    except Exception as exc:
+        error_code = _adventure_first_clear_projection_error_code(exc)
+        _adventure_record_first_clear_projection_failure(
+            uid,
+            zone_key,
+            operation_id,
+            error_code,
+            now,
+        )
+        app.logger.exception(
+            'Adventure first-clear projection pending for user %s zone %s (%s)',
+            uid,
+            zone_key,
+            error_code,
+        )
+        return {
+            **status_payload,
+            'error_code': error_code,
+        }
+
+    _clear_adventure_state_cache(uid)
+    return {
+        **status_payload,
+        'status': 'COMPLETED',
+        'converged': True,
+        'retryable': False,
+        'source': trigger,
+        'completion_event_id': completion.get('completion_event_id'),
+        'projection': projection,
+    }
+
+
+def _adventure_reconcile_first_clear_projections(uid):
+    """Retry every pending first-clear projection for the authenticated user."""
+
+    try:
+        with get_db() as conn:
+            receipts = pending_first_clear_projection_receipts(conn, user_id=uid)
+    except FirstClearProjectionReceiptSchemaUnavailable:
+        # Existing deployments without the D5A foundation have no receipt
+        # authority to reconcile.  New first clears fail closed before core
+        # settlement; ordinary reads remain available for legacy accounts.
+        return {
+            'status': 'UNAVAILABLE',
+            'converged': False,
+            'pending_count': 0,
+            'results': [],
+        }
+    except Exception:
+        app.logger.exception(
+            'Adventure first-clear projection receipt read failed for user %s',
+            uid,
+        )
+        return {
+            'status': 'UNAVAILABLE',
+            'converged': False,
+            'pending_count': 0,
+            'results': [],
+        }
+
+    results = [
+        _adventure_attempt_first_clear_projection(
+            uid,
+            receipt['zone_key'],
+            receipt['operation_id'],
+            datetime.datetime.now().isoformat(timespec='seconds'),
+            receipt=receipt,
+            trigger='reconciliation',
+        )
+        for receipt in receipts
+    ]
+    all_converged = all(item.get('converged') for item in results)
+    return {
+        'status': 'COMPLETED' if all_converged else 'PENDING',
+        'converged': all_converged,
+        'pending_count': sum(1 for item in results if not item.get('converged')),
+        'results': results,
+    }
+
+
 def _lord_retry_evaluation_failed_state():
     """The conservative retry lock used when retry eligibility is unreadable.
 
@@ -12887,8 +13156,10 @@ def _e10_cinematic_state(uid):
 @app.route('/api/adventure/progress')
 @login_required
 def adventure_progress():
+    uid = session['user_id']
+    _adventure_reconcile_first_clear_projections(uid)
     map_state = _adventure_map_state(
-        session['user_id'],
+        uid,
         selected_stage_key=(request.args.get('selected_stage_key') or '').strip() or None,
     )
     return jsonify({
@@ -12896,7 +13167,7 @@ def adventure_progress():
         'boss_exam_size': BOSS_EXAM_SIZE,
         'boss_pass_score': BOSS_PASS_SCORE,
         'cooldown_required': BOSS_FAIL_COOLDOWN,
-        'cinematics': _e10_cinematic_state(session['user_id']),
+        'cinematics': _e10_cinematic_state(uid),
         **map_state,
     })
 
@@ -12904,8 +13175,10 @@ def adventure_progress():
 @app.route('/api/adventure/map-state')
 @login_required
 def adventure_map_state():
+    uid = session['user_id']
+    _adventure_reconcile_first_clear_projections(uid)
     map_state = _adventure_map_state(
-        session['user_id'],
+        uid,
         selected_stage_key=(request.args.get('selected_stage_key') or '').strip() or None,
     )
     return jsonify({
@@ -12913,7 +13186,7 @@ def adventure_map_state():
         'boss_exam_size': BOSS_EXAM_SIZE,
         'boss_pass_score': BOSS_PASS_SCORE,
         'cooldown_required': BOSS_FAIL_COOLDOWN,
-        'cinematics': _e10_cinematic_state(session['user_id']),
+        'cinematics': _e10_cinematic_state(uid),
         **map_state,
     })
 
@@ -12921,8 +13194,10 @@ def adventure_map_state():
 @app.route('/api/adventure/bootstrap')
 @login_required
 def adventure_bootstrap():
-    zones = _adventure_state(session['user_id'])
-    _set_adventure_state_cache(session['user_id'], zones)
+    uid = session['user_id']
+    _adventure_reconcile_first_clear_projections(uid)
+    zones = _adventure_state(uid)
+    _set_adventure_state_cache(uid, zones)
     map_state = _adventure_map_state_from_zones(
         zones,
         selected_stage_key=(request.args.get('selected_stage_key') or '').strip() or None,
@@ -12932,7 +13207,7 @@ def adventure_bootstrap():
         'boss_exam_size': BOSS_EXAM_SIZE,
         'boss_pass_score': BOSS_PASS_SCORE,
         'cooldown_required': BOSS_FAIL_COOLDOWN,
-        'cinematics': _e10_cinematic_state(session['user_id']),
+        'cinematics': _e10_cinematic_state(uid),
         **map_state,
     })
 
@@ -12986,6 +13261,9 @@ def home_report_summary():
 @incident018_observe_lord_endpoint(INCIDENT_018_LORD_START_ENDPOINT)
 def adventure_boss_start():
     uid = session['user_id']
+    # A return to the Adventure/Lord entry point is an automatic retry path
+    # for a committed first-clear receipt whose Zone projection was interrupted.
+    _adventure_reconcile_first_clear_projections(uid)
     data = request.get_json(silent=True) or {}
     if not isinstance(data, dict):
         data = {}
@@ -13381,6 +13659,7 @@ def adventure_boss_finish():
     seen = int(state.get('seen') or 0)
     cooldown_until = 0 if passed else seen + BOSS_FAIL_COOLDOWN
 
+    first_clear_receipt = None
     with get_db() as conn:
         existing = conn.execute(
             'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
@@ -13402,6 +13681,32 @@ def adventure_boss_finish():
         )
         is_replay = settlement['is_replay']
         is_first_clear = settlement['is_first_clear']
+
+        if passed and is_first_clear:
+            # This immutable UNKNOWN event is committed with Boss clear,
+            # reward, Spirit, and Incident018-owned result state.  The
+            # separate Zone-star transaction below may fail without erasing
+            # any of those already-valid authorities.
+            try:
+                ensure_first_clear_projection_receipt_schema(conn)
+                first_clear_receipt = record_first_clear_projection_receipt(
+                    conn,
+                    user_id=uid,
+                    zone_key=zone_key,
+                    operation_id=settlement['operation_id'],
+                    occurred_at=now,
+                )
+            except FirstClearProjectionReceiptSchemaUnavailable:
+                # The core mutation is still inside this transaction.  Roll
+                # it back before returning so a missing receipt foundation
+                # cannot create a clear without a recoverable obligation.
+                rollback = getattr(conn, 'rollback', None)
+                if callable(rollback):
+                    rollback()
+                return jsonify({
+                    'ok': False,
+                    'error': 'first_clear_convergence_unavailable',
+                }), 503
 
         # The attempt result is the only first-clear authority.  F028 owns
         # Mapping A resolution and writes the existing wardrobe authority in
@@ -13442,33 +13747,35 @@ def adventure_boss_finish():
             return jsonify({'ok': False, 'error': exc.code}), 400
 
     # A new Boss clear is an explicit first-star event in the separate Zone
-    # authority.  It is deliberately settled after the Boss transaction so a
-    # missing/temporarily unavailable Zone-star schema cannot roll back the
-    # Boss clear, reward, Spirit, or Incident018-owned result.
+    # authority.  The durable UNKNOWN receipt was committed above with the
+    # core settlement, so a missing/temporarily unavailable Zone-star schema
+    # cannot wedge the player: this attempt returns PENDING and a later
+    # Adventure read/start or reconciliation retries the projection.
+    first_clear_projection = None
     if passed and is_first_clear:
-        try:
-            with get_db() as zone_star_conn:
-                star_result = award_zone_star_from_boss_clear(
-                    zone_star_conn,
-                    uid,
-                    zone_key,
-                    settlement['operation_id'],
-                    now,
-                )
-                # The first star is the progression event that opens the next
-                # Zone, so persist that unlock here rather than leaving it as
-                # a derived read.  ON CONFLICT DO NOTHING makes a replayed or
-                # concurrent settlement a no-op.
-                if star_result.get('stars', 0) >= FIRST_MAP_MILESTONE_STAR:
-                    _persist_next_zone_unlock(zone_star_conn, uid, zone_key, now)
-                zone_star_conn.commit()
-        except ZoneStarSchemaUnavailable:
-            pass
-        except Exception:
-            app.logger.exception(
-                'Zone-star first-clear projection failed for user %s zone %s',
-                uid,
-                zone_key,
+        first_clear_projection = _adventure_attempt_first_clear_projection(
+            uid,
+            zone_key,
+            settlement['operation_id'],
+            now,
+            receipt=first_clear_receipt,
+        )
+    elif is_replay:
+        # A replay is never a new reward authority.  It may, however, be the
+        # first request after a prior crash, so let it drive safe convergence
+        # of an already-recorded pending projection obligation.
+        reconciliation = _adventure_reconcile_first_clear_projections(uid)
+        if reconciliation.get('results'):
+            results = reconciliation['results']
+            first_clear_projection = (
+                results[0]
+                if len(results) == 1
+                else {
+                    'status': reconciliation.get('status'),
+                    'converged': reconciliation.get('converged', False),
+                    'retryable': not reconciliation.get('converged', False),
+                    'results': results,
+                }
             )
 
     session.pop('adventure_boss_exam', None)
@@ -13494,6 +13801,8 @@ def adventure_boss_finish():
         'reward_item': reward_payload['reward_item'],
         **map_state,
     }
+    if first_clear_projection is not None:
+        response['first_clear_projection'] = first_clear_projection
     return jsonify(
         compose_adventure_boss_finish_response(
             response,

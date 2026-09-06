@@ -216,10 +216,16 @@ def test_star_writers_are_reached_only_from_the_two_traced_call_sites():
     assert "award_zone_star_from_authoritative_answer" not in source
 
     finish = inspect.getsource(app_module.adventure_boss_finish)
+    projection = inspect.getsource(
+        app_module._adventure_settle_first_clear_projection
+    )
     # The Lord star write is gated on a genuine PASS that is also a first
     # clear; a failed or repeat clear never reaches the writer.
     assert "if passed and is_first_clear:" in finish
-    assert "award_zone_star_from_boss_clear(" in finish
+    # The writer is now shared by the initial path and receipt reconciliation;
+    # the finish route still gates the call through the first-clear winner.
+    assert "_adventure_attempt_first_clear_projection(" in finish
+    assert "award_zone_star_from_boss_clear(" in projection
 
 
 def test_failed_lord_cannot_reach_the_star_writer():
@@ -230,7 +236,7 @@ def test_failed_lord_cannot_reach_the_star_writer():
 
     finish = inspect.getsource(app_module.adventure_boss_finish)
     gate_index = finish.index("if passed and is_first_clear:")
-    writer_index = finish.index("award_zone_star_from_boss_clear(")
+    writer_index = finish.index("_adventure_attempt_first_clear_projection(")
     assert gate_index < writer_index
 
     # And the invalid-size refusal returns before any settlement at all.

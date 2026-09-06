@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 
 from lord_trial_answer_service import encode_lord_trial_verdict
+from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
 
 
 CONTRACT_VERSION = "F028_BATTLEFIELD_BOSS_MAPPING_A_FIRST_CLEAR_V1"
@@ -135,6 +136,7 @@ def _create_schema(connection: sqlite3.Connection) -> None:
         """
     )
     connection.create_function("GREATEST", 2, max)
+    upgrade_domain_event_outbox(connection)
     connection.commit()
 
 

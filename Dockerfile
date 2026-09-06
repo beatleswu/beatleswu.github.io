@@ -42,6 +42,9 @@ COPY adventure_zone_progression_authority.py ./
 # Keep the authority module explicit; its migration import is constants-only at
 # startup and does not execute database DDL.
 COPY adventure_zone_star_progression.py ./
+# W1-A1: app.py imports the append-only first-clear convergence receipt seam.
+# Keep it explicit in the curated image boundary; it does not execute DDL.
+COPY adventure_first_clear_convergence.py ./
 COPY startup_diagnostics.py ./
 COPY db.py ./
 COPY shadow_judging.py ./
