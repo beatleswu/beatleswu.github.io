@@ -13248,7 +13248,7 @@ const DIFF_ORDER = [
 function renderList(questions){ /* no-op：題目列表 UI 已移除，改走地圖導向 */ }
 
 // ─── 登出 ──────────────────────────────────────────────────────
-async function doLogout(){if(window._cgStopDmBadge)window._cgStopDmBadge();await fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{});window.location.href='/login';}
+async function doLogout(){if(window._cgStopDmBadge)window._cgStopDmBadge();if(window.SRS&&typeof SRS.clearSessionQuarantine==='function')SRS.clearSessionQuarantine();await fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{});window.location.href='/login';}
 
 function updateWelcomeStats(){
     const doneEl   = document.getElementById('ws-done');
@@ -13862,6 +13862,10 @@ async function enterAdventureZoneInPage(zone) {
         const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
         const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
         if (!unitQs.length) return false;
+        // In-page Adventure entry starts a fresh gameplay session.  The
+        // malformed-question exclusion is intentionally ephemeral, so a new
+        // session may reconsider the question without carrying old state.
+        if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
         const overlay = document.getElementById('boss-cinematic');
         if (overlay) { overlay.classList.remove('show'); overlay.setAttribute('aria-hidden', 'true'); }
         const _ws = document.getElementById('welcome-state');
@@ -19139,6 +19143,9 @@ async function startBossBattle(zoneKey) {
         setMsg(I18n.t('index.boss.not_unsealed'), 'warn');
         return;
     }
+    // A new governed boss attempt is a new gameplay-session boundary for the
+    // ephemeral malformed-question exclusion.
+    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
     // Zone 1 and Zone 2 use the explicit Lord Card -> ritual handoff. Other
     // zones retain the existing generic seal modal until their own runtime
     // foundation is authorized.
@@ -21051,6 +21058,9 @@ async function loadVoidZoneCount() {
 
 // ── 啟動今日星軌修煉 ──────────────────────────────────────────────
 async function startDailyTraining() {
+    // Starting a new daily round resets only ephemeral malformed-question
+    // exclusions; persisted review/SRS state remains untouched.
+    if (window.SRS && typeof SRS.clearSessionQuarantine==='function') SRS.clearSessionQuarantine();
     _adventureActiveQuestions = null;
     const contextLabel = document.getElementById('battle-status');
     if (contextLabel) contextLabel.textContent = I18n.t('index.battle.fighting');
@@ -21381,6 +21391,9 @@ if (window.__GO_E9_SERVER_FLAGS__ ||
     primeInitialE9ShellOwnership();
 }
 window.onload = async () => {
+    // The quarantine is intentionally in-memory only. A fresh page/session
+    // starts with no stale exclusions from an earlier gameplay session.
+    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
     I18n.renderSwitcher(document.getElementById('lang-switcher-index'));
     I18n.apply();
     const statusEl=document.getElementById('api-status'),listDiv=document.getElementById('list-container');
@@ -21911,6 +21924,7 @@ let _challengeQIndex = 0;
 
 async function initChallengeMode(cid) {
     _challengeId = cid;
+    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
     try {
         const res = await fetch(`/api/challenges/friend/${cid}`, { credentials: 'include' });
         const data = await res.json();

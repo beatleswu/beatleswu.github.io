@@ -87,6 +87,10 @@
             this.questionRevision = payload && payload.question_revision != null
                 ? payload.question_revision
                 : null;
+            this.sessionQuestionFingerprint = payload
+                && payload.session_question_fingerprint != null
+                ? payload.session_question_fingerprint
+                : null;
         }
     }
 

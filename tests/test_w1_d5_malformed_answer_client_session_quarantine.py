@@ -114,7 +114,7 @@ globalThis.fetch = async () => ({{
   status: 400,
   json: async () => ({{
     error: 'malformed_answer', code: 'malformed_answer',
-    failure_class: 'CANONICALIZATION_FAILURE', reason_code: 'malformed_move_action',
+    failure_class: 'CLIENT_ANSWER_INVALID', reason_code: 'malformed_move_action',
     retryable: false, question_id: 431, question_revision: 'rev-1'
   }})
 }});
@@ -132,7 +132,7 @@ window.ReviewTransport.review({{ question_id: 431, grade: 5, moves: [{{ x: 1, y:
     assert result == {
         "name": "ReviewRejected",
         "code": "malformed_answer",
-        "failureClass": "CANONICALIZATION_FAILURE",
+        "failureClass": "CLIENT_ANSWER_INVALID",
         "reasonCode": "malformed_move_action",
         "retryable": False,
         "questionId": 431,
@@ -152,7 +152,7 @@ const fetchImpl = async () => ({{
   ok: false,
   status: 400,
   json: async () => ({{
-    error: 'malformed_answer', failure_class: 'JUDGE_INVALID',
+    error: 'malformed_answer', failure_class: 'DETERMINISTIC_JUDGE_INPUT_INVALID',
     retryable: false, question_id: 431, question_revision: 'rev-1'
   }})
 }});
@@ -194,7 +194,7 @@ globalThis.window = {{
   }});
   const transientPersistence = SRS.isQuestionQuarantined(431, 'rev-1');
   await SRS.review(431, 5, null, false, {{
-    error: 'malformed_answer', failure_class: 'CANONICALIZATION_FAILURE',
+    error: 'malformed_answer', failure_class: 'CONTENT_SIDE_CANONICALIZATION_FAILURE',
     retryable: false, question_id: 431, question_revision: 'rev-1'
   }});
   const deterministicMalformed = SRS.isQuestionQuarantined(431, 'rev-1');
@@ -238,3 +238,95 @@ def test_index_does_not_report_unit_progress_before_review_acceptance():
     assert "data = await SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata);" in source
     assert "SRS.reportUnitProgress(currentQ.id,unit)" in source
     assert "_quarantineRejectedAnswer" in SRS_PATH.read_text(encoding="utf-8")
+
+
+def test_null_revision_parser_failure_uses_opaque_fingerprint_and_closes_loop():
+    source = SRS_PATH.read_text(encoding="utf-8")
+    script = f"""
+globalThis.window = {{
+  ReviewTransport: {{ legacyReview: async () => ({{
+    error: 'judge_unavailable',
+    failure_class: 'DETERMINISTIC_PARSER_FAILURE',
+    reason_code: 'question_content_parser_failure',
+    retryable: false, question_id: 431, question_revision: null,
+    session_question_fingerprint: 'fp-431-v1'
+  }}) }}
+}};
+{source}
+(async () => {{
+  const q431 = {{ id: 431, question_revision: null, session_question_fingerprint: 'fp-431-v1' }};
+  const q432 = {{ id: 432, question_revision: 'rev-1', session_question_fingerprint: 'fp-432' }};
+  SRS.clearSessionQuarantine();
+  await SRS.review(431, 0, null, false, {{}});
+  const quarantined = SRS.isQuestionQuarantined(431, 'fp-431-v1');
+  const first = SRS.findNextAvailableQuestion([q431, q432], q431, 1)?.id ?? null;
+  const second = SRS.findNextAvailableQuestion([q431, q432], q432, 1)?.id ?? null;
+  console.log(JSON.stringify({{ quarantined, first, second }}));
+}})().catch(error => {{ console.error(error); process.exitCode = 1; }});
+"""
+    result = _run_node(script)
+    assert result == {"quarantined": True, "first": 432, "second": 432}
+
+
+def test_client_side_invalidity_and_unclassified_legacy_error_fail_closed():
+    source = SRS_PATH.read_text(encoding="utf-8")
+    script = f"""
+globalThis.window = {{
+  ReviewTransport: {{ legacyReview: async (_qid, _grade, _unit, _done, metadata) => metadata }}
+}};
+{source}
+(async () => {{
+  const q431 = {{ id: 431, question_revision: null, session_question_fingerprint: 'fp-431' }};
+  SRS.clearSessionQuarantine();
+  const client = await SRS.review(431, 0, null, false, {{
+    error: 'malformed_answer', failure_class: 'CLIENT_ANSWER_INVALID',
+    retryable: false, question_id: 431, question_revision: null,
+    session_question_fingerprint: 'fp-431'
+  }});
+  const clientQuarantined = SRS.isQuestionQuarantined(431, 'fp-431');
+  const legacy = await SRS.review(431, 0, null, false, {{
+    error: 'malformed_answer', retryable: false, question_id: 431,
+    question_revision: null, session_question_fingerprint: 'fp-431'
+  }});
+  const legacyQuarantined = SRS.isQuestionQuarantined(431, 'fp-431');
+  console.log(JSON.stringify({{
+    clientOk: client.ok === undefined,
+    clientQuarantined,
+    legacyOk: legacy.ok === undefined,
+    legacyQuarantined,
+    revision: SRS.questionRevision(q431)
+  }}));
+}})().catch(error => {{ console.error(error); process.exitCode = 1; }});
+"""
+    result = _run_node(script)
+    assert result == {
+        "clientOk": True,
+        "clientQuarantined": False,
+        "legacyOk": True,
+        "legacyQuarantined": False,
+        "revision": "fp-431",
+    }
+
+
+def test_same_id_changed_payload_fingerprint_is_independent_and_session_reset_clears_it():
+    source = SRS_PATH.read_text(encoding="utf-8")
+    script = f"""
+globalThis.window = {{}};
+{source}
+const oldQuestion = {{ id: 431, question_revision: null, session_question_fingerprint: 'fp-old' }};
+const newQuestion = {{ id: 431, question_revision: null, session_question_fingerprint: 'fp-new' }};
+SRS.clearSessionQuarantine();
+const attached = SRS.quarantineQuestion(431, 'fp-old');
+const oldSuppressed = SRS.isQuestionQuarantined(431, SRS.questionRevision(oldQuestion));
+const newSuppressed = SRS.isQuestionQuarantined(431, SRS.questionRevision(newQuestion));
+SRS.clearSessionQuarantine();
+const cleared = SRS.isQuestionQuarantined(431, 'fp-old');
+console.log(JSON.stringify({{ attached, oldSuppressed, newSuppressed, cleared }}));
+"""
+    result = _run_node(script)
+    assert result == {
+        "attached": True,
+        "oldSuppressed": True,
+        "newSuppressed": False,
+        "cleared": False,
+    }

@@ -30,7 +30,7 @@ from lord_trial_answer_service import (  # noqa: E402
     judge_lord_trial_answer,
 )
 import lord_trial_answer_service as lord_service  # noqa: E402
-from map_battle_runtime import JudgeUnavailable  # noqa: E402
+from map_battle_runtime import JudgeOutcome, JudgeUnavailable, RequestRejected  # noqa: E402
 
 
 QUEST_KEY = "whole_board::LV2"
@@ -38,6 +38,10 @@ EXAM = {"zone_key": "k26_30", "attempt_id": "w1-d5-attempt"}
 QUESTION = {
     "id": 431,
     "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dd]C[answer]))",
+}
+TRUNCATED_QUESTION = {
+    "id": 431,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dd]",
 }
 
 
@@ -98,11 +102,7 @@ def test_malformed_guild_answer_is_structured_and_fail_closed():
 
     error = excinfo.value
     assert error.code == "malformed_answer"
-    assert error.failure_class in {
-        "CLIENT_ANSWER_INVALID",
-        "CANONICALIZATION_FAILURE",
-        "JUDGE_INVALID",
-    }
+    assert error.failure_class == "CLIENT_ANSWER_INVALID"
     assert error.reason_code == "malformed_move_action"
     assert error.retryable is False
 
@@ -117,12 +117,92 @@ def test_malformed_lord_answer_is_structured_and_fail_closed():
 
     error = excinfo.value
     assert error.code == "malformed_answer"
-    assert error.failure_class in {
-        "CLIENT_ANSWER_INVALID",
-        "CANONICALIZATION_FAILURE",
-        "JUDGE_INVALID",
-    }
+    assert error.failure_class == "CLIENT_ANSWER_INVALID"
     assert error.reason_code == "malformed_move_action"
+    assert error.retryable is False
+
+
+@pytest.mark.parametrize(
+    ("judge", "kwargs", "error_type"),
+    [
+        (judge_guild_quest_answer, {"quest_key": QUEST_KEY}, GuildQuestAnswerError),
+        (judge_lord_trial_answer, {"exam": EXAM}, LordTrialAnswerError),
+    ],
+)
+def test_deterministic_parser_failure_keeps_content_provenance(
+    judge, kwargs, error_type
+):
+    with pytest.raises(error_type) as excinfo:
+        judge(
+            {"moves": [{"x": 3, "y": 3}]},
+            question=TRUNCATED_QUESTION,
+            **kwargs,
+        )
+
+    error = excinfo.value
+    assert error.code == "judge_unavailable"
+    assert error.failure_class == "DETERMINISTIC_PARSER_FAILURE"
+    assert error.reason_code == "question_content_parser_failure"
+    assert error.retryable is False
+
+
+def test_client_canonicalization_exception_is_not_content_failure(monkeypatch):
+    def reject_request(*args, **kwargs):
+        raise RequestRejected("client-shaped request rejected")
+
+    monkeypatch.setattr(guild_service, "canonicalize_answer", reject_request)
+    with pytest.raises(GuildQuestAnswerError) as excinfo:
+        judge_guild_quest_answer(
+            {"moves": [{"x": 3, "y": 3}]},
+            question=QUESTION,
+            quest_key=QUEST_KEY,
+        )
+
+    error = excinfo.value
+    assert error.code == "malformed_answer"
+    assert error.failure_class == "CLIENT_ANSWER_INVALID"
+    assert error.reason_code == "invalid_map_battle_request"
+    assert error.retryable is False
+
+
+def test_judge_invalid_has_explicit_deterministic_provenance(monkeypatch):
+    monkeypatch.setattr(
+        guild_service,
+        "judge_map_battle_answer_v1",
+        lambda *args, **kwargs: JudgeOutcome(
+            "INVALID", None, "map-battle-v1", "authoritative_content_invalid"
+        ),
+    )
+    with pytest.raises(GuildQuestAnswerError) as excinfo:
+        judge_guild_quest_answer(
+            {"moves": [{"x": 3, "y": 3}]},
+            question=QUESTION,
+            quest_key=QUEST_KEY,
+        )
+
+    error = excinfo.value
+    assert error.failure_class == "DETERMINISTIC_JUDGE_INPUT_INVALID"
+    assert error.retryable is False
+
+
+def test_special_move_judge_rejection_is_client_invalid_not_content_failure(monkeypatch):
+    monkeypatch.setattr(
+        guild_service,
+        "judge_map_battle_answer_v1",
+        lambda *args, **kwargs: JudgeOutcome(
+            "INVALID", None, "map-battle-v1", "special_move_not_judged"
+        ),
+    )
+    with pytest.raises(GuildQuestAnswerError) as excinfo:
+        judge_guild_quest_answer(
+            {"moves": [{"x": 3, "y": 3}]},
+            question=QUESTION,
+            quest_key=QUEST_KEY,
+        )
+
+    error = excinfo.value
+    assert error.failure_class == "CLIENT_ANSWER_INVALID"
+    assert error.reason_code == "special_move_not_judged"
     assert error.retryable is False
 
 
@@ -170,7 +250,7 @@ def test_judge_unavailable_remains_retryable_and_is_not_question_quarantine():
 def test_structured_failure_response_is_safe_and_revision_bound(app_module):
     error = GuildQuestAnswerError(
         "malformed_answer",
-        failure_class="CANONICALIZATION_FAILURE",
+        failure_class="CONTENT_SIDE_CANONICALIZATION_FAILURE",
         reason_code="malformed_move_action",
     )
     question = dict(QUESTION)
@@ -187,16 +267,54 @@ def test_structured_failure_response_is_safe_and_revision_bound(app_module):
     assert payload == {
         "error": "malformed_answer",
         "code": "malformed_answer",
-        "failure_class": "CANONICALIZATION_FAILURE",
+        "failure_class": "CONTENT_SIDE_CANONICALIZATION_FAILURE",
         "reason_code": "malformed_move_action",
         "retryable": False,
         "question_id": 431,
         "question_revision": hashlib.sha256(
             QUESTION["content"].encode("utf-8")
         ).hexdigest(),
+        "session_question_fingerprint": app_module._session_question_fingerprint(question),
     }
     assert "teleport" not in response.get_data(as_text=True)
     assert "do not expose this message" not in response.get_data(as_text=True)
+
+
+def test_missing_revision_gets_opaque_session_fingerprint_without_raw_content(app_module):
+    broken = {"id": 431, "content": ""}
+    error = GuildQuestAnswerError(
+        "judge_unavailable",
+        status=503,
+        retryable=False,
+        failure_class="QUESTION_OR_CONTENT_INVALID",
+        reason_code="question_content_unavailable",
+    )
+
+    with app_module.app.app_context():
+        response, status = app_module._answer_failure_response(
+            error,
+            qid=broken["id"],
+            question=broken,
+        )
+
+    payload = response.get_json()
+    assert status == 503
+    assert payload["question_revision"] is None
+    fingerprint = payload["session_question_fingerprint"]
+    assert isinstance(fingerprint, str)
+    assert len(fingerprint) == 64
+    assert all(character in "0123456789abcdef" for character in fingerprint)
+    assert "session_question_fingerprint" in response.get_data(as_text=True)
+    assert '"content"' not in response.get_data(as_text=True)
+
+    changed = {**broken, "content": "new-runtime-payload"}
+    with app_module.app.app_context():
+        changed_response, _ = app_module._answer_failure_response(
+            error,
+            qid=changed["id"],
+            question=changed,
+        )
+    assert changed_response.get_json()["session_question_fingerprint"] != fingerprint
 
 
 def test_review_operation_judges_before_the_first_durable_review_write():
@@ -226,5 +344,5 @@ def test_failed_answer_has_no_fake_progress_or_success_contract():
     assert "SRS.reportUnitProgress" not in rejection_region
     assert "if (data.ok) SRS.markSeen(currentQ.id)" in rejection_region
     srs_review = srs_source[srs_source.index("async function review"):srs_source.index("function dispatchReviewPresentation")]
-    assert "_quarantineRejectedAnswer(qid, data);" in srs_review
-    assert "_quarantineRejectedAnswer(qid, error && error.payload);" in srs_review
+    assert "_quarantineRejectedAnswer(qid, data" in srs_review
+    assert "_quarantineRejectedAnswer(qid, error && error.payload" in srs_review

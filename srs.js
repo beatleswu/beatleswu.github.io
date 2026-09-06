@@ -61,7 +61,13 @@ const SRS = (() => {
             const revision = _revisionKey(value);
             if (revision) return revision;
         }
-        return null;
+        // When the server cannot expose a usable revision (for example an
+        // empty/malformed question content), this opaque token is the only
+        // safe same-session fallback.  It is not a canonical identity.
+        return _revisionKey(
+            question._d7SessionQuestionFingerprint
+            || question.session_question_fingerprint
+        );
     }
 
     function _sessionQuarantineKey(questionId, revision) {
@@ -87,17 +93,20 @@ const SRS = (() => {
 
     function _failureCanQuarantine(data) {
         if (!data || data.ok === true || data.retryable === true) return false;
-        const code = String(data.error || '').trim();
         const failureClass = String(data.failure_class || '').trim().toUpperCase();
         if (failureClass === 'TRANSIENT_PERSISTENCE_FAILURE'
             || failureClass === 'TRANSIENT_SERVER_FAILURE') return false;
-        if (failureClass) {
-            return ['QUESTION_OR_CONTENT_INVALID', 'CANONICALIZATION_FAILURE', 'JUDGE_INVALID']
-                .includes(failureClass);
-        }
-        // Legacy servers may still return only `malformed_answer`; retain a
-        // bounded compatibility quarantine for that deterministic envelope.
-        return code === 'malformed_answer';
+        // Client-originated invalidity must never quarantine the question.
+        if (failureClass === 'CLIENT_ANSWER_INVALID'
+            || failureClass === 'CLIENT_SIDE_CANONICALIZATION_FAILURE') return false;
+        // Only explicit content-side provenance may create a temporary
+        // exclusion.  An unclassified legacy malformed_answer fails closed.
+        return [
+            'QUESTION_OR_CONTENT_INVALID',
+            'DETERMINISTIC_PARSER_FAILURE',
+            'DETERMINISTIC_JUDGE_INPUT_INVALID',
+            'CONTENT_SIDE_CANONICALIZATION_FAILURE',
+        ].includes(failureClass);
     }
 
     function _quarantineRejectedAnswer(fallbackQuestionId, data, fallbackQuestion = null) {
@@ -105,10 +114,11 @@ const SRS = (() => {
         const questionId = data.question_id != null
             ? data.question_id
             : fallbackQuestionId;
-        const responseRevision = questionRevision({
-            _d5QuestionRevision: data.question_revision,
-        });
-        const revision = responseRevision || questionRevision(fallbackQuestion);
+        const responseRevision = _revisionKey(data.question_revision);
+        const responseFingerprint = _revisionKey(data.session_question_fingerprint);
+        const revision = responseRevision
+            || responseFingerprint
+            || questionRevision(fallbackQuestion);
         if (!revision) return false;
         return quarantineQuestion(questionId, revision);
     }
@@ -211,7 +221,14 @@ const SRS = (() => {
         typeof window !== 'undefined' ? window.ReviewTransport : null;
 
     // ── 送出評分 ──────────────────────────────────────────────
-    async function review(qid, grade, unitName, unitDone, metadata = {}) {
+    async function review(
+        qid,
+        grade,
+        unitName,
+        unitDone,
+        metadata = {},
+        fallbackQuestion = null,
+    ) {
         if (!_reviewTransport || typeof _reviewTransport.legacyReview !== 'function') {
             throw new Error('review_transport_unavailable');
         }
@@ -221,10 +238,10 @@ const SRS = (() => {
                 qid, grade, unitName, unitDone, metadata
             );
         } catch (error) {
-            _quarantineRejectedAnswer(qid, error && error.payload);
+            _quarantineRejectedAnswer(qid, error && error.payload, fallbackQuestion);
             throw error;
         }
-        _quarantineRejectedAnswer(qid, data);
+        _quarantineRejectedAnswer(qid, data, fallbackQuestion);
         if (data.ok) {
             _allCards[qid] = { ...(_allCards[qid]||{}), ...data, question_id: qid };
             if (grade >= 3 && _dueSet) _dueSet.delete(qid);

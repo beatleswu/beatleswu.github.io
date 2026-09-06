@@ -41,6 +41,7 @@ from map_battle_runtime import (
     JudgeOutcome,
     JudgeUnavailable,
     MapBattleRuntimeError,
+    RequestRejected,
     canonicalize_answer,
     judge_map_battle_answer_v1,
     question_revision_for,
@@ -71,7 +72,10 @@ _MAX_QUEST_KEY_LENGTH = 120
 
 _DEFAULT_FAILURE_CLASS_BY_CODE = {
     "judge_unavailable": "TRANSIENT_SERVER_FAILURE",
-    "malformed_answer": "CANONICALIZATION_FAILURE",
+    # A legacy code without structured provenance is deliberately fail-closed
+    # on the client: it must not be treated as proof that the question itself
+    # is bad.  The concrete paths below always provide a more specific class.
+    "malformed_answer": "CLIENT_ANSWER_INVALID",
     "guild_answer_required": "CLIENT_ANSWER_INVALID",
     "answer_required": "CLIENT_ANSWER_INVALID",
     "forbidden_answer_field": "CLIENT_ANSWER_INVALID",
@@ -85,6 +89,37 @@ def _safe_runtime_reason_code(error: BaseException, fallback: str) -> str:
 
     value = getattr(error, "code", None)
     return value if isinstance(value, str) and value else fallback
+
+
+def _has_sgf_parser_provenance(error: BaseException) -> bool:
+    """Detect a parser-origin failure without inspecting human messages.
+
+    ``map_battle_runtime`` intentionally exposes parser failures as the
+    stable ``JudgeUnavailable`` boundary.  The exception cause and traceback
+    retain the typed module provenance needed to distinguish a deterministic
+    content defect from a real judge/service outage.
+    """
+
+    pending = [error]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if current is None or id(current) in seen:
+            continue
+        seen.add(id(current))
+        traceback = getattr(current, "__traceback__", None)
+        while traceback is not None:
+            module_name = traceback.tb_frame.f_globals.get("__name__")
+            if module_name == "sgf_engine.parser.sgf_parser":
+                return True
+            traceback = traceback.tb_next
+        cause = getattr(current, "__cause__", None)
+        context = getattr(current, "__context__", None)
+        if cause is not None:
+            pending.append(cause)
+        if context is not None and context is not cause:
+            pending.append(context)
+    return False
 
 
 class GuildQuestAnswerError(ValueError):
@@ -279,11 +314,17 @@ def canonicalize_guild_quest_answer(
     }
     try:
         canonical = canonicalize_answer(payload, context)
+    except RequestRejected as error:
+        raise GuildQuestAnswerError(
+            "malformed_answer",
+            failure_class="CLIENT_ANSWER_INVALID",
+            reason_code=_safe_runtime_reason_code(error, "client_answer_invalid"),
+        ) from error
     except MapBattleRuntimeError as error:
         raise GuildQuestAnswerError(
             "malformed_answer",
-            failure_class="CANONICALIZATION_FAILURE",
-            reason_code=_safe_runtime_reason_code(error, "canonicalization_failure"),
+            failure_class="CONTENT_SIDE_CANONICALIZATION_FAILURE",
+            reason_code=_safe_runtime_reason_code(error, "content_canonicalization_failure"),
         ) from error
     if canonical.is_invalid:
         raise GuildQuestAnswerError(
@@ -309,6 +350,14 @@ def judge_guild_quest_answer(
     try:
         judge = judge_map_battle_answer_v1(question, context, canonical)
     except JudgeUnavailable as error:
+        if _has_sgf_parser_provenance(error):
+            raise GuildQuestAnswerError(
+                "judge_unavailable",
+                status=503,
+                retryable=False,
+                failure_class="DETERMINISTIC_PARSER_FAILURE",
+                reason_code="question_content_parser_failure",
+            ) from error
         raise GuildQuestAnswerError(
             "judge_unavailable",
             status=503,
@@ -317,9 +366,15 @@ def judge_guild_quest_answer(
             reason_code="judge_unavailable",
         ) from error
     if judge.result == "INVALID" or judge.authoritative_grade not in {0, 5}:
+        failure_class = (
+            "CLIENT_ANSWER_INVALID"
+            if judge.result == "INVALID"
+            and judge.reason_code == "special_move_not_judged"
+            else "DETERMINISTIC_JUDGE_INPUT_INVALID"
+        )
         raise GuildQuestAnswerError(
             "malformed_answer",
-            failure_class="JUDGE_INVALID",
+            failure_class=failure_class,
             reason_code=judge.reason_code or "judge_invalid",
         )
     return canonical, JudgeOutcome(
