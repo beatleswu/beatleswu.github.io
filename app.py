@@ -8836,6 +8836,25 @@ def _workbench_mutation_throttle_failure():
     _throttle_record(key)
     return None
 
+
+def _question_report_throttle_failure():
+    """Apply the player question-report throttle in its own namespace.
+
+    Question-report ingress remains authenticated and rate-limited, but its
+    budget must not consume the separate admin Workbench mutation budget.
+    """
+    user_id = session.get('user_id')
+    if user_id in (None, ''):
+        return None
+    key = f'question-report:{user_id}'
+    if _throttle_check(
+        key, QUESTION_REPORT_RATE_MAX,
+        QUESTION_REPORT_RATE_WINDOW_SEC,
+    ):
+        return jsonify({'error': 'rate_limited'}), 429
+    _throttle_record(key)
+    return None
+
 @app.route('/api/auth/config')
 def auth_config():
     """前端需要的公開設定（Turnstile site key 等）。"""
@@ -20751,6 +20770,10 @@ DM_RATE_WINDOW_SEC = 10
 # preceding candidate, without inheriting DM-specific configuration names.
 WORKBENCH_MUTATION_RATE_MAX = 5
 WORKBENCH_MUTATION_RATE_WINDOW_SEC = 10
+# Player question-report ingress keeps the existing 5-hit/10-second policy
+# while owning a distinct budget and key namespace from admin Workbench writes.
+QUESTION_REPORT_RATE_MAX = 5
+QUESTION_REPORT_RATE_WINDOW_SEC = 10
 DM_RETENTION_DAYS = max(1, int(os.environ.get('DM_RETENTION_DAYS', '180')))
 DM_AUDIT_RETENTION_DAYS = max(1, int(os.environ.get('DM_AUDIT_RETENTION_DAYS', '365')))
 DM_DEFAULT_BADWORDS = (
@@ -21228,7 +21251,7 @@ def _workbench_report_response(capture, *, reason, context, observed_system_verd
 @login_required
 def api_question_problem_report():
     uid = session['user_id']
-    throttle_failure = _workbench_mutation_throttle_failure()
+    throttle_failure = _question_report_throttle_failure()
     if throttle_failure is not None:
         return throttle_failure
     data = request.get_json(silent=True) or {}
@@ -21296,7 +21319,7 @@ def api_question_problem_report():
 @login_required
 def api_question_unified_report():
     """One lightweight player report endpoint shared by all SGF surfaces."""
-    throttle_failure = _workbench_mutation_throttle_failure()
+    throttle_failure = _question_report_throttle_failure()
     if throttle_failure is not None:
         return throttle_failure
     data = request.get_json(silent=True) or {}
@@ -22108,7 +22131,7 @@ def dm_report():
 @login_required
 def question_alternative_report():
     uid = session['user_id']
-    throttle_failure = _workbench_mutation_throttle_failure()
+    throttle_failure = _question_report_throttle_failure()
     if throttle_failure is not None:
         return throttle_failure
     data = request.get_json(silent=True) or {}

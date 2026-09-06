@@ -50,9 +50,17 @@ def test_workbench_mutation_routes_call_throttle_before_persistence():
         "admin_review_queue_import",
         "admin_question_alternative_report_resolve",
     }
-    for name in routes:
+    report_routes = {
+        "api_question_problem_report",
+        "api_question_unified_report",
+        "question_alternative_report",
+    }
+    for name in routes - report_routes:
         function = _function_source(app_source, name)
         assert "_workbench_mutation_throttle_failure()" in function, name
+    for name in report_routes:
+        function = _function_source(app_source, name)
+        assert "_question_report_throttle_failure()" in function, name
 
     # Direct Apply and rollback keep the existing disabled gate ahead of the
     # limiter; this task cannot activate or shortcut that gate.
