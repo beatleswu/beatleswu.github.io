@@ -38,7 +38,7 @@ EXPECTED_WEAPON_SHA256 = (
     "12b4bbe4150d05bca39b507787c250f1418c2ad154fafb8d8e2df557186e4523"
 )
 EXPECTED_HAND_SOURCE_SHA256 = (
-    "351985c3436aa3c997d67b3002fbfa6211018d30e0d95c862655dd4a3ccadcc3"
+    "5bf31ba320e166242ad34c5f470bef272fc648c882a31d0597a718730b0c267f"
 )
 
 
@@ -132,7 +132,7 @@ def canonical_cuff_layer(character: Image.Image) -> Image.Image:
 
     mask = Image.new("L", CANVAS, 0)
     ImageDraw.Draw(mask).rectangle(
-        (HAND_ROI[0], HAND_ROI[1], HAND_ROI[2] - 1, 722), fill=255
+        (HAND_ROI[0], HAND_ROI[1], HAND_ROI[2] - 1, 700), fill=255
     )
     cuff = character.copy()
     cuff.putalpha(ImageChops.multiply(character.getchannel("A"), mask))
