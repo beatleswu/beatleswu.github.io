@@ -16,6 +16,13 @@
     "build_machine_identity_class",
     "target_service_names",
     "external_content_requirements",
+    "questions_corpus_sha256",
+    "questions_corpus_record_count",
+    "questions_corpus_bytes",
+    "questions_corpus_snapshot_id",
+    "questions_corpus_source_identity",
+    "questions_corpus_source_sha256",
+    "questions_corpus_source_record_count",
     "expected_health_endpoints",
     "rollback_image_identity",
     "deployment_timestamp",
@@ -56,6 +63,16 @@
         "shadow_event_log_path": { "type": "string", "minLength": 1 }
       }
     },
+    "questions_corpus_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "questions_corpus_record_count": { "type": "integer", "minimum": 1 },
+    "questions_corpus_bytes": { "type": "integer", "minimum": 1 },
+    "questions_corpus_snapshot_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"
+    },
+    "questions_corpus_source_identity": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "questions_corpus_source_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "questions_corpus_source_record_count": { "type": "integer", "minimum": 1 },
     "expected_health_endpoints": {
       "type": "array",
       "minItems": 1,

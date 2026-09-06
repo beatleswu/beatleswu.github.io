@@ -177,6 +177,13 @@ def _fixture(tmp_path: Path):
     release_manifest = _write_manifest(tmp_path / "release.json", {
         "schema_version": "1.0",
         "source_baseline_sha256": baseline_identity.sha256,
+        "questions_corpus_sha256": candidate_identity.sha256,
+        "questions_corpus_record_count": candidate_identity.record_count,
+        "questions_corpus_bytes": candidate_identity.size_bytes,
+        "questions_corpus_snapshot_id": "fixture-snapshot-20260810",
+        "questions_corpus_source_identity": source_provenance["source_identity_sha256"],
+        "questions_corpus_source_sha256": baseline_identity.sha256,
+        "questions_corpus_source_record_count": baseline_identity.record_count,
         "pre_mutation_artifact": {
             "sha256": baseline_identity.sha256,
             "size_bytes": baseline_identity.size_bytes,
@@ -744,8 +751,15 @@ def test_wrong_git_ancestry_fails_closed(tmp_path):
         "source_status": "GIT_COMMIT_BYTE_VERIFIED",
     }
     provenance["source_identity_sha256"] = canonical_payload_sha256(provenance)
+    # The dedicated F6 worktree is intentionally based exactly on origin/master,
+    # so using origin/master here would make the source commit ancestral.  Use
+    # its parent as a deterministic non-ancestral ref instead.
     with pytest.raises(GovernanceError, match="source_commit_not_ancestral"):
-        core.verify_source_provenance(provenance, repo_root=Path.cwd(), current_ref="origin/master")
+        core.verify_source_provenance(
+            provenance,
+            repo_root=Path.cwd(),
+            current_ref=f"{commit}^",
+        )
 
 
 def test_semantic_manifest_batch_count_mismatch_fails_closed(tmp_path):

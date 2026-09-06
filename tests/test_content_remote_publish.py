@@ -128,22 +128,19 @@ def test_bind_mount_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
 
-def test_approved_historical_bundle_contract_when_artifact_is_available() -> None:
+def test_historical_bundle_without_corpus_binding_fails_closed() -> None:
     bundle = Path(r"D:\go-website-sgf-prod-baseline-release-prep-001-artifacts\release-bundle-b7b4-20260812T-prep")
     if not bundle.is_dir():
         pytest.skip("approved historical bundle is external to the repository")
-    result = runner.validate_bundle(
-        bundle,
-        expected_predecessor_sha256="4d13fa98af8c1a180e719b7a261c5ca638e042a8edbd3fdfe8d2c2f947cdaa28",
-        expected_predecessor_record_count=41591,
-        expected_candidate_sha256="b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232",
-        expected_candidate_record_count=41591,
-        expected_release_package_sha256="82bb3fe290ccfdb7d8204651434a2128e40b404204f1e49b97adef26153b116a",
-        expected_rollback_manifest_sha256="6c91e493cb0bdd3230b30658afaaeedec59c2492b88ce0e2a2beabe812438bd5",
-    )
-    assert result["package_sha256"] == "82bb3fe290ccfdb7d8204651434a2128e40b404204f1e49b97adef26153b116a"
-    assert result["candidate_sha256"] == "b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232"
-    assert result["changed_record_count"] == 54
-    assert result["review_group_count"] == 43
-    assert result["six_surfaces_complete"] is True
-    assert result["verdict_mismatch_count"] == 0
+    # This historical bundle predates the mandatory corpus identity contract;
+    # it must be rejected rather than treated as a publishable release.
+    with pytest.raises(runner.ContentPublishError, match="questions_corpus"):
+        runner.validate_bundle(
+            bundle,
+            expected_predecessor_sha256="4d13fa98af8c1a180e719b7a261c5ca638e042a8edbd3fdfe8d2c2f947cdaa28",
+            expected_predecessor_record_count=41591,
+            expected_candidate_sha256="b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232",
+            expected_candidate_record_count=41591,
+            expected_release_package_sha256="82bb3fe290ccfdb7d8204651434a2128e40b404204f1e49b97adef26153b116a",
+            expected_rollback_manifest_sha256="6c91e493cb0bdd3230b30658afaaeedec59c2492b88ce0e2a2beabe812438bd5",
+        )

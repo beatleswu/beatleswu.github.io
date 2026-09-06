@@ -54,6 +54,15 @@ PROVENANCE_FIELDS = (
     "source_record_count",
     "source_status",
 )
+QUESTIONS_CORPUS_RELEASE_FIELDS = (
+    "questions_corpus_sha256",
+    "questions_corpus_record_count",
+    "questions_corpus_bytes",
+    "questions_corpus_snapshot_id",
+    "questions_corpus_source_identity",
+    "questions_corpus_source_sha256",
+    "questions_corpus_source_record_count",
+)
 
 
 class GovernanceError(RuntimeError):
@@ -194,6 +203,96 @@ def _require_string(value: Any, label: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise GovernanceError(f"{label}_must_be_non_empty_string")
     return value
+
+
+def build_questions_corpus_binding(
+    identity: ArtifactIdentity,
+    *,
+    snapshot_id: str,
+    source_identity: str,
+    source_sha256: str,
+    source_record_count: int,
+) -> dict[str, Any]:
+    """Build the explicit release identity for an external questions corpus.
+
+    The caller must provide the path and source declarations.  This helper
+    never discovers a file, follows a filename convention, or substitutes a
+    different source when a declaration is absent.
+    """
+
+    binding = {
+        "questions_corpus_sha256": identity.sha256,
+        "questions_corpus_record_count": identity.record_count,
+        "questions_corpus_bytes": identity.size_bytes,
+        "questions_corpus_snapshot_id": _require_string(snapshot_id, "questions_corpus_snapshot_id"),
+        "questions_corpus_source_identity": _require_sha256(
+            source_identity, "questions_corpus_source_identity"
+        ),
+        "questions_corpus_source_sha256": _require_sha256(
+            source_sha256, "questions_corpus_source_sha256"
+        ),
+        "questions_corpus_source_record_count": _require_int(
+            source_record_count, "questions_corpus_source_record_count", minimum=1
+        ),
+    }
+    return validate_questions_corpus_binding(binding, actual_identity=identity)
+
+
+def validate_questions_corpus_binding(
+    binding: Mapping[str, Any],
+    *,
+    actual_identity: ArtifactIdentity | None = None,
+    expected_source_sha256: str | None = None,
+    expected_source_record_count: int | None = None,
+) -> dict[str, Any]:
+    """Validate every required corpus identity field fail-closed."""
+
+    if not isinstance(binding, Mapping):
+        raise GovernanceError("questions_corpus_binding_must_be_object")
+    missing = [field for field in QUESTIONS_CORPUS_RELEASE_FIELDS if field not in binding]
+    if missing:
+        raise GovernanceError(
+            "questions_corpus_binding_missing:" + ",".join(missing)
+        )
+    normalized = dict(binding)
+    _require_sha256(normalized["questions_corpus_sha256"], "questions_corpus_sha256")
+    _require_int(normalized["questions_corpus_record_count"], "questions_corpus_record_count", minimum=1)
+    _require_int(normalized["questions_corpus_bytes"], "questions_corpus_bytes", minimum=1)
+    snapshot_id = _require_string(
+        normalized["questions_corpus_snapshot_id"], "questions_corpus_snapshot_id"
+    )
+    if "/" in snapshot_id or "\\" in snapshot_id or snapshot_id.lower().endswith(".json"):
+        raise GovernanceError("questions_corpus_snapshot_id_must_not_be_path")
+    _require_sha256(normalized["questions_corpus_source_identity"], "questions_corpus_source_identity")
+    _require_sha256(normalized["questions_corpus_source_sha256"], "questions_corpus_source_sha256")
+    _require_int(
+        normalized["questions_corpus_source_record_count"],
+        "questions_corpus_source_record_count",
+        minimum=1,
+    )
+    if actual_identity is not None:
+        expected = {
+            "questions_corpus_sha256": actual_identity.sha256,
+            "questions_corpus_record_count": actual_identity.record_count,
+            "questions_corpus_bytes": actual_identity.size_bytes,
+        }
+        for field, value in expected.items():
+            if normalized[field] != value:
+                raise GovernanceError(f"{field}_mismatch")
+    if expected_source_sha256 is not None:
+        if normalized["questions_corpus_source_sha256"] != _require_sha256(
+            expected_source_sha256, "expected_questions_corpus_source_sha256"
+        ):
+            raise GovernanceError("questions_corpus_source_sha256_mismatch")
+    if expected_source_record_count is not None:
+        expected_count = _require_int(
+            expected_source_record_count,
+            "expected_questions_corpus_source_record_count",
+            minimum=1,
+        )
+        if normalized["questions_corpus_source_record_count"] != expected_count:
+            raise GovernanceError("questions_corpus_source_record_count_mismatch")
+    return {field: normalized[field] for field in QUESTIONS_CORPUS_RELEASE_FIELDS}
 
 
 def _reject_unknown_fields(payload: Mapping[str, Any], allowed: set[str], label: str) -> None:
@@ -921,6 +1020,17 @@ def validate_release_manifest_semantics(
             expected_sha256=baseline_sha256,
             expected_record_count=baseline_record_count,
         )
+    corpus_binding = validate_questions_corpus_binding(
+        {field: manifest.get(field) for field in QUESTIONS_CORPUS_RELEASE_FIELDS},
+        actual_identity=candidate_identity,
+        expected_source_sha256=baseline_sha256,
+        expected_source_record_count=baseline_record_count,
+    )
+    if corpus_binding["questions_corpus_source_identity"] != provenance["source_identity_sha256"]:
+        raise GovernanceError("questions_corpus_source_identity_mismatch")
+    source_snapshot_id = provenance.get("source_commit_or_snapshot_id")
+    if source_snapshot_id is not None and corpus_binding["questions_corpus_snapshot_id"] != source_snapshot_id:
+        raise GovernanceError("questions_corpus_snapshot_id_mismatch")
     if governance.get("source_identity_sha256") is not None and governance["source_identity_sha256"] != provenance["source_identity_sha256"]:
         raise GovernanceError("release_source_identity_mismatch")
 
@@ -988,6 +1098,7 @@ def validate_release_manifest_semantics(
             raise GovernanceError("release_manifest_identity_hash_mismatch")
     return {
         "source_provenance": provenance,
+        "questions_corpus_binding": corpus_binding,
         "review_binding": review_payload,
         "repair_batch_manifest": repair_payload,
         "mutation_audit": mutation_payload,
@@ -1017,7 +1128,7 @@ def validate_registry_entry(
         "acceptance_evidence_sha256", "source_provenance", "review_binding_sha256",
         "repair_batch_manifest_sha256", "mutation_audit_sha256", "allowed_asset_names",
         "changed_record_count", "review_group_count", "excluded_record_count", "release_records",
-        "excluded_map_battle_records",
+        "excluded_map_battle_records", *QUESTIONS_CORPUS_RELEASE_FIELDS,
     }
     missing = sorted(required - set(payload))
     if missing:
@@ -1029,11 +1140,14 @@ def validate_registry_entry(
         "uncompressed_sha256", "compressed_sha256", "baseline_sha256", "release_candidate_sha256",
         "release_manifest_sha256", "rollback_manifest_sha256", "acceptance_evidence_sha256",
         "review_binding_sha256", "repair_batch_manifest_sha256", "mutation_audit_sha256",
+        "questions_corpus_sha256", "questions_corpus_source_identity", "questions_corpus_source_sha256",
     ):
         _require_sha256(payload[field], f"registry_{field}")
     for field in ("record_count", "uncompressed_byte_count", "release_records", "excluded_map_battle_records",
-                  "changed_record_count", "review_group_count", "excluded_record_count"):
+                  "changed_record_count", "review_group_count", "excluded_record_count",
+                  "questions_corpus_record_count", "questions_corpus_bytes", "questions_corpus_source_record_count"):
         _require_int(payload[field], f"registry_{field}", minimum=0 if field != "uncompressed_byte_count" else 1)
+    _require_string(payload["questions_corpus_snapshot_id"], "registry_questions_corpus_snapshot_id")
     for field in ("compressed_filename", "release_manifest_filename", "rollback_manifest_filename", "acceptance_evidence_filename"):
         _safe_filename(payload[field], f"registry_{field}")
     if candidate_identity is not None:
@@ -1042,6 +1156,15 @@ def validate_registry_entry(
     if baseline_sha256 is not None and payload["baseline_sha256"] != baseline_sha256:
         raise GovernanceError("registry_baseline_identity_mismatch")
     verify_source_provenance(payload["source_provenance"], expected_sha256=payload["baseline_sha256"])
+    binding = validate_questions_corpus_binding(
+        {field: payload[field] for field in QUESTIONS_CORPUS_RELEASE_FIELDS},
+        actual_identity=candidate_identity,
+        expected_source_sha256=payload["baseline_sha256"],
+    )
+    if binding["questions_corpus_source_identity"] != payload["source_provenance"].get("source_identity_sha256"):
+        raise GovernanceError("registry_questions_corpus_source_identity_mismatch")
+    if binding["questions_corpus_source_record_count"] != payload["source_provenance"].get("source_record_count"):
+        raise GovernanceError("registry_questions_corpus_source_record_count_mismatch")
     assets = payload["allowed_asset_names"]
     if not isinstance(assets, list) or len(set(assets)) != len(assets):
         raise GovernanceError("registry_asset_inventory_invalid")
@@ -1420,6 +1543,7 @@ def build_release_bundle(
         "record_count": identity.record_count,
         "uncompressed_byte_count": identity.size_bytes,
         "uncompressed_sha256": identity.sha256,
+        **semantic["questions_corpus_binding"],
         "compressed_filename": compressed.name,
         "compressed_sha256": compressed_sha256,
         "baseline_sha256": baseline_sha256,
