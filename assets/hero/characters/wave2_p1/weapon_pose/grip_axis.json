@@ -30,13 +30,13 @@
   "owner_pose_reference_sha256": "d98b70c78804992c895a53fcf5453e8b67b67e7528416c6aafff93dec2785dd9",
   "hand_source": {
     "path": "assets/hero/characters/wave2_p1/weapon_pose/hand_grip_source.png",
-    "sha256": "5bf31ba320e166242ad34c5f470bef272fc648c882a31d0597a718730b0c267f",
+    "sha256": "bfa8646b8678e7ff5075d1bef8c5c916903579597206504c152d5b6d6bce4622",
     "scope": "localized right-hand and minimal wrist raster only; reference sword and non-ROI pixels removed",
     "coordinate_system": "1056x1408 PLAYER_FRAME_A_STANDARD_CHIBI pixels",
     "front_side_rule": "negative image-space cross-product side of grip_axis",
     "rear_side_rule": "source alpha minus front-side mask"
   },
-  "hand_art_assist_sha256": "5bf31ba320e166242ad34c5f470bef272fc648c882a31d0597a718730b0c267f",
+  "hand_art_assist_sha256": "bfa8646b8678e7ff5075d1bef8c5c916903579597206504c152d5b6d6bce4622",
   "hand_art_assist_scope": "localized manual raster correction informed by the Owner pose reference and canonical hand style; right-hand/thumb/minimal-wrist ROI only; no canonical character or weapon pixels",
   "layer_split": "back is canonical cuff pixels plus rear-side source hand; front is the negative-axis thumb/palm foreground mask",
   "source_rebuild": "BACK/FRONT are regenerated from committed hand_grip_source.png, grip_axis.json, and canonical Apprentice pixels",

@@ -20,6 +20,7 @@ from PIL import Image, ImageChops, ImageDraw
 
 CANVAS = (1056, 1408)
 HAND_ROI = (676, 641, 840, 845)
+CUFF_MASK_BOUNDARY = 722
 CHARACTER_REL = Path("assets/hero/characters/wave2_p1/apprentice_p1.png")
 WEAPON_REL = Path("assets/hero/equipment/wearables/overlays/wooden_sword.png")
 BACK_REL = Path("assets/hero/characters/wave2_p1/weapon_pose/hand_grip_back.png")
@@ -38,7 +39,7 @@ EXPECTED_WEAPON_SHA256 = (
     "12b4bbe4150d05bca39b507787c250f1418c2ad154fafb8d8e2df557186e4523"
 )
 EXPECTED_HAND_SOURCE_SHA256 = (
-    "5bf31ba320e166242ad34c5f470bef272fc648c882a31d0597a718730b0c267f"
+    "bfa8646b8678e7ff5075d1bef8c5c916903579597206504c152d5b6d6bce4622"
 )
 
 
@@ -132,7 +133,7 @@ def canonical_cuff_layer(character: Image.Image) -> Image.Image:
 
     mask = Image.new("L", CANVAS, 0)
     ImageDraw.Draw(mask).rectangle(
-        (HAND_ROI[0], HAND_ROI[1], HAND_ROI[2] - 1, 700), fill=255
+        (HAND_ROI[0], HAND_ROI[1], HAND_ROI[2] - 1, CUFF_MASK_BOUNDARY), fill=255
     )
     cuff = character.copy()
     cuff.putalpha(ImageChops.multiply(character.getchannel("A"), mask))
