@@ -45,6 +45,15 @@ REQUIRED_SURFACES = {
     "daily_challenge_client",
     "friend_challenge_client_then_server_trust",
 }
+QUESTIONS_CORPUS_RELEASE_FIELDS = (
+    "questions_corpus_sha256",
+    "questions_corpus_record_count",
+    "questions_corpus_bytes",
+    "questions_corpus_snapshot_id",
+    "questions_corpus_source_identity",
+    "questions_corpus_source_sha256",
+    "questions_corpus_source_record_count",
+)
 
 
 class ContentPublishError(RuntimeError):
@@ -112,6 +121,53 @@ def _require_int(value: Any, label: str, minimum: int = 0) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
         raise ContentPublishError(f"{label}_must_be_integer")
     return value
+
+
+def _validate_questions_corpus_binding(
+    payload: Mapping[str, Any],
+    *,
+    actual: FileIdentity,
+    expected_source_sha256: str,
+    expected_source_record_count: int,
+) -> dict[str, Any]:
+    missing = [field for field in QUESTIONS_CORPUS_RELEASE_FIELDS if field not in payload]
+    if missing:
+        raise ContentPublishError(
+            "questions_corpus_binding_missing:" + ",".join(missing)
+        )
+    binding = {field: payload[field] for field in QUESTIONS_CORPUS_RELEASE_FIELDS}
+    _require_sha256(binding["questions_corpus_sha256"], "questions_corpus_sha256")
+    _require_int(binding["questions_corpus_record_count"], "questions_corpus_record_count", minimum=1)
+    _require_int(binding["questions_corpus_bytes"], "questions_corpus_bytes", minimum=1)
+    snapshot_id = _require_nonempty(
+        binding["questions_corpus_snapshot_id"], "questions_corpus_snapshot_id"
+    )
+    if "/" in snapshot_id or "\\" in snapshot_id or snapshot_id.lower().endswith(".json"):
+        raise ContentPublishError("questions_corpus_snapshot_id_must_not_be_path")
+    _require_sha256(binding["questions_corpus_source_identity"], "questions_corpus_source_identity")
+    _require_sha256(binding["questions_corpus_source_sha256"], "questions_corpus_source_sha256")
+    _require_int(
+        binding["questions_corpus_source_record_count"],
+        "questions_corpus_source_record_count",
+        minimum=1,
+    )
+    if binding["questions_corpus_sha256"] != actual.sha256:
+        raise ContentPublishError("questions_corpus_sha256_mismatch")
+    if binding["questions_corpus_record_count"] != actual.record_count:
+        raise ContentPublishError("questions_corpus_record_count_mismatch")
+    if binding["questions_corpus_bytes"] != actual.size_bytes:
+        raise ContentPublishError("questions_corpus_bytes_mismatch")
+    if binding["questions_corpus_source_sha256"] != _require_sha256(
+        expected_source_sha256, "expected_questions_corpus_source_sha256"
+    ):
+        raise ContentPublishError("questions_corpus_source_sha256_mismatch")
+    if binding["questions_corpus_source_record_count"] != _require_int(
+        expected_source_record_count,
+        "expected_questions_corpus_source_record_count",
+        minimum=1,
+    ):
+        raise ContentPublishError("questions_corpus_source_record_count_mismatch")
+    return binding
 
 
 def _canonical_json(payload: Mapping[str, Any], *, without: str | None = None) -> bytes:
@@ -338,6 +394,12 @@ def validate_bundle(
         raise ContentPublishError("candidate_identity_mismatch")
     if candidate.size_bytes != registry.get("uncompressed_byte_count"):
         raise ContentPublishError("candidate_size_mismatch")
+    registry_corpus_binding = _validate_questions_corpus_binding(
+        {field: registry.get(field) for field in QUESTIONS_CORPUS_RELEASE_FIELDS},
+        actual=candidate,
+        expected_source_sha256=predecessor_sha256,
+        expected_source_record_count=expected_predecessor_record_count,
+    )
 
     release_manifest_name = safe_filename(registry.get("release_manifest_filename"), "registry_release_manifest_filename")
     rollback_manifest_name = safe_filename(registry.get("rollback_manifest_filename"), "registry_rollback_manifest_filename")
@@ -361,6 +423,14 @@ def validate_bundle(
         raise ContentPublishError("release_target_path_mismatch")
     if release_manifest.get("source_baseline_sha256") != predecessor_sha256:
         raise ContentPublishError("release_manifest_predecessor_sha256_mismatch")
+    release_corpus_binding = _validate_questions_corpus_binding(
+        {field: release_manifest.get(field) for field in QUESTIONS_CORPUS_RELEASE_FIELDS},
+        actual=candidate,
+        expected_source_sha256=predecessor_sha256,
+        expected_source_record_count=expected_predecessor_record_count,
+    )
+    if release_corpus_binding != registry_corpus_binding:
+        raise ContentPublishError("release_manifest_questions_corpus_binding_mismatch")
     candidate_artifact = release_manifest.get("repaired_candidate_artifact")
     previous_artifact = release_manifest.get("pre_mutation_artifact")
     if not isinstance(candidate_artifact, Mapping) or candidate_artifact.get("sha256") != candidate_sha256 or candidate_artifact.get("record_count") != expected_candidate_record_count or candidate_artifact.get("size_bytes") != candidate.size_bytes:
@@ -382,6 +452,11 @@ def validate_bundle(
     _validate_source_provenance(governance["source_provenance"], predecessor_sha256, expected_predecessor_record_count)
     if governance.get("source_identity_sha256") != governance["source_provenance"].get("source_identity_sha256"):
         raise ContentPublishError("release_governance_source_identity_sha256_mismatch")
+    if release_corpus_binding["questions_corpus_source_identity"] != governance["source_provenance"].get("source_identity_sha256"):
+        raise ContentPublishError("release_questions_corpus_source_identity_mismatch")
+    source_snapshot_id = governance["source_provenance"].get("source_commit_or_snapshot_id")
+    if source_snapshot_id is not None and release_corpus_binding["questions_corpus_snapshot_id"] != source_snapshot_id:
+        raise ContentPublishError("release_questions_corpus_snapshot_id_mismatch")
     mutation_audit = release_manifest.get("mutation_audit")
     if not isinstance(mutation_audit, Mapping):
         raise ContentPublishError("mutation_audit_missing")
@@ -402,6 +477,14 @@ def validate_bundle(
         raise ContentPublishError("rollback_identity_mismatch")
     if rollback.get("record_count") != expected_predecessor_record_count:
         raise ContentPublishError("rollback_record_count_mismatch")
+    rollback_corpus_binding = _validate_questions_corpus_binding(
+        {field: rollback_manifest.get(field) for field in QUESTIONS_CORPUS_RELEASE_FIELDS},
+        actual=candidate,
+        expected_source_sha256=predecessor_sha256,
+        expected_source_record_count=expected_predecessor_record_count,
+    )
+    if rollback_corpus_binding != release_corpus_binding:
+        raise ContentPublishError("rollback_questions_corpus_binding_mismatch")
     if rollback.get("restore_target") != expected_target_path:
         raise ContentPublishError("rollback_target_path_mismatch")
     post = rollback.get("post_rollback")
@@ -429,6 +512,7 @@ def validate_bundle(
         "review_group_count": governance["review_group_count"],
         "excluded_record_count": governance["excluded_record_count"],
         "target_path": expected_target_path,
+        "questions_corpus_binding": release_corpus_binding,
         "six_surfaces_complete": True,
         "verdict_mismatch_count": 0,
     }

@@ -343,6 +343,10 @@ def test_build_package_is_deterministic_and_validates_actual_player_surfaces(tmp
         "expected_excluded_ids": frozenset(),
         "expected_fallback_records": 1,
         "expected_fallback_groups": 1,
+        "questions_corpus_snapshot_id": "fixture-snapshot-20260810",
+        "questions_corpus_source_identity": "f" * 64,
+        "questions_corpus_source_sha256": _sha(raw),
+        "questions_corpus_source_record_count": 3,
         "validate_runtime": True,
     }
     first_dir = tmp_path / "first"

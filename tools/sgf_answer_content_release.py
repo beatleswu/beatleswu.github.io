@@ -39,6 +39,11 @@ from sgf_engine.core.coord_utils import xy_to_sgf
 from sgf_engine.core.matcher import BRANCH, match_move
 from sgf_engine.parser.sgf_parser import parse_sgf
 from tools import sgf_answer_repair_batch as repair
+from tools.content_release_core import (
+    ArtifactIdentity as GovernanceArtifactIdentity,
+    GovernanceError,
+    validate_questions_corpus_binding,
+)
 
 
 SCHEMA_VERSION = "1.0"
@@ -1243,6 +1248,10 @@ def build_release_package(
     expected_excluded_ids: frozenset[int] = KNOWN_FALLBACK_CONFLICT_IDS,
     expected_fallback_records: int = 61,
     expected_fallback_groups: int = 50,
+    questions_corpus_snapshot_id: str | None = None,
+    questions_corpus_source_identity: str | None = None,
+    questions_corpus_source_sha256: str | None = None,
+    questions_corpus_source_record_count: int | None = None,
     validate_runtime: bool = True,
 ) -> dict[str, Any]:
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", created_at):
@@ -1376,6 +1385,29 @@ def build_release_package(
     candidate_artifact = artifact_identity(candidate_path)
     if baseline_artifact.sha256 != expected_baseline_sha256:
         raise ContentReleaseError("pre-mutation artifact is not byte exact")
+    binding_values = {
+        "questions_corpus_sha256": candidate_artifact.sha256,
+        "questions_corpus_record_count": candidate_artifact.record_count,
+        "questions_corpus_bytes": candidate_artifact.size_bytes,
+        "questions_corpus_snapshot_id": questions_corpus_snapshot_id,
+        "questions_corpus_source_identity": questions_corpus_source_identity,
+        "questions_corpus_source_sha256": questions_corpus_source_sha256,
+        "questions_corpus_source_record_count": questions_corpus_source_record_count,
+    }
+    try:
+        corpus_binding = validate_questions_corpus_binding(
+            binding_values,
+            actual_identity=GovernanceArtifactIdentity(
+                path=str(candidate_path.resolve()),
+                size_bytes=candidate_artifact.size_bytes,
+                sha256=candidate_artifact.sha256,
+                record_count=candidate_artifact.record_count,
+            ),
+            expected_source_sha256=expected_baseline_sha256,
+            expected_source_record_count=expected_baseline_records,
+        )
+    except GovernanceError as error:
+        raise ContentReleaseError(f"questions_corpus_binding_invalid:{error}") from error
 
     verdict_by_id = {
         int(row["question_id"]): row for row in verdict.get("records") or []
@@ -1392,6 +1424,7 @@ def build_release_package(
         "authority": AUTHORITY,
         "created_at": created_at,
         "source_baseline_sha256": expected_baseline_sha256,
+        **corpus_binding,
         "intended_production_destination": PRODUCTION_DESTINATION,
         "publisher_precondition_hash_lock": expected_baseline_sha256,
         "repair_batch_locks": {
@@ -1443,6 +1476,7 @@ def build_release_package(
         "authority": AUTHORITY,
         "created_at": created_at,
         "intended_production_destination": PRODUCTION_DESTINATION,
+        **corpus_binding,
         "rollback_precondition_candidate_sha256": candidate_sha256,
         "rollback_expected_final_sha256": expected_baseline_sha256,
         "source_release_manifest": {
@@ -1481,6 +1515,7 @@ def build_release_package(
         "native_repair_records": diff["native_repair_records"],
         "all_release_records_final_effective_match": verdict["all_final_effective_match"],
         "publisher_precondition_hash_lock": expected_baseline_sha256,
+        "questions_corpus_binding": corpus_binding,
     }
 
 
@@ -1652,6 +1687,10 @@ def _build_command(args: argparse.Namespace) -> dict[str, Any]:
         expected_release_batch_file_sha256=args.release_batch_file_sha256,
         output_dir=args.output_dir,
         created_at=args.created_at,
+        questions_corpus_snapshot_id=args.questions_corpus_snapshot_id,
+        questions_corpus_source_identity=args.questions_corpus_source_identity,
+        questions_corpus_source_sha256=args.questions_corpus_source_sha256,
+        questions_corpus_source_record_count=args.questions_corpus_source_record_count,
         validate_runtime=not args.skip_runtime_validation,
     )
 
@@ -1719,6 +1758,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     build.add_argument("--release-batch-file-sha256")
     build.add_argument("--output-dir", required=True, type=Path)
     build.add_argument("--created-at", required=True)
+    build.add_argument("--questions-corpus-snapshot-id", required=True)
+    build.add_argument("--questions-corpus-source-identity", required=True)
+    build.add_argument("--questions-corpus-source-sha256", required=True)
+    build.add_argument("--questions-corpus-source-record-count", required=True, type=int)
     build.add_argument("--skip-runtime-validation", action="store_true")
 
     simulate = subparsers.add_parser("simulate")

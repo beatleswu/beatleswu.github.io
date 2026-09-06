@@ -6,6 +6,14 @@ param(
     [string]$ArchivePath,
     [string]$ReleaseManifestPath,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
+    [Parameter(Mandatory = $true)][string]$QuestionsCorpusPath,
+    [Parameter(Mandatory = $true)][string]$QuestionsCorpusSha256,
+    [Parameter(Mandatory = $true)][long]$QuestionsCorpusRecordCount,
+    [Parameter(Mandatory = $true)][long]$QuestionsCorpusBytes,
+    [Parameter(Mandatory = $true)][string]$QuestionsCorpusSnapshotId,
+    [Parameter(Mandatory = $true)][string]$QuestionsCorpusSourceIdentity,
+    [Parameter(Mandatory = $true)][string]$QuestionsCorpusSourceSha256,
+    [Parameter(Mandatory = $true)][long]$QuestionsCorpusSourceRecordCount,
     [switch]$DryRun
 )
 
@@ -30,6 +38,51 @@ if (-not $ReleaseManifestPath) {
 
 $labels = Assert-ImageRevisionMatches -ImageTag $ImageTag -ExpectedGitSha $ExpectedGitSha
 
+$resolvedQuestionsCorpusPath = Assert-NoReparsePointPath -Path ((Resolve-Path -LiteralPath $QuestionsCorpusPath -ErrorAction Stop).Path) -Label 'Questions corpus'
+if (-not (Test-Path -LiteralPath $resolvedQuestionsCorpusPath -PathType Leaf)) {
+    throw "QuestionsCorpusPath must resolve to an existing regular file."
+}
+$pythonCommand = Get-Command python -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $pythonCommand -or [string]::IsNullOrWhiteSpace([string]$pythonCommand.Source)) {
+    throw 'Python executable is required for questions corpus validation.'
+}
+$validatorPath = Resolve-RepoPath 'tools/questions_corpus_validation.py'
+$validationArgs = @(
+    $validatorPath, 'validate', '--corpus-path', $resolvedQuestionsCorpusPath,
+    '--mode', 'RELEASE_ENFORCEMENT',
+    '--questions_corpus_sha256', $QuestionsCorpusSha256.ToLowerInvariant(),
+    '--questions_corpus_record_count', [string]$QuestionsCorpusRecordCount,
+    '--questions_corpus_bytes', [string]$QuestionsCorpusBytes,
+    '--questions_corpus_snapshot_id', $QuestionsCorpusSnapshotId,
+    '--questions_corpus_source_identity', $QuestionsCorpusSourceIdentity.ToLowerInvariant(),
+    '--questions_corpus_source_sha256', $QuestionsCorpusSourceSha256.ToLowerInvariant(),
+    '--questions_corpus_source_record_count', [string]$QuestionsCorpusSourceRecordCount
+)
+$quotedValidationArgs = ($validationArgs | ForEach-Object {
+    '"' + ([string]$_ -replace '"', '\"') + '"'
+}) -join ' '
+$validationResult = Invoke-ProcessWithSeparateOutput -FileName $pythonCommand.Source -Arguments ("-B " + $quotedValidationArgs) -WorkingDirectory $repoRoot -TimeoutSeconds 300
+if ($validationResult.exit_code -ne 0) {
+    throw "Questions corpus release validation failed closed: $($validationResult.stdout)"
+}
+try {
+    $corpusValidation = [string]$validationResult.stdout | ConvertFrom-Json
+} catch {
+    throw 'Questions corpus validator returned malformed JSON.'
+}
+if ($corpusValidation.status -ne 'PASS' -or $corpusValidation.release_rejected -eq $true) {
+    throw 'Questions corpus release validation did not return PASS.'
+}
+$corpusIdentity = [ordered]@{
+    questions_corpus_sha256 = $QuestionsCorpusSha256.ToLowerInvariant()
+    questions_corpus_record_count = [int64]$QuestionsCorpusRecordCount
+    questions_corpus_bytes = [int64]$QuestionsCorpusBytes
+    questions_corpus_snapshot_id = $QuestionsCorpusSnapshotId
+    questions_corpus_source_identity = $QuestionsCorpusSourceIdentity.ToLowerInvariant()
+    questions_corpus_source_sha256 = $QuestionsCorpusSourceSha256.ToLowerInvariant()
+    questions_corpus_source_record_count = [int64]$QuestionsCorpusSourceRecordCount
+}
+
 if ($DryRun) {
     [ordered]@{
         dry_run = $true
@@ -38,6 +91,8 @@ if ($DryRun) {
         release_manifest_path = $ReleaseManifestPath
         release_layout = $layout
         revision = $labels.'org.opencontainers.image.revision'
+        questions_corpus_identity = $corpusIdentity
+        questions_corpus_validation = $corpusValidation.summary
     } | ConvertTo-Json -Depth 8 | Write-Output
     return
 }
@@ -65,6 +120,7 @@ $manifest = New-ReleaseManifestObject `
         questions_content_mount_destination = $layout.questions_content_mount_destination
         shadow_event_log_path = $layout.shadow_event_log_path
     }) `
+    -QuestionsCorpusIdentity $corpusIdentity `
     -ExpectedHealthEndpoints @($layout.health_url, $layout.login_url, $layout.homepage_url) `
     -RollbackImageIdentity ([ordered]@{}) `
     -VerificationResult 'package complete; deployment pending' `

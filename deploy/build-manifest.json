@@ -293,6 +293,23 @@
         }
       ]
     },
+    "questions_corpus_release_binding": {
+      "required": true,
+      "runtime_target": "/app/data/questions.json",
+      "input_path": "explicit caller-provided questions corpus path",
+      "no_implicit_discovery": true,
+      "identity_fields": [
+        "questions_corpus_sha256",
+        "questions_corpus_record_count",
+        "questions_corpus_bytes",
+        "questions_corpus_snapshot_id",
+        "questions_corpus_source_identity",
+        "questions_corpus_source_sha256",
+        "questions_corpus_source_record_count"
+      ],
+      "validation_modes": ["REPORT_ONLY", "RELEASE_ENFORCEMENT"],
+      "release_enforcement": "missing, malformed, inconsistent, or invalid corpus identity/gate result rejects packaging or publish"
+    },
     "excluded_permanently": {
       "description": "Removed from the Dockerfile and build manifest in DEPLOY-GOV-2E. Not a content-boundary/mount question -- these should never enter a production image at all.",
       "entries": [

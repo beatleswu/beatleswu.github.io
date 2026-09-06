@@ -1047,11 +1047,21 @@ function Invoke-ProcessWithUtf8NoBomStdin {
 function Invoke-ProcessWithSeparateOutput {
     param(
         [Parameter(Mandatory = $true)][string]$FileName,
-        [Parameter(Mandatory = $true)][string]$Arguments
+        [Parameter(Mandatory = $true)][string]$Arguments,
+        [string]$WorkingDirectory,
+        [int]$TimeoutSeconds = 300
     )
+    if ([string]::IsNullOrWhiteSpace($FileName)) { throw 'Process file name is required.' }
+    if ($TimeoutSeconds -le 0) { throw 'Process timeout must be positive.' }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $FileName
     $psi.Arguments = $Arguments
+    if (-not [string]::IsNullOrWhiteSpace($WorkingDirectory)) {
+        if (-not [System.IO.Path]::IsPathRooted($WorkingDirectory) -or -not [System.IO.Directory]::Exists($WorkingDirectory)) {
+            throw 'Process working directory must be an existing absolute directory.'
+        }
+        $psi.WorkingDirectory = $WorkingDirectory
+    }
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
     $psi.UseShellExecute = $false
@@ -1060,7 +1070,11 @@ function Invoke-ProcessWithSeparateOutput {
     $proc.Start() | Out-Null
     $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
     $stderrTask = $proc.StandardError.ReadToEndAsync()
-    $proc.WaitForExit()
+    if (-not $proc.WaitForExit([Math]::Max(1, $TimeoutSeconds) * 1000)) {
+        try { & taskkill /F /T /PID $proc.Id 2>&1 | Out-Null } catch {}
+        try { $proc.Kill() } catch {}
+        throw "Timed out after ${TimeoutSeconds}s waiting for process: $FileName"
+    }
     $stdout = $stdoutTask.GetAwaiter().GetResult()
     $stderr = $stderrTask.GetAwaiter().GetResult()
     return [ordered]@{
@@ -2011,6 +2025,7 @@ function New-ReleaseManifestObject {
         [Parameter(Mandatory = $true)][string]$BuildMachineIdentityClass,
         [Parameter(Mandatory = $true)]$TargetServiceNames,
         [Parameter(Mandatory = $true)]$ExternalContentRequirements,
+        [Parameter(Mandatory = $false)]$QuestionsCorpusIdentity,
         [Parameter(Mandatory = $true)]$ExpectedHealthEndpoints,
         [Parameter(Mandatory = $true)]$RollbackImageIdentity,
         [Parameter(Mandatory = $true)]$VerificationResult,
@@ -2019,6 +2034,38 @@ function New-ReleaseManifestObject {
         [string]$OCIImageSource = 'https://github.com/beatleswu/beatleswu.github.io',
         [string]$SGFEngineSourceCommit = 'd729645c0ae267be6d89a5b49c007bc64284bbcc'
     )
+    $corpusFields = @(
+        'questions_corpus_sha256',
+        'questions_corpus_record_count',
+        'questions_corpus_bytes',
+        'questions_corpus_snapshot_id',
+        'questions_corpus_source_identity',
+        'questions_corpus_source_sha256',
+        'questions_corpus_source_record_count'
+    )
+    if (-not $QuestionsCorpusIdentity) {
+        throw 'QuestionsCorpusIdentity is required; release tooling must not discover a corpus implicitly.'
+    }
+    foreach ($field in $corpusFields) {
+        $property = $QuestionsCorpusIdentity.PSObject.Properties[$field]
+        if (-not $property -or $null -eq $property.Value) {
+            throw "QuestionsCorpusIdentity missing required field '$field'."
+        }
+    }
+    foreach ($field in @('questions_corpus_sha256','questions_corpus_source_identity','questions_corpus_source_sha256')) {
+        if ([string]$QuestionsCorpusIdentity.$field -notmatch '^[0-9a-f]{64}$') {
+            throw "QuestionsCorpusIdentity field '$field' must be a lowercase SHA-256."
+        }
+    }
+    foreach ($field in @('questions_corpus_record_count','questions_corpus_bytes','questions_corpus_source_record_count')) {
+        if ($QuestionsCorpusIdentity.$field -is [bool] -or -not ($QuestionsCorpusIdentity.$field -is [int] -or $QuestionsCorpusIdentity.$field -is [long]) -or [int64]$QuestionsCorpusIdentity.$field -le 0) {
+            throw "QuestionsCorpusIdentity field '$field' must be a positive integer."
+        }
+    }
+    $snapshotId = [string]$QuestionsCorpusIdentity.questions_corpus_snapshot_id
+    if ([string]::IsNullOrWhiteSpace($snapshotId) -or $snapshotId -match '[\\/]' -or $snapshotId.ToLowerInvariant().EndsWith('.json')) {
+        throw 'QuestionsCorpusIdentity snapshot id must be a non-path identity, not a filename.'
+    }
     return [ordered]@{
         release_git_sha = $GitSha
         image_tag = $ImageTag
@@ -2032,6 +2079,13 @@ function New-ReleaseManifestObject {
         build_machine_identity_class = $BuildMachineIdentityClass
         target_service_names = @($TargetServiceNames)
         external_content_requirements = $ExternalContentRequirements
+        questions_corpus_sha256 = [string]$QuestionsCorpusIdentity.questions_corpus_sha256
+        questions_corpus_record_count = [int64]$QuestionsCorpusIdentity.questions_corpus_record_count
+        questions_corpus_bytes = [int64]$QuestionsCorpusIdentity.questions_corpus_bytes
+        questions_corpus_snapshot_id = $snapshotId
+        questions_corpus_source_identity = [string]$QuestionsCorpusIdentity.questions_corpus_source_identity
+        questions_corpus_source_sha256 = [string]$QuestionsCorpusIdentity.questions_corpus_source_sha256
+        questions_corpus_source_record_count = [int64]$QuestionsCorpusIdentity.questions_corpus_source_record_count
         expected_health_endpoints = @($ExpectedHealthEndpoints)
         rollback_image_identity = $RollbackImageIdentity
         deployment_timestamp = $DeploymentTimestamp
