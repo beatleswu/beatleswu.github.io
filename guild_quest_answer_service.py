@@ -69,14 +69,43 @@ _PLAYER_RE = re.compile(r"PL\[([BW])\]", re.IGNORECASE)
 
 _MAX_QUEST_KEY_LENGTH = 120
 
+_DEFAULT_FAILURE_CLASS_BY_CODE = {
+    "judge_unavailable": "TRANSIENT_SERVER_FAILURE",
+    "malformed_answer": "CANONICALIZATION_FAILURE",
+    "guild_answer_required": "CLIENT_ANSWER_INVALID",
+    "answer_required": "CLIENT_ANSWER_INVALID",
+    "forbidden_answer_field": "CLIENT_ANSWER_INVALID",
+    "invalid_guild_quest_context": "CLIENT_ANSWER_INVALID",
+    "unknown_question": "QUESTION_OR_CONTENT_INVALID",
+}
+
+
+def _safe_runtime_reason_code(error: BaseException, fallback: str) -> str:
+    """Return only a stable runtime code, never an exception message."""
+
+    value = getattr(error, "code", None)
+    return value if isinstance(value, str) and value else fallback
+
 
 class GuildQuestAnswerError(ValueError):
     """Expected fail-closed answer error exposed by the review route."""
 
-    def __init__(self, code: str, *, status: int = 400, retryable: bool = False):
+    def __init__(
+        self,
+        code: str,
+        *,
+        status: int = 400,
+        retryable: bool = False,
+        failure_class: str | None = None,
+        reason_code: str | None = None,
+    ):
         self.code = code
         self.status = status
         self.retryable = retryable
+        self.failure_class = failure_class or _DEFAULT_FAILURE_CLASS_BY_CODE.get(
+            code, "CLIENT_ANSWER_INVALID"
+        )
+        self.reason_code = reason_code or code
         super().__init__(code)
 
 
@@ -149,17 +178,33 @@ def _question_player_to_move(content: str) -> str | None:
 def _question_board_context(question: Mapping[str, Any]) -> tuple[int, str]:
     content = question.get("content")
     if not isinstance(content, str) or not content.strip():
-        raise GuildQuestAnswerError("judge_unavailable", status=503, retryable=True)
+        raise GuildQuestAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="question_content_unavailable",
+        )
     size_match = _SIZE_RE.search(content)
     try:
         board_size = int(size_match.group(1)) if size_match else 19
     except (AttributeError, TypeError, ValueError) as error:
         raise GuildQuestAnswerError(
-            "judge_unavailable", status=503, retryable=True
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="invalid_board_size",
         ) from error
     player_color = _question_player_to_move(content)
     if not (2 <= board_size <= 25) or player_color not in {"B", "W"}:
-        raise GuildQuestAnswerError("judge_unavailable", status=503, retryable=True)
+        raise GuildQuestAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="player_to_move_unavailable",
+        )
     return board_size, player_color
 
 
@@ -184,7 +229,11 @@ def build_guild_quest_answer_context(
         revision = question_revision_for(question)
     except MapBattleRuntimeError as error:
         raise GuildQuestAnswerError(
-            "judge_unavailable", status=503, retryable=True
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="question_revision_unavailable",
         ) from error
     return {
         "battle_id": f"guild-quest:{key}",
@@ -231,9 +280,17 @@ def canonicalize_guild_quest_answer(
     try:
         canonical = canonicalize_answer(payload, context)
     except MapBattleRuntimeError as error:
-        raise GuildQuestAnswerError("malformed_answer") from error
+        raise GuildQuestAnswerError(
+            "malformed_answer",
+            failure_class="CANONICALIZATION_FAILURE",
+            reason_code=_safe_runtime_reason_code(error, "canonicalization_failure"),
+        ) from error
     if canonical.is_invalid:
-        raise GuildQuestAnswerError("malformed_answer")
+        raise GuildQuestAnswerError(
+            "malformed_answer",
+            failure_class="CLIENT_ANSWER_INVALID",
+            reason_code=canonical.reason_code,
+        )
     return canonical
 
 
@@ -253,10 +310,18 @@ def judge_guild_quest_answer(
         judge = judge_map_battle_answer_v1(question, context, canonical)
     except JudgeUnavailable as error:
         raise GuildQuestAnswerError(
-            "judge_unavailable", status=503, retryable=True
+            "judge_unavailable",
+            status=503,
+            retryable=True,
+            failure_class="TRANSIENT_SERVER_FAILURE",
+            reason_code="judge_unavailable",
         ) from error
     if judge.result == "INVALID" or judge.authoritative_grade not in {0, 5}:
-        raise GuildQuestAnswerError("malformed_answer")
+        raise GuildQuestAnswerError(
+            "malformed_answer",
+            failure_class="JUDGE_INVALID",
+            reason_code=judge.reason_code or "judge_invalid",
+        )
     return canonical, JudgeOutcome(
         result=judge.result,
         authoritative_grade=judge.authoritative_grade,

@@ -30,6 +30,130 @@ const SRS = (() => {
     let _onBadge   = null;
     let _onMonster = null;  // callback(monsterData) 每次答題後呼叫
     let _onQuest   = null;  // callback(questList)   任務進度更新後呼叫
+    // Runtime-only safety state.  A rejected answer must not become a
+    // successful SRS card, but a deterministic bad question also must not be
+    // handed back forever by a wrapping client-side queue.  The key contains
+    // both the legacy runtime locator and the revision basis; it is never a
+    // replacement for the canonical Learning Core source_record_uuid.
+    let _sessionQuarantine = new Map();
+
+    function _questionIdKey(questionId) {
+        if (typeof questionId === 'boolean') return null;
+        const value = Number(questionId);
+        return Number.isInteger(value) && Number.isFinite(value) ? String(value) : null;
+    }
+
+    function _revisionKey(value) {
+        if (value === null || value === undefined) return null;
+        const text = String(value).trim();
+        return text ? text : null;
+    }
+
+    function questionRevision(question) {
+        if (!question || typeof question !== 'object') return null;
+        for (const value of [
+            question._d5QuestionRevision,
+            question.question_revision,
+            question.content_revision,
+            question.content_sha256,
+            question.sgf_identity,
+        ]) {
+            const revision = _revisionKey(value);
+            if (revision) return revision;
+        }
+        return null;
+    }
+
+    function _sessionQuarantineKey(questionId, revision) {
+        const id = _questionIdKey(questionId);
+        const version = _revisionKey(revision);
+        return id && version ? JSON.stringify([id, version]) : null;
+    }
+
+    function quarantineQuestion(questionId, revision) {
+        const key = _sessionQuarantineKey(questionId, revision);
+        if (!key) return false;
+        _sessionQuarantine.set(key, {
+            question_id: _questionIdKey(questionId),
+            question_revision: _revisionKey(revision),
+        });
+        return true;
+    }
+
+    function isQuestionQuarantined(questionId, revision) {
+        const key = _sessionQuarantineKey(questionId, revision);
+        return !!(key && _sessionQuarantine.has(key));
+    }
+
+    function _failureCanQuarantine(data) {
+        if (!data || data.ok === true || data.retryable === true) return false;
+        const code = String(data.error || '').trim();
+        const failureClass = String(data.failure_class || '').trim().toUpperCase();
+        if (failureClass === 'TRANSIENT_PERSISTENCE_FAILURE'
+            || failureClass === 'TRANSIENT_SERVER_FAILURE') return false;
+        if (failureClass) {
+            return ['QUESTION_OR_CONTENT_INVALID', 'CANONICALIZATION_FAILURE', 'JUDGE_INVALID']
+                .includes(failureClass);
+        }
+        // Legacy servers may still return only `malformed_answer`; retain a
+        // bounded compatibility quarantine for that deterministic envelope.
+        return code === 'malformed_answer';
+    }
+
+    function _quarantineRejectedAnswer(fallbackQuestionId, data, fallbackQuestion = null) {
+        if (!_failureCanQuarantine(data)) return false;
+        const questionId = data.question_id != null
+            ? data.question_id
+            : fallbackQuestionId;
+        const responseRevision = questionRevision({
+            _d5QuestionRevision: data.question_revision,
+        });
+        const revision = responseRevision || questionRevision(fallbackQuestion);
+        if (!revision) return false;
+        return quarantineQuestion(questionId, revision);
+    }
+
+    // Shared client boundary for answer requests that do not use SRS.review
+    // (for example the Guild wrong-move observer).  The same structured
+    // failure policy applies; it never turns a rejection into a success.
+    function recordRejectedAnswer(questionId, data, question = null) {
+        return _quarantineRejectedAnswer(questionId, data, question);
+    }
+
+    if (typeof window !== 'undefined') {
+        window.__GO_D5_RECORD_REJECTED_ANSWER__ = recordRejectedAnswer;
+    }
+
+    function clearSessionQuarantine() {
+        _sessionQuarantine.clear();
+    }
+
+    function findNextAvailableQuestion(questions, currentQuestion, direction = 1) {
+        const list = Array.isArray(questions) ? questions : [];
+        if (!list.length) return null;
+        const step = Number(direction) < 0 ? -1 : 1;
+        let currentIndex = list.findIndex(question => question === currentQuestion);
+        if (currentIndex < 0 && currentQuestion && typeof currentQuestion === 'object') {
+            const currentId = _questionIdKey(currentQuestion.id);
+            const currentRevision = questionRevision(currentQuestion);
+            currentIndex = list.findIndex(question => (
+                question && _questionIdKey(question.id) === currentId
+                && questionRevision(question) === currentRevision
+            ));
+        }
+        const origin = currentIndex < 0
+            ? (step > 0 ? -1 : list.length)
+            : currentIndex;
+        for (let offset = 1; offset <= list.length; offset += 1) {
+            const rawIndex = origin + step * offset;
+            const index = ((rawIndex % list.length) + list.length) % list.length;
+            const candidate = list[index];
+            if (!candidate) continue;
+            if (isQuestionQuarantined(candidate.id, questionRevision(candidate))) continue;
+            return candidate;
+        }
+        return null;
+    }
 
     // ── 初始化 ────────────────────────────────────────────────
     async function init(onBadgeCallback, onMonsterCallback, onQuestCallback, options = {}) {
@@ -91,9 +215,16 @@ const SRS = (() => {
         if (!_reviewTransport || typeof _reviewTransport.legacyReview !== 'function') {
             throw new Error('review_transport_unavailable');
         }
-        const data = await _reviewTransport.legacyReview(
-            qid, grade, unitName, unitDone, metadata
-        );
+        let data;
+        try {
+            data = await _reviewTransport.legacyReview(
+                qid, grade, unitName, unitDone, metadata
+            );
+        } catch (error) {
+            _quarantineRejectedAnswer(qid, error && error.payload);
+            throw error;
+        }
+        _quarantineRejectedAnswer(qid, data);
         if (data.ok) {
             _allCards[qid] = { ...(_allCards[qid]||{}), ...data, question_id: qid };
             if (grade >= 3 && _dueSet) _dueSet.delete(qid);
@@ -232,6 +363,8 @@ const SRS = (() => {
         GRADE, DIFFICULTY_ORDER, MONSTER_AVATARS, QUEST_COLORS,
         init, isDue, isSeen, markSeen, getCard, getBadgeDef, isEarned, allDefs, allEarned,
         review, dispatchReviewPresentation, loadQuests, reportUnitProgress,
+        questionRevision, quarantineQuestion, isQuestionQuarantined,
+        clearSessionQuarantine, findNextAvailableQuestion, recordRejectedAnswer,
         diffBadge, intervalLabel, badgeHtml, monsterHtml, questListHtml
     };
 })();
