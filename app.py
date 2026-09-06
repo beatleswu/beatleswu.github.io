@@ -5887,9 +5887,9 @@ app.register_blueprint(create_sgf_answer_review_blueprint(
     mutation_throttle_failure=lambda: _workbench_mutation_throttle_failure(),
 ))
 
-# V2-A is a read/review surface only.  The callbacks are lazy because the
-# question cache helpers are defined later in this module; this blueprint has
-# no repair, apply, or canonical-content write endpoint.
+# V2-A is an additive review surface. Its POST routes persist review/progress
+# state but never mutate canonical questions; callbacks are lazy because the
+# question cache helpers are defined later in this module.
 _V2A_SNAPSHOT_CACHE = {"stamp": None, "sha256": None}
 
 
@@ -5914,6 +5914,7 @@ app.register_blueprint(create_sgf_workbench_v2a_blueprint(
     csrf_header=_REVIEW_CSRF_HEADER,
     csrf_token=_review_csrf_token,
     origin_failure=_review_origin_failure,
+    mutation_throttle_failure=lambda: _workbench_mutation_throttle_failure(),
 ))
 
 
@@ -8828,7 +8829,7 @@ def _workbench_mutation_throttle_failure():
         return None
     key = f'workbench:{user_id}'
     if _throttle_check(
-        key, WORKBENCH_MUTATION_RATE_MAX_HITS,
+        key, WORKBENCH_MUTATION_RATE_MAX,
         WORKBENCH_MUTATION_RATE_WINDOW_SEC,
     ):
         return jsonify({'error': 'rate_limited'}), 429
@@ -20746,10 +20747,10 @@ def friend_list():
 DM_MAX_LEN = 500
 DM_RATE_MAX = 5
 DM_RATE_WINDOW_SEC = 10
-# Reuse the application's existing low-burst authenticated-mutation policy for
-# Workbench writes; do not create a separate numerical rate policy here.
-WORKBENCH_MUTATION_RATE_MAX_HITS = DM_RATE_MAX
-WORKBENCH_MUTATION_RATE_WINDOW_SEC = DM_RATE_WINDOW_SEC
+# Workbench owns the same already-tested effective burst policy as its
+# preceding candidate, without inheriting DM-specific configuration names.
+WORKBENCH_MUTATION_RATE_MAX = 5
+WORKBENCH_MUTATION_RATE_WINDOW_SEC = 10
 DM_RETENTION_DAYS = max(1, int(os.environ.get('DM_RETENTION_DAYS', '180')))
 DM_AUDIT_RETENTION_DAYS = max(1, int(os.environ.get('DM_AUDIT_RETENTION_DAYS', '365')))
 DM_DEFAULT_BADWORDS = (

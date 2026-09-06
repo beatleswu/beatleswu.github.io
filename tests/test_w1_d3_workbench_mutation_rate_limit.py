@@ -67,7 +67,7 @@ def test_authenticated_mutation_is_allowed_then_throttled_without_partial_stage(
 
     client = application.app.test_client()
     headers = _admin_headers(application, client)
-    limit = application.WORKBENCH_MUTATION_RATE_MAX_HITS
+    limit = application.WORKBENCH_MUTATION_RATE_MAX
 
     for _ in range(limit):
         response = client.post(
@@ -99,7 +99,7 @@ def test_workbench_throttle_isolated_by_authenticated_identity(monkeypatch):
         "resolve_workbench_item",
         lambda *_args, **_kwargs: {"status": "NEEDS_RESEARCH"},
     )
-    limit = application.WORKBENCH_MUTATION_RATE_MAX_HITS
+    limit = application.WORKBENCH_MUTATION_RATE_MAX
 
     first = application.app.test_client()
     first_headers = _admin_headers(application, first, user_id=7)
@@ -137,7 +137,7 @@ def test_normal_sequential_review_actions_stay_below_existing_limit(monkeypatch)
 
     # Four deliberate taps represent a normal short review sequence and stay
     # below the existing five-hit/ten-second authenticated mutation policy.
-    for _ in range(application.WORKBENCH_MUTATION_RATE_MAX_HITS - 1):
+    for _ in range(application.WORKBENCH_MUTATION_RATE_MAX - 1):
         response = client.post(
             "/api/admin/sgf-workbench/items/1/status",
             json={"status": "NEEDS_RESEARCH"},

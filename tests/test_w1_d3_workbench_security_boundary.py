@@ -21,8 +21,12 @@ def test_existing_rate_limiter_and_policy_are_reused():
     source = (ROOT / "app.py").read_text(encoding="utf-8")
     assert "def _throttle_check(" in source
     assert "def _throttle_record(" in source
-    assert "WORKBENCH_MUTATION_RATE_MAX_HITS = DM_RATE_MAX" in source
-    assert "WORKBENCH_MUTATION_RATE_WINDOW_SEC = DM_RATE_WINDOW_SEC" in source
+    assert "WORKBENCH_MUTATION_RATE_MAX = 5" in source
+    assert "WORKBENCH_MUTATION_RATE_WINDOW_SEC = 10" in source
+    assert "WORKBENCH_MUTATION_RATE_MAX_HITS = DM_RATE_MAX" not in source
+    assert "WORKBENCH_MUTATION_RATE_WINDOW_SEC = DM_RATE_WINDOW_SEC" not in source
+    assert "DM_RATE_MAX" in source
+    assert "DM_RATE_WINDOW_SEC" in source
     assert "flask_limiter" not in source.lower()
     assert "class WorkbenchRateLimiter" not in source
 
@@ -64,6 +68,14 @@ def test_blueprint_mutations_use_injected_application_throttle():
     assert "mutation_throttle_failure=None" in source
     for name in ("review_save", "review_undo", "review_progress", "shadow_review"):
         function = _function_source(ROOT / "sgf_answer_review_routes.py", name)
+        assert "_mutation_throttle_failure()" in function, name
+
+
+def test_v2a_persistent_mutations_use_injected_application_throttle():
+    source = (ROOT / "sgf_workbench_v2a_routes.py").read_text(encoding="utf-8")
+    assert "mutation_throttle_failure=None" in source
+    for name in ("review", "progress"):
+        function = _function_source(ROOT / "sgf_workbench_v2a_routes.py", name)
         assert "_mutation_throttle_failure()" in function, name
 
 

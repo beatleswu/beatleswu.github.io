@@ -41,8 +41,14 @@ def _json_no_store(payload, status=200):
 def create_sgf_workbench_v2a_blueprint(*, admin_required, get_db_provider,
                                        load_questions, questions_snapshot_sha,
                                        csrf_failure, csrf_header, csrf_token,
-                                       origin_failure=None):
+                                       origin_failure=None,
+                                       mutation_throttle_failure=None):
     blueprint = Blueprint("sgf_workbench_v2a", __name__)
+
+    def _mutation_throttle_failure():
+        if mutation_throttle_failure is None:
+            return None
+        return mutation_throttle_failure()
 
     def records():
         values = load_questions() or []
@@ -323,6 +329,9 @@ def create_sgf_workbench_v2a_blueprint(*, admin_required, get_db_provider,
         failure = _mutation_guard()
         if failure is not None:
             return failure
+        throttle_failure = _mutation_throttle_failure()
+        if throttle_failure is not None:
+            return throttle_failure
         data = request.get_json(silent=True) or {}
         classification = str(data.get("classification") or "").upper()
         if classification not in HUMAN_REVIEW_CLASSIFICATIONS:
@@ -357,6 +366,9 @@ def create_sgf_workbench_v2a_blueprint(*, admin_required, get_db_provider,
         failure = _mutation_guard()
         if failure is not None:
             return failure
+        throttle_failure = _mutation_throttle_failure()
+        if throttle_failure is not None:
+            return throttle_failure
         data = request.get_json(silent=True) or {}
         try:
             index = int(data.get("record_index"))
