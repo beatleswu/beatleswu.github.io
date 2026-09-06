@@ -4219,6 +4219,132 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
             font-size: 13px;
         }
     }
+    /* Zone 3 Lord result contract: the result states own their approved
+       backplates and never fall back to the generic unlock/battlefield card.
+       The shared modal remains shared; these selectors are deliberately
+       scoped to Zone 3 result state and its canonical zone key. */
+    #zone3-success-lord-portrait {
+        display: none;
+        position: absolute;
+        left: 50%;
+        top: 28%;
+        width: 28%;
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        object-fit: cover;
+        object-position: center 30%;
+        border: 2px solid rgba(255, 222, 133, .92);
+        border-radius: 50%;
+        box-shadow: 0 0 0 5px rgba(50, 35, 16, .68), 0 0 36px rgba(255, 202, 83, .68);
+        filter: saturate(1.06) brightness(.96);
+        pointer-events: none;
+        z-index: 4;
+    }
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-scene,
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-scene {
+        display: block;
+        overflow: hidden;
+        min-height: 0;
+        width: min(600px, 90vw);
+        max-height: 88dvh;
+        aspect-ratio: 3 / 4;
+        box-sizing: border-box;
+        padding: 0;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center top;
+        border-color: rgba(245, 201, 112, .66);
+        box-shadow: 0 24px 90px rgba(0, 0, 0, .66), inset 0 0 42px rgba(245, 201, 112, .18);
+        animation: lordCardFrameReveal .6s ease-out both;
+    }
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone3/lord_trial/zone3_lord_04_first_star_success_backplate.webp');
+        border-color: rgba(255, 214, 111, .76);
+        box-shadow: 0 24px 90px rgba(0, 0, 0, .62), inset 0 0 52px rgba(255, 196, 76, .28);
+    }
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone3/lord_trial/zone3_lord_03_failure_backplate.webp');
+        border-color: rgba(154, 190, 206, .52);
+        filter: saturate(.86) brightness(.92);
+    }
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] #zone3-success-lord-portrait {
+        display: block;
+    }
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-monster,
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-monster,
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-progress,
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-progress,
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-cancel-btn,
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-cancel-btn {
+        display: none;
+    }
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-content,
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-content {
+        position: absolute;
+        left: 5%;
+        right: 5%;
+        bottom: 4%;
+        z-index: 5;
+        box-sizing: border-box;
+        max-height: 56%;
+        overflow: auto;
+        padding: 13px 16px;
+        border: 1px solid rgba(245, 201, 112, .44);
+        border-radius: 14px;
+        background: rgba(15, 14, 10, .78);
+        backdrop-filter: blur(7px);
+        text-align: center;
+    }
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-content {
+        border-color: rgba(255, 214, 111, .5);
+        background: rgba(29, 23, 12, .72);
+    }
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-content {
+        border-color: rgba(177, 207, 220, .44);
+        background: rgba(10, 14, 18, .78);
+    }
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-title,
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-title,
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-books,
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-books,
+    .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-line,
+    .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-line {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-scene,
+        .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-scene {
+            width: 94vw;
+            height: min(88dvh, 760px);
+            max-height: calc(100dvh - 20px);
+            aspect-ratio: auto;
+        }
+        .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-content,
+        .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-content {
+            left: 3%;
+            right: 3%;
+            bottom: 2.5%;
+            max-height: 58%;
+            padding: 11px 12px;
+        }
+        .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] #zone3-success-lord-portrait {
+            top: 28%;
+            width: 38%;
+        }
+        .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-actions,
+        .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            width: 100%;
+        }
+        .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-actions > button,
+        .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-actions > button {
+            width: 100%;
+            min-height: 44px;
+        }
+    }
     .adventure-ritual-toast,
     .zone-softfall-toast {
         position: fixed;
@@ -8028,6 +8154,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
         <img id="zone1-first-star-icon" src="/assets/e10/art/zone1/lord_trial/zone1_first_star.webp" alt="" aria-hidden="true">
         <img id="zone2-lord-portrait" src="/assets/e10/art/zone2/lord_trial/zone2_lord_portrait.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
         <img id="zone2-success-lord-portrait" src="/assets/e10/art/zone2/lord_trial/zone2_success_lord_portrait.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
+        <img id="zone3-success-lord-portrait" src="/assets/e10/art/zone3/lord_trial/zone3_lord_06_success_lord_portrait.webp" alt="" aria-hidden="true" hidden loading="lazy" decoding="async">
         <!-- Real DOM title placed over the Lord Challenge Card backplate's
              own top ornamental plaque (Owner polish request), instead of
              leaving that plaque blank while the kicker also sits in the
@@ -18951,6 +19078,8 @@ async function openAdventureBossFromQuestCard(zoneKey) {
 // this card never starts an attempt and never infers readiness from progress.
 function showZone3LordChallengeCard(zone) {
     if (!zone || zone.key !== 'k16_20') return false;
+    _hideZone3ResultPortrait();
+    _clearZone3ResultMetadata();
     const overlay = document.getElementById('boss-cinematic');
     const kicker = document.getElementById('boss-cinematic-kicker');
     const monster = document.getElementById('boss-cinematic-monster');
@@ -19397,6 +19526,8 @@ function _spawnLordRitualStones() {
 }
 
 async function showBossCinematic(zone) {
+    _hideZone3ResultPortrait();
+    _clearZone3ResultMetadata();
     _pendingBossZone = zone;
     const replay = _adventureBossReplayAvailable(zone);
     _stopIntroFilm();
@@ -19570,6 +19701,8 @@ async function _startBossBattleNow(zone) {
 
 function hideBossCinematic() {
     _stopIntroFilm();
+    _hideZone3ResultPortrait();
+    _clearZone3ResultMetadata();
     if (typeof BattlefieldBossRewardConsumer !== 'undefined') {
         BattlefieldBossRewardConsumer.reset();
     }
@@ -19583,11 +19716,21 @@ function hideBossCinematic() {
         delete overlay.dataset.zone3Replay;
         delete overlay.dataset.zone3Presentation;
         delete overlay.dataset.zone3PresentationOnly;
-        delete overlay.dataset.zone3LordAsset;
-        delete overlay.dataset.assetSlot;
-        delete overlay.dataset.assetStatus;
     }
     _pendingBossZone = null;
+}
+
+function _hideZone3ResultPortrait() {
+    const portrait = document.getElementById('zone3-success-lord-portrait');
+    if (portrait) portrait.hidden = true;
+}
+
+function _clearZone3ResultMetadata() {
+    const overlay = document.getElementById('boss-cinematic');
+    if (!overlay) return;
+    delete overlay.dataset.zone3LordAsset;
+    delete overlay.dataset.assetSlot;
+    delete overlay.dataset.assetStatus;
 }
 
 function _renderBossTrialProgress(current = _bossIndex + 1) {
@@ -20017,6 +20160,8 @@ function _triggerZone1PostClearFromBossWin(zone, options = {}) {
 
 function showZone1LordResultCard(result, zone) {
     _stopIntroFilm();
+    _hideZone3ResultPortrait();
+    _clearZone3ResultMetadata();
     const overlay = document.getElementById('boss-cinematic');
     const kicker = document.getElementById('boss-cinematic-kicker');
     const monster = document.getElementById('boss-cinematic-monster');
@@ -20099,6 +20244,8 @@ function _triggerZone2PostClearFromBossWin(zone, options = {}) {
 
 function showZone2LordResultCard(result, zone) {
     _stopIntroFilm();
+    _hideZone3ResultPortrait();
+    _clearZone3ResultMetadata();
     const overlay = document.getElementById('boss-cinematic');
     const monster = document.getElementById('boss-cinematic-monster');
     const title = document.getElementById('boss-cinematic-title');
@@ -20270,17 +20417,26 @@ function showZone3LordResultCard(result, zone) {
     const btn = document.getElementById('boss-cinematic-btn');
     const progress = document.getElementById('boss-cinematic-progress');
     const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    const successPortrait = document.getElementById('zone3-success-lord-portrait');
     if (!overlay || !title || !btn || !zone || zone.key !== 'k16_20') return false;
     const passed = result?.passed === true;
     const replay = result?.replay === true;
+    _hideZone3ResultPortrait();
     overlay.className = `boss-cinematic show ${passed ? 'result-zone3-win' : 'result-zone3-fail'}`;
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key;
     overlay.dataset.zone3Safe = 'true';
+    overlay.dataset.zone3EntryFlow = 'false';
+    overlay.dataset.zone3Presentation = 'result';
+    overlay.dataset.zone3Replay = replay ? 'true' : 'false';
     overlay.dataset.zone3PresentationOnly = 'false';
-    delete overlay.dataset.zone3LordAsset;
-    delete overlay.dataset.assetSlot;
-    delete overlay.dataset.assetStatus;
+    overlay.dataset.zone3LordAsset = passed
+        ? '/assets/e10/art/zone3/lord_trial/zone3_lord_04_first_star_success_backplate.webp'
+        : '/assets/e10/art/zone3/lord_trial/zone3_lord_03_failure_backplate.webp';
+    overlay.dataset.assetSlot = passed
+        ? 'Z3_FIRST_STAR_SUCCESS_BACKPLATE'
+        : 'Z3_LORD_FAILURE_BACKPLATE';
+    overlay.dataset.assetStatus = 'OWNER_APPROVED_PRESENT';
     if (monster) {
         monster.textContent = '';
         monster.hidden = true;
@@ -20292,10 +20448,10 @@ function showZone3LordResultCard(result, zone) {
     if (cancelBtn) cancelBtn.style.display = 'none';
     if (kicker) kicker.textContent = passed
         ? I18n.t('e9.zone3.clear_reward.kicker')
-        : I18n.t('e9.zone3.battlefield_boss.kicker');
+        : I18n.t('e9.zone3.lord_failure.kicker');
     title.textContent = passed
         ? I18n.t('e9.zone3.clear_reward.title')
-        : I18n.t('e9.zone3.battlefield_boss.title');
+        : I18n.t('e9.zone3.lord_failure.title');
     if (books) {
         books.textContent = Number.isFinite(Number(result?.correct)) && Number.isFinite(Number(result?.total))
             ? `${I18n.t('adventure.zone3.encounter_title')} · ${Number(result.correct)} / ${Number(result.total)}`
@@ -20304,14 +20460,19 @@ function showZone3LordResultCard(result, zone) {
     }
     if (line) line.textContent = passed
         ? (replay ? I18n.t('e9.zone3.return.body') : I18n.t('e9.zone3.clear_reward.body'))
-        : I18n.t('e9.zone3.battlefield_boss.body');
+        : I18n.t('e9.zone3.lord_failure.body');
     if (rules) {
         rules.innerHTML = passed
             ? ''
-            : `<span>${I18n.t('e9.zone3.return.body')}</span>`;
+            : `<span>${I18n.t('e9.zone3.lord_failure.info')}</span>`;
         rules.hidden = passed;
+        rules.dataset.authoritySource = '/api/adventure/boss/finish';
     }
     if (passed) {
+        if (successPortrait) {
+            successPortrait.src = '/assets/e10/art/zone3/lord_trial/zone3_lord_06_success_lord_portrait.webp';
+            successPortrait.hidden = false;
+        }
         btn.disabled = false;
         btn.textContent = I18n.t('adventure.zone3.continue');
         btn.onclick = () => {
@@ -20328,9 +20489,13 @@ function showZone3LordResultCard(result, zone) {
             }), 0);
         };
     } else {
+        if (successPortrait) successPortrait.hidden = true;
         btn.disabled = false;
-        btn.textContent = I18n.t('adventure.zone3.return_map');
-        btn.onclick = () => _zone3ReturnToMap('lord_result');
+        btn.textContent = I18n.t('e9.zone3.lord_failure.cta');
+        btn.onclick = () => {
+            hideBossCinematic();
+            window.location.href = firstQuestionHref(zone);
+        };
     }
     return true;
 }
@@ -20352,6 +20517,8 @@ document.addEventListener('journey:zone3-command', event => {
 
 async function showBossResultCinematic(result) {
     _stopIntroFilm();
+    _hideZone3ResultPortrait();
+    _clearZone3ResultMetadata();
     const overlay = document.getElementById('boss-cinematic');
     const kicker = document.getElementById('boss-cinematic-kicker');
     const monster = document.getElementById('boss-cinematic-monster');
