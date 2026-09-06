@@ -17,6 +17,7 @@ from tools.hero.build_apprentice_wooden_sword_pose import (
     BACK_REL,
     CANVAS,
     CHARACTER_REL,
+    CUFF_MASK_BOUNDARY,
     EXPECTED_CHARACTER_SHA256,
     EXPECTED_HAND_SOURCE_SHA256,
     EXPECTED_WEAPON_SHA256,
@@ -42,10 +43,9 @@ ALPHA_THRESHOLD = 16
 # It is deliberately a geometric support region, not a final-image hash.
 THUMB_SUPPORT_REGION = (740, 745, 779, 802)
 
-# The R5 defect was the canonical open-hand skin strip left at the cuff edge.
-# A few antialias pixels are tolerated; a significant residual is not.
-CUFF_RESIDUAL_REGION = (760, 700, 840, 723)
-CUFF_RESIDUAL_ANTIALIAS_LIMIT = 32
+# R8 restores the canonical cuff through row 722.  The former R6 residual
+# region remains useful as a negative-control region for detached source art.
+FORMER_RESIDUAL_REGION = (760, 700, 839, 722)
 
 
 def _rectangle_mask(box: tuple[int, int, int, int]) -> Image.Image:
@@ -90,14 +90,64 @@ def test_r6_source_is_hash_bound_rgba_and_has_no_detached_component() -> None:
 
 def test_r6_cuff_boundary_has_no_significant_residual_skin_island() -> None:
     root = repo_root()
+    character = load_rgba(root / CHARACTER_REL)
+    source = load_rgba(root / SOURCE_REL)
     back = load_rgba(root / BACK_REL)
     front = load_rgba(root / FRONT_REL)
     localized = ImageChops.lighter(back.getchannel("A"), front.getchannel("A"))
     topology = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
     topology.putalpha(localized)
 
-    residual = _masked_pixel_count(topology, _rectangle_mask(CUFF_RESIDUAL_REGION))
-    assert residual <= CUFF_RESIDUAL_ANTIALIAS_LIMIT
+    assert CUFF_MASK_BOUNDARY == 722
+
+    canonical_alpha = character.getchannel("A")
+    localized_alpha = topology.getchannel("A")
+    x1, y1, x2, y2 = HAND_ROI
+    cuff_rows = range(701, 723)
+    canonical_cuff_pixels = sum(
+        1
+        for y in cuff_rows
+        for x in range(x1, x2)
+        if canonical_alpha.getpixel((x, y))
+    )
+    restored_cuff_pixels = sum(
+        1
+        for y in cuff_rows
+        for x in range(x1, x2)
+        if canonical_alpha.getpixel((x, y)) and localized_alpha.getpixel((x, y))
+    )
+    assert canonical_cuff_pixels > 1000
+    assert restored_cuff_pixels == canonical_cuff_pixels
+
+    # The previous isolated skin strip must be absent from the committed hand
+    # source itself; restored canonical cuff pixels are allowed in the output.
+    residual_source_pixels = _masked_pixel_count(
+        source, _rectangle_mask(FORMER_RESIDUAL_REGION)
+    )
+    assert residual_source_pixels == 0
+
+    areas, detached = _significant_component_count(source)
+    assert areas
+    assert detached == 0
+
+    # The restored cuff and hand topology remain one significant connected
+    # output component, rather than a detached cuff/skin island.
+    localized_areas = alpha_component_areas(
+        topology, HAND_ROI, threshold=ALPHA_THRESHOLD
+    )
+    significant_localized = [
+        area for area in localized_areas if area >= SIGNIFICANT_COMPONENT_THRESHOLD
+    ]
+    assert len(significant_localized) == 1
+
+    row_counts = {
+        y: sum(1 for x in range(x1, x2) if localized_alpha.getpixel((x, y)))
+        for y in (700, 701, 722)
+    }
+    assert row_counts[700] > 0
+    assert row_counts[701] > 0
+    assert row_counts[722] > 0
+    assert abs(row_counts[701] - row_counts[700]) < 40
 
 
 def test_r6_thumb_side_has_handle_contact_and_front_occlusion() -> None:
