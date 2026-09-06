@@ -28,8 +28,17 @@
   "coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI pixels; origin top-left",
   "owner_pose_reference_path": "C:\\Users\\beatl\\.codex\\codex-remote-attachments\\01a073fc-8a20-71f1-9eb5-526858fb8370\\E58D741E-D24C-4F9E-9252-9F56A43A4091\\1-照片-1.jpg",
   "owner_pose_reference_sha256": "d98b70c78804992c895a53fcf5453e8b67b67e7528416c6aafff93dec2785dd9",
-  "hand_art_assist_sha256": "626d210e366e1674c70b61901e512a65ba2419d70f429cab09661f73c2bde0ce",
-  "hand_art_assist_scope": "right-hand/minimal-wrist ROI only; no canonical character or weapon pixels",
-  "layer_split": "back is the hand layer behind the handle plus canonical cuff pixels; front is the thumb-side foreground mask",
+  "hand_source": {
+    "path": "assets/hero/characters/wave2_p1/weapon_pose/hand_grip_source.png",
+    "sha256": "351985c3436aa3c997d67b3002fbfa6211018d30e0d95c862655dd4a3ccadcc3",
+    "scope": "localized right-hand and minimal wrist raster only; reference sword and non-ROI pixels removed",
+    "coordinate_system": "1056x1408 PLAYER_FRAME_A_STANDARD_CHIBI pixels",
+    "front_side_rule": "negative image-space cross-product side of grip_axis",
+    "rear_side_rule": "source alpha minus front-side mask"
+  },
+  "hand_art_assist_sha256": "351985c3436aa3c997d67b3002fbfa6211018d30e0d95c862655dd4a3ccadcc3",
+  "hand_art_assist_scope": "localized manual raster extraction from the Owner pose reference; right-hand/minimal-wrist ROI only; no canonical character or weapon pixels",
+  "layer_split": "back is canonical cuff pixels plus rear-side source hand; front is the negative-axis thumb/palm foreground mask",
+  "source_rebuild": "BACK/FRONT are regenerated from committed hand_grip_source.png, grip_axis.json, and canonical Apprentice pixels",
   "runtime_integration": "not enabled"
 }
