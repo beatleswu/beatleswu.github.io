@@ -295,9 +295,16 @@ def _shadow_issue_type(operation: str) -> str:
     return "OTHER"
 
 
-def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
+def create_sgf_answer_review_blueprint(
+    *, admin_required, get_db_provider, mutation_throttle_failure=None
+):
     blueprint = Blueprint("sgf_answer_review_queue", __name__)
     root = Path(__file__).resolve().parent
+
+    def _mutation_throttle_failure():
+        if mutation_throttle_failure is None:
+            return None
+        return mutation_throttle_failure()
 
     def _legacy_page_response():
         html = (root / "sgf_answer_review.html").read_text(encoding="utf-8")
@@ -420,6 +427,9 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
         csrf_failure = _review_csrf_failure()
         if csrf_failure is not None:
             return csrf_failure
+        throttle_failure = _mutation_throttle_failure()
+        if throttle_failure is not None:
+            return throttle_failure
         if not request.is_json:
             return _json_no_store({"ok": False, "error": "json_required"}, 415)
         try:
@@ -448,6 +458,9 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
         csrf_failure = _review_csrf_failure()
         if csrf_failure is not None:
             return csrf_failure
+        throttle_failure = _mutation_throttle_failure()
+        if throttle_failure is not None:
+            return throttle_failure
         if not request.is_json:
             return _json_no_store({"ok": False, "error": "json_required"}, 415)
         try:
@@ -474,6 +487,9 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
         csrf_failure = _review_csrf_failure()
         if csrf_failure is not None:
             return csrf_failure
+        throttle_failure = _mutation_throttle_failure()
+        if throttle_failure is not None:
+            return throttle_failure
         if not request.is_json:
             return _json_no_store({"ok": False, "error": "json_required"}, 415)
         try:
@@ -546,6 +562,9 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
         csrf_failure = _review_csrf_failure()
         if csrf_failure is not None:
             return csrf_failure
+        throttle_failure = _mutation_throttle_failure()
+        if throttle_failure is not None:
+            return throttle_failure
         if not request.is_json:
             return _json_no_store({"ok": False, "error": "json_required"}, 415)
         payload = request.get_json(silent=True) or {}

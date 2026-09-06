@@ -5884,6 +5884,7 @@ from sgf_answer_review_routes import (
 app.register_blueprint(create_sgf_answer_review_blueprint(
     admin_required=admin_required,
     get_db_provider=lambda: get_db(),
+    mutation_throttle_failure=lambda: _workbench_mutation_throttle_failure(),
 ))
 
 # V2-A is a read/review surface only.  The callbacks are lazy because the
@@ -5997,6 +5998,9 @@ def admin_sgf_workbench_flag():
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     try:
         question_id = int(data.get('question_id'))
@@ -6042,6 +6046,9 @@ def admin_sgf_workbench_stage(item_id):
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     action = str(data.get('action') or '').strip().upper()
     if action not in WORKBENCH_ACTIONS:
@@ -6110,6 +6117,9 @@ def admin_sgf_workbench_validate(item_id):
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     with get_db() as conn:
         item = get_workbench_item(conn, item_id)
@@ -6157,6 +6167,9 @@ def admin_sgf_workbench_status(item_id):
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     status = str(data.get('status') or '').strip().upper()
     try:
@@ -6177,6 +6190,9 @@ def admin_sgf_workbench_retest(item_id):
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     moves = data.get('moves')
     if not isinstance(moves, list) or not moves:
@@ -6333,6 +6349,9 @@ def admin_sgf_workbench_direct_apply():
         return csrf_failure
     if not _direct_apply_enabled():
         return jsonify({'error': 'direct_apply_disabled', 'production_mutation': False}), 403
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     try:
         question_id = int(data.get('question_id'))
@@ -6415,6 +6434,9 @@ def admin_sgf_workbench_direct_retest():
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     try:
         question_id = int(data.get('question_id'))
@@ -6449,6 +6471,9 @@ def admin_sgf_workbench_direct_rollback(version_id):
         return csrf_failure
     if not _direct_apply_enabled():
         return jsonify({'error': 'direct_apply_disabled', 'production_mutation': False}), 403
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     try:
         with get_db() as conn:
@@ -6475,6 +6500,9 @@ def admin_sgf_workbench_batches():
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     try:
         with get_db() as conn:
@@ -6506,6 +6534,9 @@ def admin_sgf_workbench_batch_ready(batch_id):
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     with get_db() as conn:
         batch = get_workbench_batch(conn, batch_id)
         if not batch:
@@ -8783,6 +8814,26 @@ def _client_ip() -> str:
     return (request.headers.get('X-Real-IP')
             or (request.headers.get('X-Forwarded-For') or '').split(',')[0].strip()
             or request.remote_addr or '?')
+
+
+def _workbench_mutation_throttle_failure():
+    """Apply the existing authenticated mutation throttle to Workbench writes.
+
+    The key is derived only from the already-authenticated, signed session.
+    Callers invoke this after their existing origin/CSRF checks and before any
+    Workbench persistence, so a rejected request cannot partially write state.
+    """
+    user_id = session.get('user_id')
+    if user_id in (None, ''):
+        return None
+    key = f'workbench:{user_id}'
+    if _throttle_check(
+        key, WORKBENCH_MUTATION_RATE_MAX_HITS,
+        WORKBENCH_MUTATION_RATE_WINDOW_SEC,
+    ):
+        return jsonify({'error': 'rate_limited'}), 429
+    _throttle_record(key)
+    return None
 
 @app.route('/api/auth/config')
 def auth_config():
@@ -20695,6 +20746,10 @@ def friend_list():
 DM_MAX_LEN = 500
 DM_RATE_MAX = 5
 DM_RATE_WINDOW_SEC = 10
+# Reuse the application's existing low-burst authenticated-mutation policy for
+# Workbench writes; do not create a separate numerical rate policy here.
+WORKBENCH_MUTATION_RATE_MAX_HITS = DM_RATE_MAX
+WORKBENCH_MUTATION_RATE_WINDOW_SEC = DM_RATE_WINDOW_SEC
 DM_RETENTION_DAYS = max(1, int(os.environ.get('DM_RETENTION_DAYS', '180')))
 DM_AUDIT_RETENTION_DAYS = max(1, int(os.environ.get('DM_AUDIT_RETENTION_DAYS', '365')))
 DM_DEFAULT_BADWORDS = (
@@ -21172,6 +21227,9 @@ def _workbench_report_response(capture, *, reason, context, observed_system_verd
 @login_required
 def api_question_problem_report():
     uid = session['user_id']
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     try:
         question_id = int(data.get('question_id'))
@@ -21237,6 +21295,9 @@ def api_question_problem_report():
 @login_required
 def api_question_unified_report():
     """One lightweight player report endpoint shared by all SGF surfaces."""
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     raw_reason = str(data.get('reason') or data.get('reason_code') or '').strip()
     reason = raw_reason.upper()
@@ -21376,6 +21437,9 @@ def admin_question_problem_report_resolve(report_id):
         return jsonify({'error': 'invalid_action'}), 400
     if len(admin_note) > 500:
         return jsonify({'error': 'note_too_long'}), 400
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     with get_db() as conn:
         report = conn.execute('''
             SELECT *
@@ -21553,6 +21617,9 @@ def admin_review_queue_resolve(item_id):
         return jsonify({'error': 'invalid_action'}), 400
     if len(admin_note) > 500:
         return jsonify({'error': 'note_too_long'}), 400
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     now = _review_queue_now_iso()
     status = 'wont_fix' if action == 'wont_fix' else 'resolved'
     with get_db() as conn:
@@ -21584,6 +21651,9 @@ def admin_review_queue_resolve(item_id):
 @app.route('/api/admin/review-queue/import', methods=['POST'])
 @admin_required
 def admin_review_queue_import():
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     base_dir = os.path.dirname(os.path.abspath(__file__))
     audit_path = str(data.get('audit_path') or os.path.join(base_dir, 'docs', 'testing', 'p0_triage_22c.md'))
@@ -22037,6 +22107,9 @@ def dm_report():
 @login_required
 def question_alternative_report():
     uid = session['user_id']
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
     data = request.get_json(silent=True) or {}
     qs_map = {int(q.get('id')): q for q in _load_questions() if q.get('id') is not None}
     try:
@@ -22209,6 +22282,9 @@ def admin_question_alternative_report_resolve(report_id):
         return jsonify({'error': '無效的處理方式'}), 400
     if len(note) > 500:
         return jsonify({'error': '處理理由最多 500 字'}), 400
+    throttle_failure = _workbench_mutation_throttle_failure()
+    if throttle_failure is not None:
+        return throttle_failure
 
     with get_db() as conn:
         report = conn.execute(
