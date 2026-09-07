@@ -101,6 +101,12 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         # B061 promotes the existing item journal page into the required
         # release generation because the release contract expects it to ship.
         "item_journal.html",
+        # P0-F26 promotes srs.js because index.html calls
+        # SRS.findNextAvailableQuestion() unguarded. While srs.js was eligible
+        # but not required, a newer index.html generation shipped against an
+        # older baked-image srs.js that lacks that method, and Adventure/Lord/
+        # Guild question traversal threw before requesting a question.
+        "srs.js",
     }
 )
 STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)
