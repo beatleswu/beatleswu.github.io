@@ -107,6 +107,16 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         # older baked-image srs.js that lacks that method, and Adventure/Lord/
         # Guild question traversal threw before requesting a question.
         "srs.js",
+        # F32 Batch A closes every first-party script referenced by index.html
+        # in the same static generation; these eight were the remaining gaps.
+        "wgo/wgo.min.js",
+        "wgo/stone_skin.js",
+        "community_reward_notifications.js",
+        "js/game/encounter_presentation_framework_v1.js",
+        "js/game/battlefield_boss_reward_consumer.js",
+        "monster_trash.js",
+        "sound.js",
+        "sgf_report_widget.js",
     }
 )
 STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)
@@ -270,6 +280,48 @@ def _app_py_eligible_files():
     return [n for n in names if len(n) > 1]
 
 
+F32_BATCH_A_ASSETS = frozenset(
+    {
+        "wgo/wgo.min.js",
+        "wgo/stone_skin.js",
+        "community_reward_notifications.js",
+        "js/game/encounter_presentation_framework_v1.js",
+        "js/game/battlefield_boss_reward_consumer.js",
+        "monster_trash.js",
+        "sound.js",
+        "sgf_report_widget.js",
+    }
+)
+
+
+def _first_party_script_references():
+    html = _read(INDEX_HTML)
+    pattern = re.compile(
+        r"<script\b[^>]*\bsrc\s*=\s*['\"]([^'\"]+)['\"]",
+        re.IGNORECASE,
+    )
+    references = []
+    for raw in pattern.findall(html):
+        if raw.startswith("//") or re.match(r"^[a-z][a-z0-9+.-]*://", raw, re.IGNORECASE):
+            continue
+        path = raw.split("?", 1)[0].split("#", 1)[0].lstrip("/")
+        if path and path not in references:
+            references.append(path)
+    return references
+
+
+def _same_generation_script_references(inventory, references):
+    required = set(inventory["required_in_generation"]["entries"])
+    closure_prefixes = tuple(
+        str(item["prefix"]).replace("\\", "/").rstrip("/") + "/"
+        for item in inventory["runtime_dependency_closure"]["subtrees"]
+    )
+    return {
+        path for path in references
+        if path in required or any(path.startswith(prefix) for prefix in closure_prefixes)
+    }
+
+
 # ---------------------------------------------------------------------------
 # Inventory <-> app.py sync (the exact class of drift this Sprint exists to
 # prevent from happening again, one level up the stack)
@@ -307,6 +359,68 @@ def test_inventory_explicit_subpath_asset_has_a_live_static_route():
         assert asset_path in inventory["required_in_generation"]["entries"]
     assert "@app.route('/js/map_battle_v1_adapter.js')" in app_content
     assert "@app.route('/js/e9/<path:subpath>')" in app_content
+
+
+def test_f32_batch_a_closes_all_first_party_scripts_in_one_generation():
+    inventory = _load_inventory()
+    references = _first_party_script_references()
+    eligible = set(inventory["eligible_files"]["entries"])
+    required = set(inventory["required_in_generation"]["entries"])
+    same_generation = _same_generation_script_references(inventory, references)
+
+    assert len(references) == 49
+    assert len(same_generation) == 49
+    assert set(references) <= same_generation
+    assert F32_BATCH_A_ASSETS <= required
+    assert F32_BATCH_A_ASSETS <= eligible
+    for path in F32_BATCH_A_ASSETS:
+        assert (REPO_ROOT / path).is_file()
+    assert len(inventory["eligible_files"]["entries"]) == len(eligible)
+    assert len(inventory["required_in_generation"]["entries"]) == len(required)
+
+
+def test_f32_batch_a_bounded_routes_and_baked_asset_closure():
+    app_content = _read(APP_PY)
+    dockerfile = _read(DOCKERFILE)
+    eligible = set(_load_inventory()["eligible_files"]["entries"])
+
+    assert "sgf_report_widget.js" in eligible
+    assert "@app.route('/sgf_report_widget.js')" in app_content
+    assert "@app.route('/js/game/encounter_presentation_framework_v1.js')" in app_content
+    assert "@app.route('/js/game/battlefield_boss_reward_consumer.js')" in app_content
+    assert "_LIVE_STATIC_WGO_SCRIPT_SUBPATHS = frozenset" in app_content
+    assert "'wgo.min.js'" in app_content
+    assert "'stone_skin.js'" in app_content
+    assert "allowed_subpaths=_LIVE_STATIC_WGO_SCRIPT_SUBPATHS" in app_content
+
+    for copy_line in (
+        "sgf_report_widget.js ./",
+        "COPY js/game/encounter_presentation_framework_v1.js ./js/game/encounter_presentation_framework_v1.js",
+        "COPY js/game/battlefield_boss_reward_consumer.js ./js/game/battlefield_boss_reward_consumer.js",
+    ):
+        assert copy_line in dockerfile
+    assert not re.search(r"COPY\s+\.\s+\.", dockerfile)
+
+
+def test_f32_batch_a_preserves_pwa_manifest_boundary():
+    inventory = _load_inventory()
+    manifest = json.loads(_read(REPO_ROOT / "manifest.json"))
+
+    assert manifest.get("name")
+    assert manifest.get("start_url")
+    assert "manifest.json" in inventory["eligible_files"]["entries"]
+    assert "manifest.json" not in inventory["required_in_generation"]["entries"]
+    assert "release-manifest.json" not in inventory["eligible_files"]["entries"]
+
+
+def test_f32_batch_a_preserves_l3_map_battle_release_coupling():
+    app_content = _read(APP_PY)
+    inventory = _load_inventory()
+    dockerfile = _read(DOCKERFILE)
+
+    assert "@app.route('/js/map_battle_v1_adapter.js')" in app_content
+    assert "js/map_battle_v1_adapter.js" in inventory["required_in_generation"]["entries"]
+    assert "COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js" in dockerfile
 
 
 def test_inventory_required_in_generation_is_subset_of_eligible():

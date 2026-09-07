@@ -27575,8 +27575,23 @@ def blog_post(slug): return send_from_directory('blog', slug + '.html')
 @login_required
 def serve_html(filename): return _serve_live_static_or_baked(filename+'.html')
 
+_LIVE_STATIC_WGO_SCRIPT_SUBPATHS = frozenset({
+    'wgo.min.js',
+    'stone_skin.js',
+})
+
+
 @app.route('/wgo/<path:filename>')
-def serve_wgo(filename): return send_from_directory('wgo', filename)
+def serve_wgo(filename):
+    normalized = filename.replace('\\', '/')
+    if normalized in _LIVE_STATIC_WGO_SCRIPT_SUBPATHS:
+        return _serve_live_static_or_baked_subpath(
+            normalized,
+            'wgo',
+            'wgo',
+            allowed_subpaths=_LIVE_STATIC_WGO_SCRIPT_SUBPATHS,
+        )
+    return send_from_directory('wgo', filename)
 
 _SOUND_DIR = os.path.join(
     os.path.dirname(__file__),
@@ -27634,7 +27649,7 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     # frontend JS served as flat root files
     'srs.js', 'monster_trash.js', 'sound.js', 'mobile-nav.js',
     'site-nav.js', 'community_reward_notifications.js',
-    'community_reward_rules.js', 'pwa.js',
+    'community_reward_rules.js', 'pwa.js', 'sgf_report_widget.js',
     # static config served as flat root files
     'manifest.json', 'robots.txt', 'sitemap.xml',
     # public/known HTML pages (explicit allowlist; every one of these is
@@ -27726,16 +27741,26 @@ def _serve_live_static_or_baked(filename, baked_base='.', mimetype=None):
     return send_from_directory(baked_base, filename, mimetype=mimetype)
 
 
-def _serve_live_static_or_baked_subpath(subpath, baked_subdir, live_static_subdir):
+def _serve_live_static_or_baked_subpath(
+    subpath,
+    baked_subdir,
+    live_static_subdir,
+    allowed_subpaths=None,
+):
     """Same fallback contract as _serve_live_static_or_baked, but for a
     file inside a subdirectory tree (e.g. assets/tiers/26-30.jpg)
     addressed by a Flask <path:subpath> converter value. No filename
-    allowlist is applied here (arbitrary subpaths under an asset tree
-    are expected), but every other protection in _resolve_live_static_path
-    still applies -- no '..' traversal, no absolute path, no hidden
-    dotfile segment, and the resolved path must stay inside the
-    live-static root."""
-    live_static_relative = f'{live_static_subdir}/{subpath}'
+    allowlist is applied by default (arbitrary subpaths under an asset tree
+    are expected); callers may provide an exact `allowed_subpaths` set for
+    narrow first-party script routes. Every other protection in
+    _resolve_live_static_path still applies -- no '..' traversal, no
+    absolute path, no hidden dotfile segment, and the resolved path must stay
+    inside the live-static root."""
+    normalized_subpath = subpath.replace('\\', '/')
+    if allowed_subpaths is not None and normalized_subpath not in allowed_subpaths:
+        return send_from_directory(os.path.join(_BASE, baked_subdir), subpath)
+
+    live_static_relative = f'{live_static_subdir}/{normalized_subpath}'
     live_static_path = _resolve_live_static_path(live_static_relative)
     if live_static_path:
         try:
@@ -27885,6 +27910,18 @@ def serve_rpg_wave2_wearable_renderer_js():
 def serve_lord_trial_controller_js():
     return _serve_live_static_or_baked_subpath(
         'lord_trial_controller.js', 'js/game', 'js/game'
+    )
+
+@app.route('/js/game/encounter_presentation_framework_v1.js')
+def serve_encounter_presentation_framework_v1_js():
+    return _serve_live_static_or_baked_subpath(
+        'encounter_presentation_framework_v1.js', 'js/game', 'js/game'
+    )
+
+@app.route('/js/game/battlefield_boss_reward_consumer.js')
+def serve_battlefield_boss_reward_consumer_js():
+    return _serve_live_static_or_baked_subpath(
+        'battlefield_boss_reward_consumer.js', 'js/game', 'js/game'
     )
 
 @app.route('/js/game/presentation_dispatcher.js')
