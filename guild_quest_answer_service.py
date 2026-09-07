@@ -41,6 +41,7 @@ from map_battle_runtime import (
     JudgeOutcome,
     JudgeUnavailable,
     MapBattleRuntimeError,
+    RequestRejected,
     canonicalize_answer,
     judge_map_battle_answer_v1,
     question_revision_for,
@@ -69,14 +70,77 @@ _PLAYER_RE = re.compile(r"PL\[([BW])\]", re.IGNORECASE)
 
 _MAX_QUEST_KEY_LENGTH = 120
 
+_DEFAULT_FAILURE_CLASS_BY_CODE = {
+    "judge_unavailable": "TRANSIENT_SERVER_FAILURE",
+    # A legacy code without structured provenance is deliberately fail-closed
+    # on the client: it must not be treated as proof that the question itself
+    # is bad.  The concrete paths below always provide a more specific class.
+    "malformed_answer": "CLIENT_ANSWER_INVALID",
+    "guild_answer_required": "CLIENT_ANSWER_INVALID",
+    "answer_required": "CLIENT_ANSWER_INVALID",
+    "forbidden_answer_field": "CLIENT_ANSWER_INVALID",
+    "invalid_guild_quest_context": "CLIENT_ANSWER_INVALID",
+    "unknown_question": "QUESTION_OR_CONTENT_INVALID",
+}
+
+
+def _safe_runtime_reason_code(error: BaseException, fallback: str) -> str:
+    """Return only a stable runtime code, never an exception message."""
+
+    value = getattr(error, "code", None)
+    return value if isinstance(value, str) and value else fallback
+
+
+def _has_sgf_parser_provenance(error: BaseException) -> bool:
+    """Detect a parser-origin failure without inspecting human messages.
+
+    ``map_battle_runtime`` intentionally exposes parser failures as the
+    stable ``JudgeUnavailable`` boundary.  The exception cause and traceback
+    retain the typed module provenance needed to distinguish a deterministic
+    content defect from a real judge/service outage.
+    """
+
+    pending = [error]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if current is None or id(current) in seen:
+            continue
+        seen.add(id(current))
+        traceback = getattr(current, "__traceback__", None)
+        while traceback is not None:
+            module_name = traceback.tb_frame.f_globals.get("__name__")
+            if module_name == "sgf_engine.parser.sgf_parser":
+                return True
+            traceback = traceback.tb_next
+        cause = getattr(current, "__cause__", None)
+        context = getattr(current, "__context__", None)
+        if cause is not None:
+            pending.append(cause)
+        if context is not None and context is not cause:
+            pending.append(context)
+    return False
+
 
 class GuildQuestAnswerError(ValueError):
     """Expected fail-closed answer error exposed by the review route."""
 
-    def __init__(self, code: str, *, status: int = 400, retryable: bool = False):
+    def __init__(
+        self,
+        code: str,
+        *,
+        status: int = 400,
+        retryable: bool = False,
+        failure_class: str | None = None,
+        reason_code: str | None = None,
+    ):
         self.code = code
         self.status = status
         self.retryable = retryable
+        self.failure_class = failure_class or _DEFAULT_FAILURE_CLASS_BY_CODE.get(
+            code, "CLIENT_ANSWER_INVALID"
+        )
+        self.reason_code = reason_code or code
         super().__init__(code)
 
 
@@ -149,17 +213,33 @@ def _question_player_to_move(content: str) -> str | None:
 def _question_board_context(question: Mapping[str, Any]) -> tuple[int, str]:
     content = question.get("content")
     if not isinstance(content, str) or not content.strip():
-        raise GuildQuestAnswerError("judge_unavailable", status=503, retryable=True)
+        raise GuildQuestAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="question_content_unavailable",
+        )
     size_match = _SIZE_RE.search(content)
     try:
         board_size = int(size_match.group(1)) if size_match else 19
     except (AttributeError, TypeError, ValueError) as error:
         raise GuildQuestAnswerError(
-            "judge_unavailable", status=503, retryable=True
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="invalid_board_size",
         ) from error
     player_color = _question_player_to_move(content)
     if not (2 <= board_size <= 25) or player_color not in {"B", "W"}:
-        raise GuildQuestAnswerError("judge_unavailable", status=503, retryable=True)
+        raise GuildQuestAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="player_to_move_unavailable",
+        )
     return board_size, player_color
 
 
@@ -184,7 +264,11 @@ def build_guild_quest_answer_context(
         revision = question_revision_for(question)
     except MapBattleRuntimeError as error:
         raise GuildQuestAnswerError(
-            "judge_unavailable", status=503, retryable=True
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="question_revision_unavailable",
         ) from error
     return {
         "battle_id": f"guild-quest:{key}",
@@ -230,10 +314,24 @@ def canonicalize_guild_quest_answer(
     }
     try:
         canonical = canonicalize_answer(payload, context)
+    except RequestRejected as error:
+        raise GuildQuestAnswerError(
+            "malformed_answer",
+            failure_class="CLIENT_ANSWER_INVALID",
+            reason_code=_safe_runtime_reason_code(error, "client_answer_invalid"),
+        ) from error
     except MapBattleRuntimeError as error:
-        raise GuildQuestAnswerError("malformed_answer") from error
+        raise GuildQuestAnswerError(
+            "malformed_answer",
+            failure_class="CONTENT_SIDE_CANONICALIZATION_FAILURE",
+            reason_code=_safe_runtime_reason_code(error, "content_canonicalization_failure"),
+        ) from error
     if canonical.is_invalid:
-        raise GuildQuestAnswerError("malformed_answer")
+        raise GuildQuestAnswerError(
+            "malformed_answer",
+            failure_class="CLIENT_ANSWER_INVALID",
+            reason_code=canonical.reason_code,
+        )
     return canonical
 
 
@@ -252,11 +350,33 @@ def judge_guild_quest_answer(
     try:
         judge = judge_map_battle_answer_v1(question, context, canonical)
     except JudgeUnavailable as error:
+        if _has_sgf_parser_provenance(error):
+            raise GuildQuestAnswerError(
+                "judge_unavailable",
+                status=503,
+                retryable=False,
+                failure_class="DETERMINISTIC_PARSER_FAILURE",
+                reason_code="question_content_parser_failure",
+            ) from error
         raise GuildQuestAnswerError(
-            "judge_unavailable", status=503, retryable=True
+            "judge_unavailable",
+            status=503,
+            retryable=True,
+            failure_class="TRANSIENT_SERVER_FAILURE",
+            reason_code="judge_unavailable",
         ) from error
     if judge.result == "INVALID" or judge.authoritative_grade not in {0, 5}:
-        raise GuildQuestAnswerError("malformed_answer")
+        failure_class = (
+            "CLIENT_ANSWER_INVALID"
+            if judge.result == "INVALID"
+            and judge.reason_code == "special_move_not_judged"
+            else "DETERMINISTIC_JUDGE_INPUT_INVALID"
+        )
+        raise GuildQuestAnswerError(
+            "malformed_answer",
+            failure_class=failure_class,
+            reason_code=judge.reason_code or "judge_invalid",
+        )
     return canonical, JudgeOutcome(
         result=judge.result,
         authoritative_grade=judge.authoritative_grade,

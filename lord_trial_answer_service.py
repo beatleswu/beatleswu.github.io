@@ -26,6 +26,7 @@ from map_battle_runtime import (
     JudgeOutcome,
     JudgeUnavailable,
     MapBattleRuntimeError,
+    RequestRejected,
     canonicalize_answer,
     judge_map_battle_answer_v1,
     question_revision_for,
@@ -48,14 +49,69 @@ _LORD_TRIAL_VERDICTS = frozenset({"AUTHORITATIVE_PASS", "AUTHORITATIVE_FAIL"})
 _SIZE_RE = re.compile(r"SZ\[(\d+)\]", re.IGNORECASE)
 _PLAYER_RE = re.compile(r"PL\[([BW])\]", re.IGNORECASE)
 
+_DEFAULT_FAILURE_CLASS_BY_CODE = {
+    "judge_unavailable": "TRANSIENT_SERVER_FAILURE",
+    # An unclassified legacy error must not be allowed to quarantine a
+    # question.  Concrete paths below attach explicit provenance.
+    "malformed_answer": "CLIENT_ANSWER_INVALID",
+    "answer_required": "CLIENT_ANSWER_INVALID",
+    "forbidden_answer_field": "CLIENT_ANSWER_INVALID",
+    "invalid_boss_attempt_context": "CLIENT_ANSWER_INVALID",
+    "unknown_question": "QUESTION_OR_CONTENT_INVALID",
+}
+
+
+def _safe_runtime_reason_code(error: BaseException, fallback: str) -> str:
+    """Return only a stable runtime code, never an exception message."""
+
+    value = getattr(error, "code", None)
+    return value if isinstance(value, str) and value else fallback
+
+
+def _has_sgf_parser_provenance(error: BaseException) -> bool:
+    """Detect parser-origin failure without matching human-readable text."""
+
+    pending = [error]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if current is None or id(current) in seen:
+            continue
+        seen.add(id(current))
+        traceback = getattr(current, "__traceback__", None)
+        while traceback is not None:
+            module_name = traceback.tb_frame.f_globals.get("__name__")
+            if module_name == "sgf_engine.parser.sgf_parser":
+                return True
+            traceback = traceback.tb_next
+        cause = getattr(current, "__cause__", None)
+        context = getattr(current, "__context__", None)
+        if cause is not None:
+            pending.append(cause)
+        if context is not None and context is not cause:
+            pending.append(context)
+    return False
+
 
 class LordTrialAnswerError(ValueError):
     """Expected fail-closed answer error exposed by the route."""
 
-    def __init__(self, code: str, *, status: int = 400, retryable: bool = False):
+    def __init__(
+        self,
+        code: str,
+        *,
+        status: int = 400,
+        retryable: bool = False,
+        failure_class: str | None = None,
+        reason_code: str | None = None,
+    ):
         self.code = code
         self.status = status
         self.retryable = retryable
+        self.failure_class = failure_class or _DEFAULT_FAILURE_CLASS_BY_CODE.get(
+            code, "CLIENT_ANSWER_INVALID"
+        )
+        self.reason_code = reason_code or code
         super().__init__(code)
 
 
@@ -73,16 +129,34 @@ def _attempt_value(exam: Mapping[str, Any], key: str) -> str:
 def _question_board_context(question: Mapping[str, Any]) -> tuple[int, str]:
     content = question.get("content")
     if not isinstance(content, str) or not content.strip():
-        raise LordTrialAnswerError("judge_unavailable", status=503, retryable=True)
+        raise LordTrialAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="question_content_unavailable",
+        )
     size_match = _SIZE_RE.search(content)
     player_match = _PLAYER_RE.search(content)
     try:
         board_size = int(size_match.group(1)) if size_match else 19
     except (AttributeError, TypeError, ValueError) as error:
-        raise LordTrialAnswerError("judge_unavailable", status=503, retryable=True) from error
+        raise LordTrialAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="invalid_board_size",
+        ) from error
     player_color = player_match.group(1).upper() if player_match else None
     if not (2 <= board_size <= 25) or player_color not in {"B", "W"}:
-        raise LordTrialAnswerError("judge_unavailable", status=503, retryable=True)
+        raise LordTrialAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="player_to_move_unavailable",
+        )
     return board_size, player_color
 
 
@@ -102,7 +176,13 @@ def build_lord_trial_attempt_context(
     try:
         revision = question_revision_for(question)
     except MapBattleRuntimeError as error:
-        raise LordTrialAnswerError("judge_unavailable", status=503, retryable=True) from error
+        raise LordTrialAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=False,
+            failure_class="QUESTION_OR_CONTENT_INVALID",
+            reason_code="question_revision_unavailable",
+        ) from error
     return {
         "battle_id": f"lord-trial:{zone_key}",
         "attempt_id": attempt_id,
@@ -147,10 +227,24 @@ def canonicalize_lord_trial_answer(
     }
     try:
         canonical = canonicalize_answer(payload, context)
+    except RequestRejected as error:
+        raise LordTrialAnswerError(
+            "malformed_answer",
+            failure_class="CLIENT_ANSWER_INVALID",
+            reason_code=_safe_runtime_reason_code(error, "client_answer_invalid"),
+        ) from error
     except MapBattleRuntimeError as error:
-        raise LordTrialAnswerError("malformed_answer") from error
+        raise LordTrialAnswerError(
+            "malformed_answer",
+            failure_class="CONTENT_SIDE_CANONICALIZATION_FAILURE",
+            reason_code=_safe_runtime_reason_code(error, "content_canonicalization_failure"),
+        ) from error
     if canonical.is_invalid:
-        raise LordTrialAnswerError("malformed_answer")
+        raise LordTrialAnswerError(
+            "malformed_answer",
+            failure_class="CLIENT_ANSWER_INVALID",
+            reason_code=canonical.reason_code,
+        )
     return canonical
 
 
@@ -167,9 +261,33 @@ def judge_lord_trial_answer(
     try:
         judge = judge_map_battle_answer_v1(question, context, canonical)
     except JudgeUnavailable as error:
-        raise LordTrialAnswerError("judge_unavailable", status=503, retryable=True) from error
+        if _has_sgf_parser_provenance(error):
+            raise LordTrialAnswerError(
+                "judge_unavailable",
+                status=503,
+                retryable=False,
+                failure_class="DETERMINISTIC_PARSER_FAILURE",
+                reason_code="question_content_parser_failure",
+            ) from error
+        raise LordTrialAnswerError(
+            "judge_unavailable",
+            status=503,
+            retryable=True,
+            failure_class="TRANSIENT_SERVER_FAILURE",
+            reason_code="judge_unavailable",
+        ) from error
     if judge.result == "INVALID" or judge.authoritative_grade not in {0, 5}:
-        raise LordTrialAnswerError("malformed_answer")
+        failure_class = (
+            "CLIENT_ANSWER_INVALID"
+            if judge.result == "INVALID"
+            and judge.reason_code == "special_move_not_judged"
+            else "DETERMINISTIC_JUDGE_INPUT_INVALID"
+        )
+        raise LordTrialAnswerError(
+            "malformed_answer",
+            failure_class=failure_class,
+            reason_code=judge.reason_code or "judge_invalid",
+        )
     return canonical, JudgeOutcome(
         result=judge.result,
         authoritative_grade=judge.authoritative_grade,

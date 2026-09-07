@@ -6914,6 +6914,62 @@ def _question_content_sha256(record):
         return None
     return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
+
+_SESSION_QUESTION_FINGERPRINT_FIELDS = (
+    'id',
+    'source',
+    'content',
+    'board_size',
+    'boardSize',
+    'crop',
+    'crop_metadata',
+    'crop_info',
+    'initial_position',
+    'answer_tree',
+    'accepted_moves',
+    'accepted_answers',
+    'question_revision',
+    'content_revision',
+    'content_sha256',
+)
+
+
+def _session_question_fingerprint(record):
+    """Return an opaque, deterministic key for this session's question data.
+
+    This is only a fallback for an ephemeral client quarantine when the
+    authoritative revision is unavailable.  It is intentionally not a
+    Learning Core identity and never exposes the serialized question data.
+    """
+
+    if not isinstance(record, dict):
+        return None
+    basis = {
+        field: record.get(field)
+        for field in _SESSION_QUESTION_FINGERPRINT_FIELDS
+    }
+    try:
+        serialized = json.dumps(
+            basis,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(',', ':'),
+        )
+    except (TypeError, ValueError):
+        return None
+    return hashlib.sha256(serialized.encode('utf-8')).hexdigest()
+
+
+def _client_question_revision(record):
+    """Return revision evidence, preserving null when the source has none."""
+
+    try:
+        return question_revision_for(record)
+    except (MapBattleRuntimeError, TypeError, AttributeError):
+        return None
+
+
 def _normalize_question_move(raw):
     """Normalize a stored answer move to a stable {x, y} dict."""
     if isinstance(raw, dict):
@@ -13942,6 +13998,10 @@ def get_questions():
                 'monster_type':   q.get('battle_monster_type', ''),
                 'monster_name':   q.get('monster_name', ''),
                 'monster_avatar': _question_monster_avatar(q),
+                # Revision evidence is used only to bind a current-session
+                # client quarantine. It is not a Learning Core identity.
+                'question_revision': _client_question_revision(q),
+                'session_question_fingerprint': _session_question_fingerprint(q),
             })
             continue
         result.append({
@@ -13985,6 +14045,10 @@ def get_questions():
             'rating':              q.get('rating'),
             'katago_best_move':    q.get('katago_best_move', ''),
             'score_gap':           q.get('score_gap'),
+            # Revision evidence is deliberately separate from the legacy
+            # question locator and future source_record_uuid identity.
+            'question_revision': _client_question_revision(q),
+            'session_question_fingerprint': _session_question_fingerprint(q),
         })
     resp = jsonify(result)
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
@@ -14180,6 +14244,10 @@ def get_question(qid):
         'score_gap':        q.get('score_gap'),
         'accepted_moves':   _question_accepted_moves(q),
         'solution_state':   q.get('solution_state', 'open' if q.get('enabled', True) else 'disabled'),
+        # Used only as revision evidence for an ephemeral current-session
+        # exclusion; it never becomes the record identity.
+        'question_revision': _client_question_revision(q),
+        'session_question_fingerprint': _session_question_fingerprint(q),
         'locked':           locked,
     })
 
@@ -15671,6 +15739,78 @@ def _review_submission_conflict_response(submission_id):
     }), 409
 
 
+def _answer_failure_response(
+    error=None,
+    *,
+    qid=None,
+    question=None,
+    fallback_code=None,
+    fallback_failure_class=None,
+    fallback_reason_code=None,
+    fallback_retryable=False,
+    status=None,
+):
+    """Return a safe structured answer failure without exposing the payload.
+
+    The legacy ``error`` value and HTTP status remain stable.  The additional
+    fields let the browser distinguish a deterministic question failure from
+    a transient server/persistence failure and bind a session-only exclusion
+    to the question revision.  No answer moves, request body, or exception
+    message is serialized.
+    """
+
+    code = getattr(error, 'code', None) if error is not None else None
+    code = code if isinstance(code, str) and code else fallback_code
+    if not code:
+        code = 'answer_unavailable'
+    error_status = getattr(error, 'status', None) if error is not None else None
+    response_status = status if status is not None else error_status
+    if response_status is None:
+        response_status = 400
+
+    failure_class = getattr(error, 'failure_class', None) if error is not None else None
+    if not isinstance(failure_class, str) or not failure_class:
+        failure_class = fallback_failure_class
+    if not failure_class:
+        failure_class = {
+            # An unclassified legacy malformed response must not be allowed
+            # to quarantine a question.  Only explicit content provenance
+            # below the service boundary is quarantine-eligible.
+            'malformed_answer': 'CLIENT_ANSWER_INVALID',
+            'judge_unavailable': 'TRANSIENT_SERVER_FAILURE',
+            'boss_verdict_unavailable': 'TRANSIENT_PERSISTENCE_FAILURE',
+            'guild_verdict_unavailable': 'TRANSIENT_PERSISTENCE_FAILURE',
+        }.get(code, 'CLIENT_ANSWER_INVALID')
+
+    reason_code = getattr(error, 'reason_code', None) if error is not None else None
+    if not isinstance(reason_code, str) or not reason_code:
+        reason_code = fallback_reason_code or code
+    error_retryable = getattr(error, 'retryable', None) if error is not None else None
+    retryable = error_retryable if isinstance(error_retryable, bool) else bool(fallback_retryable)
+
+    revision = None
+    try:
+        revision = question_revision_for(question or {})
+    except (MapBattleRuntimeError, TypeError, AttributeError):
+        # The response carries an opaque session fingerprint below when the
+        # authoritative revision is unavailable.  The fingerprint is only a
+        # same-session exclusion key, never a canonical record identity.
+        revision = None
+    session_fingerprint = _session_question_fingerprint(question or {})
+    safe_qid = qid if type(qid) is int else None
+    payload = {
+        'error': code,
+        'code': code,
+        'failure_class': failure_class,
+        'reason_code': reason_code,
+        'retryable': retryable,
+        'question_id': safe_qid,
+        'question_revision': revision,
+        'session_question_fingerprint': session_fingerprint,
+    }
+    return jsonify(payload), int(response_status)
+
+
 def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     """Apply the canonical Adventure/SRS progression operation.
 
@@ -15864,7 +16004,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 observation=incident018_observation,
                 logger=app.logger,
             )
-            return jsonify({'error': exc.code}), exc.status
+            return _answer_failure_response(exc, qid=qid, question=q_info)
         except LordTrialVerdictPersistenceError as exc:
             incident018_log_exception(
                 exc,
@@ -15875,7 +16015,16 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 observation=incident018_observation,
                 logger=app.logger,
             )
-            return jsonify({'error': 'boss_verdict_unavailable'}), 503
+            return _answer_failure_response(
+                exc,
+                qid=qid,
+                question=q_info,
+                fallback_code='boss_verdict_unavailable',
+                fallback_failure_class='TRANSIENT_PERSISTENCE_FAILURE',
+                fallback_reason_code='boss_verdict_unavailable',
+                fallback_retryable=True,
+                status=503,
+            )
 
     guild_canonical = None
     guild_verdict = None
@@ -15892,7 +16041,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         try:
             guild_quest_key = normalize_guild_quest_key(guild_quest_key)
         except GuildQuestAnswerError as exc:
-            return jsonify({'error': exc.code}), exc.status
+            return _answer_failure_response(exc, qid=qid, question=q_info)
         with get_db() as guild_conn:
             guild_eligible = _guild_quest_answer_eligibility(
                 guild_conn, uid, guild_quest_key, qid
@@ -15910,9 +16059,18 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 guild_eligible=True,
             )
         except GuildQuestAnswerError as exc:
-            return jsonify({'error': exc.code}), exc.status
-        except GuildQuestVerdictPersistenceError:
-            return jsonify({'error': 'guild_verdict_unavailable'}), 503
+            return _answer_failure_response(exc, qid=qid, question=q_info)
+        except GuildQuestVerdictPersistenceError as exc:
+            return _answer_failure_response(
+                exc,
+                qid=qid,
+                question=q_info,
+                fallback_code='guild_verdict_unavailable',
+                fallback_failure_class='TRANSIENT_PERSISTENCE_FAILURE',
+                fallback_reason_code='guild_verdict_unavailable',
+                fallback_retryable=True,
+                status=503,
+            )
 
     try:
         submission_id, _generated_submission_id = normalize_identity(

@@ -68,6 +68,29 @@
             this.code = code;
             this.status = status;
             this.payload = payload;
+            // Server-owned structured failure metadata is deliberately kept
+            // separate from the answer request.  Callers may decide whether
+            // a question is temporarily excluded for this session, while
+            // the transport never treats a rejection as a review success.
+            this.failureClass = payload && typeof payload.failure_class === 'string'
+                ? payload.failure_class
+                : null;
+            this.reasonCode = payload && typeof payload.reason_code === 'string'
+                ? payload.reason_code
+                : null;
+            this.retryable = payload && typeof payload.retryable === 'boolean'
+                ? payload.retryable
+                : null;
+            this.questionId = payload && payload.question_id != null
+                ? payload.question_id
+                : null;
+            this.questionRevision = payload && payload.question_revision != null
+                ? payload.question_revision
+                : null;
+            this.sessionQuestionFingerprint = payload
+                && payload.session_question_fingerprint != null
+                ? payload.session_question_fingerprint
+                : null;
         }
     }
 
@@ -204,6 +227,22 @@
 
         if (!response.ok) {
             if (isObjectPayload(payload) && typeof payload.error === 'string' && payload.error) {
+                // The review module installs this optional client-only observer so direct
+                // ReviewTransport callers (such as the Guild wrong-move
+                // observer) receive the same bounded session quarantine as
+                // review-module callers.  A missing observer never changes transport
+                // behavior, and the observer must never block rejection.
+                const rejectedAnswerObserver = typeof window !== 'undefined'
+                    ? window.__GO_D5_RECORD_REJECTED_ANSWER__
+                    : null;
+                if (typeof rejectedAnswerObserver === 'function') {
+                    try {
+                        rejectedAnswerObserver(command && command.question_id, payload);
+                    } catch (observerError) {
+                        // Diagnostics must not turn a server rejection into a
+                        // client-side success or a broken review flow.
+                    }
+                }
                 throw new ReviewRejected(payload, response.status);
             }
             throw new ReviewTransportError(

@@ -9388,7 +9388,39 @@ let _mapBattleV1NextQuestionCount = 0;
 let _mapBattleV1ServerProgress = new Map();
 const _MAP_BATTLE_V1_RESUME_STORAGE_KEY = 'go:e10:map-battle:v1:resume';
 let _guildQuestMode = null;
+let _guildQuestQuestions = null;
+let _premiumWeeklyQuestions = null;
 let _lastRenderedQuestDone = -1;
+
+function _sessionQuestionRevision(question, explicitRevision = null) {
+    if (explicitRevision !== null && explicitRevision !== undefined) {
+        const explicit = SRS.questionRevision({ _d5QuestionRevision: explicitRevision });
+        if (explicit) return explicit;
+    }
+    return SRS.questionRevision(question);
+}
+
+function _isSessionQuestionQuarantined(question) {
+    const revision = _sessionQuestionRevision(question);
+    return !!(
+        question
+        && revision
+        && SRS.isQuestionQuarantined(question.id, revision)
+    );
+}
+
+function _sessionNoValidQuestionMessage() {
+    return I18n.getLang() === 'en'
+        ? 'There are no other valid questions in this session.'
+        : '本次練習沒有其他可用題目了。';
+}
+
+function _showSessionNoValidQuestion() {
+    solved = true;
+    answering = false;
+    _syncE10BattleActions(false);
+    setMsg(_sessionNoValidQuestionMessage(), 'info');
+}
 
 function _publishMapBattleV1Lifecycle() {
     const state = _mapBattleV1State;
@@ -11846,6 +11878,13 @@ function _runQuestionBoardSetup(setup, { generation, question, attemptNumber = 1
 async function loadQuestion(q, options = {}) {
     // Compatibility adapter only: QuestionLoader owns generation,
     // supersession, current-question handoff, and GameSession identity.
+    // The exclusion is an ephemeral client safety guard for deterministic
+    // rejected answers.  Map Battle keeps its existing runtime path here;
+    // its gameplay authority is deliberately outside this corrective.
+    if (!_mapBattleV1IsActive() && _isSessionQuestionQuarantined(q)) {
+        _showSessionNoValidQuestion();
+        return false;
+    }
     return _questionLoader.load(q, options);
 }
 
@@ -12350,13 +12389,54 @@ function nextQuestion({ mapBattleV1Transition = false } = {}){
         return;
     }
     if (_guildQuestMode?.nextQuestionId != null) {
+        const guildPool = Array.isArray(_guildQuestQuestions) && _guildQuestQuestions.length
+            ? _guildQuestQuestions
+            : allQuestions;
         const nextQuestQuestion = allQuestions.find(
             q => Number(q.id) === Number(_guildQuestMode.nextQuestionId)
         );
-        if (nextQuestQuestion && Number(nextQuestQuestion.id) !== Number(currentQ?.id)) {
+        if (nextQuestQuestion
+            && !_isSessionQuestionQuarantined(nextQuestQuestion)
+            && Number(nextQuestQuestion.id) !== Number(currentQ?.id)) {
             loadQuestion(nextQuestQuestion);
             return;
         }
+        const nextGuildQuestion = SRS.findNextAvailableQuestion(guildPool, currentQ, 1);
+        if (nextGuildQuestion) {
+            loadQuestion(nextGuildQuestion);
+        } else {
+            _showSessionNoValidQuestion();
+        }
+        return;
+    }
+    if (_guildQuestMode && Array.isArray(_guildQuestQuestions) && _guildQuestQuestions.length
+        && _isSessionQuestionQuarantined(currentQ)) {
+        const nextGuildQuestion = SRS.findNextAvailableQuestion(
+            _guildQuestQuestions,
+            currentQ,
+            1,
+        );
+        if (nextGuildQuestion) {
+            loadQuestion(nextGuildQuestion);
+        } else {
+            _showSessionNoValidQuestion();
+        }
+        return;
+    }
+    if (_premiumWeeklyMode
+        && Array.isArray(_premiumWeeklyQuestions)
+        && _isSessionQuestionQuarantined(currentQ)) {
+        const nextWeeklyQuestion = SRS.findNextAvailableQuestion(
+            _premiumWeeklyQuestions,
+            currentQ,
+            1,
+        );
+        if (nextWeeklyQuestion) {
+            loadQuestion(nextWeeklyQuestion);
+        } else {
+            _showSessionNoValidQuestion();
+        }
+        return;
     }
     if(_challengeId){_challengeQIndex++;_loadChallengeQuestion(_challengeQIndex);return;}
     // 今日推薦模式：在 queue 裡前進
@@ -12381,22 +12461,56 @@ function nextQuestion({ mapBattleV1Transition = false } = {}){
         }
         const idx = _adventureActiveQuestions.findIndex(x => x.id === currentQ?.id);
         if (idx !== -1) {
-            loadQuestion(_adventureActiveQuestions[(idx + 1) % _adventureActiveQuestions.length]);
+            const nextAdventureQuestion = _mapBattleV1IsActive()
+                ? _adventureActiveQuestions[(idx + 1) % _adventureActiveQuestions.length]
+                : SRS.findNextAvailableQuestion(
+                    _adventureActiveQuestions,
+                    currentQ,
+                    1,
+                );
+            if (nextAdventureQuestion) {
+                loadQuestion(nextAdventureQuestion);
+            } else {
+                _showSessionNoValidQuestion();
+            }
             return;
         }
     }
-    if(!allQuestions.length)return;loadQuestion(allQuestions[(currentIndex+1)%allQuestions.length]);
+    if(!allQuestions.length)return;
+    const nextQuestionCandidate = SRS.findNextAvailableQuestion(allQuestions, currentQ, 1);
+    if (nextQuestionCandidate) {
+        loadQuestion(nextQuestionCandidate);
+    } else {
+        _showSessionNoValidQuestion();
+    }
 }
 function prevQuestion(){
     if(_challengeId)return;
     if(_adventureActiveQuestions && _adventureActiveQuestions.length){
         const idx = _adventureActiveQuestions.findIndex(x => x.id === currentQ?.id);
         if (idx !== -1) {
-            loadQuestion(_adventureActiveQuestions[(idx - 1 + _adventureActiveQuestions.length) % _adventureActiveQuestions.length]);
+            const previousAdventureQuestion = _mapBattleV1IsActive()
+                ? _adventureActiveQuestions[(idx - 1 + _adventureActiveQuestions.length) % _adventureActiveQuestions.length]
+                : SRS.findNextAvailableQuestion(
+                    _adventureActiveQuestions,
+                    currentQ,
+                    -1,
+                );
+            if (previousAdventureQuestion) {
+                loadQuestion(previousAdventureQuestion);
+            } else {
+                _showSessionNoValidQuestion();
+            }
             return;
         }
     }
-    if(!allQuestions.length)return;loadQuestion(allQuestions[(currentIndex-1+allQuestions.length)%allQuestions.length]);
+    if(!allQuestions.length)return;
+    const previousQuestionCandidate = SRS.findNextAvailableQuestion(allQuestions, currentQ, -1);
+    if (previousQuestionCandidate) {
+        loadQuestion(previousQuestionCandidate);
+    } else {
+        _showSessionNoValidQuestion();
+    }
 }
 
 function setMsg(text,type){
@@ -13134,7 +13248,7 @@ const DIFF_ORDER = [
 function renderList(questions){ /* no-op：題目列表 UI 已移除，改走地圖導向 */ }
 
 // ─── 登出 ──────────────────────────────────────────────────────
-async function doLogout(){if(window._cgStopDmBadge)window._cgStopDmBadge();await fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{});window.location.href='/login';}
+async function doLogout(){if(window._cgStopDmBadge)window._cgStopDmBadge();if(window.SRS&&typeof SRS.clearSessionQuarantine==='function')SRS.clearSessionQuarantine();await fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{});window.location.href='/login';}
 
 function updateWelcomeStats(){
     const doneEl   = document.getElementById('ws-done');
@@ -13748,6 +13862,10 @@ async function enterAdventureZoneInPage(zone) {
         const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
         const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
         if (!unitQs.length) return false;
+        // In-page Adventure entry starts a fresh gameplay session.  The
+        // malformed-question exclusion is intentionally ephemeral, so a new
+        // session may reconsider the question without carrying old state.
+        if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
         const overlay = document.getElementById('boss-cinematic');
         if (overlay) { overlay.classList.remove('show'); overlay.setAttribute('aria-hidden', 'true'); }
         const _ws = document.getElementById('welcome-state');
@@ -19025,6 +19143,9 @@ async function startBossBattle(zoneKey) {
         setMsg(I18n.t('index.boss.not_unsealed'), 'warn');
         return;
     }
+    // A new governed boss attempt is a new gameplay-session boundary for the
+    // ephemeral malformed-question exclusion.
+    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
     // Zone 1 and Zone 2 use the explicit Lord Card -> ritual handoff. Other
     // zones retain the existing generic seal modal until their own runtime
     // foundation is authorized.
@@ -20774,6 +20895,7 @@ let _dailyTrainingIdx   = 0;    // 目前進行到第幾題
 let _dailyTrainingTotal = 10;
 let _dailyTrainingDone  = 0;
 let _dailyMode = false;
+let _dailyTrainingSkipped = new Set();
 const DAILY_GUIDE_LINES = [
     { zh:'今日卷宗已展開。專心看清眼前這一手，下一題我會替你接上。', en:"Today's scroll is open. Focus on the move in front of you; I'll line up the next one." },
     { zh:'不用翻整座題庫，今天只需要完成這一輪十題。', en:"No need to comb the whole library — today just finish this round of ten." },
@@ -20936,6 +21058,9 @@ async function loadVoidZoneCount() {
 
 // ── 啟動今日星軌修煉 ──────────────────────────────────────────────
 async function startDailyTraining() {
+    // Starting a new daily round resets only ephemeral malformed-question
+    // exclusions; persisted review/SRS state remains untouched.
+    if (window.SRS && typeof SRS.clearSessionQuarantine==='function') SRS.clearSessionQuarantine();
     _adventureActiveQuestions = null;
     const contextLabel = document.getElementById('battle-status');
     if (contextLabel) contextLabel.textContent = I18n.t('index.battle.fighting');
@@ -20956,6 +21081,7 @@ async function startDailyTraining() {
     _dailyMode = true;
     setSidebarTrainingMode(true);
     _dailyTrainingIdx = 0;
+    _dailyTrainingSkipped.clear();
     await _loadDailyQuestion();
 }
 
@@ -20965,6 +21091,14 @@ async function _loadDailyQuestion() {
     _updateDailyProgressUI();
 
     if (_dailyTrainingIdx >= _dailyTrainingQueue.length) {
+        // A quarantined/unavailable question is not a completed daily item.
+        // End the in-memory round without presenting a false completion.
+        if (_dailyTrainingSkipped.size) {
+            _dailyMode = false;
+            setSidebarTrainingMode(false);
+            _showSessionNoValidQuestion();
+            return;
+        }
         // 今日全部做完
         _dailyMode = false;
         setSidebarTrainingMode(false);
@@ -20987,10 +21121,21 @@ async function _loadDailyQuestion() {
         } catch(e) {}
     }
     if (q) {
+        if (_isSessionQuestionQuarantined(q)) {
+            // A deterministic malformed answer is not a completed daily
+            // item.  Advance only the in-memory cursor so this session can
+            // look for another candidate; the server's daily/review state is
+            // unchanged.
+            _dailyTrainingSkipped.add(String(qid));
+            _dailyTrainingIdx++;
+            await _loadDailyQuestion();
+            return;
+        }
         setSidebarTrainingMode(true);
         loadQuestion(q);
     } else {
         // 此題拿不到，跳下一題
+        _dailyTrainingSkipped.add(String(qid));
         _dailyTrainingIdx++;
         await _loadDailyQuestion();
     }
@@ -21001,7 +21146,8 @@ function _updateDailyProgressUI() {
     // done = 初始已完成 + 本 session 完成
     // 初始已完成 = _dailyTrainingTotal - _dailyTrainingQueue.length（已過濾掉已完成的）
     const initDone = _dailyTrainingTotal - _dailyTrainingQueue.length;
-    const done     = initDone + _dailyTrainingIdx;
+    // Traversal over a quarantined/unavailable question is not completion.
+    const done     = initDone + Math.max(0, _dailyTrainingIdx - _dailyTrainingSkipped.size);
     const total    = _dailyTrainingTotal;
     _dailyTrainingDone = done;
     const left     = Math.max(0, total - done);
@@ -21245,6 +21391,9 @@ if (window.__GO_E9_SERVER_FLAGS__ ||
     primeInitialE9ShellOwnership();
 }
 window.onload = async () => {
+    // The quarantine is intentionally in-memory only. A fresh page/session
+    // starts with no stale exclusions from an earlier gameplay session.
+    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
     I18n.renderSwitcher(document.getElementById('lang-switcher-index'));
     I18n.apply();
     const statusEl=document.getElementById('api-status'),listDiv=document.getElementById('list-container');
@@ -21427,16 +21576,23 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
             _premiumWeeklyMode = {setId:Number(premiumSetParam), rescue:!!weekly.rescue};
             const ids = new Set(weekly.items.map(item => Number(item.question_id)));
             const weeklyQs = allQuestions.filter(q => ids.has(Number(q.id)));
+            _premiumWeeklyQuestions = weeklyQs;
             renderList(weeklyQs);
             const nextId = weekly.next_item?.question_id;
             const target = weeklyQs.find(q => Number(q.id) === Number(nextId));
-            if (target) {
+            if (target && !_isSessionQuestionQuarantined(target)) {
                 await loadQuestion(target);
+            } else if (target) {
+                const nextWeekly = SRS.findNextAvailableQuestion(weeklyQs, target, 1);
+                if (nextWeekly) await loadQuestion(nextWeekly);
+                else _showSessionNoValidQuestion();
+            } else {
+                window.location.href=`/premium/weekly?set=${encodeURIComponent(premiumSetParam)}&completed=1`;
+            }
+            if (target && !_isSessionQuestionQuarantined(target)) {
                 if (weekly.rescue) setMsg(I18n.getLang()==='en'
                     ? 'Training aid: slow down and compare the opponent’s strongest reply before choosing.'
                     : '修行救援：先放慢速度，比較對手最強回應後再選點。', 'info');
-            } else {
-                window.location.href=`/premium/weekly?set=${encodeURIComponent(premiumSetParam)}&completed=1`;
             }
         } catch(e) {
             console.warn('[PREMIUM WEEKLY] 題組載入失敗',e);
@@ -21570,6 +21726,7 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
                     nextQuestionId: null,
                     completionNotified: false,
                 };
+                _guildQuestQuestions = unitQs;
                 await _syncGuildQuestProgress({ notify: false });
                 target = _guildQuestMode.completed
                     ? unitQs[unitQs.length - 1]
@@ -21767,6 +21924,7 @@ let _challengeQIndex = 0;
 
 async function initChallengeMode(cid) {
     _challengeId = cid;
+    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
     try {
         const res = await fetch(`/api/challenges/friend/${cid}`, { credentials: 'include' });
         const data = await res.json();
