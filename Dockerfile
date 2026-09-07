@@ -246,7 +246,8 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
      community_reward_rules.js pwa.js sgf_answer_review.js \
-     sgf_admin_workbench_ux_v2.js sgf_workbench_v2a.js ./
+     sgf_admin_workbench_ux_v2.js sgf_workbench_v2a.js \
+     sgf_report_widget.js ./
 COPY review_data/sgf_answer_review_queue_v1.json \
      ./review_data/sgf_answer_review_queue_v1.json
 # Legacy Map Battle V1 is an explicitly routed subpath asset. Keep the
@@ -258,6 +259,8 @@ COPY js/rpg_wave2_wearable_renderer.js ./js/rpg_wave2_wearable_renderer.js
 # Keep the repository-relative path so the built image retains the same
 # /js/game/lord_trial_controller.js identity as the source checkout.
 COPY js/game/lord_trial_controller.js ./js/game/lord_trial_controller.js
+COPY js/game/encounter_presentation_framework_v1.js ./js/game/encounter_presentation_framework_v1.js
+COPY js/game/battlefield_boss_reward_consumer.js ./js/game/battlefield_boss_reward_consumer.js
 # Observer-only committed-review presentation dispatch is an explicitly
 # referenced browser module and must remain a narrow static copy.
 COPY js/game/presentation_dispatcher.js ./js/game/presentation_dispatcher.js
