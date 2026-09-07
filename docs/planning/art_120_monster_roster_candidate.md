@@ -271,7 +271,7 @@ Every row below has ZH_NAME, EN_NAME, Zone and a structured brief. ROSTER_DEFINE
 | M070 | null | 熔金蜈蚣 | Molten Gold Centipede | Z6 龍之谷 | CANDIDATE | YES | NO | NO | NO | null | NO | NO | SWARM | UNIQUE_BASE | B07 |
 | M071 | legacy_bf_07_normal | 塔影亡靈術士 | Tower Shade Caster | Z7 賢者之塔 | YES | YES | YES | UNKNOWN | YES | assets/monsters/lich_mage_chibi.png | YES | UNKNOWN | MAGIC | UNIQUE_BASE | W0-STYLE-LOCK |
 | M072 | null | 書頁狐 | Pagefox | Z7 賢者之塔 | CANDIDATE | YES | NO | NO | NO | null | NO | NO | TRICKSTER | UNIQUE_BASE | B07 |
-| M073 | null | 黃銅魔像 | Brass Golem | Z7 賢者之塔 | CANDIDATE | YES | NO | NO | NO | null | NO | NO | TANK | UNIQUE_BASE | B07 |
+| M073 | null | 黃銅魔像 | Brass Golem | Z10 上古終焉神殿 | CANDIDATE | YES | NO | NO | NO | null | NO | NO | TANK | UNIQUE_BASE | B07 |
 | M074 | null | 星屑蛾 | Stardust Moth | Z7 賢者之塔 | CANDIDATE | YES | NO | NO | NO | null | NO | NO | FLYING | VARIANT | B07 |
 | M075 | null | 墨池章魚 | Inkwell Octopus | Z7 賢者之塔 | CANDIDATE | YES | NO | NO | NO | null | NO | NO | MAGIC | UNIQUE_BASE | B07 |
 | M076 | null | 浮空鐘蟲 | Floating Bell Bug | Z7 賢者之塔 | CANDIDATE | YES | NO | NO | NO | null | NO | NO | RANGED | UNIQUE_BASE | B07 |
@@ -398,7 +398,7 @@ The machine-readable JSON contains each brief as fields and as ART_BRIEF. This t
 | M070 | 熔金蜈蚣 / Molten Gold Centipede | Z6 龍之谷 | lava crawler | crawler | long segmented ribbon | golden heat plates | ore bead chain | busy and fearless | medium | SWARM | plates alternate gold and plum | — |
 | M071 | 塔影亡靈術士 / Tower Shade Caster | Z7 賢者之塔 | tower shade | spirit-like | hooded geometric biped | cyan rune face window | floating tome | quiet and bookish | medium | MAGIC | hood is a clean triangle | — |
 | M072 | 書頁狐 / Pagefox | Z7 賢者之塔 | library fox | quadruped | fox wedge with page tail | paper-fold ears | bookmark ribbon | clever and distracted | small | TRICKSTER | tail unfolds into two pages | — |
-| M073 | 黃銅魔像 / Brass Golem | Z7 賢者之塔 | tower construct | construct | stacked rectangular body | brass gear chest | loose key | patient and formal | large | TANK | one shoulder is a gear | — |
+| M073 | 黃銅魔像 / Brass Golem | Z10 上古終焉神殿 | tower construct | construct | stacked rectangular body | brass gear chest | loose key | patient and formal | large | TANK | one shoulder is a gear | — |
 | M074 | 星屑蛾 / Stardust Moth | Z7 賢者之塔 | spell moth | winged | diamond wing silhouette | constellation wing dots | star map scrap | dreamy and precise | small | FLYING | dots form a tiny arc | M073 |
 | M075 | 墨池章魚 / Inkwell Octopus | Z7 賢者之塔 | ink familiar | crawler | round head with eight ribbon arms | blue ink swirl | inkwell collar | creative and mischievous | medium | MAGIC | one arm holds a quill | — |
 | M076 | 浮空鐘蟲 / Floating Bell Bug | Z7 賢者之塔 | tower bell bug | winged | bell abdomen with tiny wings | gold bell body | thread loop | punctual and nervous | small | RANGED | bell silhouette is a clear oval | — |
@@ -482,7 +482,7 @@ ART_PRODUCTION_BATCH_COUNT=12, counting W0 style-lock representatives plus B01-B
 | B04 | new identity illustration batch | Z4 | 10 | M035, M036, M037, M038, M039, M040, M041, M042, M043, M044 |
 | B05 | new identity illustration batch | Z4 + Z5 | 10 | M045, M047, M048, M049, M050, M051, M052, M053, M054, M055 |
 | B06 | new identity illustration batch | Z5 + Z6 | 10 | M056, M057, M059, M060, M061, M062, M063, M064, M065, M066 |
-| B07 | new identity illustration batch | Z6 + Z7 | 10 | M067, M068, M069, M070, M072, M073, M074, M075, M076, M077 |
+| B07 | new identity illustration batch | Z6 + Z7 + Z10 | 10 | M067, M068, M069, M070, M072, M073, M074, M075, M076, M077 |
 | B08 | new identity illustration batch | Z7 + Z8 | 10 | M078, M079, M080, M081, M082, M083, M085, M086, M087, M088 |
 | B09 | new identity illustration batch | Z8 + Z9 | 10 | M089, M090, M091, M092, M093, M094, M095, M096, M097, M099 |
 | B10 | new identity illustration batch | Z9 | 10 | M100, M101, M102, M103, M104, M105, M106, M107, M108, M109 |

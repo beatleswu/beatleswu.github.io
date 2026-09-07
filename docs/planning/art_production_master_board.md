@@ -260,7 +260,7 @@ The complete B02 identity briefs, file dimensions, SHA-256 values, and review no
 | M070 | 熔金蜈蚣 | Z6 龍之谷 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
 | M071 | 塔影亡靈術士 | Z7 賢者之塔 | legacy_bf_07_normal | YES | YES | YES | UNKNOWN | YES | assets/monsters/lich_mage_chibi.png | YES | UNKNOWN | Existing runtime normal identity retained separately from visual approval; current runtime name is LV7 賢者 / 魔法師 / 亡靈; KEEP_CURRENT_IDENTITY_AND_ART_CANDIDATE. |
 | M072 | 書頁狐 | Z7 賢者之塔 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
-| M073 | 黃銅魔像 | Z7 賢者之塔 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
+| M073 | 黃銅魔像 | Z10 上古終焉神殿 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
 | M074 | 星屑蛾 | Z7 賢者之塔 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
 | M075 | 墨池章魚 | Z7 賢者之塔 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
 | M076 | 浮空鐘蟲 | Z7 賢者之塔 | null | CANDIDATE | YES | NO | NO | NO | null | NO | NO | Proposed normal Monster identity only; no artwork, runtime ID, canonical asset, or runtime mapping is assigned. |
