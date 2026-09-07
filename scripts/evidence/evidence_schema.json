@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "go-odyssey-evidence-contract-v1",
+  "title": "Go Odyssey durable evidence artifact and index contract",
+  "type": "object",
+  "required": [
+    "artifact_manifest",
+    "evidence_index"
+  ],
+  "properties": {
+    "artifact_manifest": {
+      "$ref": "#/$defs/artifact_manifest"
+    },
+    "evidence_index": {
+      "$ref": "#/$defs/evidence_index"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "git_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^GOE1-[A-Za-z0-9._-]{3,240}-[0-9a-f]{16}$"
+    },
+    "artifact_class": {
+      "type": "string",
+      "enum": [
+        "CENSUS",
+        "MASTERPLAN",
+        "TASK_SCOPE_LOCK",
+        "INDEPENDENT_REVIEW",
+        "ADMISSION_RECONCILIATION",
+        "OWNER_GATE_EVIDENCE",
+        "RELEASE_ARTIFACT",
+        "STATIC_RELEASE_MANIFEST",
+        "DATA_PROMOTION_ARTIFACT",
+        "DB_MIGRATION_PREFLIGHT",
+        "DB_MIGRATION_POSTCHECK",
+        "PRODUCTION_ACCEPTANCE",
+        "INCIDENT_EVIDENCE",
+        "PRESERVATION_MANIFEST",
+        "RECOVERY_MANIFEST",
+        "FINAL_CLOSEOUT_LEDGER"
+      ]
+    },
+    "authority_state": {
+      "type": "string",
+      "enum": [
+        "ORIGINAL",
+        "RECOVERED_ORIGINAL",
+        "RECONSTRUCTED",
+        "DERIVED",
+        "HISTORICAL",
+        "PRODUCTION_ACCEPTANCE",
+        "PRESERVATION_ONLY"
+      ]
+    },
+    "lifecycle_state": {
+      "type": "string",
+      "enum": [
+        "CURRENT_ACTIONABLE",
+        "SUPERSEDED"
+      ]
+    },
+    "retention_class": {
+      "type": "string",
+      "enum": [
+        "ACTIVE_AUTHORITY",
+        "OWNER_BOUND",
+        "PRODUCTION_AUDIT",
+        "INCIDENT_HOLD",
+        "HISTORICAL_PRESERVATION",
+        "RECOVERED_ORIGINAL"
+      ]
+    },
+    "artifact_manifest": {
+      "type": "object",
+      "required": [
+        "artifact_id",
+        "schema_version",
+        "task",
+        "artifact_class",
+        "filename",
+        "stable_path",
+        "content_type",
+        "bytes",
+        "hash_algorithm",
+        "sha256",
+        "created_at_utc",
+        "producer",
+        "provenance",
+        "authority_state",
+        "lifecycle_state",
+        "retention_class",
+        "immutable"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/artifact_id"
+        },
+        "schema_version": {
+          "type": "string",
+          "enum": [
+            "go-odyssey-evidence-artifact-v1",
+            "go-odyssey-evidence-bootstrap-v1"
+          ]
+        },
+        "task": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$"
+        },
+        "artifact_class": {
+          "$ref": "#/$defs/artifact_class"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stable_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hash_algorithm": {
+          "const": "SHA256"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "created_at_utc": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provenance": {
+          "type": "object"
+        },
+        "authority_state": {
+          "$ref": "#/$defs/authority_state"
+        },
+        "lifecycle_state": {
+          "$ref": "#/$defs/lifecycle_state"
+        },
+        "retention_class": {
+          "$ref": "#/$defs/retention_class"
+        },
+        "immutable": {
+          "const": true
+        },
+        "canonical_head": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/git_sha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "canonical_tree": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/git_sha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_authority_ref": {
+          "type": "string"
+        },
+        "source_head": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/git_sha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_tree": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/git_sha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "production_identity": {
+          "type": [
+            "object",
+            "string"
+          ]
+        },
+        "owner_gate_ref": {
+          "type": [
+            "object",
+            "string"
+          ]
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact_id"
+          },
+          "uniqueItems": true
+        },
+        "superseded_by": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact_id"
+          },
+          "uniqueItems": true
+        },
+        "recovered_from": {
+          "type": "string"
+        },
+        "reconstruction_of": {
+          "type": "string"
+        },
+        "verification": {
+          "type": "object"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "program": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "index_entry": {
+      "type": "object",
+      "required": [
+        "index_entry_id",
+        "artifact_id",
+        "task",
+        "artifact_class",
+        "stable_path",
+        "manifest_path",
+        "bytes",
+        "sha256",
+        "manifest_sha256",
+        "authority_state",
+        "lifecycle_state",
+        "retention_class"
+      ],
+      "properties": {
+        "index_entry_id": {
+          "$ref": "#/$defs/artifact_id"
+        },
+        "artifact_id": {
+          "$ref": "#/$defs/artifact_id"
+        },
+        "task": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$"
+        },
+        "artifact_class": {
+          "$ref": "#/$defs/artifact_class"
+        },
+        "stable_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "authority_state": {
+          "$ref": "#/$defs/authority_state"
+        },
+        "lifecycle_state": {
+          "$ref": "#/$defs/lifecycle_state"
+        },
+        "retention_class": {
+          "$ref": "#/$defs/retention_class"
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact_id"
+          },
+          "uniqueItems": true
+        },
+        "superseded_by": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact_id"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "evidence_index": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "updated_at_utc",
+        "entries"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "go-odyssey-evidence-index-v1"
+        },
+        "updated_at_utc": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/index_entry"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
