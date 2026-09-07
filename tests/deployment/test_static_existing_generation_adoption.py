@@ -32,10 +32,11 @@ def test_remote_safety_command_is_constructed_without_local_command_substitution
 
 
 def test_existing_generation_manifest_path_is_quoted_for_remote_shell():
-    assert '$quotedExistingManifest = Quote-PosixShellArgument "$remoteReleaseDir/manifest.json"' in DEPLOY
+    assert '$quotedExistingManifest = Quote-PosixShellArgument "$remoteReleaseDir/release-manifest.json"' in DEPLOY
     assert 'Invoke-RemoteText ("cat " + $quotedExistingManifest)' in DEPLOY
     assert 'Invoke-RemoteText ("sha256sum " + $quotedExistingManifest)' in DEPLOY
     assert 'Quote-PosixShellArgument \\\"$remoteReleaseDir/manifest.json\\\"' not in DEPLOY
+    assert 'find $(Quote-PosixShellArgument $remoteReleaseDir) -type f ! -name release-manifest.json' in DEPLOY
 
 
 def test_static_adoption_emits_phase_history_without_changing_gates():

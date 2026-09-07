@@ -6,7 +6,7 @@
   afterward.
 
 .DESCRIPTION
-  Reads the remote manifest.json already stored inside the target
+  Reads the remote release-manifest.json already stored inside the target
   generation directory (written by package-static-release.ps1 /
   deploy-static-release.ps1) as the source of truth for what to verify --
   never assumes what the target generation should contain.
@@ -96,7 +96,7 @@ if ($existsCheck.Trim() -ne 'EXISTS') {
     throw "Target generation directory does not exist on the remote host: $TargetGenerationPath"
 }
 
-$remoteManifestJson = Invoke-RemoteText "cat $(Quote-PosixShellArgument "$TargetGenerationPath/manifest.json")"
+$remoteManifestJson = Invoke-RemoteText "cat $(Quote-PosixShellArgument "$TargetGenerationPath/release-manifest.json")"
 $targetManifest = $remoteManifestJson | ConvertFrom-Json
 
 $previousCurrentTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root

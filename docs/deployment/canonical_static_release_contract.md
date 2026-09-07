@@ -197,20 +197,33 @@ preflight while keeping the mutation gate explicit.
 
 ```
 1. package-static-release.ps1  -- from an exact-SHA detached worktree,
-   stage i18n.js + sw.js per the inventory, compute SHA-256, parse sw.js
-   VERSION, write a static release manifest (mirrors the existing image
-   release manifest shape).
-2. deploy-static-release.ps1   -- upload the two files + manifest to a
+   stage the governed static files per the inventory (including the
+   browser/PWA `manifest.json`), compute SHA-256, parse sw.js VERSION, and
+   write the release-control manifest for that same generation.
+2. deploy-static-release.ps1   -- upload the governed files + the
+   generation-local `release-manifest.json` control marker to a
    NEW remote releases/<gen>/ directory (fails if that exact path already
    exists -- never overwrites a generation), verify remote SHA-256 for
-   each file, atomically switch current -> releases/<gen>/ via
+   each governed file, upload the control marker only after those checks,
+   atomically switch current -> releases/<gen>/ via
    ln -sfnT + mv -Tf (recording the previous target first), then verify
    the PUBLIC HTTPS-served bytes (not just the container filesystem or the
-   host directory) match the manifest's checksums and that sw.js's VERSION
+   host directory) match the release-control manifest's checksums and that sw.js's VERSION
    is readable from https://godokoro.com/sw.js.
 3. rollback-static-release.ps1 -- switch current back to a named previous
-   generation, with the same public-HTTP verification.
+   generation, reading that generation's `release-manifest.json` control
+   marker with the same public-HTTP verification. `manifest.json` remains
+   only the browser/PWA manifest and is never the internal release authority.
 ```
+
+The two manifest surfaces have intentionally separate ownership. The public
+`/manifest.json` is a same-generation browser asset required by the static
+inventory and retains PWA semantics. The internal `release-manifest.json` is
+written into the exact generation directory after governed asset verification,
+before atomic activation; it is deploy-tooling/runtime-health provenance only,
+is not in the public static allowlist, and is not served as a browser route.
+Missing, malformed, stale, or generation-mismatched release-control metadata
+fails closed. No health or rollback path falls back to the PWA manifest.
 
 `preflight-production.ps1` is extended to report the current live-static
 generation identity and its file hashes as part of the standard
@@ -233,7 +246,7 @@ as a live rollback pointer. It never has:
   result JSON, and is never written to a `previous` symlink on disk.
 - `rollback-static-release.ps1` has always taken an explicit
   `-TargetGenerationPath` parameter and reads that target generation's own
-  `manifest.json` as its sole source of truth. It has never read or relied
+  `release-manifest.json` as its sole source of truth. It has never read or relied
   on a host `previous` symlink.
 - The `previous -> releases/20260704-173425-fa8c1e8e8f` symlink shown in
   the "Discovery" section above is a legacy artifact left over from the

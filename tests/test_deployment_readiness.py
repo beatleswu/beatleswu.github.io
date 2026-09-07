@@ -177,7 +177,15 @@ def _write_static_release_fixture(root: Path, generation='20260719-191549-9007de
     }.items():
         (root / name).write_bytes(content)
         files[name] = hashlib.sha256(content).hexdigest()
+    # manifest.json is the browser-facing PWA manifest. The internal release
+    # control marker is separate and remains generation-local.
     (root / 'manifest.json').write_text(json.dumps({
+        'name': 'Go Odyssey',
+        'short_name': 'Go Odyssey',
+        'start_url': '/',
+        'display': 'standalone',
+    }), encoding='utf-8')
+    (root / 'release-manifest.json').write_text(json.dumps({
         'static_generation_id': generation,
         'release_git_sha': '9007ded4bb1c185995e1a4f570b36dfe47c91cb2',
         'files': [{'path': name, 'sha256': digest} for name, digest in files.items()]
@@ -202,7 +210,7 @@ def test_static_release_healthz_accepts_canonical_utf8_bom_manifest(tmp_path, mo
     root = tmp_path / 'current'
     root.mkdir()
     _write_static_release_fixture(root)
-    manifest_path = root / 'manifest.json'
+    manifest_path = root / 'release-manifest.json'
     manifest_path.write_bytes(b'\xef\xbb\xbf' + manifest_path.read_bytes())
     monkeypatch.setenv('GO_ODYSSEY_LIVE_STATIC_ROOT', str(root))
 
@@ -231,12 +239,25 @@ def test_static_release_healthz_uses_manifest_generation_for_symlink(tmp_path, m
     assert response.get_json()['generation'].startswith('20260719-191549-9007ded4-')
 
 
+def test_static_release_healthz_does_not_use_pwa_manifest_as_release_control(tmp_path, monkeypatch, app_module):
+    root = tmp_path / 'current'
+    root.mkdir()
+    _write_static_release_fixture(root)
+    (root / 'release-manifest.json').unlink()
+    monkeypatch.setenv('GO_ODYSSEY_LIVE_STATIC_ROOT', str(root))
+
+    response = app_module.app.test_client().get('/healthz/static-release')
+
+    assert response.status_code == 503
+    assert response.get_json()['ok'] is False
+
+
 @pytest.mark.parametrize('mutation', ['missing', 'current', 'malformed', 'bad_hash'])
 def test_static_release_healthz_fails_closed_on_invalid_manifest(tmp_path, monkeypatch, app_module, mutation):
     root = tmp_path / 'current'
     root.mkdir()
     _write_static_release_fixture(root)
-    manifest_path = root / 'manifest.json'
+    manifest_path = root / 'release-manifest.json'
     if mutation == 'missing':
         manifest_path.unlink()
     elif mutation == 'current':

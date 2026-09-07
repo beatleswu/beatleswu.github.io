@@ -154,7 +154,7 @@ generation-path identities that are tracked alongside them:
 |---|---|
 | `APP_SOURCE_GIT_SHA` | `org.opencontainers.image.revision` OCI label on the running **app** image |
 | `SCHEDULER_SOURCE_GIT_SHA` | the same label on the running **scheduler** image (read separately) |
-| `STATIC_SOURCE_GIT_SHA` | `release_git_sha` in the active generation's own `manifest.json` |
+| `STATIC_SOURCE_GIT_SHA` | `release_git_sha` in the active generation's own `release-manifest.json` control marker |
 
 `JOINT_PROVENANCE` independently re-reads all three via `GetCurrentState` (never trusting a prior
 phase's self-reported identity) and fails — forcing the L2 rollback path — unless all three agree

@@ -1976,7 +1976,7 @@ function Get-RemoteImageSourceGitSha {
 function Get-RemoteStaticGenerationSourceGitSha {
     <#
     .SYNOPSIS
-    Reads release_git_sha out of manifest.json inside a static generation
+    Reads release_git_sha out of release-manifest.json inside a static generation
     directory, over SSH -- the authoritative source Git SHA for whatever
     static generation is actually active in Production right now.
     .DESCRIPTION
@@ -1984,7 +1984,7 @@ function Get-RemoteStaticGenerationSourceGitSha {
     "current_target" (the resolved filesystem path of the remote `current`
     symlink, as reported by preflight-production.ps1) is a PATH, not a Git
     SHA -- comparing it directly to an -ExpectedGitSha is always wrong.
-    deploy-static-release.ps1 already uploads manifest.json (built by
+    deploy-static-release.ps1 already uploads release-manifest.json (built by
     New-StaticReleaseManifestObject, whose first field is release_git_sha)
     directly into every generation directory it creates, and itself reads
     that exact file back during existing-generation adoption -- this reuses
@@ -2000,7 +2000,7 @@ function Get-RemoteStaticGenerationSourceGitSha {
     if ([string]::IsNullOrWhiteSpace($GenerationPath)) {
         throw 'Get-RemoteStaticGenerationSourceGitSha: GenerationPath is required.'
     }
-    $remoteManifestPath = "$($GenerationPath.TrimEnd('/'))/manifest.json"
+    $remoteManifestPath = "$($GenerationPath.TrimEnd('/'))/release-manifest.json"
     $command = "cat $(Quote-PosixShellArgument $remoteManifestPath)"
     $result = Invoke-BoundedSshCommand -SshAlias $SshAlias -Command $command -TimeoutSeconds $TimeoutSeconds -OperationLabel 'read remote static generation manifest'
     if ($result.exit_code -ne 0) {

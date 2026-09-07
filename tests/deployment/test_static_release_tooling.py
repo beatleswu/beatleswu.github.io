@@ -117,6 +117,9 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         "monster_trash.js",
         "sound.js",
         "sgf_report_widget.js",
+        # F32 Batch B keeps the browser/PWA manifest in the same static
+        # generation while reserving release-manifest.json for control data.
+        "manifest.json",
     }
 )
 STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)
@@ -409,8 +412,47 @@ def test_f32_batch_a_preserves_pwa_manifest_boundary():
     assert manifest.get("name")
     assert manifest.get("start_url")
     assert "manifest.json" in inventory["eligible_files"]["entries"]
-    assert "manifest.json" not in inventory["required_in_generation"]["entries"]
+    assert "manifest.json" in inventory["required_in_generation"]["entries"]
     assert "release-manifest.json" not in inventory["eligible_files"]["entries"]
+    assert "release-manifest.json" not in inventory["required_in_generation"]["entries"]
+
+
+def test_f32_batch_b_separates_pwa_and_release_control_manifest_surfaces():
+    inventory = _load_inventory()
+    eligible = set(inventory["eligible_files"]["entries"])
+    required = set(inventory["required_in_generation"]["entries"])
+    pwa_manifest = json.loads(_read(REPO_ROOT / "manifest.json"))
+
+    assert pwa_manifest.get("name")
+    assert pwa_manifest.get("start_url")
+    assert "release_git_sha" not in pwa_manifest
+    assert "manifest.json" in eligible
+    assert "manifest.json" in required
+    assert "release-manifest.json" not in eligible
+    assert "release-manifest.json" not in required
+
+    app_content = _read(APP_PY)
+    deploy_content = _read(DEPLOY_SCRIPT)
+    rollback_content = _read(ROLLBACK_SCRIPT)
+    tooling_content = _read(PSM1)
+    assert "manifest_path = os.path.join(root, 'release-manifest.json')" in app_content
+    assert "@app.route('/manifest.json')" in app_content
+    assert '"$remoteReleaseDir/release-manifest.json"' in deploy_content
+    assert '"$TargetGenerationPath/release-manifest.json"' in rollback_content
+    assert "release-manifest.json" in tooling_content
+    assert '"$remoteReleaseDir/manifest.json"' not in deploy_content
+    assert '"$TargetGenerationPath/manifest.json"' not in rollback_content
+
+
+def test_f32_batch_b_release_control_marker_is_last_and_generation_local():
+    deploy_content = _read(DEPLOY_SCRIPT)
+    verification = deploy_content.index("Batch SHA-256 verification failed")
+    marker_upload = deploy_content.index(
+        'Invoke-BoundedFileUpload -LocalPath $manifestPath -RemotePath "$remoteReleaseDir/release-manifest.json"'
+    )
+    activation = deploy_content.index("# Step 10: atomic switch")
+    assert verification < marker_upload < activation
+    assert "release-manifest.json control marker" in deploy_content
 
 
 def test_f32_batch_a_preserves_l3_map_battle_release_coupling():

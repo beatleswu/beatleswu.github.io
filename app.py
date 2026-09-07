@@ -626,9 +626,11 @@ def static_release_healthz():
     files = ('index.html', 'i18n.js', 'sw.js')
     generation_pattern = re.compile(r'^[0-9]{8}-[0-9]{6}-[0-9a-f]{8}-.+$')
     try:
-        manifest_path = os.path.join(root, 'manifest.json')
-        # package-static-release.ps1 writes JSON with a UTF-8 BOM; accept that
-        # canonical encoding while still parsing only the mounted manifest.
+        manifest_path = os.path.join(root, 'release-manifest.json')
+        # package-static-release.ps1 writes the generation-local release-control
+        # manifest with a UTF-8 BOM; accept that canonical encoding while still
+        # parsing only the mounted control manifest. The browser-facing
+        # manifest.json remains the PWA manifest and is never used here.
         with open(manifest_path, 'r', encoding='utf-8-sig') as handle:
             manifest = json.load(handle)
         generation = manifest.get('static_generation_id')

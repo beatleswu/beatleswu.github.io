@@ -18,7 +18,7 @@ process could not be distinguished from real work in progress.
 This suite covers the fix: a single batched remote mkdir (not one ssh
 invocation per directory), a hard process-level timeout on every ssh/scp
 call (bounded independently of SSH protocol keepalive options), and
-preserved fail-closed ordering (manifest.json uploads last, only after
+preserved fail-closed ordering (release-manifest.json uploads last, only after
 count/size/hash verification; cutover and service restart never run on
 any upload/verification failure).
 
@@ -473,7 +473,8 @@ def test_manifest_uploaded_only_after_count_size_hash_verification():
 
 def test_rollback_and_preflight_treat_manifest_as_sole_generation_truth():
     rollback_text = _read(ROLLBACK_SCRIPT)
-    assert "manifest.json" in rollback_text
+    assert "release-manifest.json" in rollback_text
+    assert '$TargetGenerationPath/manifest.json' not in rollback_text
     preflight_text = _read(REPO_ROOT / "scripts" / "release" / "preflight-production.ps1")
     assert "manifest.json" in preflight_text or "StaticManifest" in preflight_text
 

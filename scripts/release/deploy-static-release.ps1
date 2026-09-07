@@ -587,7 +587,7 @@ function Get-StaticDeploymentReconciliation {
     )
     $result = [ordered]@{ state = 'REMOTE_NOT_STARTED'; target = $RemoteReleaseDir }
     try {
-        $manifestPath = "$RemoteReleaseDir/manifest.json"
+        $manifestPath = "$RemoteReleaseDir/release-manifest.json"
         $manifestPresent = (Invoke-RemoteText "test -f $(Quote-PosixShellArgument $manifestPath) && echo PRESENT || echo ABSENT" -OperationLabel 'reconcile manifest presence').Trim()
         if ($manifestPresent -ne 'PRESENT') { $result.state = 'REMOTE_IN_PROGRESS'; return [pscustomobject]$result }
         $count = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $RemoteReleaseDir) -type f | wc -l" -OperationLabel 'reconcile generation count').Trim()
@@ -672,7 +672,7 @@ if (-not $Execute) {
         plan = @(
             'verify remote release directory does not already exist',
             'create remote release directory',
-            'upload each staged file + manifest.json',
+            'upload each staged file + release-manifest.json control marker',
             'verify remote sha256 for all uploaded files in one batched remote operation',
             'record previous current symlink target',
             'atomically switch current -> new release directory (ln -sfnT + mv -Tf)',
@@ -693,13 +693,13 @@ if ($adoptionMode) {
     $adoptionCheckCommand = 'test -d ' + $quotedExistingGeneration + ' && test ! -L ' + $quotedExistingGeneration + ' && test "$(findmnt -T ' + $quotedExistingGeneration + ' -no TARGET 2>/dev/null)" = "/" && echo READY'
     $adoptionCheck = Invoke-RemoteText $adoptionCheckCommand -OperationLabel 'existing generation directory safety'
     if ($adoptionCheck.Trim() -ne 'READY') { throw "Existing generation failed directory/symlink/mount safety checks: $remoteReleaseDir" }
-    $quotedExistingManifest = Quote-PosixShellArgument "$remoteReleaseDir/manifest.json"
+    $quotedExistingManifest = Quote-PosixShellArgument "$remoteReleaseDir/release-manifest.json"
     $remoteManifestJson = Invoke-RemoteText ("cat " + $quotedExistingManifest) -OperationLabel 'read existing generation manifest'
     $remoteManifest = $remoteManifestJson | ConvertFrom-Json
     if ($remoteManifest.release_git_sha -ne $ExpectedGitSha -or $remoteManifest.service_worker_version -ne $ExpectedStaticVersion -or $remoteManifest.archive_sha256 -ne $ExpectedArchiveSha256) { throw 'Existing generation manifest identity does not match the authorized static artifact.' }
     $remoteManifestHash = (Invoke-RemoteText ("sha256sum " + $quotedExistingManifest) -OperationLabel 'existing manifest SHA').Split(' ')[0].Trim().ToLowerInvariant()
     if ($remoteManifestHash -ne $ExpectedManifestSha256) { throw "Existing generation manifest SHA mismatch: expected $ExpectedManifestSha256, observed $remoteManifestHash." }
-    $remoteCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f ! -name manifest.json | wc -l" -OperationLabel 'existing governed file count').Trim()
+    $remoteCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f ! -name release-manifest.json | wc -l" -OperationLabel 'existing governed file count').Trim()
     if ($remoteCount -ne $manifest.files.Count) { throw "Existing generation governed file count mismatch: expected $($manifest.files.Count), observed $remoteCount." }
     $expectedBytes = ($manifest.files | Measure-Object -Property size -Sum).Sum
     $batchTimeoutSeconds = Get-BatchVerificationTimeoutSeconds -TotalBytes $expectedBytes
@@ -752,7 +752,7 @@ try {
     # Step 5: validate uploaded file count before trusting anything else.
     $uploadedCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f | wc -l" -OperationLabel 'count uploaded files').Trim()
     if ($uploadedCount -ne $manifest.files.Count) {
-        throw "Uploaded file count mismatch: expected $($manifest.files.Count), remote has $uploadedCount (manifest.json not yet uploaded, so these must match exactly)."
+        throw "Uploaded file count mismatch: expected $($manifest.files.Count), remote has $uploadedCount (release-manifest.json not yet uploaded, so these must match exactly)."
     }
 
     # Step 6: validate uploaded total byte size.
@@ -776,23 +776,24 @@ try {
     }
     Write-StaticDeployTiming 'REMOTE GOVERNED SHA COMPLETE'
 
-    # Step 8: manifest.json uploads LAST, only after every governed file has
+    # Step 8: release-manifest.json uploads LAST, only after every governed file has
     # passed count/size/hash verification -- a partial or corrupted
-    # generation never gets a manifest, so it can never be mistaken for a
-    # complete, deployable release (see rollback-static-release.ps1 and
-    # preflight-production.ps1, which both treat manifest.json as the sole
-    # source of truth for "this generation is real").
-    Invoke-BoundedFileUpload -LocalPath $manifestPath -RemotePath "$remoteReleaseDir/manifest.json"
+    # generation never gets a release-control manifest, so it can never be
+    # mistaken for a complete, deployable release (see
+    # rollback-static-release.ps1 and static_release_healthz, which both treat
+    # release-manifest.json as the sole source of truth for "this generation
+    # is real"; the public manifest.json remains the PWA asset).
+    Invoke-BoundedFileUpload -LocalPath $manifestPath -RemotePath "$remoteReleaseDir/release-manifest.json"
 
     # Step 9: re-read and validate the now-complete remote generation.
     $finalCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f | wc -l" -OperationLabel 'final count including manifest').Trim()
     if ($finalCount -ne ($manifest.files.Count + 1)) {
         throw "Final remote file count mismatch after manifest upload: expected $($manifest.files.Count + 1), observed $finalCount."
     }
-    $remoteManifestHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument "$remoteReleaseDir/manifest.json")" -OperationLabel 'sha256sum: manifest.json').Split(' ')[0].Trim().ToLowerInvariant()
+    $remoteManifestHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument "$remoteReleaseDir/release-manifest.json")" -OperationLabel 'sha256sum: release-manifest.json').Split(' ')[0].Trim().ToLowerInvariant()
     $localManifestHash = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($remoteManifestHash -ne $localManifestHash) {
-        throw "Remote manifest.json hash does not match the local manifest after upload."
+        throw "Remote release-manifest.json hash does not match the local manifest after upload."
     }
     Write-StaticDeployTiming 'MANIFEST UPLOAD/VALIDATION COMPLETE'
 
