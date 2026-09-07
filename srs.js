@@ -106,6 +106,11 @@ const SRS = (() => {
             'DETERMINISTIC_PARSER_FAILURE',
             'DETERMINISTIC_JUDGE_INPUT_INVALID',
             'CONTENT_SIDE_CANONICALIZATION_FAILURE',
+            // Map Battle preparation can prove that the question's
+            // authoritative content is permanently incompatible with this
+            // runtime.  It is still only an in-memory, revision-bound
+            // exclusion; it is not a Learning/SRS or corpus mutation.
+            'MAP_BATTLE_QUESTION_INCOMPATIBLE',
         ].includes(failureClass);
     }
 

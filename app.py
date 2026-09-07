@@ -14943,6 +14943,15 @@ def _map_battle_int(value, fallback, *, minimum=0):
     return max(minimum, value)
 
 
+class _MapBattleQuestionIncompatible(RequestRejected):
+    """Permanent, question-scoped incompatibility before battle issuance."""
+
+    code = 'map_battle_question_incompatible'
+    failure_class = 'MAP_BATTLE_QUESTION_INCOMPATIBLE'
+    reason_code = 'ambiguous_authoritative_sgf_player_color'
+    retryable = False
+
+
 def _map_battle_question_context(question):
     """Derive attempt metadata from server-owned question content."""
     content = question.get('content')
@@ -14962,7 +14971,10 @@ def _map_battle_question_context(question):
             if child.move is not None and child.move.color in ('B', 'W')
         }
         if len(first_colors) != 1:
-            raise RequestRejected('authoritative SGF player color is ambiguous', status=409)
+            raise _MapBattleQuestionIncompatible(
+                'authoritative SGF player color is ambiguous',
+                status=409,
+            )
         player_color = first_colors.pop()
     if player_color not in ('B', 'W'):
         raise RequestRejected('authoritative SGF player color is invalid', status=409)
@@ -15167,13 +15179,33 @@ def _map_battle_public_attempt(attempt):
     }
 
 
-def _map_battle_error_response(error):
+def _map_battle_error_response(error, *, question=None):
     body = {
         'error': error.code,
         'code': error.code,
         'message': str(error),
         'retryable': bool(error.retryable),
     }
+    failure_class = getattr(error, 'failure_class', None)
+    reason_code = getattr(error, 'reason_code', None)
+    if isinstance(failure_class, str) and failure_class:
+        body['failure_class'] = failure_class
+        body['reason_code'] = (
+            reason_code if isinstance(reason_code, str) and reason_code
+            else failure_class
+        )
+        question_id = getattr(error, 'question_id', None)
+        if question_id is None and isinstance(question, dict):
+            question_id = question.get('id')
+        if type(question_id) is int:
+            body['question_id'] = question_id
+        revision = _client_question_revision(question or {})
+        if revision is not None:
+            body['question_revision'] = revision
+        fingerprint = _session_question_fingerprint(question or {})
+        if fingerprint is not None:
+            body['session_question_fingerprint'] = fingerprint
+        body['quarantine_scope'] = 'session_question_revision'
     if error.code == 'map_battle_v1_disabled':
         body['message'] = 'Map Battle v1 暫未開放'
     return jsonify(body), error.status
@@ -15191,6 +15223,7 @@ def map_battle_v1_prepare_attempt():
             'message': '遊戲已更新，請重新整理後繼續',
         }), OLD_CLIENT_HTTP_STATUS
     payload = request.get_json(silent=True)
+    question = None
     try:
         if not isinstance(payload, dict):
             raise RequestRejected('request JSON must be an object')
@@ -15353,7 +15386,7 @@ def map_battle_v1_prepare_attempt():
             'runtime_service': RUNTIME_SERVICE_ID,
         })
     except MapBattleRuntimeError as error:
-        return _map_battle_error_response(error)
+        return _map_battle_error_response(error, question=question)
     except MonsterSelectorRuntimeError as error:
         return jsonify({
             'error': 'monster_selector_unavailable',
@@ -15376,6 +15409,7 @@ def map_battle_v1_resume_validation(attempt_id):
             'message': 'Game updated; refresh and continue',
         }), OLD_CLIENT_HTTP_STATUS
     payload = request.get_json(silent=True)
+    question = None
     try:
         if not isinstance(payload, dict):
             raise RequestRejected('request JSON must be an object')
@@ -15387,6 +15421,10 @@ def map_battle_v1_resume_validation(attempt_id):
             raise RequestRejected('zone_key is required')
         zone_key = zone_key.strip()
         _map_battle_require_question_in_zone(question, zone_key)
+        # A legacy attempt may predate the typed incompatibility response.
+        # Re-derive the same server-owned context before allowing it to resume;
+        # otherwise a stale session token could re-open a broken board.
+        _map_battle_question_context(question)
         with get_db() as conn:
             _map_battle_require_enabled(int(session['user_id']), conn)
             validated = validate_resumable_attempt(
@@ -15411,7 +15449,7 @@ def map_battle_v1_resume_validation(attempt_id):
             'runtime_service': RUNTIME_SERVICE_ID,
         })
     except MapBattleRuntimeError as error:
-        return _map_battle_error_response(error)
+        return _map_battle_error_response(error, question=question)
 
 
 @app.route('/api/adventure/map-battles/v1/battles/<battle_id>', methods=['GET'])

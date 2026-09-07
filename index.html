@@ -9389,6 +9389,7 @@ let _mapBattleV1CompletionCallbackCount = 0;
 let _mapBattleV1TransitionCount = 0;
 let _mapBattleV1NextQuestionCount = 0;
 let _mapBattleV1ServerProgress = new Map();
+let _mapBattleV1PrepareFailure = null;
 const _MAP_BATTLE_V1_RESUME_STORAGE_KEY = 'go:e10:map-battle:v1:resume';
 let _guildQuestMode = null;
 let _guildQuestQuestions = null;
@@ -9409,6 +9410,36 @@ function _isSessionQuestionQuarantined(question) {
         question
         && revision
         && SRS.isQuestionQuarantined(question.id, revision)
+    );
+}
+
+function _isPermanentMapBattleQuestionFailure(error) {
+    const data = error && error.payload && typeof error.payload === 'object'
+        ? error.payload
+        : (error || {});
+    return data.code === 'map_battle_question_incompatible'
+        && data.failure_class === 'MAP_BATTLE_QUESTION_INCOMPATIBLE'
+        && data.reason_code === 'ambiguous_authoritative_sgf_player_color'
+        && data.retryable === false
+        && !!(data.question_revision || data.session_question_fingerprint);
+}
+
+function _recordPermanentMapBattleQuestionFailure(question, error) {
+    if (!question || !_isPermanentMapBattleQuestionFailure(error)) return false;
+    const data = error && error.payload && typeof error.payload === 'object'
+        ? error.payload
+        : error;
+    // Keep the server-selected revision/fingerprint on this in-memory object
+    // so every Adventure selection path uses the same revision-bound key.
+    if (data.question_revision) {
+        question._d5QuestionRevision = String(data.question_revision);
+    } else if (data.session_question_fingerprint) {
+        question._d7SessionQuestionFingerprint = String(data.session_question_fingerprint);
+    }
+    return !!(
+        window.SRS
+        && typeof SRS.recordRejectedAnswer === 'function'
+        && SRS.recordRejectedAnswer(question.id, data, question)
     );
 }
 
@@ -10520,6 +10551,7 @@ function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = nu
 async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1LifecycleGeneration, resumeState = null } = {}) {
     _mapBattleV1PrepareSerial += 1;
     const serial = _mapBattleV1PrepareSerial;
+    _mapBattleV1PrepareFailure = null;
     _resetE10BattleRevealState();
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
@@ -10574,6 +10606,23 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
         return state;
     } catch (error) {
         if (generation !== _mapBattleV1LifecycleGeneration || serial !== _mapBattleV1PrepareSerial) return null;
+        if (_isPermanentMapBattleQuestionFailure(error)) {
+            const quarantined = _recordPermanentMapBattleQuestionFailure(q, error);
+            _clearMapBattleV1Resume();
+            _mapBattleV1PrepareFailure = {
+                permanent: true,
+                quarantined,
+                questionId: Number(q?.id),
+                code: error.code,
+                reasonCode: error.payload?.reason_code || error.reasonCode || null,
+            };
+            // Do not expose a broken board as an active battle.  The loader
+            // consumes this marker and selects the next revision-safe target.
+            _mapBattleV1Mode = 'disabled';
+            _syncE10BattleActions(false);
+            _publishMapBattleV1Lifecycle();
+            return null;
+        }
         const code = error && error.code;
         if (code === 'map_battle_v1_disabled' || code === 'map_battle_mode_not_eligible') {
             _mapBattleV1Mode = 'disabled';
@@ -12066,6 +12115,35 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     }
     _e10AcceptanceTrace('SGF_PARSE_OK', { qid: questionId, generation });
     await _prepareMapBattleV1ForQuestion(q, { generation, resumeState });
+    if (_mapBattleV1PrepareFailure?.permanent === true) {
+        const failure = _mapBattleV1PrepareFailure;
+        _mapBattleV1PrepareFailure = null;
+        if (failure.quarantined) {
+            const nextAdventureQuestion = _pickNextAdventureTarget(
+                _adventureActiveQuestions,
+                questionId,
+            ) || SRS.findNextAvailableQuestion(
+                _adventureActiveQuestions,
+                q,
+                1,
+            );
+            if (nextAdventureQuestion) {
+                _e10AcceptanceTrace('MAP_BATTLE_QUESTION_SKIPPED', {
+                    qid: questionId,
+                    nextQid: Number(nextAdventureQuestion.id),
+                    reason: failure.reasonCode,
+                });
+                return loadQuestion(nextAdventureQuestion);
+            }
+        }
+        _showSessionNoValidQuestion();
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', {
+            ok: false,
+            qid: questionId,
+            reason: 'map_battle_question_incompatible',
+        });
+        return false;
+    }
     if (!isCurrent() || generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_after_prepare' });
         return false;
@@ -12465,7 +12543,11 @@ function nextQuestion({ mapBattleV1Transition = false } = {}){
         const idx = _adventureActiveQuestions.findIndex(x => x.id === currentQ?.id);
         if (idx !== -1) {
             const nextAdventureQuestion = _mapBattleV1IsActive()
-                ? _adventureActiveQuestions[(idx + 1) % _adventureActiveQuestions.length]
+                ? _nextAdventureQuestionExcludingQuarantine(
+                    _adventureActiveQuestions,
+                    currentQ?.id,
+                    1,
+                )
                 : SRS.findNextAvailableQuestion(
                     _adventureActiveQuestions,
                     currentQ,
@@ -13737,10 +13819,26 @@ function _adventureQuestionSeen(qid) {
         || !!SRS.isSeen(qid);
 }
 
+function _nextAdventureQuestionExcludingQuarantine(qs, currentId, direction = 1) {
+    const list = Array.isArray(qs) ? qs : [];
+    if (!list.length) return null;
+    const step = Number(direction) < 0 ? -1 : 1;
+    const start = list.findIndex(q => Number(q?.id) === Number(currentId));
+    const origin = start < 0 ? (step > 0 ? -1 : list.length) : start;
+    for (let offset = 1; offset <= list.length; offset += 1) {
+        const rawIndex = origin + step * offset;
+        const index = ((rawIndex % list.length) + list.length) % list.length;
+        const candidate = list[index];
+        if (candidate && !_isSessionQuestionQuarantined(candidate)) return candidate;
+    }
+    return null;
+}
+
 function _pickAdventureTarget(qs) {
     const list = Array.isArray(qs) ? qs : [];
-    return list.find(q => !_adventureQuestionSeen(q.id))
-        || list.find(q => _adventureQuestionSeen(q.id) && !_adventureQuestionDefeated(q.id))
+    return list.find(q => !_isSessionQuestionQuarantined(q) && !_adventureQuestionSeen(q.id))
+        || list.find(q => !_isSessionQuestionQuarantined(q)
+            && _adventureQuestionSeen(q.id) && !_adventureQuestionDefeated(q.id))
         || null;
 }
 
@@ -13749,8 +13847,11 @@ function _pickNextAdventureTarget(qs, currentId) {
     if (!list.length) return null;
     const start = Math.max(0, list.findIndex(q => Number(q.id) === Number(currentId)));
     const ordered = list.slice(start + 1).concat(list.slice(0, start + 1));
-    return ordered.find(q => Number(q.id) !== Number(currentId) && !_adventureQuestionSeen(q.id))
+    return ordered.find(q => Number(q.id) !== Number(currentId)
+            && !_isSessionQuestionQuarantined(q)
+            && !_adventureQuestionSeen(q.id))
         || ordered.find(q => Number(q.id) !== Number(currentId)
+            && !_isSessionQuestionQuarantined(q)
             && _adventureQuestionSeen(q.id) && !_adventureQuestionDefeated(q.id))
         || null;
 }
@@ -13865,10 +13966,9 @@ async function enterAdventureZoneInPage(zone) {
         const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
         const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
         if (!unitQs.length) return false;
-        // In-page Adventure entry starts a fresh gameplay session.  The
-        // malformed-question exclusion is intentionally ephemeral, so a new
-        // session may reconsider the question without carrying old state.
-        if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
+        // Preserve the current page-session quarantine across stage exit and
+        // same-page re-entry.  Explicit mode boundaries (logout, daily round,
+        // challenge, or a fresh document) own their own reset behavior.
         const overlay = document.getElementById('boss-cinematic');
         if (overlay) { overlay.classList.remove('show'); overlay.setAttribute('aria-hidden', 'true'); }
         const _ws = document.getElementById('welcome-state');

@@ -31,6 +31,15 @@
     failure.code = data.code || data.error || 'map_battle_request_failed';
     failure.status = response.status;
     failure.retryable = data.retryable === true;
+    failure.failureClass = data.failure_class || null;
+    failure.reasonCode = data.reason_code || null;
+    failure.questionId = data.question_id != null ? data.question_id : null;
+    failure.questionRevision = data.question_revision || null;
+    failure.sessionQuestionFingerprint = data.session_question_fingerprint || null;
+    failure.quarantineScope = data.quarantine_scope || null;
+    // Preserve only the structured failure envelope.  The caller may use it
+    // to bind a session-only exclusion; no answer moves or raw SGF are added.
+    failure.payload = data || {};
     return failure;
   }
 
