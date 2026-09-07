@@ -11,7 +11,7 @@ const VERSION     = 'v240-a028-hero-player-presentation-readonly';
 // a release-<full-git-sha> identity in the staged worker. Keeping a valid
 // source fallback makes the checked-in worker executable while ensuring that
 // every generated release gets a distinct cache namespace automatically.
-const ASSET_IDENTITY = 'source-v233-e10-question-loader-board-renderer-v1b-b5';
+const ASSET_IDENTITY = 'source-v241-f17-authenticated-entry-spinner-failsafe';
 // incident-017 superseded identity: const VERSION = 'v237-e10-replay-story-cross-surface-hotfix';
 // exact-b3cb superseded identity: const VERSION     = 'v230-e10-lord-trial-safari-recovery';
 // exact-b3cb asset identity: const ASSET_IDENTITY = 'source-v230-e10-lord-trial-safari-recovery';

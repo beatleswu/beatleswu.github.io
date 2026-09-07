@@ -44,6 +44,9 @@ html[data-world-presentation-state="pending"] body {
 html:not([data-world-presentation-state="pending"]) #world-presentation-pending {
     display: none;
 }
+html[data-world-presentation-error="1"] #world-presentation-pending {
+    display: flex;
+}
 .world-presentation-pending__card {
     width: min(360px, 100%);
     padding: 24px 22px;
@@ -21246,10 +21249,72 @@ const WORLD_PRESENTATION_PENDING = 'pending';
 const WORLD_PRESENTATION_E10 = 'e10';
 const WORLD_PRESENTATION_LEGACY = 'legacy';
 
+var WORLD_PRESENTATION_WATCHDOG_MS = 30000;
+var __goWorldPresentationWatchdog = null;
+var __goBootstrapFailureShown = false;
+var __goBootstrapFailure = function (kind, error) {
+    if (__goBootstrapFailureShown) return;
+    console.error('[INIT] bootstrap failure:', kind, error);
+    var root = document.documentElement;
+    var pending = document.getElementById('world-presentation-pending');
+    if (!pending) {
+        if (typeof setWorldPresentationState === 'function') {
+            setWorldPresentationState(WORLD_PRESENTATION_LEGACY);
+        }
+        if (root) root.setAttribute('data-world-presentation-error', '1');
+        __goBootstrapFailureShown = true;
+        return;
+    }
+
+    var message = 'Unable to load the practice world.';
+    if (window.I18n && typeof I18n.t === 'function') {
+        message = I18n.t('index.load_err') || message;
+    }
+    var retryLabel = '重試 / Retry';
+    if (window.I18n && typeof I18n.getLang === 'function' && I18n.getLang() === 'en') {
+        retryLabel = 'Retry';
+    }
+    pending.innerHTML = '';
+    var card = document.createElement('div');
+    card.className = 'world-presentation-pending__card';
+    var copy = document.createElement('div');
+    copy.className = 'world-presentation-pending__label';
+    copy.textContent = message;
+    var retry = document.createElement('button');
+    retry.type = 'button';
+    retry.textContent = retryLabel;
+    retry.style.marginTop = '16px';
+    retry.style.padding = '10px 18px';
+    retry.style.border = '1px solid rgba(241, 228, 193, .38)';
+    retry.style.borderRadius = '999px';
+    retry.style.color = '#f1e4c1';
+    retry.style.background = 'rgba(241, 228, 193, .12)';
+    retry.style.cursor = 'pointer';
+    retry.addEventListener('click', function () { window.location.reload(); });
+    card.append(copy, retry);
+    pending.append(card);
+
+    if (typeof setWorldPresentationState === 'function') {
+        setWorldPresentationState(WORLD_PRESENTATION_LEGACY);
+    }
+    if (root) root.setAttribute('data-world-presentation-error', '1');
+    __goBootstrapFailureShown = true;
+    pending.setAttribute('aria-hidden', 'false');
+};
+window.__goBootstrapFailure = __goBootstrapFailure;
+__goWorldPresentationWatchdog = window.setTimeout(function () {
+    __goBootstrapFailure('world-presentation-watchdog', new Error('bootstrap timed out'));
+}, WORLD_PRESENTATION_WATCHDOG_MS);
+
 function setWorldPresentationState(nextState) {
     const state = [WORLD_PRESENTATION_PENDING, WORLD_PRESENTATION_E10, WORLD_PRESENTATION_LEGACY].includes(nextState)
         ? nextState
         : WORLD_PRESENTATION_PENDING;
+    if (state !== WORLD_PRESENTATION_PENDING) {
+        if (__goWorldPresentationWatchdog) { window.clearTimeout(__goWorldPresentationWatchdog); __goWorldPresentationWatchdog = null; }
+        document.documentElement?.removeAttribute('data-world-presentation-error');
+        __goBootstrapFailureShown = false;
+    }
     document.documentElement?.setAttribute('data-world-presentation-state', state);
     window.__GO_WORLD_PRESENTATION_STATE__ = state;
     const pending = document.getElementById('world-presentation-pending');
@@ -21461,7 +21526,7 @@ if (!_isPremiumUser && _isDailyLimitLockedToday()) _applyDailyLimit();
 // 首頁 HERO 小卡 Premium 尊榮標記（金框＋皇冠）
 document.getElementById('home-player-figure')?.classList.toggle('premium', _isPremiumUser);
 document.querySelector('.home-player-card')?.classList.toggle('premium', _isPremiumUser);
-}catch(e){}
+}catch(e){console.error('[INIT] auth/me failed:', e);if(typeof notifyAdventureQuestionRuntimeError === 'function') notifyAdventureQuestionRuntimeError('session', e);__goBootstrapFailure('session', e);return;}
     if (!_isPremiumUser && _isDailyLimitLockedToday()) _applyDailyLimit();
     const e9Flags = resolveInitialE9Flags();
     const e9ShellRequested = !!e9Flags.e9Shell;
@@ -21510,7 +21575,7 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
     console.log('[INIT] API URL:', qsApi.pathname + qsApi.search);
     let questions;
     try{const r=await fetch(qsApi.pathname + qsApi.search,{credentials:'include'});if(!r.ok)throw new Error(`HTTP ${r.status}`);questions=await r.json();console.log('[INIT] questions loaded:', questions.length);}
-    catch(err){if(statusEl)statusEl.textContent='ERROR';if(listDiv)listDiv.innerHTML=`<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">${I18n.t('index.load_err')}<br><small style="color:var(--ink3)">${_esc(err.message)}</small></div>`;notifyAdventureQuestionRuntimeError('questions', err);console.error('[INIT] fetch error:', err);return;}
+    catch(err){if(statusEl)statusEl.textContent='ERROR';if(listDiv)listDiv.innerHTML=`<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">${I18n.t('index.load_err')}<br><small style="color:var(--ink3)">${_esc(err.message)}</small></div>`;notifyAdventureQuestionRuntimeError('questions', err);console.error('[INIT] fetch error:', err);__goBootstrapFailure('questions', err);return;}
     let initData={dueData:{due:[],count:0}};
     let mistakeStats={total:0};
     let adventureQuestionSrsReady = !e9ShellRequested;
