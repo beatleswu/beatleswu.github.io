@@ -90,6 +90,62 @@
       return results;
     }
 
+    function isCriticalFallbackCleanup() {
+      // recoverToLegacy() marks the pending ownership handoff to legacy
+      // before it destroys the E9 lifecycle.  Normal destroyShell() performs
+      // the same cleanup first and only marks the shell legacy afterwards.
+      // Preserve the shared AdventureState cache only for that narrow,
+      // observable handoff while the active lifecycle is still E9.
+      var e9 = global.E9;
+      return global.__GO_E9_ACTIVE_SHELL__ === 'legacy'
+        && e9
+        && typeof e9.getActiveShell === 'function'
+        && e9.getActiveShell() === 'e9';
+    }
+
+    function prepareLegacyFallbackCache(result) {
+      // Legacy Adventure Map consumes the older `unlocked`/`completed` field
+      // names.  When the shared successful result came from a minimal or
+      // older payload without those aliases, project the adapter's already
+      // normalized read-only values onto the cached raw result.  This is a
+      // presentation compatibility bridge only; it does not create or alter
+      // server-owned progression.
+      if (!result || result.ok !== true || !result.data || !Array.isArray(result.data.zones)) return;
+      var rawData = result.rawData && typeof result.rawData === 'object'
+        ? result.rawData
+        : {};
+      var rawZones = Array.isArray(rawData.zones) ? rawData.zones : [];
+      var normalizedByKey = {};
+      result.data.zones.forEach(function (zone) {
+        if (zone && typeof zone.key === 'string') normalizedByKey[zone.key] = zone;
+      });
+      var sourceZones = rawZones.length ? rawZones : result.data.zones;
+      rawData.zones = sourceZones.map(function (rawZone) {
+        var source = rawZone && typeof rawZone === 'object' ? rawZone : {};
+        var key = typeof source.key === 'string' ? source.key : null;
+        var normalized = key ? normalizedByKey[key] : null;
+        if (!normalized) return source;
+        var next = source;
+        var hasEnterability = typeof source.unlocked === 'boolean'
+          || typeof source.can_enter === 'boolean'
+          || (source.stage && typeof source.stage.can_enter === 'boolean');
+        if (!hasEnterability || (typeof source.completed !== 'boolean' && typeof source.cleared !== 'boolean')) {
+          next = Object.assign({}, source);
+        }
+        if (!hasEnterability) next.unlocked = normalized.locked !== true;
+        if (typeof next.completed !== 'boolean' && typeof next.cleared !== 'boolean') {
+          next.cleared = normalized.cleared === true;
+        }
+        if (!source.name && normalized.name) next.name = normalized.name;
+        if (!source.name_en && normalized.nameEn) next.name_en = normalized.nameEn;
+        if (typeof source.stars !== 'number' && typeof normalized.stars === 'number') next.stars = normalized.stars;
+        if (typeof source.seen !== 'number' && typeof normalized.seen === 'number') next.seen = normalized.seen;
+        if (typeof source.total !== 'number' && typeof normalized.total === 'number') next.total = normalized.total;
+        return next;
+      });
+      result.rawData = rawData;
+    }
+
     function destroy() {
       destroyed = true;
       inFlight = null;
@@ -97,7 +153,14 @@
       previous = {};
       initialized = false;
       var adapters = global.E9 && global.E9.Adapters;
-      if (adapters && adapters.AdventureState && typeof adapters.AdventureState.invalidateAdventureState === 'function') adapters.AdventureState.invalidateAdventureState();
+      if (isCriticalFallbackCleanup()
+          && adapters && adapters.AdventureState
+          && typeof adapters.AdventureState.fetchAdventureState === 'function') {
+        adapters.AdventureState.fetchAdventureState().then(prepareLegacyFallbackCache, function () {});
+      } else if (adapters && adapters.AdventureState
+          && typeof adapters.AdventureState.invalidateAdventureState === 'function') {
+        adapters.AdventureState.invalidateAdventureState();
+      }
       if (adapters && adapters.ActivityState && typeof adapters.ActivityState.invalidateActivityState === 'function') adapters.ActivityState.invalidateActivityState();
     }
 

@@ -277,7 +277,16 @@ async function main() {
     const context = await browser.newContext({ viewport: VIEWPORTS[OPTIONS.viewport] });
     const page = await context.newPage();
     const consoleErrors = [];
-    page.on('pageerror', (error) => consoleErrors.push(String(error && error.message || error)));
+    const pageErrors = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        consoleErrors.push({
+          text: message.text(),
+          location: message.location()?.url || null,
+        });
+      }
+    });
+    page.on('pageerror', (error) => pageErrors.push(String(error && error.message || error)));
 
     await page.goto(`${runtime.base_url}/login`, { waitUntil: 'domcontentloaded' });
     const login = await page.evaluate(async (creds) => {
@@ -313,17 +322,45 @@ async function main() {
     });
     report.pre_existing_bootstrap_priming = primed;
 
+    if (OPTIONS.viewport === 'mobile') {
+      // Mobile intentionally has no details/replay tile.  Its contract is
+      // page-load/runtime stabilization plus clean browser diagnostics; the
+      // real-click replay assertions below remain desktop/iPad-only.
+      await page.waitForFunction(() => document.readyState === 'complete', null, { timeout: 20000 });
+      await page.waitForFunction(() => {
+        const stage = document.getElementById('e9-world-stage-slot');
+        return Boolean(stage
+          && stage.hasAttribute('data-e9-loaded')
+          && window.__GO_E9_ACTIVE_SHELL__ === 'e9');
+      }, null, { timeout: 20000 });
+      report.mobile_runtime_stabilized = await page.evaluate(() => ({
+        ready_state: document.readyState,
+        active_shell: window.__GO_E9_ACTIVE_SHELL__ || null,
+        world_stage_loaded: document.getElementById('e9-world-stage-slot')?.hasAttribute('data-e9-loaded') === true,
+        replay_tile_present: !!document.querySelector('#e9-world-stage-details-replay'),
+      }));
+      report.console_errors = consoleErrors;
+      report.page_errors = pageErrors;
+      report.mobile_console_error_count = consoleErrors.length;
+      report.mobile_page_error_count = pageErrors.length;
+      const passed = report.mobile_runtime_stabilized.ready_state === 'complete'
+        && report.mobile_runtime_stabilized.active_shell === 'e9'
+        && report.mobile_runtime_stabilized.world_stage_loaded
+        && consoleErrors.length === 0
+        && pageErrors.length === 0;
+      report.final_status = passed ? 'PASS' : 'FAIL';
+      console.log(JSON.stringify(report, null, 2));
+      return passed ? 0 : 1;
+    }
+
     // loadMapProgressStatus resolves before the E9 component's render task is
     // guaranteed to have attached every cleared-zone tile. Wait for the
     // contract's target tile on surfaces where the replay card is supported;
-    // the mobile surface intentionally has no details/replay tile and is
-    // covered by its page-load/no-console-error contract below.
-    if (OPTIONS.viewport !== 'mobile') {
-      await page.locator(`#e9-world-stage-slot [data-zone="${ZONE_KEY}"]`).waitFor({
-        state: 'attached',
-        timeout: 20000,
-      });
-    }
+    // mobile returned above with its page-load/no-console-error contract.
+    await page.locator(`#e9-world-stage-slot [data-zone="${ZONE_KEY}"]`).waitFor({
+      state: 'attached',
+      timeout: 20000,
+    });
 
     const firstClick = await page.evaluate(CLICK_AND_READ, ZONE_KEY);
     report.first_click = firstClick;
@@ -381,7 +418,9 @@ async function main() {
       report.finish_and_return_2 = await page.evaluate(SKIP_TO_CLOSE);
     }
 
-    report.console_page_errors = consoleErrors;
+    report.console_errors = consoleErrors;
+    report.page_errors = pageErrors;
+    report.console_page_errors = pageErrors;
 
     const closureReports = [report.finish_and_return, report.finish_and_return_2].filter(Boolean);
     report.replay_first_dismissal_returns_to_zone_card = report.finish_and_return?.returned_to_zone_card === true;

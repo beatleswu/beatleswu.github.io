@@ -108,17 +108,20 @@ function buildMockResponse(pathname) {
       zones: [
         {
           key: 'k26_30', name: '圍棋新手村', name_en: 'Beginner Village',
-          status: 'completed', stars: 3, seen: 30, total: 30,
+          status: 'completed', unlocked: true, can_enter: true,
+          stars: 3, seen: 30, total: 30,
           boss: { available: false },
         },
         {
           key: 'k21_25', name: '史萊姆平原', name_en: 'Slime Plains',
-          status: 'unlocked', stars: 1, seen: 18, total: 25,
+          status: 'unlocked', unlocked: true, can_enter: true,
+          stars: 1, seen: 18, total: 25,
           boss: { available: true },
         },
         {
           key: 'k16_20', name: '哥布林洞穴', name_en: 'Goblin Cave',
-          status: 'locked', stars: 0, seen: 0, total: 20,
+          status: 'locked', unlocked: false, can_enter: false,
+          stars: 0, seen: 0, total: 20,
           boss: { available: false },
         },
       ],

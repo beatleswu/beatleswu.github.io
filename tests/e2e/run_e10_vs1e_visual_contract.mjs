@@ -1040,6 +1040,60 @@ async function dismissZone2EntryPresentationForMapInspection(page) {
   await film.waitFor({ state: 'hidden', timeout: 5000 });
 }
 
+async function dismissBossCinematicBeforeCta(page, ctaSelector) {
+  const film = page.locator('#boss-cinematic.show.intro-film');
+  const cinematicDetected = await film.count() === 1
+    && await film.isVisible().catch(() => false);
+  let cinematicDismissed = false;
+  let pointerAvailable = false;
+  // A presentation task can enqueue the intro film while the map is settling.
+  // Re-check before the real click, and use Playwright's trial hit-test as the
+  // last guard, so a late overlay can never turn the CTA click into a 30s
+  // pointer-interception timeout.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const activeFilm = page.locator('#boss-cinematic.show.intro-film');
+    if (await activeFilm.count() === 1 && await activeFilm.isVisible().catch(() => false)) {
+      const close = activeFilm.locator('#boss-cinematic-close-x');
+      await close.waitFor({ state: 'visible', timeout: 5000 });
+      // This is the real user-facing cinematic dismiss control.  The force is
+      // limited to the modal's own close button; the CTA below remains a real
+      // Playwright pointer click and must prove that the overlay is gone.
+      await close.click({ force: true });
+      await activeFilm.waitFor({ state: 'hidden', timeout: 5000 });
+      cinematicDismissed = true;
+    }
+
+    await page.waitForFunction((selector) => {
+      const overlay = document.querySelector('#boss-cinematic');
+      const cta = document.querySelector(selector);
+      if (overlay && overlay.classList.contains('show')) return false;
+      if (!cta || cta.hidden || cta.disabled) return false;
+      const rect = cta.getBoundingClientRect();
+      if (!(rect.width > 0 && rect.height > 0)) return false;
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return hit === cta || cta.contains(hit);
+    }, ctaSelector, { timeout: 5000 });
+    try {
+      await page.locator(ctaSelector).click({ trial: true });
+      pointerAvailable = true;
+      break;
+    } catch (error) {
+      if (attempt === 2) throw error;
+    }
+  }
+  const overlayHidden = await page.evaluate(() => {
+    const overlay = document.querySelector('#boss-cinematic');
+    return !overlay || !overlay.classList.contains('show');
+  });
+
+  return {
+    cinematic_detected: cinematicDetected,
+    dismissed_before_cta: !cinematicDetected || cinematicDismissed,
+    overlay_hidden_before_cta: overlayHidden,
+    pointer_available: pointerAvailable,
+  };
+}
+
 async function runCase(browser, origin, outputDir, spec) {
   const page = await browser.newPage({ viewport: spec.viewport });
   const browserErrors = [];
@@ -2191,6 +2245,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
     const cta = page.locator(ctaSelector);
     const actionTraceStart = actionTrace.length;
     let startsBeforeReady = null;
+    let cinematicRecovery = null;
     if (spec.deferRuntimeReady) {
       // A pending question runtime must visibly disable the CTA. Exercise the
       // same shell entry function directly for this gate test; a disabled DOM
@@ -2204,10 +2259,11 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       });
     } else {
       await page.waitForFunction(() => window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === true);
+      cinematicRecovery = await dismissBossCinematicBeforeCta(page, ctaSelector);
       await cta.click();
     }
     await page.locator('[data-e10-question-state]').waitFor({ state: 'visible' });
-    questionEntry = await page.evaluate(() => ({
+    questionEntry = await page.evaluate((recovery) => ({
       starts: window.__e10QuestionStarts,
       commands: window.__e10AdventureCommands,
       url: location.href,
@@ -2235,6 +2291,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
           viewportHeight: window.innerHeight,
         };
       })(),
+      cinematicRecovery: recovery,
       legacyMapVisible: (() => {
         const legacy = document.querySelector('#adventure-map-shell');
         if (!legacy) return false;
@@ -2244,7 +2301,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
         return !legacy.hidden && style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
       })(),
       questionVisible: !!document.querySelector('[data-e10-question-state]'),
-    }));
+    }), cinematicRecovery);
     questionEntry.startsBeforeReady = startsBeforeReady;
     questionEntry.actionTrace = actionTrace.slice(actionTraceStart);
     await page.screenshot({ path: path.join(outputDir, `${spec.name}-question-state.png`), fullPage: false });
