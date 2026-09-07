@@ -44,6 +44,9 @@ html[data-world-presentation-state="pending"] body {
 html:not([data-world-presentation-state="pending"]) #world-presentation-pending {
     display: none;
 }
+html[data-world-presentation-error="1"] #world-presentation-pending {
+    display: flex;
+}
 .world-presentation-pending__card {
     width: min(360px, 100%);
     padding: 24px 22px;
@@ -21246,15 +21249,22 @@ const WORLD_PRESENTATION_PENDING = 'pending';
 const WORLD_PRESENTATION_E10 = 'e10';
 const WORLD_PRESENTATION_LEGACY = 'legacy';
 
-var WORLD_PRESENTATION_WATCHDOG_MS = 15000;
+var WORLD_PRESENTATION_WATCHDOG_MS = 30000;
 var __goWorldPresentationWatchdog = null;
 var __goBootstrapFailureShown = false;
 var __goBootstrapFailure = function (kind, error) {
     if (__goBootstrapFailureShown) return;
-    __goBootstrapFailureShown = true;
     console.error('[INIT] bootstrap failure:', kind, error);
+    var root = document.documentElement;
     var pending = document.getElementById('world-presentation-pending');
-    if (!pending) return;
+    if (!pending) {
+        if (typeof setWorldPresentationState === 'function') {
+            setWorldPresentationState(WORLD_PRESENTATION_LEGACY);
+        }
+        if (root) root.setAttribute('data-world-presentation-error', '1');
+        __goBootstrapFailureShown = true;
+        return;
+    }
 
     var message = 'Unable to load the practice world.';
     if (window.I18n && typeof I18n.t === 'function') {
@@ -21287,7 +21297,8 @@ var __goBootstrapFailure = function (kind, error) {
     if (typeof setWorldPresentationState === 'function') {
         setWorldPresentationState(WORLD_PRESENTATION_LEGACY);
     }
-    pending.style.display = 'flex';
+    if (root) root.setAttribute('data-world-presentation-error', '1');
+    __goBootstrapFailureShown = true;
     pending.setAttribute('aria-hidden', 'false');
 };
 window.__goBootstrapFailure = __goBootstrapFailure;
@@ -21299,7 +21310,11 @@ function setWorldPresentationState(nextState) {
     const state = [WORLD_PRESENTATION_PENDING, WORLD_PRESENTATION_E10, WORLD_PRESENTATION_LEGACY].includes(nextState)
         ? nextState
         : WORLD_PRESENTATION_PENDING;
-    if (state !== WORLD_PRESENTATION_PENDING && __goWorldPresentationWatchdog) { window.clearTimeout(__goWorldPresentationWatchdog); __goWorldPresentationWatchdog = null; }
+    if (state !== WORLD_PRESENTATION_PENDING) {
+        if (__goWorldPresentationWatchdog) { window.clearTimeout(__goWorldPresentationWatchdog); __goWorldPresentationWatchdog = null; }
+        document.documentElement?.removeAttribute('data-world-presentation-error');
+        __goBootstrapFailureShown = false;
+    }
     document.documentElement?.setAttribute('data-world-presentation-state', state);
     window.__GO_WORLD_PRESENTATION_STATE__ = state;
     const pending = document.getElementById('world-presentation-pending');
@@ -21511,7 +21526,7 @@ if (!_isPremiumUser && _isDailyLimitLockedToday()) _applyDailyLimit();
 // 首頁 HERO 小卡 Premium 尊榮標記（金框＋皇冠）
 document.getElementById('home-player-figure')?.classList.toggle('premium', _isPremiumUser);
 document.querySelector('.home-player-card')?.classList.toggle('premium', _isPremiumUser);
-}catch(e){console.error('[INIT] auth/me failed:', e);return;}
+}catch(e){console.error('[INIT] auth/me failed:', e);if(typeof notifyAdventureQuestionRuntimeError === 'function') notifyAdventureQuestionRuntimeError('session', e);__goBootstrapFailure('session', e);return;}
     if (!_isPremiumUser && _isDailyLimitLockedToday()) _applyDailyLimit();
     const e9Flags = resolveInitialE9Flags();
     const e9ShellRequested = !!e9Flags.e9Shell;
