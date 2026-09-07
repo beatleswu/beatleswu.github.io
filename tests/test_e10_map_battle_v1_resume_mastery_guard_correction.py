@@ -274,6 +274,7 @@ def test_matrix7_pick_adventure_target_still_prefers_unmastered():
 
     harness = f"""
 let _mapBattleV1ServerProgress = new Map();
+function _isSessionQuestionQuarantined(question) {{ return false; }}
 function _adventureQuestionSeen(qid) {{ return new Set([1, 2]).has(qid); }}
 function _adventureQuestionDefeated(qid) {{ return qid === 2; }}
 {pick_js}
@@ -292,6 +293,7 @@ def test_matrix7_pick_next_adventure_target_still_prefers_unmastered():
     assert "_adventureQuestionDefeated" in pick_js
 
     harness = f"""
+function _isSessionQuestionQuarantined(question) {{ return false; }}
 function _adventureQuestionSeen(qid) {{ return new Set([1, 2]).has(qid); }}
 function _adventureQuestionDefeated(qid) {{ return qid === 2; }}
 {pick_js}
@@ -302,6 +304,23 @@ process.stdout.write(JSON.stringify(result));
     assert result.returncode == 0, result.stderr
     picked = json.loads(result.stdout)
     assert picked["id"] == 3, "the mastered question (2) must still be skipped in favor of the unseen one (3)"
+
+
+def test_matrix7_selectors_exclude_a_session_quarantined_question():
+    pick_js = _extract_function("_pickNextAdventureTarget")
+
+    harness = f"""
+function _isSessionQuestionQuarantined(question) {{ return question.id === 2; }}
+function _adventureQuestionSeen(qid) {{ return false; }}
+function _adventureQuestionDefeated(qid) {{ return false; }}
+{pick_js}
+const result = _pickNextAdventureTarget([{{id: 1}}, {{id: 2}}, {{id: 3}}], 1);
+process.stdout.write(JSON.stringify(result));
+"""
+    result = subprocess.run(["node", "-e", harness], capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    picked = json.loads(result.stdout)
+    assert picked["id"] == 3, "a session-quarantined question must remain excluded from next selection"
 
 
 def test_mastery_guard_removed_only_from_resolver_not_from_selectors():
