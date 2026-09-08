@@ -76,6 +76,7 @@ from battlefield_monster_catalog_authority import (
 )
 from adventure_zone3_monster_authority import (
     ZONE3_BINDING_SOURCE,
+    ZONE3_BINDING_VERSION,
     ZONE3_KEY as ADVENTURE_ZONE3_KEY,
     ZONE3_PRESENTATION_ASSET_FILENAMES,
     ZONE3_DROP_PROFILE_REGISTRY,
@@ -88,6 +89,22 @@ from adventure_zone3_monster_authority import (
     select_zone3_binding,
     zone3_combat_profile,
     zone3_presentation_for_battle,
+)
+from adventure_zone1_2_monster_runtime_provider import (
+    ZONE1_2_BINDING_SOURCE,
+    ZONE1_2_MONSTER_RUNTIME_PROVIDER,
+)
+from adventure_monster_runtime_contract import (
+    AdventureMonsterRuntimeBinding,
+    AdventureMonsterRuntimeContractError,
+    AdventureMonsterRuntimeProviderRegistry,
+    AdventureQuestionBinding,
+    CanonicalAdventureProviderSlot,
+    E055Zone3ProviderAdapter,
+    E055_ZONE3_PROVIDER_ID,
+    persistence_metadata,
+    reject_client_authority_claims,
+    resolve_runtime_binding,
 )
 from adventure_zone3_legacy_compatibility import (
     legacy_zone3_battle_is_retirable,
@@ -15039,6 +15056,175 @@ def _map_battle_monster_hp(question):
     return current, maximum
 
 
+_MAP_BATTLE_CANONICAL_PROVIDER_ZONE_BY_APP_ZONE = {
+    # These are the existing Adventure zone keys.  The provider keys are
+    # canonical authority labels; the persisted Map Battle zone_key remains
+    # the existing app-facing key so old rows and callers keep their identity.
+    'k26_30': 'Z1',
+    'k21_25': 'Z2',
+    ADVENTURE_ZONE3_KEY: ADVENTURE_ZONE3_KEY,
+    'k11_15': 'Z4',
+    'k6_10': 'Z5',
+    'k1_5': 'Z6',
+    'd1_2': 'Z7',
+    'd3_4': 'Z8',
+    'd5_6': 'Z9',
+    'd7_plus': 'Z10',
+}
+_MAP_BATTLE_PROVIDER_BOUND_SOURCES = frozenset({
+    ZONE1_2_BINDING_SOURCE,
+    ZONE3_BINDING_SOURCE,
+})
+_MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY = None
+
+
+def _map_battle_canonical_provider_zone(zone_key):
+    return _MAP_BATTLE_CANONICAL_PROVIDER_ZONE_BY_APP_ZONE.get(
+        str(zone_key or '')
+    )
+
+
+def _map_battle_e055_shared_binding(
+    *,
+    zone_key,
+    question_binding,
+    battle=None,
+    user_id=None,
+):
+    """Adapt E055's existing binding into the one shared runtime contract."""
+
+    if zone_key != ADVENTURE_ZONE3_KEY:
+        return None
+    try:
+        if battle is None:
+            e055_binding = select_zone3_binding(question_binding.question_id)
+        else:
+            e055_binding = decode_zone3_binding(battle)
+        profile = zone3_combat_profile(e055_binding)
+    except Zone3MonsterAuthorityError as error:
+        raise JudgeUnavailable(
+            'Adventure Zone 3 Monster binding is unavailable'
+        ) from error
+    return AdventureMonsterRuntimeBinding(
+        provider_id=E055_ZONE3_PROVIDER_ID,
+        zone_key=ADVENTURE_ZONE3_KEY,
+        monster_id=e055_binding.monster_id,
+        roster_slot=e055_binding.roster_slot,
+        encounter_class=e055_binding.encounter_class,
+        family_id=e055_binding.taxonomy_family,
+        profile_id=e055_binding.profile_id,
+        profile_version=e055_binding.profile_version,
+        max_hp=e055_binding.max_hp,
+        combat_profile=profile,
+        question_binding=question_binding,
+        binding_source=ZONE3_BINDING_SOURCE,
+        binding_version=ZONE3_BINDING_VERSION,
+        persistence_source=ZONE3_BINDING_SOURCE,
+        persistence_version=encode_zone3_binding(e055_binding),
+        drop_profile_id=e055_binding.drop_profile_id,
+        reward_profile_id=e055_binding.reward_profile_id,
+        server_enabled=True,
+        enabled=True,
+    )
+
+
+def _map_battle_runtime_provider_registry():
+    """Return the single Map Battle provider dispatch registry."""
+
+    global _MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY
+    if _MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY is None:
+        _MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY = AdventureMonsterRuntimeProviderRegistry(
+            (
+                ZONE1_2_MONSTER_RUNTIME_PROVIDER,
+                E055Zone3ProviderAdapter(
+                    zone_keys=(ADVENTURE_ZONE3_KEY,),
+                    binding_resolver=_map_battle_e055_shared_binding,
+                ),
+                # Source authority exists for Zones 4-10, but admission is
+                # deliberately disabled until its live caller is separately
+                # authorized.  Dispatch therefore fails closed before insert.
+                CanonicalAdventureProviderSlot(
+                    zone_keys=('Z4', 'Z5', 'Z6', 'Z7', 'Z8', 'Z9', 'Z10'),
+                ),
+            )
+        )
+    return _MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY
+
+
+def _map_battle_provider_binding_for_new(
+    *,
+    zone_key,
+    question_binding,
+    user_id,
+):
+    provider_zone = _map_battle_canonical_provider_zone(zone_key)
+    if provider_zone is None:
+        return None
+    try:
+        return resolve_runtime_binding(
+            _map_battle_runtime_provider_registry(),
+            zone_key=provider_zone,
+            question_binding=question_binding,
+            user_id=int(user_id),
+        )
+    except AdventureMonsterRuntimeContractError as error:
+        raise JudgeUnavailable(
+            'canonical Adventure Monster provider binding is unavailable'
+        ) from error
+
+
+def _map_battle_provider_binding_for_battle(
+    *,
+    battle,
+    question_binding,
+    user_id,
+):
+    """Restore only a provider-bound row; legacy rows remain grandfathered."""
+
+    if not isinstance(battle, dict):
+        battle = dict(battle or {})
+    if str(battle.get('migration_source') or '') not in _MAP_BATTLE_PROVIDER_BOUND_SOURCES:
+        return None
+    provider_zone = _map_battle_canonical_provider_zone(battle.get('zone_key'))
+    if provider_zone is None:
+        raise JudgeUnavailable(
+            'provider-bound Map Battle zone is not admitted'
+        )
+    provider_battle = dict(battle)
+    provider_battle['zone_key'] = provider_zone
+    try:
+        return resolve_runtime_binding(
+            _map_battle_runtime_provider_registry(),
+            zone_key=provider_zone,
+            question_binding=question_binding,
+            battle=provider_battle,
+            user_id=(int(user_id) if user_id is not None else None),
+        )
+    except AdventureMonsterRuntimeContractError as error:
+        raise JudgeUnavailable(
+            'persisted Adventure Monster provider binding is unavailable'
+        ) from error
+
+
+def _map_battle_latest_question_binding(conn, *, battle_id, user_id):
+    row = conn.execute(
+        '''SELECT question_id, question_revision
+             FROM map_battle_attempts
+            WHERE battle_id=? AND user_id=?
+            ORDER BY created_at DESC
+            LIMIT 1''',
+        (str(battle_id), int(user_id)),
+    ).fetchone()
+    if not row:
+        raise JudgeUnavailable(
+            'provider-bound Map Battle question binding is unavailable'
+        )
+    return AdventureQuestionBinding(
+        question_id=row['question_id'],
+        question_revision=row['question_revision'],
+    )
+
+
 def _map_battle_f010_profile(conn, user_id, battle_id):
     """Resolve the selected F010 identity for a feature-on Map Battle.
 
@@ -15110,6 +15296,22 @@ def _map_battle_monster_profile_resolver(conn, user_id, battle_id):
             raise JudgeUnavailable(
                 'Adventure Zone 3 combat profile is unavailable'
             ) from error
+    if str(battle.get('migration_source') or '') in _MAP_BATTLE_PROVIDER_BOUND_SOURCES:
+        question_binding = _map_battle_latest_question_binding(
+            conn,
+            battle_id=battle_id,
+            user_id=user_id,
+        )
+        binding = _map_battle_provider_binding_for_battle(
+            battle=battle,
+            question_binding=question_binding,
+            user_id=user_id,
+        )
+        if binding is None:
+            raise JudgeUnavailable(
+                'Adventure Monster provider binding is unavailable'
+            )
+        return binding.combat_profile
     return _map_battle_f010_profile(conn, user_id, battle_id)
 
 
@@ -15124,7 +15326,7 @@ def _map_battle_open_for_zone(conn, user_id, zone_key):
     return dict(row) if row else None
 
 
-def _map_battle_public_state(battle):
+def _map_battle_public_state(battle, *, question_binding=None):
     if not battle:
         return None
     state = {
@@ -15144,6 +15346,30 @@ def _map_battle_public_state(battle):
         except Zone3MonsterAuthorityError as error:
             raise JudgeUnavailable(
                 'Adventure Zone 3 Monster presentation is unavailable'
+            ) from error
+    elif (
+        question_binding is not None
+        and str(battle.get('migration_source') or '') == ZONE1_2_BINDING_SOURCE
+    ):
+        provider_zone = _map_battle_canonical_provider_zone(battle.get('zone_key'))
+        provider_battle = dict(battle)
+        provider_battle['zone_key'] = provider_zone
+        try:
+            binding = _map_battle_provider_binding_for_battle(
+                battle=battle,
+                question_binding=question_binding,
+                user_id=None,
+            )
+            provider = _map_battle_runtime_provider_registry().provider_for(
+                zone_key=provider_zone,
+            )
+            state['adventure_monster'] = provider.presentation_payload(
+                binding,
+                provider_battle,
+            )
+        except (AdventureMonsterRuntimeContractError, AttributeError) as error:
+            raise JudgeUnavailable(
+                'Adventure Monster presentation is unavailable'
             ) from error
     return state
 
@@ -15201,7 +15427,7 @@ def _map_battle_error_response(error, *, question=None):
 @app.route('/api/adventure/map-battles/v1/attempts', methods=['POST'])
 @login_required
 def map_battle_v1_prepare_attempt():
-    """Create/resume the Legacy battle and issue one attempt nonce."""
+    """Create/resume one Map Battle and issue one attempt nonce."""
     protocol = (request.headers.get('X-Map-Battle-Client-Protocol') or '').strip().lower()
     if protocol != 'v1':
         return jsonify({
@@ -15222,6 +15448,7 @@ def map_battle_v1_prepare_attempt():
             raise RequestRejected('zone_key is required')
         zone_key = zone_key.strip()
         _map_battle_require_question_in_zone(question, zone_key)
+        provider_zone = _map_battle_canonical_provider_zone(zone_key)
         if zone_key == ADVENTURE_ZONE3_KEY:
             # The browser may request a question/zone only.  Any attempted
             # Monster identity or stat claim is rejected; the binding below
@@ -15234,7 +15461,16 @@ def map_battle_v1_prepare_attempt():
                 raise RequestRejected(
                     'Zone 3 Monster identity and combat fields are server-owned'
                 )
+        elif provider_zone is not None:
+            try:
+                reject_client_authority_claims(payload)
+            except AdventureMonsterRuntimeContractError as error:
+                raise RequestRejected(str(error)) from error
         metadata = _map_battle_question_context(question)
+        question_binding = AdventureQuestionBinding(
+            question_id=question['id'],
+            question_revision=metadata['question_revision'],
+        )
         user_id = int(session['user_id'])
         with get_db() as conn:
             eligibility = _map_battle_require_enabled(user_id, conn)
@@ -15281,6 +15517,36 @@ def map_battle_v1_prepare_attempt():
                         migration_source=ZONE3_BINDING_SOURCE,
                         migration_version=encode_zone3_binding(zone3_binding),
                     )
+                elif provider_zone is not None:
+                    if monster_selector_v1_enabled(os.environ):
+                        # GAP-06 remains the authoritative F009 boundary:
+                        # selector-enabled new encounters fail before any
+                        # provider or battle state is created.
+                        reject_unadmitted_selector_encounter(
+                            zone_key=zone_key,
+                            phase='new encounter',
+                        )
+                    provider_binding = _map_battle_provider_binding_for_new(
+                        zone_key=zone_key,
+                        question_binding=question_binding,
+                        user_id=user_id,
+                    )
+                    if provider_binding is None:
+                        raise JudgeUnavailable(
+                            'canonical Adventure Monster provider binding is unavailable'
+                        )
+                    provider_persistence = persistence_metadata(provider_binding)
+                    battle_id = create_map_battle(
+                        conn,
+                        user_id=user_id,
+                        zone_key=zone_key,
+                        player_hp=player_hp,
+                        player_hp_max=player_hp_max,
+                        monster_hp=provider_binding.max_hp,
+                        monster_hp_max=provider_binding.max_hp,
+                        migration_source=provider_persistence['migration_source'],
+                        migration_version=provider_persistence['migration_version'],
+                    )
                 elif monster_selector_v1_enabled(os.environ):
                     # F009's 20 legacy identities have no admitted canonical
                     # provider binding.  Fail before selector-state or battle
@@ -15305,6 +15571,12 @@ def map_battle_v1_prepare_attempt():
             else:
                 if zone_key == ADVENTURE_ZONE3_KEY:
                     _map_battle_zone3_binding(battle)
+                elif str(battle.get('migration_source') or '') in _MAP_BATTLE_PROVIDER_BOUND_SOURCES:
+                    _map_battle_provider_binding_for_battle(
+                        battle=battle,
+                        question_binding=question_binding,
+                        user_id=user_id,
+                    )
                 battle_id = str(battle['id'])
             issued = issue_attempt_with_submission_nonce(
                 conn,
@@ -15328,7 +15600,13 @@ def map_battle_v1_prepare_attempt():
             )
             if battle is None:
                 raise RequestRejected('battle does not exist for owner', status=404)
-            public_battle = _map_battle_public_state(battle)
+            public_battle = _map_battle_public_state(
+                battle,
+                question_binding=AdventureQuestionBinding(
+                    question_id=attempt['question_id'],
+                    question_revision=attempt['question_revision'],
+                ),
+            )
         return jsonify({
             'ok': True,
             'battle': public_battle,
@@ -15402,7 +15680,13 @@ def map_battle_v1_resume_validation(attempt_id):
             )
             if question_revision_for(question) != str(validated['attempt']['question_revision']):
                 raise RequestRejected('question revision is stale for this attempt', status=409)
-            public_battle = _map_battle_public_state(validated['battle'])
+            public_battle = _map_battle_public_state(
+                validated['battle'],
+                question_binding=AdventureQuestionBinding(
+                    question_id=validated['attempt']['question_id'],
+                    question_revision=validated['attempt']['question_revision'],
+                ),
+            )
         return jsonify({
             'ok': True,
             'resumable': True,

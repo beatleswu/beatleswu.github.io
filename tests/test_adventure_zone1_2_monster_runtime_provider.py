@@ -332,9 +332,13 @@ def test_legacy_fallback_remains_present_and_is_not_promoted():
     assert ZONE1_2_MONSTER_RUNTIME_PROVIDER.reward_policy_for("M001") is None
 
 
-def test_no_live_app_wiring_or_second_runtime_was_added():
+def test_app_uses_shared_provider_boundary_without_second_runtime():
     app_source = Path(__file__).resolve().parents[1].joinpath("app.py").read_text(
         encoding="utf-8"
     )
-    assert "adventure_zone1_2_monster_runtime_provider" not in app_source
+    # GAP-02 is the separately governed creation cutover.  The provider is
+    # now intentionally imported only through the shared Map Battle dispatch
+    # boundary; the test still protects against a second runtime implementation.
+    assert "_map_battle_runtime_provider_registry" in app_source
+    assert "class AdventureZone1_2MonsterRuntimeProvider" not in app_source
     assert ZONE1_2_MONSTER_RUNTIME_PROVIDER.runtime_role == "canonical_zone1_2_provider"

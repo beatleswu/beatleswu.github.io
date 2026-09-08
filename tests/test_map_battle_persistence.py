@@ -35,6 +35,14 @@ from map_battle_persistence import (
     reserve_submission_nonce,
     settle_map_battle_submission,
 )
+from adventure_monster_runtime_contract import (
+    AdventureQuestionBinding,
+    persistence_metadata,
+    resolve_runtime_binding,
+)
+from adventure_zone1_2_monster_runtime_provider import (
+    ZONE1_2_MONSTER_RUNTIME_PROVIDER,
+)
 
 
 _POSTGRES_CONNECT_TIMEOUT = 3
@@ -98,6 +106,67 @@ def _reserve(conn, attempt_id="attempt-1", nonce="nonce-1", request_hash="reques
         canonical_move_json={"moves": [{"x": 3, "y": 3}]},
         received_at="2026-08-02T00:01:00+00:00",
     )
+
+
+def test_provider_binding_uses_existing_map_battle_persistence_seam(sqlite_db):
+    question = AdventureQuestionBinding(9101, "question-revision-9101")
+    binding = ZONE1_2_MONSTER_RUNTIME_PROVIDER.bind_new_battle(
+        101,
+        "Z1",
+        question,
+    )
+    metadata = persistence_metadata(binding)
+    battle_id = create_map_battle(
+        sqlite_db,
+        battle_id="provider-bound-z1",
+        user_id=101,
+        zone_key="k26_30",
+        player_hp=20,
+        player_hp_max=20,
+        monster_hp=binding.max_hp,
+        monster_hp_max=binding.max_hp,
+        migration_source=metadata["migration_source"],
+        migration_version=metadata["migration_version"],
+    )
+    attempt_id = issue_map_battle_attempt(
+        sqlite_db,
+        attempt_id="provider-bound-z1-attempt",
+        battle_id=battle_id,
+        user_id=101,
+        question_id=question.question_id,
+        question_revision=question.question_revision,
+        initial_position_identity="provider-position",
+        board_size=19,
+        player_color="B",
+        transform_version="transform-v1",
+        transform_id="identity",
+        battle_revision_at_issue=0,
+        issued_at="2026-08-02T00:00:00+00:00",
+        expires_at="2026-08-03T00:00:00+00:00",
+    )
+
+    stored = dict(load_authoritative_battle_state(
+        sqlite_db,
+        user_id=101,
+        battle_id=battle_id,
+    ))
+    provider_battle = {**stored, "zone_key": binding.zone_key}
+    restored = resolve_runtime_binding(
+        ZONE1_2_MONSTER_RUNTIME_PROVIDER,
+        zone_key="Z1",
+        question_binding=question,
+        battle=provider_battle,
+        user_id=101,
+    )
+
+    assert attempt_id == "provider-bound-z1-attempt"
+    assert stored["zone_key"] == "k26_30"
+    assert stored["migration_source"] == metadata["migration_source"]
+    assert stored["migration_version"] == metadata["migration_version"]
+    assert restored.monster_id == binding.monster_id
+    assert restored.profile_id == binding.profile_id
+    assert restored.profile_version == binding.profile_version
+    assert restored.max_hp == binding.max_hp
 
 
 def test_mode_is_server_controlled_and_fails_closed(monkeypatch):

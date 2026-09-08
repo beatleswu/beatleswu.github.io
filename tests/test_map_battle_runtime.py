@@ -4,7 +4,9 @@ import ast
 import hashlib
 import json
 import sqlite3
+import sys
 import threading
+import types
 from pathlib import Path
 
 import pytest
@@ -30,6 +32,12 @@ from map_battle_runtime import (
     settle_answer,
 )
 from map_battle_persistence import create_map_battle
+from adventure_monster_runtime_contract import AdventureQuestionBinding
+
+try:
+    from test_map_battle_legacy_adapter import api_env as api_env
+except ImportError:  # pragma: no cover - direct non-pytest imports
+    api_env = None
 
 
 QUESTION = {
@@ -40,6 +48,54 @@ QUESTION = {
 }
 QUESTION_REVISION = hashlib.sha256(QUESTION["content"].encode("utf-8")).hexdigest()
 _ISSUED_NONCES = {}
+
+
+def _install_app_import_stubs():
+    """Keep provider-bound creation checks independent of optional services."""
+
+    if "katago_explain" not in sys.modules:
+        module = types.ModuleType("katago_explain")
+        module.KataGoExplainer = type("KataGoExplainer", (), {})
+        sys.modules["katago_explain"] = module
+    if "explain_overrides" not in sys.modules:
+        module = types.ModuleType("explain_overrides")
+        module.get_override = lambda *args, **kwargs: None
+        sys.modules["explain_overrides"] = module
+    if "grimoire_api" not in sys.modules:
+        from flask import Blueprint
+
+        module = types.ModuleType("grimoire_api")
+        module.grimoire_bp = Blueprint("grimoire_stub_gap02", __name__)
+        sys.modules["grimoire_api"] = module
+    if "question_taxonomy" not in sys.modules:
+        module = types.ModuleType("question_taxonomy")
+        module.get_taxonomy = lambda *args, **kwargs: {}
+        sys.modules["question_taxonomy"] = module
+    if "monster_taxonomy" not in sys.modules:
+        module = types.ModuleType("monster_taxonomy")
+        module.get_monster_taxonomy = lambda *args, **kwargs: {}
+        module.mark_encounters = lambda *args, **kwargs: None
+        sys.modules["monster_taxonomy"] = module
+    if "chapter_i18n" not in sys.modules:
+        module = types.ModuleType("chapter_i18n")
+        module.localize_topic = lambda *args, **kwargs: ""
+        module.localize_level = lambda *args, **kwargs: ""
+        sys.modules["chapter_i18n"] = module
+    if "backend_i18n" not in sys.modules:
+        module = types.ModuleType("backend_i18n")
+        module.badge_en = lambda *args, **kwargs: ""
+        module.skill_node_en = lambda *args, **kwargs: ""
+        module.title_en = lambda *args, **kwargs: ""
+        sys.modules["backend_i18n"] = module
+
+
+@pytest.fixture(scope="module")
+def app_module():
+    _install_app_import_stubs()
+    import app as module
+
+    module.app.config["TESTING"] = True
+    return module
 
 
 @pytest.fixture()
@@ -120,6 +176,289 @@ def _settle(conn, payload):
         mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
         now="2026-08-02T00:01:00+00:00",
     )
+
+
+def test_gap02_new_zone1_creation_is_provider_bound_and_deterministic(app_module):
+    question = AdventureQuestionBinding(8101, "question-revision-8101")
+    first = app_module._map_battle_provider_binding_for_new(
+        zone_key="k26_30",
+        question_binding=question,
+        user_id=101,
+    )
+    second = app_module._map_battle_provider_binding_for_new(
+        zone_key="k26_30",
+        question_binding=question,
+        user_id=999,
+    )
+
+    assert first.provider_id == second.provider_id
+    assert first.monster_id == second.monster_id
+    assert first.zone_key == "Z1"
+    assert first.max_hp == 60
+    assert first.combat_profile.attack == 5
+    assert first.persistence_source == app_module.ZONE1_2_BINDING_SOURCE
+    assert first.persistence_version.startswith("w2.z1_z2.binding.v1:Z1:")
+
+
+def test_gap02_new_zone2_creation_is_provider_bound(app_module):
+    binding = app_module._map_battle_provider_binding_for_new(
+        zone_key="k21_25",
+        question_binding=AdventureQuestionBinding(8102, "question-revision-8102"),
+        user_id=101,
+    )
+
+    assert binding.zone_key == "Z2"
+    assert binding.max_hp in (80, 104, 128)
+    assert binding.combat_profile.attack in (6, 8, 9)
+    assert binding.server_enabled is True
+    assert binding.drop_profile_id is None
+    assert binding.reward_profile_id is None
+
+
+def test_gap02_disabled_zone4_to_10_admission_fails_closed_before_creation(
+    app_module,
+):
+    with pytest.raises(app_module.JudgeUnavailable):
+        app_module._map_battle_provider_binding_for_new(
+            zone_key="k11_15",
+            question_binding=AdventureQuestionBinding(8103, "question-revision-8103"),
+            user_id=101,
+        )
+
+
+def test_gap02_restore_preserves_provider_identity_and_rejects_stale_question(
+    app_module,
+):
+    question = AdventureQuestionBinding(8104, "question-revision-8104")
+    binding = app_module._map_battle_provider_binding_for_new(
+        zone_key="k26_30",
+        question_binding=question,
+        user_id=101,
+    )
+    battle = {
+        "id": "gap02-provider-battle",
+        "zone_key": "k26_30",
+        "state": "OPEN",
+        "player_hp": 20,
+        "player_hp_max": 20,
+        "monster_hp": binding.max_hp,
+        "monster_hp_max": binding.max_hp,
+        "migration_source": binding.persistence_source,
+        "migration_version": binding.persistence_version,
+    }
+    restored = app_module._map_battle_provider_binding_for_battle(
+        battle=battle,
+        question_binding=question,
+        user_id=101,
+    )
+
+    assert restored.monster_id == binding.monster_id
+    assert restored.profile_id == binding.profile_id
+    assert restored.profile_version == binding.profile_version
+    assert restored.max_hp == binding.max_hp
+
+    rebound_question = AdventureQuestionBinding(8104, "next-attempt-revision")
+    rebound = app_module._map_battle_provider_binding_for_battle(
+        battle=battle,
+        question_binding=rebound_question,
+        user_id=101,
+    )
+    assert rebound.monster_id == binding.monster_id
+    assert rebound.profile_id == binding.profile_id
+
+
+def test_gap02_legacy_rows_remain_grandfathered_and_are_not_rebound(app_module):
+    legacy_battle = {
+        "zone_key": "k26_30",
+        "state": "OPEN",
+        "player_hp": 20,
+        "player_hp_max": 20,
+        "monster_hp": 100,
+        "monster_hp_max": 100,
+        "migration_source": "legacy-adventure-map",
+        "migration_version": "map-battle-v1",
+    }
+
+    assert app_module._map_battle_provider_binding_for_battle(
+        battle=legacy_battle,
+        question_binding=AdventureQuestionBinding(8105, "legacy-revision"),
+        user_id=101,
+    ) is None
+
+
+@pytest.mark.skipif(api_env is None, reason="shared disposable API fixture unavailable")
+def test_gap02_prepare_route_persists_provider_bound_zone1_battle(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(
+        app_module,
+        "_questions_for_adventure_zone",
+        lambda questions, zone, premium=True: list(questions),
+    )
+    response = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "k26_30", "question_id": QUESTION["id"]},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    )
+
+    assert response.status_code == 200, response.get_json()
+    payload = response.get_json()
+    stored = dict(conn.execute(
+        "SELECT * FROM map_battles WHERE id=?", (payload["battle_id"],)
+    ).fetchone())
+    assert stored["zone_key"] == "k26_30"
+    assert stored["migration_source"] == app_module.ZONE1_2_BINDING_SOURCE
+    assert stored["migration_version"].startswith("w2.z1_z2.binding.v1:Z1:")
+    assert stored["monster_hp_max"] in (60, 78, 96)
+    assert stored["monster_hp_max"] != 100
+    assert payload["battle"]["adventure_monster"]["provider_id"] == (
+        app_module.ZONE1_2_MONSTER_RUNTIME_PROVIDER.provider_id
+    )
+
+
+@pytest.mark.skipif(api_env is None, reason="shared disposable API fixture unavailable")
+def test_gap02_prepare_route_rejects_client_monster_authority_before_insert(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(
+        app_module,
+        "_questions_for_adventure_zone",
+        lambda questions, zone, premium=True: list(questions),
+    )
+    before = conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0]
+    response = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={
+            "zone_key": "k26_30",
+            "question_id": QUESTION["id"],
+            "monster_id": "M110",
+        },
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    )
+
+    assert response.status_code == 400
+    assert "server-owned Monster authority" in response.get_json()["message"]
+    assert conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0] == before
+
+
+@pytest.mark.skipif(api_env is None, reason="shared disposable API fixture unavailable")
+def test_gap02_prepare_retry_reuses_provider_bound_battle(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(
+        app_module,
+        "_questions_for_adventure_zone",
+        lambda questions, zone, premium=True: list(questions),
+    )
+    first = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "k26_30", "question_id": QUESTION["id"]},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    ).get_json()
+    second = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "k26_30", "question_id": QUESTION["id"]},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    ).get_json()
+
+    assert first["battle_id"] == second["battle_id"]
+    assert conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0] == 1
+    stored = dict(conn.execute(
+        "SELECT * FROM map_battles WHERE id=?", (first["battle_id"],)
+    ).fetchone())
+    assert stored["migration_source"] == app_module.ZONE1_2_BINDING_SOURCE
+
+
+@pytest.mark.skipif(api_env is None, reason="shared disposable API fixture unavailable")
+def test_gap02_prepare_route_persists_provider_bound_zone2_battle(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(
+        app_module,
+        "_questions_for_adventure_zone",
+        lambda questions, zone, premium=True: list(questions),
+    )
+    response = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "k21_25", "question_id": QUESTION["id"]},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    )
+
+    assert response.status_code == 200, response.get_json()
+    payload = response.get_json()
+    stored = dict(conn.execute(
+        "SELECT * FROM map_battles WHERE id=?", (payload["battle_id"],)
+    ).fetchone())
+    assert stored["zone_key"] == "k21_25"
+    assert stored["migration_source"] == app_module.ZONE1_2_BINDING_SOURCE
+    assert stored["migration_version"].startswith("w2.z1_z2.binding.v1:Z2:")
+    assert stored["monster_hp_max"] in (80, 104, 128)
+    assert stored["monster_hp_max"] != 100
+
+
+@pytest.mark.skipif(api_env is None, reason="shared disposable API fixture unavailable")
+def test_gap02_disabled_zone4_creation_fails_before_persistence(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(
+        app_module,
+        "_questions_for_adventure_zone",
+        lambda questions, zone, premium=True: list(questions),
+    )
+    before = conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0]
+    response = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "k11_15", "question_id": QUESTION["id"]},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    )
+
+    assert response.status_code == 503
+    assert conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0] == before
+
+
+@pytest.mark.skipif(api_env is None, reason="shared disposable API fixture unavailable")
+def test_gap02_existing_legacy_row_is_grandfathered(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(
+        app_module,
+        "_questions_for_adventure_zone",
+        lambda questions, zone, premium=True: list(questions),
+    )
+    legacy_id = app_module.create_map_battle(
+        conn,
+        battle_id="gap02-grandfathered-legacy",
+        user_id=101,
+        zone_key="k26_30",
+        player_hp=30,
+        player_hp_max=30,
+        monster_hp=40,
+        monster_hp_max=40,
+        migration_source="legacy-adventure-map",
+        migration_version="map-battle-v1",
+    )
+    conn.commit()
+
+    response = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "k26_30", "question_id": QUESTION["id"]},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    )
+
+    assert response.status_code == 200, response.get_json()
+    assert response.get_json()["battle_id"] == legacy_id
+    stored = dict(conn.execute(
+        "SELECT * FROM map_battles WHERE id=?", (legacy_id,)
+    ).fetchone())
+    assert stored["migration_source"] == "legacy-adventure-map"
+    assert stored["migration_version"] == "map-battle-v1"
+    assert stored["monster_hp_max"] == 40
 
 
 def test_canonicalization_is_deterministic_and_excludes_authority_fields(battle_db):
