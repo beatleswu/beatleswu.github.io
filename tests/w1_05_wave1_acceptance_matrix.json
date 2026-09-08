@@ -83,6 +83,7 @@
       "current_result": "PASS_AUTOMATED_TEST_ENVIRONMENT",
       "evidence_location": [
         "tests/test_w1_a1_lord_first_clear_durable_settlement.py",
+        "tests/test_w1_a2_map_battle_trusted_evidence_alignment.py",
         "tests/test_map_battle_runtime.py",
         "tests/test_map_battle_persistence.py",
         "tests/test_w1_05_wave1_acceptance_harness.py"
