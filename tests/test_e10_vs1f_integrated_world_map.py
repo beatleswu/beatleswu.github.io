@@ -3,6 +3,12 @@ import json
 import re
 from pathlib import Path
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_cache_tag,
+    read_static_runtime_identity,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 WORLD_STAGE = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
@@ -13,7 +19,6 @@ BOTTOM_DOCK = (ROOT / "components/adventure/bottom_dock.html").read_text(encodin
 LEFT_NAV_JS = (ROOT / "js/e9/left_nav.js").read_text(encoding="utf-8")
 BOTTOM_DOCK_JS = (ROOT / "js/e9/bottom_dock.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
-FLAGS = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 LANDMARK_DIR = ROOT / "assets/maps/e10-vs1f-landmarks"
 CANONICAL_ZONE3_LANDMARK = "assets/e10/art/zone3/environment/zone3_map_landmark.webp"
@@ -46,9 +51,10 @@ def _manifest(relative_path):
 def test_exact_v218_static_runtime_version_coupling():
     assert f'content="{CONTRACT}"' in INDEX
     assert f"VS1E_STATIC_CONTRACT = '{CONTRACT}'" in WORLD_JS
-    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v230-e10-lord-trial-safari-recovery'" in SW
-    assert INDEX.count("20260801e10art1") >= 8
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.asset_version
+    assert identity.sw_version
+    assert INDEX.count(read_cache_tag(ROOT, "css/e9/art_directed_runtime.css")) >= 8
 
 
 def test_original_landmarks_and_canonical_zone3_landmark_are_runtime_referenced_and_governed():

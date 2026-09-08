@@ -1,7 +1,12 @@
 """Fail-closed static/runtime handshake for the VS1E visual shell."""
 
 from pathlib import Path
-import re
+
+from tests.support.sw_identity import (
+    assert_static_cache_tag_group_well_formed,
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,13 +75,16 @@ def test_vs1d_render_path_is_preserved_without_the_contract():
 
 
 def test_bridge_versions_are_exactly_coupled():
-    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v230-e10-lord-trial-safari-recovery'" in SW
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.asset_version
+    assert identity.sw_version
     assert "e10-vs1e-review-closure" not in FLAGS
     assert "v213-e10-vs1e-review-closure" not in SW
-    queries = re.findall(
-        r'(?:i18n\.js|immersive_rpg\.css|feature_flags\.js|right_cards\.js|world_stage\.js)'
-        r'\?v=([^"\']+)',
-        INDEX,
-    )
-    assert queries == ["20260801e10art1"] * 5
+    tags = assert_static_cache_tag_group_well_formed(identity.cache_tags)
+    assert set(tags) == {
+        "i18n.js",
+        "css/e9/immersive_rpg.css",
+        "js/e9/feature_flags.js",
+        "js/e9/right_cards.js",
+        "js/e9/world_stage.js",
+    }

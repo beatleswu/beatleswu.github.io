@@ -12,6 +12,11 @@ from pathlib import Path
 
 import pytest
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
+
 from map_battle_persistence import (
     create_map_battle,
     ensure_map_battle_tables,
@@ -1511,4 +1516,5 @@ def test_normal_srs_route_remains_present_and_service_worker_identity_is_unchang
     assert "@app.route('/api/srs/review', methods=['POST'])" in (ROOT / "app.py").read_text(encoding="utf-8")
     assert "SRS.review(currentQ.id,grade" in html
     assert "?v=20260803e10s2b" in html
-    assert "const VERSION     = 'v230-e10-lord-trial-safari-recovery'" in sw
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.sw_version

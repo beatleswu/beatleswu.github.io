@@ -2,6 +2,11 @@ import json
 import re
 from pathlib import Path
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -9,9 +14,6 @@ SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 INVENTORY = json.loads(
     (ROOT / "deploy" / "live-static-asset-inventory.json").read_text(encoding="utf-8")
 )
-
-
-SOURCE_ASSET_IDENTITY = "source-v230-e10-lord-trial-safari-recovery"
 
 
 def _script_identity(path: str) -> str:
@@ -26,7 +28,8 @@ def test_e10_navigation_scripts_and_service_worker_have_explicit_release_identit
     # static packaging, so the two layers no longer share a fixed literal.
     assert _script_identity("site-nav.js")
     assert _script_identity("js/e9/shell.js")
-    assert f"const ASSET_IDENTITY = '{SOURCE_ASSET_IDENTITY}';" in SW
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert f"const ASSET_IDENTITY = '{identity.sw_asset_identity}';" in SW
     assert "Get-StaticReleaseAssetIdentity" in (ROOT / "scripts" / "release" / "ReleaseTooling.psm1").read_text(encoding="utf-8")
     assert "cg-shell-${VERSION}-${ASSET_IDENTITY}" in SW
     assert "cg-img-${VERSION}-${ASSET_IDENTITY}" in SW

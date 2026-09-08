@@ -4,12 +4,16 @@ import sys
 import types
 from pathlib import Path
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 WORLD_STAGE = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
 WORLD_MARKUP = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
-SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
 
 def _load_rollout_module():
@@ -81,8 +85,8 @@ def test_newbie_cta_maps_existing_state_without_recomputing_progress():
 
 
 def test_sw_active_version_is_bumped_for_this_runtime_change():
-    assert "v230-e10-lord-trial-safari-recovery" in SW
-    assert "v190-newbie-village-mainline-clarity" not in SW
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.sw_version != "v190-newbie-village-mainline-clarity"
 
 
 def test_synthetic_rollout_matrix_uses_server_identity_and_cleans_environment():

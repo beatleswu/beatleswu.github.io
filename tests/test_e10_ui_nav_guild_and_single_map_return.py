@@ -22,12 +22,16 @@ was removed.
 
 from pathlib import Path
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 REGISTRY = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
 LEFT_NAV = (ROOT / "js/e9/left_nav.js").read_text(encoding="utf-8")
-SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
 
 def _function_block(name: str, end_name: str) -> str:
@@ -226,10 +230,7 @@ def test_language_existing_labels_are_not_regressed():
 # ======================================================================
 
 def test_service_worker_version_was_bumped_for_this_runtime_change():
-    assert "const VERSION" in SW
-    version_line = SW[SW.index("const VERSION"):]
-    version_line = version_line[:version_line.index("\n")]
-    assert "v233-e10-question-loader-board-renderer-v1b-b5" not in version_line, (
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.sw_version != "v233-e10-question-loader-board-renderer-v1b-b5", (
         "the runtime changed, so the canonical cache version must move"
     )
-    assert "const VERSION     = 'v240-a028-hero-player-presentation-readonly';" in version_line

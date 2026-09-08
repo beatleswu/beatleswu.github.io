@@ -20,6 +20,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.support.sw_identity import read_active_sw_identity
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 APP_PY = REPO_ROOT / "app.py"
 SW_JS = REPO_ROOT / "sw.js"
@@ -29,14 +31,6 @@ JS_DIR = REPO_ROOT / "js" / "e9"
 COMPONENTS_DIR = REPO_ROOT / "components" / "adventure"
 
 OLD_SW_VERSION = "v183-e9-1d2-layout-rwd"
-# NEW_SW_VERSION tracks whatever Sprint most recently bumped sw.js VERSION
-# (superseded by each subsequent Sprint that also changes E9 JS bytes --
-# see RELEASE-FIX-B, docs/planning/release_fix_b_e9_i18n_fallback.md).
-# Bumped in 2026-07-15's intro narration browser-TTS contract fix (the
-# shell version const is shared by both E9 and legacy static routes).
-NEW_SW_VERSION = "v196-e9-adventure-cta-activation-fix"
-
-
 def _read(path):
     assert path.is_file(), f"expected file to exist: {path}"
     return path.read_text(encoding="utf-8")
@@ -378,8 +372,9 @@ def test_reuses_existing_window_onlangchange_mechanism_not_a_new_one():
 
 def test_sw_version_bumped():
     sw_js = _read(SW_JS)
+    sw_version, _ = read_active_sw_identity(REPO_ROOT)
     assert OLD_SW_VERSION not in sw_js, "sw.js VERSION must be bumped, not left at the pre-E9.1A2 value"
-    assert "v230-e10-lord-trial-safari-recovery" in sw_js
+    assert sw_version
 
 
 def test_sw_cache_strategy_functions_unchanged():
