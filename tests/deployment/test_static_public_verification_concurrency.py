@@ -22,7 +22,7 @@ def _run_powershell(script):
     executable = shutil.which("pwsh") or shutil.which("powershell")
     assert executable, "PowerShell is required for public-verifier contract tests"
     return subprocess.run(
-        [executable, "-NoProfile", "-NonInteractive", "-Command", script],
+        [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
         cwd=ROOT,
         capture_output=True,
         text=True,
