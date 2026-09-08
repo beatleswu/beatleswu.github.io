@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -25,7 +26,6 @@ from adventure_zone1_2_monster_runtime_provider import (
     ZONE1_2_BINDING_SOURCE,
     ZONE1_2_MONSTER_RUNTIME_PROVIDER,
     ZONE1_2_PERSISTENCE_VERSION,
-    ZONE1_2_PROFILE_VERSION,
     get_zone1_2_monster_profile,
     iter_zone1_2_monster_profiles,
     require_zone1_2_monster_profile,
@@ -47,6 +47,7 @@ from monster_settlement import build_monster_defeated_event
 
 
 QUESTION = AdventureQuestionBinding(8101, "question-revision-8101")
+PROFILE_VERSION_EXPECTED_LITERAL = "w2.z1_z2.profile.v1"
 ZONE1_IDS = {
     "M001",
     "M002",
@@ -127,7 +128,7 @@ def test_exact_28_rows_cover_owner_roster_and_combat_authority():
             f"adventure_{row.zone_key.lower()}_"
             f"{row.encounter_class.lower()}_{row.monster_id}"
         )
-        assert row.profile_version == ZONE1_2_PROFILE_VERSION
+        assert row.profile_version == PROFILE_VERSION_EXPECTED_LITERAL
         assert row.family_id is None
         assert row.taxonomy_status == "DEFER_TAXONOMY"
         assert row.reward_drop_policy == DEFERRED_REWARD_DROP_POLICY
@@ -153,6 +154,44 @@ def test_exact_class_assignments_and_roster_slots_are_not_range_derived():
     assert [rows[mid].roster_slot for mid in sorted(ZONE1_IDS)]
     assert {row.roster_slot for row in rows.values() if row.zone_key == "Z1"} == set(range(1, 15))
     assert {row.roster_slot for row in rows.values() if row.zone_key == "Z2"} == set(range(1, 15))
+
+
+def test_boss_zone_placements_are_explicit_and_independent_of_class():
+    rows = {row.monster_id: row for row in iter_zone1_2_monster_profiles()}
+    assert rows["M110"].zone_key == "Z1"
+    assert rows["M094"].zone_key == "Z2"
+
+
+def _assert_independent_profile_version_pin(rows):
+    for row in rows:
+        assert row.profile_version == PROFILE_VERSION_EXPECTED_LITERAL
+
+
+def _assert_independent_boss_zone_pins(rows):
+    assert rows["M110"].zone_key == "Z1"
+    assert rows["M094"].zone_key == "Z2"
+
+
+def test_independent_pins_reject_profile_and_boss_zone_mutations():
+    rows = {row.monster_id: row for row in iter_zone1_2_monster_profiles()}
+
+    wrong_version = dict(rows)
+    wrong_version["M001"] = replace(
+        rows["M001"],
+        profile_version="wrong.profile.version",
+    )
+    with pytest.raises(AssertionError):
+        _assert_independent_profile_version_pin(wrong_version.values())
+
+    wrong_m110_zone = dict(rows)
+    wrong_m110_zone["M110"] = replace(rows["M110"], zone_key="Z2")
+    with pytest.raises(AssertionError):
+        _assert_independent_boss_zone_pins(wrong_m110_zone)
+
+    wrong_m094_zone = dict(rows)
+    wrong_m094_zone["M094"] = replace(rows["M094"], zone_key="Z1")
+    with pytest.raises(AssertionError):
+        _assert_independent_boss_zone_pins(wrong_m094_zone)
 
 
 def test_taxonomy_and_reward_drop_are_explicitly_deferred():
