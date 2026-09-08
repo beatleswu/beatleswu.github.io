@@ -15,6 +15,12 @@ Two tiers, deliberately never conflated:
 
 ``visible = GRANDFATHERED_LEGACY_PROGRESS UNION TRUSTED_SERVER_CORRECT_PROGRESS``
 
+The W1-D1 Owner ruling keeps the ``mbv1:`` namespace and its valid existing
+evidence intact.  This module therefore continues to read that namespace as
+current trusted server evidence, while the frozen historical baseline remains
+the separate Tier 1 continuity projection.  No mbv1 rows are rewritten or
+retroactively reclassified by this compatibility layer.
+
 The baseline is captured once by the controlled runner in
 ``tools/incident_019b_progression_continuity.py``.  No request path writes to
 it, and the runner refuses to add live card state after the baseline has been
@@ -61,7 +67,11 @@ from adventure_zone_progression_authority import (
 )
 
 
-TRUSTED_REVIEW_SOURCE_PREFIXES = ("mbv1:",)
+MAP_BATTLE_TRUSTED_EVIDENCE_POLICY = (
+    "PRESERVE_BARE_LEAF_AND_GRANDFATHER_MBV1"
+)
+MAP_BATTLE_GRANDFATHERED_SOURCE_PREFIX = "mbv1:"
+TRUSTED_REVIEW_SOURCE_PREFIXES = (MAP_BATTLE_GRANDFATHERED_SOURCE_PREFIX,)
 _QUERY_CHUNK_SIZE = 500
 
 
@@ -390,6 +400,8 @@ def trusted_current_memberships(
 
     ``source_context`` is deliberately the only current authority consulted;
     public SRS grades and live card state are not trusted correctness input.
+    The Owner-approved ``mbv1:`` namespace remains valid for all existing and
+    future server-owned Map Battle evidence.
     """
 
     prefixes = tuple(str(prefix) for prefix in source_prefixes if str(prefix))
@@ -1294,6 +1306,8 @@ __all__ = [
     "CUTOFF_LITERAL",
     "SOURCE_RULE_VERSION",
     "GRANDFATHERED_ENTITLEMENT_SOURCE",
+    "MAP_BATTLE_TRUSTED_EVIDENCE_POLICY",
+    "MAP_BATTLE_GRANDFATHERED_SOURCE_PREFIX",
     "PRECHANGE_PREDICATE_REFERENCE_SHA",
     "RECONSTRUCTION_CLASS_CONSERVATIVE",
     "RECONSTRUCTION_CLASS_EXACT",

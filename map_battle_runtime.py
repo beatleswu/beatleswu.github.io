@@ -52,6 +52,27 @@ OLD_CLIENT_HTTP_STATUS = 426
 OLD_CLIENT_ERROR = "upgrade_required"
 FEATURE_DISABLED_HTTP_STATUS = 503
 
+# W1-D1 Owner ruling.  Keep this policy at the existing Map Battle judge
+# boundary: it names the outcomes that may become trusted ``mbv1:`` evidence
+# without introducing a second judge or a new terminal-verdict contract.
+MAP_BATTLE_TRUSTED_EVIDENCE_POLICY = (
+    "PRESERVE_BARE_LEAF_AND_GRANDFATHER_MBV1"
+)
+MAP_BATTLE_TRUSTED_CORRECT_REASON_CODES = frozenset(
+    {
+        "accepted_authoritative_alternative",
+        "answer_tree_leaf",
+        "answer_tree_reply_leaf",
+    }
+)
+MAP_BATTLE_TRUSTED_INCORRECT_REASON_CODES = frozenset(
+    {
+        "off_answer_tree",
+        "resign",
+        "partial_answer_sequence",
+    }
+)
+
 _FORBIDDEN_CLIENT_FIELDS = frozenset({
     "grade",
     "correct",
@@ -280,6 +301,35 @@ class JudgeOutcome:
     authoritative_grade: int | None
     judge_version: str
     reason_code: str
+
+
+def is_owner_approved_map_battle_outcome(outcome: JudgeOutcome) -> bool:
+    """Return whether ``outcome`` is in the approved Map Battle contract.
+
+    This is a contract check, not a second judge.  The default judge below is
+    the sole producer of these reason codes.  Keeping the check beside the
+    settlement boundary prevents an unrecognised injected/custom ``CORRECT``
+    result from becoming trusted evidence while preserving every current
+    result class and its existing persistence semantics.
+    """
+
+    if not isinstance(outcome, JudgeOutcome):
+        return False
+    if outcome.judge_version != MAP_BATTLE_JUDGE_VERSION:
+        return False
+    if outcome.result == "CORRECT":
+        return (
+            outcome.authoritative_grade == 5
+            and outcome.reason_code in MAP_BATTLE_TRUSTED_CORRECT_REASON_CODES
+        )
+    if outcome.result == "INCORRECT":
+        return (
+            outcome.authoritative_grade == 0
+            and outcome.reason_code in MAP_BATTLE_TRUSTED_INCORRECT_REASON_CODES
+        )
+    if outcome.result == "INVALID":
+        return outcome.authoritative_grade is None
+    return False
 
 
 def _require_text(value: Any, name: str, maximum: int = 255) -> str:
@@ -540,7 +590,13 @@ def judge_map_battle_answer_v1(
     attempt: Mapping[str, Any],
     canonical: CanonicalAnswer,
 ) -> JudgeOutcome:
-    """Versioned server-only judge over the existing SGF judging primitives."""
+    """Versioned server-only judge over the existing SGF judging primitives.
+
+    Under the Owner-approved W1-D1 policy, authoritative alternatives and both
+    existing bare-leaf paths remain CORRECT; off-tree, resign, and partial
+    sequences remain INCORRECT.  Invalid input remains INVALID and unavailable
+    authoritative content remains retryable via ``JudgeUnavailable``.
+    """
 
     if canonical.is_invalid:
         return JudgeOutcome("INVALID", None, MAP_BATTLE_JUDGE_VERSION, canonical.reason_code)
@@ -1270,6 +1326,8 @@ def settle_answer(
     outcome = (judge or judge_map_battle_answer_v1)(question, attempt, canonical)
     if outcome.judge_version != MAP_BATTLE_JUDGE_VERSION:
         raise JudgeUnavailable("judge adapter version mismatch")
+    if not is_owner_approved_map_battle_outcome(outcome):
+        raise JudgeUnavailable("map battle outcome is outside the approved contract")
     combat_stats = (
         combat_stats_resolver(
             conn,
@@ -1412,6 +1470,9 @@ __all__ = [
     "ForbiddenClientAuthority",
     "JudgeOutcome",
     "JudgeUnavailable",
+    "MAP_BATTLE_TRUSTED_EVIDENCE_POLICY",
+    "MAP_BATTLE_TRUSTED_CORRECT_REASON_CODES",
+    "MAP_BATTLE_TRUSTED_INCORRECT_REASON_CODES",
     "MapBattleRuntimeError",
     "ModeNotEligible",
     "OLD_CLIENT_ERROR",
@@ -1429,6 +1490,7 @@ __all__ = [
     "issue_attempt_for_context",
     "issue_attempt_with_submission_nonce",
     "issue_submission_nonce_for_attempt",
+    "is_owner_approved_map_battle_outcome",
     "judge_map_battle_answer_v1",
     "mode_eligible",
     "question_revision_for",
