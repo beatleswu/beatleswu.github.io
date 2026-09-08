@@ -94,14 +94,11 @@ from adventure_zone3_legacy_compatibility import (
     retire_legacy_zone3_battle,
 )
 from spirit_combat_runtime import apply_spirit_combat_effect
-from monster_encounter_selector import build_legacy_selector_candidates
 from monster_encounter_selector_runtime import (
-    canonical_selector_zone_key,
+    F009_SELECTOR_MIGRATION_VERSION,
     MonsterSelectorRuntimeError,
-    get_selection_operation,
     monster_selector_v1_enabled,
-    new_server_encounter_operation_id,
-    select_durable_monster_encounter,
+    reject_unadmitted_selector_encounter,
 )
 from monster_settlement import (
     MonsterSettlementRejected,
@@ -15059,35 +15056,23 @@ def _map_battle_f010_profile(conn, user_id, battle_id):
         raise JudgeUnavailable('authoritative Map Battle is unavailable')
     binding_expected = (
         str(battle.get('migration_version') or '')
-        == 'monster-selector-v1-default-off'
+        == F009_SELECTOR_MIGRATION_VERSION
     )
-    if not monster_selector_v1_enabled(os.environ) and not binding_expected:
+    if binding_expected or monster_selector_v1_enabled(os.environ):
+        try:
+            reject_unadmitted_selector_encounter(
+                zone_key=battle.get('zone_key'),
+                phase='restore',
+            )
+        except MonsterSelectorRuntimeError as error:
+            raise JudgeUnavailable(
+                'F009 Monster selection is not admitted for Map Battle runtime'
+            ) from error
+    if not binding_expected:
         return None
-    try:
-        selector_zone_key = canonical_selector_zone_key(str(battle['zone_key']))
-        operation = get_selection_operation(
-            conn,
-            user_id=int(user_id),
-            zone_key=selector_zone_key,
-            encounter_operation_id=str(battle['id']),
-        )
-    except MonsterSelectorRuntimeError as error:
-        raise JudgeUnavailable(
-            'Monster selector persistence is unavailable'
-        ) from error
-    if operation is None:
-        raise JudgeUnavailable(
-            'feature-on Map Battle has no authoritative Monster selection binding'
-        )
-    try:
-        return resolve_monster_combat_profile(
-            {'monster_id': operation.selected_monster_id},
-            context='MAP_BATTLE',
-        )
-    except MonsterCombatProfileError as error:
-        raise JudgeUnavailable(
-            'selected Monster has no canonical combat profile'
-        ) from error
+    raise JudgeUnavailable(
+        'F009 Monster selection is not admitted for Map Battle runtime'
+    )
 
 
 def _map_battle_zone3_binding(battle):
@@ -15264,6 +15249,15 @@ def map_battle_v1_prepare_attempt():
                 # properly bound E055 battle.
                 if retire_legacy_zone3_battle(conn, user_id=user_id, battle=battle):
                     battle = None
+            if (
+                battle is not None
+                and str(battle.get('migration_version') or '')
+                == F009_SELECTOR_MIGRATION_VERSION
+            ):
+                reject_unadmitted_selector_encounter(
+                    zone_key=zone_key,
+                    phase='resume',
+                )
             if battle is None:
                 player_hp, player_hp_max = _map_battle_player_hp(conn, user_id)
                 if zone_key == ADVENTURE_ZONE3_KEY:
@@ -15288,44 +15282,12 @@ def map_battle_v1_prepare_attempt():
                         migration_version=encode_zone3_binding(zone3_binding),
                     )
                 elif monster_selector_v1_enabled(os.environ):
-                    # The validated Map Battle zone is the existing server
-                    # encounter context; F010 does not decide progression.
-                    selector_zone_key = canonical_selector_zone_key(zone_key)
-                    encounter_operation_id = new_server_encounter_operation_id(
-                        user_id,
-                        selector_zone_key,
-                        prefix='map-battle',
-                    )
-                    selection = select_durable_monster_encounter(
-                        conn,
-                        user_id=user_id,
-                        zone_key=selector_zone_key,
-                        encounter_operation_id=encounter_operation_id,
-                        candidates=build_legacy_selector_candidates(),
-                        encounter_intent='REGULAR',
-                    )
-                    try:
-                        selected_profile = resolve_monster_combat_profile(
-                            selection.selection.f008_profile_input,
-                            context='MAP_BATTLE',
-                        )
-                    except MonsterCombatProfileError as error:
-                        raise JudgeUnavailable(
-                            'selected Monster has no canonical combat profile'
-                        ) from error
-                    monster_hp = selected_profile.max_hp
-                    monster_hp_max = selected_profile.max_hp
-                    battle_id = create_map_battle(
-                        conn,
-                        user_id=user_id,
+                    # F009's 20 legacy identities have no admitted canonical
+                    # provider binding.  Fail before selector-state or battle
+                    # creation; do not fall through to generic 100/8 combat.
+                    reject_unadmitted_selector_encounter(
                         zone_key=zone_key,
-                        player_hp=player_hp,
-                        player_hp_max=player_hp_max,
-                        monster_hp=monster_hp,
-                        monster_hp_max=monster_hp_max,
-                        battle_id=encounter_operation_id,
-                        migration_source='f010-monster-selector',
-                        migration_version='monster-selector-v1-default-off',
+                        phase='new encounter',
                     )
                 else:
                     monster_hp, monster_hp_max = _map_battle_monster_hp(question)
