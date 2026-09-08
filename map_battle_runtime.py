@@ -18,6 +18,13 @@ import re
 import secrets
 from typing import Any, Callable, Mapping
 
+from adventure_monster_runtime_contract import (
+    AdventureMonsterRuntimeContractError,
+    AdventureMonsterRuntimeProvider,
+    AdventureQuestionBinding,
+    CLIENT_AUTHORITY_CLAIM_FIELDS,
+    resolve_runtime_binding,
+)
 from map_battle_persistence import (
     MAP_BATTLE_JUDGE_VERSION,
     SubmissionConflict,
@@ -108,7 +115,7 @@ _FORBIDDEN_CLIENT_FIELDS = frozenset({
     "settled_at",
     "settlement_state",
     "state",
-})
+}) | CLIENT_AUTHORITY_CLAIM_FIELDS
 _REQUIRED_REQUEST_FIELDS = (
     "battle_id",
     "attempt_id",
@@ -122,6 +129,18 @@ _REQUIRED_REQUEST_FIELDS = (
 )
 _TRANSFORM_RE = re.compile(r"^(?:transform[-_:]?|t)?([0-7])$", re.IGNORECASE)
 _SGF_COORD_RE = re.compile(r"^[a-s]{2}$")
+_FORBIDDEN_CLIENT_FIELD_CASEFOLDS = frozenset(
+    field.casefold() for field in _FORBIDDEN_CLIENT_FIELDS
+)
+
+
+def _forbidden_client_fields(payload: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        str(key)
+        for key in payload
+        if key in _FORBIDDEN_CLIENT_FIELDS
+        or str(key).casefold() in _FORBIDDEN_CLIENT_FIELD_CASEFOLDS
+    )
 
 
 class MapBattleRuntimeError(RuntimeError):
@@ -366,7 +385,7 @@ def canonicalize_answer(payload: Mapping[str, Any], attempt: Mapping[str, Any]) 
 
     if not isinstance(payload, Mapping):
         raise RequestRejected("request JSON must be an object")
-    forbidden = sorted(set(payload).intersection(_FORBIDDEN_CLIENT_FIELDS))
+    forbidden = _forbidden_client_fields(payload)
     if forbidden:
         raise ForbiddenClientAuthority("forbidden client authority field: " + forbidden[0])
     for field in _REQUIRED_REQUEST_FIELDS:
@@ -1125,6 +1144,7 @@ def settle_answer(
     judge: Callable[[Mapping[str, Any], Mapping[str, Any], CanonicalAnswer], JudgeOutcome] | None = None,
     combat_stats_resolver: Callable[[Any, int, str | None], Mapping[str, Any]] | None = None,
     monster_profile_resolver: Callable[[Any, int, str], MonsterCombatProfile | None] | None = None,
+    runtime_provider: AdventureMonsterRuntimeProvider | Any | None = None,
     spirit_projection_resolver: Callable[[Any, int], Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Handle one answer inside the caller's transaction."""
@@ -1160,12 +1180,13 @@ def settle_answer(
     # Canonicalize the answer with those claims removed solely to identify the
     # existing request, then replay the stored authoritative result.  The
     # claims never enter the request hash and never reach the judge.
-    forbidden = sorted(set(payload).intersection(_FORBIDDEN_CLIENT_FIELDS))
+    forbidden = _forbidden_client_fields(payload)
     canonical_payload = payload
     if forbidden:
         canonical_payload = {
             key: value for key, value in payload.items()
             if key not in _FORBIDDEN_CLIENT_FIELDS
+            and str(key).casefold() not in _FORBIDDEN_CLIENT_FIELD_CASEFOLDS
         }
     canonical = canonicalize_answer(canonical_payload, attempt)
     _validate_submission_nonce(payload, attempt)
@@ -1265,13 +1286,37 @@ def settle_answer(
     if battle is None:
         raise RequestRejected("battle does not exist for owner", status=404)
     monster_profile = None
-    if monster_profile_resolver is not None:
+    if runtime_provider is not None:
+        question_binding = AdventureQuestionBinding(
+            question_id=attempt["question_id"],
+            question_revision=str(attempt["question_revision"]),
+        )
+        try:
+            runtime_binding = resolve_runtime_binding(
+                runtime_provider,
+                zone_key=battle.get("zone_key"),
+                question_binding=question_binding,
+                battle=battle,
+                user_id=user_id,
+            )
+        except AdventureMonsterRuntimeContractError as error:
+            # A new canonical caller opted into the shared provider contract;
+            # its failure must never fall through to legacy profile resolution.
+            raise JudgeUnavailable(
+                "authoritative Adventure Monster runtime binding is unavailable"
+            ) from error
+        monster_profile = runtime_binding.combat_profile
+        if monster_profile is None:
+            raise JudgeUnavailable(
+                "authoritative Adventure Monster combat profile is unavailable"
+            )
+    elif monster_profile_resolver is not None:
         monster_profile = monster_profile_resolver(
             conn,
             user_id,
             str(attempt["battle_id"]),
         )
-    if monster_profile is None:
+    if monster_profile is None and runtime_provider is None:
         try:
             monster_profile = resolve_monster_combat_profile(
                 question,
@@ -1293,6 +1338,8 @@ def settle_answer(
             raise JudgeUnavailable(
                 "authoritative Monster stat binding is unavailable"
             ) from error
+    if monster_profile is None:
+        raise JudgeUnavailable("authoritative Monster combat profile is unavailable")
     damage_to_monster, damage_to_player, heal_to_player = calculate_combat_effects(
         outcome.result,
         outcome.authoritative_grade,
@@ -1358,6 +1405,8 @@ def settle_answer(
 
 __all__ = [
     "CanonicalAnswer",
+    "AdventureMonsterRuntimeProvider",
+    "AdventureQuestionBinding",
     "AttemptExpired",
     "FEATURE_DISABLED_HTTP_STATUS",
     "ForbiddenClientAuthority",
@@ -1384,6 +1433,7 @@ __all__ = [
     "mode_eligible",
     "question_revision_for",
     "request_hash_for",
+    "resolve_runtime_binding",
     "settle_answer",
     "validate_resumable_attempt",
 ]
