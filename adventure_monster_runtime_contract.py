@@ -86,8 +86,9 @@ class AdventureMonsterRuntimeBinding:
 
     The optional-looking fields are intentional.  A provider may represent a
     not-yet-admitted Zone 4-10 slot with ``None`` values, but validation will
-    reject that binding before it can reach combat or settlement.  No missing
-    gameplay value is synthesized here.
+    reject that binding before it can reach combat or settlement.  Taxonomy is
+    also nullable when the approved product authority explicitly defers it;
+    no missing gameplay value is synthesized here.
 
     ``zone_id``, ``taxonomy_family``, ``binding_authority``, and
     ``combat_reference`` are compatibility aliases for vocabulary used by
@@ -402,7 +403,12 @@ def validate_runtime_binding(
     for field in ("monster_id", "encounter_class", "profile_id", "profile_version"):
         _required_text(getattr(binding, field), field, MissingBindingError)
     family = _alias_value(binding, "family_id", "taxonomy_family", "family")
-    _required_text(family, "family", MissingBindingError)
+    # F006 carries family_id as an optional event field.  The Zone4-10
+    # product decision explicitly defers taxonomy, so a canonical provider
+    # may carry NULL here.  A non-NULL value still has to be valid text; no
+    # fallback family or taxonomy sentinel is synthesized.
+    if family not in (None, ""):
+        _required_text(family, "family", MissingBindingError)
     if not isinstance(binding.roster_slot, int) or isinstance(binding.roster_slot, bool) or binding.roster_slot <= 0:
         raise MissingBindingError("roster_slot is required")
     binding_max_hp = _positive_int(binding.max_hp, "binding max_hp")
