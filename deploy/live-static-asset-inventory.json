@@ -89,7 +89,7 @@
       {
         "prefix": "assets/e10/audio/zone2/",
         "manifest": "deploy/canonical-e10-zone2-audio-pack-manifest.json",
-        "staging_rule": "Stage exactly the twenty-three Owner-locked bilingual Zone 2 audio files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage an E10 Zone 2 audio file that is not in this manifest. This namespace is disjoint from Zone 1 audio and storyboard narration audio."
+        "staging_rule": "Stage exactly the fifty-three Owner-locked bilingual Zone 2 audio files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage an E10 Zone 2 audio file that is not in this manifest. This namespace is disjoint from Zone 1 audio and storyboard narration audio."
       },
       {
         "prefix": "assets/e10/",
