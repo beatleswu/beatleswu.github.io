@@ -717,7 +717,6 @@ def test_authenticated_inventory_unexpected_unauthenticated_200_fails_closed(tmp
 
 
 def test_raw_public_route_exact_bytes_pass_and_wrong_bytes_fail(tmp_path):
-    expected = "726177207075626c6963206279746573"  # SHA is supplied below by PS.
     body = f"""
 Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
 $good = (Get-FileHash -Algorithm SHA256 -LiteralPath {_ps_quote(str(tmp_path / 'raw.txt'))}).Hash.ToLowerInvariant()
@@ -727,9 +726,11 @@ $fail = Test-PublicRawStaticRoute -Url 'http://127.0.0.1:__PORT__/raw' -Path 'i1
 """
     # This test uses the same deterministic fixture server as the auth tests;
     # replace the port after the server is allocated below.
+    raw_payload = bytes((0, 255, 128, 10, 13, 34, 92, 255, 1))
+
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802 - stdlib handler contract
-            payload = b"raw public bytes"
+            payload = raw_payload
             self.send_response(200)
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
@@ -742,7 +743,7 @@ $fail = Test-PublicRawStaticRoute -Url 'http://127.0.0.1:__PORT__/raw' -Path 'i1
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     raw_file = tmp_path / "raw.txt"
-    raw_file.write_bytes(b"raw public bytes")
+    raw_file.write_bytes(raw_payload)
     try:
         result = _run_powershell(
             tmp_path,
@@ -769,6 +770,9 @@ def test_static_verifiers_use_canonical_route_helper_for_inventory():
     assert "Test-PublicAuthenticatedRoute" in rollback
     assert "MaximumRedirection 0" in deploy
     assert "MaximumRedirection 0" in rollback
+    assert "Get-PublicVerificationFailureRecord" in deploy
+    assert "Get-PublicVerificationFailureRecord" in rollback
+    assert "ComputeHash($stream)" in rollback
     assert "container-internal inventory.html hash" in deploy
     assert "Mounted inventory.html hash" in rollback
     assert '"$publicBase/$($entry.path)"' not in rollback

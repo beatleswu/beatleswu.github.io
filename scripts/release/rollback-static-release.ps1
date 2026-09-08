@@ -50,44 +50,82 @@ function Get-RemoteCurrentTarget {
 }
 
 function Get-SwVersionFromUrl {
-    param([Parameter(Mandatory = $true)][string]$Url)
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [int]$TimeoutSeconds = 15
+    )
+    $response = $null
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0 -TimeoutSec $TimeoutSeconds
     }
     catch {
-        throw "Could not fetch $Url for sw.js VERSION verification: $($_.Exception.Message)"
+        $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Url -VerificationMode 'SERVICE_WORKER_VERSION' -Response $response
+        throw "Could not fetch $Url for sw.js VERSION verification [$($failure.status)]: $($failure.error)"
     }
-    return (Get-SwVersionFromText -SwText $response.Content -SourceLabel $Url)
+    try {
+        return (Get-SwVersionFromText -SwText $response.Content -SourceLabel $Url)
+    }
+    catch {
+        throw "Could not parse sw.js VERSION from $Url [malformed_response]: $($_.Exception.Message)"
+    }
 }
 
 function Get-PublicStaticReleaseProvenance {
-    param([Parameter(Mandatory = $true)][string]$Url)
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [int]$TimeoutSeconds = 15
+    )
+    $response = $null
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0 -TimeoutSec $TimeoutSeconds -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
         if ([int]$response.StatusCode -ne 200) { throw "HTTP status $([int]$response.StatusCode)" }
         return ($response.Content | ConvertFrom-Json)
     }
-    catch { throw "Could not fetch static release provenance from $Url`: $($_.Exception.Message)" }
+    catch {
+        $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Url -VerificationMode 'STATIC_RELEASE_PROVENANCE' -Response $response
+        throw "Could not fetch static release provenance from $Url [$($failure.status)]: $($failure.error)"
+    }
 }
 
 function Get-PublicFileSha256 {
-    param([Parameter(Mandatory = $true)][string]$Url)
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [int]$TimeoutSeconds = 15
+    )
+    $response = $null
+    $stream = $null
+    $hasher = $null
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0
+        # Keep rollback verification byte-preserving and bounded just like the
+        # normal deployment verifier.  Default TLS validation remains active.
+        $request = [System.Net.HttpWebRequest]::Create($Url)
+        $request.Method = 'GET'
+        $request.AllowAutoRedirect = $false
+        $request.Timeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+        $request.ReadWriteTimeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+        $request.Headers['Cache-Control'] = 'no-cache'
+        $request.Headers['Pragma'] = 'no-cache'
+        try {
+            $response = [System.Net.HttpWebResponse]$request.GetResponse()
+        }
+        catch [System.Net.WebException] {
+            $response = $_.Exception.Response
+            if (-not $response) { throw }
+        }
+        $status = [int]$response.StatusCode
+        if ($status -ne 200) { throw "HTTP status $status" }
+        $stream = $response.GetResponseStream()
+        $hasher = [System.Security.Cryptography.SHA256]::Create()
+        return ([System.BitConverter]::ToString($hasher.ComputeHash($stream)) -replace '-', '').ToLowerInvariant()
     }
     catch {
-        throw "Could not fetch $Url for content verification: $($_.Exception.Message)"
-    }
-    $bytes = $response.Content
-    if ($bytes -is [string]) {
-        $bytes = [System.Text.Encoding]::UTF8.GetBytes($bytes)
-    }
-    $hasher = [System.Security.Cryptography.SHA256]::Create()
-    try {
-        return ([System.BitConverter]::ToString($hasher.ComputeHash($bytes)) -replace '-', '').ToLowerInvariant()
+        $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Url -VerificationMode 'RAW_PUBLIC_BYTES' -Response $response
+        throw "Could not fetch $Url for content verification [$($failure.status)]: $($failure.error)"
     }
     finally {
-        $hasher.Dispose()
+        if ($hasher) { $hasher.Dispose() }
+        if ($stream) { $stream.Dispose() }
+        if ($response) { $response.Close() }
     }
 }
 

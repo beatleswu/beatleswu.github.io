@@ -257,33 +257,96 @@ function Invoke-BoundedPublicVerification {
 
     $worker = {
         param($Url, $ExpectedHash, $Path, $TimeoutSeconds)
+        $response = $null
+        $stream = $null
+        $hasher = $null
         try {
-            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0 -TimeoutSec $TimeoutSeconds -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
-            $bytes = $response.Content
-            if ($bytes -is [string]) {
-                $bytes = [System.Text.Encoding]::UTF8.GetBytes($bytes)
-            }
-            $hasher = [System.Security.Cryptography.SHA256]::Create()
+            # Use HttpWebRequest for the raw public contract.  Unlike
+            # Invoke-WebRequest, this keeps the response as bytes instead of
+            # decoding/re-encoding binary assets before hashing.  Default
+            # certificate validation remains in force; no callback or
+            # insecure switch is installed here.
+            $request = [System.Net.HttpWebRequest]::Create($Url)
+            $request.Method = 'GET'
+            $request.AllowAutoRedirect = $false
+            $request.Timeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+            $request.ReadWriteTimeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+            $request.Headers['Cache-Control'] = 'no-cache'
+            $request.Headers['Pragma'] = 'no-cache'
             try {
-                $observedHash = (([System.BitConverter]::ToString($hasher.ComputeHash($bytes))) -replace '-', '').ToLowerInvariant()
+                $response = [System.Net.HttpWebResponse]$request.GetResponse()
             }
-            finally {
-                $hasher.Dispose()
+            catch [System.Net.WebException] {
+                $response = $_.Exception.Response
+                if (-not $response) { throw }
             }
+            $status = [int]$response.StatusCode
+            if ($status -ne 200) {
+                return [pscustomobject]@{
+                    path = $Path
+                    status = 'http_non_200'
+                    http_status = $status
+                    expected = $ExpectedHash
+                    error = "Expected HTTP 200 raw bytes, observed HTTP $status."
+                }
+            }
+            $stream = $response.GetResponseStream()
+            $hasher = [System.Security.Cryptography.SHA256]::Create()
+            $observedHash = (([System.BitConverter]::ToString($hasher.ComputeHash($stream))) -replace '-', '').ToLowerInvariant()
             if ($observedHash -ne $ExpectedHash) {
                 return [pscustomobject]@{ path = $Path; status = 'sha_mismatch'; expected = $ExpectedHash; observed = $observedHash; error = "Public content hash mismatch" }
             }
             return [pscustomobject]@{ path = $Path; status = 'passed'; expected = $ExpectedHash; observed = $observedHash }
         }
         catch {
-            $response = $_.Exception.Response
-            if ($response -and $response.StatusCode) {
-                return [pscustomobject]@{ path = $Path; status = 'http_non_200'; http_status = [int]$response.StatusCode; error = $_.Exception.Message }
+            $exception = $_.Exception
+            $webException = $null
+            $cursor = $exception
+            while ($cursor) {
+                if ($cursor -is [System.Net.WebException]) {
+                    $webException = $cursor
+                    break
+                }
+                $cursor = $cursor.InnerException
             }
-            if ($_.Exception.Message -match 'timed out|timeout|operation has timed out') {
-                return [pscustomobject]@{ path = $Path; status = 'request_timeout'; error = $_.Exception.Message }
+            $messages = New-Object 'System.Collections.Generic.List[string]'
+            $cursor = $exception
+            while ($cursor) {
+                $message = [string]$cursor.Message
+                if (-not [string]::IsNullOrWhiteSpace($message) -and -not $messages.Contains($message)) {
+                    [void]$messages.Add($message)
+                }
+                $cursor = $cursor.InnerException
             }
-            return [pscustomobject]@{ path = $Path; status = 'unexpected_exception'; error = $_.Exception.Message }
+            $diagnostic = if ($messages.Count -gt 0) { $messages -join ' | ' } else { 'Public verification request failed.' }
+            $statusName = if ($webException) { $webException.Status.ToString() } else { '' }
+            $failureStatus = 'unexpected_exception'
+            if ($statusName -in @('TrustFailure', 'SecureChannelFailure') -or $diagnostic -match '(?i)trust relationship|SSL/TLS|secure channel|remote certificate|certificate.*(invalid|not valid|expired|authority)') {
+                $failureStatus = 'tls_trust_failure'
+            }
+            elseif ($statusName -in @('Timeout', 'RequestCanceled') -or $diagnostic -match '(?i)timed out|timeout|operation has timed out') {
+                $failureStatus = 'request_timeout'
+            }
+            elseif ($statusName -in @('ConnectFailure', 'NameResolutionFailure', 'ProxyNameResolutionFailure')) {
+                $failureStatus = 'connection_failure'
+            }
+            elseif ($statusName -in @('ConnectionClosed', 'KeepAliveFailure', 'PipelineFailure', 'ReceiveFailure', 'SendFailure', 'ServerProtocolViolation')) {
+                $failureStatus = 'transport_failure'
+            }
+            $failure = [ordered]@{
+                path = $Path
+                status = $failureStatus
+                expected = $ExpectedHash
+                error = $diagnostic
+                error_type = $exception.GetType().FullName
+            }
+            if ($webException) { $failure.web_exception_status = $statusName }
+            return [pscustomobject]$failure
+        }
+        finally {
+            if ($hasher) { $hasher.Dispose() }
+            if ($stream) { $stream.Dispose() }
+            if ($response) { $response.Close() }
         }
     }
 
@@ -407,45 +470,84 @@ function Get-RemoteCurrentTarget {
 }
 
 function Get-SwVersionFromUrl {
-    param([Parameter(Mandatory = $true)][string]$Url)
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [int]$TimeoutSeconds = $PublicVerificationRequestTimeoutSeconds
+    )
+    $response = $null
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0 -TimeoutSec $TimeoutSeconds
     }
     catch {
-        throw "Could not fetch $Url for sw.js VERSION verification: $($_.Exception.Message)"
+        $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Url -VerificationMode 'SERVICE_WORKER_VERSION' -Response $response
+        throw "Could not fetch $Url for sw.js VERSION verification [$($failure.status)]: $($failure.error)"
     }
-    return (Get-SwVersionFromText -SwText $response.Content -SourceLabel $Url)
+    try {
+        return (Get-SwVersionFromText -SwText $response.Content -SourceLabel $Url)
+    }
+    catch {
+        throw "Could not parse sw.js VERSION from $Url [malformed_response]: $($_.Exception.Message)"
+    }
 }
 
 function Get-PublicFileSha256 {
-    param([Parameter(Mandatory = $true)][string]$Url)
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [int]$TimeoutSeconds = $PublicVerificationRequestTimeoutSeconds
+    )
+    $response = $null
+    $stream = $null
+    $hasher = $null
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0
+        # Hash the response stream directly.  Invoke-WebRequest may expose
+        # decoded text through .Content, which is not a byte-preserving
+        # contract for arbitrary static assets.
+        $request = [System.Net.HttpWebRequest]::Create($Url)
+        $request.Method = 'GET'
+        $request.AllowAutoRedirect = $false
+        $request.Timeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+        $request.ReadWriteTimeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+        $request.Headers['Cache-Control'] = 'no-cache'
+        $request.Headers['Pragma'] = 'no-cache'
+        try {
+            $response = [System.Net.HttpWebResponse]$request.GetResponse()
+        }
+        catch [System.Net.WebException] {
+            $response = $_.Exception.Response
+            if (-not $response) { throw }
+        }
+        $status = [int]$response.StatusCode
+        if ($status -ne 200) { throw "HTTP status $status" }
+        $stream = $response.GetResponseStream()
+        $hasher = [System.Security.Cryptography.SHA256]::Create()
+        return ([System.BitConverter]::ToString($hasher.ComputeHash($stream)) -replace '-', '').ToLowerInvariant()
     }
     catch {
-        throw "Could not fetch $Url for content verification: $($_.Exception.Message)"
-    }
-    $bytes = $response.Content
-    if ($bytes -is [string]) {
-        $bytes = [System.Text.Encoding]::UTF8.GetBytes($bytes)
-    }
-    $hasher = [System.Security.Cryptography.SHA256]::Create()
-    try {
-        return ([System.BitConverter]::ToString($hasher.ComputeHash($bytes)) -replace '-', '').ToLowerInvariant()
+        $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Url -VerificationMode 'RAW_PUBLIC_BYTES' -Response $response
+        throw "Could not fetch $Url for content verification [$($failure.status)]: $($failure.error)"
     }
     finally {
-        $hasher.Dispose()
+        if ($hasher) { $hasher.Dispose() }
+        if ($stream) { $stream.Dispose() }
+        if ($response) { $response.Close() }
     }
 }
 
 function Get-PublicStaticReleaseProvenance {
-    param([Parameter(Mandatory = $true)][string]$Url)
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [int]$TimeoutSeconds = $PublicVerificationRequestTimeoutSeconds
+    )
+    $response = $null
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0 -TimeoutSec $TimeoutSeconds -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
         if ([int]$response.StatusCode -ne 200) { throw "HTTP status $([int]$response.StatusCode)" }
         return ($response.Content | ConvertFrom-Json)
     }
-    catch { throw "Could not fetch static release provenance from $Url`: $($_.Exception.Message)" }
+    catch {
+        $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Url -VerificationMode 'STATIC_RELEASE_PROVENANCE' -Response $response
+        throw "Could not fetch static release provenance from $Url [$($failure.status)]: $($failure.error)"
+    }
 }
 
 function Invoke-PublicStaticAcceptanceContract {
@@ -535,6 +637,10 @@ function Invoke-PublicStaticAcceptanceContract {
             unexpected_redirect = @($publicResults | Where-Object { $_.status -eq 'unexpected_redirect' }).Count
             request_error = @($publicResults | Where-Object { $_.status -eq 'request_error' }).Count
             request_timeout = @($publicResults | Where-Object { $_.status -eq 'request_timeout' }).Count
+            tls_trust_failure = @($publicResults | Where-Object { $_.status -eq 'tls_trust_failure' }).Count
+            connection_failure = @($publicResults | Where-Object { $_.status -eq 'connection_failure' }).Count
+            transport_failure = @($publicResults | Where-Object { $_.status -eq 'transport_failure' }).Count
+            malformed_response = @($publicResults | Where-Object { $_.status -eq 'malformed_response' }).Count
             cancelled_deadline = @($publicResults | Where-Object { $_.status -eq 'cancelled_deadline' }).Count
             unexpected_exception = @($publicResults | Where-Object { $_.status -eq 'unexpected_exception' -or $_.status -eq 'worker_exception' }).Count
             remaining = [Math]::Max(0, $publicEntries.Count - $publicResults.Count)
@@ -543,6 +649,16 @@ function Invoke-PublicStaticAcceptanceContract {
             attempts = $PublicVerificationAttempts
             computed_deadline_seconds = $PublicVerificationDeadlineSeconds
             elapsed_seconds = [Math]::Round($phaseClock.Elapsed.TotalSeconds, 3)
+            failure_samples = @($publicFailures | Select-Object -First 10 | ForEach-Object {
+                [ordered]@{
+                    path = $_.path
+                    status = $_.status
+                    http_status = $_.http_status
+                    web_exception_status = $_.web_exception_status
+                    error_type = $_.error_type
+                    error = $_.error
+                }
+            })
         }
         $failureDetails = ($failureSummary | ConvertTo-Json -Compress -Depth 6)
         throw "Public content verification failed: total=$($manifest.files.Count), completed=$($publicResults.Count), passed=$($publicVerificationReport.Count), failures=$($publicFailures.Count). Details: $failureDetails"

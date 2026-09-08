@@ -2295,6 +2295,89 @@ function Get-StaticPublicVerificationPlan {
     }
 }
 
+function Get-PublicVerificationFailureRecord {
+    <#
+    Normalize a failed public-verification request without hiding the
+    transport class.  In particular, a normal TLS trust failure must remain
+    a failed acceptance with a TLS-specific diagnostic; it must never be
+    converted into a successful response or an uninformative request_error.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][System.Exception]$Exception,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$VerificationMode,
+        [string]$ExpectedHash,
+        [object]$Response
+    )
+
+    $webException = $null
+    $cursor = $Exception
+    while ($cursor) {
+        if ($cursor -is [System.Net.WebException]) {
+            $webException = $cursor
+            break
+        }
+        $cursor = $cursor.InnerException
+    }
+
+    $response = $Response
+    if (-not $response -and $webException) { $response = $webException.Response }
+    if (-not $response) {
+        try { $response = $Exception.Response } catch { $response = $null }
+    }
+
+    $messages = New-Object 'System.Collections.Generic.List[string]'
+    $cursor = $Exception
+    while ($cursor) {
+        $message = [string]$cursor.Message
+        if (-not [string]::IsNullOrWhiteSpace($message) -and -not $messages.Contains($message)) {
+            [void]$messages.Add($message)
+        }
+        $cursor = $cursor.InnerException
+    }
+    $diagnostic = if ($messages.Count -gt 0) { $messages -join ' | ' } else { 'Public verification request failed.' }
+
+    $result = [ordered]@{
+        path = $Path
+        status = 'unexpected_exception'
+        verification_mode = $VerificationMode
+        error = $diagnostic
+        error_type = $Exception.GetType().FullName
+    }
+    if ($ExpectedHash) { $result.expected = $ExpectedHash }
+    if ($webException) { $result.web_exception_status = $webException.Status.ToString() }
+
+    if ($response -and $response.StatusCode -and [int]$response.StatusCode -ne 200) {
+        $result.status = 'http_non_200'
+        $result.http_status = [int]$response.StatusCode
+        return [pscustomobject]$result
+    }
+
+    $webStatus = if ($webException) { $webException.Status.ToString() } else { '' }
+    $tlsStatuses = @('TrustFailure', 'SecureChannelFailure')
+    $timeoutStatuses = @('Timeout', 'RequestCanceled')
+    $connectionStatuses = @('ConnectFailure', 'NameResolutionFailure', 'ProxyNameResolutionFailure')
+    $transportStatuses = @('ConnectionClosed', 'KeepAliveFailure', 'PipelineFailure', 'ReceiveFailure', 'SendFailure', 'ServerProtocolViolation')
+
+    if ($webStatus -in $tlsStatuses -or $diagnostic -match '(?i)trust relationship|SSL/TLS|secure channel|remote certificate|certificate.*(invalid|not valid|expired|authority)') {
+        $result.status = 'tls_trust_failure'
+    }
+    elseif ($webStatus -in $timeoutStatuses -or $diagnostic -match '(?i)timed out|timeout|operation has timed out') {
+        $result.status = 'request_timeout'
+    }
+    elseif ($webStatus -in $connectionStatuses) {
+        $result.status = 'connection_failure'
+    }
+    elseif ($webStatus -in $transportStatuses) {
+        $result.status = 'transport_failure'
+    }
+    elseif ($diagnostic -match '(?i)ConvertFrom-Json|invalid JSON|malformed.*(response|json)|expected.*JSON') {
+        $result.status = 'malformed_response'
+    }
+
+    return [pscustomobject]$result
+}
+
 function Test-PublicAuthenticatedRoute {
     <#
     Verify a protected public route without credentials.  The response body
@@ -2373,13 +2456,9 @@ function Test-PublicAuthenticatedRoute {
         }
     }
     catch {
-        return [pscustomobject]@{
-            path = $Path
-            status = 'request_error'
-            verification_mode = 'AUTHENTICATED_ROUTE'
-            login_body_hashed = $false
-            error = $_.Exception.Message
-        }
+        $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Path -VerificationMode 'AUTHENTICATED_ROUTE' -Response $response
+        $failure.login_body_hashed = $false
+        return $failure
     }
     finally {
         if ($response) { $response.Close() }
@@ -2459,13 +2538,7 @@ function Test-PublicRawStaticRoute {
         }
     }
     catch {
-        return [pscustomobject]@{
-            path = $Path
-            status = 'request_error'
-            verification_mode = 'RAW_PUBLIC_BYTES'
-            expected = $ExpectedHash
-            error = $_.Exception.Message
-        }
+        return Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Path -VerificationMode 'RAW_PUBLIC_BYTES' -ExpectedHash $ExpectedHash -Response $response
     }
     finally {
         if ($stream) { $stream.Dispose() }
@@ -3185,6 +3258,7 @@ Export-ModuleMember -Function @(
     'Get-StaticAssetInventory',
     'Resolve-StaticPublicRoute',
     'Get-StaticPublicVerificationPlan',
+    'Get-PublicVerificationFailureRecord',
     'Test-PublicAuthenticatedRoute',
     'Test-PublicRawStaticRoute',
     'Get-SwVersionFromText',
