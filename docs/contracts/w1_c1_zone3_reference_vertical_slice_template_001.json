@@ -227,7 +227,7 @@
       ]
     },
     "audio": {
-      "status": "READY_CURRENT_E10_PACKAGE_RUNTIME_BOUND_OWNER_LOCK_OPEN",
+      "status": "READY_CURRENT_E10_PACKAGE_RUNTIME_BOUND_OWNER_LOCKED",
       "presentation_manifest": "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
       "runtime_bridge": "js/e9/journey_zone3_presentation_audio.js",
       "cinematic_audio_manifests": [
@@ -256,7 +256,7 @@
         "missing_voice": "SUBTITLE_ONLY",
         "cross_locale_fallback": false
       },
-      "owner_gate": "New presentation cues remain OWNER_AUDIO_LOCK open in the package manifest; this task does not promote or regenerate audio.",
+      "owner_gate": "OWNER_AUDIO_LOCKED; device, perceptual, publication, and release acceptance remain separate gates.",
       "bindings_changed_in_this_task": false,
       "evidence": [
         "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
@@ -437,7 +437,7 @@
     "M2 requires the W1-D1 Owner semantics ruling.",
     "M2 requires W1-A2 closure; this task does not implement W1-A2.",
     "M2 requires deployed authenticated first-clear -> reward -> Zone star -> next-Zone unlock proof and safe replay proof.",
-    "Owner audio lock/perceptual acceptance for the current presentation package remains a separate gate.",
+    "Perceptual audio acceptance for the current presentation package remains a separate gate.",
     "Physical desktop/tablet/mobile acceptance remains a later gate; no physical-device claim is made.",
     "L6 deployment and release authority are not granted by this content candidate."
   ],
