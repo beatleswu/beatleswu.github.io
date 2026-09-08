@@ -162,6 +162,7 @@ COPY docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json ./docs/p
 # Map Battle V1 is application runtime, not external static content. Keep the
 # shared runtime modules explicit so app.py can import the authoritative
 # settlement service from the built image.
+COPY adventure_monster_runtime_contract.py ./
 COPY map_battle_runtime.py ./
 COPY map_battle_persistence.py ./
 # SGF Owner Review Queue is authenticated, server-persisted repair staging.
