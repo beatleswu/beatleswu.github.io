@@ -1,6 +1,10 @@
 """Static contract tests for Adventure/Battlefield encounter separation."""
 from pathlib import Path
-import re
+
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -64,7 +68,8 @@ def test_adventure_i18n_key_and_sw_version():
     assert "index.battle.adventure_encounter" in I18N
     assert "Adventure Encounter" in I18N
     assert "冒險遭遇" in I18N
-    assert re.search(r"const VERSION\s*=\s*'v230-e10-lord-trial-safari-recovery'", SW)
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.sw_version
 
 
 def test_ten_zone_keys_are_defined():

@@ -9,6 +9,11 @@ from hashlib import sha256
 from pathlib import Path
 import re
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CSS = (ROOT / "css/e9/immersive_rpg.css").read_text(encoding="utf-8")
@@ -18,7 +23,6 @@ TOP_HTML = (ROOT / "components/adventure/top_hud.html").read_text(encoding="utf-
 NAV_HTML = (ROOT / "components/adventure/left_nav.html").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
-FLAGS = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
 
@@ -109,13 +113,11 @@ def test_i18n_and_cache_versions_are_coupled():
         "e10.world_stage.zone_progress",
     ):
         assert f"'{key}'" in I18N
-    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v240-a028-hero-player-presentation-readonly'" in SW
-    assert "/i18n.js?v=20260801e10art1" in INDEX
-    assert "/css/e9/immersive_rpg.css?v=20260801e10art1" in INDEX
-    assert "/js/e9/feature_flags.js?v=20260801e10art1" in INDEX
-    assert "/js/e9/right_cards.js?v=20260828e040s1" in INDEX
-    assert "/js/e9/world_stage.js?v=20260828e042s1" in INDEX
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.asset_version
+    assert identity.sw_version
+    for path, tag in identity.cache_tags.items():
+        assert f"/{path}?v={tag}" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():

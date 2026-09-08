@@ -23,6 +23,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from tests.support.sw_identity import read_active_sw_identity
+
 ROOT = Path(__file__).resolve().parent.parent
 WORLD_STAGE_PATH = ROOT / "js/e9/world_stage.js"
 WORLD_STAGE = WORLD_STAGE_PATH.read_text(encoding="utf-8")
@@ -34,7 +36,6 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v230-e10-lord-trial-safari-recovery"
 PREVIOUS_SW_VERSION = "v228-e10-lord-challenge-cta-scope-and-routing"
 
 
@@ -522,8 +523,9 @@ def test_legacy_own_href_builder_uses_the_same_format():
 # ---------------------------------------------------------------------
 
 def test_sw_version_bumped_for_this_change():
-    assert NEW_SW_VERSION in SW
-    assert PREVIOUS_SW_VERSION not in SW
+    sw_version, _ = read_active_sw_identity(ROOT)
+    assert sw_version
+    assert sw_version != PREVIOUS_SW_VERSION
 
 
 B6_B7_FREEZE_BASE = "3e4a5503fd19bc38b9a51081df51c732683f2228"

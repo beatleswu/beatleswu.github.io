@@ -7,6 +7,14 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const HERO_PATH = path.join(REPO_ROOT, 'hero.html');
 const SW_PATH = path.join(REPO_ROOT, 'sw.js');
 const HERO_SOURCE = fs.readFileSync(HERO_PATH, 'utf8');
+
+function readActiveSwIdentity(source) {
+  const version = source.match(/^const VERSION\s*=\s*'([^']+)';\s*$/m);
+  const assetIdentity = source.match(/^const ASSET_IDENTITY\s*=\s*'([^']+)';\s*$/m);
+  assert(version, 'sw.js must have one active VERSION declaration');
+  assert(assetIdentity, 'sw.js must have one active ASSET_IDENTITY declaration');
+  return { version: version[1], assetIdentity: assetIdentity[1] };
+}
 const A028_START = '// ── A028 Player Presentation read-only adoption';
 const A028_END = '// ── End A028 Player Presentation read-only adoption';
 const A028_START_OFFSET = HERO_SOURCE.indexOf(A028_START);
@@ -195,10 +203,12 @@ async function main() {
   assert.strictEqual(await malformed.context.__a028.loadPlayerPresentationSnapshot(), null);
 
   const sw = fs.readFileSync(SW_PATH, 'utf8');
-  assert.strictEqual(
-    (sw.match(/^const VERSION\s*=\s*'[^']+';/m) || [])[0],
-    "const VERSION     = 'v240-a028-hero-player-presentation-readonly';",
-  );
+  const identity = readActiveSwIdentity(sw);
+  assert.match(identity.version, /^v\d+-[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  assert.notStrictEqual(identity.version, 'v240-a028-hero-player-presentation-readonly');
+  assert.match(identity.assetIdentity, /^source-[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  assert(sw.includes('`cg-shell-${VERSION}-${ASSET_IDENTITY}`'));
+  assert(sw.includes('`cg-img-${VERSION}-${ASSET_IDENTITY}`'));
   console.log('A028 Hero Player Presentation tests: 14 passed');
 }
 

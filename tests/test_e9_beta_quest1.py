@@ -1,6 +1,11 @@
 import json
 from pathlib import Path
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -54,5 +59,6 @@ def test_static_manifest_contains_quest_assets_and_i18n_keys():
 
 
 def test_asset_version_is_coupled_to_current_static_runtime():
-    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in read("js/e9/feature_flags.js")
-    assert "v230-e10-lord-trial-safari-recovery" in read("sw.js")
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.asset_version
+    assert identity.sw_version

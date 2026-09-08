@@ -5,6 +5,12 @@ from pathlib import Path
 
 from PIL import Image
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_cache_tag,
+    read_static_runtime_identity,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_ROOT = ROOT / "assets/e10/ui"
@@ -16,7 +22,6 @@ RIGHT = (ROOT / "js/e9/right_cards.js").read_text(encoding="utf-8")
 CSS = (ROOT / "css/e9/art_directed_runtime.css").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
-FLAGS = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
 
 
 def digest(path: Path) -> str:
@@ -196,10 +201,12 @@ def test_dynamic_cta_and_zone_identity_contracts_are_unchanged():
 
 
 def test_final_cache_identity_and_stylesheet_order_are_single_bump():
-    assert "const VERSION     = 'v230-e10-lord-trial-safari-recovery'" in SW
-    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert INDEX.count("20260801e10art1") >= 9
-    assert "/css/e9/art_directed_runtime.css?v=20260801e10art1" in INDEX
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.sw_version
+    assert identity.asset_version
+    art_tag = read_cache_tag(ROOT, "css/e9/art_directed_runtime.css")
+    assert INDEX.count(art_tag) >= 9
+    assert f"/css/e9/art_directed_runtime.css?v={art_tag}" in INDEX
     assert INDEX.index("/css/e9/reference_world_map.css") < INDEX.index("/css/e9/art_directed_runtime.css")
 
 

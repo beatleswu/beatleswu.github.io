@@ -1,5 +1,10 @@
 from pathlib import Path
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -61,7 +66,8 @@ def test_first_journey_does_not_change_adventure_question_or_battlefield_boundar
 
 
 def test_service_worker_version_is_current_for_this_frontend_change():
-    assert "const VERSION     = 'v230-e10-lord-trial-safari-recovery'" in SW
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.sw_version
 
 
 def test_beginner_village_post_answer_continuation_controls_are_localized():

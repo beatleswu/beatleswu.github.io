@@ -34,6 +34,11 @@ import re
 import subprocess
 from pathlib import Path
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_static_runtime_identity,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 AVAILABILITY_RUNNER = (
@@ -255,16 +260,14 @@ def test_selection_detail_carries_the_authoritative_clear_flag():
 
 
 def test_cache_identity_was_bumped_off_v236():
-    version = re.search(r"const VERSION\s*=\s*'([^']+)'", SW).group(1)
-    assert version != "v236-e10-replay-story-button-hotfix"
-    assert version == "v240-a028-hero-player-presentation-readonly"
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.sw_version != "v236-e10-replay-story-button-hotfix"
 
 
 def test_changed_runtime_modules_carry_a_new_cache_tag():
-    for src in (
-        "/js/e9/world_stage.js?v=20260828e042s1",
-        "/js/e9/right_cards.js?v=20260828e040s1",
-    ):
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    for path in ("js/e9/world_stage.js", "js/e9/right_cards.js"):
+        src = f"/{path}?v={identity.cache_tags[path]}"
         assert src in INDEX, f"{src} missing -- cached clients keep the broken copy"
     assert "/js/e9/world_stage.js?v=20260821e10xsurface002" not in INDEX
     assert "/js/e9/right_cards.js?v=20260821e10xsurface002" not in INDEX

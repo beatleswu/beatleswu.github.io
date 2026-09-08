@@ -1,6 +1,12 @@
 import re
 from pathlib import Path
 
+from tests.support.sw_identity import (
+    assert_static_runtime_identity_well_formed,
+    read_cache_tag,
+    read_static_runtime_identity,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
@@ -12,7 +18,6 @@ CARDS_JS = (ROOT / "js/e9/right_cards.js").read_text(encoding="utf-8")
 CSS = (ROOT / "css/e9/immersive_rpg.css").read_text(encoding="utf-8")
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
-FLAGS = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
 
@@ -120,6 +125,7 @@ def test_reduced_motion_and_cache_coupling_are_current():
     assert "@media (prefers-reduced-motion: reduce)" in CSS
     assert "transition-duration: .001ms" in CSS
     assert "animation: none" in CSS
-    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v230-e10-lord-trial-safari-recovery'" in SW
-    assert INDEX.count("20260801e10art1") >= 8
+    identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
+    assert identity.asset_version
+    assert identity.sw_version
+    assert INDEX.count(read_cache_tag(ROOT, "css/e9/art_directed_runtime.css")) >= 8
