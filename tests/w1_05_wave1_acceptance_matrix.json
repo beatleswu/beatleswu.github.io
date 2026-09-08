@@ -1,0 +1,242 @@
+{
+  "schema": "w1_05_wave1_acceptance_matrix_v1",
+  "scope": "Wave1 bounded acceptance evidence only; no Owner, physical-device, publication, Production, or deployment acceptance is implied",
+  "rows": [
+    {
+      "gate_id": "W1-05-A-SESSION",
+      "surface": "authenticated Adventure entry/session",
+      "test_or_check": "Run the existing authenticated Zone3 browser journey with a non-Production E2E_BASE_URL and supplied test credentials",
+      "automatable": true,
+      "requires_physical_device": false,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": true,
+      "current_result": "NOT_RUN_ENVIRONMENT_BLOCKED",
+      "evidence_location": [
+        "tests/e2e/run_w1_03_journey_zone3_final_qa_blocker_repair_012.mjs"
+      ]
+    },
+    {
+      "gate_id": "W1-05-B-FIRST-CLEAR",
+      "surface": "first-clear projection",
+      "test_or_check": "Exercise the canonical first-clear receipt, reward projection, Zone-star projection, and next-Zone projection path",
+      "automatable": true,
+      "requires_physical_device": false,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": true,
+      "current_result": "PASS_AUTOMATED_TEST_ENVIRONMENT",
+      "evidence_location": [
+        "tests/test_w1_a1_lord_first_clear_durable_settlement.py",
+        "tests/test_adventure_first_clear_reward.py",
+        "tests/test_w1_05_wave1_acceptance_harness.py"
+      ]
+    },
+    {
+      "gate_id": "W1-05-C-REWARD",
+      "surface": "reward presentation and binding",
+      "test_or_check": "Verify first-clear reward is canonical and replay does not create a second reward",
+      "automatable": true,
+      "requires_physical_device": false,
+      "requires_owner_perceptual_acceptance": true,
+      "requires_production": true,
+      "current_result": "PASS_AUTOMATED_TEST_ENVIRONMENT_OWNER_PENDING",
+      "evidence_location": [
+        "tests/test_adventure_first_clear_reward.py",
+        "tests/test_w1_a1_lord_first_clear_durable_settlement.py"
+      ]
+    },
+    {
+      "gate_id": "W1-05-D-ZONE-STAR",
+      "surface": "Zone star presentation",
+      "test_or_check": "Verify the first-clear projection exposes the canonical Zone-star result and remains idempotent on replay",
+      "automatable": true,
+      "requires_physical_device": false,
+      "requires_owner_perceptual_acceptance": true,
+      "requires_production": true,
+      "current_result": "PASS_AUTOMATED_TEST_ENVIRONMENT_OWNER_PENDING",
+      "evidence_location": [
+        "tests/test_w1_a1_lord_first_clear_durable_settlement.py",
+        "docs/contracts/w1_c1_zone3_reference_vertical_slice_template_001.json"
+      ]
+    },
+    {
+      "gate_id": "W1-05-E-NEXT-ZONE",
+      "surface": "next-Zone unlock presentation",
+      "test_or_check": "Verify the canonical first-clear projection exposes the next-Zone unlock and replay creates no duplicate unlock side effect",
+      "automatable": true,
+      "requires_physical_device": false,
+      "requires_owner_perceptual_acceptance": true,
+      "requires_production": true,
+      "current_result": "PASS_AUTOMATED_TEST_ENVIRONMENT_OWNER_PENDING",
+      "evidence_location": [
+        "tests/test_w1_a1_lord_first_clear_durable_settlement.py",
+        "tests/test_w1_03_journey_zone3_vertical_slice_wiring.py"
+      ]
+    },
+    {
+      "gate_id": "W1-05-F-REPLAY",
+      "surface": "replay and idempotency safety",
+      "test_or_check": "Replay the accepted first-clear projection and settled Map Battle request; assert no duplicate reward, star, unlock, or battle settlement",
+      "automatable": true,
+      "requires_physical_device": false,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": true,
+      "current_result": "PASS_AUTOMATED_TEST_ENVIRONMENT",
+      "evidence_location": [
+        "tests/test_w1_a1_lord_first_clear_durable_settlement.py",
+        "tests/test_w1_a2_map_battle_trusted_evidence_alignment.py",
+        "tests/test_map_battle_runtime.py",
+        "tests/test_map_battle_persistence.py",
+        "tests/test_w1_05_wave1_acceptance_harness.py"
+      ]
+    },
+    {
+      "gate_id": "W1-05-G-ZONE3",
+      "surface": "integrated Zone3 presentation",
+      "test_or_check": "Run the canonical Zone3 contract, vertical-slice controller checks, static fixture browser checks, asset reachability, and audio binding reachability",
+      "automatable": true,
+      "requires_physical_device": true,
+      "requires_owner_perceptual_acceptance": true,
+      "requires_production": true,
+      "current_result": "PASS_AUTOMATED_FIXTURE_AND_CONTRACT_OWNER_PENDING_DEVICE_PENDING",
+      "evidence_location": [
+        "tests/test_e055_zone3_vertical_slice.py",
+        "tests/test_w1_c1_zone3_reference_vertical_slice_template.py",
+        "tests/e2e/run_w1_03_journey_zone3_vertical_slice_wiring.mjs",
+        "tests/e2e/run_w1_03_journey_zone3_final_presentation_single_writer_binding_010.mjs",
+        "tests/test_w1_05_wave1_acceptance_harness.py"
+      ]
+    },
+    {
+      "gate_id": "W1-05-H-HERO",
+      "surface": "Hero integrated presentation",
+      "test_or_check": "Run the current W1-02 Hero/Zone3 encounter contract smoke; do not treat it as visual or physical acceptance",
+      "automatable": true,
+      "requires_physical_device": true,
+      "requires_owner_perceptual_acceptance": true,
+      "requires_production": false,
+      "current_result": "PASS_AUTOMATED_SMOKE_OWNER_PENDING_DEVICE_PENDING",
+      "evidence_location": [
+        "tests/test_w1_02_hero_zone3_encounter_runtime_contract_and_handoff_006.py",
+        "docs/planning/w1_02_hero_zone3_encounter_runtime_contract_and_handoff_006.json"
+      ]
+    },
+    {
+      "gate_id": "W1-05-H-LORD",
+      "surface": "Lord integrated presentation",
+      "test_or_check": "Run the current W1-02 Lord asset/runtime binding smoke and preserve the distinct Lord/Battlefield Boss boundary",
+      "automatable": true,
+      "requires_physical_device": true,
+      "requires_owner_perceptual_acceptance": true,
+      "requires_production": false,
+      "current_result": "PASS_AUTOMATED_SMOKE_OWNER_PENDING_DEVICE_PENDING",
+      "evidence_location": [
+        "tests/test_w1_02_zone3_monster_lord_runtime_asset_binding_004.py",
+        "tests/test_w1_02_zone3_lord_final_asset_ingestion_005.py"
+      ]
+    },
+    {
+      "gate_id": "W1-05-I-AUDIO",
+      "surface": "Zone3 audio-trigger integration evidence",
+      "test_or_check": "Resolve the locked Zone3 presentation/cinematic audio manifest paths and byte metadata without changing audio authority",
+      "automatable": true,
+      "requires_physical_device": true,
+      "requires_owner_perceptual_acceptance": true,
+      "requires_production": false,
+      "current_result": "PASS_MANIFEST_REACHABILITY_PERCEPTUAL_PENDING_DEVICE_PENDING",
+      "evidence_location": [
+        "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest.json",
+        "assets/e10/audio/zone3/zone3-cinematic-audio-manifest-en-US.json",
+        "tests/test_w1_03_journey_zone3_presentation_audio_package_009.py",
+        "tests/test_w1_05_wave1_acceptance_harness.py"
+      ]
+    },
+    {
+      "gate_id": "W1-05-J-DESKTOP",
+      "surface": "desktop browser responsive behavior",
+      "test_or_check": "Run the existing static fixture at 1440x900 in Chromium",
+      "automatable": true,
+      "requires_physical_device": true,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": false,
+      "current_result": "PASS_BROWSER_EMULATED_PHYSICAL_PENDING",
+      "evidence_location": [
+        "tests/e2e/run_w1_03_journey_zone3_final_presentation_single_writer_binding_010.mjs"
+      ]
+    },
+    {
+      "gate_id": "W1-05-J-IPAD-LANDSCAPE",
+      "surface": "iPad landscape viewport behavior",
+      "test_or_check": "Run the existing static fixture at 1180x820 in Chromium",
+      "automatable": true,
+      "requires_physical_device": true,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": false,
+      "current_result": "PASS_BROWSER_EMULATED_PHYSICAL_PENDING",
+      "evidence_location": [
+        "tests/e2e/run_w1_03_journey_zone3_final_presentation_single_writer_binding_010.mjs"
+      ]
+    },
+    {
+      "gate_id": "W1-05-J-IPAD-PORTRAIT",
+      "surface": "iPad portrait viewport behavior",
+      "test_or_check": "Run the existing static fixture at 834x1194 in Chromium",
+      "automatable": true,
+      "requires_physical_device": true,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": false,
+      "current_result": "PASS_BROWSER_EMULATED_PHYSICAL_PENDING",
+      "evidence_location": [
+        "tests/e2e/run_w1_03_journey_zone3_final_presentation_single_writer_binding_010.mjs"
+      ]
+    },
+    {
+      "gate_id": "W1-05-J-IPHONE",
+      "surface": "iPhone/mobile portrait viewport behavior",
+      "test_or_check": "Run the existing static fixture at 430x932 in Chromium",
+      "automatable": true,
+      "requires_physical_device": true,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": false,
+      "current_result": "PASS_BROWSER_EMULATED_PHYSICAL_PENDING",
+      "evidence_location": [
+        "tests/e2e/run_w1_03_journey_zone3_final_presentation_single_writer_binding_010.mjs"
+      ]
+    },
+    {
+      "gate_id": "W1-05-K-STATIC",
+      "surface": "static/release preflight",
+      "test_or_check": "Run bounded manifest, source-separation, static packaging, runtime closure, and release identity tests without publishing",
+      "automatable": true,
+      "requires_physical_device": false,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": true,
+      "current_result": "PASS_WITH_PREEXISTING_CANONICAL_DEBT",
+      "evidence_location": [
+        "tests/deployment/test_build_manifest.py",
+        "tests/deployment/test_canonical_build_inputs.py",
+        "tests/deployment/test_e9_runtime_asset_packaging.py",
+        "tests/deployment/test_runtime_dependency_closure.py",
+        "tests/deployment/test_runtime_dependency_provenance.py",
+        "tests/deployment/test_release_source_separation.py",
+        "tests/deployment/test_release_identity_lock.py",
+        "tests/deployment/test_static_release_tooling.py"
+      ]
+    },
+    {
+      "gate_id": "W1-05-K-ROLLBACK",
+      "surface": "rollback/read-only release contract",
+      "test_or_check": "Verify rollback path joining, verify-only no-mutation behavior, and dry-run release tooling contracts",
+      "automatable": true,
+      "requires_physical_device": false,
+      "requires_owner_perceptual_acceptance": false,
+      "requires_production": false,
+      "current_result": "PASS_AUTOMATED_READ_ONLY_CHECK",
+      "evidence_location": [
+        "tests/deployment/test_rollback_tooling_join_remote_path.py",
+        "tests/deployment/test_static_verify_only_entrypoint.py",
+        "tests/deployment/test_release_tooling.py"
+      ]
+    }
+  ]
+}
