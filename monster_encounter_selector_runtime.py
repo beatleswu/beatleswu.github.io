@@ -31,6 +31,8 @@ from monster_encounter_selector import (
 
 MONSTER_SELECTOR_V1_ENABLED_ENV = "MONSTER_ENCOUNTER_SELECTOR_V1_ENABLED"
 MONSTER_SELECTOR_DEFAULT_ENABLED = False
+F009_SELECTOR_MIGRATION_VERSION = "monster-selector-v1-default-off"
+F009_HARD_FENCE_POLICY = "FAIL_CLOSED_UNRESOLVED_NEW_IDENTITY"
 SELECTOR_STATE_SCHEMA_VERSION = selector_schema.SCHEMA_VERSION
 SELECTOR_OPERATION_KIND = "MONSTER_ENCOUNTER_SELECTION"
 SERVER_OPERATION_PREFIX = "monster-encounter"
@@ -69,6 +71,32 @@ class SelectorStateCorrupt(MonsterSelectorRuntimeError):
 
 class SelectorOperationConflict(MonsterSelectorRuntimeError):
     """An operation replay key was reused with conflicting authority inputs."""
+
+
+class SelectorProviderAuthorityUnavailable(MonsterSelectorRuntimeError):
+    """F009 has no admitted provider authority for a new encounter."""
+
+
+def reject_unadmitted_selector_encounter(
+    *,
+    zone_key: Any = None,
+    selected_monster_id: Any = None,
+    phase: str = "new encounter",
+) -> None:
+    """Fail closed when F009 cannot resolve through canonical provider authority.
+
+    The selector and its historical 20-identity catalog remain available to
+    bounded compatibility tests and support tooling.  This gate is the live
+    Adventure/Map Battle boundary: until a canonical provider binding is
+    explicitly available, no F009 identity may create or resume gameplay.
+    """
+
+    del zone_key, selected_monster_id
+    raise SelectorProviderAuthorityUnavailable(
+        "F009 selector is not admitted for "
+        f"{str(phase or 'new encounter').strip() or 'new encounter'}; "
+        "canonical Monster provider authority is required"
+    )
 
 
 @dataclass(frozen=True)
@@ -705,11 +733,14 @@ __all__ = [
     "DurableSelectionOperation",
     "DurableSelectionResult",
     "DurableSelectorState",
+    "F009_HARD_FENCE_POLICY",
+    "F009_SELECTOR_MIGRATION_VERSION",
     "MONSTER_SELECTOR_DEFAULT_ENABLED",
     "MONSTER_SELECTOR_V1_ENABLED_ENV",
     "MAP_BATTLE_ZONE_KEY_ALIASES",
     "MonsterSelectorRuntimeError",
     "SelectorOperationConflict",
+    "SelectorProviderAuthorityUnavailable",
     "SelectorStateCorrupt",
     "SelectorStateSchemaUnavailable",
     "get_selection_operation",
@@ -717,6 +748,7 @@ __all__ = [
     "load_selector_state",
     "monster_selector_v1_enabled",
     "new_server_encounter_operation_id",
+    "reject_unadmitted_selector_encounter",
     "reconstruct_selection_operation",
     "select_durable_monster_encounter",
 ]

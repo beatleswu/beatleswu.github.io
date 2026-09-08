@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
+import sys
+import types
+from pathlib import Path
 
 import pytest
 
@@ -8,8 +11,12 @@ from migrations import monster_encounter_selector_state_v1 as selector_schema
 from monster_combat_profiles import resolve_monster_combat_profile
 from monster_encounter_selector import MonsterEncounterCandidate, MonsterSelectorPolicy
 from monster_encounter_selector_runtime import (
+    F009_HARD_FENCE_POLICY,
+    F009_SELECTOR_MIGRATION_VERSION,
     SelectorStateCorrupt,
+    SelectorProviderAuthorityUnavailable,
     canonical_selector_zone_key,
+    reject_unadmitted_selector_encounter,
     get_selection_operation,
     load_selector_state,
     monster_selector_v1_enabled,
@@ -17,6 +24,64 @@ from monster_encounter_selector_runtime import (
     reconstruct_selection_operation,
     select_durable_monster_encounter,
 )
+
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+try:
+    from test_map_battle_legacy_adapter import api_env as api_env
+except ImportError:  # pragma: no cover - direct non-pytest imports
+    api_env = None
+
+
+def _install_app_import_stubs():
+    """Keep the bounded route proof independent of optional integrations."""
+
+    if "katago_explain" not in sys.modules:
+        module = types.ModuleType("katago_explain")
+        module.KataGoExplainer = type("KataGoExplainer", (), {})
+        sys.modules["katago_explain"] = module
+    if "explain_overrides" not in sys.modules:
+        module = types.ModuleType("explain_overrides")
+        module.get_override = lambda *args, **kwargs: None
+        sys.modules["explain_overrides"] = module
+    if "grimoire_api" not in sys.modules:
+        from flask import Blueprint
+
+        module = types.ModuleType("grimoire_api")
+        module.grimoire_bp = Blueprint("grimoire_stub_f009", __name__)
+        sys.modules["grimoire_api"] = module
+    if "question_taxonomy" not in sys.modules:
+        module = types.ModuleType("question_taxonomy")
+        module.get_taxonomy = lambda *args, **kwargs: {}
+        sys.modules["question_taxonomy"] = module
+    if "monster_taxonomy" not in sys.modules:
+        module = types.ModuleType("monster_taxonomy")
+        module.get_monster_taxonomy = lambda *args, **kwargs: {}
+        module.mark_encounters = lambda *args, **kwargs: None
+        sys.modules["monster_taxonomy"] = module
+    if "chapter_i18n" not in sys.modules:
+        module = types.ModuleType("chapter_i18n")
+        module.localize_topic = lambda *args, **kwargs: ""
+        module.localize_level = lambda *args, **kwargs: ""
+        sys.modules["chapter_i18n"] = module
+    if "backend_i18n" not in sys.modules:
+        module = types.ModuleType("backend_i18n")
+        module.badge_en = lambda *args, **kwargs: ""
+        module.skill_node_en = lambda *args, **kwargs: ""
+        module.title_en = lambda *args, **kwargs: ""
+        sys.modules["backend_i18n"] = module
+
+
+@pytest.fixture(scope="module")
+def app_module():
+    _install_app_import_stubs()
+    import app as module
+
+    module.app.config["TESTING"] = True
+    return module
 
 
 def _catalog(*, zone: str = "zone_01", count: int = 9):
@@ -259,3 +324,128 @@ def test_reconstruction_exposes_operation_before_after_and_current_state(selecto
     assert reconstruction["seen_monster_ids_before"] == []
     assert reconstruction["seen_monster_ids_after"] == [result.monster_id]
     assert reconstruction["current_state"]["last_monster_id"] == result.monster_id
+
+
+def test_f009_hard_fence_rejects_unresolved_new_identity_before_mutation():
+    with pytest.raises(SelectorProviderAuthorityUnavailable):
+        reject_unadmitted_selector_encounter(
+            zone_key="zone_01",
+            selected_monster_id="legacy_bf_01_normal",
+            phase="new encounter",
+        )
+
+    assert F009_HARD_FENCE_POLICY == "FAIL_CLOSED_UNRESOLVED_NEW_IDENTITY"
+
+
+def test_all_twenty_legacy_selector_identities_are_blocked_from_new_runtime_creation():
+    from monster_encounter_selector import build_legacy_selector_candidates
+
+    candidates = build_legacy_selector_candidates()
+    assert len(candidates) == 20
+    for candidate in candidates:
+        with pytest.raises(SelectorProviderAuthorityUnavailable):
+            reject_unadmitted_selector_encounter(
+                zone_key=candidate.zone_key,
+                selected_monster_id=candidate.monster_id,
+            )
+
+
+def test_f009_unresolved_identity_fails_closed_without_reward_or_progress_callbacks():
+    reward_calls = []
+    progress_calls = []
+    with pytest.raises(SelectorProviderAuthorityUnavailable):
+        reject_unadmitted_selector_encounter(
+            zone_key="zone_01",
+            selected_monster_id=None,
+            phase="unresolved identity",
+        )
+    assert reward_calls == []
+    assert progress_calls == []
+
+
+def test_enabled_f009_route_fails_before_battle_attempt_or_progress_mutation(
+    api_env, app_module, monkeypatch
+):
+    if api_env is None:  # pragma: no cover - direct non-pytest imports
+        pytest.skip("shared disposable API fixture unavailable")
+    client, conn = api_env
+    monkeypatch.setattr(
+        app_module,
+        "_questions_for_adventure_zone",
+        lambda questions, zone, premium=True: list(questions),
+    )
+    monkeypatch.setenv("MONSTER_ENCOUNTER_SELECTOR_V1_ENABLED", "true")
+
+    before = {
+        "battles": conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0],
+        "attempts": conn.execute("SELECT COUNT(*) FROM map_battle_attempts").fetchone()[0],
+        "srs": conn.execute("SELECT COUNT(*) FROM srs_cards").fetchone()[0],
+        "reviews": conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0],
+        "stats": tuple(conn.execute(
+            "SELECT player_hp, player_max_hp, xp, rank_xp FROM user_stats WHERE user_id=101"
+        ).fetchone()),
+    }
+    response = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "k26_30", "question_id": 7001},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    )
+
+    assert response.status_code == 503
+    assert response.get_json()["code"] == "monster_selector_unavailable"
+    after = {
+        "battles": conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0],
+        "attempts": conn.execute("SELECT COUNT(*) FROM map_battle_attempts").fetchone()[0],
+        "srs": conn.execute("SELECT COUNT(*) FROM srs_cards").fetchone()[0],
+        "reviews": conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0],
+        "stats": tuple(conn.execute(
+            "SELECT player_hp, player_max_hp, xp, rank_xp FROM user_stats WHERE user_id=101"
+        ).fetchone()),
+    }
+    assert after == before
+
+
+def test_persisted_f009_battle_cannot_resume_without_provider_authority(
+    api_env, app_module, monkeypatch
+):
+    if api_env is None:  # pragma: no cover - direct non-pytest imports
+        pytest.skip("shared disposable API fixture unavailable")
+    client, conn = api_env
+    app_module.create_map_battle(
+        conn,
+        user_id=101,
+        zone_key="legacy::f009",
+        player_hp=30,
+        player_hp_max=30,
+        monster_hp=40,
+        monster_hp_max=40,
+        migration_source="f010-monster-selector",
+        migration_version=F009_SELECTOR_MIGRATION_VERSION,
+    )
+    conn.commit()
+    monkeypatch.delenv("MONSTER_ENCOUNTER_SELECTOR_V1_ENABLED", raising=False)
+
+    before_attempts = conn.execute(
+        "SELECT COUNT(*) FROM map_battle_attempts"
+    ).fetchone()[0]
+    response = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "legacy::f009", "question_id": 7001},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    )
+
+    assert response.status_code == 503
+    assert response.get_json()["code"] == "monster_selector_unavailable"
+    assert conn.execute("SELECT COUNT(*) FROM map_battle_attempts").fetchone()[0] == before_attempts
+
+
+def test_f009_historical_selector_catalog_remains_read_only_compatible():
+    from monster_encounter_selector import build_legacy_selector_candidates
+
+    candidates = build_legacy_selector_candidates()
+    assert {candidate.monster_id for candidate in candidates} == {
+        f"legacy_bf_{zone:02d}_{kind}"
+        for zone in range(1, 11)
+        for kind in ("normal", "boss")
+    }
+    assert F009_SELECTOR_MIGRATION_VERSION == "monster-selector-v1-default-off"
