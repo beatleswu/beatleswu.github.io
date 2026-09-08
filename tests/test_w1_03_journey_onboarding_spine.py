@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = "d6afb957a12891e69f4709b3909cf41f13cfbcd9"
+BASE = "origin/master"
 CONTENT = ROOT / "js" / "e9" / "journey_onboarding_content.js"
 SPINE = ROOT / "js" / "e9" / "journey_onboarding_spine.js"
 VIEW = ROOT / "js" / "e9" / "journey_onboarding_view.js"
@@ -143,8 +143,8 @@ def test_view_is_root_scoped_and_presentation_only():
 
 
 def test_protected_backend_and_cinematic_boundaries_untouched():
-    # This follow-on task owns the authorized index/i18n shell-writer slot.
-    # Keep the gameplay backend and generic cinematic replay contract locked.
+    # Keep the gameplay backend and generic cinematic replay contract locked
+    # against the fresh canonical base for this candidate.
     for relative in ("js/game/cinematic_replay.js", "app.py"):
         result = subprocess.run(
             ["git", "diff", "--quiet", BASE, "--", relative],

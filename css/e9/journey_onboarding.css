@@ -45,6 +45,55 @@
   color: #67573d;
   font-size: 13px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.e9-journey__progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.e9-journey__progress li {
+  min-width: 0;
+  padding: 3px 7px;
+  border: 1px solid rgba(126, 104, 64, 0.2);
+  border-radius: 999px;
+  color: #7b6c53;
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.e9-journey__progress li[data-journey-progress-state="current"] {
+  border-color: #8e5c1f;
+  color: #4b3218;
+  font-weight: 700;
+}
+
+.e9-journey__progress li[data-journey-progress-state="completed"] {
+  border-color: rgba(73, 111, 79, 0.45);
+  color: #45634a;
+}
+
+.e9-journey__progress li[data-journey-progress-state="skipped"] {
+  border-style: dashed;
+}
+
+.e9-journey__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .e9-journey__actions {
@@ -55,7 +104,7 @@
 }
 
 .e9-journey__button {
-  min-height: 40px;
+  min-height: 44px;
   padding: 7px 12px;
   border: 1px solid #6b5b3a;
   border-radius: 999px;
@@ -87,6 +136,17 @@
     border-radius: 12px;
   }
 
+  .e9-journey__progress {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: visible;
+  }
+
+  .e9-journey__progress li {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .e9-journey__button {
     flex: 1 1 140px;
   }
@@ -95,5 +155,9 @@
 @media (prefers-reduced-motion: reduce) {
   .e9-journey__button {
     transition: none;
+  }
+
+  .e9-journey__progress {
+    scroll-behavior: auto;
   }
 }

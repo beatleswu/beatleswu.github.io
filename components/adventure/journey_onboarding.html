@@ -5,11 +5,13 @@
   the existing shell bridge proves the first-session state and a canonical
   journey event is accepted by journey_onboarding_spine.js.
 -->
-<aside id="journey-onboarding" class="e9-journey" data-e9-component="journey_onboarding" role="region" data-i18n-aria-label="e9.journey.aria_label" hidden aria-hidden="true">
+<aside id="journey-onboarding" class="e9-journey" data-e9-component="journey_onboarding" role="region" data-i18n-aria-label="e9.journey.aria_label" aria-labelledby="journey-onboarding-title" aria-describedby="journey-onboarding-body" hidden aria-hidden="true">
   <div class="e9-journey__card" data-journey-card>
     <p class="e9-journey__kicker" data-journey-kicker></p>
-    <h2 class="e9-journey__title" data-journey-title></h2>
-    <p class="e9-journey__body" data-journey-body></p>
+    <h2 id="journey-onboarding-title" class="e9-journey__title" data-journey-title></h2>
+    <p id="journey-onboarding-body" class="e9-journey__body" data-journey-body></p>
+    <ol class="e9-journey__progress" data-journey-progress></ol>
+    <p class="e9-journey__status" data-journey-status role="status" aria-live="polite"></p>
     <div class="e9-journey__actions" role="group" data-i18n-aria-label="e9.journey.actions_aria_label">
       <button type="button" class="e9-journey__button e9-journey__button--quiet" data-journey-action="skip" data-journey-skip></button>
       <button type="button" class="e9-journey__button" data-journey-action="replay" data-journey-replay hidden></button>

@@ -36,6 +36,34 @@
     }
   }
 
+  function stepPresentationState(state, step, displayStep) {
+    if (displayStep === step) return 'current';
+    if (state.skippedSteps && state.skippedSteps.indexOf(step) !== -1) return 'skipped';
+    if (state.completedSteps && state.completedSteps.indexOf(step) !== -1) return 'completed';
+    return 'upcoming';
+  }
+
+  function renderProgress(root, state, displayStep) {
+    var progress = root.querySelector('[data-journey-progress]');
+    if (!progress || typeof document.createElement !== 'function') return;
+    progress.replaceChildren();
+    (content.stepOrder || []).forEach(function (step) {
+      var contract = content.stepContracts[step];
+      // zone3_arrival remains a style-lock boundary and has no user copy yet.
+      if (!contract || !contract.copyKey) return;
+      var item = document.createElement('li');
+      var label = document.createElement('span');
+      var stateName = stepPresentationState(state, step, displayStep);
+      item.setAttribute('data-journey-progress-step', step);
+      item.setAttribute('data-journey-progress-state', stateName);
+      if (stateName === 'current') item.setAttribute('aria-current', 'step');
+      label.setAttribute('data-i18n', contract.copyKey + '.title');
+      label.textContent = step.replace(/_/g, ' ');
+      item.appendChild(label);
+      progress.appendChild(item);
+    });
+  }
+
   function consumeLiveQueueItem(detail) {
     // Bridge events are queued only to cover the gap before this non-critical
     // fragment mounts. Remove a live-dispatched object so a later remount does
@@ -51,22 +79,38 @@
     var state = controller.getState();
     var step = overrideStep || state.step;
     var contract = content.stepContracts[step];
-    var hidden = !state.active || state.boundaryReached || !contract || !contract.copyKey;
+    var suppressed = root.getAttribute('data-journey-presentation-suppressed') === 'true';
+    var hidden = suppressed || !state.active || state.boundaryReached || !contract || !contract.copyKey;
     root.hidden = hidden;
     root.setAttribute('aria-hidden', hidden ? 'true' : 'false');
-    if (hidden) return;
+    if (hidden) {
+      if (suppressed) root.setAttribute('data-journey-visibility', 'suppressed');
+      else root.removeAttribute('data-journey-visibility');
+      return;
+    }
 
+    root.removeAttribute('data-journey-visibility');
     root.setAttribute('data-journey-step', step);
+    root.setAttribute('data-journey-presentation-state', overrideStep ? 'replay' : 'live');
     var prefix = contract.copyKey;
     setCopyKey(root.querySelector('[data-journey-kicker]'), prefix + '.kicker');
     setCopyKey(root.querySelector('[data-journey-title]'), prefix + '.title');
     setCopyKey(root.querySelector('[data-journey-body]'), prefix + '.body');
     setCopyKey(root.querySelector('[data-journey-skip]'), content.controlCopyKeys.skip);
     setCopyKey(root.querySelector('[data-journey-replay]'), content.controlCopyKeys.replay);
+    renderProgress(root, state, step);
 
     var replay = root.querySelector('[data-journey-replay]');
     if (replay) replay.hidden = state.completedSteps.length === 0;
     applyI18n(root);
+
+    var status = root.querySelector('[data-journey-status]');
+    var title = root.querySelector('[data-journey-title]');
+    var body = root.querySelector('[data-journey-body]');
+    if (status) {
+      status.textContent = [title && title.textContent, body && body.textContent]
+        .filter(Boolean).join('. ') || step.replace(/_/g, ' ');
+    }
   }
 
   function bind(target, eventName, handler, generation) {
@@ -91,12 +135,14 @@
       if (!action) return;
       event.preventDefault();
       if (action.getAttribute('data-journey-action') === 'skip') {
+        var skipResult = controller.skipHint();
         overrideStep = null;
-        controller.skipHint();
+        if (skipResult.accepted) root.setAttribute('data-journey-presentation-suppressed', 'true');
         renderCurrent();
       } else if (action.getAttribute('data-journey-action') === 'replay') {
         var replayResult = controller.replayHint();
         if (replayResult.accepted) {
+          root.removeAttribute('data-journey-presentation-suppressed');
           overrideStep = replayResult.replayStep;
           renderCurrent();
         }
@@ -109,7 +155,10 @@
       consumeLiveQueueItem(detail);
       overrideStep = null;
       var outcome = controller.accept(detail);
-      if (outcome.accepted) renderCurrent();
+      if (outcome.accepted) {
+        root.removeAttribute('data-journey-presentation-suppressed');
+        renderCurrent();
+      }
     }
 
     bind(root, 'click', onClick, generation);
@@ -122,6 +171,7 @@
     }
     root.setAttribute('data-e9-journey-mounted', 'true');
     root.__goOdysseyJourneyOnboarding = controller;
+    root.removeAttribute('data-journey-presentation-suppressed');
     renderCurrent();
     // The authenticated legacy bootstrap can finish before a non-critical
     // fragment arrives. Replay only the page-memory bridge events that were
