@@ -57,6 +57,70 @@ def _last_json(stdout: str) -> dict:
     return json.loads(stdout[start:])
 
 
+def _json_extractor_function() -> str:
+    content = SCRIPT.read_text(encoding="utf-8")
+    start = content.index("function ConvertFrom-LastJsonObject {")
+    end = content.index("function Invoke-GovernedScript {", start)
+    return content[start:end]
+
+
+def _run_json_extractor_probe(body: str) -> subprocess.CompletedProcess[str]:
+    command = (
+        "$ErrorActionPreference = 'Stop';\n"
+        + _json_extractor_function()
+        + "\n"
+        + body
+    )
+    return subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=20,
+        check=False,
+    )
+
+
+def test_coordinator_extracts_final_json_after_diagnostic_and_intermediate_records():
+    result = _run_json_extractor_probe(
+        r'''$payload = ConvertFrom-LastJsonObject -Text @'
+diagnostic { this is not JSON }
+{"stage":"intermediate","message":"literal brace } is noise"}
+{"success":true,"image_id":"sha256:test","nested":{"key":"value"}}
+'@ -OperationLabel 'parser probe'
+$payload | ConvertTo-Json -Compress
+'''
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "success": True,
+        "image_id": "sha256:test",
+        "nested": {"key": "value"},
+    }
+
+
+def test_coordinator_rejects_incomplete_final_json_instead_of_falling_back():
+    result = _run_json_extractor_probe(
+        r'''$payload = @'
+{"success":true}
+{"broken":{"nested":1}
+'@
+try {
+    ConvertFrom-LastJsonObject -Text $payload -OperationLabel 'parser probe' | Out-Null
+    Write-Output 'UNEXPECTED_PASS'
+    exit 1
+}
+catch {
+    Write-Output 'FAIL_CLOSED'
+}
+'''
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip() == "FAIL_CLOSED"
+
+
 def test_script_parses_as_valid_powershell():
     result = subprocess.run(
         ["powershell", "-NoProfile", "-Command",

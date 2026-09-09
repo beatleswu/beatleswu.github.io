@@ -135,6 +135,81 @@ $script:staticManifestPath = $null
 $script:staticBundlePath = $null
 $script:staticArchivePath = $null
 
+function ConvertFrom-LastJsonObject {
+    <#
+    Extract the final complete JSON object from a governed child script's
+    diagnostic output. Release scripts may intentionally stream human-readable
+    diagnostics and intermediate JSON records before their authoritative final
+    result. Curly braces inside JSON strings are ignored, and malformed or
+    incomplete final objects fail closed instead of falling back to an earlier
+    record.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Text,
+        [Parameter(Mandatory = $true)][string]$OperationLabel
+    )
+
+    $depth = 0
+    $candidateStart = -1
+    $insideString = $false
+    $escaped = $false
+    $lastParsed = $null
+    $lastCandidateValid = $false
+    $candidateCount = 0
+
+    for ($index = 0; $index -lt $Text.Length; $index++) {
+        $character = $Text[$index]
+        if ($insideString) {
+            if ($escaped) {
+                $escaped = $false
+            }
+            elseif ($character -eq '\') {
+                $escaped = $true
+            }
+            elseif ($character -eq '"') {
+                $insideString = $false
+            }
+            continue
+        }
+
+        if ($character -eq '"') {
+            $insideString = $true
+            continue
+        }
+        if ($character -eq '{') {
+            if ($depth -eq 0) {
+                $candidateStart = $index
+            }
+            $depth++
+            continue
+        }
+        if ($character -eq '}' -and $depth -gt 0) {
+            $depth--
+            if ($depth -eq 0) {
+                $candidateCount++
+                $candidateText = $Text.Substring($candidateStart, $index - $candidateStart + 1)
+                try {
+                    $lastParsed = $candidateText | ConvertFrom-Json -ErrorAction Stop
+                    $lastCandidateValid = $true
+                }
+                catch {
+                    $lastParsed = $null
+                    $lastCandidateValid = $false
+                }
+                $candidateStart = -1
+            }
+        }
+    }
+
+    if ($depth -ne 0) {
+        throw "$OperationLabel emitted an incomplete JSON object."
+    }
+    if ($candidateCount -eq 0 -or -not $lastCandidateValid) {
+        throw "$OperationLabel emitted no valid final JSON object."
+    }
+    return $lastParsed
+}
+
 function Invoke-GovernedScript {
     <#
     .SYNOPSIS
@@ -173,11 +248,18 @@ function Invoke-GovernedScript {
     if ($result.exit_code -ne 0) {
         return [ordered]@{ success = $false; timed_out = $false; exit_code = $result.exit_code; output = $result.output; data = $null }
     }
-    $jsonStart = $result.stdout.IndexOf('{')
-    if ($jsonStart -lt 0) {
-        return [ordered]@{ success = $false; timed_out = $false; exit_code = $result.exit_code; output = "$OperationLabel produced no parseable JSON output: $($result.output)"; data = $null }
+    try {
+        $data = ConvertFrom-LastJsonObject -Text ([string]$result.stdout) -OperationLabel $OperationLabel
     }
-    $data = $result.stdout.Substring($jsonStart) | ConvertFrom-Json
+    catch {
+        return [ordered]@{
+            success = $false
+            timed_out = $false
+            exit_code = $result.exit_code
+            output = "$OperationLabel emitted an invalid or incomplete JSON result: $($_.Exception.Message)"
+            data = $null
+        }
+    }
     return [ordered]@{ success = $true; timed_out = $false; exit_code = $result.exit_code; output = $result.output; data = $data }
 }
 
