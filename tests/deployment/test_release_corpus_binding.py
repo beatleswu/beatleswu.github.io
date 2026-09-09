@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -53,6 +54,24 @@ def test_package_and_shared_manifest_tool_require_explicit_corpus_identity():
         assert token in package
     for token in ("QuestionsCorpusIdentity is required", "questions_corpus_snapshot_id", "questions_corpus_source_identity"):
         assert token in module
+
+
+def test_deployment_record_rebinds_all_manifest_corpus_identity_fields():
+    deployment = (REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1").read_text(encoding="utf-8")
+    start = deployment.index("function New-DeploymentRecord")
+    end = deployment.index("function Save-DeploymentRecord", start)
+    record_builder = deployment[start:end]
+
+    assert "$questionsCorpusIdentity = [pscustomobject]@{" in record_builder
+    assert "-QuestionsCorpusIdentity $questionsCorpusIdentity" in record_builder
+    for field in FIELDS:
+        assert re.search(
+            rf"^\s+{field}\s*=\s*(?:\[int64\])?\$manifest\.{field}\s*$",
+            record_builder,
+            flags=re.MULTILINE,
+        )
+    assert "questions_corpus_sha256 = '" not in record_builder
+    assert "questions_corpus_snapshot_id = '" not in record_builder
 
 
 def _actual() -> remote.FileIdentity:

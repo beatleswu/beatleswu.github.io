@@ -1220,6 +1220,15 @@ function New-DeploymentRecord {
         [Parameter(Mandatory = $true)]$RollbackIdentity,
         [Parameter(Mandatory = $true)][string]$VerificationResult
     )
+    $questionsCorpusIdentity = [pscustomobject]@{
+        questions_corpus_sha256 = $manifest.questions_corpus_sha256
+        questions_corpus_record_count = [int64]$manifest.questions_corpus_record_count
+        questions_corpus_bytes = [int64]$manifest.questions_corpus_bytes
+        questions_corpus_snapshot_id = $manifest.questions_corpus_snapshot_id
+        questions_corpus_source_identity = $manifest.questions_corpus_source_identity
+        questions_corpus_source_sha256 = $manifest.questions_corpus_source_sha256
+        questions_corpus_source_record_count = [int64]$manifest.questions_corpus_source_record_count
+    }
     return New-ReleaseManifestObject `
         -GitSha $manifest.release_git_sha `
         -ImageTag $manifest.image_tag `
@@ -1230,6 +1239,7 @@ function New-DeploymentRecord {
         -BuildMachineIdentityClass $manifest.build_machine_identity_class `
         -TargetServiceNames $manifest.target_service_names `
         -ExternalContentRequirements $manifest.external_content_requirements `
+        -QuestionsCorpusIdentity $questionsCorpusIdentity `
         -ExpectedHealthEndpoints $manifest.expected_health_endpoints `
         -RollbackImageIdentity $RollbackIdentity `
         -VerificationResult $VerificationResult `
