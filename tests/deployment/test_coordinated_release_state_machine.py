@@ -115,7 +115,7 @@ def test_coordinated_happy_path_simulation_candidate_candidate():
     assert report["phases_completed"] == [
         "PRECHECK", "BUILD_APP", "PACKAGE_APP", "PACKAGE_STATIC",
         "SNAPSHOT_BASELINE", "VERIFY_ROLLBACK_READY",
-        "PROMOTE_STATIC", "VERIFY_STATIC", "PROMOTE_APP", "VERIFY_APP",
+        "PROMOTE_APP", "VERIFY_APP", "PROMOTE_STATIC", "VERIFY_STATIC",
         "JOINT_PROVENANCE", "PRODUCTION_SMOKE",
     ]
 
@@ -203,21 +203,21 @@ $__report = Invoke-CoordinatedReleaseStateMachine `
 
 
 # ---------------------------------------------------------------------------
-# F3: static promotion succeeds, app promotion fails before app mutation ->
-# static rollback, baseline/baseline, recovery, retry permitted.
+# F3: app promotion fails before app mutation -> no static promotion has
+# occurred, baseline/baseline, recovery, retry permitted.
 # ---------------------------------------------------------------------------
 
-def test_f3_static_success_app_premutation_fail_rolls_back_to_baseline():
+def test_f3_app_premutation_fail_does_not_switch_static_first():
     overrides = """
 $PromoteApp = {
     $n = Get-AttemptCount 'promote_app'
     if ($n -eq 1) { [ordered]@{ success = $false; root_cause_class = 'app_premutation_failure'; detail = 'F3: app promotion failed before any app mutation occurred' } }
     else { $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha; [ordered]@{ success = $true; app_sha = $ExpectedSha } }
 }
-"""
+    """
     report = run_scenario(overrides)
     assert report["success"] is True
-    assert report["static_rolled_back"] is True
+    assert report["static_rolled_back"] is False
     recovery = report["recovery_log"]
     assert len(recovery) == 1
     assert recovery[0]["classification"] == "L2"
@@ -225,8 +225,8 @@ $PromoteApp = {
 
 
 # ---------------------------------------------------------------------------
-# F4: static promotion succeeds, app mutation succeeds, post-app verification
-# fails -> coordinated rollback, baseline/baseline.
+# F4: app promotion succeeds, post-app verification fails before static
+# promotion -> app rollback, baseline/baseline.
 # ---------------------------------------------------------------------------
 
 def test_f4_post_app_verification_failure_triggers_coordinated_rollback():
@@ -237,10 +237,10 @@ $VerifyApp = {
     if ($n -eq 1) { [ordered]@{ success = $false; root_cause_class = 'post_app_verification_failed'; detail = 'F4: app container switched but readiness verification failed' } }
     else { [ordered]@{ success = $true } }
 }
-"""
+    """
     report = run_scenario(overrides)
     assert report["success"] is True
-    assert report["static_rolled_back"] is True
+    assert report["static_rolled_back"] is False
     assert report["app_rolled_back"] is True
     recovery = report["recovery_log"]
     assert len(recovery) == 1
@@ -302,7 +302,7 @@ $VerifyApp = { param($promoted) [ordered]@{ success = $false; root_cause_class =
     report = run_scenario(overrides)
     assert report["success"] is False
     assert report["final_state"] == "STOPPED_OWNER_DECISION_REQUIRED"
-    assert report["static_rolled_back"] is True
+    assert report["static_rolled_back"] is False
     assert report["app_rolled_back"] is True
     assert report["final_current_state"]["app_sha"] == BASELINE_SHA
     assert report["final_current_state"]["static_sha"] == BASELINE_SHA

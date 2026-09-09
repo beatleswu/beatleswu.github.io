@@ -89,6 +89,11 @@ Every canonical release script's remote/native command execution must satisfy:
 This contract is implemented once, in `Invoke-BoundedNativeCommand`, and every remote-command
 helper in `ReleaseTooling.psm1` now delegates to it.
 
+The coordinated mutation order is `PROMOTE_APP` → `VERIFY_APP` →
+`PROMOTE_STATIC` → `VERIFY_STATIC`. The app/scheduler image is therefore
+loaded and identity-verified before the live static pointer changes; a failed
+remote image load cannot leave the runtime and static release identities split.
+
 ## Post-timeout state reconciliation (never blindly retry a possibly-non-idempotent mutation)
 
 A timed-out command may have: (A) never started remotely, (B) completed successfully but the
@@ -111,7 +116,8 @@ non-idempotent mutation after a spurious timeout" risk.
   concrete baseline was already captured this run (so a rollback target unambiguously exists).
   Recovery: coordinated rollback of whatever was actually promoted → independent
   `GetCurrentState` verification that the baseline is restored → same-SHA retry from
-  `PROMOTE_STATIC` (build/package artifacts remain valid; they are not redone).
+  the first mutation phase, `PROMOTE_APP` (build/package artifacts remain valid;
+  they are not redone).
 - **L3 — authority/source/data boundary. STOP.** Forced whenever a phase result explicitly reports
   `requires_source_change` or `requires_gate_bypass`, or a post-mutation phase fails with no
   baseline ever captured this run (rollback target unavailable), or a rollback's own final-state
@@ -233,8 +239,8 @@ app/static SHA state locally — no Docker, SSH, or Production contact:
 |---|---|---|---|
 | F1 | SSH child hangs before remote mutation | Local recovery, retry succeeds | `test_f1_pre_mutation_transient_recovers_and_retries_directly` |
 | F2 | SSH disconnect after remote command actually completed | Reconcile, no duplicate mutation | `test_f2_post_timeout_reconciliation_does_not_duplicate_mutation` |
-| F3 | Static succeeds, app fails before app mutation | Static rollback, baseline/baseline, retry permitted | `test_f3_static_success_app_premutation_fail_rolls_back_to_baseline` |
-| F4 | Static+app succeed, post-app verification fails | Coordinated rollback, baseline/baseline | `test_f4_post_app_verification_failure_triggers_coordinated_rollback` |
+| F3 | App fails before app mutation, before static promotion | Baseline remains coherent, retry permitted | `test_f3_app_premutation_fail_does_not_switch_static_first` |
+| F4 | App succeeds, post-app verification fails before static promotion | App rollback, baseline/baseline | `test_f4_post_app_verification_failure_triggers_coordinated_rollback` |
 | F5 | Docker/buildx temporarily unavailable before build | Local recovery, same-SHA retry | `test_f5_buildx_transient_before_build_recovers_locally` |
 | F6 | Temporary health failure resolving within the bounded window | Bounded retry, continue | `test_f6_temporary_health_failure_resolves_within_bounded_window` |
 | F7 | Persistent health failure | Rollback, coherent baseline, STOP | `test_f7_persistent_health_failure_stops_at_coherent_baseline` |

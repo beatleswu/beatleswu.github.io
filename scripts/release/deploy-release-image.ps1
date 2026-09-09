@@ -42,7 +42,7 @@ $nginxConfigPath = Resolve-RepoPath 'nginx\default.conf'
 $deploymentRecordPath = Join-Path (Split-Path -Parent $manifestPath) ("{0}.deployment.json" -f $artifactBaseName)
 # RELEASE-TOOLING-HOTFIX-05: bound for the small config/manifest/record
 # uploads this script performs (the large image archive derives its own
-# size-based bound at its call site instead).
+# size-based bounds for upload and Docker load at their call sites instead).
 $SmallFileUploadTimeoutSeconds = 120
 $canonicalAppHealthcheck = Get-CanonicalAppHealthcheckDefinition
 Set-Content -LiteralPath $healthcheckOverridePath -Value (New-CanonicalAppHealthcheckOverrideYaml) -Encoding UTF8
@@ -54,18 +54,24 @@ function Invoke-RemoteCommandResult {
         [Parameter(Mandatory = $true)][string]$Name,
         [string]$Command,
         [string]$ScriptText,
-        [string]$StdinText
+        [string]$StdinText,
+        [int]$TimeoutSeconds = 120
     )
     $params = @{ SshAlias = $layout.ssh_alias; Name = $Name }
     if ($PSBoundParameters.ContainsKey('Command')) { $params.Command = $Command }
     if ($PSBoundParameters.ContainsKey('ScriptText')) { $params.ScriptText = $ScriptText }
     if ($PSBoundParameters.ContainsKey('StdinText')) { $params.StdinText = $StdinText }
+    $params.TimeoutSeconds = $TimeoutSeconds
     return Invoke-RemoteShellCommand @params
 }
 
 function Invoke-RemoteText {
-    param([Parameter(Mandatory = $true)][string]$Command)
-    $result = Invoke-RemoteCommandResult -Name 'remote_command' -Command $Command
+    param(
+        [Parameter(Mandatory = $true)][string]$Command,
+        [int]$TimeoutSeconds = 120,
+        [string]$OperationLabel = 'remote_command'
+    )
+    $result = Invoke-RemoteCommandResult -Name $OperationLabel -Command $Command -TimeoutSeconds $TimeoutSeconds
     if ($result.exit_code -ne 0) {
         throw "Remote command failed with exit code $($result.exit_code)."
     }
@@ -1292,6 +1298,20 @@ $localArchiveSize = if ($archivePath -and (Test-Path -LiteralPath $archivePath))
 } else {
     0
 }
+$archiveUploadTimeoutSeconds = if ($localArchiveSize -gt 0) {
+    Get-ArchiveTransferTimeoutSeconds -TotalBytes $localArchiveSize
+} else {
+    0
+}
+# Docker load expands the saved image layers inside the remote engine and is
+# materially different from the network transfer. Keep it independently
+# bounded, but give that local engine operation a longer, size-derived window
+# than the shared small-command default that caused the incident.
+$archiveLoadTimeoutSeconds = if ($localArchiveSize -gt 0) {
+    Get-ArchiveTransferTimeoutSeconds -TotalBytes $localArchiveSize -MinSeconds 600 -MaxSeconds 900
+} else {
+    0
+}
 $localImageSummary = Get-LocalImageSummary -ImageTag $manifest.image_tag
 
 if (-not $Execute) {
@@ -1306,6 +1326,8 @@ if (-not $Execute) {
         release_archive_exists = $(if ($archivePath) { Test-Path -LiteralPath $archivePath } else { $false })
         release_archive_size_bytes = $localArchiveSize
         release_archive_sha256 = $localArchiveSha
+        archive_upload_timeout_seconds = $archiveUploadTimeoutSeconds
+        archive_load_timeout_seconds = $archiveLoadTimeoutSeconds
         local_image_summary = $localImageSummary
         release_manifest = $manifest
         compose_project = $layout.compose_project
@@ -1430,7 +1452,6 @@ try {
     Invoke-BoundedReleaseUpload -LocalPath $healthcheckOverridePath -RemotePath $remoteHealthcheckOverridePath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'docker-compose.release.healthcheck.override.yml' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $nginxConfigPath -RemotePath $remoteNginxPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'nginx/default.conf' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $manifestPath -RemotePath $remoteManifestPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'the release manifest' | Out-Null
-    $archiveUploadTimeoutSeconds = Get-ArchiveTransferTimeoutSeconds -TotalBytes ((Get-Item -LiteralPath $archivePath).Length)
     Invoke-BoundedReleaseUpload -LocalPath $archivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveUploadTimeoutSeconds -Description 'the release archive' | Out-Null
 
     $remoteArchiveSha = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument $remoteArchivePath)").Split(' ')[0].Trim().ToLowerInvariant()
@@ -1508,7 +1529,7 @@ try {
         throw "docker compose config did not resolve the exact release image for app and scheduler."
     }
 
-    Invoke-RemoteText "docker load -i $(Quote-PosixShellArgument $remoteArchivePath)"
+    Invoke-RemoteText "docker load -i $(Quote-PosixShellArgument $remoteArchivePath)" -TimeoutSeconds $archiveLoadTimeoutSeconds -OperationLabel 'load release image'
 
     $remoteImageSummary = Get-RemoteImageSummary -ImageTag $manifest.image_tag
     if ($remoteImageSummary.image_id -ne $manifest.image_id) {

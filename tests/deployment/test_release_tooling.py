@@ -893,6 +893,37 @@ def test_deploy_script_orders_release_mutations_safely():
     )
 
 
+def test_deploy_script_uses_operation_specific_timeout_for_remote_docker_load():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    wrapper = content.split("function Invoke-RemoteCommandResult", 1)[1].split(
+        "function Invoke-BoundedReleaseUpload", 1
+    )[0]
+
+    # The wrapper retains the established 120-second default for ordinary
+    # remote commands, while explicitly forwarding an override to the shared
+    # bounded runner.
+    assert "[int]$TimeoutSeconds = 120" in wrapper
+    assert "$params.TimeoutSeconds = $TimeoutSeconds" in wrapper
+    assert "[int]$TimeoutSeconds = 120" in content.split(
+        "function Invoke-RemoteText", 1
+    )[1].split("function Invoke-BoundedReleaseUpload", 1)[0]
+
+    # docker load expands image layers on the remote engine, so it gets its
+    # own size-derived bound instead of inheriting the small-command default.
+    assert (
+        "Get-ArchiveTransferTimeoutSeconds -TotalBytes $localArchiveSize "
+        "-MinSeconds 600 -MaxSeconds 900"
+    ) in content
+    load_call = (
+        'Invoke-RemoteText "docker load -i '
+        '$(Quote-PosixShellArgument $remoteArchivePath)" '
+        "-TimeoutSeconds $archiveLoadTimeoutSeconds "
+        "-OperationLabel 'load release image'"
+    )
+    assert load_call in content
+    assert content.index("$archiveLoadTimeoutSeconds =") < content.index(load_call)
+
+
 def test_deploy_script_persists_sanitized_runtime_contracts_for_rollback():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     for token in (

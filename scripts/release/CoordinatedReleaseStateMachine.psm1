@@ -9,7 +9,7 @@ for the full operator-facing contract):
 
   - Phases run in the fixed order PRECHECK -> BUILD_APP -> PACKAGE_APP ->
     PACKAGE_STATIC -> SNAPSHOT_BASELINE -> VERIFY_ROLLBACK_READY ->
-    PROMOTE_STATIC -> VERIFY_STATIC -> PROMOTE_APP -> VERIFY_APP ->
+    PROMOTE_APP -> VERIFY_APP -> PROMOTE_STATIC -> VERIFY_STATIC ->
     JOINT_PROVENANCE -> PRODUCTION_SMOKE -> SUCCESS. Every phase is an
     injected scriptblock so this module never itself calls ssh/docker/git --
     it only sequences and recovers around whatever the caller wires up (the
@@ -43,7 +43,10 @@ $PRE_MUTATION_PHASES = @(
     'SNAPSHOT_BASELINE', 'VERIFY_ROLLBACK_READY'
 )
 $POST_MUTATION_PHASES = @(
-    'PROMOTE_STATIC', 'VERIFY_STATIC', 'PROMOTE_APP', 'VERIFY_APP',
+    # Load and identity-verify the candidate app image before changing the
+    # live static pointer. A failed remote Docker load must not leave the
+    # Production runtime/static identities temporarily split.
+    'PROMOTE_APP', 'VERIFY_APP', 'PROMOTE_STATIC', 'VERIFY_STATIC',
     'JOINT_PROVENANCE', 'PRODUCTION_SMOKE'
 )
 $ALL_PHASES = @($PRE_MUTATION_PHASES) + @($POST_MUTATION_PHASES)
@@ -658,8 +661,8 @@ function Invoke-CoordinatedReleaseStateMachine {
 
         # L2: coordinated rollback of whatever was actually promoted, then
         # independently verify the baseline is restored before permitting a
-        # same-SHA retry from PROMOTE_STATIC (BUILD_APP/PACKAGE_* artifacts
-        # remain valid and are not redone).
+        # same-SHA retry from the first mutation phase
+        # (BUILD_APP/PACKAGE_* artifacts remain valid and are not redone).
         $rollbackOk = $true
         if ($staticPromoted) {
             $rb = Invoke-ReleasePhase -Action $RollbackStatic -ActionArgs @($baseline)
@@ -695,12 +698,12 @@ function Invoke-CoordinatedReleaseStateMachine {
         }
 
         $recoveryEntry.recovery_action = 'COORDINATED_ROLLBACK_VERIFIED_BASELINE_RETRY_SAME_SHA'
-        $recoveryEntry.final_outcome = 'RETRYING_FROM_PROMOTE_STATIC'
+        $recoveryEntry.final_outcome = 'RETRYING_FROM_FIRST_MUTATION'
         $report.recovery_log += $recoveryEntry
         $report.final_current_state = $verify.data
         $staticPromoted = $false
         $appPromoted = $false
-        $phaseIndex = $ALL_PHASES.IndexOf('PROMOTE_STATIC')
+        $phaseIndex = $ALL_PHASES.IndexOf($POST_MUTATION_PHASES[0])
         continue
     }
 

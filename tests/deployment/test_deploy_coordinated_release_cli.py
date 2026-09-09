@@ -81,7 +81,7 @@ def test_dry_run_never_mutates_and_reports_the_full_phase_plan():
     assert payload["plan"] == [
         "PRECHECK", "BUILD_APP", "PACKAGE_APP", "PACKAGE_STATIC",
         "SNAPSHOT_BASELINE", "VERIFY_ROLLBACK_READY",
-        "PROMOTE_STATIC", "VERIFY_STATIC", "PROMOTE_APP", "VERIFY_APP",
+        "PROMOTE_APP", "VERIFY_APP", "PROMOTE_STATIC", "VERIFY_STATIC",
         "JOINT_PROVENANCE", "PRODUCTION_SMOKE",
     ]
     # The example layout's host/URLs are all example.invalid / a fake ssh
