@@ -72,7 +72,7 @@ def _canonicalize_set_assertion(line: str) -> str:
     return f"{line[:match.start(1)]}{ast.unparse(canonical)}"
 
 
-def _stable_failure_text(value: str | None) -> str:
+def _stable_failure_text(value: str | None, *, traceback: bool = False) -> str:
     """Normalize pytest's unordered set-diff rendering without hiding content."""
 
     lines = _normalized(value).splitlines()
@@ -83,6 +83,17 @@ def _stable_failure_text(value: str | None) -> str:
         # ``E `` marker. Remove that presentation prefix before recognizing
         # and sorting unordered set-diff items.
         line = re.sub(r"^E\s+", "", lines[index])
+        if traceback:
+            line = re.sub(
+                r"(?:WindowsPath|PosixPath)\((['\"])[^'\"]*\1\)",
+                "Path('<path>')",
+                line,
+            )
+            line = re.sub(
+                r"((?:[A-Za-z]:[\\/]|tests[\\/])[^:\r\n]+\.py):\d+:",
+                r"\1:<line>:",
+                line,
+            )
         line = _canonicalize_set_assertion(line)
         stripped = line.strip()
         if stripped in {
@@ -112,7 +123,7 @@ def failure_signature(nodeid: str, failure: ET.Element) -> str:
         "nodeid": nodeid,
         "type": _normalized(failure.attrib.get("type")),
         "message": _stable_failure_text(failure.attrib.get("message")),
-        "text": _stable_failure_text(failure.text),
+        "text": _stable_failure_text(failure.text, traceback=True),
     }
     encoded = json.dumps(basis, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
@@ -171,7 +182,7 @@ def _load_baseline(path: Path, repo_root: Path, gate_source_sha: str) -> dict[st
         raise BaselineValidationError(f"cannot load tracked failure baseline: {exc}") from exc
     if not isinstance(baseline, dict) or baseline.get("schema") != SCHEMA:
         raise BaselineValidationError("tracked failure baseline schema is missing or unsupported")
-    if baseline.get("signature_algorithm") != "sha256(nodeid,type,normalized_message,normalized_text_v2)":
+    if baseline.get("signature_algorithm") != "sha256(nodeid,type,normalized_message,normalized_text_v3)":
         raise BaselineValidationError("tracked failure baseline signature algorithm is unsupported")
     _validate_source_binding(baseline, repo_root, gate_source_sha)
 

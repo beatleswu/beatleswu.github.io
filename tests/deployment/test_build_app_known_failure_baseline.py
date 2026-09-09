@@ -135,7 +135,7 @@ def _baseline_for(tmp_path):
                 "schema": EVALUATOR.SCHEMA,
                 "baseline_source_sha": BASE_SHA,
                 "baseline_source_tree": BASE_TREE,
-                "signature_algorithm": "sha256(nodeid,type,normalized_message,normalized_text_v2)",
+                "signature_algorithm": "sha256(nodeid,type,normalized_message,normalized_text_v3)",
                 "failures": entries,
             }
         ),
@@ -250,6 +250,24 @@ def test_unordered_pytest_set_diff_does_not_change_signature():
     second.text = "assert {'b', 'a'} == {'a', 'b'}\nExtra items in the right set:\n'y'\n'x'"
     assert EVALUATOR.failure_signature("tests/deployment/test_sets.py::test_sets", first) == EVALUATOR.failure_signature(
         "tests/deployment/test_sets.py::test_sets", second
+    )
+
+
+def test_traceback_path_and_line_noise_does_not_change_signature():
+    first = _failure(
+        text=(
+            "repo_root = WindowsPath('D:/author-worktree')\n"
+            "tests\\deployment\\test_example.py:101:"
+        )
+    )
+    second = _failure(
+        text=(
+            "repo_root = WindowsPath('D:/review-worktree')\n"
+            "tests\\deployment\\test_example.py:909:"
+        )
+    )
+    assert EVALUATOR.failure_signature("tests/deployment/test_example.py::test_example", first) == EVALUATOR.failure_signature(
+        "tests/deployment/test_example.py::test_example", second
     )
 
 
