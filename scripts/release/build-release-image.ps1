@@ -52,8 +52,11 @@ $sourcePlan = Assert-ReleaseSourceSeparation `
     -GateSourceSha $gateSha `
     -ProductSourceSha $productSha `
     -GateWorkingDirectory $gateWorktree
+$buildAppBaselinePath = Resolve-RepoPath 'deploy\build-app-known-failure-baseline.json'
+$buildAppEvaluatorPath = Join-Path $gateWorktree 'scripts\release\evaluate_build_app_test_baseline.py'
 
 $productWorktree = $null
+$pytestReportPath = $null
 $previousEnvironment = @{}
 $environmentNames = @(
     'GO_ODYSSEY_RELEASE_GATE_SOURCE_SHA',
@@ -82,15 +85,40 @@ try {
     if (-not $DryRun) {
         # Tests are implemented and loaded from the Gate/control-plane tree.
         # ProductRoot is explicit so a test may inspect the separate subject.
-        Push-Location $gateWorktree
+        if (-not (Test-Path -LiteralPath $buildAppBaselinePath -PathType Leaf)) {
+            Fail "Tracked BUILD_APP failure baseline is missing: $buildAppBaselinePath"
+        }
+        if (-not (Test-Path -LiteralPath $buildAppEvaluatorPath -PathType Leaf)) {
+            Fail "Tracked BUILD_APP failure baseline evaluator is missing: $buildAppEvaluatorPath"
+        }
+        $pytestReportPath = Join-Path ([System.IO.Path]::GetTempPath()) ("go-odyssey-build-app-{0}.xml" -f ([guid]::NewGuid().ToString('N')))
         try {
-            python -X utf8 -m pytest -q tests/deployment/ | Out-Host
-            if ($LASTEXITCODE -ne 0) {
-                Fail "pytest failed with exit code $LASTEXITCODE."
+            Push-Location $gateWorktree
+            try {
+                $pytestOutput = @(& python -X utf8 -m pytest -q tests/deployment/ --junitxml $pytestReportPath 2>&1)
+                $pytestExitCode = $LASTEXITCODE
+                $pytestOutput | Out-Host
+            }
+            finally {
+                Pop-Location
+            }
+
+            $baselineEvaluation = @(& python $buildAppEvaluatorPath `
+                --junitxml $pytestReportPath `
+                --baseline $buildAppBaselinePath `
+                --repo-root $gateWorktree `
+                --gate-source-sha $gateSha `
+                --pytest-exit-code $pytestExitCode 2>&1)
+            $baselineEvaluationExitCode = $LASTEXITCODE
+            $baselineEvaluation | Out-Host
+            if ($baselineEvaluationExitCode -ne 0) {
+                Fail "BUILD_APP deployment test gate failed closed: $($baselineEvaluation -join [Environment]::NewLine)"
             }
         }
         finally {
-            Pop-Location
+            if ($pytestReportPath -and (Test-Path -LiteralPath $pytestReportPath)) {
+                Remove-Item -LiteralPath $pytestReportPath -Force -ErrorAction SilentlyContinue
+            }
         }
 
         # Product runtime self-test and compile checks operate on the exact

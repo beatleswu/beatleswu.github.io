@@ -1,0 +1,24 @@
+{
+  "$schema_note": "Identity-bound, fail-closed BUILD_APP baseline. This is not a numeric failure allowance and does not hide the listed failures.",
+  "schema": "go-odyssey-build-app-known-failure-baseline-v1",
+  "baseline_source_sha": "0861d72cc6e5621179c01f931bcec3af510226b5",
+  "baseline_source_tree": "149ae7e5e5befc9ea6e89306e14c5b44577b5d06",
+  "signature_algorithm": "sha256(nodeid,type,normalized_message,normalized_text_v2)",
+  "failures": [
+    {
+      "nodeid": "tests/deployment/test_e9_runtime_asset_packaging.py::test_e9_css_inventory_exactly_matches_source_directory",
+      "signature": "3ceb24fa2958b799ba37d9ccfb34a9c11b7ca0510ae298ca5a6ba3543ec693bb",
+      "description": "E9 CSS inventory is missing the three already-present source files."
+    },
+    {
+      "nodeid": "tests/deployment/test_runtime_dependency_provenance.py::test_working_tree_matches_recorded_content_sha256",
+      "signature": "4413934eafdb08baf4a26162d59372e15b302a6704c82884521f20bd02353e23",
+      "description": "index.html differs from the recorded runtime provenance content SHA-256."
+    },
+    {
+      "nodeid": "tests/deployment/test_runtime_dependency_provenance.py::test_working_tree_matches_recorded_source_commit_blob",
+      "signature": "c2baff492cd46853b317cd275d894b962bab2411253ca5e6b249bf9227e4a0df",
+      "description": "index.html does not byte-match its recorded source commit blob."
+    }
+  ]
+}
