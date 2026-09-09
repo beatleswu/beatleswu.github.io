@@ -251,3 +251,180 @@ def test_gate_required_string_matches_state_machine_authority_model():
     content = SCRIPT.read_text(encoding="utf-8")
     assert "GO_DEPLOY_WITH_BOUNDED_RECOVERY" in content
     assert "Assert-OwnerGate" in content
+
+
+# ---------------------------------------------------------------------------
+# QuestionsCorpus eight-parameter forwarding.
+#
+# package-release-image.ps1 declares all eight QuestionsCorpus parameters as
+# Mandatory = $true. Before this contract existed the coordinator neither
+# accepted nor forwarded them, so PACKAGE_APP could not run noninteractively
+# at all: PowerShell's mandatory-parameter binder would prompt (or hang) for
+# eight values no caller could supply.
+# ---------------------------------------------------------------------------
+
+QUESTIONS_CORPUS_PARAMETERS = (
+    "QuestionsCorpusPath",
+    "QuestionsCorpusSha256",
+    "QuestionsCorpusRecordCount",
+    "QuestionsCorpusBytes",
+    "QuestionsCorpusSnapshotId",
+    "QuestionsCorpusSourceIdentity",
+    "QuestionsCorpusSourceSha256",
+    "QuestionsCorpusSourceRecordCount",
+)
+
+_SHA_A = "b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232"
+_SHA_B = "4d13fa98af8c1a180e719b7a261c5ca638e042a8edbd3fdfe8d2c2f947cdaa28"
+
+
+def _packager_mandatory_parameters() -> set[str]:
+    packager = (REPO_ROOT / "scripts" / "release" / "package-release-image.ps1").read_text(
+        encoding="utf-8"
+    )
+    found = set()
+    for name in QUESTIONS_CORPUS_PARAMETERS:
+        if f"${name}" in packager:
+            found.add(name)
+    return found
+
+
+def _corpus_args(tmp_path, **overrides) -> list[str]:
+    corpus = tmp_path / "questions.json"
+    if not corpus.exists():
+        corpus.write_text("[]", encoding="utf-8")
+    values = {
+        "QuestionsCorpusPath": str(corpus),
+        "QuestionsCorpusSha256": _SHA_A,
+        "QuestionsCorpusRecordCount": "41591",
+        "QuestionsCorpusBytes": "71534621",
+        "QuestionsCorpusSnapshotId": "snapshot-test-001",
+        "QuestionsCorpusSourceIdentity": _SHA_B,
+        "QuestionsCorpusSourceSha256": _SHA_B,
+        "QuestionsCorpusSourceRecordCount": "41591",
+    }
+    values.update(overrides)
+    args: list[str] = []
+    for key, value in values.items():
+        if value is None:
+            continue
+        args += [f"-{key}", value]
+    return args
+
+
+def test_packager_still_declares_all_eight_corpus_parameters_mandatory():
+    # If this ever shrinks, the forwarding contract below must change with it.
+    assert _packager_mandatory_parameters() == set(QUESTIONS_CORPUS_PARAMETERS)
+
+
+def test_coordinator_accepts_all_eight_questions_corpus_parameters():
+    content = SCRIPT.read_text(encoding="utf-8")
+    param_block = content[content.index("param("):content.index("$ErrorActionPreference")]
+    for name in QUESTIONS_CORPUS_PARAMETERS:
+        assert f"${name}" in param_block, f"coordinator must accept -{name}"
+
+
+def test_questions_corpus_parameters_are_not_mandatory_so_nothing_can_prompt():
+    # A Mandatory parameter PROMPTS when omitted. On a Production release path
+    # an interactive prompt is never acceptable, so presence is enforced by an
+    # explicit fail-closed assertion instead of by the parameter binder.
+    content = SCRIPT.read_text(encoding="utf-8")
+    param_block = content[content.index("param("):content.index("$ErrorActionPreference")]
+    for name in QUESTIONS_CORPUS_PARAMETERS:
+        line = next(l for l in param_block.splitlines() if f"${name}" in l)
+        assert "Mandatory" not in line, f"-{name} must not be Mandatory (would prompt)"
+    assert "Assert-QuestionsCorpusParameters" in content
+
+
+def test_package_app_forwards_all_eight_questions_corpus_parameters():
+    content = SCRIPT.read_text(encoding="utf-8")
+    start = content.index("$PackageApp = {")
+    end = content.index("$PackageStatic = {", start)
+    package_app = content[start:end]
+    assert "$script:questionsCorpusArgs" in package_app
+    assert "$packageAppScript" in package_app
+    # The validated argument array is 8 name/value pairs.
+    assert "-ne 16" in package_app
+
+
+def test_corpus_identity_is_validated_before_any_build_or_package_work():
+    content = SCRIPT.read_text(encoding="utf-8")
+    gate = content.index("Assert-OwnerGate -Provided $OwnerGate")
+    validated = content.index("Assert-QuestionsCorpusParameters -RequirePresent")
+    build_script = content.index("$buildScript = Join-Path")
+    assert gate < validated < build_script, (
+        "corpus identity must fail closed after the owner gate but before any "
+        "build/package phase wiring"
+    )
+
+
+def test_execute_blocks_when_corpus_parameters_are_missing():
+    result = run_powershell([
+        "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
+        "-Execute", "-OwnerGate", "GO_DEPLOY_WITH_BOUNDED_RECOVERY",
+    ])
+    assert result.returncode != 0
+    combined = result.stdout + result.stderr
+    assert "QuestionsCorpus release identity is incomplete" in combined
+    for name in QUESTIONS_CORPUS_PARAMETERS:
+        assert name in combined
+
+
+def test_execute_blocks_malformed_corpus_sha256(tmp_path):
+    result = run_powershell([
+        "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
+        "-Execute", "-OwnerGate", "GO_DEPLOY_WITH_BOUNDED_RECOVERY",
+    ] + _corpus_args(tmp_path, QuestionsCorpusSha256="not-a-sha"))
+    assert result.returncode != 0
+    combined = result.stdout + result.stderr
+    assert "QuestionsCorpus release identity is invalid" in combined
+    assert "QuestionsCorpusSha256" in combined
+
+
+def test_execute_blocks_non_numeric_record_count(tmp_path):
+    result = run_powershell([
+        "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
+        "-Execute", "-OwnerGate", "GO_DEPLOY_WITH_BOUNDED_RECOVERY",
+    ] + _corpus_args(tmp_path, QuestionsCorpusRecordCount="41,591"))
+    assert result.returncode != 0
+    combined = result.stdout + result.stderr
+    assert "QuestionsCorpus release identity is invalid" in combined
+    assert "QuestionsCorpusRecordCount" in combined
+
+
+def test_execute_blocks_missing_corpus_file(tmp_path):
+    missing = tmp_path / "absent-questions.json"
+    result = run_powershell([
+        "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
+        "-Execute", "-OwnerGate", "GO_DEPLOY_WITH_BOUNDED_RECOVERY",
+    ] + _corpus_args(tmp_path, QuestionsCorpusPath=str(missing)))
+    assert result.returncode != 0
+
+
+def test_dry_run_still_works_with_no_corpus_parameters():
+    result = run_powershell(["-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT])
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = _last_json(result.stdout)
+    assert payload["questions_corpus_parameters_supplied"] is False
+    assert payload["questions_corpus_parameter_count"] == 8
+
+
+def test_dry_run_reports_supplied_corpus_parameters(tmp_path):
+    result = run_powershell(
+        ["-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT]
+        + _corpus_args(tmp_path)
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = _last_json(result.stdout)
+    assert payload["questions_corpus_parameters_supplied"] is True
+    assert payload["dry_run"] is True
+
+
+def test_dry_run_surfaces_a_corpus_typo_instead_of_deferring_it(tmp_path):
+    # Catching this in the dry run avoids discovering it 1800s into BUILD_APP.
+    result = run_powershell(
+        ["-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT]
+        + _corpus_args(tmp_path, QuestionsCorpusSourceSha256="deadbeef")
+    )
+    assert result.returncode != 0
+    assert "QuestionsCorpus release identity is invalid" in (result.stdout + result.stderr)

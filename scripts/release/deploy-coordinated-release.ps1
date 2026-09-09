@@ -53,7 +53,28 @@ param(
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [switch]$Execute,
     [string]$OwnerGate,
-    [int]$MaxAttemptsPerRootCause = 2
+    [int]$MaxAttemptsPerRootCause = 2,
+
+    # QuestionsCorpus release identity. package-release-image.ps1 declares all
+    # eight of these as Mandatory = $true, so PACKAGE_APP cannot run unless this
+    # coordinator both ACCEPTS and FORWARDS them.
+    #
+    # They are deliberately NOT declared Mandatory here. A PowerShell mandatory
+    # parameter PROMPTS when omitted, and an interactive prompt on a Production
+    # release path is never acceptable -- a coordinated run must be fully
+    # noninteractive. Presence and shape are instead enforced explicitly by
+    # Assert-QuestionsCorpusParameters below, which fails closed with an exact
+    # message. The numeric fields are typed [string] on purpose so a missing
+    # value and a malformed value stay distinguishable and both blockable,
+    # rather than being rejected earlier by the parameter binder.
+    [string]$QuestionsCorpusPath,
+    [string]$QuestionsCorpusSha256,
+    [string]$QuestionsCorpusRecordCount,
+    [string]$QuestionsCorpusBytes,
+    [string]$QuestionsCorpusSnapshotId,
+    [string]$QuestionsCorpusSourceIdentity,
+    [string]$QuestionsCorpusSourceSha256,
+    [string]$QuestionsCorpusSourceRecordCount
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,6 +83,78 @@ Import-Module (Join-Path $PSScriptRoot 'CoordinatedReleaseStateMachine.psm1') -F
 
 function Fail($msg) {
     throw $msg
+}
+
+function Assert-QuestionsCorpusParameters {
+    <#
+    Fail closed on the eight QuestionsCorpus release-identity parameters that
+    package-release-image.ps1 declares mandatory.
+
+    Returns the exact argument array to forward. Never prompts: a missing or
+    malformed value throws here with a precise message instead of reaching the
+    packager's mandatory-parameter binder, which would prompt (or hang) in a
+    noninteractive run. -RequirePresent is used for -Execute; a dry run still
+    validates anything that WAS supplied so typos surface before a real run.
+    #>
+    param([switch]$RequirePresent)
+
+    $missing = @()
+    $invalid = @()
+
+    $text = [ordered]@{
+        QuestionsCorpusPath           = $QuestionsCorpusPath
+        QuestionsCorpusSha256         = $QuestionsCorpusSha256
+        QuestionsCorpusRecordCount    = $QuestionsCorpusRecordCount
+        QuestionsCorpusBytes          = $QuestionsCorpusBytes
+        QuestionsCorpusSnapshotId     = $QuestionsCorpusSnapshotId
+        QuestionsCorpusSourceIdentity = $QuestionsCorpusSourceIdentity
+        QuestionsCorpusSourceSha256   = $QuestionsCorpusSourceSha256
+        QuestionsCorpusSourceRecordCount = $QuestionsCorpusSourceRecordCount
+    }
+
+    foreach ($name in $text.Keys) {
+        if ([string]::IsNullOrWhiteSpace([string]$text[$name])) { $missing += $name }
+    }
+    if ($missing.Count -gt 0 -and -not $RequirePresent) {
+        if ($missing.Count -eq $text.Count) { return $null }
+    }
+    if ($missing.Count -gt 0) {
+        Fail ("QuestionsCorpus release identity is incomplete; refusing to start a coordinated release. Missing: " + ($missing -join ', ') + ". All eight are required because package-release-image.ps1 declares them mandatory.")
+    }
+
+    foreach ($name in @('QuestionsCorpusSha256', 'QuestionsCorpusSourceSha256')) {
+        if ([string]$text[$name] -notmatch '^[0-9a-fA-F]{64}$') { $invalid += "$name must be a 64-character SHA-256" }
+    }
+    $numeric = [ordered]@{}
+    foreach ($name in @('QuestionsCorpusRecordCount', 'QuestionsCorpusBytes', 'QuestionsCorpusSourceRecordCount')) {
+        $raw = [string]$text[$name]
+        if ($raw -notmatch '^[0-9]+$') {
+            $invalid += "$name must be a non-negative integer"
+            continue
+        }
+        $value = [long]$raw
+        if ($value -le 0) { $invalid += "$name must be greater than zero" ; continue }
+        $numeric[$name] = $value
+    }
+    if ($invalid.Count -gt 0) {
+        Fail ("QuestionsCorpus release identity is invalid; refusing to start a coordinated release. " + ($invalid -join '; ') + '.')
+    }
+
+    $resolved = Assert-NoReparsePointPath -Path ((Resolve-Path -LiteralPath $QuestionsCorpusPath -ErrorAction Stop).Path) -Label 'Questions corpus'
+    if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+        Fail "QuestionsCorpusPath must resolve to an existing regular file: $QuestionsCorpusPath"
+    }
+
+    return @(
+        '-QuestionsCorpusPath', $resolved,
+        '-QuestionsCorpusSha256', ([string]$QuestionsCorpusSha256).ToLowerInvariant(),
+        '-QuestionsCorpusRecordCount', [string]$numeric['QuestionsCorpusRecordCount'],
+        '-QuestionsCorpusBytes', [string]$numeric['QuestionsCorpusBytes'],
+        '-QuestionsCorpusSnapshotId', [string]$QuestionsCorpusSnapshotId,
+        '-QuestionsCorpusSourceIdentity', ([string]$QuestionsCorpusSourceIdentity).ToLowerInvariant(),
+        '-QuestionsCorpusSourceSha256', ([string]$QuestionsCorpusSourceSha256).ToLowerInvariant(),
+        '-QuestionsCorpusSourceRecordCount', [string]$numeric['QuestionsCorpusSourceRecordCount']
+    )
 }
 
 $repoRoot = Get-RepoRoot
@@ -77,6 +170,9 @@ $plan = @(
 )
 
 if (-not $Execute) {
+    # Validate anything supplied so a typo surfaces in the dry run rather than
+    # 1800 seconds into a real BUILD_APP. Supplying none is allowed here.
+    $dryRunCorpusArgs = Assert-QuestionsCorpusParameters
     [ordered]@{
         dry_run = $true
         execute_requested = $false
@@ -85,12 +181,18 @@ if (-not $Execute) {
         required_owner_gate = $requiredOwnerGate
         max_attempts_per_root_cause = $MaxAttemptsPerRootCause
         plan = $plan
+        questions_corpus_parameters_supplied = ($null -ne $dryRunCorpusArgs)
+        questions_corpus_parameter_count = 8
         result = 'DRY_RUN_COMPLETE'
     } | ConvertTo-Json -Depth 10 | Write-Output
     return
 }
 
 Assert-OwnerGate -Provided $OwnerGate -Expected $requiredOwnerGate
+
+# Fail closed BEFORE any build/package/promote work. PACKAGE_APP would
+# otherwise fail (or prompt) only after BUILD_APP has already run.
+$script:questionsCorpusArgs = Assert-QuestionsCorpusParameters -RequirePresent
 
 $releaseArtifactsDir = Join-Path $repoRoot 'release-artifacts'
 $buildScript = Join-Path $PSScriptRoot 'build-release-image.ps1'
@@ -329,8 +431,16 @@ $BuildApp = {
 }
 
 $PackageApp = {
+    # The eight QuestionsCorpus parameters are mandatory on
+    # package-release-image.ps1. They are forwarded explicitly here; omitting
+    # them made PACKAGE_APP unable to run noninteractively at all.
+    # $script:questionsCorpusArgs is validated before the state machine starts.
+    if (-not $script:questionsCorpusArgs -or $script:questionsCorpusArgs.Count -ne 16) {
+        return [ordered]@{ success = $false; detail = 'QuestionsCorpus release identity was not validated before PACKAGE_APP; refusing to package.' }
+    }
+    $packageArgs = @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile) + $script:questionsCorpusArgs
     $r = Invoke-GovernedScript -ScriptPath $packageAppScript `
-        -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile) `
+        -Arguments $packageArgs `
         -TimeoutSeconds 300 -OperationLabel 'coordinated-release: package app'
     if (-not $r.success) {
         return [ordered]@{ success = $false; detail = $r.output }
