@@ -7,7 +7,7 @@
   "failures": [
     {
       "nodeid": "tests/deployment/test_e9_runtime_asset_packaging.py::test_e9_css_inventory_exactly_matches_source_directory",
-      "signature": "3ceb24fa2958b799ba37d9ccfb34a9c11b7ca0510ae298ca5a6ba3543ec693bb",
+      "signature": "7bdfb36038fca0c38d5d05702bd689d9c07dab9ca7a947d0aaba73ea7d97258b",
       "description": "E9 CSS inventory is missing the three already-present source files."
     },
     {

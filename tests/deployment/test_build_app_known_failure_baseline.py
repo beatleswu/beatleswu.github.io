@@ -84,6 +84,32 @@ def _write_junit(path, failures=(), *, extra_failure=None, error=False, skipped=
     ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
 
 
+def _write_custom_junit(path, testcases, *, suite_attrs=None):
+    root = ET.Element("testsuites")
+    suite = ET.SubElement(root, "testsuite", **(suite_attrs or {}))
+    for testcase in testcases:
+        suite.append(testcase)
+    ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+
+
+def _failure(failure_type="AssertionError", message="failure", text="failure"):
+    result = ET.Element("failure", type=failure_type, message=message)
+    result.text = text
+    return result
+
+
+def _custom_case(module_path, name, *, failure=None):
+    testcase = _testcase(
+        ET.Element("testsuite"),
+        module_path,
+        name,
+        failure=None,
+    )
+    if failure is not None:
+        testcase.append(failure)
+    return testcase
+
+
 def _baseline_for(tmp_path):
     entries = []
     for module_path, name, failure_type, message, text in KNOWN_FAILURES:
@@ -124,6 +150,18 @@ def _evaluate(tmp_path, failures=(), *, extra_failure=None, error=False, skipped
     return EVALUATOR.evaluate(
         junit_path=junit,
         baseline_path=_baseline_for(tmp_path),
+        repo_root=REPO_ROOT,
+        gate_source_sha=BASE_SHA,
+        pytest_exit_code=exit_code,
+    )
+
+
+def _evaluate_custom(tmp_path, testcases, *, suite_attrs=None, baseline_path=None, exit_code=1):
+    junit = tmp_path / "custom-results.xml"
+    _write_custom_junit(junit, testcases, suite_attrs=suite_attrs)
+    return EVALUATOR._evaluate_for_cli(
+        junit_path=junit,
+        baseline_path=baseline_path or _baseline_for(tmp_path),
         repo_root=REPO_ROOT,
         gate_source_sha=BASE_SHA,
         pytest_exit_code=exit_code,
@@ -215,6 +253,153 @@ def test_unordered_pytest_set_diff_does_not_change_signature():
     )
 
 
+def test_set_member_addition_changes_signature():
+    first = _failure(message="assert {'a', 'b'} == {'x', 'y'}")
+    added = _failure(message="assert {'a', 'b', 'c'} == {'x', 'y'}")
+    assert EVALUATOR.failure_signature("tests/deployment/test_sets.py::test_sets", first) != EVALUATOR.failure_signature(
+        "tests/deployment/test_sets.py::test_sets", added
+    )
+
+
+def test_set_member_removal_changes_signature():
+    first = _failure(message="assert {'a', 'b'} == {'x', 'y'}")
+    removed = _failure(message="assert {'a'} == {'x', 'y'}")
+    assert EVALUATOR.failure_signature("tests/deployment/test_sets.py::test_sets", first) != EVALUATOR.failure_signature(
+        "tests/deployment/test_sets.py::test_sets", removed
+    )
+
+
+def test_set_member_change_changes_signature():
+    first = _failure(message="assert {'a', 'b'} == {'x', 'y'}")
+    changed = _failure(message="assert {'a', 'c'} == {'x', 'y'}")
+    assert EVALUATOR.failure_signature("tests/deployment/test_sets.py::test_sets", first) != EVALUATOR.failure_signature(
+        "tests/deployment/test_sets.py::test_sets", changed
+    )
+
+
+def test_material_set_only_change_blocks(tmp_path):
+    baseline = _baseline_for(tmp_path)
+    baseline_data = json.loads(baseline.read_text(encoding="utf-8"))
+    nodeid = KNOWN_FAILURES[0][0] + "::" + KNOWN_FAILURES[0][1]
+    accepted = _failure(message="assert {'a', 'b'} == {'x', 'y'}")
+    changed = _failure(message="assert {'a', 'c'} == {'x', 'y'}")
+    for entry in baseline_data["failures"]:
+        if entry["nodeid"] == nodeid:
+            entry["signature"] = EVALUATOR.failure_signature(nodeid, accepted)
+    baseline.write_text(json.dumps(baseline_data), encoding="utf-8")
+    report = _evaluate_custom(
+        tmp_path,
+        [_custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1], failure=changed)],
+        baseline_path=baseline,
+    )
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "unrecognized_or_changed_failure"
+
+
+def test_duplicate_identical_failure_record_blocks(tmp_path):
+    first = _custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1], failure=_failure())
+    second = _custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1], failure=_failure())
+    report = _evaluate_custom(tmp_path, [first, second])
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "malformed_or_ambiguous_junit"
+
+
+def test_duplicate_different_failure_record_blocks(tmp_path):
+    first = _custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1], failure=_failure(message="first"))
+    second = _custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1], failure=_failure(message="second"))
+    report = _evaluate_custom(tmp_path, [first, second])
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "malformed_or_ambiguous_junit"
+
+
+def test_duplicate_pass_fail_record_blocks(tmp_path):
+    passing = _custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1])
+    failing = _custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1], failure=_failure())
+    report = _evaluate_custom(tmp_path, [passing, failing])
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "malformed_or_ambiguous_junit"
+
+
+def test_duplicate_failure_elements_inside_one_record_blocks(tmp_path):
+    testcase = _custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1], failure=_failure())
+    testcase.append(_failure())
+    report = _evaluate_custom(tmp_path, [testcase])
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "malformed_or_ambiguous_junit"
+
+
+def test_duplicate_baseline_record_blocks(tmp_path):
+    baseline = _baseline_for(tmp_path)
+    data = json.loads(baseline.read_text(encoding="utf-8"))
+    data["failures"].append(dict(data["failures"][0]))
+    baseline.write_text(json.dumps(data), encoding="utf-8")
+    report = _evaluate_custom(tmp_path, [_custom_case(*KNOWN_FAILURES[0][:2], failure=_failure())], baseline_path=baseline)
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "baseline_validation_failed"
+
+
+def test_malformed_junit_blocks(tmp_path):
+    junit = tmp_path / "malformed.xml"
+    junit.write_text("<testsuites><testsuite>", encoding="utf-8")
+    report = EVALUATOR._evaluate_for_cli(
+        junit_path=junit,
+        baseline_path=_baseline_for(tmp_path),
+        repo_root=REPO_ROOT,
+        gate_source_sha=BASE_SHA,
+        pytest_exit_code=1,
+    )
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "malformed_or_ambiguous_junit"
+
+
+def test_missing_baseline_blocks(tmp_path):
+    report = _evaluate_custom(
+        tmp_path,
+        [_custom_case(*KNOWN_FAILURES[0][:2], failure=_failure())],
+        baseline_path=tmp_path / "missing-baseline.json",
+    )
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "baseline_validation_failed"
+
+
+def test_incomplete_junit_count_evidence_blocks(tmp_path):
+    report = _evaluate_custom(
+        tmp_path,
+        [_custom_case("tests/deployment/test_new.py", "test_new")],
+        suite_attrs={"tests": "2"},
+        exit_code=0,
+    )
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "malformed_or_ambiguous_junit"
+
+
+def test_unknown_result_structure_blocks(tmp_path):
+    testcase = _custom_case(KNOWN_FAILURES[0][0], KNOWN_FAILURES[0][1], failure=_failure())
+    ET.SubElement(testcase, "rerunFailure", message="ambiguous retry result")
+    report = _evaluate_custom(tmp_path, [testcase])
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "malformed_or_ambiguous_junit"
+
+
+def test_evaluator_internal_exception_is_fail_closed(tmp_path, monkeypatch):
+    junit = tmp_path / "results.xml"
+    _write_junit(junit, KNOWN_FAILURES)
+
+    def raise_internal_error(**_kwargs):
+        raise RuntimeError("synthetic evaluator defect")
+
+    monkeypatch.setattr(EVALUATOR, "evaluate", raise_internal_error)
+    report = EVALUATOR._evaluate_for_cli(
+        junit_path=junit,
+        baseline_path=_baseline_for(tmp_path),
+        repo_root=REPO_ROOT,
+        gate_source_sha=BASE_SHA,
+        pytest_exit_code=1,
+    )
+    assert report["result"] == "BLOCK"
+    assert report["reason"] == "evaluator_internal_error"
+
+
 def test_build_script_invokes_identity_bound_evaluator_and_junit_report():
     content = BUILD_SCRIPT_PATH.read_text(encoding="utf-8")
     assert "build-app-known-failure-baseline.json" in content
@@ -222,4 +407,5 @@ def test_build_script_invokes_identity_bound_evaluator_and_junit_report():
     assert "--junitxml" in content
     assert "--pytest-exit-code" in content
     assert "BUILD_APP deployment test gate failed closed" in content
+    assert "baselineEvaluationExitCode" in content
     assert "pytest failed with exit code $LASTEXITCODE" not in content

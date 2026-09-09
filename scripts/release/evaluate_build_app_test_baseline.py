@@ -9,6 +9,7 @@ unrelated source history is rejected closed.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import re
@@ -23,7 +24,17 @@ SCHEMA = "go-odyssey-build-app-known-failure-baseline-v1"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 TREE_RE = re.compile(r"^[0-9a-f]{40}$")
 SIGNATURE_RE = re.compile(r"^[0-9a-f]{64}$")
-SET_ASSERTION_RE = re.compile(r"assert \{.*\} == \{.*\}")
+EXPECTED_BASELINE_NODEIDS = frozenset(
+    {
+        "tests/deployment/test_e9_runtime_asset_packaging.py::test_e9_css_inventory_exactly_matches_source_directory",
+        "tests/deployment/test_runtime_dependency_provenance.py::test_working_tree_matches_recorded_content_sha256",
+        "tests/deployment/test_runtime_dependency_provenance.py::test_working_tree_matches_recorded_source_commit_blob",
+    }
+)
+
+
+class JUnitEvidenceError(ValueError):
+    """Raised when JUnit evidence is malformed or ambiguous."""
 
 
 class BaselineValidationError(ValueError):
@@ -32,6 +43,33 @@ class BaselineValidationError(ValueError):
 
 def _normalized(value: str | None) -> str:
     return (value or "").replace("\r\n", "\n").strip()
+
+
+class _CanonicalSetOrder(ast.NodeTransformer):
+    """Canonicalize only Python set member ordering in an assertion AST."""
+
+    def visit_Set(self, node: ast.Set) -> ast.AST:
+        node.elts = [self.visit(element) for element in node.elts]
+        node.elts.sort(key=lambda element: ast.dump(element, include_attributes=False))
+        return node
+
+
+def _canonicalize_set_assertion(line: str) -> str:
+    """Normalize set ordering without erasing assertion semantics."""
+
+    match = re.search(r"\bassert\s+(.+)$", line)
+    if not match:
+        return line
+    expression = match.group(1).strip()
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        return line
+    if not any(isinstance(node, ast.Set) for node in ast.walk(tree.body)):
+        return line
+    canonical = _CanonicalSetOrder().visit(tree.body)
+    ast.fix_missing_locations(canonical)
+    return f"{line[:match.start(1)]}{ast.unparse(canonical)}"
 
 
 def _stable_failure_text(value: str | None) -> str:
@@ -45,7 +83,7 @@ def _stable_failure_text(value: str | None) -> str:
         # ``E `` marker. Remove that presentation prefix before recognizing
         # and sorting unordered set-diff items.
         line = re.sub(r"^E\s+", "", lines[index])
-        line = SET_ASSERTION_RE.sub("assert <set comparison>", line)
+        line = _canonicalize_set_assertion(line)
         stripped = line.strip()
         if stripped in {
             "Extra items in the right set:",
@@ -153,15 +191,27 @@ def _load_baseline(path: Path, repo_root: Path, gate_source_sha: str) -> dict[st
         if nodeid in result:
             raise BaselineValidationError(f"duplicate failure nodeid in baseline: {nodeid}")
         result[nodeid] = {"signature": signature, "description": str(entry.get("description", ""))}
+    if len(result) != len(EXPECTED_BASELINE_NODEIDS) or set(result) != EXPECTED_BASELINE_NODEIDS:
+        raise BaselineValidationError(
+            "tracked failure baseline node set is not the exact accepted three-node baseline"
+        )
     return result
 
 
 def _nodeid_for_testcase(testcase: ET.Element) -> str:
-    properties = testcase.find("properties")
-    if properties is not None:
-        for prop in properties.findall("property"):
-            if prop.attrib.get("name") == "nodeid" and prop.attrib.get("value"):
-                return prop.attrib["value"]
+    properties_nodes = testcase.findall("properties")
+    if len(properties_nodes) > 1:
+        raise JUnitEvidenceError("JUnit testcase has duplicate properties containers")
+    if properties_nodes:
+        nodeid_values = [
+            prop.attrib["value"]
+            for prop in properties_nodes[0].findall("property")
+            if prop.attrib.get("name") == "nodeid" and prop.attrib.get("value")
+        ]
+        if len(nodeid_values) > 1:
+            raise JUnitEvidenceError("JUnit testcase has duplicate nodeid properties")
+        if nodeid_values:
+            return nodeid_values[0]
 
     classname = testcase.attrib.get("classname", "").strip()
     name = testcase.attrib.get("name", "").strip()
@@ -177,46 +227,107 @@ def _parse_junit(path: Path) -> tuple[list[dict[str, str]], dict[str, int]]:
     try:
         root = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as exc:
-        raise BaselineValidationError(f"cannot parse pytest JUnit report: {exc}") from exc
+        raise JUnitEvidenceError(f"cannot parse pytest JUnit report: {exc}") from exc
 
-    suites = [root] if root.tag == "testsuite" else list(root.findall(".//testsuite"))
+    if root.tag not in {"testsuites", "testsuite"}:
+        raise JUnitEvidenceError(f"unsupported JUnit root element: {root.tag}")
+    suites = [root] if root.tag == "testsuite" else list(root.findall("./testsuite"))
     if not suites:
-        raise BaselineValidationError("JUnit report contains no testsuite element")
+        raise JUnitEvidenceError("JUnit report contains no testsuite element")
     testcases = list(root.findall(".//testcase"))
     if not testcases:
-        raise BaselineValidationError("JUnit report contains no testcase elements")
+        raise JUnitEvidenceError("JUnit report contains no testcase elements")
 
     failures: list[dict[str, str]] = []
+    seen_nodeids: set[str] = set()
     error_count = 0
     skipped_count = 0
     failure_case_count = 0
     error_case_count = 0
     for suite in suites:
-        try:
-            error_count += int(suite.attrib.get("errors", "0"))
-        except ValueError as exc:
-            raise BaselineValidationError("JUnit suite errors attribute is not an integer") from exc
+        unsupported_suite_children = {
+            child.tag
+            for child in suite
+            if child.tag not in {"testcase", "properties", "system-out", "system-err"}
+        }
+        if unsupported_suite_children:
+            raise JUnitEvidenceError(
+                "JUnit suite contains unsupported result structure: "
+                + ", ".join(sorted(unsupported_suite_children))
+            )
+        suite_testcases = suite.findall("./testcase")
+        declared_counts: dict[str, int] = {}
+        for attribute in ("tests", "failures", "errors", "skipped"):
+            value = suite.attrib.get(attribute)
+            if value is None:
+                continue
+            try:
+                declared_counts[attribute] = int(value)
+            except ValueError as exc:
+                raise JUnitEvidenceError(
+                    f"JUnit suite {attribute} attribute is not an integer"
+                ) from exc
+            if declared_counts[attribute] < 0:
+                raise JUnitEvidenceError(f"JUnit suite {attribute} attribute is negative")
+        observed_failure_count = sum(len(case.findall("./failure")) for case in suite_testcases)
+        observed_error_count = sum(len(case.findall("./error")) for case in suite_testcases)
+        observed_skipped_count = sum(len(case.findall("./skipped")) for case in suite_testcases)
+        expected_counts = {
+            "tests": len(suite_testcases),
+            "failures": observed_failure_count,
+            "errors": observed_error_count,
+            "skipped": observed_skipped_count,
+        }
+        for attribute, expected in expected_counts.items():
+            if attribute in declared_counts and declared_counts[attribute] != expected:
+                raise JUnitEvidenceError(
+                    f"JUnit suite {attribute} count does not match testcase evidence"
+                )
+        error_count += max(declared_counts.get("errors", 0), observed_error_count)
 
     for testcase in testcases:
         nodeid = _nodeid_for_testcase(testcase)
-        if testcase.find("./skipped") is not None:
-            skipped_count += 1
+        if nodeid in seen_nodeids:
+            raise JUnitEvidenceError(f"duplicate JUnit result record for nodeid: {nodeid}")
+        seen_nodeids.add(nodeid)
+        unsupported_testcase_children = {
+            child.tag
+            for child in testcase
+            if child.tag not in {"properties", "failure", "error", "skipped", "system-out", "system-err"}
+        }
+        if unsupported_testcase_children:
+            raise JUnitEvidenceError(
+                "JUnit testcase contains unsupported result structure: "
+                + ", ".join(sorted(unsupported_testcase_children))
+            )
+        skipped_results = testcase.findall("./skipped")
         testcase_failures = testcase.findall("./failure")
         testcase_errors = testcase.findall("./error")
+        if len(skipped_results) > 1 or len(testcase_failures) > 1 or len(testcase_errors) > 1:
+            raise JUnitEvidenceError(f"duplicate JUnit result element for nodeid: {nodeid}")
+        result_kinds = sum(bool(items) for items in (skipped_results, testcase_failures, testcase_errors))
+        if result_kinds > 1:
+            raise JUnitEvidenceError(f"ambiguous JUnit result elements for nodeid: {nodeid}")
+        if skipped_results:
+            skipped_count += 1
         if testcase_failures:
+            failure = testcase_failures[0]
+            if not any(
+                _normalized(value)
+                for value in (failure.attrib.get("type"), failure.attrib.get("message"), failure.text)
+            ):
+                raise JUnitEvidenceError(f"JUnit failure has no identity-bearing detail: {nodeid}")
             failure_case_count += 1
-            for failure in testcase_failures:
-                failures.append(
-                    {
-                        "nodeid": nodeid,
-                        "signature": failure_signature(nodeid, failure),
-                        "type": _normalized(failure.attrib.get("type")),
-                        "message": _stable_failure_text(failure.attrib.get("message")),
-                    }
-                )
+            failures.append(
+                {
+                    "nodeid": nodeid,
+                    "signature": failure_signature(nodeid, failure),
+                    "type": _normalized(failure.attrib.get("type")),
+                    "message": _stable_failure_text(failure.attrib.get("message")),
+                }
+            )
         if testcase_errors:
             error_case_count += 1
-            error_count += len(testcase_errors)
 
     passed_count = len(testcases) - skipped_count - failure_case_count - error_case_count
     return failures, {
@@ -280,6 +391,48 @@ def evaluate(
     return result
 
 
+def _evaluate_for_cli(
+    *,
+    junit_path: Path,
+    baseline_path: Path,
+    repo_root: Path,
+    gate_source_sha: str,
+    pytest_exit_code: int,
+) -> dict[str, Any]:
+    try:
+        return evaluate(
+            junit_path=junit_path,
+            baseline_path=baseline_path,
+            repo_root=repo_root,
+            gate_source_sha=gate_source_sha,
+            pytest_exit_code=pytest_exit_code,
+        )
+    except JUnitEvidenceError as exc:
+        return {
+            "schema": SCHEMA,
+            "result": "BLOCK",
+            "reason": "malformed_or_ambiguous_junit",
+            "detail": str(exc),
+            "candidate_introduced_failure_count": 0,
+        }
+    except BaselineValidationError as exc:
+        return {
+            "schema": SCHEMA,
+            "result": "BLOCK",
+            "reason": "baseline_validation_failed",
+            "detail": str(exc),
+            "candidate_introduced_failure_count": 0,
+        }
+    except Exception as exc:  # pragma: no cover - exercised through the CLI guard test
+        return {
+            "schema": SCHEMA,
+            "result": "BLOCK",
+            "reason": "evaluator_internal_error",
+            "detail": f"{type(exc).__name__}: {exc}",
+            "candidate_introduced_failure_count": 0,
+        }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--junitxml", required=True, type=Path)
@@ -292,22 +445,13 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    try:
-        report = evaluate(
-            junit_path=args.junitxml,
-            baseline_path=args.baseline,
-            repo_root=args.repo_root,
-            gate_source_sha=args.gate_source_sha,
-            pytest_exit_code=args.pytest_exit_code,
-        )
-    except BaselineValidationError as exc:
-        report = {
-            "schema": SCHEMA,
-            "result": "BLOCK",
-            "reason": "baseline_validation_failed",
-            "detail": str(exc),
-            "candidate_introduced_failure_count": 0,
-        }
+    report = _evaluate_for_cli(
+        junit_path=args.junitxml,
+        baseline_path=args.baseline,
+        repo_root=args.repo_root,
+        gate_source_sha=args.gate_source_sha,
+        pytest_exit_code=args.pytest_exit_code,
+    )
     print(json.dumps(report, sort_keys=True))
     return 0 if report.get("result") == "PASS" else 1
 
