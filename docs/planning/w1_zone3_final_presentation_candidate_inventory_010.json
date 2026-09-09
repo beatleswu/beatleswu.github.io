@@ -2074,8 +2074,8 @@
       "SOURCE_LANE": "JOURNEY",
       "SOURCE_HEAD": "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95",
       "ROLE": "MANIFEST",
-      "SHA256": "a7137f6b7ac80a9c129f77c2afbbab3123a454c2b7d7403421048eb11d7f2b80",
-      "BYTES": 25111
+      "SHA256": "93916aa59c27ffb3dd24c50d45e84e7c8f8ee113b189a9a7256bdc4bc76864ea",
+      "BYTES": 25059
     },
     {
       "PATH": "assets/e10/i18n/zone3/zone3-cinematic-subtitles-en-US.json",

@@ -1922,8 +1922,8 @@
     },
     {
       "path": "assets/e10/audio/zone3/zone3-presentation-audio-manifest.json",
-      "size": 25111,
-      "sha256": "a7137f6b7ac80a9c129f77c2afbbab3123a454c2b7d7403421048eb11d7f2b80",
+      "size": 25059,
+      "sha256": "93916aa59c27ffb3dd24c50d45e84e7c8f8ee113b189a9a7256bdc4bc76864ea",
       "mime": "application/json",
       "provenance": "owner-approved-zone3-runtime-closure",
       "source_evidence": "Committed Zone 3 runtime derivative or locale/audio manifest; source authority remains in the Zone 3 content manifests."
