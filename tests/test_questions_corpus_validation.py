@@ -361,9 +361,15 @@ def test_validator_never_discovers_or_selects_a_corpus_itself():
         "4ac424c4",  # V2 staged candidate sha
         "4d13fa98",  # source baseline sha
         "glob(",  # discovery
-        "iterdir(",  # discovery
-        "walk(",  # discovery
+        "rglob(",
+        "iterdir(",
+        "scandir(",
+        "listdir(",
+        "walk(",
         "environ",  # implicit path from environment
+        "getenv(",
+        "Path.cwd(",
+        "os.getcwd(",
     ):
         assert forbidden not in code, "validator must not reference " + repr(forbidden)
     assert "A caller must provide the exact corpus path" in text

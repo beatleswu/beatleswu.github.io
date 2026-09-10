@@ -12,6 +12,16 @@ is correct) and by source-level checks here that each phase is wrapped in
 Invoke-BoundedNativeCommand -- not by an actual end-to-end -Execute run,
 which this task is explicitly not authorized to perform against any real
 host.
+
+One qualification, added with the QuestionsCorpus forwarding contract: exactly
+one test here passes -Execute together with the CORRECT owner gate, because
+"corpus identity missing under -Execute" has no dry-run equivalent (a dry run
+deliberately permits omitting it). That test asserts the exact fail-closed
+message, so a loosened assertion fails the test rather than letting the suite
+proceed into PRECHECK/BUILD_APP, and it uses the example layout whose hosts are
+all example.invalid. test_only_one_test_crosses_the_owner_gate_in_execute_mode
+pins that this stays a single case. Every other malformed-input case is
+exercised through the dry run.
 """
 
 from __future__ import annotations
@@ -19,6 +29,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 import subprocess
 
 import pytest
@@ -279,14 +290,22 @@ _SHA_B = "4d13fa98af8c1a180e719b7a261c5ca638e042a8edbd3fdfe8d2c2f947cdaa28"
 
 
 def _packager_mandatory_parameters() -> set[str]:
+    """Parse the packager's ACTUAL [Parameter(Mandatory = $true)] declarations.
+
+    Substring-matching '$QuestionsCorpusX' would pass even if every Mandatory
+    attribute were deleted, because the packager references those variables all
+    through its body. The forwarding contract's whole premise is that they are
+    mandatory, so this must read the declarations.
+    """
     packager = (REPO_ROOT / "scripts" / "release" / "package-release-image.ps1").read_text(
         encoding="utf-8"
     )
-    found = set()
-    for name in QUESTIONS_CORPUS_PARAMETERS:
-        if f"${name}" in packager:
-            found.add(name)
-    return found
+    param_block = packager[packager.index("param("):packager.index("$ErrorActionPreference")]
+    declared = re.findall(
+        r"\[Parameter\(\s*Mandatory\s*=\s*\$true\s*\)\]\s*\[[^\]]+\]\s*\$([A-Za-z0-9_]+)",
+        param_block,
+    )
+    return {name for name in declared if name in QUESTIONS_CORPUS_PARAMETERS}
 
 
 def _corpus_args(tmp_path, **overrides) -> list[str]:
@@ -343,8 +362,17 @@ def test_package_app_forwards_all_eight_questions_corpus_parameters():
     package_app = content[start:end]
     assert "$script:questionsCorpusArgs" in package_app
     assert "$packageAppScript" in package_app
-    # The validated argument array is 8 name/value pairs.
+    # The validated array is 8 name/value pairs; the guard must match that.
     assert "-ne 16" in package_app
+
+    # And the array actually built by the validator must name all eight
+    # switches -- a count guard alone would survive forwarding only seven.
+    validator_start = content.index("function Assert-QuestionsCorpusParameters")
+    validator_block = content[validator_start : content.index("\n}", validator_start)]
+    returned = set(re.findall(r"'-(QuestionsCorpus[A-Za-z0-9]+)'", validator_block))
+    assert returned == set(QUESTIONS_CORPUS_PARAMETERS), (
+        f"forwarded switches {sorted(returned)} != {sorted(QUESTIONS_CORPUS_PARAMETERS)}"
+    )
 
 
 def test_corpus_identity_is_validated_before_any_build_or_package_work():
@@ -358,6 +386,21 @@ def test_corpus_identity_is_validated_before_any_build_or_package_work():
     )
 
 
+# SAFETY NOTE for everything below.
+#
+# Only ONE test in this file passes -Execute together with the CORRECT owner
+# gate, and it is the single case that cannot be expressed any other way: a dry
+# run deliberately permits omitting the corpus identity entirely, so "missing
+# under -Execute" has no dry-run equivalent. Every other malformed-input case is
+# exercised through the dry run, which validates whatever is supplied.
+#
+# That one test asserts the exact fail-closed message. If
+# Assert-QuestionsCorpusParameters is ever loosened, reordered or made
+# non-fatal, this test fails loudly instead of letting pytest proceed into
+# PRECHECK/BUILD_APP. It also uses the example layout, whose hosts are all
+# example.invalid, so it cannot reach a real host even then.
+
+
 def test_execute_blocks_when_corpus_parameters_are_missing():
     result = run_powershell([
         "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
@@ -365,15 +408,30 @@ def test_execute_blocks_when_corpus_parameters_are_missing():
     ])
     assert result.returncode != 0
     combined = result.stdout + result.stderr
+    # Exact message: proves we aborted at the corpus assertion and nowhere later.
     assert "QuestionsCorpus release identity is incomplete" in combined
     for name in QUESTIONS_CORPUS_PARAMETERS:
         assert name in combined
+    # Nothing may have started: no build, package, or Production contact.
+    assert "PRECHECK" not in combined
+    assert "BUILD_APP" not in combined
 
 
-def test_execute_blocks_malformed_corpus_sha256(tmp_path):
+def test_only_one_test_crosses_the_owner_gate_in_execute_mode():
+    """Pin the safety property described in the note above."""
+    text = pathlib.Path(__file__).read_text(encoding="utf-8")
+    # Assembled from parts so this detector cannot match its own source line.
+    needle = '"-Execute", "-OwnerGate", "' + "GO_DEPLOY_WITH" + '_BOUNDED_RECOVERY"'
+    crossing = [line for line in text.splitlines() if needle in line]
+    assert len(crossing) == 1, (
+        "exactly one test may pass -Execute with the real owner gate; "
+        f"found {len(crossing)}: {crossing}"
+    )
+
+
+def test_dry_run_blocks_malformed_corpus_sha256(tmp_path):
     result = run_powershell([
         "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
-        "-Execute", "-OwnerGate", "GO_DEPLOY_WITH_BOUNDED_RECOVERY",
     ] + _corpus_args(tmp_path, QuestionsCorpusSha256="not-a-sha"))
     assert result.returncode != 0
     combined = result.stdout + result.stderr
@@ -381,10 +439,9 @@ def test_execute_blocks_malformed_corpus_sha256(tmp_path):
     assert "QuestionsCorpusSha256" in combined
 
 
-def test_execute_blocks_non_numeric_record_count(tmp_path):
+def test_dry_run_blocks_non_numeric_record_count(tmp_path):
     result = run_powershell([
         "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
-        "-Execute", "-OwnerGate", "GO_DEPLOY_WITH_BOUNDED_RECOVERY",
     ] + _corpus_args(tmp_path, QuestionsCorpusRecordCount="41,591"))
     assert result.returncode != 0
     combined = result.stdout + result.stderr
@@ -392,13 +449,45 @@ def test_execute_blocks_non_numeric_record_count(tmp_path):
     assert "QuestionsCorpusRecordCount" in combined
 
 
-def test_execute_blocks_missing_corpus_file(tmp_path):
+def test_dry_run_blocks_malformed_source_identity(tmp_path):
+    result = run_powershell([
+        "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
+    ] + _corpus_args(tmp_path, QuestionsCorpusSourceIdentity="not-a-sha"))
+    assert result.returncode != 0
+    combined = result.stdout + result.stderr
+    assert "QuestionsCorpus release identity is invalid" in combined
+    assert "QuestionsCorpusSourceIdentity" in combined
+
+
+def test_dry_run_blocks_snapshot_id_that_is_a_path_or_filename(tmp_path):
+    for bad in ("releases/snap.json", "snapshot.json", "a\\b"):
+        result = run_powershell([
+            "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
+        ] + _corpus_args(tmp_path, QuestionsCorpusSnapshotId=bad))
+        assert result.returncode != 0, bad
+        assert "QuestionsCorpusSnapshotId" in (result.stdout + result.stderr), bad
+
+
+def test_dry_run_blocks_values_that_would_be_parsed_as_switches(tmp_path):
+    # A value beginning with '-' would be forwarded verbatim and bound by the
+    # child as a switch, leaving a mandatory parameter unbound -- which is
+    # exactly how the packager's binder could still be made to prompt.
+    result = run_powershell([
+        "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
+    ] + _corpus_args(tmp_path, QuestionsCorpusSnapshotId="-Verbose"))
+    assert result.returncode != 0
+    assert "QuestionsCorpusSnapshotId" in (result.stdout + result.stderr)
+
+
+def test_dry_run_blocks_missing_corpus_file(tmp_path):
     missing = tmp_path / "absent-questions.json"
     result = run_powershell([
         "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
-        "-Execute", "-OwnerGate", "GO_DEPLOY_WITH_BOUNDED_RECOVERY",
     ] + _corpus_args(tmp_path, QuestionsCorpusPath=str(missing)))
     assert result.returncode != 0
+    # Exact fail-closed message, not a raw ItemNotFoundException: asserting only
+    # a nonzero exit would also pass on code where the parameter does not exist.
+    assert "must resolve to an existing regular file" in (result.stdout + result.stderr)
 
 
 def test_dry_run_still_works_with_no_corpus_parameters():

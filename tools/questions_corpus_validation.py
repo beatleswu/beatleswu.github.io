@@ -69,11 +69,24 @@ GATE_NAMES = (
 #   3. exact source identity
 #
 # The eight content/schema checks below were authored against a record shape this
-# corpus family has never had -- board_size, crop metadata (origin_x/origin_y/
-# width/height) and structured accepted_moves are absent from 100% of the live
-# 41,591 records, and `origin_x` has no producer or consumer anywhere in the
-# product outside this module and its own tests. They therefore rejected every
-# real corpus and could never have expressed an accepted release policy.
+# corpus family has never had. Two independent reasons, both verified against the
+# live 41,591-record corpus:
+#
+#   * A top-level `board_size` field, crop metadata (origin_x/origin_y/width/
+#     height) and structured `accepted_moves` are absent from 100% of records,
+#     and `origin_x` has no producer or consumer anywhere in the product outside
+#     this module and its own tests.
+#   * Separately, the `_board_size` fallback extractor cannot recover the board
+#     size from the SGF in `content` either: its pattern anchors SZ to `^` or a
+#     preceding `[`, so `(;GM[1]SZ[19];B[aa])` and `(;FF[4]SZ[19])` do not match.
+#     VALID_BOARD_SIZE therefore fails every record for an extractor defect, not
+#     only for missing data, and the three gates that need a board size inherit
+#     that failure. This is a known REPORT_ONLY diagnostic defect; it is recorded
+#     here rather than silently repaired, because changing what the diagnostics
+#     report is a separate decision from what may block a release.
+#
+# Either way these checks rejected every real corpus and could never have
+# expressed an accepted release policy.
 #
 # They are retained and still fully executed as REPORT_ONLY diagnostics. They are
 # NOT deleted, skipped, falsified, or whitelisted to PASS: their exact per-gate

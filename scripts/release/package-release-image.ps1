@@ -73,6 +73,21 @@ try {
 if ($corpusValidation.status -ne 'PASS' -or $corpusValidation.release_rejected -eq $true) {
     throw 'Questions corpus release validation did not return PASS.'
 }
+
+# Durably record the validator report, including the REPORT_ONLY content
+# diagnostics. Under the questions-corpus release policy those diagnostics never
+# block, so without this they would exist only in this process's stdout and be
+# lost the moment packaging finished -- the report-only tier's whole value is the
+# durable record. Written as a sibling artifact of the release manifest rather
+# than inlined into it, so the manifest schema is untouched.
+Ensure-Directory -Path (Split-Path -Parent $ReleaseManifestPath)
+$corpusValidationReportPath = Join-Path (Split-Path -Parent $ReleaseManifestPath) ("{0}.questions-corpus-validation.json" -f $baseName)
+[IO.File]::WriteAllText(
+    $corpusValidationReportPath,
+    [string]$validationResult.stdout,
+    (New-Object System.Text.UTF8Encoding($false))
+)
+$corpusValidationReportSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $corpusValidationReportPath).Hash.ToLowerInvariant()
 $corpusIdentity = [ordered]@{
     questions_corpus_sha256 = $QuestionsCorpusSha256.ToLowerInvariant()
     questions_corpus_record_count = [int64]$QuestionsCorpusRecordCount
@@ -134,4 +149,7 @@ Write-JsonFile -InputObject $manifest -Path $ReleaseManifestPath
     archive_path = $ArchivePath
     archive_sha256 = $archiveSha
     release_manifest_path = $ReleaseManifestPath
+    questions_corpus_validation_report_path = $corpusValidationReportPath
+    questions_corpus_validation_report_sha256 = $corpusValidationReportSha256
+    questions_corpus_validation = $corpusValidation.summary
 } | ConvertTo-Json -Depth 8 | Write-Output

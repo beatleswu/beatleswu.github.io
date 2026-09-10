@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 
@@ -512,6 +513,33 @@ def test_control_plane_authority_declarations_agree():
     normalized = {d[:-2] if d.endswith("/**") else d for d in declared}
     assert normalized == set(CONTROL_PLANE_PREFIXES) | set(CONTROL_PLANE_EXACT_PATHS)
 
+    # Get-ReleaseControlPlaneAllowlist is advisory; Test-ReleaseControlPlanePath
+    # is what Assert-ReleaseSourceSeparation actually enforces with. Its own
+    # hardcoded exact/prefix lists must agree too, or the advisory declaration
+    # can drift away from the gate that really runs.
+    enforcing_start = module_text.index("function Test-ReleaseControlPlanePath")
+    enforcing_block = module_text[enforcing_start : module_text.index("\n}", enforcing_start)]
+    enforcing_exact = {
+        name
+        for name in re.findall(r"'([^']+)'", enforcing_block)
+        if "/" in name and not name.endswith("/")
+    }
+    # './' is the argument to TrimStart in the function body, not an allowlist
+    # entry; every real prefix has a path segment before the separator.
+    enforcing_prefixes = {
+        name
+        for name in re.findall(r"'([^']+/)'", enforcing_block)
+        if name not in {"./", "/"}
+    }
+    assert enforcing_exact == set(CONTROL_PLANE_EXACT_PATHS), (
+        "Test-ReleaseControlPlanePath exact list drifted from the authority: "
+        f"{sorted(enforcing_exact)} != {sorted(CONTROL_PLANE_EXACT_PATHS)}"
+    )
+    assert enforcing_prefixes == set(CONTROL_PLANE_PREFIXES), (
+        "Test-ReleaseControlPlanePath prefix list drifted from the authority: "
+        f"{sorted(enforcing_prefixes)} != {sorted(CONTROL_PLANE_PREFIXES)}"
+    )
+
 
 def _create_small_release_source_pair(tmp_path: pathlib.Path):
     """Create a real two-commit release fixture without the shared worktree registry.
@@ -736,16 +764,61 @@ def test_product_tools_are_never_control_plane():
         )
 
 
+def _dockerfile_copy_sources() -> list[str]:
+    """Every source operand of every COPY/ADD, whitespace- and continuation-safe."""
+    raw = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    joined = re.sub(r"\\\s*\n", " ", raw)  # fold line continuations
+    sources: list[str] = []
+    for line in joined.splitlines():
+        stripped = line.strip()
+        if not re.match(r"(?i)^(COPY|ADD)\s", stripped):
+            continue
+        operands = [
+            token
+            for token in stripped.split()[1:]
+            if not token.startswith("--")
+        ]
+        if len(operands) >= 2:
+            sources.extend(operands[:-1])  # last operand is the destination
+    return sources
+
+
 def test_allowlisted_control_plane_files_are_not_image_content():
-    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
-    manifest = json.loads((ROOT / "deploy" / "build-manifest.json").read_text(encoding="utf-8"))
-    manifest_text = json.dumps(manifest)
+    manifest_text = json.dumps(
+        json.loads((ROOT / "deploy" / "build-manifest.json").read_text(encoding="utf-8"))
+    )
+    copy_sources = _dockerfile_copy_sources()
+
     for path in EXACT_CONTROL_PLANE_FILES:
         leaf = path.rsplit("/", 1)[-1]
-        assert f"COPY {path}" not in dockerfile, f"{path} must not be COPYed into the image"
+        parent = path.rsplit("/", 1)[0] + "/"
+
+        # Not copied as an exact file...
+        assert path not in copy_sources, f"{path} must not be COPYed into the image"
+        # ...and not swept in by a directory or wildcard copy of its parent.
+        for source in copy_sources:
+            normalized = source.rstrip("/")
+            assert normalized not in {parent.rstrip("/"), "."}, (
+                f"{source!r} is a directory copy that would include {path}"
+            )
+            assert not (source.endswith("*") and path.startswith(source[:-1])), (
+                f"{source!r} is a wildcard copy that would include {path}"
+            )
+
         assert f"/app/{path}" not in manifest_text, f"{path} must not be image content"
         assert f"/app/tools/{leaf}" not in manifest_text
         assert f"/app/tests/{leaf}" not in manifest_text
+
+
+def test_dockerfile_copy_parser_sees_the_real_product_tools():
+    # Guards the parser itself: if it silently returned [], the test above would
+    # pass vacuously. The known-product tools must actually be found.
+    copy_sources = _dockerfile_copy_sources()
+    assert len(copy_sources) > 20
+    for product_tool in PRODUCT_TOOLS_THAT_MUST_STAY_EXCLUDED:
+        assert product_tool in copy_sources, (
+            f"{product_tool} is expected to be COPYed into the image"
+        )
 
 
 def test_allowlist_is_not_widened_to_a_tools_prefix():

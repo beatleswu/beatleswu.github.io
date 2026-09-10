@@ -122,8 +122,25 @@ function Assert-QuestionsCorpusParameters {
         Fail ("QuestionsCorpus release identity is incomplete; refusing to start a coordinated release. Missing: " + ($missing -join ', ') + ". All eight are required because package-release-image.ps1 declares them mandatory.")
     }
 
-    foreach ($name in @('QuestionsCorpusSha256', 'QuestionsCorpusSourceSha256')) {
+    # Shape-check every field the packager and tools/content_release_core.py will
+    # themselves reject, so a bad value fails here rather than 1800 seconds into
+    # BUILD_APP. A value beginning with '-' is rejected outright: forwarded
+    # verbatim it would be parsed by the child as a switch, leaving a mandatory
+    # parameter unbound and letting the packager's binder prompt.
+    foreach ($name in @('QuestionsCorpusSha256', 'QuestionsCorpusSourceSha256', 'QuestionsCorpusSourceIdentity')) {
         if ([string]$text[$name] -notmatch '^[0-9a-fA-F]{64}$') { $invalid += "$name must be a 64-character SHA-256" }
+    }
+    $snapshotId = [string]$text['QuestionsCorpusSnapshotId']
+    if ($snapshotId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
+        $invalid += 'QuestionsCorpusSnapshotId must start alphanumeric and contain only letters, digits, dot, underscore or hyphen'
+    }
+    elseif ($snapshotId.ToLowerInvariant().EndsWith('.json')) {
+        $invalid += 'QuestionsCorpusSnapshotId must not be a filename or path'
+    }
+    foreach ($name in $text.Keys) {
+        if ([string]$text[$name] -like '-*' -and $name -ne 'QuestionsCorpusPath') {
+            $invalid += "$name must not begin with '-'"
+        }
     }
     $numeric = [ordered]@{}
     foreach ($name in @('QuestionsCorpusRecordCount', 'QuestionsCorpusBytes', 'QuestionsCorpusSourceRecordCount')) {
@@ -140,6 +157,9 @@ function Assert-QuestionsCorpusParameters {
         Fail ("QuestionsCorpus release identity is invalid; refusing to start a coordinated release. " + ($invalid -join '; ') + '.')
     }
 
+    if (-not (Test-Path -LiteralPath $QuestionsCorpusPath)) {
+        Fail "QuestionsCorpusPath must resolve to an existing regular file: $QuestionsCorpusPath"
+    }
     $resolved = Assert-NoReparsePointPath -Path ((Resolve-Path -LiteralPath $QuestionsCorpusPath -ErrorAction Stop).Path) -Label 'Questions corpus'
     if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
         Fail "QuestionsCorpusPath must resolve to an existing regular file: $QuestionsCorpusPath"
@@ -233,6 +253,11 @@ $verifyProductionScript = Join-Path $PSScriptRoot 'verify-production-release.ps1
 $script:appReleaseManifestPath = $null
 $script:appArchivePath = $null
 $script:appDeploymentRecordPath = $null
+# NOTE: $script:questionsCorpusArgs is the fourth handoff variable PACKAGE_APP
+# consumes, but it is deliberately NOT (re)initialized here: it is assigned
+# above, immediately after the owner gate, by
+# Assert-QuestionsCorpusParameters -RequirePresent. Setting it to $null here
+# would run AFTER that assignment and discard the validated array.
 $script:staticManifestPath = $null
 $script:staticBundlePath = $null
 $script:staticArchivePath = $null
