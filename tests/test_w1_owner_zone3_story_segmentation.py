@@ -27,7 +27,9 @@ This file is the Owner's 12-point acceptance matrix, pinned against source.
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -104,6 +106,29 @@ def test_point_03_segment_b_autoplays_on_first_authoritative_lord_ready():
     # It is armed from the authoritative bootstrap payload, every fresh load.
     update = _function_body(INDEX, "function updateMapProgress(data) {")
     assert "_maybeTriggerZone3BossReadyFilm(zones);" in update
+
+
+def test_point_03b_segment_b_is_never_spliced_onto_a_showing_segment_a():
+    # The second half of the Owner's "Shots 1-10 as one movie" report. An
+    # account that is ALREADY Lord-ready the first time it enters Zone 3
+    # satisfies the readiness condition while Segment A is still on screen, and
+    # updateMapProgress re-derives readiness on every bootstrap. The old guard
+    # only refused a second BOSS_READY run, never a PRE_PLAY one -- despite its
+    # own comment claiming "or any other intro-film run".
+    busy = _function_body(INDEX, "function _zone3CinematicSurfaceBusy() {")
+    assert "getElementById('boss-cinematic')" in busy
+    assert "classList.contains('show')" in busy
+    for trigger in (
+        "function _maybeTriggerZone3BossReadyFilm(zones) {",
+        "function _resumeZone3PostClearIfPending() {",
+    ):
+        body = _function_body(INDEX, trigger)
+        assert "if (_zone3CinematicSurfaceBusy()) return;" in body, trigger
+    # The genuine post-victory path closes the overlay before Segment C, so the
+    # guard cannot block a real Lord success.
+    lord_finish = INDEX[INDEX.index("btn.textContent = I18n.t('adventure.zone3.continue');"):]
+    lord_finish = lord_finish[:lord_finish.index("_triggerZone3PostClearFromBossWin")]
+    assert "hideBossCinematic();" in lord_finish
 
 
 def test_point_04_segment_b_never_replays_on_lord_retry():
@@ -229,3 +254,39 @@ def test_zone3_keys_match_between_client_and_registry():
     phases = INDEX[INDEX.index("const ADVENTURE_CINEMATIC_PHASES = Object.freeze({"):]
     phases = phases[:phases.index("});")]
     assert set(re.findall(r"'([a-z_]+)'", phases)) == {"intro", "boss_ready", "post_clear"}
+
+
+# --- the behavioral harness ------------------------------------------------
+
+
+def test_behavioral_segmentation_runner_is_green():
+    """Run the shipped entry/trigger bodies, do not merely read them.
+
+    tests/e2e/run_w1_owner_zone3_story_segmentation.mjs evaluates the real
+    showZone3EntrySafeFallback, _continueZone3SafeEntry,
+    _maybeTriggerZone3BossReadyFilm and _resumeZone3PostClearIfPending against
+    injected authority facts. On the pre-fix base it reports
+    ZONE3_SEGMENT_A_REPEAT_AUTOPLAY=YES and
+    ZONE3_SEGMENT_B_SPLICED_ONTO_SEGMENT_A=YES -- the Owner's exact symptom.
+    """
+    result = subprocess.run(
+        ["node", str(ROOT / "tests/e2e/run_w1_owner_zone3_story_segmentation.mjs")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    output = f"stdout={result.stdout}\nstderr={result.stderr}"
+    assert result.returncode == 0, output
+    report = json.loads(result.stdout)
+    assert report["status"] == "PASS", output
+    assert report["failures"] == [], output
+    evidence = report["evidence"]
+    assert evidence["ZONE3_FIRST_ENTRY"] == ["PLAY:pre_play:5:first_entry"]
+    assert evidence["ZONE3_SEGMENT_A_REPEAT_AUTOPLAY"] == "NO"
+    assert evidence["ZONE3_CLEARED_REENTRY_AUTOPLAY"] == "NO"
+    assert evidence["ZONE3_MANUAL_REPLAY_PLAYS"] == "YES"
+    assert evidence["ZONE3_MANUAL_REPLAY_WRITES_STATE"] == "NO"
+    assert evidence["ZONE3_SEGMENT_B_SPLICED_ONTO_SEGMENT_A"] == "NO"
+    assert evidence["ZONE3_SEGMENT_B_ONCE_WHEN_SURFACE_FREE"] == ["SEGMENT_B", "SEGMENT_C"]

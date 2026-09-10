@@ -18682,10 +18682,29 @@ function _startZone3CinematicWithGesture(zone, opts = {}) {
     return false;
 }
 
+// True while the shared #boss-cinematic surface is already in use -- a film
+// playing, or its gameplay-handoff CTA waiting for the player.
+function _zone3CinematicSurfaceBusy() {
+    const overlay = document.getElementById('boss-cinematic');
+    return !!(overlay && overlay.classList.contains('show'));
+}
+
 function _maybeTriggerZone3BossReadyFilm(zones) {
     const zone = (zones || _adventureProgress || []).find(z => z.key === 'k16_20');
     if (!zone || !_adventureBossReady(zone) || adventureBossReadyFilmSeen(zone)) return;
     if (_introFilmActiveOpts.phase === 'boss_ready') return;
+    // W1-OWNER-POSTDEPLOY-ACCEPTANCE-CORRECTIVE-FINAL-001 Issue B: Segment B is
+    // its own beat, not a tail spliced onto Segment A. An account that is
+    // ALREADY Lord-ready the first time it enters Zone 3 satisfies the
+    // readiness condition the instant the entry cinematic starts, and
+    // updateMapProgress re-derives readiness on every fresh bootstrap -- which
+    // is how Shots 1-5 and 6-7 ran together as one continuous movie for the
+    // Owner's own well-progressed account. The existing guard only refused a
+    // second BOSS_READY run, never a PRE_PLAY one, despite its comment saying
+    // "or any other intro-film run". If the surface is in use, leave it alone:
+    // readiness is re-derived from the server on the next bootstrap, so
+    // Segment B still plays exactly once, on its own.
+    if (_zone3CinematicSurfaceBusy()) return;
     playZone3BossReadyFilm(zone);
 }
 
@@ -18732,6 +18751,12 @@ function _resumeZone3PostClearIfPending() {
         || ADVENTURE_ZONES.find(z => z.key === 'k16_20');
     if (!zone || !zone.cleared || adventurePostClearSeen(zone)) return;
     if (!adventurePostClearPending(zone) || _introFilmActiveOpts.phase === 'post_clear') return;
+    // Same sequencing rule as Segment B: this reload-recovery path must not
+    // splice Shots 8-10 onto whatever is already on the cinematic surface.
+    // The genuine post-victory path reaches Segment C through
+    // _triggerZone3PostClearFromBossWin, which closes the overlay first, so
+    // this guard never blocks a real Lord success.
+    if (_zone3CinematicSurfaceBusy()) return;
     playZone3PostClearFilm(zone);
 }
 
