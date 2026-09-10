@@ -3244,6 +3244,10 @@ Export-ModuleMember -Function @(
     'Exit-RemoteReleaseOperationLock',
     'Get-ImagePlatform',
     'Invoke-ProcessWithUtf8NoBomStdin',
+    # package-release-image.ps1 runs the questions-corpus validator through this
+    # helper. It was defined here but never exported, so the packager failed
+    # with CommandNotFoundException before it could validate anything.
+    'Invoke-ProcessWithSeparateOutput',
     'Invoke-RemoteShellCommand',
     'Get-CanonicalAppHealthcheckDefinition',
     'Assert-ProtectedHostEnvCredentialAndTcpAuthentication',

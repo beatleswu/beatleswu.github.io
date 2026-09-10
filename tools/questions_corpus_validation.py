@@ -17,7 +17,20 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from tools.content_release_core import (
+if __package__ in (None, ""):
+    # package-release-image.ps1 executes this file BY PATH
+    # (python -B tools/questions_corpus_validation.py ...), which puts tools/ on
+    # sys.path rather than the repository root, so `import tools.*` raised
+    # ModuleNotFoundError and the packager saw an empty stdout with a non-zero
+    # exit -- "validation failed closed" with no diagnosis. Resolve the repo root
+    # from this file's own location so the validator behaves identically whether
+    # it is run by path, as `python -m tools.questions_corpus_validation`, or
+    # imported as a module.
+    _REPO_ROOT = str(Path(__file__).resolve().parents[1])
+    if _REPO_ROOT not in sys.path:
+        sys.path.insert(0, _REPO_ROOT)
+
+from tools.content_release_core import (  # noqa: E402
     ArtifactIdentity,
     GovernanceError,
     QUESTIONS_CORPUS_RELEASE_FIELDS,
