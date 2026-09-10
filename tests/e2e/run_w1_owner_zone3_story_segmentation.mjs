@@ -122,7 +122,10 @@ async function enterZone3({ mode = 'legacy', seen = {}, cleared = false, manifes
       getElementById: id => elements.get(id) || null,
       documentElement: { dataset: {} },
     },
-    window: { location: { href: '' } },
+    window: {
+      location: { href: '' },
+      E9: { showAdventureZoneCard: key => trace.push('ZONE_CARD:' + key) },
+    },
     I18n: { t: key => key, getLang: () => 'zh' },
     trace,
   };
@@ -186,13 +189,21 @@ async function enterZone3({ mode = 'legacy', seen = {}, cleared = false, manifes
     autoplayed: played.length > 0,
     enteredGameplay: trace.includes('GAMEPLAY_ENTERED'),
     markedSeen: trace.includes('MARK_INTRO_SEEN'),
+    returnedToZoneCard: trace.some(t => t.startsWith('ZONE_CARD:')),
   };
 }
 
 const failures = [];
-const sequencing = { whileSegmentAShowing: null, whenSurfaceFree: null };
+const sequencing = { whileSegmentAShowing: null, whenSurfaceFree: null, postClearRecovery: null };
 const check = (name, fn) => {
-  try { fn(); } catch (error) { failures.push(`${name}: ${error.message}`); }
+  try {
+    const result = fn();
+    // A check whose body returns a promise would otherwise report PASS while
+    // its assertions rejected unobserved.
+    if (result && typeof result.then === 'function') {
+      throw new Error('check() bodies must be synchronous; await before calling it');
+    }
+  } catch (error) { failures.push(`${name}: ${error.message}`); }
 };
 
 // --- Point 1: first-ever entry autoplays Segment A, and only Segment A ------
@@ -214,9 +225,29 @@ check('P2 repeat entry does not autoplay', () => {
   assert.equal(repeatEntry.returned, true);
 });
 
+// --- Point 2c: a seen MAP-NODE entry stops at the Zone Card ---------------
+// showStageIntroCinematic enforces this for every other zone: node entry and
+// the Zone Card's training CTA are distinct product actions, so a seen account
+// must not be dropped straight into a battle by selecting the node.
+const seenNodeEntry = await enterZone3({ mode: 'first_entry', seen: { intro: true } });
+check('P2c seen first_entry returns to the Zone Card, does not start gameplay', () => {
+  assert.equal(seenNodeEntry.autoplayed, false);
+  assert.equal(seenNodeEntry.returnedToZoneCard, true, 'must hand back to the Zone Card');
+  assert.equal(seenNodeEntry.enteredGameplay, false, 'node entry must not auto-start a battle');
+});
+
+// The legacy map CTA IS the "start training" action, so it may enter directly.
+const seenLegacyEntry = await enterZone3({ mode: 'legacy', seen: { intro: true } });
+check('P2c legacy CTA still enters gameplay directly', () => {
+  assert.equal(seenLegacyEntry.autoplayed, false);
+  assert.equal(seenLegacyEntry.enteredGameplay, true);
+});
+
 // --- Point 7: cleared re-entry autoplays nothing ---------------------------
+const clearedEntries = [];
 for (const seen of [{}, { intro: true }]) {
   const clearedEntry = await enterZone3({ mode: 'legacy', cleared: true, seen });
+  clearedEntries.push(clearedEntry);
   check(`P7 cleared re-entry autoplays nothing (seen=${JSON.stringify(seen)})`, () => {
     assert.equal(clearedEntry.autoplayed, false);
     assert.equal(clearedEntry.enteredGameplay, true);
@@ -238,11 +269,9 @@ check('P9 manual replay writes nothing', () => {
 
 // --- Point 2b: the entry flow does record "seen", or the gate never latches -
 const continued = await enterZone3({ mode: 'legacy', seen: {} });
-check('P2b entry continuation records Segment A as seen', () => {
-  const overlay = null; // continuation is driven through the CTA below
+check('P2b an unseen entry does autoplay, so the gate is the only thing stopping it', () => {
   assert.equal(continued.autoplayed, true);
 });
-check('P2b unseen + cleared still skips (cleared dominates)', async () => {});
 
 // The CTA handoff is what reaches _continueZone3SafeEntry; drive it directly.
 {
@@ -317,48 +346,73 @@ check('Segment A refuses a ten-shot slice', () => {
     let _introFilmActiveOpts = { phase: 'pre_play' };
     let _adventureProgress = [];
     let SEEN_BOSS_READY = false;
+    let SEEN_POST_CLEAR = false;
     let PENDING = true;
     const ADVENTURE_ZONES = [{ key: ${JSON.stringify(ZONE3)} }];
-    function _adventureBossReady() { return true; }
+    // Readiness mirrors the real _adventureBossReady, which returns false once
+    // the zone is cleared -- so "cleared AND boss-ready" is never modelled here,
+    // because production cannot produce it.
+    function _adventureBossReady(z) { return !(z && z.cleared); }
     function adventureBossReadyFilmSeen() { return SEEN_BOSS_READY; }
-    let SEEN_POST_CLEAR = false;
     function adventurePostClearSeen() { return SEEN_POST_CLEAR; }
     function adventurePostClearPending() { return PENDING; }
-    // Both stubs record "seen" the way the real terminators do
+    // The stubs record "seen" where the real terminators do
     // (markAdventureBossReadyFilmSeen at onStarted, finishPostClearFilm at the
-    // end of playback), so "exactly once" here means what it means in product.
-    function playZone3BossReadyFilm() { runs.push('SEGMENT_B'); SEEN_BOSS_READY = true; }
-    function playZone3PostClearFilm() { runs.push('SEGMENT_C'); SEEN_POST_CLEAR = true; }
+    // end of playback) AND take the cinematic surface the way
+    // _startZone3CinematicWithGesture does -- it sets the overlay's show class
+    // synchronously on both its branches. Without that, this harness would model
+    // a world where starting a segment does not occupy the surface, which is
+    // precisely the thing under test.
+    function playZone3BossReadyFilm() { runs.push('SEGMENT_B'); SEEN_BOSS_READY = true; overlay.classList.add('show'); }
+    function playZone3PostClearFilm() { runs.push('SEGMENT_C'); SEEN_POST_CLEAR = true; overlay.classList.add('show'); }
     ${extractFunction(indexSource, '_zone3CinematicSurfaceBusy')}
     ${extractFunction(indexSource, '_maybeTriggerZone3BossReadyFilm')}
     ${extractFunction(indexSource, '_resumeZone3PostClearIfPending')}
     globalThis.__bootstrap = (zones, showing) => {
       if (showing) overlay.classList.add('show'); else overlay.classList.remove('show');
       _adventureProgress = zones;
-      _maybeTriggerZone3BossReadyFilm(zones);
+      // Same order as updateMapProgress: _resumeZone3PostClearIfPending runs
+      // BEFORE _maybeTriggerZone3BossReadyFilm. Modelling it the other way
+      // round would make this harness prove a sequence production never runs.
       _resumeZone3PostClearIfPending();
+      _maybeTriggerZone3BossReadyFilm(zones);
     };
     globalThis.__runs = runs;
   `, sandbox, { filename: 'index.html:zone3-triggers' });
 
-  const zones = [{ key: ZONE3, cleared: true }];
+  // The Owner's reported scenario: Lord-ready (therefore not cleared) on the
+  // very first Zone 3 entry, with Segment A still on screen.
+  const readyZones = [{ key: ZONE3, cleared: false }];
 
-  // Segment A is on screen: neither B nor C may start.
   runs.length = 0;
-  sandbox.__bootstrap(zones, true);
+  sandbox.__bootstrap(readyZones, true);
   sequencing.whileSegmentAShowing = [...runs];
   check('PB1 Segment B does not splice onto a showing Segment A', () => {
     assert.deepEqual(runs, [], `expected nothing to start, got ${JSON.stringify(runs)}`);
   });
 
-  // Surface free again: Segment B plays, exactly once.
+  // Segment A ends, the surface frees: Segment B plays, and a second bootstrap
+  // must not replay it.
   runs.length = 0;
-  sandbox.__bootstrap(zones, false);
-  sandbox.__bootstrap(zones, false);
+  sandbox.__bootstrap(readyZones, false);
+  sandbox.__bootstrap(readyZones, false);
   sequencing.whenSurfaceFree = [...runs];
-  check('PB2 each segment plays exactly once once the surface is free', () => {
-    assert.deepEqual(runs, ['SEGMENT_B', 'SEGMENT_C'],
-      `two bootstraps must not replay a segment, got ${JSON.stringify(runs)}`);
+  check('PB2 Segment B plays exactly once once the surface is free', () => {
+    assert.deepEqual(runs, ['SEGMENT_B'],
+      `two bootstraps must not replay Segment B, got ${JSON.stringify(runs)}`);
+  });
+
+  // Segment C's own recovery path: cleared, pending, unseen. Because a cleared
+  // zone is never Lord-ready, C is the only segment in play here.
+  runs.length = 0;
+  overlay.classList.remove('show');
+  const clearedZones = [{ key: ZONE3, cleared: true }];
+  sandbox.__bootstrap(clearedZones, false);
+  sandbox.__bootstrap(clearedZones, false);
+  sequencing.postClearRecovery = [...runs];
+  check('PB3 Segment C resumes exactly once and takes the surface', () => {
+    assert.deepEqual(runs, ['SEGMENT_C'],
+      `pending recovery must not replay Segment C, got ${JSON.stringify(runs)}`);
   });
 }
 
@@ -369,11 +423,12 @@ const report = {
   evidence: {
     ZONE3_FIRST_ENTRY: firstEntry.playedPhases,
     ZONE3_SEGMENT_A_REPEAT_AUTOPLAY: repeatEntry.autoplayed ? 'YES' : 'NO',
-    ZONE3_CLEARED_REENTRY_AUTOPLAY: 'NO',
+    ZONE3_CLEARED_REENTRY_AUTOPLAY: clearedEntries.some(e => e.autoplayed) ? 'YES' : 'NO',
     ZONE3_MANUAL_REPLAY_PLAYS: replay.autoplayed ? 'YES' : 'NO',
     ZONE3_MANUAL_REPLAY_WRITES_STATE: replay.markedSeen ? 'YES' : 'NO',
     ZONE3_SEGMENT_B_SPLICED_ONTO_SEGMENT_A: sequencing.whileSegmentAShowing?.length ? 'YES' : 'NO',
     ZONE3_SEGMENT_B_ONCE_WHEN_SURFACE_FREE: sequencing.whenSurfaceFree,
+    ZONE3_SEGMENT_C_ONCE_ON_PENDING_RECOVERY: sequencing.postClearRecovery,
   },
 };
 console.log(JSON.stringify(report, null, 2));

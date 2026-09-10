@@ -165,8 +165,13 @@ def test_protected_backend_and_cinematic_boundaries_untouched():
     # so each Zone 3 story segment gets its own durable per-account marker.
     # Rather than drop the guard, narrow it: the ONLY app.py change admitted
     # here is that constant. No route, no gameplay authority, no SQL, no
-    # schema/migration -- which is a stronger assertion for this candidate than
-    # "the file is untouched" was.
+    # schema/migration.
+    #
+    # Honest about its limits: this compares a de-duplicated set of stripped
+    # line texts, so it pins WHAT may change, not WHERE. Structural lines like
+    # "}" are necessarily admitted. It is a scope assertion, not a byte lock --
+    # weaker than "untouched" in that one respect, stronger in every other,
+    # since "untouched" said nothing about what a change would contain.
     changed = [
         line[1:].strip()
         for line in _diff("app.py").splitlines()
@@ -191,8 +196,15 @@ def test_protected_backend_and_cinematic_boundaries_untouched():
         ")",
     }
     assert set(code) <= admitted, sorted(set(code) - admitted)
-    for forbidden in ("ALTER TABLE", "ADD COLUMN", "CREATE INDEX", "DROP ", "@app.route", "INSERT INTO", "UPDATE "):
-        assert not any(forbidden in line for line in changed), forbidden
+    for forbidden in (
+        "ALTER TABLE", "ADD COLUMN", "CREATE INDEX", "CREATE TABLE", "DROP ",
+        "TRUNCATE", "@app.route", "@app.before_request", "@app.after_request",
+        "INSERT INTO", "UPDATE ", "DELETE FROM", "os.environ", "SECRET",
+    ):
+        # `code`, not `changed`: a comment may legitimately NAME the DDL it is
+        # explaining ("the DDL is CREATE TABLE IF NOT EXISTS ..."); what must
+        # not appear is an executable line containing it.
+        assert not any(forbidden in line for line in code), forbidden
 
 
 def test_behavioral_runner_is_green():

@@ -115,3 +115,49 @@ def test_zone1_pool_rule_is_unchanged():
     assert "1圍棋新手村" in INDEX or "1圍棋新手村" in (ROOT / "chapter_i18n.py").read_text(
         encoding="utf-8"
     )
+
+
+def test_session_exclusion_shares_the_srs_quarantine_lifetime():
+    """Independent review finding: the new set must not outlive its siblings.
+
+    _sessionUnplayableQuestionIds joins the SRS session quarantine inside
+    _isSessionQuestionQuarantined, which every selector consults -- including
+    Daily Training, Premium Weekly Training and Friend Challenge. If it were not
+    cleared at the same mode boundaries, a Map Battle prepare failure would keep
+    excluding that question from those other modes for the rest of the page
+    session, a reach this corrective never intended.
+    """
+    assert "function _clearSessionQuestionExclusions() {" in INDEX
+    helper_start = INDEX.index("function _clearSessionQuestionExclusions() {")
+    helper = INDEX[helper_start:INDEX.index("\n}", helper_start)]
+    assert "_sessionUnplayableQuestionIds.clear();" in helper
+    assert "SRS.clearSessionQuarantine();" in helper
+
+    # Every reset site must go through the helper: no bare quarantine clear may
+    # survive, or that site silently keeps the stale exclusion.
+    bare = [
+        line for line in INDEX.splitlines()
+        if "SRS.clearSessionQuarantine()" in line
+        and "_sessionUnplayableQuestionIds" not in line
+        and "function _clearSessionQuestionExclusions" not in line
+    ]
+    # Only the helper's own body may call it directly.
+    assert len(bare) == 1, bare
+    assert bare[0].strip() == "SRS.clearSessionQuarantine();"
+
+    # The five known boundaries all call the helper.
+    assert INDEX.count("_clearSessionQuestionExclusions();") == 5
+
+
+def test_sequential_fallback_cannot_undo_the_session_exclusion():
+    """SRS.findNextAvailableQuestion knows only the revision-bound quarantine.
+
+    In the exact failure mode this repairs -- the quarantine write did NOT land
+    -- the fallback can hand back a question already known to be unplayable.
+    """
+    branch = _permanent_failure_branch()
+    assert "const sequentialFallback = SRS.findNextAvailableQuestion(" in branch
+    assert "_isSessionQuestionQuarantined(sequentialFallback) ? null : sequentialFallback" in branch
+    assert branch.index("_markSessionQuestionUnplayable(q)") < branch.index(
+        "_isSessionQuestionQuarantined(sequentialFallback)"
+    )

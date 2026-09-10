@@ -9405,16 +9405,33 @@ function _sessionQuestionRevision(question, explicitRevision = null) {
 }
 
 // W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue A.
-// SRS.quarantineQuestion() is revision-bound and returns false whenever the id
-// is not an integer or the revision resolves empty (srs.js). Selection must not
-// depend on that bookkeeping succeeding: a question the server has permanently
-// rejected is unplayable in this session whether or not we managed to record a
-// revision-keyed quarantine for it. This session-scoped set is the fallback
-// exclusion, and it is consulted by _isSessionQuestionQuarantined below so that
-// EVERY existing selector (_pickAdventureTarget, _pickNextAdventureTarget,
-// _nextAdventureQuestionExcludingQuarantine and the loadQuestion guard) honours
-// it without each having to learn about it separately.
+// SRS.quarantineQuestion() is revision-bound and returns false whenever the
+// revision resolves empty or the failure envelope's question_id is not an
+// integer (srs.js recordRejectedAnswer -> quarantineQuestion). Verified against
+// the real srs.js: an integer or numeric-string id records, a non-numeric id
+// (e.g. a UUID) does not -- so a single record whose permanent-failure envelope
+// carries a non-integer id silently skipped reselection and stranded the whole
+// zone. Selection must not depend on that bookkeeping succeeding: a question the
+// server has PERMANENTLY rejected is unplayable in this session whether or not
+// we managed to record a revision-keyed quarantine for it. This session-scoped
+// set is the fallback exclusion, consulted by _isSessionQuestionQuarantined
+// below so that EVERY existing selector (_pickAdventureTarget,
+// _pickNextAdventureTarget, _nextAdventureQuestionExcludingQuarantine and the
+// loadQuestion guard) honours it without each having to learn about it.
 const _sessionUnplayableQuestionIds = new Set();
+
+// The set joins SRS's session quarantine, so it must share its lifetime. Every
+// explicit mode boundary that clears the SRS quarantine (logout, a new governed
+// boss attempt, a daily round, a challenge, a fresh document) clears this too --
+// otherwise a Map Battle prepare failure would keep excluding the question from
+// Daily Training, Premium Weekly Training and Friend Challenge for the rest of
+// the page session, which is a reach this corrective never intended.
+function _clearSessionQuestionExclusions() {
+    _sessionUnplayableQuestionIds.clear();
+    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') {
+        SRS.clearSessionQuarantine();
+    }
+}
 
 function _markSessionQuestionUnplayable(question) {
     const id = question && question.id;
@@ -12160,14 +12177,22 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         // to reselect. The terminal message is now reachable only when the pool
         // genuinely has nothing else to offer.
         _markSessionQuestionUnplayable(q);
-        const nextAdventureQuestion = _pickNextAdventureTarget(
-            _adventureActiveQuestions,
-            questionId,
-        ) || SRS.findNextAvailableQuestion(
+        // SRS.findNextAvailableQuestion consults only the revision-bound SRS
+        // quarantine, so in the exact failure mode this repairs -- the
+        // quarantine write did NOT land -- the fallback can hand back a question
+        // already known to be unplayable. Filter its answer through the shared
+        // predicate so the fallback cannot undo the exclusion it exists to
+        // survive. loadQuestion's own guard would catch it, but only by
+        // terminating on the message the Owner reported.
+        const sequentialFallback = SRS.findNextAvailableQuestion(
             _adventureActiveQuestions,
             q,
             1,
         );
+        const nextAdventureQuestion = _pickNextAdventureTarget(
+            _adventureActiveQuestions,
+            questionId,
+        ) || (_isSessionQuestionQuarantined(sequentialFallback) ? null : sequentialFallback);
         if (nextAdventureQuestion && Number(nextAdventureQuestion.id) !== Number(questionId)) {
             _e10AcceptanceTrace('MAP_BATTLE_QUESTION_SKIPPED', {
                 qid: questionId,
@@ -13379,7 +13404,7 @@ const DIFF_ORDER = [
 function renderList(questions){ /* no-op：題目列表 UI 已移除，改走地圖導向 */ }
 
 // ─── 登出 ──────────────────────────────────────────────────────
-async function doLogout(){if(window._cgStopDmBadge)window._cgStopDmBadge();if(window.SRS&&typeof SRS.clearSessionQuarantine==='function')SRS.clearSessionQuarantine();await fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{});window.location.href='/login';}
+async function doLogout(){if(window._cgStopDmBadge)window._cgStopDmBadge();_clearSessionQuestionExclusions();await fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{});window.location.href='/login';}
 
 function updateWelcomeStats(){
     const doneEl   = document.getElementById('ws-done');
@@ -14048,9 +14073,16 @@ async function enterAdventureZoneInPage(zone) {
         // W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue A: this path had already
         // hidden the welcome state and revealed the board wrapper above, so
         // returning here left a revealed-but-EMPTY board with no message at
-        // all -- a second route to the exact symptom the Owner reported. If
-        // there is genuinely nothing to select, put the surface back the way
-        // we found it and say so, rather than presenting an empty board.
+        // all -- a second route to the exact symptom the Owner reported. Show
+        // the welcome state and say why, rather than presenting an empty board.
+        //
+        // This restores the surface to the entry default, not to whatever the
+        // caller had on screen, and it does not undo renderList/
+        // _adventureActiveQuestions. That is sound because every caller of this
+        // function navigates away on a false return (see _continueZone3SafeEntry
+        // and the map CTAs), so the restored state is transient by contract. A
+        // future caller that stays on the page must save and restore its own
+        // surface rather than relying on this.
         if (!target || typeof publishAdventureShellOwner !== 'function') {
             if (_bw) _bw.classList.add('hidden');
             if (_ws) _ws.classList.remove('hidden');
@@ -15519,6 +15551,19 @@ function adventureIntroSeen(zone) {
 async function markAdventureCinematicPhaseSeen(zone, phase) {
     const cinematicKey = adventureCinematicKey(zone, phase);
     if (!cinematicKey) return false;
+    // The server record stays the only authority -- _adventureCinematicState is
+    // overwritten wholesale from /api/adventure/bootstrap on every fresh load,
+    // so this optimistic entry cannot outlive the page. It exists because the
+    // markers this corrective moved off localStorage gained a failure mode they
+    // did not have before: a localStorage write could not fail, a POST can. Two
+    // bootstrap polls land in quick succession while the POST is still in
+    // flight, or the POST is dropped entirely, and the segment would re-autoplay
+    // in the SAME session. Recording the intent locally closes that window
+    // without ever inventing durable state.
+    _adventureCinematicState = {
+        ..._adventureCinematicState,
+        [cinematicKey]: { ...(_adventureCinematicState[cinematicKey] || {}), seen: true },
+    };
     try {
         const response = await fetch('/api/adventure/cinematics/seen', {
             credentials: 'include',
@@ -15865,6 +15910,21 @@ async function showZone3EntrySafeFallback(zone, options = {}) {
         hideBossCinematic();
         _pendingBossZone = null;
         _activeBossZone = zone;
+        // Match the contract showStageIntroCinematic already enforces for every
+        // other zone: a map-node entry (first_entry) on a seen account stops at
+        // the Zone Card, because node entry and the card's training CTA are
+        // distinct product actions. Only the legacy map CTA -- which IS the
+        // "start training" action -- may enter gameplay directly. Without this
+        // split, a stale bootstrap snapshot (the marker was written on another
+        // device, or by the write this corrective added to
+        // _continueZone3SafeEntry) would drop the player straight into a Map
+        // Battle from a bare node selection.
+        if (mode === 'first_entry') {
+            if (window.E9 && typeof window.E9.showAdventureZoneCard === 'function') {
+                window.E9.showAdventureZoneCard(zone.key);
+            }
+            return true;
+        }
         if (!(await enterAdventureZoneInPage(zone))) {
             window.location.href = firstQuestionHref(zone);
             return false;
@@ -18824,8 +18884,19 @@ function playZone3PostClearFilm(zone) {
 // point of view.
 function finishPostClearFilm(zone) {
     _zoneCinematicPresentationOnly = false;
-    markAdventurePostClearSeen(zone);
-    clearAdventurePostClearPending(zone);
+    // "seen" and "pending" must stay consistent. When "seen" lived in
+    // localStorage its write could not fail, so clearing pending unconditionally
+    // was safe. It is now a POST: if it is dropped, clearing pending anyway
+    // would leave seen=false AND pending=false, which permanently disarms
+    // _resumeZone{1,2,3}PostClearIfPending -- the player would lose the ending
+    // with no way to recover it. So pending is only released once the durable
+    // write actually landed; if it did not, the pending marker survives and the
+    // next fresh bootstrap replays Shots 8-10 from the top, which is exactly
+    // what that marker is for. Presentation-only either way: no reward, no
+    // settlement, no schema.
+    void markAdventurePostClearSeen(zone).then(persisted => {
+        if (persisted) clearAdventurePostClearPending(zone);
+    });
     hideBossCinematic();
     // E10 Zone 1 Beginner Village Complete RPG Journey (2026-08-09): a short
     // reveal after Shot 10, instead of hard-cutting straight to a static
@@ -19396,7 +19467,7 @@ async function startBossBattle(zoneKey) {
     }
     // A new governed boss attempt is a new gameplay-session boundary for the
     // ephemeral malformed-question exclusion.
-    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
+    _clearSessionQuestionExclusions();
     // Zone 1 and Zone 2 use the explicit Lord Card -> ritual handoff. Other
     // zones retain the existing generic seal modal until their own runtime
     // foundation is authorized.
@@ -21311,7 +21382,7 @@ async function loadVoidZoneCount() {
 async function startDailyTraining() {
     // Starting a new daily round resets only ephemeral malformed-question
     // exclusions; persisted review/SRS state remains untouched.
-    if (window.SRS && typeof SRS.clearSessionQuarantine==='function') SRS.clearSessionQuarantine();
+    _clearSessionQuestionExclusions();
     _adventureActiveQuestions = null;
     const contextLabel = document.getElementById('battle-status');
     if (contextLabel) contextLabel.textContent = I18n.t('index.battle.fighting');
@@ -21706,7 +21777,7 @@ if (window.__GO_E9_SERVER_FLAGS__ ||
 window.onload = async () => {
     // The quarantine is intentionally in-memory only. A fresh page/session
     // starts with no stale exclusions from an earlier gameplay session.
-    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
+    _clearSessionQuestionExclusions();
     I18n.renderSwitcher(document.getElementById('lang-switcher-index'));
     I18n.apply();
     const statusEl=document.getElementById('api-status'),listDiv=document.getElementById('list-container');
@@ -22237,7 +22308,7 @@ let _challengeQIndex = 0;
 
 async function initChallengeMode(cid) {
     _challengeId = cid;
-    if (window.SRS && typeof SRS.clearSessionQuarantine === 'function') SRS.clearSessionQuarantine();
+    _clearSessionQuestionExclusions();
     try {
         const res = await fetch(`/api/challenges/friend/${cid}`, { credentials: 'include' });
         const data = await res.json();

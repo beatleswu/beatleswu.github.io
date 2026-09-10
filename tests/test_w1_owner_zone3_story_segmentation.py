@@ -68,9 +68,14 @@ def test_point_02_segment_a_does_not_autoplay_on_repeat_entry():
     # The gate has to sit BEFORE any playback setup, or the opening still runs.
     assert gate.index("adventureIntroSeen(zone)") < gate.index("playNewbieVillageIntroFilm(")
     assert gate.index("adventureIntroSeen(zone)") < gate.index("_zone3CinematicTimeline('FIRST_ENTRY')")
-    # ...and it must hand straight to gameplay rather than suppress a message.
-    seen_branch = gate[gate.index("adventureIntroSeen(zone)"):]
-    assert "enterAdventureZoneInPage(zone)" in seen_branch[:600]
+    # ...and it must hand on to the next real surface rather than suppress a
+    # message: the Zone Card for a map-node entry, gameplay for the legacy
+    # "start training" CTA. Both live in the seen branch.
+    seen_branch = gate[gate.index("adventureIntroSeen(zone)"):gate.index("_registerZone3PresentationLifecycleCleanup")]
+    assert "window.E9.showAdventureZoneCard(zone.key)" in seen_branch
+    assert "enterAdventureZoneInPage(zone)" in seen_branch
+    assert "if (mode === 'first_entry') {" in seen_branch
+    assert seen_branch.index("showAdventureZoneCard") < seen_branch.index("enterAdventureZoneInPage")
 
 
 def test_point_07_cleared_reentry_autoplays_nothing():
@@ -265,9 +270,16 @@ def test_behavioral_segmentation_runner_is_green():
     tests/e2e/run_w1_owner_zone3_story_segmentation.mjs evaluates the real
     showZone3EntrySafeFallback, _continueZone3SafeEntry,
     _maybeTriggerZone3BossReadyFilm and _resumeZone3PostClearIfPending against
-    injected authority facts. On the pre-fix base it reports
-    ZONE3_SEGMENT_A_REPEAT_AUTOPLAY=YES and
-    ZONE3_SEGMENT_B_SPLICED_ONTO_SEGMENT_A=YES -- the Owner's exact symptom.
+    injected authority facts.
+
+    On the pre-fix base the entry half of this harness reports
+    ZONE3_SEGMENT_A_REPEAT_AUTOPLAY=YES -- the Owner's exact symptom. (The
+    sequencing half cannot run there at all: it extracts
+    _zone3CinematicSurfaceBusy, which does not exist before this corrective, so
+    the runner aborts rather than producing a report. The pre-fix splice was
+    confirmed separately by extracting only _maybeTriggerZone3BossReadyFilm from
+    the base and supplying that predicate as a stub, which reported
+    ZONE3_SEGMENT_B_SPLICED_ONTO_SEGMENT_A=YES.)
     """
     result = subprocess.run(
         ["node", str(ROOT / "tests/e2e/run_w1_owner_zone3_story_segmentation.mjs")],
@@ -289,4 +301,5 @@ def test_behavioral_segmentation_runner_is_green():
     assert evidence["ZONE3_MANUAL_REPLAY_PLAYS"] == "YES"
     assert evidence["ZONE3_MANUAL_REPLAY_WRITES_STATE"] == "NO"
     assert evidence["ZONE3_SEGMENT_B_SPLICED_ONTO_SEGMENT_A"] == "NO"
-    assert evidence["ZONE3_SEGMENT_B_ONCE_WHEN_SURFACE_FREE"] == ["SEGMENT_B", "SEGMENT_C"]
+    assert evidence["ZONE3_SEGMENT_B_ONCE_WHEN_SURFACE_FREE"] == ["SEGMENT_B"]
+    assert evidence["ZONE3_SEGMENT_C_ONCE_ON_PENDING_RECOVERY"] == ["SEGMENT_C"]
