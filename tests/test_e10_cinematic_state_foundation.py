@@ -106,10 +106,40 @@ def _login(client, uid):
         session['user_id'] = uid
 
 
-def test_registry_defines_exactly_the_zone_one_to_ten_intro_namespace(app_module):
-    expected = tuple(f'e10_zone{number}_intro_v1' for number in range(1, 11))
+def test_registry_defines_exactly_the_zone_one_to_ten_segment_namespace(app_module):
+    # W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue B: the Owner's Zone 3 story is
+    # segmented, so each zone now carries three durable markers -- intro
+    # (Segment A), boss_ready (Segment B) and post_clear (Segment C). The
+    # namespace stays explicit: this must remain a closed set, never an
+    # arbitrary user-metadata endpoint.
+    expected = tuple(
+        f'e10_zone{number}_{kind}_v1'
+        for number in range(1, 11)
+        for kind in ('intro', 'boss_ready', 'post_clear')
+    )
     assert tuple(app_module.E10_CINEMATIC_KEYS) == expected
     assert tuple(app_module.E10_CINEMATIC_KEY_REGISTRY) == expected
+    assert len(expected) == 30
+
+
+def test_registry_kinds_are_closed_and_correctly_attributed(app_module):
+    registry = app_module.E10_CINEMATIC_KEY_REGISTRY
+    assert {entry['kind'] for entry in registry.values()} == {
+        'intro', 'boss_ready', 'post_clear',
+    }
+    for number in range(1, 11):
+        for kind in ('intro', 'boss_ready', 'post_clear'):
+            entry = registry[f'e10_zone{number}_{kind}_v1']
+            assert entry['zone_number'] == number
+            assert entry['kind'] == kind
+
+
+def test_segment_markers_need_no_schema_change(app_module):
+    # The new markers must ride the existing generic relation, not a new column.
+    app_source = (ROOT / 'app.py').read_text(encoding='utf-8')
+    assert 'boss_ready_seen' not in app_source
+    assert 'post_clear_seen' not in app_source
+    assert app_source.count('CREATE TABLE IF NOT EXISTS account_cinematic_state') == 1
 
 
 def test_persistence_schema_is_one_generic_account_cinematic_relation():
@@ -216,9 +246,19 @@ def test_clearing_browser_storage_cannot_reset_server_seen_state(client, app_mod
         'cinematic_key': 'e10_zone1_intro_v1',
     })
     index = (ROOT / 'index.html').read_text(encoding='utf-8')
-    start = index.index('function adventureCinematicKey(zone)')
+    # Locator only. The key builder gained a `phase` parameter in
+    # W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue B; the region this test guards
+    # (every cinematic seen reader/writer) is unchanged and now also covers the
+    # boss_ready / post_clear helpers that replaced their localStorage flags.
+    start = index.index('function adventureCinematicKey(zone')
     end = index.index("// Account scope for Zone 1's POST_CLEAR state", start)
-    assert 'localStorage' not in index[start:end]
+    # Comment lines may name the retired localStorage flags to explain why they
+    # were retired; what must not exist is a localStorage read or write.
+    code = [
+        line for line in index[start:end].splitlines()
+        if not line.lstrip().startswith('//')
+    ]
+    assert 'localStorage' not in '\n'.join(code)
     assert app_module._e10_cinematic_state(991245)['e10_zone1_intro_v1']['seen'] is True
 
 

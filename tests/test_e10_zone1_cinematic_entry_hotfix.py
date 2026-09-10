@@ -73,7 +73,7 @@ def test_zone_card_replay_is_availability_gated_and_uses_same_host_in_manual_mod
 
 def test_cinematic_state_is_server_backed_and_completion_returns_to_zone_card():
     start = INDEX.index('async function startAdventureStage(zoneKey, options = {})')
-    end = INDEX.index('\nfunction adventureCinematicKey(zone)', start)
+    end = INDEX.index('\nfunction adventureCinematicKey(zone', start)
     start_body = INDEX[start:end]
     assert "options.mode || 'legacy'" in start_body
     assert 'showStageIntroCinematic(zone, {' in start_body
@@ -209,7 +209,7 @@ def test_read_error_entry_never_promotes_browser_state_or_legacy_readiness():
     assert "document.querySelector('#e9-world-stage-slot')" in WORLD_STAGE
     assert 'readErrorDegraded = true' in WORLD_STAGE
 
-    start = _block(INDEX, 'async function startAdventureStage(zoneKey, options = {})', '\nfunction adventureCinematicKey(zone)')
+    start = _block(INDEX, 'async function startAdventureStage(zoneKey, options = {})', '\nfunction adventureCinematicKey(zone')
     assert "options.readErrorDegraded === true" in start
     assert "zoneKey === 'k26_30'" in start
     assert "options.mode === 'first_entry' || options.mode === 'manual_replay'" in start

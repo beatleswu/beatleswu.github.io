@@ -110,9 +110,19 @@ def test_repair_runtime_seams_remain_presentation_only() -> None:
     assert "position: absolute" in zone3_fx_css
     assert "width: 100%" in zone3_fx_css
     assert "height: 100%" in zone3_fx_css
+    # W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue C: this previously pinned the
+    # E10 session strip as a FIXED, pointer-events:auto floating utility at the
+    # map's top-right. The Owner has since removed that control as a duplicate
+    # of the primary language switcher, so the contract is now the opposite:
+    # the strip must be fully removed from the map surface.
     assert "body[data-e10-visual-skin=\"immersive-rpg\"] .cg-nav[data-e10-session-strip=\"1\"]" in world_map_css
-    assert "position: fixed" in world_map_css
-    assert "pointer-events: auto" in world_map_css
+    strip_rule_start = world_map_css.index(
+        "body[data-e10-visual-skin=\"immersive-rpg\"] .cg-nav[data-e10-session-strip=\"1\"]"
+    )
+    strip_rule = world_map_css[strip_rule_start:world_map_css.index("}", strip_rule_start)]
+    assert "display: none" in strip_rule
+    assert "position: fixed" not in strip_rule
+    assert "pointer-events" not in strip_rule
     assert "var replay = root.querySelector('[data-e10-zone-replay]')" in right_cards
     assert "var inlineReplay = document.createElement('button')" in world_stage
     assert "_registerZone3PresentationLifecycleCleanup" in index

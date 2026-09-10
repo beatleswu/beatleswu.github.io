@@ -7482,8 +7482,8 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     <link rel="stylesheet" href="/css/e9/quests.css?v=20260719e9q1">
     <link rel="stylesheet" href="/css/e9/world_stage.css?v=20260717e9c3">
     <link rel="stylesheet" href="/css/e9/rwd.css?v=20260801e10art1">
-    <link rel="stylesheet" href="/css/e9/immersive_rpg.css?v=20260801e10art1">
-    <link rel="stylesheet" href="/css/e9/reference_world_map.css?v=20260828e040s1">
+    <link rel="stylesheet" href="/css/e9/immersive_rpg.css?v=20260910w1c1">
+    <link rel="stylesheet" href="/css/e9/reference_world_map.css?v=20260910w1c1">
     <link rel="stylesheet" href="/css/e9/art_directed_runtime.css?v=20260801e10art1">
     <link rel="stylesheet" href="/css/e9/adventure_spirit_unlock.css?v=20260828d036">
     <link rel="stylesheet" href="/css/e9/journey_onboarding.css?v=20260903w103">
@@ -9404,7 +9404,33 @@ function _sessionQuestionRevision(question, explicitRevision = null) {
     return SRS.questionRevision(question);
 }
 
+// W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue A.
+// SRS.quarantineQuestion() is revision-bound and returns false whenever the id
+// is not an integer or the revision resolves empty (srs.js). Selection must not
+// depend on that bookkeeping succeeding: a question the server has permanently
+// rejected is unplayable in this session whether or not we managed to record a
+// revision-keyed quarantine for it. This session-scoped set is the fallback
+// exclusion, and it is consulted by _isSessionQuestionQuarantined below so that
+// EVERY existing selector (_pickAdventureTarget, _pickNextAdventureTarget,
+// _nextAdventureQuestionExcludingQuarantine and the loadQuestion guard) honours
+// it without each having to learn about it separately.
+const _sessionUnplayableQuestionIds = new Set();
+
+function _markSessionQuestionUnplayable(question) {
+    const id = question && question.id;
+    if (id === undefined || id === null || id === '') return false;
+    _sessionUnplayableQuestionIds.add(String(id));
+    return true;
+}
+
+function _isSessionQuestionUnplayable(question) {
+    const id = question && question.id;
+    if (id === undefined || id === null || id === '') return false;
+    return _sessionUnplayableQuestionIds.has(String(id));
+}
+
 function _isSessionQuestionQuarantined(question) {
+    if (_isSessionQuestionUnplayable(question)) return true;
     const revision = _sessionQuestionRevision(question);
     return !!(
         question
@@ -12118,29 +12144,49 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     if (_mapBattleV1PrepareFailure?.permanent === true) {
         const failure = _mapBattleV1PrepareFailure;
         _mapBattleV1PrepareFailure = null;
-        if (failure.quarantined) {
-            const nextAdventureQuestion = _pickNextAdventureTarget(
-                _adventureActiveQuestions,
-                questionId,
-            ) || SRS.findNextAvailableQuestion(
-                _adventureActiveQuestions,
-                q,
-                1,
-            );
-            if (nextAdventureQuestion) {
-                _e10AcceptanceTrace('MAP_BATTLE_QUESTION_SKIPPED', {
-                    qid: questionId,
-                    nextQid: Number(nextAdventureQuestion.id),
-                    reason: failure.reasonCode,
-                });
-                return loadQuestion(nextAdventureQuestion);
-            }
+        // Issue A root cause: reselection used to be gated on
+        // `failure.quarantined` -- the RESULT of the bookkeeping write, not the
+        // failure itself. When quarantining could not be recorded (non-integer
+        // id, or an envelope without a usable revision/fingerprint) the client
+        // skipped reselection entirely and fell straight through to the
+        // terminal message, which only calls setMsg and never builds a board.
+        // One permanently-rejected question therefore stranded the whole zone
+        // with an empty board -- and Zone 1 is the zone most likely to hit one
+        // on its very first pick, because the known ambiguous-player-colour
+        // records sit in its id band and _pickAdventureTarget takes the first
+        // unseen record in corpus order.
+        //
+        // Always exclude the failed question for this session, then always try
+        // to reselect. The terminal message is now reachable only when the pool
+        // genuinely has nothing else to offer.
+        _markSessionQuestionUnplayable(q);
+        const nextAdventureQuestion = _pickNextAdventureTarget(
+            _adventureActiveQuestions,
+            questionId,
+        ) || SRS.findNextAvailableQuestion(
+            _adventureActiveQuestions,
+            q,
+            1,
+        );
+        if (nextAdventureQuestion && Number(nextAdventureQuestion.id) !== Number(questionId)) {
+            _e10AcceptanceTrace('MAP_BATTLE_QUESTION_SKIPPED', {
+                qid: questionId,
+                nextQid: Number(nextAdventureQuestion.id),
+                reason: failure.reasonCode,
+                quarantined: failure.quarantined === true,
+            });
+            return loadQuestion(nextAdventureQuestion);
         }
         _showSessionNoValidQuestion();
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', {
             ok: false,
             qid: questionId,
             reason: 'map_battle_question_incompatible',
+            // Diagnosability: distinguish "pool was empty" from "pool was
+            // exhausted by exclusions" directly from a production trace.
+            poolSize: Array.isArray(_adventureActiveQuestions) ? _adventureActiveQuestions.length : 0,
+            unplayableCount: _sessionUnplayableQuestionIds.size,
+            quarantined: failure.quarantined === true,
         });
         return false;
     }
@@ -13965,7 +14011,20 @@ async function enterAdventureZoneInPage(zone) {
         const _books = new Set(_zone && _zone.books ? _zone.books : []);
         const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
         const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
-        if (!unitQs.length) return false;
+        if (!unitQs.length) {
+            // Zone 1 (k26_30) maps to topics '1圍棋新手村' / '2新手村的考驗',
+            // which carry ~1.9k records, so an empty pool here means the
+            // zone->topic mapping has drifted from the corpus rather than the
+            // player having finished anything. Trace it so that is provable
+            // from production instead of surfacing as a blank practice pane.
+            _e10AcceptanceTrace('ADVENTURE_ENTRY_EMPTY_POOL', {
+                zone: zone.key,
+                books: Array.from(_books),
+                corpusSize: allQuestions.length,
+                zoneMatched: zoneQs.length,
+            });
+            return false;
+        }
         // Preserve the current page-session quarantine across stage exit and
         // same-page re-entry.  Explicit mode boundaries (logout, daily round,
         // challenge, or a fresh document) own their own reset behavior.
@@ -13986,7 +14045,37 @@ async function enterAdventureZoneInPage(zone) {
         // of resuming whatever "下一題" already advanced to.
         const resume = await _resolveMapBattleV1Resume(zone.key, unitQs);
         const target = resume?.target || _pickAdventureTarget(unitQs);
-        if (!target || typeof publishAdventureShellOwner !== 'function') return false;
+        // W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue A: this path had already
+        // hidden the welcome state and revealed the board wrapper above, so
+        // returning here left a revealed-but-EMPTY board with no message at
+        // all -- a second route to the exact symptom the Owner reported. If
+        // there is genuinely nothing to select, put the surface back the way
+        // we found it and say so, rather than presenting an empty board.
+        if (!target || typeof publishAdventureShellOwner !== 'function') {
+            if (_bw) _bw.classList.add('hidden');
+            if (_ws) _ws.classList.remove('hidden');
+            if (target) {
+                _e10AcceptanceTrace('ADVENTURE_ENTRY_ABORTED', {
+                    zone: zone.key,
+                    reason: 'shell_owner_unavailable',
+                    poolSize: unitQs.length,
+                });
+            } else {
+                setMsg(
+                    I18n.getLang() === 'en'
+                        ? 'You have completed every available question in this area.'
+                        : '本區可用題目已完成。',
+                    'ok',
+                );
+                _e10AcceptanceTrace('ADVENTURE_ENTRY_NO_TARGET', {
+                    zone: zone.key,
+                    reason: 'zone_pool_exhausted',
+                    poolSize: unitQs.length,
+                    unplayableCount: _sessionUnplayableQuestionIds.size,
+                });
+            }
+            return false;
+        }
         // The in-page path has no document bootstrap to republish ownership.
         // Publish the authoritative Battle owner before loadQuestion() can
         // reconcile the E10 action toolbar.
@@ -15392,23 +15481,43 @@ async function startAdventureStage(zoneKey, options = {}) {
     });
 }
 
-function adventureCinematicKey(zone) {
+// W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue B: the Zone 3 story is segmented by
+// progression, so each zone carries three durable markers instead of one:
+//   intro      -> Segment A, shots 1-5, first entry
+//   boss_ready -> Segment B, shots 6-7, first time Lord-ready is reached
+//   post_clear -> Segment C, shots 8-10, after an authoritative Lord success
+// All three live in the same server-side account_cinematic_state relation, so
+// every segment survives reload, browser restart and a different device.
+const ADVENTURE_CINEMATIC_PHASES = Object.freeze({
+    INTRO: 'intro',
+    BOSS_READY: 'boss_ready',
+    POST_CLEAR: 'post_clear',
+});
+
+function adventureCinematicKey(zone, phase = ADVENTURE_CINEMATIC_PHASES.INTRO) {
     if (!zone?.key) return null;
     const index = ADVENTURE_ZONES.findIndex(item => item.key === zone.key);
-    return index >= 0 ? `e10_zone${index + 1}_intro_v1` : null;
+    if (index < 0) return null;
+    const normalized = String(phase || ADVENTURE_CINEMATIC_PHASES.INTRO);
+    if (!Object.values(ADVENTURE_CINEMATIC_PHASES).includes(normalized)) return null;
+    return `e10_zone${index + 1}_${normalized}_v1`;
 }
 
-// The server record is the only authority for intro history. A missing or
+// The server record is the only authority for story history. A missing or
 // malformed bootstrap entry is unseen by design; no legacy v1/v2 browser
 // value is read or backfilled.
-function adventureIntroSeen(zone) {
-    const key = adventureCinematicKey(zone);
+function adventureCinematicPhaseSeen(zone, phase) {
+    const key = adventureCinematicKey(zone, phase);
     const entry = key ? _adventureCinematicState[key] : null;
     return !!(entry && entry.seen === true);
 }
 
-async function markAdventureIntroSeen(zone) {
-    const cinematicKey = adventureCinematicKey(zone);
+function adventureIntroSeen(zone) {
+    return adventureCinematicPhaseSeen(zone, ADVENTURE_CINEMATIC_PHASES.INTRO);
+}
+
+async function markAdventureCinematicPhaseSeen(zone, phase) {
+    const cinematicKey = adventureCinematicKey(zone, phase);
     if (!cinematicKey) return false;
     try {
         const response = await fetch('/api/adventure/cinematics/seen', {
@@ -15433,6 +15542,30 @@ async function markAdventureIntroSeen(zone) {
         console.error('[E10] failed to persist cinematic seen state:', error);
         return false;
     }
+}
+
+async function markAdventureIntroSeen(zone) {
+    return markAdventureCinematicPhaseSeen(zone, ADVENTURE_CINEMATIC_PHASES.INTRO);
+}
+
+// Segment B / Segment C durable markers. These replace the previous
+// localStorage flags (adventure_bossready_seen_v1 / adventure_postclear_seen_v1)
+// so a segment cannot re-autoplay for the same account on a new browser,
+// a cleared profile, or a private window.
+function adventureBossReadyFilmSeen(zone) {
+    return adventureCinematicPhaseSeen(zone, ADVENTURE_CINEMATIC_PHASES.BOSS_READY);
+}
+
+async function markAdventureBossReadyFilmSeen(zone) {
+    return markAdventureCinematicPhaseSeen(zone, ADVENTURE_CINEMATIC_PHASES.BOSS_READY);
+}
+
+function adventurePostClearSeen(zone) {
+    return adventureCinematicPhaseSeen(zone, ADVENTURE_CINEMATIC_PHASES.POST_CLEAR);
+}
+
+async function markAdventurePostClearSeen(zone) {
+    return markAdventureCinematicPhaseSeen(zone, ADVENTURE_CINEMATIC_PHASES.POST_CLEAR);
 }
 
 // Account scope for Zone 1's POST_CLEAR state (Owner review follow-up,
@@ -15461,29 +15594,15 @@ function _postClearAccountId() {
 // different facts that must never collapse into one flag (E10-Z1-PROD-
 // INTEGRATION-001 Owner review, Fix 1). Currently only Zone 1 (k26_30)
 // defines a postClearTimeline; other zones simply never read/write this.
-const ADVENTURE_POSTCLEAR_STORAGE_KEY = 'adventure_postclear_seen_v1';
-
-function adventurePostClearSeen(zone) {
-    const uid = _postClearAccountId();
-    if (!zone?.key || !uid) return false;
-    try {
-        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
-        return !!byUser[uid]?.[zone.key];
-    } catch {
-        return false;
-    }
-}
-
-function markAdventurePostClearSeen(zone) {
-    const uid = _postClearAccountId();
-    if (!zone?.key || !uid) return;
-    try {
-        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
-        byUser[uid] = byUser[uid] || {};
-        byUser[uid][zone.key] = Date.now();
-        localStorage.setItem(ADVENTURE_POSTCLEAR_STORAGE_KEY, JSON.stringify(byUser));
-    } catch {}
-}
+// W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue B: the localStorage POST_CLEAR
+// flag is replaced by the durable server marker e10_zone{N}_post_clear_v1
+// (see adventurePostClearSeen / markAdventurePostClearSeen above). The
+// browser-scoped flag could not satisfy the Owner's persistence contract: it
+// is lost in a private window, on a cleared profile, and on any other device,
+// so the same account would re-autoplay the ending. The account-scoping
+// rationale below still applies to the mid-playback PENDING flag, which stays
+// browser-local on purpose because it is crash-recovery for one playback, not
+// a record of what the account has seen.
 
 // Reload-resilience for POST_CLEAR (Owner review follow-up,
 // E10-Z1-PROD-INTEGRATION-001): a genuine Lord-success clear is
@@ -15543,29 +15662,11 @@ function clearAdventurePostClearPending(zone) {
 // on reload -- there is nothing to "recover", it's simply re-checked.
 // Account-scoped via the same _postClearAccountId() as POST_CLEAR, same
 // shared-browser rationale.
-const ADVENTURE_BOSSREADY_STORAGE_KEY = 'adventure_bossready_seen_v1';
-
-function adventureBossReadyFilmSeen(zone) {
-    const uid = _postClearAccountId();
-    if (!zone?.key || !uid) return false;
-    try {
-        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_BOSSREADY_STORAGE_KEY) || '{}');
-        return !!byUser[uid]?.[zone.key];
-    } catch {
-        return false;
-    }
-}
-
-function markAdventureBossReadyFilmSeen(zone) {
-    const uid = _postClearAccountId();
-    if (!zone?.key || !uid) return;
-    try {
-        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_BOSSREADY_STORAGE_KEY) || '{}');
-        byUser[uid] = byUser[uid] || {};
-        byUser[uid][zone.key] = Date.now();
-        localStorage.setItem(ADVENTURE_BOSSREADY_STORAGE_KEY, JSON.stringify(byUser));
-    } catch {}
-}
+// W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue B: replaced by the durable server
+// marker e10_zone{N}_boss_ready_v1 (see adventureBossReadyFilmSeen /
+// markAdventureBossReadyFilmSeen above). Segment B must autoplay exactly once
+// per account -- notably it must NOT replay on a Lord retry after a failed
+// challenge -- and a browser-scoped flag cannot guarantee that across devices.
 
 function applyIntroFilmShotAssets(timeline = [], options = {}) {
     const stage = document.getElementById('intro-film-stage');
@@ -15668,6 +15769,11 @@ async function _continueZone3SafeEntry(zone, source = 'continue') {
         _finishZoneCinematicReplay(zone);
         return true;
     }
+    // The manifest path already marked Segment A seen in
+    // _finishZone3EntryManifest(); the text safe-fallback has no such
+    // terminator, so without this the fallback opening would autoplay on every
+    // entry. The server write is idempotent, so marking here is safe for both.
+    void markAdventureIntroSeen(zone);
     if (!(await enterAdventureZoneInPage(zone))) {
         window.location.href = firstQuestionHref(zone);
         return false;
@@ -15747,6 +15853,23 @@ async function showZone3EntrySafeFallback(zone, options = {}) {
     if (!overlay || !title || !btn) {
         window.location.href = firstQuestionHref(zone);
         return false;
+    }
+    // W1-OWNER-POSTDEPLOY-ACCEPTANCE-CORRECTIVE-001 Issue B, Segment A gate.
+    // Segment A (Shots 1-5) autoplays on the FIRST-EVER entry only. Zone 3 had
+    // no seen gate at all here -- unlike showStageIntroCinematic's
+    // adventureIntroSeen() check for the other zones -- so every single entry
+    // replayed the opening. An already-cleared zone likewise autoplays nothing.
+    // 「重溫故事」 (mode === 'manual_replay') is the one caller that deliberately
+    // bypasses this gate, and it writes no progression or seen state.
+    if (mode !== 'manual_replay' && (zone.cleared === true || adventureIntroSeen(zone))) {
+        hideBossCinematic();
+        _pendingBossZone = null;
+        _activeBossZone = zone;
+        if (!(await enterAdventureZoneInPage(zone))) {
+            window.location.href = firstQuestionHref(zone);
+            return false;
+        }
+        return true;
     }
     _registerZone3PresentationLifecycleCleanup();
     const presentation = _zone3CinematicPresentation();

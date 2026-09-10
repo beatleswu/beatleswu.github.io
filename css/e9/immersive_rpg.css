@@ -3006,18 +3006,11 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot {
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-utility-control > span { font-size: 10px; overflow-wrap: anywhere; }
 }
 
-/* Owner visual correction: the exact VS1F shell owns feature navigation. */
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-inner {
-  min-height: 46px;
-}
-
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-brand {
-  flex: 0 1 auto;
-}
-
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-actions {
-  margin-left: auto;
-}
+/* Owner visual correction: the exact VS1F shell owns feature navigation.
+   W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue C: the inner layout rules that used
+   to size and align the E10 session strip's brand mark and action cluster are
+   removed with the strip itself (see css/e9/reference_world_map.css). Leaving
+   them would be dead layout for a control that no longer renders on the map. */
 
 #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud {
   display: grid;

@@ -17,63 +17,28 @@ body[data-e10-visual-skin="immersive-rpg"] {
   body[data-e10-visual-skin="immersive-rpg"] { overflow: hidden; }
 }
 
+/* Owner postdeploy acceptance corrective (W1-OWNER-POSTDEPLOY-ACCEPTANCE-001,
+   Issue C): the E10 session strip is REMOVED from the map surface entirely.
+
+   It previously carried a duplicate language control -- the `.cg-brand-mark`
+   goban glyph (a 30px board with a black and a white stone, site-nav.js) plus
+   the `.cg-nav-lang` EN / 中 switcher -- promoted by a former rule set into a
+   fixed floating utility at the map's top-right. That duplicated the primary
+   language switching mechanism and the Owner has removed it as a product
+   decision.
+
+   `display: none` is deliberate, and is NOT a visual overlay over a live
+   control: the strip contributes no glyph, no toggle, no hit target, no focus
+   stop and no reserved layout space on the map. The earlier `clip-path`
+   sr-only treatment is intentionally NOT retained, because a clipped element
+   is still focusable and still an active hit target.
+
+   Language switching on the map remains available through the E10 settings
+   dialog (components/adventure/top_hud.html #e10-settings-language, populated
+   by js/e9/top_hud.js), and the primary site-nav switcher is untouched on
+   every non-map surface. */
 body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-
-/* E10 owns the map viewport, but locale remains a shared presentation
-   control.  Keep the existing I18n-rendered switcher available as a compact
-   floating utility on every responsive surface; the shell's map and cards
-   remain the only gameplay/action owners. */
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
-  position: fixed;
-  z-index: 1000;
-  top: max(10px, env(safe-area-inset-top, 0px));
-  right: max(12px, env(safe-area-inset-right, 0px));
-  width: max-content;
-  height: auto;
-  min-height: 0;
-  padding: 0;
-  overflow: visible;
-  clip-path: none;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  pointer-events: none;
-}
-
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-inner {
-  display: block;
-  width: max-content;
-  height: auto;
-  margin: 0;
-}
-
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-actions {
-  display: inline-flex;
-  width: max-content;
-  min-width: 0;
-  gap: 0;
-}
-
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-user,
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-presence,
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-logout {
   display: none;
-}
-
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-lang {
-  display: inline-flex;
-  pointer-events: auto;
-}
-
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] #lang-switcher-index,
-body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] #lang-switcher-index button {
-  pointer-events: auto;
 }
 
 body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {

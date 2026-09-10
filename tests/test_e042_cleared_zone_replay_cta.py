@@ -80,7 +80,7 @@ def test_replay_copy_is_bilingual_and_has_no_parallel_star_or_reward_authority()
 def test_static_cache_revision_covers_only_changed_world_stage_module():
     assert '/js/e9/world_stage.js?v=20260828e042s1' in INDEX
     assert '/js/e9/right_cards.js?v=20260828e040s1' in INDEX
-    assert '/css/e9/reference_world_map.css?v=20260828e040s1' in INDEX
+    assert '/css/e9/reference_world_map.css?v=20260910w1c1' in INDEX
 
 
 def test_f029_and_e042_share_the_reconciled_index_contract():

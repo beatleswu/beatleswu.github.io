@@ -11698,12 +11698,37 @@ BOSS_FAIL_COOLDOWN = 30
 # defines the Zone 1-10 namespace without turning the authenticated write route
 # into an arbitrary user-metadata endpoint. Zone 1 and Zone 2 currently use
 # the active E9 entry flow; later zones remain slots until authorized.
+#
+# W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue B: the Owner's Zone 3 story is
+# segmented by progression -- Segment A (shots 1-5) on first entry, Segment B
+# (shots 6-7) once the authoritative Lord-ready condition is first reached, and
+# Segment C (shots 8-10) only after an authoritative Lord success. Each segment
+# must autoplay AT MOST ONCE and must survive a browser restart, so each needs
+# its own durable per-account marker.
+#
+# Segment B/C previously used browser localStorage
+# (adventure_bossready_seen_v1 / adventure_postclear_seen_v1), which is
+# per-browser-profile: it is lost in a private window, on a cleared profile, or
+# on any other device, and its account scoping falls back to a cached uid. The
+# same account would therefore re-autoplay the story on a new browser.
+#
+# account_cinematic_state is already the generic durable key/value relation for
+# exactly this, so adding the two kinds here is a pure constant change: the DDL
+# is CREATE TABLE IF NOT EXISTS with PRIMARY KEY (user_id, cinematic_key), the
+# read builds its IN (...) from E10_CINEMATIC_KEYS, the write route validates
+# against this registry, and /api/adventure/bootstrap already ships the whole
+# map to the client. NO schema change and NO migration.
 E10_CINEMATIC_KEY_REGISTRY = {
-    f'e10_zone{zone_number}_intro_v1': {
+    f'e10_zone{zone_number}_{kind_key}_v1': {
         'zone_number': zone_number,
-        'kind': 'intro',
+        'kind': kind_name,
     }
     for zone_number in range(1, 11)
+    for kind_key, kind_name in (
+        ('intro', 'intro'),
+        ('boss_ready', 'boss_ready'),
+        ('post_clear', 'post_clear'),
+    )
 }
 E10_CINEMATIC_KEYS = tuple(E10_CINEMATIC_KEY_REGISTRY)
 # Boss attempt evidence window: how long after boss/start a review_log row

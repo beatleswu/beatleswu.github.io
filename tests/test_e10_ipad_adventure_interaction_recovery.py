@@ -53,7 +53,7 @@ def test_boss_finish_refreshes_world_stage_and_compact_progress():
 def test_changed_e10_static_resources_use_a_fresh_source_revision():
     assert "/js/e9/world_stage.js?v=20260828e042s1" in INDEX
     assert "/js/e9/right_cards.js?v=20260828e040s1" in INDEX
-    assert "/css/e9/reference_world_map.css?v=20260828e040s1" in INDEX
+    assert "/css/e9/reference_world_map.css?v=20260910w1c1" in INDEX
     assert "/js/e9/world_stage.js?v=20260821e10xsurface002" not in INDEX
     assert "/js/e9/right_cards.js?v=20260821e10xsurface002" not in INDEX
     assert "/css/e9/reference_world_map.css?v=20260801e10art1" not in INDEX
@@ -61,7 +61,14 @@ def test_changed_e10_static_resources_use_a_fresh_source_revision():
 
 def test_failed_in_page_filter_does_not_hide_map_before_question_exists():
     function = INDEX.split("async function enterAdventureZoneInPage(zone) {", 1)[1].split("\n}\n", 1)[0]
-    assert function.index("if (!unitQs.length) return false;") < function.index("_ws.classList.add('hidden')")
+    # The invariant is the ORDERING: the empty-pool bail-out must happen before
+    # the map/welcome state is hidden. W1-OWNER-POSTDEPLOY-ACCEPTANCE-001
+    # Issue A made that bail-out multi-line (it now traces
+    # ADVENTURE_ENTRY_EMPTY_POOL first), so match the guard, not the one-liner.
+    guard = function.index("if (!unitQs.length) {")
+    assert "ADVENTURE_ENTRY_EMPTY_POOL" in function[guard:function.index("}", guard) + 200]
+    assert guard < function.index("_ws.classList.add('hidden')")
+    assert function.index("return false;", guard) < function.index("_ws.classList.add('hidden')")
 
 
 def test_e9_startup_tolerates_absent_legacy_mistake_badge():
