@@ -196,12 +196,12 @@
     },
     {
       "path": "index.html",
-      "source_commit": "12bb30424cbc6f7504890352ddbf353c18d4fe61",
-      "source_branch_or_local_ref": "claude/post-959c-release-gate-hardening",
-      "source_commit_subject": "fix(guild): surface server-owned rejections instead of one opaque save failure",
-      "source_date": "2026-09-03",
-      "content_sha256": "7abd399c8103a014926ba616864564676c5049d4729aff0a25673ad183c02cd7",
-      "content_size_bytes": 1022414,
+      "source_commit": "7111139afbbfa23b3ea572d1ad70d4726c79b400",
+      "source_branch_or_local_ref": "claude/w1-owner-postdeploy-acceptance-corrective-001",
+      "source_commit_subject": "fix(adventure): act on independent review of the acceptance corrective",
+      "source_date": "2026-09-10",
+      "content_sha256": "b168e58eadafdc52634ad3a9672a166c2a550a420e4e710e2b8480b32820b306",
+      "content_size_bytes": 1110166,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
