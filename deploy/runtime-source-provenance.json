@@ -465,15 +465,15 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "12bb30424cbc6f7504890352ddbf353c18d4fe61",
-      "source_branch_or_local_ref": "claude/post-959c-release-gate-hardening",
-      "source_commit_subject": "fix(guild): surface server-owned rejections instead of one opaque save failure",
-      "source_date": "2026-09-03",
-      "content_sha256": "68be8b32da32b9b04e2202b10f04f051543b8847e3092ba1b9e5e3bc8a78b588",
-      "content_size_bytes": 372012,
+      "source_commit": "66d8031a623ee208a293ecfa2416d533b2a978b1",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "Fix Zone 3 Lord result presentation",
+      "source_date": "2026-09-06",
+      "content_sha256": "127f085caa3a02972016f850de02f6e059698a3cbffc6e1e00a372f3b1a3bf3b",
+      "content_size_bytes": 397554,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
     },
     {
       "path": "components/adventure/world_stage.html",
@@ -514,41 +514,42 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "0bbbc6ae40d37df5c94cf9485e33802c7b545f36",
+      "source_commit": "51d73e034c21079510644a7cfc87fc6b905c196b",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(incident-019b): restore authoritative zone star progression",
-      "source_date": "2026-08-31",
-      "content_sha256": "749c586d56bee604353901b62c5c2597b751784f5a16cca8aae61d2c566d1f04",
-      "content_size_bytes": 89848,
+      "source_commit_subject": "feat(world): freeze Zone 3 reference vertical slice contract",
+      "source_date": "2026-09-06",
+      "content_sha256": "e6e6ab819599cee4b2c0942c64a901b29588d429923c205d53dfaae0e9cc18dd",
+      "content_size_bytes": 94768,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "canonical source updated by Incident 019B R6; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical origin/master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
     },
     {
       "path": "sw.js",
-      "source_commit": "9ae3cedcf4902bc792c17db4757c478d41d636a2",
+      "source_commit": "aedfa5c95cbc83caa0b37de8f4a998c99c8dc6a0",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat: adopt player presentation for hero overview",
-      "source_date": "2026-08-25",
-      "content_sha256": "1e15bf565450b0f3bd78ac0837773e17662cab0be8467b3a0f11b2b04e85d9a8",
-      "content_size_bytes": 6249,
+      "source_commit_subject": "fix(release): make srs.js mandatory static content and bust SW cache",
+      "source_date": "2026-09-07",
+      "content_sha256": "802cebbc7b5e50a7c5c70869e38cda1aab5df7e0d6c224a95a3387c377621897",
+      "content_size_bytes": 6336,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
     },
     {
       "path": "srs.js",
-      "source_commit": "7b2936c05752ee53999f365055561fa0e6adc3b9",
-      "source_branch_or_local_ref": "codex/e10-v1b-b3-packaging-025-h2",
-      "source_commit_subject": "fix(e10): delegate SRS reviews to ReviewTransport",
-      "source_date": "2026-08-17",
-      "content_sha256": "bbe3f8e1dbbf091f9d007628561235490a6acbad54d274ee20327bdbe6d8b477",
+      "source_commit": "86b4a19f0ae1edad09ca6ec52d95aa35d6dfce64",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix-map-battle-incompatible-question",
+      "source_date": "2026-09-07",
+      "content_sha256": "cc0280d3318fe4de35d11ce6623b0600cbc0d09d93a44f5021922f640ff9d52c",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the V1B B3 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B3 Product integration commit and raw-byte-verified against current content"
+      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated",
+      "content_size_bytes": 19662
     },
     {
       "path": "js/game/presentation_dispatcher.js",
@@ -590,15 +591,15 @@
     },
     {
       "path": "js/game/review_transport.js",
-      "source_commit": "12bb30424cbc6f7504890352ddbf353c18d4fe61",
-      "source_branch_or_local_ref": "claude/post-959c-release-gate-hardening",
-      "source_commit_subject": "fix(guild): surface server-owned rejections instead of one opaque save failure",
-      "source_date": "2026-09-03",
-      "content_sha256": "905f0af50c468bca0aadb8ec1f875183be68af327db150a4679a8b8e9b4669a1",
-      "content_size_bytes": 10401,
+      "source_commit": "e8871c2af3737e79ed057edeca310881320f6b26",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "Admit D7 malformed-answer runtime failsafe",
+      "source_date": "2026-09-07",
+      "content_sha256": "0ec5bb2e7a2f3ae1dc0f5011b8364f472d93d4d6947bd712fc690b6be8ed8575",
+      "content_size_bytes": 12599,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (ReviewTransport browser module; governed static subpath asset; includes the RPG V1 Guild answer transport)",
-      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
     },
     {
       "path": "js/game/game_session.js",
@@ -702,15 +703,16 @@
     },
     {
       "path": "sound.js",
-      "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
+      "source_commit": "acec0ef52f59e404461246383ad9c875abc5801f",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: complete canonical image source closure",
-      "source_date": "2026-07-11",
-      "content_sha256": "0b14bc6b3c6ac481be07f4155286b2ed6bb6eeed55df025ed9af6e18f1273101",
+      "source_commit_subject": "W1-03 bind Zone 3 presentation lifecycle",
+      "source_date": "2026-09-04",
+      "content_sha256": "5aa7e00b3526e1aaaf925b79e5a1a5f52f145a5cc1a5224199c1f626b813fba8",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated",
+      "content_size_bytes": 15036
     },
     {
       "path": "mobile-nav.js",
@@ -1145,15 +1147,15 @@
     },
     {
       "path": "guild_quest_answer_service.py",
-      "source_commit": "f3311904dceaf6fd3252a632bea7cb9fa114b1ae",
-      "source_branch_or_local_ref": "claude/guild-answer-write-p0",
-      "source_commit_subject": "docs(guild): correct false claim that Lord Trial already uses the fallback",
-      "source_date": "2026-09-02",
-      "content_sha256": "38066f025f6d57cb3f2d025ac8babcb60323d5eb5e2323581e9fbddb3bd485a8",
-      "content_size_bytes": 14803,
+      "source_commit": "e8871c2af3737e79ed057edeca310881320f6b26",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "Admit D7 malformed-answer runtime failsafe",
+      "source_date": "2026-09-07",
+      "content_sha256": "35fa5531fa6b45557e43596ce2ada7f130de6916ce308bf51c89d8c8c209a5f6",
+      "content_size_bytes": 19218,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import (line 253); runtime-critical -- server-authoritative Guild question judging and committed evidence path",
-      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
     },
     {
       "path": "lord_trial_admission.py",
