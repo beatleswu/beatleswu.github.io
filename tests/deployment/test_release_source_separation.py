@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import pathlib
@@ -519,17 +520,16 @@ def test_control_plane_authority_declarations_agree():
     # can drift away from the gate that really runs.
     enforcing_start = module_text.index("function Test-ReleaseControlPlanePath")
     enforcing_block = module_text[enforcing_start : module_text.index("\n}", enforcing_start)]
+    quoted = re.findall(r"'([^']*)'", enforcing_block) + re.findall(
+        r'"([^"]*)"', enforcing_block
+    )
     enforcing_exact = {
-        name
-        for name in re.findall(r"'([^']+)'", enforcing_block)
-        if "/" in name and not name.endswith("/")
+        name for name in quoted if "/" in name and not name.endswith("/")
     }
     # './' is the argument to TrimStart in the function body, not an allowlist
     # entry; every real prefix has a path segment before the separator.
     enforcing_prefixes = {
-        name
-        for name in re.findall(r"'([^']+/)'", enforcing_block)
-        if name not in {"./", "/"}
+        name for name in quoted if name.endswith("/") and name not in {"./", "/"}
     }
     assert enforcing_exact == set(CONTROL_PLANE_EXACT_PATHS), (
         "Test-ReleaseControlPlanePath exact list drifted from the authority: "
@@ -797,13 +797,20 @@ def test_allowlisted_control_plane_files_are_not_image_content():
         assert path not in copy_sources, f"{path} must not be COPYed into the image"
         # ...and not swept in by a directory or wildcard copy of its parent.
         for source in copy_sources:
-            normalized = source.rstrip("/")
-            assert normalized not in {parent.rstrip("/"), "."}, (
+            # Normalize './tools/' and 'tools/' to the same thing, so a
+            # relative-prefixed directory copy cannot slip past the guard.
+            normalized = source.replace("\\", "/")
+            if normalized.startswith("./"):
+                normalized = normalized[2:]
+            normalized = normalized.rstrip("/")
+
+            assert normalized not in {parent.rstrip("/"), ".", ""}, (
                 f"{source!r} is a directory copy that would include {path}"
             )
-            assert not (source.endswith("*") and path.startswith(source[:-1])), (
-                f"{source!r} is a wildcard copy that would include {path}"
-            )
+            if "*" in normalized or "?" in normalized:
+                assert not fnmatch.fnmatch(path, normalized), (
+                    f"{source!r} is a wildcard copy that would include {path}"
+                )
 
         assert f"/app/{path}" not in manifest_text, f"{path} must not be image content"
         assert f"/app/tools/{leaf}" not in manifest_text
@@ -823,6 +830,6 @@ def test_dockerfile_copy_parser_sees_the_real_product_tools():
 
 def test_allowlist_is_not_widened_to_a_tools_prefix():
     module = (ROOT / "scripts" / "release" / "ReleaseTooling.psm1").read_text(encoding="utf-8")
-    assert "'tools/**'" not in module
-    assert '"tools/**"' not in module
-    assert "'tools/'" not in module
+    for widened in ("tools/**", "tools/", "tools"):
+        assert f"'{widened}'" not in module, widened
+        assert f'"{widened}"' not in module, widened

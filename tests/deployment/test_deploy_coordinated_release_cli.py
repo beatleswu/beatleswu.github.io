@@ -41,10 +41,36 @@ EXAMPLE_LAYOUT = "deploy\\release-layout.example.json"
 CANDIDATE_SHA = "aa3d56b369be72c74d79f5a3c0fd04b7e847475e"
 
 
+SWITCH_ARGS = {"-Execute"}
+
+
+def _quote_args(args: list[str]) -> str:
+    """Quote parameter VALUES, leave parameter NAMES bare.
+
+    Naively leaving every '-'-prefixed token bare means a value that itself
+    starts with '-' (e.g. a snapshot id of '-Verbose') is emitted as a bare
+    token, so PowerShell's binder rejects it as a missing argument before the
+    script's own validation ever runs -- which silently turns such a test
+    tautological. Track whether the previous token was a value-taking parameter
+    name so values are always quoted.
+    """
+    out: list[str] = []
+    previous_was_parameter = False
+    for arg in args:
+        if arg in SWITCH_ARGS:
+            out.append(arg)
+            previous_was_parameter = False
+        elif arg.startswith("-") and not previous_was_parameter:
+            out.append(arg)
+            previous_was_parameter = True
+        else:
+            out.append("'" + arg.replace("'", "''") + "'")
+            previous_was_parameter = False
+    return " ".join(out)
+
+
 def run_powershell(args: list[str], *, timeout: int = 60) -> subprocess.CompletedProcess[str]:
-    quoted_args = " ".join(
-        f"'{a}'" if not a.startswith("-") else a for a in args
-    )
+    quoted_args = _quote_args(args)
     preamble = (
         "$OutputEncoding = [Console]::OutputEncoding = "
         "New-Object System.Text.UTF8Encoding($false);\n"
@@ -374,6 +400,17 @@ def test_package_app_forwards_all_eight_questions_corpus_parameters():
         f"forwarded switches {sorted(returned)} != {sorted(QUESTIONS_CORPUS_PARAMETERS)}"
     )
 
+    # ...and the array that is built must actually be the one handed to the
+    # child. A rename or a disconnect would otherwise survive both checks above.
+    assert re.search(
+        r"\$packageArgs\s*=\s*@\('-ExpectedGitSha'.*?\)\s*\+\s*\$script:questionsCorpusArgs",
+        package_app,
+        re.S,
+    ), "the forwarded array must combine the base args with the validated corpus args"
+    assert re.search(
+        r"-Arguments\s+\$packageArgs", package_app
+    ), "$packageArgs must be what Invoke-GovernedScript receives"
+
 
 def test_corpus_identity_is_validated_before_any_build_or_package_work():
     content = SCRIPT.read_text(encoding="utf-8")
@@ -419,13 +456,20 @@ def test_execute_blocks_when_corpus_parameters_are_missing():
 
 def test_only_one_test_crosses_the_owner_gate_in_execute_mode():
     """Pin the safety property described in the note above."""
-    text = pathlib.Path(__file__).read_text(encoding="utf-8")
-    # Assembled from parts so this detector cannot match its own source line.
-    needle = '"-Execute", "-OwnerGate", "' + "GO_DEPLOY_WITH" + '_BOUNDED_RECOVERY"'
-    crossing = [line for line in text.splitlines() if needle in line]
+    # Assembled from parts so this detector cannot match its own source line,
+    # and scanned repo-wide rather than only in this file, so the property
+    # cannot be evaded by adding a new test module.
+    gate = "GO_DEPLOY_WITH" + "_BOUNDED_RECOVERY"
+    crossing: list[str] = []
+    for test_file in sorted((REPO_ROOT / "tests").rglob("test_*.py")):
+        for number, line in enumerate(
+            test_file.read_text(encoding="utf-8", errors="replace").splitlines(), 1
+        ):
+            if gate in line and "-Execute" in line:
+                crossing.append(f"{test_file.relative_to(REPO_ROOT)}:{number}")
     assert len(crossing) == 1, (
-        "exactly one test may pass -Execute with the real owner gate; "
-        f"found {len(crossing)}: {crossing}"
+        "exactly one test in the whole suite may pass -Execute with the real "
+        f"owner gate; found {len(crossing)}: {crossing}"
     )
 
 
@@ -468,15 +512,28 @@ def test_dry_run_blocks_snapshot_id_that_is_a_path_or_filename(tmp_path):
         assert "QuestionsCorpusSnapshotId" in (result.stdout + result.stderr), bad
 
 
+def test_quote_args_quotes_values_that_look_like_parameter_names():
+    # Guards the helper itself. If values stopped being quoted, the switch-value
+    # test below would pass on PowerShell's binder error instead of on the
+    # script's own validation, and would silently become tautological.
+    rendered = _quote_args(["-QuestionsCorpusSnapshotId", "-Verbose", "-Execute"])
+    assert rendered == "-QuestionsCorpusSnapshotId '-Verbose' -Execute"
+
+
 def test_dry_run_blocks_values_that_would_be_parsed_as_switches(tmp_path):
-    # A value beginning with '-' would be forwarded verbatim and bound by the
-    # child as a switch, leaving a mandatory parameter unbound -- which is
-    # exactly how the packager's binder could still be made to prompt.
+    # A value beginning with '-' that reached the child would be bound there as
+    # a switch, leaving a mandatory parameter unbound -- which is exactly how
+    # the packager's binder could still be made to prompt. The value is quoted
+    # (see _quote_args) so it genuinely reaches the script's own validation.
     result = run_powershell([
         "-ExpectedGitSha", CANDIDATE_SHA, "-LayoutFile", EXAMPLE_LAYOUT,
     ] + _corpus_args(tmp_path, QuestionsCorpusSnapshotId="-Verbose"))
     assert result.returncode != 0
-    assert "QuestionsCorpusSnapshotId" in (result.stdout + result.stderr)
+    combined = result.stdout + result.stderr
+    # The script's own fail-closed message, not a parameter-binder error.
+    assert "QuestionsCorpus release identity is invalid" in combined
+    assert "QuestionsCorpusSnapshotId" in combined
+    assert "Missing an argument" not in combined
 
 
 def test_dry_run_blocks_missing_corpus_file(tmp_path):

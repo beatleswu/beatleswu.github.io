@@ -74,20 +74,7 @@ if ($corpusValidation.status -ne 'PASS' -or $corpusValidation.release_rejected -
     throw 'Questions corpus release validation did not return PASS.'
 }
 
-# Durably record the validator report, including the REPORT_ONLY content
-# diagnostics. Under the questions-corpus release policy those diagnostics never
-# block, so without this they would exist only in this process's stdout and be
-# lost the moment packaging finished -- the report-only tier's whole value is the
-# durable record. Written as a sibling artifact of the release manifest rather
-# than inlined into it, so the manifest schema is untouched.
-Ensure-Directory -Path (Split-Path -Parent $ReleaseManifestPath)
 $corpusValidationReportPath = Join-Path (Split-Path -Parent $ReleaseManifestPath) ("{0}.questions-corpus-validation.json" -f $baseName)
-[IO.File]::WriteAllText(
-    $corpusValidationReportPath,
-    [string]$validationResult.stdout,
-    (New-Object System.Text.UTF8Encoding($false))
-)
-$corpusValidationReportSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $corpusValidationReportPath).Hash.ToLowerInvariant()
 $corpusIdentity = [ordered]@{
     questions_corpus_sha256 = $QuestionsCorpusSha256.ToLowerInvariant()
     questions_corpus_record_count = [int64]$QuestionsCorpusRecordCount
@@ -108,9 +95,28 @@ if ($DryRun) {
         revision = $labels.'org.opencontainers.image.revision'
         questions_corpus_identity = $corpusIdentity
         questions_corpus_validation = $corpusValidation.summary
+        questions_corpus_validation_report_path_would_be = $corpusValidationReportPath
     } | ConvertTo-Json -Depth 8 | Write-Output
     return
 }
+
+# Durably record the validator report, including the REPORT_ONLY content
+# diagnostics. Under the questions-corpus release policy those diagnostics never
+# block, so without this they would exist only in this process's stdout and be
+# lost the moment packaging finished -- the report-only tier's whole value is the
+# durable record. Written as a sibling artifact of the release manifest rather
+# than inlined into it, so the manifest schema is untouched.
+#
+# Deliberately BELOW the -DryRun return: a dry run in this tooling is strictly
+# read-only and must not create directories or artifacts. The dry-run payload
+# above discloses the path it *would* write instead.
+Ensure-Directory -Path (Split-Path -Parent $ReleaseManifestPath)
+[IO.File]::WriteAllText(
+    $corpusValidationReportPath,
+    [string]$validationResult.stdout,
+    (New-Object System.Text.UTF8Encoding($false))
+)
+$corpusValidationReportSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $corpusValidationReportPath).Hash.ToLowerInvariant()
 
 docker save -o $ArchivePath $ImageTag | Out-Host
 if ($LASTEXITCODE -ne 0) {

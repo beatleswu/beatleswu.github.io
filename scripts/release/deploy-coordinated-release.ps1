@@ -137,6 +137,13 @@ function Assert-QuestionsCorpusParameters {
     elseif ($snapshotId.ToLowerInvariant().EndsWith('.json')) {
         $invalid += 'QuestionsCorpusSnapshotId must not be a filename or path'
     }
+    # Backstop only, and unreachable by design: every non-path field above is
+    # already rejected by a stricter pattern (64-hex, digits-only, or the
+    # snapshot-id charset), each of which excludes a leading '-'. Kept as
+    # defence in depth so that relaxing any one pattern cannot silently
+    # reintroduce a value the child would bind as a switch. QuestionsCorpusPath
+    # is exempt because it is never forwarded verbatim -- PACKAGE_APP forwards
+    # the Resolve-Path result, which is always rooted.
     foreach ($name in $text.Keys) {
         if ([string]$text[$name] -like '-*' -and $name -ne 'QuestionsCorpusPath') {
             $invalid += "$name must not begin with '-'"
