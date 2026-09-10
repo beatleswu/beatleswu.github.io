@@ -171,11 +171,14 @@ function Try-Get-RemoteReadinessReport {
 
 function Get-RemoteQuestionsReport {
     param(
-        [Parameter(Mandatory = $true)][string]$ContainerName,
-        [Parameter(Mandatory = $true)][string]$QuestionsPath
+        [string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$QuestionsPath,
+        [string]$VolumeName,
+        [string]$ImageTag
     )
     $script = @"
 import json
+import hashlib
 import pathlib
 
 report = {
@@ -185,6 +188,8 @@ report = {
     "parseable": False,
     "top_level_type": "",
     "record_count": 0,
+    "sha256": "",
+    "bytes": 0,
     "record_count_ok": False,
     "structural_record_check": False,
     "failures": [],
@@ -195,7 +200,10 @@ if not report["exists"]:
     report["failures"].append("questions file is missing")
 else:
     try:
-        text = path.read_text(encoding="utf-8")
+        raw = path.read_bytes()
+        report["sha256"] = hashlib.sha256(raw).hexdigest()
+        report["bytes"] = len(raw)
+        text = raw.decode("utf-8")
         report["readable"] = True
         payload = json.loads(text)
         report["parseable"] = True
@@ -221,7 +229,23 @@ else:
         report["failures"].append(f"questions file parse failed: {exc.__class__.__name__}")
 print(json.dumps(report, ensure_ascii=False))
 "@
-    $result = Invoke-RemoteCommandResult -Name 'questions_report' -Command "docker exec -i $ContainerName python -X utf8 -" -StdinText $script
+    if (-not [string]::IsNullOrWhiteSpace($VolumeName)) {
+        if ([string]::IsNullOrWhiteSpace($ImageTag)) {
+            throw 'ImageTag is required when reading the questions corpus through its volume.'
+        }
+        $volumeSpec = "{0}:{1}:ro" -f $VolumeName, $layout.questions_content_mount_destination
+        # The failed candidate app may be stopped. Probe the preserved volume
+        # with the known rollback image, read-only and without network access,
+        # so rollback availability never depends on candidate app execution.
+        $command = "docker run --rm --network none --read-only --entrypoint python -v $(Quote-PosixShellArgument $volumeSpec) $(Quote-PosixShellArgument $ImageTag) -X utf8 -"
+    }
+    else {
+        if ([string]::IsNullOrWhiteSpace($ContainerName)) {
+            throw 'ContainerName is required when VolumeName is not supplied.'
+        }
+        $command = "docker exec -i $ContainerName python -X utf8 -"
+    }
+    $result = Invoke-RemoteCommandResult -Name 'questions_report' -Command $command -StdinText $script
     if ($result.exit_code -ne 0) {
         throw "Remote command failed [questions_report]: $($result.output)"
     }
@@ -263,6 +287,16 @@ function Get-AppReadinessGateReport {
     }
 }
 
+function Assert-RollbackCorpusIdentity {
+    param([Parameter(Mandatory = $true)]$QuestionsReport)
+    Assert-QuestionsReportSatisfiesGate -QuestionsReport $QuestionsReport
+    if ($QuestionsReport.sha256 -cne $manifest.questions_corpus_sha256 -or
+        $QuestionsReport.bytes -ne $manifest.questions_corpus_bytes -or
+        $QuestionsReport.record_count -ne $manifest.questions_corpus_record_count) {
+        throw 'Rollback corpus identity does not match the deployment record; corpus mutation is not authorized.'
+    }
+}
+
 function Get-RemoteImageLabels {
     param([Parameter(Mandatory = $true)][string]$ImageTag)
     $raw = Invoke-RemoteText "docker image inspect $(Quote-PosixShellArgument $ImageTag) --format '{{json .Config.Labels}}'"
@@ -278,6 +312,21 @@ function New-RollbackVerificationManifest {
         [Parameter(Mandatory = $true)][string]$RollbackGitSha,
         [Parameter(Mandatory = $true)][string]$RollbackImageId
     )
+    # App rollback preserves the external corpus. The deployment record is
+    # the existing identity authority; never discover or substitute a corpus.
+    # Preserve input types so the shared constructor rejects malformed values.
+    if ($manifest.questions_corpus_snapshot_id -isnot [string]) {
+        throw 'QuestionsCorpusIdentity snapshot id must be a string.'
+    }
+    $questionsCorpusIdentity = [pscustomobject]@{
+        questions_corpus_sha256 = $manifest.questions_corpus_sha256
+        questions_corpus_record_count = $manifest.questions_corpus_record_count
+        questions_corpus_bytes = $manifest.questions_corpus_bytes
+        questions_corpus_snapshot_id = $manifest.questions_corpus_snapshot_id
+        questions_corpus_source_identity = $manifest.questions_corpus_source_identity
+        questions_corpus_source_sha256 = $manifest.questions_corpus_source_sha256
+        questions_corpus_source_record_count = $manifest.questions_corpus_source_record_count
+    }
     return New-ReleaseManifestObject `
         -GitSha $RollbackGitSha `
         -ImageTag $RollbackImageTag `
@@ -288,6 +337,7 @@ function New-RollbackVerificationManifest {
         -BuildMachineIdentityClass 'rollback-verification' `
         -TargetServiceNames @($layout.app_service_name, $layout.scheduler_service_name) `
         -ExternalContentRequirements $manifest.external_content_requirements `
+        -QuestionsCorpusIdentity $questionsCorpusIdentity `
         -ExpectedHealthEndpoints $manifest.expected_health_endpoints `
         -RollbackImageIdentity ([ordered]@{}) `
         -VerificationResult 'rollback verification pending' `
@@ -392,6 +442,8 @@ if ($rollbackIdentity.previous_app_release_git_sha -and $rollbackIdentity.previo
     throw "Rollback manifest records mismatched app and scheduler release SHAs."
 }
 
+# Validate the record before taking a remote lock or touching runtime state.
+$rollbackVerificationManifest = New-RollbackVerificationManifest -RollbackImageTag $rollbackImageTag -RollbackGitSha $rollbackGitSha -RollbackImageId $rollbackImageId
 $operationId = "rollback-$((Get-ShortGitSha -GitSha $rollbackGitSha))-$([Guid]::NewGuid().ToString('N'))"
 $remoteOperationLockPath = Join-RemotePath $layout.compose_directory '.release-operation.lock'
 $operationLockHeld = $false
@@ -410,12 +462,14 @@ $schedulerBefore = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_
 Assert-ProtectedHostEnvCredentialAndTcpAuthentication -SshAlias $layout.ssh_alias -EnvPath $layout.production_env_path -PostgresContainerName $layout.postgres_service_name
 
 $questionsVolumeName = Get-RemoteQuestionsVolumeName -ContainerName $layout.app_service_name
+$rollbackQuestionsPath = ($layout.questions_content_mount_destination.TrimEnd('/','\') + '/questions.json')
+$rollbackQuestionsBefore = Get-RemoteQuestionsReport -QuestionsPath $rollbackQuestionsPath -VolumeName $questionsVolumeName -ImageTag $rollbackImageTag
+Assert-RollbackCorpusIdentity -QuestionsReport $rollbackQuestionsBefore
 $appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }
 $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
 $appBeforeLabels = Get-RemoteImageLabels -ImageTag $appBefore.image_tag
 $schedulerBeforeLabels = Get-RemoteImageLabels -ImageTag $schedulerBefore.image_tag
 
-$rollbackVerificationManifest = New-RollbackVerificationManifest -RollbackImageTag $rollbackImageTag -RollbackGitSha $rollbackGitSha -RollbackImageId $rollbackImageId
 Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerificationManifestPath
 # The previous container's compose_config_files is captured above (via
 # Get-RemoteContainerSnapshot, still recorded in the rollback record) as
@@ -453,6 +507,7 @@ if ($appReadinessReport.readiness_mode -eq 'helper' -and $appReadinessReport.rea
     throw "App runtime readiness check failed after rollback."
 }
 Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questions
+Assert-RollbackCorpusIdentity -QuestionsReport (Get-RemoteQuestionsReport -ContainerName $layout.app_service_name -QuestionsPath $rollbackQuestionsPath)
 
 $null = Invoke-RemoteText $rollbackSchedulerCommand
 
