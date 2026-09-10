@@ -2,7 +2,7 @@
   "$schema_note": "No secret values are present in this file. Records Git provenance for governed runtime files outside of the sgf_engine vendoring line, including recovered sources and explicitly governed newly-authored modules. See sgf_engine/VENDORED_FROM.txt for that separate provenance record.",
   "manifest_version": "1.0.0",
   "line_ending_policy": "LF",
-  "source_status_definition": "Per-file Git provenance for recovered and explicitly governed newly-authored runtime files using conservative review language. Every entry below retains the \"not previously pushed to canonical origin\" warning text required by governance tests, while also referencing a commit object currently reachable in this repository whose blob is byte-identical to the current file content.",
+  "source_status_definition": "Per-file Git provenance for recovered and explicitly governed newly-authored runtime files using conservative review language. Each entry references a commit object currently reachable in this repository whose blob is byte-identical to the current file content. Entries whose source_branch_or_local_ref is not yet on canonical origin carry an explicit warning to that effect; entries recorded against origin/master do not, and must not imply a deployment claim -- deployment remains separately gated.",
   "files": [
     {
       "path": "backend_i18n.py",
@@ -522,7 +522,7 @@
       "content_size_bytes": 94768,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
+      "production_hash_status": "canonical source updated by Incident 019B R6; Production deployment status is governed separately and is not asserted by this record",
       "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
     },
     {
@@ -545,11 +545,11 @@
       "source_commit_subject": "fix-map-battle-incompatible-question",
       "source_date": "2026-09-07",
       "content_sha256": "cc0280d3318fe4de35d11ce6623b0600cbc0d09d93a44f5021922f640ff9d52c",
+      "content_size_bytes": 19662,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated",
-      "content_size_bytes": 19662
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
     },
     {
       "path": "js/game/presentation_dispatcher.js",
@@ -708,11 +708,11 @@
       "source_commit_subject": "W1-03 bind Zone 3 presentation lifecycle",
       "source_date": "2026-09-04",
       "content_sha256": "5aa7e00b3526e1aaaf925b79e5a1a5f52f145a5cc1a5224199c1f626b813fba8",
+      "content_size_bytes": 15036,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated",
-      "content_size_bytes": 15036
+      "production_hash_status": "drift from Production was recorded against the prior 2026-07-11 content (commit 103f9d1e9); this record supersedes that content and does not itself verify a Production byte-match -- Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
     },
     {
       "path": "mobile-nav.js",
