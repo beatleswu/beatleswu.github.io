@@ -645,7 +645,12 @@ def test_exact_w29_grant_validates_before_child_launch_and_persists_atomically()
         "SNAPSHOT_FILE_SHA256",
         "PREVIEW_FILE_SHA256",
         "MANIFEST_FILE_SHA256",
-        "sudo -n test ! -e \"$RESULT_FILE\"",
+        # Result-file / result-temp absence is still gated before launch; the
+        # check moved from a bare `sudo -n test ! -e` (a set -e abort point that
+        # could vanish silently under process pressure) into the consolidated
+        # preflight, which fails closed with explicit evidence.
+        "preflight_mismatch:result_file_present",
+        "preflight_mismatch:result_temp_present",
     ):
         assert script.index(gate) < launch
     result_check = script.index("__COMMUNITY_W29_RESULT__")
@@ -749,11 +754,31 @@ def _run_generated_grant_shell(tmp_path, mode):
     git_sh = pathlib.Path(r"C:\Program Files\Git\bin\sh.exe")
     if not git_sh.exists():
         pytest.skip("Git sh is unavailable")
-    subprocess.run([
-        str(git_sh), "-c",
-        "rm -rf -- /tmp/community-w29-grant-w29-c866f611-20260720T055453Z-c001bcd0 "
-        "/tmp/community-w29-capture-w29-c866f611-20260720T055453Z-c001bcd0",
-    ], check=True)
+    # The rendered script uses a FIXED operation id, so its container/capture
+    # scratch dirs live at fixed /tmp paths shared across every invocation of
+    # this helper. On Windows a stray handle (AV scan of a just-closed child
+    # stdout file, indexer) can leave `rm -rf` a partial directory, and the
+    # next run's preflight then correctly fails closed on
+    # remote_capture_directory_present. Clear both paths robustly before each
+    # run: chmod writable and retry a few times.
+    _fixed_id = "w29-c866f611-20260720T055453Z-c001bcd0"
+    import tempfile as _tempfile
+    import time as _time
+    for _leftover in (f"community-w29-grant-{_fixed_id}", f"community-w29-capture-{_fixed_id}"):
+        _target = pathlib.Path(_tempfile.gettempdir()) / _leftover
+        for _attempt in range(5):
+            if not _target.exists():
+                break
+            try:
+                for _child in _target.rglob("*"):
+                    try:
+                        _child.chmod(0o700)
+                    except OSError:
+                        pass
+                __import__("shutil").rmtree(_target, ignore_errors=(_attempt < 4))
+            except OSError:
+                _time.sleep(0.2)
+        assert not _target.exists(), f"unable to clear shared scratch dir {_target}"
     operation = tmp_path / "operation"
     operation.mkdir()
     for name, value in (("snapshot.json", "snapshot"), ("preview.json", "preview"), ("operation-manifest.json", "manifest")):
@@ -772,8 +797,14 @@ def _run_generated_grant_shell(tmp_path, mode):
         mode = os.environ.get('W29_FAKE_MODE', 'success')
         if a[0] == 'inspect':
             fmt = a[a.index('--format') + 1]
-            value = 'running' if 'State.Status' in fmt else ('app:c866f611' if 'Config.Image' in fmt else ('sha256:image' if fmt == '{{.Image}}' else 'c866f611'))
-            print('wrong' if mode == 'preflight_identity_mismatch' and fmt == '{{.Image}}' else value)
+            if mode == 'preflight_probe_nonzero': raise SystemExit(1)
+            if mode == 'preflight_probe_empty': raise SystemExit(0)
+            def _one(f):
+                if 'State.Status' in f: return 'running'
+                if 'Config.Image' in f: return 'app:c866f611'
+                if f == '{{.Image}}': return 'wrong' if mode == 'preflight_identity_mismatch' else 'sha256:image'
+                return 'c866f611'
+            print('|'.join(_one(seg) for seg in fmt.split('|')))
             raise SystemExit(0)
         if a[0] != 'exec': raise SystemExit(90)
         a = a[1:]
@@ -786,8 +817,11 @@ def _run_generated_grant_shell(tmp_path, mode):
             if mode == 'interrupted_remote_shell': raise SystemExit(130)
             raise SystemExit(subprocess.run(a, stdin=sys.stdin.buffer).returncode)
         if a[0] == 'sha256sum':
-            p = pathlib.Path(a[1]); digest = hashlib.sha256(p.read_bytes()).hexdigest()
-            print(('0' * 64 if mode == 'staged_hash_mismatch' else digest) + '  ' + str(p)); raise SystemExit(0)
+            for target in a[1:]:
+                p = pathlib.Path(target)
+                digest = '0' * 64 if mode == 'staged_hash_mismatch' else hashlib.sha256(p.read_bytes()).hexdigest()
+                print(digest + '  ' + str(p))
+            raise SystemExit(0)
         if a[0] == 'rm': shutil.rmtree(a[-1], ignore_errors=(mode != 'cleanup_failure')); raise SystemExit(88 if mode == 'cleanup_failure' else 0)
         if a[0] == 'test': raise SystemExit(0 if pathlib.Path(a[-1]).stat().st_size else 1)
         if a[0] == 'cat': sys.stdout.buffer.write(pathlib.Path(a[1]).read_bytes()); raise SystemExit(0)
@@ -817,13 +851,19 @@ def _run_generated_grant_shell(tmp_path, mode):
         a = sys.argv[1:]
         if a and a[0] == '-n': a = a[1:]
         mode = os.environ.get('W29_FAKE_MODE', 'success')
+        if os.environ.get('W29_FAIL_PYTHON3') == '1' and a and a[0] == 'python3': raise SystemExit(127)
         if mode == 'atomic_rename_failure' and a and a[0] == 'mv': raise SystemExit(83)
         if mode == 'temp_write_failure' and a and a[0] == 'tee': raise SystemExit(84)
         if a[0] == 'python3': raise SystemExit(subprocess.run([sys.executable] + a[1:], stdin=sys.stdin.buffer, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer).returncode)
         if a[0] == 'sha256sum':
             p = pathlib.Path(a[1]); print(hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + str(p)); raise SystemExit(0)
         if a[0] == 'test': raise SystemExit(0 if (not pathlib.Path(a[-1]).exists() if '!' in a else pathlib.Path(a[-1]).exists()) else 1)
-        if a[0] == 'tee': pathlib.Path(a[1]).write_bytes(sys.stdin.buffer.read()); raise SystemExit(0)
+        if a[0] == 'tee':
+            append = '-a' in a[1:]
+            target = pathlib.Path([x for x in a[1:] if not x.startswith('-')][0])
+            data = sys.stdin.buffer.read()
+            with open(target, 'ab' if append else 'wb') as fh: fh.write(data)
+            raise SystemExit(0)
         if a[0] == 'chmod': os.chmod(a[-1], 0o600); raise SystemExit(0)
         if a[0] == 'mv': os.replace(a[1], a[2]); raise SystemExit(0)
         if a[0] == 'rm':
@@ -834,16 +874,27 @@ def _run_generated_grant_shell(tmp_path, mode):
         raise SystemExit(92)
     '''))
     stat = fake_bin / "stat"
-    stat.write_text("#!/bin/sh\nif [ \"$2\" = %a ]; then echo 700; else echo root:root; fi\n", encoding="utf-8")
+    stat.write_text(
+        "#!/bin/sh\ncase \"$2\" in\n  '%a') echo 700 ;;\n  '%a|%U:%G') echo '700|root:root' ;;\n  *) echo root:root ;;\nesac\n",
+        encoding="utf-8",
+    )
     python3 = fake_bin / "python3"
     python3.write_text(f"#!/bin/sh\nexec '{_win_to_posix(os.sys.executable)}' \"$@\"\n", encoding="utf-8")
     subprocess.run([str(git_sh), "-c", f"chmod 700 '{docker.as_posix()}' '{sudo.as_posix()}' '{stat.as_posix()}' '{python3.as_posix()}'"], check=True)
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
     env["W29_FAKE_MODE"] = mode
+    if mode == "preflight_recorder_unavailable":
+        # Force every `sudo -n python3` (record_stage AND the consolidated
+        # preflight) to fail to start, proving the last-resort evidence path
+        # does not itself depend on spawning python under the pressure it
+        # exists to survive.
+        env["W29_FAIL_PYTHON3"] = "1"
     script = render_exact_w29_grant(operation.as_posix(), hashes["snapshot.json"], hashes["preview.json"], hashes["operation-manifest.json"])
-    shell_prelude = ('stat(){ if [ "$2" = "%a" ]; then echo 700; else echo root:root; fi; }\n'
-                     'mkdir(){ command mkdir -p "$3"; }\n')
+    shell_prelude = (
+        'stat(){ case "$2" in "%a") echo 700;; "%a|%U:%G") echo "700|root:root";; *) echo root:root;; esac; }\n'
+        'mkdir(){ command mkdir -p "$3"; }\n'
+    )
     result = subprocess.run([str(git_sh)], input=shell_prelude + script, cwd=ROOT, env=env, capture_output=True, text=True, errors='replace', timeout=30, check=False)
     evidence_path = operation / "grant-execution-evidence.jsonl"
     evidence = [json.loads(line) for line in evidence_path.read_text(encoding="utf-8").splitlines()] if evidence_path.exists() else []
@@ -887,6 +938,90 @@ def test_generated_remote_shell_failures_are_durable_single_launch_and_fail_clos
     else:
         assert not (operation / "grant-result.json").exists()
     assert "recipient" not in json.dumps(evidence)
+
+
+# --- W1-BUILD_APP-...-SHARED_SCRIPT-DETERMINISM-CORRECTIVE-001 -----------------
+# Deterministic fault injection for the consolidated fail-closed preflight.
+
+@pytest.mark.parametrize("mode", ["preflight_probe_nonzero", "preflight_probe_empty"])
+def test_preflight_probe_failure_is_fail_closed_with_identifiable_evidence(tmp_path, mode):
+    """A preflight external probe that exits non-zero, or returns empty/unusable
+    output, must NOT silently disappear through set -e. The operation fails
+    closed, records an explicit failed remote_preflight_started stage whose
+    failure_category names the failing probe, launches nothing, and grants
+    nothing."""
+    result, evidence, operation = _run_generated_grant_shell(tmp_path, mode)
+    assert result.returncode != 0
+    assert max(record["launch_count"] for record in evidence) == 0
+    assert not any(record["stage"] == "child_process_created" for record in evidence)
+    failed = [
+        record for record in evidence
+        if record["stage"] == "remote_preflight_started" and record["status"] == "failed"
+    ]
+    assert failed, evidence
+    # The failing probe is identifiable and the failure is explicit (not a bare
+    # rc=1 with an empty evidence file, which is what the pressure bug produced).
+    assert any(
+        (record["failure_category"] or "").startswith("preflight_probe_unavailable:")
+        and "docker inspect" in (record["failure_category"] or "")
+        for record in failed
+    ), failed
+    assert not any(record["status"] == "passed" for record in evidence)
+    assert not (operation / "grant-result.json").exists()
+    assert "recipient" not in json.dumps(evidence)
+
+
+def test_preflight_value_mismatch_is_fail_closed_with_named_probe(tmp_path):
+    """A preflight probe that runs cleanly but returns the wrong value (here a
+    scheduler image identity mismatch) also fails closed with a named,
+    machine-readable failure_category -- not a bare set -e abort."""
+    result, evidence, operation = _run_generated_grant_shell(tmp_path, "preflight_identity_mismatch")
+    assert result.returncode != 0
+    assert max(record["launch_count"] for record in evidence) == 0
+    assert any(
+        record["stage"] == "remote_preflight_started"
+        and record["status"] == "failed"
+        and (record["failure_category"] or "").startswith("preflight_mismatch:")
+        for record in evidence
+    ), evidence
+    assert not (operation / "grant-result.json").exists()
+
+
+def test_preflight_success_path_is_unchanged_and_launch_count_is_exact(tmp_path):
+    """The corrected preflight must not perturb the happy path: a clean preflight
+    still records remote_preflight_passed and the child is launched exactly
+    once."""
+    result, evidence, operation = _run_generated_grant_shell(tmp_path, "success")
+    assert result.returncode == 0, result.stderr
+    assert (operation / "grant-result.json").exists()
+    assert any(
+        record["stage"] == "remote_preflight_passed" and record["status"] == "passed"
+        for record in evidence
+    ), evidence
+    assert max(record["launch_count"] for record in evidence) == 1
+    assert sum(
+        record["stage"] == "child_process_created" and record["status"] == "completed"
+        for record in evidence
+    ) == 1
+    assert not any(record["status"] == "failed" for record in evidence)
+
+
+def test_failure_evidence_survives_python_interpreter_spawn_failure(tmp_path):
+    """The recovery/audit path must not itself depend on spawning python under
+    the exact pressure it exists to survive. With every `sudo -n python3`
+    (record_stage AND the consolidated preflight) forced to fail to start, the
+    operation still fails closed AND still lands a parseable failed evidence
+    record via the independent printf|tee fallback -- not an empty file."""
+    result, evidence, operation = _run_generated_grant_shell(tmp_path, "preflight_recorder_unavailable")
+    assert result.returncode != 0
+    assert evidence, "evidence file must not be empty after a recorder-spawn failure"
+    assert any(
+        record["status"] == "failed" and record["failure_category"] == "recovery_fallback"
+        for record in evidence
+    ), evidence
+    assert not any(record["stage"] == "child_process_created" for record in evidence)
+    assert max(record["launch_count"] for record in evidence) == 0
+    assert not (operation / "grant-result.json").exists()
 
 
 @pytest.mark.parametrize("mode", [

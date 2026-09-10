@@ -350,11 +350,22 @@ result_persisted=false
 container_prepared=false
 capture_prepared=false
 temp_path_authorized=false
+# Last-resort failure evidence. record_stage spawns `sudo -n python3`; if the
+# machine is transiently unable to start that interpreter (the condition this
+# corrective addresses), the recovery record must still land. This is an
+# independent, lighter path -- a builtin printf into `sudo -n tee -a` -- not a
+# retry of record_stage. It is only reached when record_stage itself fails.
+emit_min_failure_record() {
+    printf '{"child_exit_code":null,"failure_category":"recovery_fallback","launch_count":%s,"operation_id":"%s","remote_shell_exit_code":%s,"stage":"%s","status":"failed","utc_timestamp":null,"wrapper_source_revision":"%s"}\n' \
+        "$LAUNCH_COUNT" "$OPERATION_ID" "${2:-null}" "$1" "$WRAPPER_SOURCE_REVISION" \
+        | sudo -n tee -a "$EVIDENCE_FILE" >/dev/null 2>&1 || true
+}
 cleanup() {
     cleanup_rc=$?
     trap - EXIT INT TERM
     if test "$cleanup_rc" -ne 0; then
-        record_stage "$CURRENT_STAGE" failed "$LAUNCH_COUNT" "$cleanup_rc" "$CHILD_EXIT" "${CURRENT_STAGE}_failure" || true
+        record_stage "$CURRENT_STAGE" failed "$LAUNCH_COUNT" "$cleanup_rc" "$CHILD_EXIT" "${CURRENT_STAGE}_failure" \
+            || emit_min_failure_record "$CURRENT_STAGE" "$cleanup_rc"
     fi
     record_stage cleanup_started started "$LAUNCH_COUNT" '' "$CHILD_EXIT" || true
     cleanup_failed=false
@@ -373,39 +384,191 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 record_stage remote_preflight_started started 0
-test "$OPERATION_ID" = w29-c866f611-20260720T055453Z-c001bcd0
-test "$(docker inspect "$SCHEDULER" --format '{{.State.Status}}')" = running
-test "$(docker inspect "$SCHEDULER" --format '{{.Config.Image}}')" = "$EXPECTED_IMAGE_TAG"
-test "$(docker inspect "$SCHEDULER" --format '{{.Image}}')" = "$EXPECTED_IMAGE_ID"
-test "$(docker inspect "$SCHEDULER" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$EXPECTED_REVISION"
-test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = false
-test "$(stat -c '%a' "$OPERATION_DIRECTORY")" = 700
-test "$(stat -c '%U:%G' "$OPERATION_DIRECTORY")" = root:root
-test "$(sudo -n sha256sum "$OPERATION_DIRECTORY/snapshot.json" | cut -d' ' -f1)" = "$SNAPSHOT_FILE_SHA256"
-test "$(sudo -n sha256sum "$OPERATION_DIRECTORY/preview.json" | cut -d' ' -f1)" = "$PREVIEW_FILE_SHA256"
-test "$(sudo -n sha256sum "$OPERATION_DIRECTORY/operation-manifest.json" | cut -d' ' -f1)" = "$MANIFEST_FILE_SHA256"
-sudo -n test ! -e "$RESULT_FILE"
-sudo -n test ! -e "$RESULT_TEMP_FILE"
+# The preflight ran ~15 `test "$(<external command> ...)" = <value>` substitutions
+# directly under set -e. Under transient process-creation pressure any one probe
+# child could fail to produce output, and `test "" = <value>` then aborted the
+# whole operation in preflight with rc=1 and NO explicit failed evidence.
+#
+# The probe commands still run in the shell (identical semantics, and the shell
+# is the only place that can reach docker/stat), but:
+#   * the four `docker inspect` calls collapse into one and the three sha256
+#     comparisons move into the evaluator (no child at all),
+#   * every probe substitution is `... || echo __PROBE_FAILED__`, so a transient
+#     empty or failed probe can no longer trigger a silent set -e abort, and
+#   * one `sudo -n python3` evaluator compares the collected values and, on any
+#     failed probe or value mismatch, appends explicit fail-closed evidence with
+#     the same O_APPEND/fsync durability record_stage uses -- in-process, so the
+#     failure-recording path itself spawns nothing.
+PREFLIGHT_INSPECT="$(docker inspect "$SCHEDULER" --format '{{.State.Status}}|{{.Config.Image}}|{{.Image}}|{{index .Config.Labels "org.opencontainers.image.revision"}}' 2>/dev/null || echo __PROBE_FAILED__)"
+PREFLIGHT_COMMUNITY="$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED 2>/dev/null || echo __PROBE_FAILED__)"
+PREFLIGHT_OWNERSHIP="$(stat -c '%a|%U:%G' "$OPERATION_DIRECTORY" 2>/dev/null || echo __PROBE_FAILED__)"
+PREFLIGHT_CONTAINER_DIR="$(docker exec "$SCHEDULER" sh -c "if test -e '$CONTAINER_OPERATION_DIRECTORY'; then echo present; else echo absent; fi" 2>/dev/null || echo __PROBE_FAILED__)"
+sudo -n python3 - "$EVIDENCE_FILE" "$OPERATION_ID" "$WRAPPER_SOURCE_REVISION" "$EXPECTED_IMAGE_TAG" "$EXPECTED_IMAGE_ID" "$EXPECTED_REVISION" "$OPERATION_DIRECTORY" "$SNAPSHOT_FILE_SHA256" "$PREVIEW_FILE_SHA256" "$MANIFEST_FILE_SHA256" "$REMOTE_CAPTURE_DIRECTORY" "$PREFLIGHT_INSPECT" "$PREFLIGHT_COMMUNITY" "$PREFLIGHT_OWNERSHIP" "$PREFLIGHT_CONTAINER_DIR" <<'__COMMUNITY_W29_PREFLIGHT__'
+import datetime, hashlib, json, os, sys
+(evidence_path, operation_id, revision, expected_tag, expected_id, expected_revision,
+ operation_directory, snapshot_sha, preview_sha, manifest_sha, remote_capture_directory,
+ inspect_value, community_value, ownership_value, container_dir_value) = sys.argv[1:]
+
+def fail(category):
+    # Fail-closed evidence for a preflight probe that could not run or whose
+    # result did not match. Written in-process with the same O_APPEND/fsync
+    # durability as record_stage; no child is spawned on this path. The success
+    # path is unchanged -- the shell still records remote_preflight_passed.
+    record = {
+        'operation_id': operation_id,
+        'utc_timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'stage': 'remote_preflight_started',
+        'status': 'failed',
+        'launch_count': 0,
+        'remote_shell_exit_code': None,
+        'child_exit_code': None,
+        'failure_category': category or None,
+        'wrapper_source_revision': revision,
+    }
+    flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+    fd = os.open(evidence_path, flags, 0o600)
+    try:
+        os.write(fd, (json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8'))
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    os.chmod(evidence_path, 0o600)
+    raise SystemExit(87)
+
+def probe_value(raw, name):
+    stripped = raw.strip()
+    if stripped == '' or stripped == '__PROBE_FAILED__':
+        fail('preflight_probe_unavailable:' + name)
+    return stripped
+
+if operation_id != 'w29-c866f611-20260720T055453Z-c001bcd0':
+    fail('preflight_mismatch:operation_id')
+
+parts = probe_value(inspect_value, 'docker inspect scheduler').split('|')
+if len(parts) != 4:
+    fail('preflight_probe_unavailable:docker inspect scheduler')
+state, image_tag, image_id, image_revision = parts
+if state != 'running':
+    fail('preflight_mismatch:scheduler_state')
+if image_tag != expected_tag:
+    fail('preflight_mismatch:scheduler_image_tag')
+if image_id != expected_id:
+    fail('preflight_mismatch:scheduler_image_id')
+if image_revision != expected_revision:
+    fail('preflight_mismatch:scheduler_image_revision')
+
+if probe_value(community_value, 'docker exec scheduler printenv') != 'false':
+    fail('preflight_mismatch:community_rewards_enabled')
+
+ownership = probe_value(ownership_value, 'stat operation_directory').split('|')
+if len(ownership) != 2 or ownership[0] != '700' or ownership[1] != 'root:root':
+    fail('preflight_mismatch:operation_directory_ownership')
+
+for name, expected_hash in (('snapshot.json', snapshot_sha), ('preview.json', preview_sha), ('operation-manifest.json', manifest_sha)):
+    try:
+        with open(os.path.join(operation_directory, name), 'rb') as handle:
+            actual_hash = hashlib.sha256(handle.read()).hexdigest()
+    except OSError:
+        fail('preflight_probe_unavailable:sha256:' + name)
+    if actual_hash != expected_hash:
+        fail('preflight_mismatch:' + name.split('.')[0] + '_sha256')
+
+if os.path.exists(os.path.join(operation_directory, 'grant-result.json')):
+    fail('preflight_mismatch:result_file_present')
+if os.path.exists(os.path.join(operation_directory, 'grant-result.json.tmp')):
+    fail('preflight_mismatch:result_temp_present')
+
+if probe_value(container_dir_value, 'docker exec scheduler test container_dir') != 'absent':
+    fail('preflight_mismatch:container_operation_directory_present')
+
+if os.path.exists(remote_capture_directory):
+    fail('preflight_mismatch:remote_capture_directory_present')
+
+# The success-path markers for this phase are appended here in-process rather
+# than by two more `sudo -n python3` record_stage children (record_stage still
+# owns every other stage). Same records, same durability, fewer pre-launch
+# process creations.
+for stage_name, stage_status in (('remote_preflight_passed', 'passed'), ('child_command_prepared', 'started')):
+    record = {
+        'operation_id': operation_id,
+        'utc_timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'stage': stage_name,
+        'status': stage_status,
+        'launch_count': 0,
+        'remote_shell_exit_code': None,
+        'child_exit_code': None,
+        'failure_category': None,
+        'wrapper_source_revision': revision,
+    }
+    fd = os.open(evidence_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    try:
+        os.write(fd, (json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8'))
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+os.chmod(evidence_path, 0o600)
+__COMMUNITY_W29_PREFLIGHT__
 temp_path_authorized=true
-test "$(docker exec "$SCHEDULER" sh -c "if test -e '$CONTAINER_OPERATION_DIRECTORY'; then echo present; else echo absent; fi")" = absent
-test ! -e "$REMOTE_CAPTURE_DIRECTORY"
-record_stage remote_preflight_passed passed 0
 CURRENT_STAGE=child_command_prepared
-record_stage child_command_prepared started 0
 container_prepared=true
 docker exec "$SCHEDULER" mkdir -m 700 "$CONTAINER_OPERATION_DIRECTORY"
 capture_prepared=true
 mkdir -m 700 "$REMOTE_CAPTURE_DIRECTORY"
 sudo -n tar -C "$OPERATION_DIRECTORY" -cf - snapshot.json preview.json |
     docker exec -i "$SCHEDULER" tar -C "$CONTAINER_OPERATION_DIRECTORY" -xf -
-test "$(docker exec "$SCHEDULER" sha256sum "$CONTAINER_OPERATION_DIRECTORY/snapshot.json" | cut -d' ' -f1)" = "$SNAPSHOT_FILE_SHA256"
-test "$(docker exec "$SCHEDULER" sha256sum "$CONTAINER_OPERATION_DIRECTORY/preview.json" | cut -d' ' -f1)" = "$PREVIEW_FILE_SHA256"
+# Same treatment as the preflight: the two post-transfer integrity checks were
+# `test "$(docker exec sha256sum ... | cut ...)" = <value>` -- command
+# substitutions under set -e that vanish silently on a transient empty probe.
+# One guarded `docker exec sha256sum` over both files, evaluated (and
+# fail-closed-evidenced) in-process, which also appends the
+# child_command_prepared/completed + child_launch_started markers -- no further
+# pre-launch record_stage children.
+STAGED_HASHES="$(docker exec "$SCHEDULER" sha256sum "$CONTAINER_OPERATION_DIRECTORY/snapshot.json" "$CONTAINER_OPERATION_DIRECTORY/preview.json" 2>/dev/null || echo __PROBE_FAILED__)"
+sudo -n python3 - "$EVIDENCE_FILE" "$OPERATION_ID" "$WRAPPER_SOURCE_REVISION" "$SNAPSHOT_FILE_SHA256" "$PREVIEW_FILE_SHA256" "$STAGED_HASHES" <<'__COMMUNITY_W29_STAGED__'
+import datetime, json, os, sys
+evidence_path, operation_id, revision, snapshot_sha, preview_sha, staged = sys.argv[1:]
+
+def append(stage, status, category):
+    record = {
+        'operation_id': operation_id,
+        'utc_timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'stage': stage, 'status': status, 'launch_count': 0,
+        'remote_shell_exit_code': None, 'child_exit_code': None,
+        'failure_category': category or None, 'wrapper_source_revision': revision,
+    }
+    fd = os.open(evidence_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    try:
+        os.write(fd, (json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8'))
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    os.chmod(evidence_path, 0o600)
+
+def fail(category):
+    append('child_command_prepared', 'failed', category)
+    raise SystemExit(87)
+
+if staged.strip() == '' or '__PROBE_FAILED__' in staged:
+    fail('staged_hash_probe_unavailable')
+seen = {}
+for line in staged.splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    digest, _, path = line.partition(' ')
+    seen[os.path.basename(path.strip())] = digest.strip()
+if seen.get('snapshot.json') != snapshot_sha:
+    fail('staged_hash_mismatch:snapshot')
+if seen.get('preview.json') != preview_sha:
+    fail('staged_hash_mismatch:preview')
+
+append('child_command_prepared', 'completed', None)
+append('child_launch_started', 'started', None)
+__COMMUNITY_W29_STAGED__
 
 # Capture stdout and stderr in exact private remote-host files. This exposes
 # process-creation and exit evidence without emitting recipient-level command output.
-record_stage child_command_prepared completed 0
 CURRENT_STAGE=child_launch_started
-record_stage child_launch_started started 0
 docker exec "$SCHEDULER" python tools/community_leaderboard_rewards_manual.py grant-exact-period-commit \
     --snapshot-file "$CONTAINER_OPERATION_DIRECTORY/snapshot.json" \
     --preview-file "$CONTAINER_OPERATION_DIRECTORY/preview.json" \
