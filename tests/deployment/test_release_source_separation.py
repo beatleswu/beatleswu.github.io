@@ -696,3 +696,60 @@ def test_derivation_fails_closed_when_no_control_plane_only_baseline(tmp_path):
     # would smuggle product drift past the gate.
     assert derive_product_sha(gate, repo_root=repo) == gate
     assert _non_control_plane_paths(gate, gate, repo_root=repo) == []
+
+
+# ---------------------------------------------------------------------------
+# Control-plane allowlist entries that live outside scripts/release/.
+#
+# package-release-image.ps1 runs tools/questions_corpus_validation.py at release
+# time. It is release-gate tooling, not product: the Dockerfile never COPYs it
+# and deploy/build-manifest.json does not list it as image content. These tests
+# keep that justification honest -- if either file ever becomes image content,
+# or if the allowlist is ever widened to a tools/** prefix that would sweep in
+# the tools/*.py that genuinely DO ship, they fail.
+# ---------------------------------------------------------------------------
+
+EXACT_CONTROL_PLANE_FILES = (
+    "tools/questions_corpus_validation.py",
+    "tests/test_questions_corpus_validation.py",
+)
+
+# These live under tools/ and ARE copied into /app/tools by the Dockerfile.
+PRODUCT_TOOLS_THAT_MUST_STAY_EXCLUDED = (
+    "tools/community_leaderboard_rewards_manual.py",
+    "tools/historical_leaderboard_restoration.py",
+    "tools/incident_019b_progression_continuity.py",
+)
+
+
+def test_exact_control_plane_files_are_allowlisted():
+    for path in EXACT_CONTROL_PLANE_FILES:
+        assert path in CONTROL_PLANE_EXACT_PATHS, f"{path} must be control-plane"
+        assert _is_control_plane_path(path), f"{path} must resolve as control-plane"
+
+
+def test_product_tools_are_never_control_plane():
+    for path in PRODUCT_TOOLS_THAT_MUST_STAY_EXCLUDED:
+        assert path not in CONTROL_PLANE_EXACT_PATHS
+        assert not _is_control_plane_path(path), (
+            f"{path} ships in the image and must never be allowlisted"
+        )
+
+
+def test_allowlisted_control_plane_files_are_not_image_content():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    manifest = json.loads((ROOT / "deploy" / "build-manifest.json").read_text(encoding="utf-8"))
+    manifest_text = json.dumps(manifest)
+    for path in EXACT_CONTROL_PLANE_FILES:
+        leaf = path.rsplit("/", 1)[-1]
+        assert f"COPY {path}" not in dockerfile, f"{path} must not be COPYed into the image"
+        assert f"/app/{path}" not in manifest_text, f"{path} must not be image content"
+        assert f"/app/tools/{leaf}" not in manifest_text
+        assert f"/app/tests/{leaf}" not in manifest_text
+
+
+def test_allowlist_is_not_widened_to_a_tools_prefix():
+    module = (ROOT / "scripts" / "release" / "ReleaseTooling.psm1").read_text(encoding="utf-8")
+    assert "'tools/**'" not in module
+    assert '"tools/**"' not in module
+    assert "'tools/'" not in module

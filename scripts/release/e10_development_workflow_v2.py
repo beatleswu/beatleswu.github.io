@@ -51,7 +51,18 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 CONFLICT_MARKER_LINE = re.compile(rb"(?m)^(?:<<<<<<<|=======|>>>>>>>)")
 
 CONTROL_PLANE_EXACT_PATHS = frozenset(
-    {"scripts/build-production-image.ps1"}
+    {
+        "scripts/build-production-image.ps1",
+        # Release-gate tooling that lives outside scripts/release/.
+        # package-release-image.ps1 executes the validator at release time; the
+        # Dockerfile never COPYs it and deploy/build-manifest.json does not list
+        # it as image content, so it cannot reach the runtime. Declared as exact
+        # files rather than a tools/ prefix, because other tools/*.py (community
+        # leaderboard, historical restoration, incident 019b) ARE copied into
+        # /app/tools and are genuinely product.
+        "tools/questions_corpus_validation.py",
+        "tests/test_questions_corpus_validation.py",
+    }
 )
 CONTROL_PLANE_PREFIXES = (
     "scripts/release/",

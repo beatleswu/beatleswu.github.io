@@ -411,15 +411,33 @@ function Get-ReleaseControlPlaneAllowlist {
         'scripts/build-production-image.ps1',
         'tests/deployment/**',
         'tests/release/**',
-        'docs/deployment/**'
+        'docs/deployment/**',
+        # Release-gate tooling that happens to live outside scripts/release/.
+        # package-release-image.ps1 executes the validator at release time; the
+        # Dockerfile never COPYs it, and deploy/build-manifest.json does not list
+        # it as image content, so it cannot reach the runtime. Listed as two
+        # exact files rather than a tools/** prefix, because other tools/*.py
+        # (community leaderboard, historical restoration, incident 019b) ARE
+        # copied into /app/tools and are genuinely product.
+        'tools/questions_corpus_validation.py',
+        'tests/test_questions_corpus_validation.py'
     )
 }
 
 function Test-ReleaseControlPlanePath {
     param([Parameter(Mandatory = $true)][string]$Path)
     $normalized = ($Path -replace '\\', '/').TrimStart('./')
-    if ($normalized -eq 'scripts/build-production-image.ps1') {
-        return $true
+    # Exact-file control-plane entries. Kept exact (never a tools/** prefix) so
+    # that product tools under tools/ which ARE copied into the image stay
+    # outside the allowlist.
+    foreach ($exact in @(
+        'scripts/build-production-image.ps1',
+        'tools/questions_corpus_validation.py',
+        'tests/test_questions_corpus_validation.py'
+    )) {
+        if ($normalized -eq $exact) {
+            return $true
+        }
     }
     foreach ($prefix in @('scripts/release/', 'tests/deployment/', 'tests/release/', 'docs/deployment/')) {
         if ($normalized.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
