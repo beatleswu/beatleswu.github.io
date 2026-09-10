@@ -2064,23 +2064,43 @@ function New-ReleaseManifestObject {
     if (-not $QuestionsCorpusIdentity) {
         throw 'QuestionsCorpusIdentity is required; release tooling must not discover a corpus implicitly.'
     }
+    # Callers legitimately pass two different shapes: package-release-image.ps1
+    # builds an [ordered]@{} (an OrderedDictionary) while anything read back via
+    # ConvertFrom-Json arrives as a PSCustomObject. Reading only through
+    # .PSObject.Properties silently failed for the dictionary shape -- on an
+    # OrderedDictionary that collection exposes Count/Keys/Values/IsReadOnly and
+    # never the entries -- so every field looked "missing" and real packaging
+    # could not produce a manifest at all.
+    $readCorpusField = {
+        param($Identity, [string]$Field)
+        if ($Identity -is [System.Collections.IDictionary]) {
+            if ($Identity.Contains($Field)) { return $Identity[$Field] }
+            return $null
+        }
+        $property = $Identity.PSObject.Properties[$Field]
+        if ($property) { return $property.Value }
+        return $null
+    }
+    $corpusValues = [ordered]@{}
     foreach ($field in $corpusFields) {
-        $property = $QuestionsCorpusIdentity.PSObject.Properties[$field]
-        if (-not $property -or $null -eq $property.Value) {
+        $value = & $readCorpusField $QuestionsCorpusIdentity $field
+        if ($null -eq $value) {
             throw "QuestionsCorpusIdentity missing required field '$field'."
         }
+        $corpusValues[$field] = $value
     }
     foreach ($field in @('questions_corpus_sha256','questions_corpus_source_identity','questions_corpus_source_sha256')) {
-        if ([string]$QuestionsCorpusIdentity.$field -notmatch '^[0-9a-f]{64}$') {
+        if ([string]$corpusValues[$field] -notmatch '^[0-9a-f]{64}$') {
             throw "QuestionsCorpusIdentity field '$field' must be a lowercase SHA-256."
         }
     }
     foreach ($field in @('questions_corpus_record_count','questions_corpus_bytes','questions_corpus_source_record_count')) {
-        if ($QuestionsCorpusIdentity.$field -is [bool] -or -not ($QuestionsCorpusIdentity.$field -is [int] -or $QuestionsCorpusIdentity.$field -is [long]) -or [int64]$QuestionsCorpusIdentity.$field -le 0) {
+        $value = $corpusValues[$field]
+        if ($value -is [bool] -or -not ($value -is [int] -or $value -is [long]) -or [int64]$value -le 0) {
             throw "QuestionsCorpusIdentity field '$field' must be a positive integer."
         }
     }
-    $snapshotId = [string]$QuestionsCorpusIdentity.questions_corpus_snapshot_id
+    $snapshotId = [string]$corpusValues['questions_corpus_snapshot_id']
     if ([string]::IsNullOrWhiteSpace($snapshotId) -or $snapshotId -match '[\\/]' -or $snapshotId.ToLowerInvariant().EndsWith('.json')) {
         throw 'QuestionsCorpusIdentity snapshot id must be a non-path identity, not a filename.'
     }
@@ -2097,13 +2117,13 @@ function New-ReleaseManifestObject {
         build_machine_identity_class = $BuildMachineIdentityClass
         target_service_names = @($TargetServiceNames)
         external_content_requirements = $ExternalContentRequirements
-        questions_corpus_sha256 = [string]$QuestionsCorpusIdentity.questions_corpus_sha256
-        questions_corpus_record_count = [int64]$QuestionsCorpusIdentity.questions_corpus_record_count
-        questions_corpus_bytes = [int64]$QuestionsCorpusIdentity.questions_corpus_bytes
+        questions_corpus_sha256 = [string]$corpusValues['questions_corpus_sha256']
+        questions_corpus_record_count = [int64]$corpusValues['questions_corpus_record_count']
+        questions_corpus_bytes = [int64]$corpusValues['questions_corpus_bytes']
         questions_corpus_snapshot_id = $snapshotId
-        questions_corpus_source_identity = [string]$QuestionsCorpusIdentity.questions_corpus_source_identity
-        questions_corpus_source_sha256 = [string]$QuestionsCorpusIdentity.questions_corpus_source_sha256
-        questions_corpus_source_record_count = [int64]$QuestionsCorpusIdentity.questions_corpus_source_record_count
+        questions_corpus_source_identity = [string]$corpusValues['questions_corpus_source_identity']
+        questions_corpus_source_sha256 = [string]$corpusValues['questions_corpus_source_sha256']
+        questions_corpus_source_record_count = [int64]$corpusValues['questions_corpus_source_record_count']
         expected_health_endpoints = @($ExpectedHealthEndpoints)
         rollback_image_identity = $RollbackImageIdentity
         deployment_timestamp = $DeploymentTimestamp

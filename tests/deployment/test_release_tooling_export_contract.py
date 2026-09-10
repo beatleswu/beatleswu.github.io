@@ -106,3 +106,89 @@ def test_corpus_validator_runs_standalone_the_way_the_packager_invokes_it(tmp_pa
     assert result.stdout.strip(), "validator must emit its JSON report on stdout"
     payload = json.loads(result.stdout[result.stdout.index("{"):])
     assert "summary" in payload and "gates" in payload
+
+
+# ---------------------------------------------------------------------------
+# New-ReleaseManifestObject must accept both identity shapes its callers pass.
+#
+# package-release-image.ps1 builds an [ordered]@{} (an OrderedDictionary);
+# anything read back through ConvertFrom-Json arrives as a PSCustomObject. The
+# field check read only through .PSObject.Properties, which on an
+# OrderedDictionary exposes Count/Keys/Values/IsReadOnly and never the entries,
+# so every field looked "missing" and real packaging could not produce a
+# manifest at all. Unreachable for any test that did not run the packager.
+# ---------------------------------------------------------------------------
+
+_VALID_CORPUS_FIELDS = {
+    "questions_corpus_sha256": "b" * 64,
+    "questions_corpus_record_count": 41591,
+    "questions_corpus_bytes": 71534621,
+    "questions_corpus_snapshot_id": "snapshot-identity-001",
+    "questions_corpus_source_identity": "c" * 64,
+    "questions_corpus_source_sha256": "d" * 64,
+    "questions_corpus_source_record_count": 41591,
+}
+
+
+def _manifest_probe(identity_expression: str) -> "subprocess.CompletedProcess[str]":
+    import subprocess
+
+    script = f"""
+$ErrorActionPreference = 'Stop'
+Import-Module '{(ROOT / "scripts" / "release" / "ReleaseTooling.psm1").as_posix()}' -Force -DisableNameChecking
+$identity = {identity_expression}
+$m = New-ReleaseManifestObject `
+    -GitSha '{"a" * 40}' -ImageTag 'go-odyssey-app:aaaaaaaa' `
+    -ImageId 'sha256:{"e" * 64}' -ArchiveFilename 'x.tar' -ArchiveSha256 '{"f" * 64}' `
+    -BuildTimestamp '2026-09-10T00:00:00Z' -BuildMachineIdentityClass 'test' `
+    -TargetServiceNames @('app') -ExternalContentRequirements ([ordered]@{{}}) `
+    -QuestionsCorpusIdentity $identity -ExpectedHealthEndpoints @('https://example.invalid/healthz') `
+    -RollbackImageIdentity ([ordered]@{{}}) -VerificationResult 'test' `
+    -DeploymentTimestamp $null -OCIRevision '{"a" * 40}'
+$m.questions_corpus_sha256
+"""
+    return subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        # PowerShell emits localized error text in the console codepage, which is
+        # not necessarily UTF-8; decoding must never mask the assertion.
+        errors="replace",
+        timeout=300,
+        check=False,
+    )
+
+
+def _ordered_literal() -> str:
+    parts = []
+    for key, value in _VALID_CORPUS_FIELDS.items():
+        parts.append(f"{key} = {value!r}" if isinstance(value, str) else f"{key} = {value}")
+    body = "; ".join(parts).replace("'", "'")
+    return "[ordered]@{" + body + "}"
+
+
+def test_manifest_accepts_ordered_dictionary_identity():
+    """The exact shape package-release-image.ps1 passes."""
+    result = _manifest_probe(_ordered_literal())
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "missing required field" not in (result.stdout + result.stderr)
+    assert "b" * 64 in result.stdout
+
+
+def test_manifest_accepts_pscustomobject_identity():
+    """The shape any ConvertFrom-Json round trip produces."""
+    result = _manifest_probe("[pscustomobject]" + _ordered_literal()[len("[ordered]"):])
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "b" * 64 in result.stdout
+
+
+def test_manifest_still_rejects_a_missing_corpus_field():
+    """Fail-closed behaviour must survive the shape fix."""
+    literal = _ordered_literal().replace(
+        f"questions_corpus_source_sha256 = '{'d' * 64}'; ", ""
+    )
+    result = _manifest_probe(literal)
+    assert result.returncode != 0
+    assert "missing required field" in (result.stdout + result.stderr)
