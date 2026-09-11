@@ -18,7 +18,7 @@ from test_e030_shop_coin_purchase_and_equipment_runtime_integration import (
 )
 
 
-def test_shop_classifier_is_read_only_before_legacy_dispatch(tmp_path):
+def test_shop_classifier_is_read_only_before_canonical_dispatch(tmp_path):
     path = tmp_path / "dispatch-read-only.sqlite"
     _create_db(path, include_wardrobe=False, purchase_schema=False)
     with sqlite3.connect(path) as conn:
@@ -28,12 +28,13 @@ def test_shop_classifier_is_read_only_before_legacy_dispatch(tmp_path):
                 dispatch_conn,
                 {"item_key": "premium_hint_bundle"},
             )
-        assert result["classification"] == app_module.LEGACY_SHOP_DISPATCH
+        assert result["classification"] == app_module.CANONICAL_SHOP_DISPATCH
+        assert result["offer"].item_id == "premium_hint_bundle"
         assert conn.execute("SELECT COUNT(*) FROM daily_shop").fetchone()[0] == 0
 
 
 @pytest.mark.parametrize("item_key", ["premium_hint_bundle", "extra_questions_small"])
-def test_known_legacy_only_products_fail_closed_without_canonical_adapter(tmp_path, monkeypatch, item_key):
+def test_r1_products_fail_closed_when_c019_schema_is_unavailable(tmp_path, monkeypatch, item_key):
     path = tmp_path / f"legacy-{item_key}.sqlite"
     _create_db(path, include_wardrobe=False, purchase_schema=False, coins=500)
     _seed_daily_slots(path, [])
@@ -42,14 +43,19 @@ def test_known_legacy_only_products_fail_closed_without_canonical_adapter(tmp_pa
 
     response = client.post(
         "/api/shop/buy",
-        json={"item_key": item_key, "qty": 1, "price": 1},
+        json={
+            "item_key": item_key,
+            "purchase_operation_id": f"r1-no-schema-{item_key}",
+            "qty": 1,
+            "price": 1,
+        },
     )
 
-    assert response.status_code == 409
+    assert response.status_code == 503
     body = response.get_json()
     assert body == {
-        "error": "shop_offer_unavailable",
-        "code": "LEGACY_PURCHASE_RETIRED",
+        "error": "schema_unavailable",
+        "code": "SCHEMA_UNAVAILABLE",
     }
     with sqlite3.connect(path) as conn:
         assert conn.execute(

@@ -355,12 +355,12 @@
     },
     {
       "path": "shop.html",
-      "source_commit": "751f942bd2113ec978720132dc7b694c8fa47d54",
-      "source_branch_or_local_ref": "codex/rpg-v1-legacy-newbie-quest-safe-retirement-hardening-002",
-      "source_commit_subject": "Retire legacy RPG V1 newbie quest flow",
-      "source_date": "2026-08-31",
-      "content_sha256": "7c193b7fc0d935fd8360bc14d277065e574cb216f6aff21da50969dceb918ea8",
-      "content_size_bytes": 155984,
+      "source_commit": "2e17fbd7eca160ac4774ade40f0256eb05b5f0e3",
+      "source_branch_or_local_ref": "codex/shop-f-r1-exact-lane-integration-and-reopen-preflight-001",
+      "source_commit_subject": "feat(shop): make purchase availability honest",
+      "source_date": "2026-09-11",
+      "content_sha256": "e82ebc56cd308711d0b2720a8710c56dad946ee05a396d6f8247a7499ed9ad63",
+      "content_size_bytes": 173551,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "source_status": "feature-branch provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
@@ -465,15 +465,15 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "66d8031a623ee208a293ecfa2416d533b2a978b1",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Fix Zone 3 Lord result presentation",
-      "source_date": "2026-09-06",
-      "content_sha256": "127f085caa3a02972016f850de02f6e059698a3cbffc6e1e00a372f3b1a3bf3b",
-      "content_size_bytes": 397554,
+      "source_commit": "2e17fbd7eca160ac4774ade40f0256eb05b5f0e3",
+      "source_branch_or_local_ref": "codex/shop-f-r1-exact-lane-integration-and-reopen-preflight-001",
+      "source_commit_subject": "feat(shop): make purchase availability honest",
+      "source_date": "2026-09-11",
+      "content_sha256": "46d68158b7482e66fc28df9dd4020360ca1c2addfb191c400ee6259541d7d668",
+      "content_size_bytes": 399488,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and its blob is raw-byte-identical to the current file; deployment remains separately gated"
+      "source_status": "feature-branch provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it; deployment remains separately gated"
     },
     {
       "path": "components/adventure/world_stage.html",

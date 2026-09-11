@@ -106,7 +106,7 @@ def test_authorities_still_own_prices_products_and_destinations():
     cosmetic_products = APP[
         APP.index("COSMETIC_COMMERCE_PRODUCTS =") : APP.index("_COSMETIC_PRODUCT_BY_ID")
     ]
-    assert cosmetic_products.count("'unlock_type': 'coins'") == 2
+    assert cosmetic_products.count("'unlock_type': 'coins'") == 7
     assert cosmetic_products.count("'unlock_type': 'premium'") == 1
     for item_id, price in (
         ("wooden_sword", 300),

@@ -117,7 +117,7 @@ def test_canonical_equipment_purchase_persists_unequipped_ownership(tmp_path, mo
 
 
 @pytest.mark.parametrize("item_key", ["premium_hint_bundle", "extra_questions_small", "pet_snack"])
-def test_default_legacy_compatibility_products_fail_closed_without_mutation(
+def test_default_r1_products_fail_closed_without_mutation(
     tmp_path, monkeypatch, item_key
 ):
     path = tmp_path / f"c048-legacy-{item_key}.sqlite"
@@ -142,7 +142,7 @@ def test_default_legacy_compatibility_products_fail_closed_without_mutation(
     assert response.status_code == 409
     assert response.get_json() == {
         "error": "shop_offer_unavailable",
-        "code": "LEGACY_PURCHASE_RETIRED",
+        "code": "SHOP_PURCHASE_DISABLED",
     }
     assert _coins(path) == 500
     with sqlite3.connect(path) as conn:

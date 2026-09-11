@@ -29,6 +29,10 @@ from migrations.coin_purchase_operations_v1 import (
 from migrations.domain_event_outbox_v1 import (
     upgrade as upgrade_event_outbox,
 )
+from coin_purchase_authority import (
+    bind_bundle_acquisition_facts,
+    canonical_bundle_acquisition_facts,
+)
 from shop_offer_identity_projection import (
     ServerShopOfferFacts,
     normalize_shop_offer,
@@ -329,9 +333,15 @@ def _candidate_offers(database_url: str) -> dict[str, CandidateOffer]:
             if offer.duplicate_policy != "STACK":
                 invalid.append(f"{spec.sku}:duplicate_policy={offer.duplicate_policy}")
                 continue
-            if spec.sku in BUNDLE_SKUS and offer.quantity <= 1:
-                invalid.append(f"{spec.sku}:bundle_quantity={offer.quantity}")
-                continue
+            if spec.sku in BUNDLE_SKUS:
+                expected_profile = canonical_bundle_acquisition_facts(spec.sku).as_metadata()
+                if (
+                    offer.quantity != 1
+                    or fact.metadata.get("bundle_offer_type") != "BUNDLE"
+                    or fact.metadata.get("bundle_grant_profile") != expected_profile
+                ):
+                    invalid.append(f"{spec.sku}:typed_bundle_contract")
+                    continue
         else:
             if (
                 offer.destination != "player_wardrobe"
@@ -600,6 +610,24 @@ def _assert_single_grant_delta(
     candidate: CandidateOffer,
 ) -> None:
     offer = candidate.offer
+    if candidate.spec.sku in BUNDLE_SKUS:
+        grants = canonical_bundle_acquisition_facts(candidate.spec.sku).grants
+        assert len(grants) == 1
+        grant = grants[0]
+        if grant.destination == "shop_inventory":
+            before_map, after_map = before["shop"], after["shop"]
+        elif grant.destination == "pet_inventory":
+            before_map, after_map = before["pet"], after["pet"]
+        else:
+            raise AssertionError(f"unsupported bundle destination: {grant.destination}")
+        keys = set(before_map) | set(after_map)
+        delta = {
+            key: after_map.get(key, 0) - before_map.get(key, 0)
+            for key in keys
+            if after_map.get(key, 0) != before_map.get(key, 0)
+        }
+        assert delta == {grant.item_id: grant.quantity}
+        return
     if offer.destination == "shop_inventory":
         before_map, after_map = before["shop"], after["shop"]
     elif offer.destination == "pet_inventory":
@@ -1107,48 +1135,32 @@ def test_bundle_sub_grant_failure_is_fully_atomic(
 ):
     database_url = shop_e_postgres["database_url"]
     candidate = complete_matrix["premium_hint_bundle"]
-    assert candidate.offer.quantity > 1
     from coin_purchase_authority import (
         AcquisitionFailed,
-        CoinPurchaseError,
         SqlAcquisitionAuthority,
         purchase_with_coins,
     )
-    from shop_offer_authority import StaticShopOfferAuthority
+    from shop_offer_authority import CoinShopOffer, StaticShopOfferAuthority
+
+    bound_offer = bind_bundle_acquisition_facts(
+        CoinShopOffer.from_mapping(candidate.offer.as_c019_mapping()),
+        canonical_bundle_acquisition_facts("premium_hint_bundle"),
+    )
 
     class PartialGrantThenFail(SqlAcquisitionAuthority):
-        def acquire(self, conn, *, user_id, offer, purchase_operation_id):
-            del purchase_operation_id
-            if offer.destination == "shop_inventory":
-                conn.execute(
-                    "INSERT INTO shop_inventory(user_id,item_key,qty) "
-                    "VALUES(?,?,?) ON CONFLICT(user_id,item_key) DO UPDATE "
-                    "SET qty=shop_inventory.qty+excluded.qty",
-                    (user_id, offer.item_id, offer.quantity),
-                )
-                conn.execute(
-                    "INSERT INTO shop_inventory(user_id,item_key,qty) "
-                    "VALUES(?,?,?) ON CONFLICT(user_id,item_key) DO UPDATE "
-                    "SET qty=shop_inventory.qty+excluded.qty",
-                    (user_id, "shop_e_partial_probe", 1),
-                )
-            elif offer.destination == "pet_inventory":
-                conn.execute(
-                    "INSERT INTO pet_inventory(user_id,item_key,qty) "
-                    "VALUES(?,?,?) ON CONFLICT(user_id,item_key) DO UPDATE "
-                    "SET qty=pet_inventory.qty+excluded.qty",
-                    (user_id, offer.item_id, offer.quantity),
-                )
-                conn.execute(
-                    "INSERT INTO pet_inventory(user_id,item_key,qty) "
-                    "VALUES(?,?,?) ON CONFLICT(user_id,item_key) DO UPDATE "
-                    "SET qty=pet_inventory.qty+excluded.qty",
-                    (user_id, "shop_e_partial_probe", 1),
-                )
-            else:
-                raise CoinPurchaseError(
-                    "bundle test received unsupported ownership destination"
-                )
+        def _acquire_bundle_grant(self, conn, *, user_id, parent_offer, grant):
+            super()._acquire_bundle_grant(
+                conn,
+                user_id=user_id,
+                parent_offer=parent_offer,
+                grant=grant,
+            )
+            conn.execute(
+                "INSERT INTO shop_inventory(user_id,item_key,qty) "
+                "VALUES(?,?,?) ON CONFLICT(user_id,item_key) DO UPDATE "
+                "SET qty=shop_inventory.qty+excluded.qty",
+                (user_id, "shop_e_partial_probe", 1),
+            )
             raise AcquisitionFailed("SHOP-E forced sub-grant failure")
 
     _set_coins(database_url, candidate.offer.server_price * 3 + 100)
@@ -1160,10 +1172,8 @@ def test_bundle_sub_grant_failure_is_fully_atomic(
                 conn,
                 1,
                 "shop-e-bundle-partial-failure",
-                candidate.offer.offer_id,
-                offer_authority=StaticShopOfferAuthority.from_mappings(
-                    [candidate.offer.as_c019_mapping()]
-                ),
+                bound_offer.offer_id,
+                offer_authority=StaticShopOfferAuthority([bound_offer]),
                 acquisition_authority=PartialGrantThenFail(),
             )
         conn.rollback()

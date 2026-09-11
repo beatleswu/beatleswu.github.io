@@ -420,6 +420,11 @@ def test_postgres_appearance_purchase_replay_race_and_rollback(monkeypatch):
         assert [product["product_id"] for product in catalog.get_json()["products"]] == [
             "cosmetic.outfit.robe_plain",
             "cosmetic.outfit.robe_bamboo",
+            "cosmetic.outfit.back_pack",
+            "cosmetic.outfit.robe_student",
+            "cosmetic.outfit.acc_fan",
+            "cosmetic.outfit.acc_jade_ring",
+            "cosmetic.outfit.hat_dragon_horn",
             "cosmetic.outfit.robe_premium",
         ]
 

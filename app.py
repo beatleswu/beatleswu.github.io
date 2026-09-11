@@ -434,11 +434,15 @@ from shop_offer_identity_projection import (
     normalize_shop_offer,
 )
 from shop_offer_authority import (
+    CoinShopOffer,
     ShopOfferContractError,
     StaticShopOfferAuthority,
 )
 from coin_purchase_authority import (
     AcquisitionFailed,
+    BUNDLE_OFFER_TYPE,
+    bind_bundle_acquisition_facts,
+    canonical_bundle_acquisition_facts,
     CoinPurchaseError,
     CoinDebitFailed,
     InsufficientCoins,
@@ -2854,6 +2858,51 @@ COSMETIC_COMMERCE_PRODUCTS = (
         'ownership_source': 'player_wardrobe.item_id',
         'unlock_type': 'coins',
         'price': 450,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.back_pack',
+        'cosmetic_id': 'back_pack',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 220,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.robe_student',
+        'cosmetic_id': 'robe_student',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 200,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.acc_fan',
+        'cosmetic_id': 'acc_fan',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 480,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.acc_jade_ring',
+        'cosmetic_id': 'acc_jade_ring',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 750,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.hat_dragon_horn',
+        'cosmetic_id': 'hat_dragon_horn',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 950,
         'currency': 'coins',
     },
     {
@@ -24569,6 +24618,20 @@ def _grant_shop_purchase(conn, uid, item, qty=1):
 CANONICAL_COIN_SHOP_PURCHASE_FLAG = 'CANONICAL_COIN_SHOP_PURCHASE_ENABLED'
 EQUIPMENT_CANONICAL_LOADOUT_FLAG = 'EQUIPMENT_CANONICAL_LOADOUT_ENABLED'
 
+SHOP_R1_CONSUMABLE_SKUS = (
+    'hint_ticket',
+    'ai_explain_ticket',
+    'small_xp_potion',
+    'streak_shield',
+    'pet_snack',
+    'extra_questions_small',
+    'extra_questions',
+    'xp_potion',
+    'premium_hint_bundle',
+    'double_streak_shield',
+)
+SHOP_R1_BUNDLE_SKUS = frozenset({'premium_hint_bundle', 'pet_snack'})
+
 
 def _canonical_coin_shop_purchase_enabled():
     return _env_flag_enabled(CANONICAL_COIN_SHOP_PURCHASE_FLAG, default=False)
@@ -24612,14 +24675,13 @@ def _canonical_equipment_shop_offer_facts():
 def _canonical_shop_offer_facts(conn, *, appearance_only=False):
     """Resolve current server Shop facts without trusting request fields.
 
-    Only already-supported single-grant Coin products enter this adapter.
-    Legacy bundles/effects/pet grants remain classified as compatibility
-    products until a separate approved destination/grant adapter exists; the
-    default ``/api/shop/buy`` route fails those products closed instead of
-    invoking the historical mutation path. C046 contributes static
-    functional Equipment facts from its server-owned offer authority; the
-    definitions are not copied into ``SHOP_ITEMS``. Tests may inject a
-    synthetic server-owned fact through this helper.
+    The R1 launch consumables are projected from the existing ``SHOP_ITEMS``
+    definitions, including effect-bearing items and the two typed bundle
+    parents. The bundle child grants are bound later at the C019 purchase
+    seam; this resolver remains a read-only server-fact projection. C046
+    contributes static functional Equipment facts from its server-owned offer
+    authority; the definitions are not copied into ``SHOP_ITEMS``. Tests may
+    inject a synthetic server-owned fact through this helper.
     """
 
     today = datetime.date.today().isoformat()
@@ -24649,10 +24711,9 @@ def _canonical_shop_offer_facts(conn, *, appearance_only=False):
     facts = []
     if not appearance_only:
         facts.extend(_canonical_equipment_shop_offer_facts())
-        for item_key, item in SHOP_ITEMS.items():
-            # Bundles, pet grants, and effect-bearing items retain their
-            # existing route until an explicit canonical adapter exists.
-            if item.get('grants_items') or item.get('grants_food') or item.get('effect'):
+        for item_key in SHOP_R1_CONSUMABLE_SKUS:
+            item = SHOP_ITEMS.get(item_key)
+            if not item:
                 continue
             price = item.get('price')
             if isinstance(price, bool) or not isinstance(price, int) or price <= 0:
@@ -24706,6 +24767,17 @@ def _canonical_shop_offer_facts(conn, *, appearance_only=False):
                     metadata={
                         'name': item.get('name_en') or item.get('name') or item_key,
                         'category': item.get('category'),
+                        **(
+                            {
+                                'bundle_offer_type': BUNDLE_OFFER_TYPE,
+                                'bundle_grant_profile': (
+                                    canonical_bundle_acquisition_facts(item_key)
+                                    .as_metadata()
+                                ),
+                            }
+                            if item_key in SHOP_R1_BUNDLE_SKUS
+                            else {}
+                        ),
                     },
                 )
             )
@@ -24971,6 +25043,142 @@ def _canonical_shop_offer_for_request(conn, body, *, appearance_only=False):
     return matches[0]
 
 
+def _canonical_coin_purchase_offer(normalized_offer):
+    """Bind the typed R1 bundle profile at the sole purchase seam."""
+
+    offer = CoinShopOffer.from_mapping(normalized_offer.as_c019_mapping())
+    if offer.item_id in SHOP_R1_BUNDLE_SKUS:
+        offer = bind_bundle_acquisition_facts(
+            offer,
+            canonical_bundle_acquisition_facts(offer.item_id),
+        )
+    return offer
+
+
+def _canonical_bundle_purchase_presentation(
+    conn,
+    result,
+    operation_record,
+    lineage_evidence,
+):
+    """Expose committed child-grant evidence without a fake parent row.
+
+    The D024 direct-row adapter is intentionally for one ownership row. R1
+    bundles have no parent ownership row: the accepted typed authority writes
+    only their canonical child grants. This read-only presentation seam
+    validates the committed operation, lineage, exact child profile, and
+    physical child rows before returning the stored bundle metadata.
+    """
+
+    if str(operation_record.get('operation_status') or '').upper() != 'COMMITTED':
+        raise ShopAcquisitionBridgeError(
+            'COMMITTED_RESULT_EVIDENCE_REQUIRED',
+            'bundle purchase operation is not committed',
+        )
+    for field, expected in (
+        ('user_id', str(operation_record.get('user_id'))),
+        ('purchase_operation_id', result.operation_id),
+        ('offer_id', result.offer_id),
+        ('reward_id', result.item_id),
+        ('reward_quantity', result.quantity),
+        ('destination', result.destination),
+        ('acquisition_class', operation_record.get('acquisition_class')),
+        ('lineage_event_id', result.lineage_event_id),
+    ):
+        actual = operation_record.get(field)
+        if field == 'user_id':
+            if str(actual) != expected:
+                raise ShopAcquisitionBridgeError(
+                    'RESULT_IDENTITY_MISMATCH',
+                    f'bundle operation {field} does not match the committed result',
+                )
+        elif actual != expected:
+            raise ShopAcquisitionBridgeError(
+                'RESULT_IDENTITY_MISMATCH',
+                f'bundle operation {field} does not match the committed result',
+            )
+
+    event_id = (lineage_evidence or {}).get('event_id')
+    if str(event_id or '') != result.lineage_event_id:
+        raise ShopAcquisitionBridgeError(
+            'LINEAGE_ID_MISMATCH',
+            'bundle lineage evidence does not match the committed result',
+        )
+
+    ownership = result.ownership_result
+    presentation = ownership.get('presentation_metadata') or {}
+    if ownership.get('ownership_state') != 'BUNDLE_GRANTED':
+        raise ShopAcquisitionBridgeError(
+            'BUNDLE_PRESENTATION_INVALID',
+            'committed bundle result is missing BUNDLE_GRANTED ownership state',
+        )
+    actual_grants = presentation.get('bundle_grants')
+    if not isinstance(actual_grants, list) or not actual_grants:
+        raise ShopAcquisitionBridgeError(
+            'BUNDLE_PRESENTATION_INVALID',
+            'committed bundle result has no child-grant presentation metadata',
+        )
+    try:
+        expected_grants = canonical_bundle_acquisition_facts(
+            result.item_id
+        ).as_metadata()
+    except AcquisitionFailed as error:
+        raise ShopAcquisitionBridgeError(
+            'BUNDLE_PRESENTATION_INVALID',
+            'committed result is not an admitted R1 bundle',
+        ) from error
+
+    actual_profile = [
+        {
+            key: grant.get(key)
+            for key in (
+                'item_id',
+                'quantity',
+                'destination',
+                'acquisition_class',
+                'duplicate_policy',
+            )
+        }
+        for grant in actual_grants
+        if isinstance(grant, dict)
+    ]
+    if actual_profile != expected_grants:
+        raise ShopAcquisitionBridgeError(
+            'BUNDLE_PRESENTATION_INVALID',
+            'committed child-grant metadata does not match the canonical profile',
+        )
+
+    user_id = str(operation_record.get('user_id'))
+    for grant in actual_grants:
+        destination = grant.get('destination')
+        if destination == 'shop_inventory':
+            row = conn.execute(
+                'SELECT 1 FROM shop_inventory WHERE user_id=? AND item_key=?',
+                (user_id, grant.get('item_id')),
+            ).fetchone()
+        elif destination == 'pet_inventory':
+            row = conn.execute(
+                'SELECT 1 FROM pet_inventory WHERE user_id=? AND item_key=?',
+                (user_id, grant.get('item_id')),
+            ).fetchone()
+        else:
+            raise ShopAcquisitionBridgeError(
+                'UNSUPPORTED_DESTINATION',
+                f'unsupported R1 bundle child destination: {destination}',
+            )
+        if row is None:
+            raise ShopAcquisitionBridgeError(
+                'OWNERSHIP_AUTHORITY_ROW_MISSING',
+                'no committed bundle child ownership row for this operation',
+            )
+
+    payload = result.as_dict()
+    payload['presentation_contract'] = 'SHOP_BUNDLE_ACQUISITION_V1'
+    payload['bundle_ownership'] = presentation.get('bundle_ownership')
+    payload['bundle_grants'] = actual_grants
+    return payload
+
+
 def _canonical_shop_operation_record(conn, uid, operation_id):
     row = conn.execute(
         f'SELECT * FROM {COIN_PURCHASE_OPERATIONS_TABLE} '
@@ -25048,6 +25256,7 @@ def _canonical_shop_purchase_response(uid, body, *, appearance_only=False):
         return _canonical_shop_purchase_disabled_response()
 
     with get_db() as conn:
+        canonical_offer = None
         try:
             normalized_offer = _canonical_shop_offer_for_request(
                 conn,
@@ -25081,9 +25290,8 @@ def _canonical_shop_purchase_response(uid, body, *, appearance_only=False):
                     equipment_defs=EQUIPMENT_DEFS,
                 )
             else:
-                authority = StaticShopOfferAuthority.from_mappings([
-                    normalized_offer.as_c019_mapping()
-                ])
+                canonical_offer = _canonical_coin_purchase_offer(normalized_offer)
+                authority = StaticShopOfferAuthority([canonical_offer])
                 result = purchase_with_coins(
                     conn,
                     int(uid),
@@ -25124,18 +25332,30 @@ def _canonical_shop_purchase_response(uid, body, *, appearance_only=False):
                 event_type='ITEM_ACQUISITION',
                 idempotency_key=f'coin-purchase-acquisition:{operation_id}',
             )
-            canonical_result = adapt_committed_shop_purchase(
-                conn,
-                result,
-                operation_record,
-                lineage_evidence,
-            )
+            if canonical_offer is not None and canonical_offer.offer_type == BUNDLE_OFFER_TYPE:
+                canonical_result = _canonical_bundle_purchase_presentation(
+                    conn,
+                    result,
+                    operation_record,
+                    lineage_evidence,
+                )
+            else:
+                canonical_result = adapt_committed_shop_purchase(
+                    conn,
+                    result,
+                    operation_record,
+                    lineage_evidence,
+                )
         except Exception as error:
             payload, status = _canonical_shop_error_response(error)
             return jsonify(payload), status
 
         response = result.as_dict()
-        response['canonical_acquisition_result'] = canonical_result.to_dict()
+        response['canonical_acquisition_result'] = (
+            canonical_result
+            if isinstance(canonical_result, dict)
+            else canonical_result.to_dict()
+        )
         return jsonify(response)
 
 def grant_community_reward_badge(conn, *, user_id, badge_key, claim_id=None, context=None):
@@ -25783,6 +26003,7 @@ def world_npc_catalog():
 @login_required
 def shop_catalog():
     uid = session['user_id']
+    purchase_enabled = _canonical_coin_shop_purchase_enabled()
     with get_db() as conn:
         bal = _coin_balance(conn, uid)
         earned = _coins_earned_today(conn, uid)
@@ -25790,7 +26011,7 @@ def shop_catalog():
             'SELECT item_key, qty FROM shop_inventory WHERE user_id=? AND qty>0', (uid,)).fetchall()
         equipment_offers = []
         equipment_ownership = {}
-        if _canonical_coin_shop_purchase_enabled():
+        if purchase_enabled:
             for server_facts in _canonical_equipment_shop_offer_facts():
                 equipment_offers.append(
                     normalize_shop_offer(server_facts).as_c019_mapping()
@@ -25810,6 +26031,7 @@ def shop_catalog():
         collection = _gacha_collection_progress(conn, uid)
     product_registry = build_shop_product_grant_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
     return jsonify({
+        'purchase_enabled': purchase_enabled,
         'coins': bal,
         'earned_today': earned,
         'daily_cap': _COIN_DAILY_CAP,
