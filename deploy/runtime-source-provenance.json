@@ -1195,8 +1195,8 @@
     },
     {
       "path": "coin_purchase_authority.py",
-      "source_commit": "fe4137339aa41caf5092d66825b39b13ae3064dc",
-      "source_branch_or_local_ref": "codex/shop-b-canonical-purchase-acquisition-001",
+      "source_commit": "5a855edccf33a201accd0f6748b82425f61c946b",
+      "source_branch_or_local_ref": "codex/shop-f-r1-exact-lane-integration-and-reopen-preflight-001",
       "source_commit_subject": "Implement canonical R1 consumable acquisition",
       "source_date": "2026-09-11",
       "content_sha256": "4d8589ff3e6828cfd1cea4aa440a4fe53753010098c91cc5d83fffa6d5ff9a3a",
