@@ -121,6 +121,11 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         # governed image, so the runner is packaged and governed alongside its
         # Dockerfile COPY and build-manifest entry.
         "tools/incident_019b_progression_continuity.py",
+        # SHOP-F R1 added the application entrypoint integration and the
+        # canonical Coin Shop acquisition authority; both are explicit image
+        # inputs and require byte-verified provenance records.
+        "app.py",
+        "coin_purchase_authority.py",
     }
 )
 CURRENT_EXPECTED_COUNT = B1_PRESENT_EXPECTED_COUNT + len(POST_B1_GOVERNED_RUNTIME_PATHS)

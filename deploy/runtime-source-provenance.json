@@ -1180,6 +1180,30 @@
       "line_ending_policy": "LF",
       "runtime_role": "packaged administrative runner (Dockerfile COPY); the owner-gated grandfathered continuity baseline migration and its read-only preflight are executed from inside the governed image",
       "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+    },
+    {
+      "path": "app.py",
+      "source_commit": "06ed3832a849a2ad2b014ff5f567f93c51d46958",
+      "source_branch_or_local_ref": "codex/shop-f-r1-exact-lane-integration-and-reopen-preflight-001",
+      "source_commit_subject": "feat(shop): integrate R1 launch catalog and bundles",
+      "source_date": "2026-09-11",
+      "content_sha256": "9f40fd47f64c3b7ff3d419f498f8430987e27009bca1b34db8cdcb51ae9e2ede",
+      "content_size_bytes": 1382021,
+      "line_ending_policy": "LF",
+      "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator",
+      "source_status": "feature-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; deployment remains separately gated"
+    },
+    {
+      "path": "coin_purchase_authority.py",
+      "source_commit": "fe4137339aa41caf5092d66825b39b13ae3064dc",
+      "source_branch_or_local_ref": "codex/shop-b-canonical-purchase-acquisition-001",
+      "source_commit_subject": "Implement canonical R1 consumable acquisition",
+      "source_date": "2026-09-11",
+      "content_sha256": "4d8589ff3e6828cfd1cea4aa440a4fe53753010098c91cc5d83fffa6d5ff9a3a",
+      "content_size_bytes": 57243,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py runtime dependency; canonical Coin Shop acquisition authority for R1 consumables and typed bundles",
+      "source_status": "feature-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; deployment remains separately gated"
     }
   ]
 }
