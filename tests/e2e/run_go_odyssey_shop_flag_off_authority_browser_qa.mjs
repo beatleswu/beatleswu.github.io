@@ -79,6 +79,7 @@ async function startStaticServer(rootDir) {
 }
 
 const OFF_CATALOG = {
+  purchase_enabled: false,
   coins: 1000,
   earned_today: 0,
   daily_cap: 500,
@@ -120,6 +121,7 @@ const EQUIPMENT_OFFERS = [
 function canonicalCatalog(purchased) {
   return {
     ...OFF_CATALOG,
+    purchase_enabled: true,
     coins: purchased ? 700 : 1000,
     equipment_offers: EQUIPMENT_OFFERS,
     equipment_ownership: purchased

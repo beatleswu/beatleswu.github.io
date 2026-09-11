@@ -147,6 +147,37 @@ h1 {
   color: var(--muted);
   font-size: 12px;
 }
+.shop-purchase-state {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  border: 1px solid rgba(240, 191, 87, .52);
+  border-radius: var(--radius);
+  background: linear-gradient(100deg, rgba(240, 191, 87, .13), rgba(10, 8, 6, .78));
+  box-shadow: var(--shadow);
+}
+.shop-purchase-state[hidden] { display: none; }
+.shop-purchase-state strong { color: var(--gold); font-size: 14px; }
+.shop-purchase-state span { color: var(--muted); font-size: 12px; line-height: 1.55; }
+.shop-purchase-state[data-purchase-enabled="true"] { border-color: rgba(123, 211, 122, .42); }
+.shop-purchase-state[data-purchase-enabled="true"] strong { color: var(--green); }
+.item-card[data-shop-purchase-disabled="true"] .price,
+.cosmetic-card[data-shop-purchase-disabled="true"] .price { opacity: .72; }
+.shop-purchase-use-copy {
+  position: relative;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 8px;
+  padding: 8px 9px;
+  border: 1px solid rgba(86, 214, 194, .24);
+  border-radius: 8px;
+  background: rgba(86, 214, 194, .07);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.shop-purchase-use-copy strong { color: #bafff3; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
 .merchant-stage {
   position: relative;
   min-height: 620px;
@@ -761,6 +792,10 @@ button:focus-visible {
           <div class="tile-sub" id="collection-sub" data-i18n="shop.collect.sub">扭蛋外觀收集進度</div>
         </div>
       </div>
+      <section class="shop-purchase-state" id="shop-purchase-state" data-shop-purchase-state="closed" data-purchase-enabled="false" data-purchase-enabled-source="missing" role="status" aria-live="polite" aria-atomic="true" aria-labelledby="shop-purchase-state-title">
+        <strong id="shop-purchase-state-title">購買功能暫時關閉</strong>
+        <span id="shop-purchase-state-copy">目前可以瀏覽商品；購買按鈕已停用，待 server 開放後才可購買。</span>
+      </section>
     </div>
 
     <div class="merchant-stage" aria-hidden="true">
@@ -825,6 +860,22 @@ button:focus-visible {
             <button class="btn" id="equipment-detail-buy" type="button" data-equipment-purchase="" data-c044-cta="purchase" data-c044-pending="false" hidden>購買</button>
           </div>
         </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="section panel shop-r1-consumables-panel" id="shop-r1-consumables-panel" data-shop-r1-surface="consumables" aria-labelledby="shop-r1-consumables-title">
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker" data-i18n="shop.r1.consumables.kicker">CONSUMABLES · BUY THEN USE</div>
+          <div class="section-title" id="shop-r1-consumables-title" data-i18n="shop.r1.consumables.title">Consumables</div>
+        </div>
+        <div class="section-sub" data-i18n="shop.r1.consumables.sub">Server catalog · repeatable inventory items</div>
+      </div>
+      <p class="cosmetic-note" data-i18n="shop.r1.consumables.note">Buy adds the item to your Backpack. Use or activate it later from the Backpack; buying does not activate an effect.</p>
+      <div class="grid" id="shop-r1-consumables-grid" data-shop-r1-catalog-list="consumables" aria-live="polite">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       </div>
     </div>
   </section>
@@ -980,6 +1031,7 @@ let c044EquipmentCatalogRevision = 0;
 let c044EquipmentCatalogRequest = 0;
 let c044EquipmentSelectedOfferId = '';
 const c044EquipmentPurchaseInFlight = new Map();
+const shopPurchaseUiInFlight = new Set();
 let premiumV1SelectedCosmeticId = null;
 let cosmeticModalReturnFocus = null;
 let toastTimer = null;
@@ -987,6 +1039,54 @@ let toastTimer = null;
 // proves that the canonical equipment assortment is available.  This is a
 // presentation latch only; it never creates products, prices, or ownership.
 let c053OptionBVisible = false;
+
+// SHOP-C purchase availability is a server presentation fact.  It is strict
+// by design: only the literal boolean true can enable a purchase control.
+function shopPurchaseEnabled(data = catalog) {
+  return data?.purchase_enabled === true;
+}
+
+function shopPurchaseClosedCopy() {
+  return {
+    title: uiText(
+      'shop.purchase.closedTitle',
+      'Purchases temporarily closed',
+      '購買功能暫時關閉',
+    ),
+    copy: uiText(
+      'shop.purchase.closedCopy',
+      'You can browse the catalog. Buy controls are disabled until the server reopens purchases.',
+      '目前可以瀏覽商品；購買按鈕已停用，待 server 開放後才可購買。',
+    ),
+  };
+}
+
+function updateShopPurchaseState(data = catalog) {
+  const state = document.getElementById('shop-purchase-state');
+  const title = document.getElementById('shop-purchase-state-title');
+  const copy = document.getElementById('shop-purchase-state-copy');
+  if (!state || !title || !copy) return;
+  const enabled = shopPurchaseEnabled(data);
+  const hasAuthoritativeBoolean = typeof data?.purchase_enabled === 'boolean';
+  const closed = shopPurchaseClosedCopy();
+  state.hidden = enabled;
+  state.dataset.shopPurchaseState = enabled ? 'open' : 'closed';
+  state.dataset.purchaseEnabled = enabled ? 'true' : 'false';
+  state.dataset.purchaseEnabledSource = hasAuthoritativeBoolean ? 'server' : 'missing';
+  title.textContent = enabled
+    ? uiText('shop.purchase.openTitle', 'Purchases available', '購買功能已開放')
+    : closed.title;
+  copy.textContent = enabled
+    ? uiText('shop.purchase.openCopy', 'Buy adds the item to your Backpack or wardrobe; use and equip actions happen separately.', '購買會將物品加入背包或衣櫃；使用與裝備仍是分開的操作。')
+    : closed.copy;
+}
+
+function showShopPurchaseClosed() {
+  const copy = shopPurchaseClosedCopy();
+  updateShopPurchaseState(catalog);
+  showToast(copy.copy);
+  return { error: 'SHOP_PURCHASE_DISABLED' };
+}
 
 const ASSET = {
   hint_ticket: "/assets/shop/small_hint_scroll.webp",
@@ -1430,9 +1530,19 @@ function resultArt(key, icon) {
       : `<span class="emoji-fallback">${icon || "?"}</span>`;
 }
 function errorMessage(code, fallback) {
+  const generic = isEn()
+    ? 'The Shop could not complete this purchase. Retry the same purchase.'
+    : '商城無法完成這筆購買，請重試同一筆購買。';
   const map = isEn() ? {
+    shop_offer_unavailable: 'Purchases are temporarily closed. You can browse the Shop, but Buy is unavailable right now.',
+    shop_purchase_disabled: 'Purchases are temporarily closed. You can browse the Shop, but Buy is unavailable right now.',
+    legacy_purchase_retired: 'This purchase path has been retired. Please choose a current Shop offer.',
     insufficient_coins: `Not enough coins — earn more and come back.`,
     already_owned: "You already own this item.",
+    purchase_conflict: 'This purchase could not be matched to the selected Shop offer. Retry the same purchase.',
+    purchase_in_progress: 'This purchase is still being confirmed. Retry the same purchase.',
+    purchase_failed: generic,
+    generic_purchase_failure: generic,
     invalid_offer: "This equipment offer could not be verified.",
     offer_not_ready: "This equipment offer is not ready for purchase.",
     purchase_operation_conflict: "This purchase identity is already bound to another offer.",
@@ -1449,8 +1559,15 @@ function errorMessage(code, fallback) {
     effect_active: "This effect is already active.",
     auto_use_only: "This tool can only be used automatically while solving."
   } : {
+    shop_offer_unavailable: "購買功能暫時關閉；你仍可瀏覽商城，但目前無法購買。",
+    shop_purchase_disabled: "購買功能暫時關閉；你仍可瀏覽商城，但目前無法購買。",
+    legacy_purchase_retired: "這條購買路徑已停用，請選擇目前商城提供的商品。",
     insufficient_coins: "金幣不足，請先賺一些再回來。",
     already_owned: "你已經擁有這個項目了。",
+    purchase_conflict: "這筆購買無法對應到所選商城商品，請重試同一筆購買。",
+    purchase_in_progress: "這筆購買仍在確認中，請重試同一筆購買。",
+    purchase_failed: generic,
+    generic_purchase_failure: generic,
     invalid_offer: "這個裝備商品無法驗證。",
     offer_not_ready: "這個裝備商品尚未準備好購買。",
     purchase_operation_conflict: "這筆購買識別已綁定其他商品。",
@@ -1467,7 +1584,18 @@ function errorMessage(code, fallback) {
     effect_active: "這個效果已經在生效中。",
     auto_use_only: "這個道具只能在題目中自動使用。"
   };
-  return map[code] || fallback || code || (isEn() ? "An unknown error occurred." : "發生未知錯誤。");
+  const rawCode = typeof code === 'string' ? code.trim() : '';
+  const mapped = rawCode ? map[rawCode.toLowerCase()] : '';
+  if (mapped) return mapped;
+  const safeFallback = typeof fallback === 'string' ? fallback.trim() : '';
+  // Server messages may be player-facing, but a bare identifier is not.
+  // Never let an internal error token become the primary UI copy.
+  if (safeFallback && safeFallback !== rawCode
+      && !/^HTTP\s+\d{3}$/i.test(safeFallback)
+      && !/^[A-Za-z][A-Za-z0-9_.-]*$/.test(safeFallback)) {
+    return safeFallback;
+  }
+  return generic;
 }
 
 // C043-E-EQUIPMENT-COMMERCE-FEEDBACK-START
@@ -1710,7 +1838,9 @@ function c044EquipmentDetailFieldsHTML(detail) {
 
 const C044_EQUIPMENT_PURCHASE_STATES = Object.freeze(new Set([
   'pending', 'success', 'error', 'insufficient_coins', 'already_owned', 'invalid_offer',
-  'shop_offer_unavailable', 'purchase_operation_conflict', 'purchase_operation_in_progress',
+  'shop_offer_unavailable', 'SHOP_PURCHASE_DISABLED', 'LEGACY_PURCHASE_RETIRED',
+  'purchase_operation_conflict', 'purchase_operation_in_progress', 'purchase_conflict',
+  'purchase_failed',
   'canonical_result_unavailable', 'ownership_authority_unavailable', 'schema_unavailable',
   'acquisition_failed', 'network_error', 'timeout',
 ]));
@@ -1853,11 +1983,19 @@ function shopPurchaseResponseIsRetryable(response) {
   const code = String(response?.code || '').toUpperCase();
   return error === 'canonical_result_unavailable'
     || error === 'purchase_operation_in_progress'
+    || error === 'purchase_in_progress'
     || code === 'PURCHASE_OPERATION_IN_PROGRESS'
+    || code === 'PURCHASE_IN_PROGRESS'
     || /^HTTP 5\d\d$/.test(String(response?.error || '').toUpperCase());
 }
 
 async function requestShopPurchase(route, selector, payload) {
+  // Keep the client fail-closed even if a caller is invoked programmatically
+  // after the catalog has changed.  The optional function check preserves the
+  // isolated E030 helper contract, where this function is evaluated alone.
+  if (typeof shopPurchaseEnabled === 'function' && !shopPurchaseEnabled()) {
+    return { error: 'SHOP_PURCHASE_DISABLED' };
+  }
   const intent = beginShopPurchaseIntent(route, selector);
   try {
     const response = await api(route, {
@@ -1875,6 +2013,49 @@ async function requestShopPurchase(route, selector, payload) {
   }
 }
 // E030-R1-SHOP-PURCHASE-INTENT-END
+
+function shopPurchaseClosedActionLabel() {
+  return uiText('shop.purchase.closedAction', 'Temporarily closed', '暫時關閉');
+}
+
+function shopPurchaseUiKey(route, selector) {
+  return `${route}:${selector}`;
+}
+
+function shopPurchasePendingLabel() {
+  return uiText('shop.purchase.pending', 'Confirming…', '確認中…');
+}
+
+function applyShopPurchaseControlState(button, { disabled = false, reason = '', pending = false } = {}) {
+  if (!button) return;
+  const closed = !shopPurchaseEnabled();
+  const isDisabled = closed || disabled || pending;
+  button.dataset.shopPurchaseControl = 'true';
+  button.dataset.shopPurchaseDisabled = closed ? 'true' : 'false';
+  button.disabled = isDisabled;
+  if (pending) button.setAttribute('aria-busy', 'true');
+  else button.removeAttribute('aria-busy');
+  if (isDisabled) button.setAttribute('aria-disabled', 'true');
+  else button.removeAttribute('aria-disabled');
+  if (closed) button.dataset.shopPurchaseDisabledReason = 'purchases-closed';
+  else if (reason) button.dataset.shopPurchaseDisabledReason = reason;
+  else delete button.dataset.shopPurchaseDisabledReason;
+}
+
+function clearShopPurchaseUiPending(route, selector) {
+  document.querySelectorAll('[data-shop-purchase-control]').forEach(button => {
+    if (button.dataset.shopPurchaseRoute === route
+        && button.dataset.shopPurchaseSelector === String(selector)) {
+      applyShopPurchaseControlState(button);
+    }
+  });
+}
+
+function shopPurchaseUiButton(route, selector) {
+  return [...document.querySelectorAll('[data-shop-purchase-control]')]
+    .find(button => button.dataset.shopPurchaseRoute === route
+      && button.dataset.shopPurchaseSelector === String(selector)) || null;
+}
 
 function cosmeticEsc(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -2029,6 +2210,7 @@ function renderCosmeticCommerce(data) {
     const ownership = product.ownership || {};
     const equipped = !!product.equipped_state?.equipped;
     const owned = !!ownership.owned;
+    const purchasePending = shopPurchaseUiInFlight.has(shopPurchaseUiKey('/api/cosmetic-commerce/purchase', product.product_id));
     const unavailable = !owned && product.unlock_type === 'premium' && !data.premium_entitled;
     const stateClass = equipped ? 'selected' : unavailable ? 'unavailable' : owned ? 'owned' : 'available';
     const displayName = cosmeticDisplayName(product);
@@ -2036,8 +2218,12 @@ function renderCosmeticCommerce(data) {
       ? uiText('shop.cosmetic.state.selected', 'Selected', '已選用')
       : unavailable
         ? uiText('shop.cosmetic.state.unavailable', 'Unavailable · Premium required', '目前不可用 · 需要 Premium')
-        : owned
+      : owned
           ? uiText('shop.cosmetic.state.owned', 'Owned', '已擁有')
+          : purchasePending
+            ? uiText('shop.cosmetic.state.pending', 'Purchase confirming…', '購買確認中…')
+          : !shopPurchaseEnabled()
+            ? uiText('shop.cosmetic.state.closed', 'Available · purchases temporarily closed', '可取得 · 購買暫時關閉')
           : uiText('shop.cosmetic.state.available', 'Available', '可取得');
     const action = equipped
       ? `<button class="btn" type="button" disabled aria-pressed="true">${uiText('shop.cosmetic.equipped', 'Selected', '已選用')}</button>`
@@ -2045,11 +2231,15 @@ function renderCosmeticCommerce(data) {
         ? `<button class="btn" type="button" disabled aria-disabled="true">${uiText('shop.cosmetic.unavailable', 'Unavailable', '目前不可用')}</button>`
       : owned
         ? `<button class="btn" type="button" data-cosmetic-equip="${id}" aria-label="${cosmeticEsc(uiFormat('shop.cosmetic.equipFor', 'Select {name}', '選用{name}', {name: displayName}))}">${uiText('shop.cosmetic.select', 'Select', '選用')}</button>`
-        : `<button class="btn" type="button" data-cosmetic-purchase="${id}" aria-label="${cosmeticEsc(uiFormat(product.unlock_type === 'premium' ? 'shop.cosmetic.unlockFor' : 'shop.cosmetic.buyFor', product.unlock_type === 'premium' ? 'Unlock {name}' : 'Buy {name}', product.unlock_type === 'premium' ? '解鎖{name}' : '購買{name}', {name: displayName}))}">${product.unlock_type === 'premium' ? uiText('shop.cosmetic.unlock', 'Unlock', '解鎖') : uiText('shop.cosmetic.buy', 'Buy', '購買')}</button>`;
+        : purchasePending
+          ? `<button class="btn" type="button" data-shop-purchase-control="true" data-shop-purchase-route="/api/cosmetic-commerce/purchase" data-shop-purchase-selector="${id}" data-cosmetic-purchase="${id}" disabled aria-disabled="true" aria-busy="true" data-shop-purchase-pending="true">${shopPurchasePendingLabel()}</button>`
+        : !shopPurchaseEnabled()
+          ? `<button class="btn" type="button" data-shop-purchase-control="true" data-shop-purchase-route="/api/cosmetic-commerce/purchase" data-shop-purchase-selector="${id}" data-cosmetic-purchase="${id}" data-shop-purchase-disabled="true" data-shop-purchase-disabled-reason="purchases-closed" disabled aria-disabled="true" aria-label="${cosmeticEsc(uiFormat('shop.purchase.closedFor', 'Purchases temporarily closed for {name}', '{name}的購買功能暫時關閉', {name: displayName}))}">${shopPurchaseClosedActionLabel()}</button>`
+        : `<button class="btn" type="button" data-shop-purchase-control="true" data-shop-purchase-route="/api/cosmetic-commerce/purchase" data-shop-purchase-selector="${id}" data-cosmetic-purchase="${id}" aria-label="${cosmeticEsc(uiFormat(product.unlock_type === 'premium' ? 'shop.cosmetic.unlockFor' : 'shop.cosmetic.buyFor', product.unlock_type === 'premium' ? 'Unlock {name}' : 'Buy {name}', product.unlock_type === 'premium' ? '解鎖{name}' : '購買{name}', {name: displayName}))}">${product.unlock_type === 'premium' ? uiText('shop.cosmetic.unlock', 'Unlock', '解鎖') : uiText('shop.cosmetic.buy', 'Buy', '購買')}</button>`;
     const artClass = asset.mode === 'FULL_BODY_COSMETIC_REFERENCE'
       ? 'cosmetic-art cosmetic-art--fullbody'
       : 'cosmetic-art';
-    return `<article class="cosmetic-card${equipped ? ' is-equipped' : ''}${unavailable ? ' is-unavailable' : ''}" data-cosmetic-product="${id}" data-cosmetic-state="${stateClass}" aria-label="${cosmeticEsc(displayName)}">
+    return `<article class="cosmetic-card${equipped ? ' is-equipped' : ''}${unavailable ? ' is-unavailable' : ''}" data-cosmetic-product="${id}" data-cosmetic-state="${stateClass}" data-shop-purchase-disabled="${!shopPurchaseEnabled() ? 'true' : 'false'}" aria-label="${cosmeticEsc(displayName)}">
       <div class="cosmetic-card-top">
         ${cosmeticPresentationArtHTML(asset, artClass)}
         <div><div class="cosmetic-name">${cosmeticEsc(displayName)}</div>
@@ -2268,6 +2458,18 @@ function previewVisualCandidate(cosmeticId) {
   showCosmeticPreview(product);
 }
 async function purchaseCosmetic(productId) {
+  if (!shopPurchaseEnabled()) {
+    showShopPurchaseClosed();
+    return;
+  }
+  const purchaseKey = shopPurchaseUiKey('/api/cosmetic-commerce/purchase', productId);
+  if (shopPurchaseUiInFlight.has(purchaseKey)) {
+    showToast(errorMessage('purchase_operation_in_progress'));
+    return;
+  }
+  shopPurchaseUiInFlight.add(purchaseKey);
+  const button = shopPurchaseUiButton('/api/cosmetic-commerce/purchase', productId);
+  applyShopPurchaseControlState(button, { pending: true });
   setMerchant('talk', 'talk');
   let res;
   try {
@@ -2275,18 +2477,25 @@ async function purchaseCosmetic(productId) {
   } catch (_) {
     setMerchant('idle', 'idle');
     showToast(isEn() ? 'Network error. Retry the same purchase.' : '網路連線異常，請重試同一筆購買。');
+    shopPurchaseUiInFlight.delete(purchaseKey);
+    clearShopPurchaseUiPending('/api/cosmetic-commerce/purchase', productId);
     return;
   }
-  if (res.error) { setMerchant('idle', 'idle'); showToast(errorMessage(res.error, res.message)); return; }
-  await loadCosmeticCommerce();
-  const replayed = res.replayed === true || res.canonical_acquisition_result?.replayed === true;
-  if (replayed || res.status === 'already_owned') {
-    setMerchant('idle', 'idle');
-    showToast(isEn() ? 'Purchase already recorded; wardrobe refreshed.' : '購買結果已記錄，衣櫃已更新。');
-    return;
+  try {
+    if (res.error) { setMerchant('idle', 'idle'); showToast(errorMessage(res.error || res.code, res.message)); return; }
+    await Promise.all([loadCatalog(), loadCosmeticCommerce()]);
+    const replayed = res.replayed === true || res.canonical_acquisition_result?.replayed === true;
+    if (replayed || res.status === 'already_owned') {
+      setMerchant('idle', 'idle');
+      showToast(isEn() ? 'Purchase already recorded; wardrobe refreshed.' : '購買結果已記錄，衣櫃已更新。');
+      return;
+    }
+    setMerchant('happy', 'happy');
+    showToast(isEn() ? 'Cosmetic unlocked.' : '外觀已解鎖並收入衣櫃。');
+  } finally {
+    shopPurchaseUiInFlight.delete(purchaseKey);
+    clearShopPurchaseUiPending('/api/cosmetic-commerce/purchase', productId);
   }
-  setMerchant('happy', 'happy');
-  showToast(isEn() ? 'Cosmetic unlocked.' : '外觀已解鎖並收入衣櫃。');
 }
 async function equipCosmetic(productId) {
   const res = await api('/api/cosmetic-commerce/equip', {
@@ -2332,7 +2541,7 @@ document.addEventListener('keydown', event => {
 });
 
 function renderShopLoadError(message) {
-  ['daily-grid', 'weekly-grid', 'monthly-grid', 'items-grid'].forEach(id => {
+  ['daily-grid', 'weekly-grid', 'monthly-grid', 'items-grid', 'shop-r1-consumables-grid'].forEach(id => {
     const grid = document.getElementById(id);
     if (!grid) return;
     grid.innerHTML = `<div class="load-state" role="alert"><strong>${uiText('shop.state.errorTitle', 'Shop data unavailable', '商城資料暫時無法載入')}</strong><span>${uiText('shop.state.errorCopy', 'No purchase or inventory action was performed.', '未執行購買或背包變更。')}</span><button class="btn secondary" type="button" data-shop-retry="1">${uiText('shop.state.retry', 'Retry', '重試')}</button></div>`;
@@ -2374,6 +2583,7 @@ async function loadCatalog() {
     if (requestId !== c044EquipmentCatalogRequest) return false;
     if (!c043IsPlainObject(res)) {
       catalog = { error: 'malformed_catalog' };
+      updateShopPurchaseState(catalog);
       c053SetOptionBVisibility(false);
       c044MarkCatalogBalanceStale();
       renderShopLoadError(uiText('shop.state.malformed', 'Shop returned malformed data. Please retry.', '商城回傳的資料格式錯誤，請重試。'));
@@ -2382,6 +2592,7 @@ async function loadCatalog() {
     }
     if (res.error) {
       catalog = res;
+      updateShopPurchaseState(catalog);
       c053SetOptionBVisibility(false);
       c044MarkCatalogBalanceStale();
       renderShopLoadError(errorMessage(res.error));
@@ -2389,6 +2600,7 @@ async function loadCatalog() {
       return false;
     }
     catalog = res;
+    updateShopPurchaseState(catalog);
     c053SetOptionBVisibility(c053ServerCatalogEnablesOptionB(res));
     c044EquipmentCatalogRevision += 1;
     const authoritativeBalance = c044ApplyAuthoritativeCatalogBalance(res);
@@ -2430,7 +2642,8 @@ async function loadCatalog() {
   renderDaily(res);
   renderWeekly(res);
   renderMonthly(res);
-    renderItems(res);
+  renderItems(res);
+  renderR1Consumables(res);
   renderEquipmentOffers(res);
   if (!authoritativeBalance && equipmentOffers.length) {
     setEquipmentPurchaseFeedback(
@@ -2443,6 +2656,7 @@ async function loadCatalog() {
   } catch (_) {
     if (requestId !== c044EquipmentCatalogRequest) return false;
     catalog = {error: 'network_error'};
+    updateShopPurchaseState(catalog);
     c053SetOptionBVisibility(false);
     c044MarkCatalogBalanceStale();
     renderShopLoadError(uiText('shop.state.networkError', 'Network error. Please retry.', '網路連線異常，請重試。'));
@@ -2471,6 +2685,14 @@ function renderItems(res) {
   renderCatalogSection("items-grid", res.daily_items || [], isEn()
     ? "No regular tools available right now."
     : "目前沒有常規道具可顯示。", isEn() ? "" : "");
+}
+function renderR1Consumables(res) {
+  const items = Array.isArray(res?.daily_items) && res.daily_items.length
+    ? res.daily_items
+    : Array.isArray(res?.items) ? res.items : [];
+  renderCatalogSection("shop-r1-consumables-grid", items, isEn()
+    ? "No consumables available right now."
+    : "目前沒有可顯示的消耗品。", "");
 }
 function renderWeekly(res) {
   renderCatalogSection("weekly-grid", res.weekly_items || [], isEn()
@@ -2544,10 +2766,13 @@ function c043EquipmentOfferCardHTML(offer) {
   const ownership = c044EquipmentOwnership(catalog, offer);
   const pending = c044EquipmentPurchaseInFlight.has(offer.offer_id);
   const ownedReject = c044EquipmentRejectsOwned(offer, ownership);
+  const purchaseClosed = !shopPurchaseEnabled();
   const buttonLabel = pending
     ? uiText('shop.equipment.pending', 'Confirming…', '確認中…')
     : ownedReject
       ? uiText('shop.equipment.owned', 'Owned', '已擁有')
+      : purchaseClosed
+        ? shopPurchaseClosedActionLabel()
       : uiText('shop.equipment.buy', 'Buy', '購買');
   const ownershipBadge = c044EquipmentOwnershipBadgeHTML(ownership);
   return `<article class="item-card equipment-card" data-equipment-offer-id="${equipmentEsc(offer.offer_id)}" data-c044-detail-offer="${equipmentEsc(offer.offer_id)}" data-c044-catalog-revision="${c044EquipmentCatalogRevision}" data-c044-ownership="${c044EquipmentOwnershipAttribute(ownership)}" aria-label="${equipmentEsc(name)}">
@@ -2564,7 +2789,7 @@ function c043EquipmentOfferCardHTML(offer) {
       <div class="price">${money(offer.price)} ${currencyLabel}</div>
       <div class="equipment-card-actions">
         <button class="btn secondary" type="button" data-equipment-detail="${equipmentEsc(offer.offer_id)}">${uiText('shop.equipment.details', 'Details', '詳細')}</button>
-        <button class="btn" type="button" data-equipment-purchase="${equipmentEsc(offer.offer_id)}" data-c044-cta="purchase" data-c044-pending="${pending ? 'true' : 'false'}" data-c044-ownership="${c044EquipmentOwnershipAttribute(ownership)}" data-c044-catalog-revision="${c044EquipmentCatalogRevision}" data-sfx="purchase"${pending || ownedReject ? ' disabled' : ''}${pending ? ' aria-busy="true"' : ''}>${buttonLabel}</button>
+        <button class="btn" type="button" data-equipment-purchase="${equipmentEsc(offer.offer_id)}" data-shop-purchase-control="true" data-c044-cta="purchase" data-c044-pending="${pending ? 'true' : 'false'}" data-c044-ownership="${c044EquipmentOwnershipAttribute(ownership)}" data-c044-catalog-revision="${c044EquipmentCatalogRevision}" data-sfx="purchase"${pending || ownedReject || purchaseClosed ? ' disabled' : ''}${pending ? ' aria-busy="true"' : ''}${purchaseClosed ? ' aria-disabled="true" data-shop-purchase-disabled="true" data-shop-purchase-disabled-reason="purchases-closed"' : ''}>${buttonLabel}</button>
       </div>
     </div>
   </article>`;
@@ -2584,6 +2809,7 @@ function c044EquipmentPurchaseLabel(offer, ownership, pending) {
   if (c044EquipmentRejectsOwned(offer, ownership)) {
     return uiText('shop.equipment.owned', 'Owned', '已擁有');
   }
+  if (!shopPurchaseEnabled()) return shopPurchaseClosedActionLabel();
   if (!c044EquipmentCatalogBalanceIsCurrent()) {
     return uiText('shop.equipment.refreshBalance', 'Refresh Coins before buying', '請先刷新金幣再購買');
   }
@@ -2596,17 +2822,22 @@ function c044ApplyEquipmentButtonState(button, offer) {
   const pending = c044EquipmentPurchaseInFlight.has(offer.offer_id);
   const ownedReject = c044EquipmentRejectsOwned(offer, ownership);
   const staleBalance = !c044EquipmentCatalogBalanceIsCurrent();
+  const purchaseClosed = !shopPurchaseEnabled();
+  applyShopPurchaseControlState(button, {
+    disabled: ownedReject || staleBalance,
+    pending,
+    reason: ownedReject ? 'already-owned' : staleBalance ? 'stale-catalog-balance' : '',
+  });
   button.disabled = pending || ownedReject || staleBalance;
+  if (purchaseClosed) button.disabled = true;
+  if (pending) button.setAttribute('aria-busy', 'true');
+  else button.removeAttribute('aria-busy');
   button.dataset.c044Pending = pending ? 'true' : 'false';
   button.dataset.c044Ownership = c044EquipmentOwnershipAttribute(ownership);
   button.dataset.c044CatalogRevision = String(c044EquipmentCatalogRevision);
   button.textContent = c044EquipmentPurchaseLabel(offer, ownership, pending);
-  if (pending) button.setAttribute('aria-busy', 'true');
-  else button.removeAttribute('aria-busy');
-  if (ownedReject) button.setAttribute('aria-disabled', 'true');
-  else if (staleBalance) button.setAttribute('aria-disabled', 'true');
-  else button.removeAttribute('aria-disabled');
-  if (ownedReject) button.dataset.c044DisabledReason = 'already-owned';
+  if (purchaseClosed) button.dataset.c044DisabledReason = 'purchases-closed';
+  else if (ownedReject) button.dataset.c044DisabledReason = 'already-owned';
   else if (staleBalance) button.dataset.c044DisabledReason = 'stale-catalog-balance';
   else delete button.dataset.c044DisabledReason;
 }
@@ -2819,7 +3050,7 @@ function setEquipmentPurchaseFeedback(state, title, copy, backpackHref = '') {
 }
 
 function c043EquipmentPurchaseError(response, fallback) {
-  const message = fallback || errorMessage(response?.error, response?.message);
+  const message = fallback || errorMessage(response?.error || response?.code, response?.message);
   if (!response || !shopPurchaseResponseIsRetryable(response)) return message;
   return `${message} ${uiText(
     'shop.equipment.retrySame',
@@ -2885,6 +3116,10 @@ async function c044RecoverEquipmentPurchaseFailure(message) {
 }
 
 async function purchaseEquipment(offerId, button) {
+  if (!shopPurchaseEnabled()) {
+    showShopPurchaseClosed();
+    return;
+  }
   if (c044EquipmentPurchaseInFlight.has(offerId)) {
     const message = uiText(
       'shop.equipment.duplicateInProgress',
@@ -3023,30 +3258,61 @@ function containsCopy(item) {
   return `<div class="item-contains"><strong>${isEn() ? 'Contains' : '立即獲得'}</strong><span>${parts.join(isEn() ? ' · ' : '、')}</span></div>`;
 }
 
+const SHOP_EFFECT_ITEM_KEYS = Object.freeze(new Set([
+  'extra_questions_small', 'extra_questions', 'grand_training_pass',
+  'small_xp_potion', 'xp_potion', 'grand_xp_potion',
+  'streak_shield', 'double_streak_shield',
+]));
+
+function shopItemPurchaseUseCopy(item) {
+  const key = String(item?.key || item?.item_key || '');
+  const isEffectItem = item?.usable === 'activate'
+    || c043IsPlainObject(item?.effect)
+    || SHOP_EFFECT_ITEM_KEYS.has(key);
+  if (!isEffectItem) return '';
+  return `<div class="shop-purchase-use-copy" data-shop-purchase-use="separate">
+    <strong>${uiText('shop.purchaseUse.buyLabel', 'Buy', '購買')}</strong>
+    <span>${uiText('shop.purchaseUse.buyCopy', 'Added to Backpack; not activated yet.', '加入背包；尚未啟用效果。')}</span>
+    <strong>${uiText('shop.purchaseUse.useLabel', 'Use', '使用')}</strong>
+    <span>${uiText('shop.purchaseUse.useCopy', 'Activate it later from Backpack when you choose.', '之後可在背包主動使用，按你的時機啟用。')}</span>
+  </div>`;
+}
+
 function itemCard(item, saleOrOptions = false) {
   const card = document.createElement("article");
   card.className = "item-card";
   const key = item.key || item.item_key;
   card.dataset.itemKey = key;
   const owned = Number(catalog?.inventory?.[key] || 0);
+  const purchaseClosed = !shopPurchaseEnabled();
+  const purchasePending = shopPurchaseUiInFlight.has(shopPurchaseUiKey('/api/shop/buy', key));
+  const displayName = nameOf({ ...item, key });
   const opts = typeof saleOrOptions === "object" ? saleOrOptions : { sale: !!saleOrOptions };
   const sale = !!opts.sale;
   const badge = opts.badge ?? (sale ? (isEn() ? "Daily Deal" : "每日特價") : "");
+  const purchaseLabel = purchasePending
+    ? shopPurchasePendingLabel()
+    : purchaseClosed
+      ? shopPurchaseClosedActionLabel()
+      : uiText('shop.cosmetic.buy', 'Buy', '購買');
   card.innerHTML = `
     ${badge ? `<span class="tag">${badge}</span>` : ""}
     <div class="item-top">
       <div class="item-art">${artHtml(key, item.icon)}</div>
       <div>
-        <div class="item-name">${nameOf({ ...item, key })}</div>
+        <div class="item-name">${displayName}</div>
         <div class="item-meta">${categoryOf({ ...item, key })} · ${owned ? (isEn() ? `Owned: ${owned}` : `已擁有 ${owned}`) : (isEn() ? "Not owned" : "未擁有")}</div>
       </div>
     </div>
     <div class="item-desc">${descOf({ ...item, key }) || (isEn() ? "A purchasable tool from the shop." : "這是一個可在商店購買的道具。")}</div>
     ${containsCopy({ ...item, key })}
+    ${shopItemPurchaseUseCopy({ ...item, key })}
     <div class="card-foot">
       <div class="price">${sale && item.orig_price ? `<small>${money(item.orig_price)}</small>` : ""}${money(item.price)} ${isEn() ? "coins" : "金幣"}</div>
-      <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
+      <button class="btn" type="button" data-shop-purchase-control="true" data-shop-purchase-route="/api/shop/buy" data-shop-purchase-selector="${cosmeticEsc(key)}" data-sfx="purchase" aria-label="${cosmeticEsc(uiFormat('shop.purchase.buyFor', 'Buy {name}', '購買{name}', {name: displayName}))}"${purchaseClosed || purchasePending ? ' disabled aria-disabled="true"' : ''}${purchaseClosed ? ' data-shop-purchase-disabled="true" data-shop-purchase-disabled-reason="purchases-closed"' : ''}${purchasePending ? ' aria-busy="true" data-shop-purchase-pending="true"' : ''}>${purchaseLabel}</button>
     </div>`;
+  card.dataset.shopPurchaseDisabled = purchaseClosed ? 'true' : 'false';
+  card.dataset.shopPurchasePending = purchasePending ? 'true' : 'false';
   card.querySelector("button").addEventListener("click", () => buyItem(key));
   return card;
 }
@@ -3054,7 +3320,19 @@ function itemCard(item, saleOrOptions = false) {
 function appearanceCard(slot) {
   const card = document.createElement("article");
   card.className = "item-card item-card--cosmetic";
-  card.dataset.itemKey = slot.item_key || slot.cosmetic_id || '';
+  const itemId = slot.item_key || slot.cosmetic_id || '';
+  card.dataset.itemKey = itemId;
+  const purchaseClosed = !shopPurchaseEnabled();
+  const purchasePending = shopPurchaseUiInFlight.has(shopPurchaseUiKey('/api/shop/buy_appearance', itemId));
+  const owned = slot.owned === true || slot.ownership?.owned === true;
+  const displayName = nameOf(slot);
+  const actionLabel = purchasePending
+    ? shopPurchasePendingLabel()
+    : owned
+    ? uiText('shop.cosmetic.state.owned', 'Owned', '已擁有')
+    : purchaseClosed
+      ? shopPurchaseClosedActionLabel()
+      : uiText('shop.cosmetic.buy', 'Buy', '購買');
   const rarity = slot.rarity === "uncommon" ? "uncommon" : "common";
   const appearanceArt = slot.presentation
     ? cosmeticPresentationArtHTML(slot.presentation, 'item-art item-art--fullbody')
@@ -3064,17 +3342,20 @@ function appearanceCard(slot) {
     <div class="item-top item-top--cosmetic">
       ${appearanceArt}
       <div>
-        <div class="item-name">${nameOf(slot)}</div>
-        <div class="item-meta">${isEn() ? "Appearance" : "外觀"}</div>
+        <div class="item-name">${displayName}</div>
+        <div class="item-meta">${isEn() ? "Appearance" : "外觀"}${owned ? ` · ${uiText('shop.cosmetic.state.owned', 'Owned', '已擁有')}` : ''}</div>
       </div>
     </div>
     <div class="item-desc">${isEn() ? "Today's rotation cosmetic." : "這是今日輪替的外觀商品。"}</div>
     <div class="card-foot">
       <div class="price">${money(slot.price)} ${isEn() ? "coins" : "金幣"}</div>
-    <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
+    <button class="btn" type="button" data-shop-purchase-control="true" data-shop-purchase-route="/api/shop/buy_appearance" data-shop-purchase-selector="${cosmeticEsc(itemId)}" data-sfx="purchase" aria-label="${cosmeticEsc(uiFormat('shop.purchase.buyFor', 'Buy {name}', '購買{name}', {name: displayName}))}"${owned || purchaseClosed || purchasePending ? ' disabled aria-disabled="true"' : ''}${purchaseClosed ? ' data-shop-purchase-disabled="true" data-shop-purchase-disabled-reason="purchases-closed"' : ''}${purchasePending ? ' aria-busy="true" data-shop-purchase-pending="true"' : ''}>${actionLabel}</button>
     </div>`;
+  card.dataset.shopPurchaseDisabled = purchaseClosed ? 'true' : 'false';
+  card.dataset.shopCosmeticOwned = owned ? 'true' : 'false';
+  card.dataset.shopPurchasePending = purchasePending ? 'true' : 'false';
   bindCanonicalCosmeticArt(card);
-  card.querySelector("button").addEventListener("click", () => buyAppearance(slot.item_key));
+  card.querySelector("button").addEventListener("click", () => buyAppearance(itemId));
   return card;
 }
 async function resolvePurchaseGrants(res, purchasedKey) {
@@ -3124,6 +3405,18 @@ async function showPurchaseConfirmation(res, purchasedKey) {
   panel.hidden = false;
 }
 async function buyItem(key) {
+  if (!shopPurchaseEnabled()) {
+    showShopPurchaseClosed();
+    return;
+  }
+  const purchaseKey = shopPurchaseUiKey('/api/shop/buy', key);
+  if (shopPurchaseUiInFlight.has(purchaseKey)) {
+    showToast(errorMessage('purchase_operation_in_progress'));
+    return;
+  }
+  shopPurchaseUiInFlight.add(purchaseKey);
+  const button = shopPurchaseUiButton('/api/shop/buy', key);
+  applyShopPurchaseControlState(button, { pending: true });
   setMerchant("talk", "talk");
   let res;
   try {
@@ -3131,20 +3424,39 @@ async function buyItem(key) {
   } catch {
     setMerchant("idle", "idle");
     showToast(isEn() ? "Network error. Retry the same purchase." : "網路連線異常，請重試同一筆購買。");
+    shopPurchaseUiInFlight.delete(purchaseKey);
+    clearShopPurchaseUiPending('/api/shop/buy', key);
     return;
   }
-  if (res.error) {
-    setMerchant("idle", "idle");
-    showToast(errorMessage(res.error, res.message));
-    return;
+  try {
+    if (res.error) {
+      setMerchant("idle", "idle");
+      showToast(errorMessage(res.error || res.code, res.message));
+      return;
+    }
+    setMerchant("happy", "happy");
+    await loadCatalog();
+    await showPurchaseConfirmation(res, key);
+    showToast(isEn() ? "Purchase successful." : "購買成功。");
+  } finally {
+    shopPurchaseUiInFlight.delete(purchaseKey);
+    clearShopPurchaseUiPending('/api/shop/buy', key);
   }
-  setMerchant("happy", "happy");
-  await loadCatalog();
-  await showPurchaseConfirmation(res, key);
-  showToast(isEn() ? "Purchase successful." : "購買成功。");
 }
 
 async function buyAppearance(itemId) {
+  if (!shopPurchaseEnabled()) {
+    showShopPurchaseClosed();
+    return;
+  }
+  const purchaseKey = shopPurchaseUiKey('/api/shop/buy_appearance', itemId);
+  if (shopPurchaseUiInFlight.has(purchaseKey)) {
+    showToast(errorMessage('purchase_operation_in_progress'));
+    return;
+  }
+  shopPurchaseUiInFlight.add(purchaseKey);
+  const button = shopPurchaseUiButton('/api/shop/buy_appearance', itemId);
+  applyShopPurchaseControlState(button, { pending: true });
   setMerchant("talk", "talk");
   let res;
   try {
@@ -3152,25 +3464,36 @@ async function buyAppearance(itemId) {
   } catch {
     setMerchant("idle", "idle");
     showToast(isEn() ? "Network error. Retry the same purchase." : "網路連線異常，請重試同一筆購買。");
+    shopPurchaseUiInFlight.delete(purchaseKey);
+    clearShopPurchaseUiPending('/api/shop/buy_appearance', itemId);
     return;
   }
-  if (res.error) {
-    setMerchant("idle", "idle");
-    showToast(errorMessage(res.error, res.message));
-    return;
+  try {
+    if (res.error) {
+      setMerchant("idle", "idle");
+      showToast(errorMessage(res.error || res.code, res.message));
+      return;
+    }
+    await loadCatalog();
+    const replayed = res.replayed === true || res.canonical_acquisition_result?.replayed === true;
+    if (replayed || res.status === "already_owned") {
+      setMerchant("idle", "idle");
+      showToast(isEn() ? "Purchase already recorded; wardrobe refreshed." : "購買結果已記錄，衣櫃已更新。");
+      return;
+    }
+    setMerchant("happy", "happy");
+    showToast(isEn() ? "Appearance added to wardrobe." : "外觀已收入衣櫃。");
+  } finally {
+    shopPurchaseUiInFlight.delete(purchaseKey);
+    clearShopPurchaseUiPending('/api/shop/buy_appearance', itemId);
   }
-  await loadCatalog();
-  const replayed = res.replayed === true || res.canonical_acquisition_result?.replayed === true;
-  if (replayed || res.status === "already_owned") {
-    setMerchant("idle", "idle");
-    showToast(isEn() ? "Purchase already recorded; wardrobe refreshed." : "購買結果已記錄，衣櫃已更新。");
-    return;
-  }
-  setMerchant("happy", "happy");
-  showToast(isEn() ? "Appearance added to wardrobe." : "外觀已收入衣櫃。");
 }
 
 async function doGacha() {
+  if (!shopPurchaseEnabled()) {
+    showShopPurchaseClosed();
+    return;
+  }
   const btn = document.getElementById("btn-gacha");
   const chest = document.getElementById("chest-img");
   btn.disabled = true;
@@ -3232,11 +3555,14 @@ function showGachaResult(res) {
 }
 document.getElementById("btn-gacha").addEventListener("click", doGacha);
 window.onLangChange = () => {
+  updateShopPurchaseState(catalog);
   if (catalog && !catalog.error) {
     renderDaily(catalog);
     renderWeekly(catalog);
     renderMonthly(catalog);
     renderItems(catalog);
+    renderR1Consumables(catalog);
+    c044ApplyEquipmentButtonStates();
     setMerchantLine('idle');
   }
   if (cosmeticCatalog && !cosmeticCatalog.error) renderCosmeticCommerce(cosmeticCatalog);
