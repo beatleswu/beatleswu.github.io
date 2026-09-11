@@ -14,7 +14,7 @@ used.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -46,6 +46,10 @@ CONSUMABLE_CLASSES = frozenset(
     {"CONSUMABLE", "SPIRIT_CONSUMABLE", "XP_CONSUMABLE"}
 )
 FUNCTIONAL_EQUIPMENT_CLASSES = frozenset({"WEAPON", "ARMOR", "ACCESSORY"})
+BUNDLE_OFFER_TYPE = "BUNDLE"
+BUNDLE_GRANT_PROFILE_KEY = "bundle_grant_profile"
+BUNDLE_GRANT_DESTINATIONS = frozenset({"shop_inventory", "pet_inventory"})
+PET_INVENTORY_GRANT_ITEM_IDS = frozenset({"go_spirit_candy"})
 EquipmentSlotSource = Callable[[str], str | None] | Mapping[str, str]
 
 
@@ -122,6 +126,166 @@ class SchemaUnavailable(CoinPurchaseError):
 
 class CoinDebitFailed(CoinPurchaseError):
     code = "COIN_DEBIT_FAILED"
+
+
+@dataclass(frozen=True)
+class BundleGrantFact:
+    """One server-owned child grant in a canonical Shop bundle.
+
+    The parent ``CoinShopOffer`` remains a normal C019 offer.  These facts
+    are the only additional mutation authority a bundle may carry, and they
+    are persisted through the existing purchase result payload.  They are
+    deliberately limited to the two existing stack authorities needed by
+    the R1 consumables; no generic pet or effect ledger is introduced.
+    """
+
+    item_id: str
+    quantity: int
+    destination: str
+    acquisition_class: str
+    duplicate_policy: str = "STACK"
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.item_id, str) or not self.item_id.strip():
+            raise AcquisitionFailed("bundle grant item_id must be non-empty text")
+        if isinstance(self.quantity, bool) or not isinstance(self.quantity, int) or self.quantity <= 0:
+            raise AcquisitionFailed("bundle grant quantity must be a positive integer")
+        if not isinstance(self.destination, str) or self.destination.strip() not in BUNDLE_GRANT_DESTINATIONS:
+            raise AcquisitionFailed(
+                f"unsupported bundle grant destination: {self.destination!r}"
+            )
+        if not isinstance(self.acquisition_class, str):
+            raise AcquisitionFailed("bundle grant acquisition_class must be text")
+        normalized_class = self.acquisition_class.strip().upper()
+        if normalized_class not in CONSUMABLE_CLASSES:
+            raise AcquisitionFailed(
+                f"unsupported bundle grant acquisition class: {self.acquisition_class!r}"
+            )
+        if self.duplicate_policy.strip().upper() != "STACK":
+            raise AcquisitionFailed("bundle grants must declare duplicate_policy=STACK")
+        normalized_item = self.item_id.strip()
+        normalized_destination = self.destination.strip()
+        if normalized_destination == "pet_inventory" and normalized_item not in PET_INVENTORY_GRANT_ITEM_IDS:
+            raise AcquisitionFailed(
+                "pet_inventory bundle grant is not an admitted canonical item"
+            )
+        object.__setattr__(self, "item_id", normalized_item)
+        object.__setattr__(self, "destination", normalized_destination)
+        object.__setattr__(self, "acquisition_class", normalized_class)
+        object.__setattr__(self, "duplicate_policy", "STACK")
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "item_id": self.item_id,
+            "quantity": self.quantity,
+            "destination": self.destination,
+            "acquisition_class": self.acquisition_class,
+            "duplicate_policy": self.duplicate_policy,
+        }
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "BundleGrantFact":
+        if not isinstance(value, Mapping):
+            raise AcquisitionFailed("bundle grant fact must be a mapping")
+        return cls(
+            item_id=value.get("item_id"),
+            quantity=value.get("quantity"),
+            destination=value.get("destination"),
+            acquisition_class=value.get("acquisition_class", value.get("class")),
+            duplicate_policy=value.get("duplicate_policy", "STACK"),
+        )
+
+
+@dataclass(frozen=True)
+class BundleAcquisitionFacts:
+    """Typed, deterministic child grants for one canonical bundle offer."""
+
+    grants: tuple[BundleGrantFact, ...]
+
+    def __post_init__(self) -> None:
+        if not self.grants or not all(isinstance(grant, BundleGrantFact) for grant in self.grants):
+            raise AcquisitionFailed("bundle acquisition facts must contain grants")
+        identities = [(grant.destination, grant.item_id) for grant in self.grants]
+        if len(identities) != len(set(identities)):
+            raise AcquisitionFailed("bundle acquisition facts contain duplicate grants")
+
+    def as_metadata(self) -> list[dict[str, Any]]:
+        return [grant.as_dict() for grant in self.grants]
+
+    @classmethod
+    def from_metadata(cls, value: Any) -> "BundleAcquisitionFacts":
+        if not isinstance(value, (list, tuple)):
+            raise AcquisitionFailed("bundle grant profile is not a list")
+        return cls(tuple(BundleGrantFact.from_mapping(entry) for entry in value))
+
+
+def canonical_bundle_acquisition_facts(item_id: str) -> BundleAcquisitionFacts:
+    """Return the exact existing R1 child grants for an admitted bundle."""
+
+    if item_id == "premium_hint_bundle":
+        return BundleAcquisitionFacts(
+            (
+                BundleGrantFact(
+                    item_id="hint_ticket",
+                    quantity=5,
+                    destination="shop_inventory",
+                    acquisition_class="CONSUMABLE",
+                ),
+            )
+        )
+    if item_id == "pet_snack":
+        return BundleAcquisitionFacts(
+            (
+                BundleGrantFact(
+                    item_id="go_spirit_candy",
+                    quantity=3,
+                    destination="pet_inventory",
+                    acquisition_class="SPIRIT_CONSUMABLE",
+                ),
+            )
+        )
+    raise AcquisitionFailed(f"no canonical bundle facts for {item_id!r}")
+
+
+def bind_bundle_acquisition_facts(
+    offer: CoinShopOffer,
+    facts: BundleAcquisitionFacts,
+) -> CoinShopOffer:
+    """Bind typed, server-owned child grants into a C019 offer identity.
+
+    The facts live in ``eligibility_metadata`` because that field already
+    participates in ``CoinShopOffer.canonical_identity`` and therefore in the
+    existing C019 operation fingerprint.  A caller cannot change bundle
+    semantics without changing the operation identity, and known R1 bundles
+    are checked against their exact canonical profile here.
+    """
+
+    if not isinstance(facts, BundleAcquisitionFacts):
+        raise AcquisitionFailed("bundle acquisition facts are not typed")
+    if offer.destination != "shop_inventory" or offer.quantity != 1:
+        raise AcquisitionFailed(
+            "canonical bundle parent must be a single shop_inventory offer"
+        )
+    expected = None
+    try:
+        expected = canonical_bundle_acquisition_facts(offer.item_id)
+    except AcquisitionFailed:
+        # Test and future adapters may bind an explicitly typed profile.  The
+        # known R1 profiles below remain exact and cannot be overridden.
+        pass
+    if expected is not None and facts != expected:
+        raise AcquisitionFailed("canonical bundle grant profile does not match the offer")
+    metadata = dict(offer.eligibility_metadata)
+    existing = metadata.get(BUNDLE_GRANT_PROFILE_KEY)
+    if existing is not None and BundleAcquisitionFacts.from_metadata(existing) != facts:
+        raise AcquisitionFailed("bundle grant profile conflicts with the offer identity")
+    metadata[BUNDLE_GRANT_PROFILE_KEY] = facts.as_metadata()
+    return replace(
+        offer,
+        offer_type=BUNDLE_OFFER_TYPE,
+        duplicate_policy="STACK",
+        eligibility_metadata=metadata,
+    )
 
 
 @dataclass(frozen=True)
@@ -642,6 +806,8 @@ class SqlAcquisitionAuthority:
             raise AcquisitionFailed(
                 "go_stone_black is inventory-only and has no Coin Shop sale authority"
             )
+        if offer.offer_type == BUNDLE_OFFER_TYPE:
+            return self._acquire_bundle(conn, user_id=user_id, offer=offer)
         if offer.destination == "shop_inventory":
             return self._acquire_stackable_inventory(conn, user_id=user_id, offer=offer)
         if offer.destination == "player_inventory":
@@ -651,6 +817,152 @@ class SqlAcquisitionAuthority:
         raise OwnershipAuthorityUnavailable(
             f"no C019 acquisition adapter for destination {offer.destination!r}"
         )
+
+    def _acquire_bundle(
+        self,
+        conn: Any,
+        *,
+        user_id: int,
+        offer: CoinShopOffer,
+    ) -> AcquisitionOutcome:
+        """Grant one typed bundle inside the caller's existing transaction."""
+
+        if offer.destination != "shop_inventory" or offer.quantity != 1:
+            raise AcquisitionFailed(
+                "canonical bundle parent must be a single shop_inventory offer"
+            )
+        if offer.duplicate_policy != "STACK":
+            raise AcquisitionFailed("canonical bundle parent must declare duplicate_policy=STACK")
+        try:
+            facts = BundleAcquisitionFacts.from_metadata(
+                offer.eligibility_metadata.get(BUNDLE_GRANT_PROFILE_KEY)
+            )
+        except CoinPurchaseError:
+            raise
+        except Exception as exc:
+            raise AcquisitionFailed("canonical bundle grant profile is invalid") from exc
+        try:
+            expected = canonical_bundle_acquisition_facts(offer.item_id)
+        except AcquisitionFailed:
+            expected = None
+        if expected is not None and facts != expected:
+            raise AcquisitionFailed(
+                "canonical bundle grant profile does not match the offer"
+            )
+
+        grants = [
+            self._acquire_bundle_grant(
+                conn,
+                user_id=user_id,
+                parent_offer=offer,
+                grant=grant,
+            )
+            for grant in facts.grants
+        ]
+        presentation = dict(offer.presentation_metadata)
+        presentation["bundle_grants"] = grants
+        presentation["bundle_ownership"] = "CHILD_GRANTS_ONLY"
+        return AcquisitionOutcome(
+            destination=offer.destination,
+            item_id=offer.item_id,
+            quantity=offer.quantity,
+            new_quantity=None,
+            ownership_state="BUNDLE_GRANTED",
+            is_new=None,
+            can_equip=False,
+            can_use=False,
+            can_wear=False,
+            presentation_metadata=presentation,
+        )
+
+    def _acquire_bundle_grant(
+        self,
+        conn: Any,
+        *,
+        user_id: int,
+        parent_offer: CoinShopOffer,
+        grant: BundleGrantFact,
+    ) -> dict[str, Any]:
+        """Apply one child grant without opening an independent transaction."""
+
+        if grant.destination == "shop_inventory":
+            # Use the exact ordinary stack acquisition path.  The synthetic
+            # offer is internal typed data, not a second purchase authority.
+            child_offer = CoinShopOffer(
+                offer_id=f"{parent_offer.offer_id}:grant:{grant.item_id}",
+                item_id=grant.item_id,
+                quantity=grant.quantity,
+                currency_type=COIN_CURRENCY,
+                price=1,
+                destination="shop_inventory",
+                acquisition_class=grant.acquisition_class,
+                offer_type="ITEM",
+                offer_version=parent_offer.offer_version,
+                status="ACTIVE",
+                duplicate_policy=grant.duplicate_policy,
+            )
+            outcome = self._acquire_stackable_inventory(
+                conn,
+                user_id=user_id,
+                offer=child_offer,
+            )
+            result = outcome.as_dict()
+            result.update(
+                {
+                    "acquisition_class": grant.acquisition_class,
+                    "duplicate_policy": grant.duplicate_policy,
+                    "ownership_reference": (
+                        f"shop_inventory:{user_id}:{grant.item_id}"
+                    ),
+                }
+            )
+            return result
+
+        if grant.destination != "pet_inventory":
+            raise OwnershipAuthorityUnavailable(
+                f"no bundle grant adapter for destination {grant.destination!r}"
+            )
+        if grant.item_id not in PET_INVENTORY_GRANT_ITEM_IDS:
+            raise AcquisitionFailed("pet_inventory grant item is not canonical")
+        try:
+            existing = conn.execute(
+                "SELECT qty FROM pet_inventory WHERE user_id=? AND item_key=?",
+                (user_id, grant.item_id),
+            ).fetchone()
+            old_quantity = int(existing["qty"] if existing else 0)
+            conn.execute(
+                "INSERT INTO pet_inventory(user_id,item_key,qty) VALUES(?,?,?) "
+                "ON CONFLICT(user_id,item_key) DO UPDATE SET "
+                "qty=pet_inventory.qty+excluded.qty",
+                (user_id, grant.item_id, grant.quantity),
+            )
+            current = conn.execute(
+                "SELECT qty FROM pet_inventory WHERE user_id=? AND item_key=?",
+                (user_id, grant.item_id),
+            ).fetchone()
+        except Exception as exc:
+            if _is_missing_schema_error(exc):
+                raise OwnershipAuthorityUnavailable(
+                    "pet_inventory ownership authority is unavailable"
+                ) from exc
+            raise AcquisitionFailed("pet_inventory bundle acquisition failed") from exc
+        if current is None:
+            raise AcquisitionFailed("pet_inventory bundle result was not recoverable")
+        new_quantity = int(current["qty"] if hasattr(current, "keys") else current[0])
+        return {
+            "item_id": grant.item_id,
+            "quantity": grant.quantity,
+            "destination": grant.destination,
+            "acquisition_class": grant.acquisition_class,
+            "duplicate_policy": grant.duplicate_policy,
+            "new_quantity": new_quantity,
+            "ownership_state": "QUANTITY_OWNED",
+            "is_new": old_quantity <= 0,
+            "can_equip": False,
+            "can_use": True,
+            "can_wear": False,
+            "ownership_reference": f"pet_inventory:{user_id}:{grant.item_id}",
+        }
 
     def _acquire_stackable_inventory(
         self,
@@ -1162,6 +1474,11 @@ __all__ = [
     "AcquisitionFailed",
     "AcquisitionOutcome",
     "AcquisitionAuthority",
+    "BUNDLE_GRANT_DESTINATIONS",
+    "BUNDLE_GRANT_PROFILE_KEY",
+    "BUNDLE_OFFER_TYPE",
+    "BundleAcquisitionFacts",
+    "BundleGrantFact",
     "CoinBalanceChange",
     "CoinDebitFailed",
     "CoinPurchaseError",
@@ -1178,6 +1495,8 @@ __all__ = [
     "SqlAcquisitionAuthority",
     "UnknownOffer",
     "append_shop_acquisition_lineage",
+    "bind_bundle_acquisition_facts",
+    "canonical_bundle_acquisition_facts",
     "purchase_with_coins",
     "read_coin_balance",
     "spend_coins_in_transaction",
