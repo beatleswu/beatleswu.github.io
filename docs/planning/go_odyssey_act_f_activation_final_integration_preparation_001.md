@@ -1,6 +1,6 @@
 # GO_ODYSSEY_ACT_F_ACTIVATION_FINAL_INTEGRATION_PREPARATION_001
 
-Status: `READY_FOR_FINAL_INDEPENDENT_INTEGRATION_REVIEW`
+Status: `READY_FOR_FAST_INDEPENDENT_REVERIFY`
 
 This is a durable ACT-F integration-preparation record. It does not grant a
 merge, deploy, Production database change, schema application, feature
@@ -9,11 +9,13 @@ enablement, or cutover.
 ## Authority and candidate
 
 ```text
-TARGET_BRANCH=codex/act-f-activation-final-integration-prep-001
-CODE_CANDIDATE_HEAD=837a0c266d1a4a0356fee00e1b54643403801276
+TARGET_BRANCH=codex/act-f-activation-final-integration-r1-evaluator-reconciliation-001
+PRE_R1_CANDIDATE_HEAD=24601e8b0c1536aaae0c78a55bce446b4fd2a752
+PRE_R1_CANDIDATE_TREE=39233f64aa77bfc59921980a23b618555347e022
+R1_CODE_TEST_HEAD=ad5b9b4fa3be006be92ea7a1e57ea421c2cf5aa1
+R1_CODE_TEST_TREE=0a1580a50ab84ad429dff71bd26b9401d1fe22d8
 CANONICAL_BASE_HEAD=da531c6da0edabab3c025823ec1157e604d56498
 CANONICAL_BASE_TREE=e942e346854ba8397900ee5fa1d824cd2a38967a
-CODE_CANDIDATE_TREE=b06a322e36f1c333d9bb64c0980f7ed2bd573b36
 ACTIVATION_APP_PY_DECOMPOSITION=COMPLETE
 ```
 
@@ -46,6 +48,43 @@ ACTIVATION_0_LIVE_TRUTH_RECONCILED=YES
 FULL_ARCHITECTURE_DECOMPOSITION_MARKED_SUPERSEDED=YES
 DEVELOPMENT_SCALABILITY_GOVERNANCE_LANDED=YES
 ```
+
+## R1 independent-review truth correction
+
+The pre-R1 independent review found one deterministic candidate-only test
+failure. It was the F010 assertion expecting `503 monster_selector_unavailable`
+for the now-admitted Zone1 canonical provider path. The review classified this
+as `INTENTIONAL_ACCEPTED_BEHAVIOR_STALE_EVALUATOR`, not a functional
+regression. The known Community Rewards differences remain nondeterministic,
+environment-only failures in the pre-existing
+`tests/deployment/test_community_rewards_execution_control.py` suite; that
+file was not modified.
+
+```text
+PRE_R1_CANDIDATE_ONLY_DETERMINISTIC_FAILURES=1
+PRE_R1_CANDIDATE_ONLY_FAILURE=F010 test_enabled_f009_route_fails_before_battle_attempt_or_progress_mutation
+PRE_R1_CANDIDATE_FUNCTIONAL_REGRESSION_COUNT=0
+R1_F010_STALE_EVALUATOR_CORRECTED=YES
+CANDIDATE_FUNCTIONAL_REGRESSION_COUNT=0
+```
+
+R1 does not rewrite the pre-R1 result as a zero-failure candidate. It separates
+the one candidate-only stale-evaluator failure from functional regression
+count, which remains zero.
+
+The corrected F010 assertion is not a status-only waiver. It requires HTTP
+success, the canonical `ZONE1_2_BINDING_SOURCE` and persistence version in the
+stored battle, resolution to `ZONE1_2_PROVIDER_ID`, and provider-bound restore
+mode. A separate focused route test forces an unresolved new provider identity
+and proves `503` fail-closed behavior with no battle, attempt, progress, or
+reward mutation.
+
+The Zone3 presentation evaluator no longer has a module-wide skip. Its
+content assertions execute normally. Only the historical MASTER-anchored
+changed-file assertion in the dialogue test is conditional, and the complete
+MASTER-anchored inventory test has a function-local exception for cumulative
+Activation candidates. The exact marker set remains narrow; there is no generic
+allow-all bypass.
 
 ## Domain blob provenance
 
@@ -135,18 +174,20 @@ were added.
 
 - The SRS guard was tied to the obsolete three-commit baseline. Exact base and
   candidate both contain four `_srs_review_operation` commits and identical
-  function bytes. The guard now asserts four while retaining the exception and
-  rollback assertions; it was not removed.
-- The presentation-only guards retain their strict component/view/style
-  checks. Their changed-path gate is skipped only when the exact cumulative
-  Activation marker set is present (`app.py`,
-  `activation_http_contract.py`, and the D1 authority artifact); it is not a
-  permanent allow-all rule.
-- The F010 selector evaluator expects a 503 even when the accepted ACT-B
-  canonical Z1 provider is available. Exact replay: canonical base returns
-  `503 monster_selector_unavailable`; the cumulative candidate returns `200`
-  through the accepted provider binding. This is a stale evaluator premise,
-  not a new selector mutation or a reason to weaken the ACT-B provider path.
+  function bytes. `BASE_AND_CANDIDATE_FUNCTION_BYTES_IDENTICAL=YES` and
+  `COMMIT_COUNT=4`; no new extracted-function SHA is asserted. The guard now
+  asserts four while retaining the exception and rollback assertions; it was
+  not removed.
+- The Zone3 presentation evaluator no longer uses a module-level skip. Strict
+  component/view/style/content checks run; only the historical MASTER-anchored
+  changed-file premise receives narrow function-local handling. The W2
+  evaluator retains its existing exact cumulative marker exception. Neither
+  evaluator has a permanent allow-all rule.
+- The pre-R1 F010 selector evaluator expected `503` even when the accepted
+  ACT-B canonical Z1 provider was available. R1 now asserts `200`, successful
+  attempt creation, canonical source/persistence metadata, resolved provider
+  identity, and provider-bound restore. The F009 unresolved-identity hard
+  fence remains separately asserted and still fails closed before mutation.
 - Remaining broad failures were compared against the exact canonical base and
   retained only as `BASELINE_IDENTICAL`, `STALE_EVALUATOR_PROVEN`, or
   `ENVIRONMENT_BLOCKED`. The authenticated E2E error signature is the same
@@ -218,6 +259,14 @@ The ACT-E Node bridge passed `18` checks. Map Battle regression passed
 `89 passed, 1 skipped`; Puzzle Identity regression passed `66 passed, 49
 skipped`; packaging/build-manifest passed `55 passed`.
 
+R1 corrective validation passed F010 with `18 passed`, ACT-B provider-boundary
+tests with `8 passed`, the F009-focused subset with `6 passed`, W2 presentation
+with `4 passed, 1 skipped`, and the five applicable W1 content/byte assertions
+with `5 passed`. The W1 full evaluator executed its content tests and left only
+the function-local historical inventory skip plus one environment-blocked
+browser runner because `D:/go-website/node_modules/playwright-core` is absent.
+No runtime, schema, packaging, or feature-flag file changed in R1.
+
 Required full-directory runs from clean cache/output configuration:
 
 ```text
@@ -225,13 +274,18 @@ FULL_GATE_RUN_1=FAIL_RAW: 5715 passed, 278 skipped, 118 failed, 9 errors, 53 war
 FULL_GATE_RUN_2=FAIL_RAW: 5715 passed, 278 skipped, 117 failed, 10 errors, 52 warnings
 FULL_GATE_DIAGNOSTIC_RUN=FAIL_RAW: 5715 passed, 278 skipped, 117 failed, 10 errors, 54 warnings
 EXACT_BASE_COMPARISON=5670 passed, 265 skipped, 102 failed, 9 errors, 54 warnings
-NEW_CANDIDATE_INTRODUCED_UNBASELINED_FAILURES=0
+PRE_R1_FULL_DIRECTORY_FORENSIC_RECONCILIATION=RECORDED_ABOVE
+R1_FULL_DIRECTORY_FORENSIC_RERUN=NOT_REQUIRED_TESTS_AND_DOCS_ONLY
+PRE_R1_CANDIDATE_ONLY_DETERMINISTIC_FAILURES=1
+PRE_R1_CANDIDATE_FUNCTIONAL_REGRESSION_COUNT=0
+CANDIDATE_FUNCTIONAL_REGRESSION_COUNT=0
 ```
 
 The raw full-directory gate is not represented as green. The accepted
-Activation-focused gates are green, and every remaining full-directory
-failure/error has an exact base, stale-evaluator, or environment signature
-recorded above for independent review.
+Activation-focused gates and the R1 corrective gates are green. The pre-R1
+full-directory failure/error signatures remain recorded above for independent
+review; the one deterministic candidate-only F010 stale-evaluator failure is
+now corrected.
 
 ## Containment and final gates
 
@@ -244,10 +298,10 @@ feature enablement, merge, deploy, or Production mutation.
 
 ```text
 PRODUCTION_MUTATION=NO
-WORKTREE_CLEAN=NO_PROTECTED_UNTRACKED_SECRET_ONLY
+WORKTREE_CLEAN=YES
 OWNER_DECISIONS_REQUIRED=NONE
 GO_PRODUCTION_DB_MIGRATION=NOT_GRANTED
 GO_MERGE=NOT_GRANTED
 GO_DEPLOY=NOT_GRANTED
-SUCCESS_STATUS=PASS_ACT_F_ACTIVATION_FINAL_INTEGRATION_PREPARATION_READY_FOR_INDEPENDENT_REVIEW
+SUCCESS_STATUS=PASS_ACT_F_ACTIVATION_FINAL_INTEGRATION_R1_EVALUATOR_RECONCILED_READY_FOR_FAST_INDEPENDENT_REVERIFY
 ```
