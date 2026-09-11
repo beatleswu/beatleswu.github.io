@@ -8,6 +8,12 @@ from pathlib import Path
 import pytest
 
 from migrations import monster_encounter_selector_state_v1 as selector_schema
+from adventure_zone1_2_monster_runtime_provider import (
+    ZONE1_2_BINDING_SOURCE,
+    ZONE1_2_PERSISTENCE_VERSION,
+    ZONE1_2_PROVIDER_ID,
+)
+from map_battle_runtime import resolve_map_battle_provider_for_restore
 from monster_combat_profiles import resolve_monster_combat_profile
 from monster_encounter_selector import MonsterEncounterCandidate, MonsterSelectorPolicy
 from monster_encounter_selector_runtime import (
@@ -363,7 +369,7 @@ def test_f009_unresolved_identity_fails_closed_without_reward_or_progress_callba
     assert progress_calls == []
 
 
-def test_enabled_f009_route_fails_before_battle_attempt_or_progress_mutation(
+def test_enabled_f009_route_uses_canonical_provider_before_legacy_selector(
     api_env, app_module, monkeypatch
 ):
     if api_env is None:  # pragma: no cover - direct non-pytest imports
@@ -391,6 +397,92 @@ def test_enabled_f009_route_fails_before_battle_attempt_or_progress_mutation(
         headers={"X-Map-Battle-Client-Protocol": "v1"},
     )
 
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    persisted_battle = dict(
+        conn.execute(
+            "SELECT * FROM map_battles WHERE id=?", (payload["battle_id"],)
+        ).fetchone()
+    )
+    assert persisted_battle["migration_source"] == ZONE1_2_BINDING_SOURCE
+    version_parts = str(persisted_battle["migration_version"]).split(":")
+    assert version_parts[0] == ZONE1_2_PERSISTENCE_VERSION
+    assert version_parts[1] == "Z1"
+    assert persisted_battle["migration_source"] != "legacy-adventure-map"
+    restored = resolve_map_battle_provider_for_restore(
+        battle=persisted_battle,
+        question_binding={
+            "question_id": 7001,
+            "question_revision": payload["question_revision"],
+        },
+        user_id=101,
+    )
+    assert restored.mode == "RESTORE_EXISTING_PROVIDER_BOUND_BATTLE"
+    assert restored.provider_id == ZONE1_2_PROVIDER_ID
+    assert restored.binding is not None
+    assert restored.binding.provider_id == ZONE1_2_PROVIDER_ID
+    assert restored.binding.persistence_source == ZONE1_2_BINDING_SOURCE
+    after = {
+        "battles": conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0],
+        "attempts": conn.execute("SELECT COUNT(*) FROM map_battle_attempts").fetchone()[0],
+        "srs": conn.execute("SELECT COUNT(*) FROM srs_cards").fetchone()[0],
+        "reviews": conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0],
+        "stats": tuple(conn.execute(
+            "SELECT player_hp, player_max_hp, xp, rank_xp FROM user_stats WHERE user_id=101"
+        ).fetchone()),
+    }
+    assert after["battles"] == before["battles"] + 1
+    assert after["attempts"] == before["attempts"] + 1
+    assert after["srs"] == before["srs"]
+    assert after["reviews"] == before["reviews"]
+    assert after["stats"] == before["stats"]
+
+
+def test_f009_unresolved_provider_identity_fails_closed_without_any_mutation(
+    api_env, app_module, monkeypatch
+):
+    if api_env is None:  # pragma: no cover - direct non-pytest imports
+        pytest.skip("shared disposable API fixture unavailable")
+    client, conn = api_env
+    reward_calls = []
+    progress_calls = []
+    monkeypatch.setattr(
+        app_module,
+        "_questions_for_adventure_zone",
+        lambda questions, zone, premium=True: list(questions),
+    )
+    monkeypatch.setattr(
+        app_module,
+        "_map_battle_provider_for_new",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        app_module,
+        "check_and_award",
+        lambda *args, **kwargs: reward_calls.append((args, kwargs)) or [],
+    )
+    monkeypatch.setattr(
+        app_module,
+        "_update_monster_and_quests",
+        lambda *args, **kwargs: progress_calls.append((args, kwargs)) or {},
+    )
+    monkeypatch.setenv("MONSTER_ENCOUNTER_SELECTOR_V1_ENABLED", "true")
+    before = {
+        "battles": conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0],
+        "attempts": conn.execute("SELECT COUNT(*) FROM map_battle_attempts").fetchone()[0],
+        "srs": conn.execute("SELECT COUNT(*) FROM srs_cards").fetchone()[0],
+        "reviews": conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0],
+        "stats": tuple(conn.execute(
+            "SELECT player_hp, player_max_hp, xp, rank_xp FROM user_stats WHERE user_id=101"
+        ).fetchone()),
+    }
+    response = client.post(
+        "/api/adventure/map-battles/v1/attempts",
+        json={"zone_key": "k26_30", "question_id": 7001},
+        headers={"X-Map-Battle-Client-Protocol": "v1"},
+    )
+
     assert response.status_code == 503
     assert response.get_json()["code"] == "monster_selector_unavailable"
     after = {
@@ -403,6 +495,8 @@ def test_enabled_f009_route_fails_before_battle_attempt_or_progress_mutation(
         ).fetchone()),
     }
     assert after == before
+    assert reward_calls == []
+    assert progress_calls == []
 
 
 def test_persisted_f009_battle_cannot_resume_without_provider_authority(

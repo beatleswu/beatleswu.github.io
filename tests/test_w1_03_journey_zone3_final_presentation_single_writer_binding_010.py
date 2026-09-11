@@ -66,12 +66,6 @@ def _cumulative_activation_candidate_present() -> bool:
     return _CUMULATIVE_ACTIVATION_MARKERS.issubset(changed)
 
 
-pytestmark = pytest.mark.skipif(
-    _cumulative_activation_candidate_present(),
-    reason="presentation-only evaluator is not a universal cumulative Activation gate",
-)
-
-
 def load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -249,15 +243,25 @@ def test_dialogue_is_not_embedded_in_runtime_and_authority_boundaries_are_read_o
     assert "presentationOnly: true" in audio_code
     assert "BATTLEFIELD_BOSS" in CONTENT.read_text(encoding="utf-8")
     assert "LORD" in CONTENT.read_text(encoding="utf-8")
-    changed = subprocess.check_output(["git", "diff", "--name-only", MASTER, "--"], cwd=ROOT, text=True)
-    changed_paths = set(changed.splitlines())
-    assert "app.py" not in changed_paths
-    assert "sw.js" not in changed_paths
-    assert "js/game/cinematic_replay.js" not in changed_paths
-    assert not any(path.startswith("migrations/") or path.startswith("db/") for path in changed_paths)
+    if not _cumulative_activation_candidate_present():
+        changed = subprocess.check_output(
+            ["git", "diff", "--name-only", MASTER, "--"], cwd=ROOT, text=True
+        )
+        changed_paths = set(changed.splitlines())
+        assert "app.py" not in changed_paths
+        assert "sw.js" not in changed_paths
+        assert "js/game/cinematic_replay.js" not in changed_paths
+        assert not any(
+            path.startswith("migrations/") or path.startswith("db/")
+            for path in changed_paths
+        )
 
 
 def test_final_candidate_inventory_is_complete_and_hashes_current_bytes() -> None:
+    if _cumulative_activation_candidate_present():
+        pytest.skip(
+            "MASTER-anchored presentation inventory is not a cumulative Activation gate"
+        )
     inventory = load(INVENTORY)
     assert inventory["CANDIDATE_BASE"] == MASTER
     assert inventory["PATH_COUNT"] == 351
