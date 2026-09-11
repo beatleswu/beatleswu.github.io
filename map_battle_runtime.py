@@ -16,14 +16,45 @@ import hmac
 import json
 import re
 import secrets
+from types import MappingProxyType
 from typing import Any, Callable, Mapping
 
 from adventure_monster_runtime_contract import (
     AdventureMonsterRuntimeContractError,
+    AdventureMonsterRuntimeBinding,
+    AdventureMonsterRuntimeProviderRegistry,
     AdventureMonsterRuntimeProvider,
     AdventureQuestionBinding,
+    CanonicalAdventureProviderSlot,
     CLIENT_AUTHORITY_CLAIM_FIELDS,
+    E055Zone3ProviderAdapter,
+    E055_ZONE3_PROVIDER_ID,
+    CANONICAL_PROVIDER_SLOT_ID,
+    MissingBindingError,
+    ProviderDispatchError,
+    StaleQuestionBindingError,
+    UnknownProviderError,
+    persistence_metadata,
+    reject_client_authority_claims,
     resolve_runtime_binding,
+)
+from adventure_zone1_2_monster_runtime_provider import (
+    ZONE1_2_BINDING_SOURCE,
+    ZONE1_2_MONSTER_RUNTIME_PROVIDER,
+    ZONE1_2_PROVIDER_ID,
+)
+from adventure_zone3_monster_authority import (
+    ZONE3_BINDING_SOURCE,
+    ZONE3_BINDING_VERSION,
+    ZONE3_KEY,
+    Zone3MonsterAuthorityError,
+    decode_zone3_binding,
+    encode_zone3_binding,
+    select_zone3_binding,
+    zone3_combat_profile,
+)
+from adventure_zone4_10_monster_runtime_provider import (
+    ZONE4_10_BINDING_SOURCE,
 )
 from map_battle_persistence import (
     MAP_BATTLE_JUDGE_VERSION,
@@ -51,6 +82,530 @@ RUNTIME_SERVICE_ID = "map-battle-v1-runtime"
 OLD_CLIENT_HTTP_STATUS = 426
 OLD_CLIENT_ERROR = "upgrade_required"
 FEATURE_DISABLED_HTTP_STATUS = 503
+
+# Map Battle keeps its app-facing zone keys for compatibility with existing
+# rows and callers.  Provider dispatch uses the canonical Adventure zone
+# identity on the right-hand side.  The mapping is intentionally owned here,
+# beside the shared runtime seam, so creation and settlement cannot grow
+# separate zone/provider registries.
+MAP_BATTLE_CANONICAL_PROVIDER_ZONE_BY_APP_ZONE = MappingProxyType(
+    {
+        "k26_30": "Z1",
+        "k21_25": "Z2",
+        ZONE3_KEY: ZONE3_KEY,
+        "k11_15": "Z4",
+        "k6_10": "Z5",
+        "k1_5": "Z6",
+        "d1_2": "Z7",
+        "d3_4": "Z8",
+        "d5_6": "Z9",
+        "d7_plus": "Z10",
+        # Canonical keys are accepted by adapter callers and tests; persisted
+        # Map Battle rows continue to use the app-facing keys above.
+        "Z1": "Z1",
+        "Z2": "Z2",
+        "Z4": "Z4",
+        "Z5": "Z5",
+        "Z6": "Z6",
+        "Z7": "Z7",
+        "Z8": "Z8",
+        "Z9": "Z9",
+        "Z10": "Z10",
+    }
+)
+MAP_BATTLE_LEGACY_COMPATIBILITY_SOURCE = "legacy-adventure-map"
+MAP_BATTLE_LEGACY_COMPATIBILITY_VERSION = "map-battle-v1"
+MAP_BATTLE_PROVIDER_BOUND_SOURCES = frozenset(
+    {
+        ZONE1_2_BINDING_SOURCE,
+        ZONE3_BINDING_SOURCE,
+        ZONE4_10_BINDING_SOURCE,
+    }
+)
+
+NEW_BATTLE_BINDING = "NEW_BATTLE_BINDING"
+RESTORE_EXISTING_PROVIDER_BOUND_BATTLE = (
+    "RESTORE_EXISTING_PROVIDER_BOUND_BATTLE"
+)
+LEGACY_COMPATIBILITY_RESTORE = "LEGACY_COMPATIBILITY_RESTORE"
+
+
+def _map_battle_e055_binding(
+    *,
+    zone_key: str,
+    question_binding: AdventureQuestionBinding,
+    battle: Mapping[str, Any] | None = None,
+    user_id: int | None = None,
+) -> AdventureMonsterRuntimeBinding:
+    """Adapt the existing E055 Zone3 authority to the shared provider seam."""
+
+    del user_id
+    if zone_key != ZONE3_KEY:
+        raise ProviderDispatchError("E055 provider received a different zone")
+    try:
+        source_binding = (
+            decode_zone3_binding(battle)
+            if battle is not None
+            else select_zone3_binding(question_binding.question_id)
+        )
+        profile = zone3_combat_profile(source_binding)
+    except Zone3MonsterAuthorityError as error:
+        raise MissingBindingError(
+            "Adventure Zone 3 Monster binding is unavailable"
+        ) from error
+    return AdventureMonsterRuntimeBinding(
+        provider_id=E055_ZONE3_PROVIDER_ID,
+        zone_key=ZONE3_KEY,
+        monster_id=source_binding.monster_id,
+        roster_slot=source_binding.roster_slot,
+        encounter_class=source_binding.encounter_class,
+        family_id=source_binding.taxonomy_family,
+        profile_id=source_binding.profile_id,
+        profile_version=source_binding.profile_version,
+        max_hp=source_binding.max_hp,
+        combat_profile=profile,
+        question_binding=question_binding,
+        binding_source=ZONE3_BINDING_SOURCE,
+        binding_version=ZONE3_BINDING_VERSION,
+        persistence_source=ZONE3_BINDING_SOURCE,
+        persistence_version=encode_zone3_binding(source_binding),
+        drop_profile_id=source_binding.drop_profile_id,
+        reward_profile_id=source_binding.reward_profile_id,
+        server_enabled=True,
+        enabled=True,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class MapBattleProviderResolution:
+    """The explicit resolution mode and identity used by one Map Battle."""
+
+    mode: str
+    app_zone_key: str
+    provider_zone_key: str | None = None
+    provider_id: str | None = None
+    binding: AdventureMonsterRuntimeBinding | None = None
+
+    @property
+    def is_provider_bound(self) -> bool:
+        return self.mode == RESTORE_EXISTING_PROVIDER_BOUND_BATTLE
+
+    @property
+    def is_legacy_compatibility(self) -> bool:
+        return self.mode == LEGACY_COMPATIBILITY_RESTORE
+
+
+class MapBattleProviderBoundary(AdventureMonsterRuntimeProviderRegistry):
+    """One Map Battle provider registry for create, restore, and settlement.
+
+    This is an adapter over the shared Adventure provider registry.  It owns
+    only Map Battle's app-key normalization and the explicit legacy decision;
+    provider identity, profile, question binding, and persistence validation
+    remain in the existing provider contract.  No legacy fallback is performed
+    for a provider-bound or unknown-source row.
+    """
+
+    _PROVIDER_ID_BY_PERSISTENCE_SOURCE = MappingProxyType(
+        {
+            ZONE1_2_BINDING_SOURCE: ZONE1_2_PROVIDER_ID,
+            ZONE3_BINDING_SOURCE: E055_ZONE3_PROVIDER_ID,
+            # Zone4-10 is registered as a disabled admission slot.  A row
+            # bearing this source is therefore recognized, then fails closed.
+            ZONE4_10_BINDING_SOURCE: CANONICAL_PROVIDER_SLOT_ID,
+        }
+    )
+
+    def __init__(self) -> None:
+        super().__init__(
+            (
+                ZONE1_2_MONSTER_RUNTIME_PROVIDER,
+                E055Zone3ProviderAdapter(
+                    zone_keys=(ZONE3_KEY,),
+                    binding_resolver=_map_battle_e055_binding,
+                ),
+                CanonicalAdventureProviderSlot(
+                    zone_keys=("Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10"),
+                ),
+            )
+        )
+
+    @staticmethod
+    def canonical_provider_zone(zone_key: object) -> str | None:
+        if not isinstance(zone_key, str):
+            return None
+        return MAP_BATTLE_CANONICAL_PROVIDER_ZONE_BY_APP_ZONE.get(zone_key.strip())
+
+    @classmethod
+    def provider_id_for_persistence_source(cls, source: object) -> str | None:
+        if not isinstance(source, str):
+            return None
+        return cls._PROVIDER_ID_BY_PERSISTENCE_SOURCE.get(source)
+
+    @staticmethod
+    def _question_binding(
+        value: AdventureQuestionBinding | Mapping[str, Any],
+    ) -> AdventureQuestionBinding:
+        """Accept only an exact, active Puzzle identity projection.
+
+        The hot Puzzle Identity resolver remains the authority.  This seam
+        does not resolve aliases or invent a second identity; it only refuses
+        non-attachable statuses if a caller supplies the resolver's typed
+        projection alongside the question id/revision.
+        """
+
+        if isinstance(value, Mapping):
+            status = next(
+                (
+                    value.get(field)
+                    for field in (
+                        "identity_status",
+                        "puzzle_identity_status",
+                        "resolution_status",
+                        "status",
+                    )
+                    if value.get(field) not in (None, "")
+                ),
+                None,
+            )
+            if isinstance(status, str) and status.strip().upper() in {
+                "AMBIGUOUS",
+                "RETIRED",
+                "MISSING",
+                "UNAVAILABLE",
+                "UNKNOWN",
+            }:
+                raise StaleQuestionBindingError(
+                    "Puzzle identity is not an active exact binding"
+                )
+            question_id = value.get("question_id", value.get("id"))
+            question_revision = value.get("question_revision")
+            if question_revision is None:
+                question_revision = value.get("content_revision")
+            if question_revision is None:
+                question_revision = value.get("content_sha256")
+            value = AdventureQuestionBinding(question_id, question_revision)
+        if not isinstance(value, AdventureQuestionBinding):
+            raise StaleQuestionBindingError("question binding is missing")
+        if value.question_id in (None, "") or isinstance(value.question_id, bool):
+            raise StaleQuestionBindingError("question identity is missing")
+        if not isinstance(value.question_revision, str) or not value.question_revision.strip():
+            raise StaleQuestionBindingError("question revision is missing")
+        return AdventureQuestionBinding(
+            value.question_id,
+            value.question_revision.strip(),
+        )
+
+    @classmethod
+    def _validate_persisted_provider_identity(
+        cls,
+        binding: AdventureMonsterRuntimeBinding,
+    ) -> None:
+        metadata = persistence_metadata(binding)
+        expected_provider_id = cls.provider_id_for_persistence_source(
+            metadata["migration_source"]
+        )
+        if expected_provider_id != binding.provider_id:
+            raise ProviderDispatchError(
+                "provider identity does not match persisted binding source"
+            )
+
+    @staticmethod
+    def _provider_battle(
+        battle: Mapping[str, Any],
+        provider_zone_key: str,
+    ) -> dict[str, Any]:
+        provider_battle = dict(battle)
+        # Existing rows retain app-facing zone keys.  The shared provider
+        # contract sees only the canonical Adventure identity.
+        provider_battle["zone_key"] = provider_zone_key
+        return provider_battle
+
+    def new_resolution(
+        self,
+        *,
+        app_zone_key: str,
+        question_binding: AdventureQuestionBinding | Mapping[str, Any],
+        user_id: int | None = None,
+        eligibility: Mapping[str, Any] | None = None,
+        payload: Mapping[str, Any] | None = None,
+    ) -> MapBattleProviderResolution | None:
+        """Resolve the explicit NEW_BATTLE_BINDING mode, or legacy absence.
+
+        Returning ``None`` is reserved for the exact compatibility boundary:
+        an app zone with no admitted provider.  A mapped-but-disabled zone
+        raises instead, so Zone4-10 cannot silently become legacy gameplay.
+        """
+
+        provider_zone_key = self.canonical_provider_zone(app_zone_key)
+        if provider_zone_key is None:
+            return None
+        if payload is not None:
+            reject_client_authority_claims(payload)
+        expected_question = self._question_binding(question_binding)
+        del eligibility
+        binding = super().resolve_binding(
+            zone_key=provider_zone_key,
+            question_binding=expected_question,
+            user_id=user_id,
+        )
+        self._validate_persisted_provider_identity(binding)
+        return MapBattleProviderResolution(
+            mode=NEW_BATTLE_BINDING,
+            app_zone_key=app_zone_key,
+            provider_zone_key=provider_zone_key,
+            provider_id=binding.provider_id,
+            binding=binding,
+        )
+
+    def new_battle_binding(
+        self,
+        *,
+        app_zone_key: str,
+        question_binding: AdventureQuestionBinding | Mapping[str, Any],
+        user_id: int | None = None,
+        eligibility: Mapping[str, Any] | None = None,
+        payload: Mapping[str, Any] | None = None,
+    ) -> AdventureMonsterRuntimeBinding | None:
+        resolution = self.new_resolution(
+            app_zone_key=app_zone_key,
+            question_binding=question_binding,
+            user_id=user_id,
+            eligibility=eligibility,
+            payload=payload,
+        )
+        return None if resolution is None else resolution.binding
+
+    def restore_resolution(
+        self,
+        *,
+        battle: Mapping[str, Any],
+        question_binding: AdventureQuestionBinding | Mapping[str, Any],
+        user_id: int | None = None,
+    ) -> MapBattleProviderResolution:
+        """Resolve a persisted row through provider or explicit legacy mode."""
+
+        if not isinstance(battle, Mapping):
+            raise MissingBindingError("persisted battle is not an object")
+        raw_app_zone_key = battle.get("zone_key")
+        if not isinstance(raw_app_zone_key, str) or not raw_app_zone_key.strip():
+            raise MissingBindingError("persisted battle zone is missing")
+        app_zone_key = raw_app_zone_key.strip()
+        source = battle.get("migration_source")
+        version = battle.get("migration_version")
+        if source == MAP_BATTLE_LEGACY_COMPATIBILITY_SOURCE:
+            if version not in (
+                None,
+                "",
+                MAP_BATTLE_LEGACY_COMPATIBILITY_VERSION,
+            ):
+                raise ProviderDispatchError(
+                    "legacy compatibility version is not recognized"
+                )
+            return MapBattleProviderResolution(
+                mode=LEGACY_COMPATIBILITY_RESTORE,
+                app_zone_key=app_zone_key,
+            )
+
+        if (
+            not isinstance(source, str)
+            or source not in MAP_BATTLE_PROVIDER_BOUND_SOURCES
+        ):
+            raise UnknownProviderError(
+                "Map Battle provider identity is missing or unknown"
+            )
+        provider_id = self.provider_id_for_persistence_source(source)
+        if provider_id is None:
+            raise UnknownProviderError(
+                "Map Battle provider identity is missing or unknown"
+            )
+        provider_zone_key = self.canonical_provider_zone(app_zone_key)
+        if provider_zone_key is None:
+            raise UnknownProviderError(
+                "provider-bound Map Battle zone is not admitted"
+            )
+        expected_question = self._question_binding(question_binding)
+        binding = super().resolve_binding(
+            zone_key=provider_zone_key,
+            provider_id=provider_id,
+            question_binding=expected_question,
+            battle=self._provider_battle(battle, provider_zone_key),
+            user_id=user_id,
+        )
+        self._validate_persisted_provider_identity(binding)
+        return MapBattleProviderResolution(
+            mode=RESTORE_EXISTING_PROVIDER_BOUND_BATTLE,
+            app_zone_key=app_zone_key,
+            provider_zone_key=provider_zone_key,
+            provider_id=provider_id,
+            binding=binding,
+        )
+
+    def restore_binding(
+        self,
+        *,
+        battle: Mapping[str, Any],
+        question_binding: AdventureQuestionBinding | Mapping[str, Any],
+        user_id: int | None = None,
+    ) -> AdventureMonsterRuntimeBinding | None:
+        resolution = self.restore_resolution(
+            battle=battle,
+            question_binding=question_binding,
+            user_id=user_id,
+        )
+        return resolution.binding
+
+    def settlement_binding(
+        self,
+        *,
+        battle: Mapping[str, Any],
+        question_binding: AdventureQuestionBinding | Mapping[str, Any],
+        user_id: int | None = None,
+    ) -> AdventureMonsterRuntimeBinding | None:
+        """Use the same restore authority at the settlement seam."""
+
+        return self.restore_binding(
+            battle=battle,
+            question_binding=question_binding,
+            user_id=user_id,
+        )
+
+    def presentation_for_battle(
+        self,
+        *,
+        battle: Mapping[str, Any],
+        question_binding: AdventureQuestionBinding | Mapping[str, Any],
+        user_id: int | None = None,
+    ) -> dict[str, Any] | None:
+        resolution = self.restore_resolution(
+            battle=battle,
+            question_binding=question_binding,
+            user_id=user_id,
+        )
+        if resolution.binding is None:
+            return None
+        provider = super().provider_for(
+            zone_key=resolution.provider_zone_key,
+            provider_id=resolution.provider_id,
+        )
+        presenter = getattr(provider, "presentation_payload", None)
+        if not callable(presenter):
+            raise ProviderDispatchError(
+                "provider does not implement a presentation projection"
+            )
+        return presenter(
+            resolution.binding,
+            self._provider_battle(battle, resolution.provider_zone_key),
+        )
+
+    def resolve_binding(
+        self,
+        *,
+        zone_key: str,
+        question_binding: AdventureQuestionBinding | Mapping[str, Any],
+        battle: Mapping[str, Any] | None = None,
+        user_id: int | None = None,
+        provider_id: str | None = None,
+        expected_profile_id: str | None = None,
+        expected_profile_version: str | None = None,
+    ) -> AdventureMonsterRuntimeBinding:
+        """Implement the generic shared seam for provider-bound rows only."""
+
+        if provider_id is not None:
+            # The Map Battle-specific source check below remains authoritative;
+            # this argument is accepted for compatibility with the shared
+            # registry protocol and is checked by the provider dispatch.
+            provider = self.provider_for(
+                zone_key=self.canonical_provider_zone(zone_key) or zone_key,
+                provider_id=provider_id,
+            )
+            del provider
+        if battle is None:
+            binding = self.new_battle_binding(
+                app_zone_key=zone_key,
+                question_binding=question_binding,
+                user_id=user_id,
+            )
+            if binding is None:
+                raise ProviderDispatchError(
+                    "legacy Map Battle requires explicit compatibility handling"
+                )
+        else:
+            binding = self.restore_binding(
+                battle=battle,
+                question_binding=question_binding,
+                user_id=user_id,
+            )
+            if binding is None:
+                raise ProviderDispatchError(
+                    "legacy Map Battle requires explicit compatibility handling"
+                )
+        if expected_profile_id is not None and binding.profile_id != expected_profile_id:
+            raise ProviderDispatchError("Map Battle provider profile is not admitted")
+        if (
+            expected_profile_version is not None
+            and binding.profile_version != expected_profile_version
+        ):
+            raise ProviderDispatchError(
+                "Map Battle provider profile version is not admitted"
+            )
+        return binding
+
+
+MAP_BATTLE_PROVIDER_BOUNDARY = MapBattleProviderBoundary()
+MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY = MAP_BATTLE_PROVIDER_BOUNDARY
+
+
+def get_map_battle_provider_boundary() -> MapBattleProviderBoundary:
+    """Return the one shared Map Battle provider boundary."""
+
+    return MAP_BATTLE_PROVIDER_BOUNDARY
+
+
+def resolve_map_battle_provider_for_new(
+    *,
+    zone_key: str,
+    question_binding: AdventureQuestionBinding | Mapping[str, Any],
+    user_id: int | None = None,
+    eligibility: Mapping[str, Any] | None = None,
+    payload: Mapping[str, Any] | None = None,
+) -> AdventureMonsterRuntimeBinding | None:
+    return MAP_BATTLE_PROVIDER_BOUNDARY.new_battle_binding(
+        app_zone_key=zone_key,
+        question_binding=question_binding,
+        user_id=user_id,
+        eligibility=eligibility,
+        payload=payload,
+    )
+
+
+def resolve_map_battle_provider_for_new_resolution(
+    *,
+    zone_key: str,
+    question_binding: AdventureQuestionBinding | Mapping[str, Any],
+    user_id: int | None = None,
+    eligibility: Mapping[str, Any] | None = None,
+    payload: Mapping[str, Any] | None = None,
+) -> MapBattleProviderResolution | None:
+    return MAP_BATTLE_PROVIDER_BOUNDARY.new_resolution(
+        app_zone_key=zone_key,
+        question_binding=question_binding,
+        user_id=user_id,
+        eligibility=eligibility,
+        payload=payload,
+    )
+
+
+def resolve_map_battle_provider_for_restore(
+    *,
+    battle: Mapping[str, Any],
+    question_binding: AdventureQuestionBinding | Mapping[str, Any],
+    user_id: int | None = None,
+) -> MapBattleProviderResolution:
+    return MAP_BATTLE_PROVIDER_BOUNDARY.restore_resolution(
+        battle=battle,
+        question_binding=question_binding,
+        user_id=user_id,
+    )
 
 # W1-D1 Owner ruling.  Keep this policy at the existing Map Battle judge
 # boundary: it names the outcomes that may become trusted ``mbv1:`` evidence
@@ -1350,20 +1905,41 @@ def settle_answer(
             question_revision=str(attempt["question_revision"]),
         )
         try:
-            runtime_binding = resolve_runtime_binding(
-                runtime_provider,
-                zone_key=battle.get("zone_key"),
-                question_binding=question_binding,
-                battle=battle,
-                user_id=user_id,
-            )
+            if isinstance(runtime_provider, MapBattleProviderBoundary):
+                # The boundary distinguishes the exact legacy compatibility
+                # row before touching provider dispatch.  A provider-bound
+                # restore error is never converted into this legacy path.
+                runtime_binding = runtime_provider.settlement_binding(
+                    battle=battle,
+                    question_binding=question_binding,
+                    user_id=user_id,
+                )
+                if runtime_binding is None:
+                    if monster_profile_resolver is None:
+                        raise JudgeUnavailable(
+                            "legacy Map Battle compatibility resolver is unavailable"
+                        )
+                    monster_profile = monster_profile_resolver(
+                        conn,
+                        user_id,
+                        str(attempt["battle_id"]),
+                    )
+            else:
+                runtime_binding = resolve_runtime_binding(
+                    runtime_provider,
+                    zone_key=battle.get("zone_key"),
+                    question_binding=question_binding,
+                    battle=battle,
+                    user_id=user_id,
+                )
         except AdventureMonsterRuntimeContractError as error:
             # A new canonical caller opted into the shared provider contract;
             # its failure must never fall through to legacy profile resolution.
             raise JudgeUnavailable(
                 "authoritative Adventure Monster runtime binding is unavailable"
             ) from error
-        monster_profile = runtime_binding.combat_profile
+        if runtime_binding is not None:
+            monster_profile = runtime_binding.combat_profile
         if monster_profile is None:
             raise JudgeUnavailable(
                 "authoritative Adventure Monster combat profile is unavailable"
@@ -1470,13 +2046,24 @@ __all__ = [
     "ForbiddenClientAuthority",
     "JudgeOutcome",
     "JudgeUnavailable",
+    "LEGACY_COMPATIBILITY_RESTORE",
+    "MAP_BATTLE_CANONICAL_PROVIDER_ZONE_BY_APP_ZONE",
+    "MAP_BATTLE_LEGACY_COMPATIBILITY_SOURCE",
+    "MAP_BATTLE_LEGACY_COMPATIBILITY_VERSION",
+    "MAP_BATTLE_PROVIDER_BOUNDARY",
+    "MAP_BATTLE_PROVIDER_BOUND_SOURCES",
+    "MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY",
     "MAP_BATTLE_TRUSTED_EVIDENCE_POLICY",
     "MAP_BATTLE_TRUSTED_CORRECT_REASON_CODES",
     "MAP_BATTLE_TRUSTED_INCORRECT_REASON_CODES",
     "MapBattleRuntimeError",
     "ModeNotEligible",
+    "MapBattleProviderBoundary",
+    "MapBattleProviderResolution",
+    "NEW_BATTLE_BINDING",
     "OLD_CLIENT_ERROR",
     "OLD_CLIENT_HTTP_STATUS",
+    "RESTORE_EXISTING_PROVIDER_BOUND_BATTLE",
     "RUNTIME_SERVICE_ID",
     "RequestRejected",
     "SubmissionNonceAlreadyIssued",
@@ -1495,6 +2082,10 @@ __all__ = [
     "mode_eligible",
     "question_revision_for",
     "request_hash_for",
+    "get_map_battle_provider_boundary",
+    "resolve_map_battle_provider_for_new",
+    "resolve_map_battle_provider_for_new_resolution",
+    "resolve_map_battle_provider_for_restore",
     "resolve_runtime_binding",
     "settle_answer",
     "validate_resumable_attempt",

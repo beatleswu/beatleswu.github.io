@@ -14,6 +14,19 @@
   var content = global.GoOdysseyJourneyOnboardingContent;
   var COMPONENT = 'journey_onboarding';
   var EVENT = 'journey:onboarding-event';
+  var V2_PROJECTION_EVENT = 'journey:onboarding-v2-projection';
+  var V2_PROJECTION_QUEUE = '__GO_JOURNEY_ONBOARDING_V2_PROJECTION_QUEUE__';
+  var V2_STEP_MAP = {
+    start: 'opening',
+    first_context: 'first_adventure',
+    first_question: 'first_question',
+    first_review: 'answer_feedback',
+    first_combat: 'attack_hit',
+    first_reward: 'reward_reveal',
+    first_growth: 'growth_feedback',
+    next_action: 'next_action'
+  };
+  var V2_STATUS_VALUES = ['NOT_ENROLLED', 'NOT_STARTED', 'IN_PROGRESS', 'SKIPPED', 'COMPLETED'];
 
   function closestAction(target, root) {
     var node = target;
@@ -75,7 +88,106 @@
     });
   }
 
+  function consumeProjectionQueueItem(detail) {
+    var queue = global[V2_PROJECTION_QUEUE];
+    if (!Array.isArray(queue) || !detail) return;
+    global[V2_PROJECTION_QUEUE] = queue.filter(function (item) {
+      return item !== detail;
+    });
+  }
+
+  function isObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function validInteger(value) {
+    return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= 0;
+  }
+
+  function normalizeServerProjection(detail) {
+    // The event is an input to presentation only.  It is accepted only when
+    // App-A explicitly labels it as the server projection and enables the
+    // dormant bridge; no browser event can manufacture an enabled projection.
+    if (!isObject(detail) || detail.enabled !== true || detail.source !== 'server_onboarding_v2') return null;
+    var projection = isObject(detail.projection) ? detail.projection : null;
+    var state = projection && isObject(projection.state) ? projection.state : projection;
+    if (!state || !validInteger(state.state_version)) return null;
+    if (V2_STATUS_VALUES.indexOf(state.status) === -1) return null;
+    if (!Object.prototype.hasOwnProperty.call(V2_STEP_MAP, state.current_step)) return null;
+    return {
+      enabled: true,
+      state_version: state.state_version,
+      status: state.status,
+      current_step: state.current_step
+    };
+  }
+
+  function clearServerProjectionAttributes(root) {
+    root.removeAttribute('data-journey-v2-enabled');
+    root.removeAttribute('data-journey-v2-state-version');
+    root.removeAttribute('data-journey-v2-status');
+    root.removeAttribute('data-journey-v2-step');
+    root.removeAttribute('data-journey-v2-readonly');
+    root.removeAttribute('data-journey-v2-visibility');
+  }
+
+  function renderServerProjection(root, projection) {
+    if (!projection) return false;
+    var state = projection;
+    var step = V2_STEP_MAP[state.current_step];
+    var contract = content.stepContracts[step];
+    var terminal = state.status === 'NOT_ENROLLED' || state.status === 'SKIPPED' || state.status === 'COMPLETED';
+
+    clearServerProjectionAttributes(root);
+    root.setAttribute('data-journey-v2-enabled', 'true');
+    root.setAttribute('data-journey-v2-state-version', String(state.state_version));
+    root.setAttribute('data-journey-v2-status', state.status);
+    root.setAttribute('data-journey-v2-step', state.current_step);
+    root.setAttribute('data-journey-v2-readonly', 'true');
+
+    var hidden = terminal || !contract || !contract.copyKey;
+    root.hidden = hidden;
+    root.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+    if (hidden) {
+      root.setAttribute('data-journey-v2-visibility', state.status.toLowerCase());
+      return true;
+    }
+
+    root.removeAttribute('data-journey-v2-visibility');
+    root.removeAttribute('data-journey-visibility');
+    root.setAttribute('data-journey-step', step);
+    root.setAttribute('data-journey-presentation-state', 'server_projection');
+    var prefix = contract.copyKey;
+    setCopyKey(root.querySelector('[data-journey-kicker]'), prefix + '.kicker');
+    setCopyKey(root.querySelector('[data-journey-title]'), prefix + '.title');
+    setCopyKey(root.querySelector('[data-journey-body]'), prefix + '.body');
+    setCopyKey(root.querySelector('[data-journey-skip]'), null);
+    setCopyKey(root.querySelector('[data-journey-replay]'), null);
+    var skip = root.querySelector('[data-journey-action="skip"]');
+    var replay = root.querySelector('[data-journey-action="replay"]');
+    // Until App-A wires the server-owned skip/replay request contract, the
+    // bridge is display-only.  DOM clicks never advance V2 state.
+    if (skip) skip.hidden = true;
+    if (replay) replay.hidden = true;
+    var projectionState = {
+      completedSteps: (content.stepOrder || []).slice(0, content.stepOrder.indexOf(step)),
+      skippedSteps: []
+    };
+    renderProgress(root, projectionState, step);
+    applyI18n(root);
+
+    var status = root.querySelector('[data-journey-status]');
+    var title = root.querySelector('[data-journey-title]');
+    var body = root.querySelector('[data-journey-body]');
+    if (status) {
+      status.textContent = [state.status, title && title.textContent, body && body.textContent]
+        .filter(Boolean).join('. ');
+    }
+    return true;
+  }
+
   function render(root, controller, overrideStep) {
+    clearServerProjectionAttributes(root);
     var state = controller.getState();
     var step = overrideStep || state.step;
     var contract = content.stepContracts[step];
@@ -125,15 +237,17 @@
     if (!root || root.getAttribute('data-e9-journey-mounted') === 'true') return;
     var controller = global.GoOdysseyJourneyOnboarding.create({ content: content });
     var overrideStep = null;
+    var serverProjection = null;
 
     function renderCurrent() {
-      render(root, controller, overrideStep);
+      if (!renderServerProjection(root, serverProjection)) render(root, controller, overrideStep);
     }
 
     function onClick(event) {
       var action = closestAction(event.target, root);
       if (!action) return;
       event.preventDefault();
+      if (serverProjection) return;
       if (action.getAttribute('data-journey-action') === 'skip') {
         var skipResult = controller.skipHint();
         overrideStep = null;
@@ -149,9 +263,25 @@
       }
     }
 
+    function onServerProjection(event) {
+      var detail = event && event.detail;
+      consumeProjectionQueueItem(detail);
+      if (detail && detail.enabled !== true) {
+        serverProjection = null;
+        renderCurrent();
+        return;
+      }
+      var normalized = normalizeServerProjection(detail);
+      if (!normalized) return;
+      serverProjection = normalized;
+      overrideStep = null;
+      renderCurrent();
+    }
+
     function onJourneyEvent(event) {
       var detail = event && event.detail;
       if (!detail || !detail.type) return;
+      if (serverProjection) return;
       consumeLiveQueueItem(detail);
       overrideStep = null;
       var outcome = controller.accept(detail);
@@ -163,14 +293,26 @@
 
     bind(root, 'click', onClick, generation);
     bind(document, EVENT, onJourneyEvent, generation);
+    bind(document, V2_PROJECTION_EVENT, onServerProjection, generation);
     if (global.E9 && typeof global.E9.registerCleanup === 'function') {
       global.E9.registerCleanup(function () {
         root.removeAttribute('data-e9-journey-mounted');
         delete root.__goOdysseyJourneyOnboarding;
+        delete root.__goOdysseyJourneyOnboardingV2;
       }, generation);
     }
     root.setAttribute('data-e9-journey-mounted', 'true');
     root.__goOdysseyJourneyOnboarding = controller;
+    root.__goOdysseyJourneyOnboardingV2 = Object.freeze({
+      getProjection: function () {
+        return serverProjection ? {
+          enabled: serverProjection.enabled,
+          state_version: serverProjection.state_version,
+          status: serverProjection.status,
+          current_step: serverProjection.current_step
+        } : null;
+      }
+    });
     root.removeAttribute('data-journey-presentation-suppressed');
     renderCurrent();
     // The authenticated legacy bootstrap can finish before a non-critical
@@ -182,6 +324,12 @@
     global.__GO_JOURNEY_ONBOARDING_EVENT_QUEUE__ = [];
     queued.forEach(function (payload) {
       onJourneyEvent({ detail: payload });
+    });
+    var projectionQueue = Array.isArray(global[V2_PROJECTION_QUEUE])
+      ? global[V2_PROJECTION_QUEUE].slice() : [];
+    global[V2_PROJECTION_QUEUE] = [];
+    projectionQueue.forEach(function (payload) {
+      onServerProjection({ detail: payload });
     });
   }
 

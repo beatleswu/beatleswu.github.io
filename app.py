@@ -11,6 +11,7 @@ from flask import g as flask_g
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
+from contextlib import contextmanager
 from functools import wraps
 from collections import Counter
 import psycopg2
@@ -47,6 +48,11 @@ from monster_identity import (
     build_battlefield_identity_registry,
     canonical_battlefield_identity,
     resolve_monster_identity,
+)
+from adventure_monster_runtime_contract import (
+    AdventureMonsterRuntimeContractError,
+    AdventureQuestionBinding,
+    persistence_metadata,
 )
 from monster_combat_profiles import (
     MonsterCombatProfileError,
@@ -130,6 +136,7 @@ from map_battle_runtime import (
     OLD_CLIENT_ERROR,
     OLD_CLIENT_HTTP_STATUS,
     MapBattleRuntimeError,
+    MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
     RUNTIME_SERVICE_ID,
     RequestRejected,
     ensure_submission_lifecycle_schema,
@@ -137,6 +144,8 @@ from map_battle_runtime import (
     issue_submission_nonce_for_attempt,
     mode_eligible,
     question_revision_for,
+    resolve_map_battle_provider_for_new,
+    resolve_map_battle_provider_for_restore,
     settle_answer,
     validate_resumable_attempt,
 )
@@ -177,6 +186,22 @@ from review_contracts import (
     ReviewCommand,
 )
 from review_service import MapBattleReviewHandoff, ReviewService, ReviewServiceStatus
+from activation_http_contract import ActivationDomainError, ActivationDomainResult
+from coin_reward_authority import (
+    CoinRewardError,
+    CoinRewardSchemaUnavailable,
+    CoinRewardValidationError,
+    settle_rewards_sync_claim_in_transaction,
+)
+from wave2_onboarding_authority import (
+    NOT_ENROLLED as ONBOARDING_V2_NOT_ENROLLED,
+    OnboardingAuthorityError,
+    finish as finish_onboarding_v2,
+    get_state as get_onboarding_v2_state,
+    resume as resume_onboarding_v2,
+    skip as skip_onboarding_v2,
+    start as start_onboarding_v2,
+)
 from event_outbox import DuplicateOutboxEvent, append_event, get_event_by_idempotency_key
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
 from adventure_first_clear_convergence import (
@@ -230,10 +255,11 @@ from adventure_zone_progression_authority import (
     third_star_requirement,
 )
 # LC019-W2: the already-canonical bootstrap-gated identity reader (LC011-LC017,
-# extended to grimoire_api by LC019-W1).  Read-only.  While bootstrap_state().hot
-# is False -- every environment today, genesis is not authorised -- every
-# group_key is ("legacy", str(question_id)) and the resolver is never queried,
-# so the aggregate readers below stay byte-identical to their raw-integer form.
+# extended to grimoire_api by LC019-W1).  Read-only.  When bootstrap_state().hot
+# is False, or the identity tables are unavailable, every group_key is
+# ("legacy", str(question_id)) and the resolver is not queried, so the
+# aggregate readers retain their byte-identical raw-integer fallback.  When the
+# bootstrap is hot and the tables are present, the reader is queried below.
 from identity_read_adapter import BootstrapGatedIdentityReader
 from question_idempotency import (
     IdempotencyIdentityError,
@@ -324,6 +350,10 @@ from item_use_operations import (
     normalize_operation_identity,
     operation_result,
     reserve_item_use_operation,
+)
+from shop_inventory_authority import (
+    ShopInventoryInsufficient,
+    consume_shop_inventory,
 )
 from companion_operations import (
     CompanionMutationRejected,
@@ -3335,15 +3365,183 @@ def get_db():
     return _get_db()
 
 
+@contextmanager
+def _activation_transaction():
+    """Own one Activation HTTP request's transaction boundary.
+
+    Activation domain modules receive the already-open connection yielded by
+    this coordinator.  They may read and mutate through it, but they never
+    commit, roll back, or open a second write transaction.  The explicit
+    boundary is intentionally separate from ``get_db()``'s legacy context
+    manager so the ownership rule is visible at each migrated call site.
+    """
+    conn = get_db()
+    try:
+        # Open the transaction before yielding so a domain module that has a
+        # compatibility write helper can detect the outer boundary and cannot
+        # self-commit it.
+        conn.execute('BEGIN')
+        yield conn
+    except BaseException:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+        raise
+    else:
+        try:
+            conn.commit()
+        except BaseException:
+            try:
+                conn.rollback()
+            finally:
+                conn.close()
+            raise
+        conn.close()
+
+
+def _activation_domain_result_response(result):
+    """Adapt a typed domain result without adding route/business policy."""
+    if not isinstance(result, ActivationDomainResult):
+        raise TypeError('Activation routes require ActivationDomainResult')
+    return jsonify(dict(result.body)), result.status_code
+
+
+def _activation_domain_error_response(error):
+    """Adapt a typed domain error to its stable HTTP representation."""
+    if not isinstance(error, ActivationDomainError):
+        raise TypeError('Activation routes require ActivationDomainError')
+    return jsonify(error.to_http_body()), error.status_code
+
+
+def _activation_coin_reward_error_response(error):
+    """Map only typed Coin authority failures at the Rewards Sync boundary."""
+    if not isinstance(error, CoinRewardError):
+        raise TypeError('Rewards Sync requires CoinRewardError')
+    if isinstance(error, CoinRewardValidationError):
+        status_code, retryable = 400, False
+    elif isinstance(error, CoinRewardSchemaUnavailable):
+        status_code, retryable = 503, True
+    else:
+        status_code, retryable = 503, True
+    return _activation_domain_error_response(ActivationDomainError(
+        getattr(error, 'code', 'COIN_REWARD_FAILED'),
+        status_code=status_code,
+        retryable=retryable,
+        message=str(error) or getattr(error, 'code', 'COIN_REWARD_FAILED'),
+        body={'source': 'coin_reward_authority'},
+    ))
+
+
+_ONBOARDING_V2_ENABLEMENT_ENV = 'GO_ODYSSEY_ONBOARDING_V2_ENABLED'
+_ONBOARDING_V2_SOURCE = 'server_onboarding_v2'
+
+
+def _onboarding_v2_enabled():
+    """Keep the V2 route surface dark until its separate Owner gate exists."""
+    return str(os.environ.get(_ONBOARDING_V2_ENABLEMENT_ENV, '')).strip().lower() in {
+        '1', 'true', 'yes', 'on',
+    }
+
+
+def _onboarding_v2_schema_present(conn):
+    """Probe the additive V2 table without applying or mutating a migration."""
+    try:
+        raw = getattr(conn, '_conn', conn)
+        if raw.__class__.__module__.lower().startswith('sqlite3'):
+            row = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='wave2_onboarding_state_v1'"
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema='public' AND table_name=?",
+                ('wave2_onboarding_state_v1',),
+            ).fetchone()
+        return row is not None
+    except Exception:
+        return False
+
+
+def _onboarding_v2_disabled_error():
+    return ActivationDomainError(
+        'onboarding_v2_disabled',
+        status_code=503,
+        retryable=False,
+        message='Onboarding V2 is not enabled',
+        body={'enabled': False, 'source': _ONBOARDING_V2_SOURCE},
+    )
+
+
+def _onboarding_v2_schema_error():
+    return ActivationDomainError(
+        'onboarding_v2_schema_unavailable',
+        status_code=503,
+        retryable=True,
+        message='Onboarding V2 schema is unavailable',
+        body={'enabled': True, 'source': _ONBOARDING_V2_SOURCE},
+    )
+
+
+def _onboarding_v2_expected_state_version(payload):
+    if payload is None:
+        payload = {}
+    if not isinstance(payload, dict):
+        raise ActivationDomainError(
+            'onboarding_v2_invalid_request',
+            status_code=400,
+            message='request JSON must be an object',
+        )
+    expected = payload.get('expected_state_version')
+    if expected is not None and (
+        isinstance(expected, bool) or not isinstance(expected, int) or expected < 0
+    ):
+        raise ActivationDomainError(
+            'onboarding_v2_invalid_state_version',
+            status_code=400,
+            message='expected_state_version must be a non-negative integer',
+        )
+    return expected
+
+
+def _onboarding_v2_mutation(authority):
+    """Run one dark-gated V2 mutation in the ACT-A-owned transaction."""
+    if not _onboarding_v2_enabled():
+        return _activation_domain_error_response(_onboarding_v2_disabled_error())
+    try:
+        expected_state_version = _onboarding_v2_expected_state_version(
+            request.get_json(silent=True)
+        )
+        with _activation_transaction() as conn:
+            if not _onboarding_v2_schema_present(conn):
+                raise _onboarding_v2_schema_error()
+            result = authority(
+                conn,
+                int(session['user_id']),
+                expected_state_version,
+            )
+    except ActivationDomainError as error:
+        return _activation_domain_error_response(error)
+    except OnboardingAuthorityError:
+        return _activation_domain_error_response(_onboarding_v2_schema_error())
+    except sqlite3.OperationalError:
+        return _activation_domain_error_response(_onboarding_v2_schema_error())
+    status_code = int(result.get('status_code', 200)) if isinstance(result, dict) else 200
+    return _activation_domain_result_response(
+        ActivationDomainResult(result, status_code=status_code)
+    )
+
+
 # ── LC019-W2: canonical-identity folding for app.py aggregate readers ─────────
 def _identity_tables_present(conn) -> bool:
     """Catalog probe for the (candidate) puzzle-identity tables.
 
     Uses ``sqlite_master`` / ``information_schema`` so it never issues a query
     that could abort the caller's transaction when the tables are absent -- the
-    case in every environment today, the identity migration being a candidate
-    that is not applied to the runtime DB.  Absent -> the caller keeps the raw
-    integer ``question_id`` path unchanged and never constructs a resolver.
+    case when the identity migration is not applied to the runtime DB.  Absent
+    -> the caller keeps the raw integer ``question_id`` path unchanged and
+    never constructs a resolver.
     """
     try:
         raw = getattr(conn, "_conn", conn)
@@ -3365,8 +3563,8 @@ def _identity_tables_present(conn) -> bool:
 def _identity_group_key_map(conn, question_ids):
     """``{str(question_id): group_key}`` for the given ids.
 
-    Empty dict when the puzzle-identity tables are absent OR bootstrap is cold
-    (every environment today): callers then fall back to ``("legacy", str(id))``
+    Empty dict when the puzzle-identity tables are absent OR bootstrap is cold:
+    callers then fall back to ``("legacy", str(id))``
     -- a bijection with the raw id, hence byte-identical aggregate output and
     ``HOT_FALSE_TOTAL_RESOLVER_QUERY_COUNT == 0``.  When bootstrap is hot, two
     legacy ids that resolve to the same ``source_record_uuid`` share a
@@ -3393,8 +3591,8 @@ class _IdentityKeyedSet:
     """A set whose membership / intersection compares ``question_id`` by the
     canonical identity ``group_key``.
 
-    When the identity tables are absent or bootstrap is cold (every environment
-    today) the group_key of id ``N`` is ``("legacy", str(N))`` -- a bijection
+    When the identity tables are absent or bootstrap is cold, the group_key of
+    id ``N`` is ``("legacy", str(N))`` -- a bijection
     with the raw id -- so this behaves byte-identically to a plain ``set`` of
     question ids and issues zero resolver queries.  When bootstrap is hot, two
     legacy ids that resolve to the same ``source_record_uuid`` collapse to one
@@ -5857,6 +6055,65 @@ def login_required(f):
             return redirect('/login')
         return f(*args, **kwargs)
     return decorated
+
+
+@app.route('/api/onboarding/v2', methods=['GET'])
+@login_required
+def onboarding_v2_projection():
+    """Return a dark-by-default server projection without creating state."""
+    if not _onboarding_v2_enabled():
+        return jsonify({
+            'ok': True,
+            'enabled': False,
+            'source': _ONBOARDING_V2_SOURCE,
+            'status': 'DISABLED',
+            'reason': 'ONBOARDING_V2_DISABLED',
+            'state': None,
+        })
+    try:
+        with _activation_transaction() as conn:
+            if not _onboarding_v2_schema_present(conn):
+                raise _onboarding_v2_schema_error()
+            state = get_onboarding_v2_state(conn, int(session['user_id']))
+    except ActivationDomainError as error:
+        return _activation_domain_error_response(error)
+    except OnboardingAuthorityError:
+        return _activation_domain_error_response(_onboarding_v2_schema_error())
+    except sqlite3.OperationalError:
+        return _activation_domain_error_response(_onboarding_v2_schema_error())
+    state_payload = state.as_dict() if state is not None else None
+    return _activation_domain_result_response(ActivationDomainResult({
+        'ok': True,
+        'enabled': True,
+        'source': _ONBOARDING_V2_SOURCE,
+        'status': state.status if state is not None else ONBOARDING_V2_NOT_ENROLLED,
+        'reason': 'STATE_READ' if state is not None else 'NOT_ENROLLED',
+        'state': state_payload,
+    }))
+
+
+@app.route('/api/onboarding/v2/start', methods=['POST'])
+@login_required
+def onboarding_v2_start():
+    return _onboarding_v2_mutation(start_onboarding_v2)
+
+
+@app.route('/api/onboarding/v2/resume', methods=['POST'])
+@login_required
+def onboarding_v2_resume():
+    return _onboarding_v2_mutation(resume_onboarding_v2)
+
+
+@app.route('/api/onboarding/v2/skip', methods=['POST'])
+@login_required
+def onboarding_v2_skip():
+    return _onboarding_v2_mutation(skip_onboarding_v2)
+
+
+@app.route('/api/onboarding/v2/finish', methods=['POST'])
+@login_required
+def onboarding_v2_finish():
+    return _onboarding_v2_mutation(finish_onboarding_v2)
 
 def admin_required(f):
     @wraps(f)
@@ -11195,8 +11452,9 @@ def recommend_questions():
         ).fetchall()
         # LC019-W2: key the per-question SRS / mistake lookups by canonical
         # identity so a candidate that is the content-duplicate of a card the
-        # player already holds sees that card's state.  Cold (today): _gk of id
-        # N is ("legacy", str(N)), so this is identical to keying by str(id).
+        # player already holds sees that card's state.  When the reader is cold,
+        # _gk of id N is ("legacy", str(N)), so this is identical to keying by
+        # str(id).
         _gkm = _identity_group_key_map(
             conn,
             {q['id'] for q in qs}
@@ -11337,8 +11595,8 @@ def training_daily():
             ).fetchall()
         }
         # LC019-W2: compare the "already answered / already queued" sets by
-        # canonical identity.  Cold (today): _gk of id N is ("legacy", str(N)),
-        # a bijection, so every membership test and intersection below is
+        # canonical identity.  When the reader is cold, _gk of id N is
+        # ("legacy", str(N)), a bijection, so every membership test and intersection below is
         # byte-identical to the raw-integer form and no resolver is queried.
         _gkm = _identity_group_key_map(
             conn, set(enabled) | done_today_raw
@@ -11404,7 +11662,7 @@ def training_daily():
             }
 
             # LC019-W2: fold the "mastered" / "already seen" exclusion sets by
-            # canonical identity too (same cold-path bijection guarantee).
+            # canonical identity too (the cold-path bijection guarantee).
             _extra = _identity_group_key_map(conn, mastered_raw | seen_raw)
             if _extra:
                 _gkm.update(_extra)
@@ -12243,8 +12501,8 @@ def _adventure_state(uid):
         }
         # LC019-W2: Adventure Lord progress is "have I cleared this puzzle".
         # Fold the mastery / attempted / defeat sets by canonical identity so a
-        # content-duplicate counts once.  Cold (today): _gk is the identity
-        # ("legacy", str(id)) bijection -> per-zone counts unchanged, 0 resolver
+        # content-duplicate counts once.  When the reader is cold, _gk is the
+        # identity ("legacy", str(id)) bijection -> per-zone counts unchanged, 0 resolver
         # queries.
         _adv_gkm = _identity_group_key_map(
             conn,
@@ -14154,8 +14412,8 @@ def curriculum_summary():
             (uid, f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}%'),
         ).fetchall()
         # LC019-W2: fold the per-(discipline x stage) "practiced" / boss-defeated
-        # counters by canonical identity.  Cold (today): _gk of id N is
-        # ("legacy", str(N)), so `_meta_by_gk` is a 1:1 re-key of `qid_meta`,
+        # counters by canonical identity.  When the reader is cold, _gk of id N
+        # is ("legacy", str(N)), so `_meta_by_gk` is a 1:1 re-key of `qid_meta`,
         # every group_key first-seen exactly once per srs row, and every count
         # below is byte-identical to the raw-integer form (0 resolver queries).
         _cur_gkm = _identity_group_key_map(
@@ -15064,6 +15322,44 @@ def _map_battle_monster_hp(question):
     return current, maximum
 
 
+def _map_battle_question_binding(question, metadata):
+    """Adapt server-resolved question metadata to the ACT-B provider port."""
+    return AdventureQuestionBinding(
+        question_id=question['id'],
+        question_revision=metadata['question_revision'],
+    )
+
+
+def _map_battle_provider_for_new(question, metadata, *, zone_key, user_id, eligibility, payload):
+    """Resolve ACT-B creation authority without duplicating provider policy."""
+    try:
+        return resolve_map_battle_provider_for_new(
+            zone_key=zone_key,
+            question_binding=_map_battle_question_binding(question, metadata),
+            user_id=user_id,
+            eligibility=eligibility,
+            payload=payload,
+        )
+    except AdventureMonsterRuntimeContractError as error:
+        raise JudgeUnavailable(
+            'authoritative Map Battle provider is unavailable'
+        ) from error
+
+
+def _map_battle_provider_for_restore(battle, question, metadata, *, user_id):
+    """Resolve ACT-B restoration authority for one persisted battle row."""
+    try:
+        return resolve_map_battle_provider_for_restore(
+            battle=battle,
+            question_binding=_map_battle_question_binding(question, metadata),
+            user_id=user_id,
+        )
+    except AdventureMonsterRuntimeContractError as error:
+        raise JudgeUnavailable(
+            'authoritative Map Battle provider binding is unavailable'
+        ) from error
+
+
 def _map_battle_f010_profile(conn, user_id, battle_id):
     """Resolve the selected F010 identity for a feature-on Map Battle.
 
@@ -15135,7 +15431,45 @@ def _map_battle_monster_profile_resolver(conn, user_id, battle_id):
             raise JudgeUnavailable(
                 'Adventure Zone 3 combat profile is unavailable'
             ) from error
-    return _map_battle_f010_profile(conn, user_id, battle_id)
+    profile = _map_battle_f010_profile(conn, user_id, battle_id)
+    if profile is not None:
+        return profile
+
+    # ACT-B permits only this explicit compatibility source to use the old
+    # question/persisted-state stat adapter.  A provider-bound row that reaches
+    # this resolver indicates a broken binding and must not become a legacy
+    # fallback by accident.
+    if str(battle.get('migration_source') or '') != 'legacy-adventure-map':
+        raise JudgeUnavailable(
+            'authoritative Adventure Monster provider binding is unavailable'
+        )
+    attempt = conn.execute(
+        'SELECT question_id FROM map_battle_attempts '
+        'WHERE user_id=? AND battle_id=? ORDER BY issued_at DESC LIMIT 1',
+        (int(user_id), str(battle_id)),
+    ).fetchone()
+    question = _map_battle_question_by_id(attempt['question_id']) if attempt else None
+    if question is None:
+        raise JudgeUnavailable('authoritative Map Battle question is unavailable')
+    try:
+        return resolve_monster_combat_profile(
+            question,
+            context='MAP_BATTLE',
+            trusted_compatibility_overrides=build_map_battle_compatibility_overrides(
+                question,
+                persisted_max_hp=battle.get('monster_hp_max'),
+            ),
+            compatibility_mode='MAP_BATTLE_LEGACY_STATE',
+            compatibility_reason=(
+                'preserve explicit legacy Map Battle rows while the shared '
+                'provider boundary handles provider-bound rows'
+            ),
+            compatibility_source='server_persisted_map_battle_state+server_question_metadata',
+        )
+    except MonsterCombatProfileError as error:
+        raise JudgeUnavailable(
+            'authoritative legacy Map Battle combat profile is unavailable'
+        ) from error
 
 
 def _map_battle_open_for_zone(conn, user_id, zone_key):
@@ -15261,7 +15595,7 @@ def map_battle_v1_prepare_attempt():
                 )
         metadata = _map_battle_question_context(question)
         user_id = int(session['user_id'])
-        with get_db() as conn:
+        with _activation_transaction() as conn:
             eligibility = _map_battle_require_enabled(user_id, conn)
             battle = _map_battle_open_for_zone(conn, user_id, zone_key)
             if zone_key == ADVENTURE_ZONE3_KEY and legacy_zone3_battle_is_retirable(battle):
@@ -15283,9 +15617,36 @@ def map_battle_v1_prepare_attempt():
                     zone_key=zone_key,
                     phase='resume',
                 )
+            provider_resolution = None
+            if battle is not None:
+                provider_resolution = _map_battle_provider_for_restore(
+                    battle,
+                    question,
+                    metadata,
+                    user_id=user_id,
+                )
             if battle is None:
                 player_hp, player_hp_max = _map_battle_player_hp(conn, user_id)
-                if zone_key == ADVENTURE_ZONE3_KEY:
+                provider_binding = _map_battle_provider_for_new(
+                    question,
+                    metadata,
+                    zone_key=zone_key,
+                    user_id=user_id,
+                    eligibility=eligibility,
+                    payload=payload,
+                )
+                if provider_binding is not None:
+                    battle_id = create_map_battle(
+                        conn,
+                        user_id=user_id,
+                        zone_key=zone_key,
+                        player_hp=player_hp,
+                        player_hp_max=player_hp_max,
+                        monster_hp=provider_binding.max_hp,
+                        monster_hp_max=provider_binding.max_hp,
+                        **persistence_metadata(provider_binding),
+                    )
+                elif zone_key == ADVENTURE_ZONE3_KEY:
                     try:
                         zone3_binding = select_zone3_binding(question['id'])
                         zone3_profile = zone3_combat_profile(zone3_binding)
@@ -15328,7 +15689,10 @@ def map_battle_v1_prepare_attempt():
                         migration_version='map-battle-v1',
                     )
             else:
-                if zone_key == ADVENTURE_ZONE3_KEY:
+                if provider_resolution is not None and provider_resolution.binding is None:
+                    # Preserve the existing Zone 3 compatibility check for
+                    # legacy rows; ACT-B explicitly returns no provider
+                    # binding for this admitted compatibility mode.
                     _map_battle_zone3_binding(battle)
                 battle_id = str(battle['id'])
             issued = issue_attempt_with_submission_nonce(
@@ -15414,7 +15778,7 @@ def map_battle_v1_resume_validation(attempt_id):
         # Re-derive the same server-owned context before allowing it to resume;
         # otherwise a stale session token could re-open a broken board.
         _map_battle_question_context(question)
-        with get_db() as conn:
+        with _activation_transaction() as conn:
             _map_battle_require_enabled(int(session['user_id']), conn)
             validated = validate_resumable_attempt(
                 conn,
@@ -15427,6 +15791,12 @@ def map_battle_v1_resume_validation(attempt_id):
             )
             if question_revision_for(question) != str(validated['attempt']['question_revision']):
                 raise RequestRejected('question revision is stale for this attempt', status=409)
+            _map_battle_provider_for_restore(
+                validated['battle'],
+                question,
+                {'question_revision': question_revision_for(question)},
+                user_id=int(session['user_id']),
+            )
             public_battle = _map_battle_public_state(validated['battle'])
         return jsonify({
             'ok': True,
@@ -15483,7 +15853,7 @@ def map_battle_v1_submission_nonce(attempt_id):
             'message': '遊戲已更新，請重新整理後繼續',
         }), OLD_CLIENT_HTTP_STATUS
     try:
-        with get_db() as conn:
+        with _activation_transaction() as conn:
             eligibility = _map_battle_eligibility(conn, session['user_id'])
             result = issue_submission_nonce_for_attempt(
                 conn,
@@ -15520,7 +15890,7 @@ def map_battle_v1_answers():
         }), OLD_CLIENT_HTTP_STATUS
     payload = request.get_json(silent=True)
     try:
-        with get_db() as conn:
+        with _activation_transaction() as conn:
             eligibility = _map_battle_eligibility(conn, session['user_id'])
             result = settle_answer(
                 conn,
@@ -15531,6 +15901,7 @@ def map_battle_v1_answers():
                 eligibility=eligibility,
                 combat_stats_resolver=_get_authoritative_combat_stats,
                 monster_profile_resolver=_map_battle_monster_profile_resolver,
+                runtime_provider=MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
                 spirit_projection_resolver=build_b022_active_spirit_projection,
             )
     except MapBattleRuntimeError as error:
@@ -17154,8 +17525,8 @@ def srs_due():
             (uid,today)).fetchall()
         qs   = _load_questions()
         # LC019-W2: don't synthesize a default card for a question whose
-        # canonical identity already has a real due card.  Cold (today): _gk is
-        # the ("legacy", str(id)) bijection -> `seen` behaves exactly like the
+        # canonical identity already has a real due card.  When the reader is
+        # cold, _gk is the ("legacy", str(id)) bijection -> `seen` behaves exactly like the
         # raw id set, so `due` is byte-identical and no resolver is queried.
         seen = _IdentityKeyedSet(
             {r['question_id'] for r in rows},
@@ -17435,7 +17806,7 @@ def _stage_completion_state(uid, conn, *, fold_identity=True):
 
     LC019-W2: the read routes (`/api/quest-board`, `/api/quest-board/progress`)
     compare "practiced" by canonical identity so a content-duplicate of a
-    practiced puzzle counts.  Cold (today) `_gk` is the ("legacy", str(id))
+    practiced puzzle counts.  When the reader is cold, `_gk` is the ("legacy", str(id))
     bijection, so `completed` is byte-identical either way and no resolver is
     queried.  ``fold_identity=False`` keeps the raw-id semantics unconditionally
     -- the reward-granting caller (`/api/rewards/sync`) passes it so the write
@@ -17547,8 +17918,8 @@ def quest_board_progress():
                 (uid, *qids)
             ).fetchall()
             # LC019-W2: a quest question counts as practiced when its canonical
-            # identity has a card.  Cold (today): ("legacy", str(id)) bijection
-            # -> identical `practiced` count and `next_question_id`, 0 resolver
+            # identity has a card.  When the reader is cold, ("legacy", str(id))
+            # is a bijection -> identical `practiced` count and `next_question_id`, 0 resolver
             # queries.
             practiced_ids = _IdentityKeyedSet(
                 {int(row['question_id']) for row in rows},
@@ -17579,57 +17950,65 @@ def quest_board_abandon():
 def rewards_sync():
     """伺服器端重算已通關的學科×階段，對尚未發放者發金幣/經驗（一次性、防重練刷幣）。"""
     uid = session['user_id']
-    now = datetime.datetime.now().isoformat()
-    with get_db() as conn:
-        # LC019-W2: reward granting stays on raw-id completion semantics in every
-        # bootstrap state (write-path firewall) -- identity folding is read-only.
-        completed, claimed, segments, practiced_ids = _stage_completion_state(
-            uid, conn, fold_identity=False
-        )
-        new_keys = [k for k in completed if k not in claimed]
+    now = datetime.datetime.now()
+    try:
+        with _activation_transaction() as conn:
+            # LC019-W2: reward granting stays on raw-id completion semantics in every
+            # bootstrap state (write-path firewall) -- identity folding is read-only.
+            completed, claimed, segments, practiced_ids = _stage_completion_state(
+                uid, conn, fold_identity=False
+            )
+            new_keys = [k for k in completed if k not in claimed]
 
-        granted = []; tot_c = tot_x = 0
-        won_keys = []
-        xp_shadow_inputs = []
-        for k in new_keys:
-            seg = segments.get(k)
-            if not seg:
-                continue
-            c, x = int(seg.get('coins') or 0), int(seg.get('xp') or 0)
-            cur = conn.execute(
-                'INSERT OR IGNORE INTO reward_claimed(user_id,stage_key,coins,xp,claimed_at) VALUES(?,?,?,?,?)',
-                (uid, k, c, x, now))
-            # rowcount == 0 means this (user_id, stage_key) claim already
-            # exists -- a concurrent request (or an earlier one racing this
-            # same request) won it first. Only the transaction whose
-            # INSERT actually lands may grant coins/XP or clear quest
-            # state for this key; a losing transaction grants nothing.
-            if cur.rowcount != 1:
-                continue
-            won_keys.append(k)
-            tot_c += c; tot_x += x
-            granted.append(_quest_public_meta(seg, practiced_ids))
-            xp_shadow_inputs.append({
-                'source_type': 'QUEST_BOARD_STAGE',
-                'source_id': k,
-                'source_marker': 'reward_claimed(user_id,stage_key)',
-                'legacy_xp': x,
-                'base_xp': x,
-                # Premium changes the accessible segment shape before this
-                # writer receives ``seg``; it is not a second 18% XP factor.
-                'premium_eligibility': 'PREMIUM_INELIGIBLE',
-                'legacy_premium_already_applied': False,
-            })
-        if won_keys:
-            conn.execute(
-                'INSERT INTO user_stats(user_id,coins,xp,updated_at) VALUES(?,?,?,?) '
-                'ON CONFLICT(user_id) DO UPDATE SET coins=user_stats.coins+?, xp=user_stats.xp+?, updated_at=?',
-                (uid, tot_c, tot_x, now, tot_c, tot_x, now))
-            # 已完成領賞的委託自動從接取清單移除（僅限本次實際搶到的 key）
-            for k in won_keys:
-                conn.execute('DELETE FROM quest_accepted WHERE user_id=? AND quest_key=?', (uid, k))
-        row = conn.execute('SELECT coins, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
-        conn.commit()
+            granted = []; tot_c = tot_x = 0
+            won_keys = []
+            xp_shadow_inputs = []
+            for k in new_keys:
+                seg = segments.get(k)
+                if not seg:
+                    continue
+                c, x = int(seg.get('coins') or 0), int(seg.get('xp') or 0)
+                settlement = settle_rewards_sync_claim_in_transaction(
+                    conn,
+                    user_id=int(uid),
+                    stage_key=k,
+                    server_computed_coins=c,
+                    server_computed_xp=x,
+                    now=now,
+                )
+                # The accepted ACT-C authority owns claim idempotency.  Only a
+                # transaction that creates the claim may grant XP or clear the
+                # quest acceptance row; retries grant neither.
+                if settlement.duplicate:
+                    continue
+                won_keys.append(k)
+                tot_c += int(settlement.granted_coins)
+                tot_x += int(settlement.xp)
+                granted.append(_quest_public_meta(seg, practiced_ids))
+                xp_shadow_inputs.append({
+                    'source_type': 'QUEST_BOARD_STAGE',
+                    'source_id': k,
+                    'source_marker': 'reward_claimed(user_id,stage_key)',
+                    'legacy_xp': x,
+                    'base_xp': x,
+                    # Premium changes the accessible segment shape before this
+                    # writer receives ``seg``; it is not a second 18% XP factor.
+                    'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                    'legacy_premium_already_applied': False,
+                })
+            if won_keys:
+                # ACT-C owns the canonical Coin mutation; XP remains the
+                # existing Rewards Sync caller mutation in this same request
+                # transaction.
+                conn.execute(
+                    'UPDATE user_stats SET xp=COALESCE(xp,0)+?, updated_at=? WHERE user_id=?',
+                    (tot_x, now.isoformat(), uid))
+                # 已完成領賞的委託自動從接取清單移除（僅限本次實際搶到的 key）
+                for k in won_keys:
+                    conn.execute('DELETE FROM quest_accepted WHERE user_id=? AND quest_key=?', (uid, k))
+            row = conn.execute('SELECT coins, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
+    except CoinRewardError as error:
+        return _activation_coin_reward_error_response(error)
 
     for shadow_input in xp_shadow_inputs:
         _observe_xp_shadow(user_id=uid, **shadow_input)
@@ -17658,8 +18037,8 @@ def map_progress():
             (uid, f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}%'),
         ).fetchall()
         # LC019-W2: count map "practiced" / "defeated" by canonical identity.
-        # Cold (today): _gk is the ("legacy", str(id)) bijection -> per-map
-        # counts unchanged, no resolver query.
+        # When the reader is cold, _gk is the ("legacy", str(id)) bijection ->
+        # per-map counts unchanged, no resolver query.
         _map_gkm = _identity_group_key_map(
             conn,
             {q['id'] for q in qs}
@@ -24159,13 +24538,12 @@ def _inv_add(conn, uid, item_key, qty=1):
         (uid, item_key, qty, qty))
 
 def _inv_consume(conn, uid, item_key, qty=1) -> bool:
-    row = conn.execute('SELECT qty FROM shop_inventory WHERE user_id=? AND item_key=?',
-                       (uid, item_key)).fetchone()
-    if not row or (row['qty'] or 0) < qty:
+    try:
+        return consume_shop_inventory(conn, uid, item_key, qty)
+    except ShopInventoryInsufficient:
+        # Preserve the two existing callers' boolean/not-owned contract while
+        # the domain module owns the guarded decrement authority.
         return False
-    conn.execute('UPDATE shop_inventory SET qty=qty-? WHERE user_id=? AND item_key=?',
-                 (qty, uid, item_key))
-    return True
 
 def _grant_shop_purchase(conn, uid, item, qty=1):
     """Grant direct bundles immediately; otherwise add the shop item itself."""

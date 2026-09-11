@@ -30,6 +30,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # application modules otherwise retain their ordinary Git lineage. Every COPY
 # here must also stay in sync with deploy/build-manifest.json's tracked inputs.
 COPY app.py ./
+# ACT-F Activation R1 runtime dependency closure. These are explicit copies;
+# the migration candidate remains separately reviewable and is not runtime
+# imported by the application.
+COPY activation_http_contract.py ./
+COPY coin_reward_authority.py ./
+COPY shop_inventory_authority.py ./
+COPY wave2_onboarding_authority.py ./
+# ACT-A/B Map Battle provider closure; these existing Zone authorities became
+# reachable through the accepted provider boundary and remain explicit.
+COPY adventure_zone4_10_monster_runtime_provider.py ./
+COPY adventure_zone4_10_monster_reward_policy.py ./
+COPY adventure_zone4_10_monster_identity_authority.py ./
+COPY adventure_zone1_2_monster_runtime_provider.py ./
 # Incident 019B: app.py imports the compatibility reader at process startup.
 # Keep this runtime dependency explicit; it does not execute the migration.
 COPY adventure_progress_compatibility.py ./

@@ -14,15 +14,12 @@ independently compute the same `new_keys`; only one of their inserts can
 ever land (the table's own composite PRIMARY KEY guarantees that), but
 every one of them granted coins/XP as if it had won.
 
-Fix: capture the INSERT's cursor and check `cursor.rowcount == 1`. Only a
-key this transaction's own insert actually won is added to
-`tot_c`/`tot_x`/`granted`, and only that key's quest_accepted row is
-cleared. A key that loses the race (rowcount == 0 -- the identical primary
-key already exists, whether from an earlier request or a concurrent one)
-grants nothing and leaves its quest_accepted row untouched. Claim
-insertion, the coins/XP mutation, and quest-state clearing all still run
-inside the one transaction the request already used (`with get_db() as
-conn: ... conn.commit()`), so a failure anywhere rolls back everything.
+Fix: ACT-C now owns the claim reservation and canonical Coin mutation. Only
+a settlement result with `claim_created=True` adds to `tot_c`/`tot_x`/
+`granted` and clears that key's quest_accepted row. XP and quest-state
+clearing remain in the caller's explicit ACT-A transaction, so a failure
+anywhere rolls back the claim, Coin ledger/balance, XP, and quest state
+together.
 """
 import contextlib
 import shutil
@@ -146,6 +143,14 @@ def sqlite_conn():
         claimed_at TEXT,
         PRIMARY KEY (user_id, stage_key)
     )''')
+    conn.execute('''CREATE TABLE currency_log (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id    INTEGER NOT NULL,
+        delta      INTEGER NOT NULL,
+        balance_after INTEGER NOT NULL,
+        reason     TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )''')
     conn.execute('''CREATE TABLE quest_accepted (
         user_id     INTEGER NOT NULL,
         quest_key   TEXT    NOT NULL,
@@ -158,10 +163,7 @@ def sqlite_conn():
 
 
 class _FakeDbConnCtx:
-    """Mimics db.PostgresConnectionWrapper's context-manager protocol
-    around a persistent shared sqlite3 connection: commits on clean exit,
-    rolls back on exception -- exactly the atomicity property the real
-    `with get_db() as conn: ...` block in rewards_sync() depends on."""
+    """Mimics the connection methods used by ACT-A's coordinator."""
 
     def __init__(self, conn):
         self._conn = conn
@@ -171,6 +173,14 @@ class _FakeDbConnCtx:
 
     def commit(self):
         self._conn.commit()
+
+    def rollback(self):
+        self._conn.rollback()
+
+    def close(self):
+        # The fixture owns this shared sqlite connection; the production pool
+        # wrapper returns rather than destroys its pooled connection here.
+        pass
 
     def __enter__(self):
         return self
@@ -503,6 +513,14 @@ def _create_pg_reward_schema(database_url):
         xp         INTEGER NOT NULL DEFAULT 0,
         claimed_at TEXT,
         PRIMARY KEY (user_id, stage_key)
+    )''')
+    cur.execute('''CREATE TABLE currency_log (
+        id           BIGSERIAL PRIMARY KEY,
+        user_id      INTEGER NOT NULL,
+        delta        INTEGER NOT NULL,
+        balance_after INTEGER NOT NULL,
+        reason       TEXT NOT NULL,
+        created_at   TEXT NOT NULL
     )''')
     cur.execute('''CREATE TABLE quest_accepted (
         user_id     INTEGER NOT NULL,

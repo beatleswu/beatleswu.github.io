@@ -129,6 +129,21 @@ def app_module():
 class _DbContext:
     def __init__(self, conn):
         self.conn = conn
+        self._conn = conn
+
+    def execute(self, statement, parameters=()):
+        return self.conn.execute(statement, parameters)
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
+
+    def close(self):
+        # The fixture owns the shared SQLite connection; production's pool
+        # wrapper returns rather than destroys its underlying connection here.
+        pass
 
     def __enter__(self):
         return self.conn

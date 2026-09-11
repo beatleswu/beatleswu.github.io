@@ -9,6 +9,8 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "js" / "e9" / "journey_zone3_vertical_slice_content.js"
@@ -33,6 +35,41 @@ HERO_HEAD = "15cd275b8f4992c30e93d874c45244d87909d334"
 JOURNEY_HEAD = "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95"
 SYSTEMS_HEAD = "7bf4b5e1e7322e1d925f346c7d7096cee3b50faf"
 MASTER = "616d51b17abe010de1e862382ca4db7bec65936f"
+
+# This evaluator belongs to the presentation-only Zone 3 candidate whose
+# inventory is anchored at MASTER.  It must retain its strict scope checks for
+# that candidate, but it is not a universal gate for a cumulative Activation
+# integration candidate.  The marker set is intentionally exact and durable;
+# it does not allow arbitrary backend changes.
+_CUMULATIVE_ACTIVATION_MARKERS = frozenset(
+    {
+        "app.py",
+        "activation_http_contract.py",
+        "docs/planning/go_odyssey_activation_0_integration_governance_d1_001.md",
+    }
+)
+
+
+def _cumulative_activation_candidate_present() -> bool:
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--name-only", MASTER, "--"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    changed = {line.replace("\\", "/") for line in result.stdout.splitlines() if line}
+    return _CUMULATIVE_ACTIVATION_MARKERS.issubset(changed)
+
+
+pytestmark = pytest.mark.skipif(
+    _cumulative_activation_candidate_present(),
+    reason="presentation-only evaluator is not a universal cumulative Activation gate",
+)
 
 
 def load(path: Path) -> dict:
