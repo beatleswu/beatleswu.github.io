@@ -113,6 +113,8 @@
       "companion_operations.py",
       "daily_challenge_authority.py",
       "daily_challenge_d5b.py",
+      "equipment_first_clear_reward_service.py",
+      "equipment_portfolio_registry.py",
       "equipment_loadout_service.py",
       "equipment_ownership_service.py",
       "event_outbox.py",
@@ -421,6 +423,8 @@
     "/app/companion_operations.py",
     "/app/daily_challenge_authority.py",
     "/app/daily_challenge_d5b.py",
+    "/app/equipment_first_clear_reward_service.py",
+    "/app/equipment_portfolio_registry.py",
     "/app/equipment_loadout_service.py",
     "/app/equipment_ownership_service.py",
     "/app/event_outbox.py",
@@ -578,9 +582,9 @@
   },
   "runtime_dependency_provenance": {
     "manifest_path": "deploy/runtime-source-provenance.json",
-      "files_covered": 100,
+      "files_covered": 102,
       "source_status": "local Git provenance -- not previously pushed to canonical origin (Graph A / Codex local branches only)",
-      "status": "governed Git provenance outside sgf_engine: 77 recovered or curated runtime files plus the governed shadow_event_storage.py, Lord Trial controller, PresentationDispatcher, B2 presentation-effects, B3 ReviewTransport, B4 GameSession, B5 QuestionLoader/BoardRenderer, B6 ModeContext, B7 GameBootstrap, Incident 019B R6 Zone-star authority modules, RPG V1 P0 hotfix runtime authorities, and SHOP-F R1 application/coin authorities (100 files total)",
+      "status": "governed Git provenance outside sgf_engine: 77 recovered or curated runtime files plus the governed shadow_event_storage.py, Lord Trial controller, PresentationDispatcher, B2 presentation-effects, B3 ReviewTransport, B4 GameSession, B5 QuestionLoader/BoardRenderer, B6 ModeContext, B7 GameBootstrap, Incident 019B R6 Zone-star authority modules, RPG V1 P0 hotfix runtime authorities, SHOP-F R1 application/coin authorities, and EQ-F Equipment first-clear/portfolio authorities (102 files total)",
     "note": "Most curated HTML/JS files use each file's LATEST known Git commit, which does not always byte-match current Production exactly (e.g. cache-busting version-bump drift); this is documented per-file rather than silently copying Production bytes. Newly-authored governed modules record their first reachable byte-identical source commit. See deploy/runtime-source-provenance.json for exact per-file status."
   }
 }

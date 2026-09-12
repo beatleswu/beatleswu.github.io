@@ -1204,6 +1204,30 @@
       "line_ending_policy": "LF",
       "runtime_role": "app.py runtime dependency; canonical Coin Shop acquisition authority for R1 consumables and typed bundles",
       "source_status": "feature-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; deployment remains separately gated"
+    },
+    {
+      "path": "equipment_first_clear_reward_service.py",
+      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
+      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_date": "2026-09-12",
+      "content_sha256": "079061d522a6fb8dafcbb61b12ba7710f497ca3396c4d0d8d6dd2e33d64b4e6c",
+      "content_size_bytes": 13809,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import; EQ-F server-owned functional Equipment first-clear and historical backfill authority; caller-owned transaction only",
+      "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+    },
+    {
+      "path": "equipment_portfolio_registry.py",
+      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
+      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_date": "2026-09-12",
+      "content_sha256": "519cdc97f678d3903ced4dfb52c0f239108382875f1caf12b5f201a71a8ecce0",
+      "content_size_bytes": 12372,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import; EQ-F merged server-owned Equipment definitions, slot/effect validation, and zone/shop identity mapping",
+      "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     }
   ]
 }

@@ -77,6 +77,8 @@ COPY coin_purchase_authority.py ./
 COPY companion_operations.py ./
 COPY daily_challenge_authority.py ./
 COPY daily_challenge_d5b.py ./
+COPY equipment_first_clear_reward_service.py ./
+COPY equipment_portfolio_registry.py ./
 COPY equipment_loadout_service.py ./
 COPY equipment_ownership_service.py ./
 COPY event_outbox.py ./
