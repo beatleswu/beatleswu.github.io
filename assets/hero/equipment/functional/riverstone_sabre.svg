@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="riverstone_sabre">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#416b91"/><stop offset="1" stop-color="#8da5b3"/></linearGradient></defs>
+<path d="M37 182 Q31 173 42 162 L169 37 Q181 27 191 39 L201 52 L74 203 Q63 214 51 204 Z" fill="#416b91" stroke="#15242f" stroke-width="8"/><path d="M153 49 L197 72 L181 101 L138 76 Z" fill="#8da5b3" stroke="#15242f" stroke-width="8"/><path d="M36 183 L14 222 Q10 236 26 237 L69 211 Z" fill="#d3b16c" stroke="#15242f" stroke-width="8"/><circle cx="23" cy="226" r="12" fill="#8da5b3" stroke="#15242f" stroke-width="6"/>
+</svg>

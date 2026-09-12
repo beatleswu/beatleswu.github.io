@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="foxtail_traveler_mantle">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b96538"/><stop offset="1" stop-color="#e0c291"/></linearGradient></defs>
+<path d="M42 72 Q75 38 107 55 Q128 68 149 55 Q181 38 214 72 L200 150 Q179 184 158 208 Q128 225 98 208 Q77 184 56 150 Z" fill="#b96538" stroke="#4c3029" stroke-width="8"/><path d="M42 76 Q75 47 102 65 Q128 86 154 65 Q181 47 214 76" fill="none" stroke="#e0c291" stroke-width="18"/><path d="M61 118 Q128 137 195 118 M72 153 Q128 169 184 153" stroke="#6b7c5d" stroke-width="7"/>
+</svg>

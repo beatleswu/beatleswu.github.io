@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="bamboo_shadow_blade">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2f7567"/><stop offset="1" stop-color="#d8a35d"/></linearGradient></defs>
+<path d="M28 177 L167 38 Q178 29 190 40 L199 49 L71 201 Q59 214 44 202 Z" fill="#2f7567" stroke="#17252b" stroke-width="8"/><path d="M164 47 L202 76 L184 98 L146 69 Z" fill="#d8a35d" stroke="#17252b" stroke-width="8"/><path d="M34 180 L14 220 Q11 232 24 235 L62 214 Z" fill="#d8a35d" stroke="#17252b" stroke-width="8"/><path d="M29 199 L57 218 M21 213 L45 230" stroke="#e9c47a" stroke-width="8" stroke-linecap="round"/>
+</svg>

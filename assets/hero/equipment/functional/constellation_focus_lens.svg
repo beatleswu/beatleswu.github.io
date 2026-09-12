@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="constellation_focus_lens">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1f2d58"/><stop offset="1" stop-color="#d49a48"/></linearGradient></defs>
+<circle cx="128" cy="128" r="85" fill="#1f2d58" stroke="#18223c" stroke-width="9"/><circle cx="128" cy="128" r="61" fill="#d99c4b" stroke="#e1b35c" stroke-width="7"/><circle cx="128" cy="128" r="43" fill="#e9bf67" stroke="#18223c" stroke-width="5"/><path d="M128 85 L139 119 L174 119 L146 140 L157 174 L128 153 L99 174 L110 140 L82 119 L117 119 Z" fill="#d49a48" stroke="#18223c" stroke-width="4"/><path d="M128 43 L128 64 M213 128 L192 128 M128 213 L128 192 M43 128 L64 128" stroke="#e1b35c" stroke-width="7" stroke-linecap="round"/>
+</svg>

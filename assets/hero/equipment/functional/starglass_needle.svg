@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="starglass_needle">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#405ad1"/><stop offset="1" stop-color="#87d7ff"/></linearGradient></defs>
+<path d="M41 204 L187 27 L198 34 L68 214 Q54 228 41 217 Z" fill="#87d7ff" stroke="#28326e" stroke-width="7"/><path d="M161 57 L198 70 L186 94 L149 78 Z" fill="#405ad1" stroke="#28326e" stroke-width="7"/><path d="M42 204 L14 231 Q9 241 23 239 L70 218 Z" fill="#405ad1" stroke="#28326e" stroke-width="7"/><path d="M83 150 L118 107 M101 158 L136 115" stroke="#e9efff" stroke-width="5"/><circle cx="24" cy="234" r="7" fill="#e9efff"/>
+</svg>

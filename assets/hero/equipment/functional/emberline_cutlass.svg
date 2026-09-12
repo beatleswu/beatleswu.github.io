@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="emberline_cutlass">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#183847"/><stop offset="1" stop-color="#da6336"/></linearGradient></defs>
+<path d="M48 188 Q42 179 52 169 L170 43 Q181 31 193 42 L202 54 L82 203 Q69 216 56 205 Z" fill="#183847" stroke="#25232c" stroke-width="8"/><path d="M153 49 L204 67 L190 101 L140 80 Z" fill="#da6336" stroke="#25232c" stroke-width="8"/><path d="M41 190 L14 225 Q10 237 25 235 L80 207 Z" fill="#183847" stroke="#25232c" stroke-width="8"/><path d="M27 211 Q44 202 56 220" fill="none" stroke="#d7a14d" stroke-width="7"/><path d="M178 58 L185 80 L201 89" fill="none" stroke="#da6336" stroke-width="5"/>
+</svg>

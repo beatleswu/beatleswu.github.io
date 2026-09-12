@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="cloudstep_star_lamellar">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b9c8d0"/><stop offset="1" stop-color="#334a89"/></linearGradient></defs>
+<path d="M65 48 Q128 28 191 48 L211 88 L195 217 Q128 239 61 217 L45 88 Z" fill="#b9c8d0" stroke="#33405c" stroke-width="8"/><path d="M74 55 L182 55 L174 91 L128 104 L82 91 Z" fill="#334a89" stroke="#33405c" stroke-width="7"/><path d="M62 103 L194 103 M62 138 L194 138 M66 173 L190 173" stroke="#334a89" stroke-width="12"/><path d="M82 96 L82 199 M128 105 L128 221 M174 96 L174 199" stroke="#d6b15e" stroke-width="6"/><path d="M110 72 L128 58 L146 72 L128 86 Z" fill="#d6b15e" stroke="#33405c" stroke-width="4"/>
+</svg>

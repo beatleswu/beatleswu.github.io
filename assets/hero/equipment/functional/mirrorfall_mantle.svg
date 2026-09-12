@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="mirrorfall_mantle">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6687ad"/><stop offset="1" stop-color="#d7e2ea"/></linearGradient></defs>
+<path d="M43 76 Q75 40 107 57 Q128 70 149 57 Q181 40 213 76 L198 158 Q178 193 158 213 Q128 228 98 213 Q78 193 58 158 Z" fill="#6687ad" stroke="#3c4268" stroke-width="8"/><path d="M43 78 Q75 49 102 68 Q128 88 154 68 Q181 49 213 78" fill="none" stroke="#d7e2ea" stroke-width="17"/><path d="M61 123 Q128 143 195 123 M72 160 Q128 178 184 160" stroke="#d7e2ea" stroke-width="7"/><path d="M128 72 L139 88 L157 91 L143 103 L146 121 L128 112 L110 121 L113 103 L99 91 L117 88 Z" fill="#6653a9" stroke="#3c4268" stroke-width="5"/>
+</svg>

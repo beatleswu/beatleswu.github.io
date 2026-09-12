@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="riverguard_coat">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#385c78"/><stop offset="1" stop-color="#b3c3c5"/></linearGradient></defs>
+<path d="M62 47 Q128 27 194 47 L214 89 L193 219 Q128 239 63 219 L42 89 Z" fill="#385c78" stroke="#203343" stroke-width="8"/><path d="M67 53 Q128 83 189 53 L174 91 L128 105 L82 91 Z" fill="#b3c3c5" stroke="#203343" stroke-width="7"/><path d="M52 94 Q128 115 204 94 M49 167 Q128 187 205 167" stroke="#b3c3c5" stroke-width="9"/><path d="M128 104 L128 218" stroke="#c8924b" stroke-width="7"/><circle cx="128" cy="110" r="9" fill="#c8924b" stroke="#203343" stroke-width="5"/>
+</svg>

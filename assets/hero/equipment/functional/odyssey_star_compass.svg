@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="odyssey_star_compass">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b78338"/><stop offset="1" stop-color="#4e8f82"/></linearGradient></defs>
+<circle cx="128" cy="128" r="84" fill="#b78338" stroke="#4f3a2a" stroke-width="9"/><circle cx="128" cy="128" r="61" fill="#315386" stroke="#4f3a2a" stroke-width="7"/><circle cx="128" cy="128" r="41" fill="#4e8f82" stroke="#4f3a2a" stroke-width="5"/><path d="M128 68 L141 115 L188 128 L141 141 L128 188 L115 141 L68 128 L115 115 Z" fill="#b78338" stroke="#f0d27b" stroke-width="5"/><circle cx="128" cy="128" r="12" fill="#4e8f82" stroke="#4f3a2a" stroke-width="5"/>
+</svg>

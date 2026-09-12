@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="prism_focus_charm">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#573c9f"/><stop offset="1" stop-color="#8a74e4"/></linearGradient></defs>
+<path d="M128 22 L188 76 L166 173 L90 173 L68 76 Z" fill="#573c9f" stroke="#32295e" stroke-width="9"/><path d="M128 49 L160 79 L149 143 L107 143 L96 79 Z" fill="#8a74e4" stroke="#32295e" stroke-width="7"/><path d="M128 22 L128 49 M68 76 L96 79 M188 76 L160 79" stroke="#e2bd68" stroke-width="7"/><path d="M128 173 L128 205" stroke="#e2bd68" stroke-width="8"/><circle cx="128" cy="218" r="11" fill="#e2bd68" stroke="#32295e" stroke-width="5"/>
+</svg>

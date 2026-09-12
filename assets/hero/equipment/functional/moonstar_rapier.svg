@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="moonstar_rapier">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#314c98"/><stop offset="1" stop-color="#dce8ff"/></linearGradient></defs>
+<path d="M29 194 L178 34 Q187 25 196 35 L203 44 L63 211 Q50 223 37 210 Z" fill="#dce8ff" stroke="#1b2854" stroke-width="7"/><path d="M161 47 L198 64 L185 86 L148 68 Z" fill="#314c98" stroke="#1b2854" stroke-width="7"/><path d="M37 195 L14 224 Q10 236 24 236 L66 213 Z" fill="#314c98" stroke="#1b2854" stroke-width="7"/><path d="M109 111 L137 83 M116 126 L145 96" stroke="#f0c86e" stroke-width="5"/><path d="M28 214 L46 232" stroke="#f0c86e" stroke-width="7"/>
+</svg>

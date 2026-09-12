@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="copper_jade_talisman">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b66b43"/><stop offset="1" stop-color="#4aa681"/></linearGradient></defs>
+<path d="M128 18 Q145 47 175 53 Q155 78 164 110 Q128 102 92 110 Q101 78 81 53 Q111 47 128 18 Z" fill="#b66b43" stroke="#5c3d30" stroke-width="8"/><path d="M128 74 L153 99 L143 139 L113 139 L103 99 Z" fill="#4aa681" stroke="#5c3d30" stroke-width="7"/><path d="M128 18 L128 7 M81 53 L69 46 M175 53 L187 46" stroke="#e0b75c" stroke-width="7" stroke-linecap="round"/><path d="M128 139 L128 180" stroke="#b66b43" stroke-width="8"/><circle cx="128" cy="205" r="25" fill="#4aa681" stroke="#5c3d30" stroke-width="7"/>
+</svg>

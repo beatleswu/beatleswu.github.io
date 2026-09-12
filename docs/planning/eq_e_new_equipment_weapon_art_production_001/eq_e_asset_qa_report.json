@@ -1,0 +1,758 @@
+{
+  "schema": "go-odyssey.eq-e-art-production-qa.v1",
+  "task": "GO_ODYSSEY_EQ_E_NEW_EQUIPMENT_WEAPON_ART_AND_ASSET_PRODUCTION_001",
+  "generator": "openai_image_gen_new_asset_then_deterministic_pil_normalization",
+  "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+  "canvas": [
+    1056,
+    1408
+  ],
+  "source_identity": "EQ-D canonical lock 426f9ee57481f697e71756110c946b51a74c9f6f",
+  "registry_mutation": false,
+  "renderer_mutation": false,
+  "placeholder_count": 0,
+  "items": [
+    {
+      "item_id": "bamboo_shadow_blade",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/bamboo_shadow_blade.png",
+      "source_sha256": "ef763b23f22dbb2bc2059a309fc4011234e9aef317c71ec80b47482c69fb1857",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated bamboo-green lacquered one-hand blade intended for a real right-hand answer-screen grip, with warm wood grip and teal river cord; no character, no hand, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/bamboo_shadow_blade.png",
+      "icon_path": "/assets/hero/equipment/functional/bamboo_shadow_blade.svg",
+      "overlay_sha256": "9c25272bc3b8e9ea37445cf127365a163fc2593e6d0bda89d4b1f358cf008ee0",
+      "icon_sha256": "e8a69f23288be41970dd182aeff5adf550d2bfade80709eea52d640865048f2b",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        757,
+        397,
+        1032,
+        805
+      ],
+      "type": "weapon",
+      "rarity": "common",
+      "slot": "MAIN_HAND",
+      "layer": "MAIN_HAND_WEAPON",
+      "renderer_family": "functional_handheld_one_hand_weapon",
+      "handheld_required": true,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 1,
+      "zone_key": "k26_30",
+      "template_box": null,
+      "handheld_anchor_px": [
+        800,
+        800
+      ],
+      "front_grip_target_height_px": 240,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/bamboo_shadow_blade.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/bamboo_shadow_blade.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": "/assets/hero/equipment/wearables/overlays/bamboo_shadow_blade.png",
+        "grip_compatible_asset": "/assets/hero/equipment/wearables/overlays/bamboo_shadow_blade.png"
+      }
+    },
+    {
+      "item_id": "riverstone_sabre",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/riverstone_sabre.png",
+      "source_sha256": "5155750c14448c549c8c11ba85eba3dfa12006417bb61215601ab2f3a27e0d44",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated river-polished slate sabre intended for a real right-hand answer-screen grip, with teal cord and stone pommel; no character, no hand, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/riverstone_sabre.png",
+      "icon_path": "/assets/hero/equipment/functional/riverstone_sabre.svg",
+      "overlay_sha256": "69e9e2e3fadceddbdf1aad81251ed6e4f994bb573e8df7fb9093dd259d66a6ff",
+      "icon_sha256": "4734da7635ffff7e73ca00394a655c5903ee9d6ceaadc80f4acd00818df41211",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        756,
+        419,
+        1032,
+        838
+      ],
+      "type": "weapon",
+      "rarity": "rare",
+      "slot": "MAIN_HAND",
+      "layer": "MAIN_HAND_WEAPON",
+      "renderer_family": "functional_handheld_one_hand_weapon",
+      "handheld_required": true,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 6,
+      "zone_key": "k1_5",
+      "template_box": null,
+      "handheld_anchor_px": [
+        800,
+        800
+      ],
+      "front_grip_target_height_px": 240,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/riverstone_sabre.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/riverstone_sabre.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": "/assets/hero/equipment/wearables/overlays/riverstone_sabre.png",
+        "grip_compatible_asset": "/assets/hero/equipment/wearables/overlays/riverstone_sabre.png"
+      }
+    },
+    {
+      "item_id": "moonstar_rapier",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/moonstar_rapier.png",
+      "source_sha256": "7979105cfb58098b0609d9d9485e1a4ca06d2460ecde4780ed6697ba007a513c",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated moon-silver one-hand rapier intended for a real right-hand answer-screen grip, with midnight-blue guard and tiny gold star inlay; no character, no hand, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/moonstar_rapier.png",
+      "icon_path": "/assets/hero/equipment/functional/moonstar_rapier.svg",
+      "overlay_sha256": "1f9a9ce757d045d8b20545cce580222eabdb74307141a89114b478995393dce1",
+      "icon_sha256": "7195731797ff40f328f8a3cb0611920ff1b528ddf8b0575baeb9d66205e02b19",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        790,
+        464,
+        1032,
+        817
+      ],
+      "type": "weapon",
+      "rarity": "epic",
+      "slot": "MAIN_HAND",
+      "layer": "MAIN_HAND_WEAPON",
+      "renderer_family": "functional_handheld_one_hand_weapon",
+      "handheld_required": true,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 9,
+      "zone_key": "d5_6",
+      "template_box": null,
+      "handheld_anchor_px": [
+        800,
+        800
+      ],
+      "front_grip_target_height_px": 240,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/moonstar_rapier.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/moonstar_rapier.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": "/assets/hero/equipment/wearables/overlays/moonstar_rapier.png",
+        "grip_compatible_asset": "/assets/hero/equipment/wearables/overlays/moonstar_rapier.png"
+      }
+    },
+    {
+      "item_id": "emberline_cutlass",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/emberline_cutlass.png",
+      "source_sha256": "c6ab2a61e2708f57579cefda2f90e3a654e085b7a6c9a8282895fa208945d2ad",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated emberline one-hand cutlass intended for a real right-hand answer-screen grip, with dark teal-black blade, ember-orange guard and copper flame accents; no character, no hand, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/emberline_cutlass.png",
+      "icon_path": "/assets/hero/equipment/functional/emberline_cutlass.svg",
+      "overlay_sha256": "490338ba67b185aa592078a5117642f7d7740f28fb088d2e66ec13badd120953",
+      "icon_sha256": "a1f1d9a8133af51a158f65259740167fa45549159a8cfbb7d4ba136cb57da5a3",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        747,
+        530,
+        1032,
+        839
+      ],
+      "type": "weapon",
+      "rarity": "rare",
+      "slot": "MAIN_HAND",
+      "layer": "MAIN_HAND_WEAPON",
+      "renderer_family": "functional_handheld_one_hand_weapon",
+      "handheld_required": true,
+      "source_classification": "SHOP_EXCLUSIVE",
+      "zone": null,
+      "zone_key": null,
+      "template_box": null,
+      "handheld_anchor_px": [
+        800,
+        800
+      ],
+      "front_grip_target_height_px": 240,
+      "presentation_roles": {
+        "shop_preview": "/assets/hero/equipment/functional/emberline_cutlass.svg",
+        "zone_reward": null,
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/emberline_cutlass.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": "/assets/hero/equipment/wearables/overlays/emberline_cutlass.png",
+        "grip_compatible_asset": "/assets/hero/equipment/wearables/overlays/emberline_cutlass.png"
+      }
+    },
+    {
+      "item_id": "starglass_needle",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/starglass_needle.png",
+      "source_sha256": "43d122982ed9fe38e0f732532188372652b471f6e94aeaacdb27eff082d37e3d",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated slim starglass one-hand needle sword intended for a real right-hand answer-screen grip, with blue crystal blade, violet guard and silver star details; no character, no hand, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/starglass_needle.png",
+      "icon_path": "/assets/hero/equipment/functional/starglass_needle.svg",
+      "overlay_sha256": "9afb86aa312ca01eb48e23312af171720ac86e31a982f35917a71a5a5e7101f2",
+      "icon_sha256": "ac8c855b5759dcec7dab4c62cfd5ff4bbab20824158fc50c9a9ab98ae744bf72",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        790,
+        396,
+        1032,
+        831
+      ],
+      "type": "weapon",
+      "rarity": "epic",
+      "slot": "MAIN_HAND",
+      "layer": "MAIN_HAND_WEAPON",
+      "renderer_family": "functional_handheld_one_hand_weapon",
+      "handheld_required": true,
+      "source_classification": "SHOP_EXCLUSIVE",
+      "zone": null,
+      "zone_key": null,
+      "template_box": null,
+      "handheld_anchor_px": [
+        800,
+        800
+      ],
+      "front_grip_target_height_px": 240,
+      "presentation_roles": {
+        "shop_preview": "/assets/hero/equipment/functional/starglass_needle.svg",
+        "zone_reward": null,
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/starglass_needle.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": "/assets/hero/equipment/wearables/overlays/starglass_needle.png",
+        "grip_compatible_asset": "/assets/hero/equipment/wearables/overlays/starglass_needle.png"
+      }
+    },
+    {
+      "item_id": "bamboo_scale_vest",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/bamboo_scale_vest.png",
+      "source_sha256": "11cffe9bd13a7bef0e7d4f5c03ecebcd56c03fb521044338d16cbb2268f4e227",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated layered bamboo-slat torso vest over cream travel cloth with teal stitching; open neck, no character, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/bamboo_scale_vest.png",
+      "icon_path": "/assets/hero/equipment/functional/bamboo_scale_vest.svg",
+      "overlay_sha256": "64b488b5082dbf1cee0d743e2ba1fa293b870c4e2840e3ce4230d7798db68c28",
+      "icon_sha256": "daef722f3164d8d6f9dd2fc2d3ece1f5a4452a40b1cff69644894a95204535e4",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        324,
+        385,
+        733,
+        811
+      ],
+      "type": "armor",
+      "rarity": "common",
+      "slot": "TORSO_ARMOR",
+      "layer": "TORSO_ARMOR",
+      "renderer_family": "functional_torso_armor",
+      "handheld_required": false,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 3,
+      "zone_key": "k16_20",
+      "template_box": [
+        0.28,
+        0.25,
+        0.72,
+        0.6
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/bamboo_scale_vest.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/bamboo_scale_vest.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "riverguard_coat",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/riverguard_coat.png",
+      "source_sha256": "a35883a373ada843c08625903de051a7f617f4e57e50758726d1ab227baeedd2",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated slate-blue quilted river travel coat with waterline hem, cream trim and brass clasp; open face and neck, no character, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/riverguard_coat.png",
+      "icon_path": "/assets/hero/equipment/functional/riverguard_coat.svg",
+      "overlay_sha256": "3fbbde518620f31c68bb5f6a16f7e3b1aa3e05b10f3c2d0fd38e5457cdc8b148",
+      "icon_sha256": "7995cedb63bcfbdf71d6b4313a46f7dd8e1b83400710db04879336677579b127",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        324,
+        387,
+        733,
+        809
+      ],
+      "type": "armor",
+      "rarity": "rare",
+      "slot": "TORSO_ARMOR",
+      "layer": "TORSO_ARMOR",
+      "renderer_family": "functional_torso_armor",
+      "handheld_required": false,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 5,
+      "zone_key": "k6_10",
+      "template_box": [
+        0.28,
+        0.25,
+        0.72,
+        0.6
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/riverguard_coat.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/riverguard_coat.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "foxtail_traveler_mantle",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/foxtail_traveler_mantle.png",
+      "source_sha256": "e47760dfd04cffaa2a2f9369513808fc84e54aff07813b6726af0adcd9699eab",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated rust-orange fox-tail shoulder mantle over a muted travel tunic with stitched map motifs; open head and hands, no character, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/foxtail_traveler_mantle.png",
+      "icon_path": "/assets/hero/equipment/functional/foxtail_traveler_mantle.svg",
+      "overlay_sha256": "aac975f72ef52641b637c0a41ba1dee85a84988e84528ccca649be56820270d8",
+      "icon_sha256": "cb8eb930178ad46181856d9d281ed081cfd6fdc64ef25c9906165349e42691f7",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        303,
+        335,
+        752,
+        706
+      ],
+      "type": "armor",
+      "rarity": "rare",
+      "slot": "SHOULDER_MANTLE",
+      "layer": "BACK_BODY",
+      "renderer_family": "functional_torso_armor",
+      "handheld_required": false,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 4,
+      "zone_key": "k11_15",
+      "template_box": [
+        0.16,
+        0.22,
+        0.84,
+        0.52
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/foxtail_traveler_mantle.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/foxtail_traveler_mantle.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "cloudstep_star_lamellar",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/cloudstep_star_lamellar.png",
+      "source_sha256": "c18149e686aa4e3b6d828cb1d39efb39767561ec65c63c00e236182a7fad8d13",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated pale cloud-gray torso lamellar armor with deep-blue star plates and restrained gold edging; open collar, no character, no head, no hands, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/cloudstep_star_lamellar.png",
+      "icon_path": "/assets/hero/equipment/functional/cloudstep_star_lamellar.svg",
+      "overlay_sha256": "8165fc0b998d8c094e1f5cc3954cd9e4b35a4434f267b02c67ec0d2aab60edcc",
+      "icon_sha256": "b30268c5acea1e3e5f916c5910ab9e24ddb2e69444c8e674004fe38fa2474b03",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        324,
+        393,
+        733,
+        804
+      ],
+      "type": "armor",
+      "rarity": "epic",
+      "slot": "TORSO_ARMOR",
+      "layer": "TORSO_ARMOR",
+      "renderer_family": "functional_torso_armor",
+      "handheld_required": false,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 7,
+      "zone_key": "d1_2",
+      "template_box": [
+        0.28,
+        0.25,
+        0.72,
+        0.6
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/cloudstep_star_lamellar.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/cloudstep_star_lamellar.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "weaveguard_vest",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/weaveguard_vest.png",
+      "source_sha256": "f3f0697bdc1c035ff8cfbb2d8381e1b7cd0be1d327d4d9b57798dfe9e712dee8",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated woven defensive travel vest with cream and muted indigo textile panels and brass fasteners; open collar, no character, no head, no hands, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/weaveguard_vest.png",
+      "icon_path": "/assets/hero/equipment/functional/weaveguard_vest.svg",
+      "overlay_sha256": "7df183c0c37fd1541b40be034c03264701f7a6e7e2fa14afdfa32527aa551707",
+      "icon_sha256": "f8a98c39f50b147d4696a111a018e1d625fe8adc9a7d8535eba5f7e66b291647",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        373,
+        381,
+        684,
+        815
+      ],
+      "type": "armor",
+      "rarity": "rare",
+      "slot": "TORSO_ARMOR",
+      "layer": "TORSO_ARMOR",
+      "renderer_family": "functional_torso_armor",
+      "handheld_required": false,
+      "source_classification": "SHOP_EXCLUSIVE",
+      "zone": null,
+      "zone_key": null,
+      "template_box": [
+        0.28,
+        0.25,
+        0.72,
+        0.6
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": "/assets/hero/equipment/functional/weaveguard_vest.svg",
+        "zone_reward": null,
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/weaveguard_vest.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "mirrorfall_mantle",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/mirrorfall_mantle.png",
+      "source_sha256": "5946ea46096832e79238ed30ada43b2d13aea604d689b984dcda4cf1fa853b6e",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated mirrorfall shoulder mantle with silver-blue layered cloth, reflective trim and deep-violet crystal clasp; open face and neck, no character, no head, no hands, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/mirrorfall_mantle.png",
+      "icon_path": "/assets/hero/equipment/functional/mirrorfall_mantle.svg",
+      "overlay_sha256": "1d93b2abb75a0033cce33673fbc24eee30da056e11ad3e4e3b7fcd22e066f6cf",
+      "icon_sha256": "7b62cf495c3d28901e8a4f5ff5d8e9735b10d34ea4c6dc94bcb5454da8e9f763",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        286,
+        372,
+        769,
+        670
+      ],
+      "type": "armor",
+      "rarity": "epic",
+      "slot": "TORSO_ARMOR",
+      "layer": "TORSO_ARMOR",
+      "renderer_family": "functional_torso_armor",
+      "handheld_required": false,
+      "source_classification": "SHOP_EXCLUSIVE",
+      "zone": null,
+      "zone_key": null,
+      "template_box": [
+        0.24,
+        0.22,
+        0.76,
+        0.52
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": "/assets/hero/equipment/functional/mirrorfall_mantle.svg",
+        "zone_reward": null,
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/mirrorfall_mantle.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "jade_river_bead",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/jade_river_bead.png",
+      "source_sha256": "cb6651d812f6984a780b286ca91099be344042536eb12ae6eaca0716de0948dd",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated small faceted jade river bead on a dark teal cord, readable at mobile scale; no character, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/jade_river_bead.png",
+      "icon_path": "/assets/hero/equipment/functional/jade_river_bead.svg",
+      "overlay_sha256": "e477daa8c1c75fa1e0dc480199498654654bf3922c02d98af669b675c6631bcc",
+      "icon_sha256": "61bd2d146a254ccd211c7ccc199f04706bcf4a58ad1673fe8096ce1d73173eae",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        444,
+        325,
+        613,
+        548
+      ],
+      "type": "accessory",
+      "rarity": "common",
+      "slot": "NECK_CHEST_ACCESSORY",
+      "layer": "FRONT_ACCESSORY",
+      "renderer_family": "functional_front_accessory",
+      "handheld_required": false,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 2,
+      "zone_key": "k21_25",
+      "template_box": [
+        0.37,
+        0.22,
+        0.63,
+        0.4
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/jade_river_bead.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/jade_river_bead.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "constellation_focus_lens",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/constellation_focus_lens.png",
+      "source_sha256": "64449ed6e4daf7e1ee30868bd1ef144c4f0541d4517c8793cbd5dd87839c25f6",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated amber focus lens in a navy star-map bezel with restrained gold points, worn at the chest; no character, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/constellation_focus_lens.png",
+      "icon_path": "/assets/hero/equipment/functional/constellation_focus_lens.svg",
+      "overlay_sha256": "ab97b83cc650e3ba9bc5c1581a5550aad356b912c01a6e221bb8add5cd38ed1a",
+      "icon_sha256": "3ab487ea533c3bfa40638489cca3d90b38a327efd23f7e37edcd894f7fc70a07",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        421,
+        325,
+        635,
+        548
+      ],
+      "type": "accessory",
+      "rarity": "epic",
+      "slot": "NECK_CHEST_ACCESSORY",
+      "layer": "FRONT_ACCESSORY",
+      "renderer_family": "functional_front_accessory",
+      "handheld_required": false,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 8,
+      "zone_key": "d3_4",
+      "template_box": [
+        0.37,
+        0.22,
+        0.63,
+        0.4
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/constellation_focus_lens.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/constellation_focus_lens.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "odyssey_star_compass",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/odyssey_star_compass.png",
+      "source_sha256": "ab6e15e45cd6410ab24861486e2e1106bd742dab6dfb8324990c36ff9ef4e708",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated compact brass star compass with jade center, blue enamel ring and engraved star points, designed as a small chest accessory; no character, no hand, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/odyssey_star_compass.png",
+      "icon_path": "/assets/hero/equipment/functional/odyssey_star_compass.svg",
+      "overlay_sha256": "381b84f46e1a1977f330a7868d792aabd7fc55ea5372105ef1912ab41ca9ba5c",
+      "icon_sha256": "98adf9ff69b16f16b216233487725ad6be204d0182c1c86a5382094a0bb83783",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        428,
+        325,
+        629,
+        548
+      ],
+      "type": "accessory",
+      "rarity": "legendary",
+      "slot": "FRONT_ACCESSORY",
+      "layer": "FRONT_ACCESSORY",
+      "renderer_family": "functional_front_accessory",
+      "handheld_required": false,
+      "source_classification": "ZONE_EXCLUSIVE",
+      "zone": 10,
+      "zone_key": "d7_plus",
+      "template_box": [
+        0.37,
+        0.22,
+        0.63,
+        0.4
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": null,
+        "zone_reward": "/assets/hero/equipment/functional/odyssey_star_compass.svg",
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/odyssey_star_compass.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "copper_jade_talisman",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/copper_jade_talisman.png",
+      "source_sha256": "3b2b0c28061fba1277ec333bf8a121ffe6325e9a26b31324fa40b105d387d75b",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated compact copper-and-jade chest talisman on a short teal cord, with faceted green jade center; no character, no hand, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/copper_jade_talisman.png",
+      "icon_path": "/assets/hero/equipment/functional/copper_jade_talisman.svg",
+      "overlay_sha256": "b688222bc7428b9e5f9eb67a17ee2e412ef3abdda2aaa25bdcf4ee935acb0dfb",
+      "icon_sha256": "ee8c18d4c513793e3129d0e0046015f72ba595d2ee55080713da0e73a1f5e68f",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        458,
+        325,
+        598,
+        548
+      ],
+      "type": "accessory",
+      "rarity": "rare",
+      "slot": "FRONT_ACCESSORY",
+      "layer": "FRONT_ACCESSORY",
+      "renderer_family": "functional_front_accessory",
+      "handheld_required": false,
+      "source_classification": "SHOP_EXCLUSIVE",
+      "zone": null,
+      "zone_key": null,
+      "template_box": [
+        0.37,
+        0.22,
+        0.63,
+        0.4
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": "/assets/hero/equipment/functional/copper_jade_talisman.svg",
+        "zone_reward": null,
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/copper_jade_talisman.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    },
+    {
+      "item_id": "prism_focus_charm",
+      "source_file": "docs/planning/eq_e_new_equipment_weapon_art_production_001/sources/generated_raw/prism_focus_charm.png",
+      "source_sha256": "5c03f801f6275bc17e866ecf708f603eb0cbaf311ca28f5108b41d8210069466",
+      "generation_mode": "new_asset",
+      "generation_prompt": "New isolated prism focus chest charm with violet-blue faceted crystal, silver bezel and tiny gold star accent; distinct from a circular lens, no character, no hand, no background, no text.",
+      "overlay_path": "/assets/hero/equipment/wearables/overlays/prism_focus_charm.png",
+      "icon_path": "/assets/hero/equipment/functional/prism_focus_charm.svg",
+      "overlay_sha256": "ddc4923c26a34e6d3e6c19d725d0050f9de7389cf5ea4a56f6994eae11f7cf02",
+      "icon_sha256": "7e88fb434c305a9af05d0d24cd04a32597a37d3f1ac024fac5957541b83a71d8",
+      "overlay_dimensions": [
+        1056,
+        1408
+      ],
+      "overlay_alpha_bbox": [
+        475,
+        325,
+        582,
+        548
+      ],
+      "type": "accessory",
+      "rarity": "epic",
+      "slot": "FRONT_ACCESSORY",
+      "layer": "FRONT_ACCESSORY",
+      "renderer_family": "functional_front_accessory",
+      "handheld_required": false,
+      "source_classification": "SHOP_EXCLUSIVE",
+      "zone": null,
+      "zone_key": null,
+      "template_box": [
+        0.37,
+        0.22,
+        0.63,
+        0.4
+      ],
+      "handheld_anchor_px": null,
+      "front_grip_target_height_px": null,
+      "presentation_roles": {
+        "shop_preview": "/assets/hero/equipment/functional/prism_focus_charm.svg",
+        "zone_reward": null,
+        "full_body_overlay": "/assets/hero/equipment/wearables/overlays/prism_focus_charm.png",
+        "weapon_back_layer": null,
+        "weapon_front_layer": null,
+        "handheld_weapon_layer": null,
+        "grip_compatible_asset": null
+      }
+    }
+  ]
+}
