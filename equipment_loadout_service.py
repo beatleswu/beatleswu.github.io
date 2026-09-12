@@ -5,10 +5,10 @@ module owns only the desired-state Equipment mutation semantics.  It requires
 the accepted B033 schema candidate before it reads or writes loadout state and
 never commits or rolls back the caller transaction.
 
-The only definition source is the server ``EQUIPMENT_DEFS`` registry (loaded
-lazily when tests or a caller do not provide an explicit registry).  No
-legacy ``player_appearance.combat_*`` field, client slot, catalog, or combat
-stat is consulted.
+The only definition source is the merged server ``CANONICAL_EQUIPMENT_DEFS``
+registry (loaded lazily when tests or a caller do not provide an explicit
+registry).  No legacy ``player_appearance.combat_*`` field, client slot,
+catalog, or combat stat is consulted.
 """
 
 from __future__ import annotations
@@ -70,9 +70,9 @@ def _column_names(conn: Any) -> set[str]:
 
 
 def _load_authoritative_defs() -> Iterable[Mapping[str, Any]]:
-    from app import EQUIPMENT_DEFS
+    from app import CANONICAL_EQUIPMENT_DEFS, EQUIPMENT_DEFS
 
-    return EQUIPMENT_DEFS
+    return CANONICAL_EQUIPMENT_DEFS or EQUIPMENT_DEFS
 
 
 def _catalog(

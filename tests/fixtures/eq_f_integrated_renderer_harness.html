@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EQ-F integrated equipment renderer harness</title>
+<style>
+  :root { color-scheme: light; font: 14px system-ui, sans-serif; }
+  body { margin: 24px; background: #f4f0e8; color: #2f251b; }
+  #player-avatar-figure { position: relative; width: 264px; height: 352px; background: #15202b; }
+  #player-answer-equipment-stage, #player-avatar-handheld-stage { position: absolute; inset: 0; }
+  #player-avatar-handheld-stage { z-index: 4; }
+  [hidden] { display: none !important; }
+</style>
+<h1>EQ-F three-slot answer composition</h1>
+<p id="eq-f-status">LOADING</p>
+<div id="player-avatar-figure" class="player-combat-layer">
+  <div id="player-answer-equipment-stage"></div>
+  <div id="player-avatar-handheld-stage"></div>
+</div>
+<script src="/js/rpg_wave2_wearable_renderer.js?v=eqf001"></script>
+<script>
+  const eqFInventory = [
+    {item_id: 'riverguard_coat', slot: 'armor', equipped: true, functional_equipment: true},
+    {item_id: 'jade_river_bead', slot: 'accessory', equipped: true, functional_equipment: true},
+    {item_id: 'bamboo_shadow_blade', slot: 'weapon', equipped: true, functional_equipment: true},
+  ];
+  const fullStage = document.getElementById('player-answer-equipment-stage');
+  const handheldStage = document.getElementById('player-avatar-handheld-stage');
+  const figure = document.getElementById('player-avatar-figure');
+  Promise.all([
+    window.GoOdysseyWearableRenderer.renderSafe(
+      fullStage, 'apprentice', eqFInventory, {isCurrent: () => true},
+    ),
+    window.GoOdysseyHandheldWeaponRenderer.renderSafe(
+      handheldStage, 'apprentice', eqFInventory,
+      {figureElement: figure, isCurrent: () => true},
+    ),
+  ]).then(([full, handheld]) => {
+    document.body.dataset.fullResult = full.supported ? 'PASS' : 'FAIL';
+    document.body.dataset.handheldResult = handheld.supported ? 'PASS' : 'FAIL';
+    document.body.dataset.fullIds = fullStage.dataset.equippedIds || '';
+    document.body.dataset.fullLayerCount = String(fullStage.querySelectorAll('img').length);
+    document.body.dataset.handheldCanvasCount = String(handheldStage.querySelectorAll('canvas').length);
+    document.getElementById('eq-f-status').textContent =
+      `${document.body.dataset.fullResult}/${document.body.dataset.handheldResult}`;
+  }).catch(error => {
+    document.body.dataset.fullResult = 'FAIL';
+    document.body.dataset.handheldResult = 'FAIL';
+    document.body.dataset.renderError = error.message || 'render_failed';
+    document.getElementById('eq-f-status').textContent = 'FAIL';
+  });
+</script>

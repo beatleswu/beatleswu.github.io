@@ -9,12 +9,15 @@ to prove that forged score and reward-id fields cannot select a reward.
 from __future__ import annotations
 
 import datetime as _dt
+import os
 import sqlite3
 import sys
 import types
 from pathlib import Path
 
 import pytest
+
+os.environ.setdefault("SECRET_KEY", "eq-f-f030-disposable-test-secret")
 
 from lord_trial_answer_service import encode_lord_trial_verdict
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
@@ -121,6 +124,15 @@ def _create_schema(connection: sqlite3.Connection) -> None:
             obtained_at TEXT NOT NULL,
             source TEXT NOT NULL DEFAULT 'drop',
             UNIQUE(user_id, item_id)
+        );
+        CREATE TABLE player_inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            equip_id TEXT NOT NULL,
+            equipped INTEGER NOT NULL DEFAULT 0,
+            obtained_at TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'drop',
+            UNIQUE(user_id, equip_id)
         );
         CREATE TABLE player_appearance (
             user_id INTEGER PRIMARY KEY,

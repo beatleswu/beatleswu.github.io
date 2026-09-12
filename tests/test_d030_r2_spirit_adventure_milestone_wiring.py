@@ -151,6 +151,15 @@ def _new_db():
             source TEXT NOT NULL DEFAULT 'drop',
             UNIQUE(user_id, item_id)
         );
+        CREATE TABLE player_inventory(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            equip_id TEXT NOT NULL,
+            equipped INTEGER NOT NULL DEFAULT 0,
+            obtained_at TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'drop',
+            UNIQUE(user_id, equip_id)
+        );
         CREATE TABLE pet_action_log(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,

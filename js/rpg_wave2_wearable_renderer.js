@@ -190,6 +190,7 @@
       .rpg-handheld-weapon-stage { position:absolute; inset:0; z-index:4; overflow:visible; display:block; pointer-events:none; aspect-ratio:1056 / 1408; }
       .rpg-handheld-weapon-stage canvas { display:block; width:100%; height:100%; object-fit:contain; image-rendering:auto; pointer-events:none; }
       #player-avatar-figure.handheld-paper-doll-active > .player-combat-layer { visibility:hidden !important; }
+      #player-avatar-figure.handheld-paper-doll-active > #player-answer-equipment-stage { visibility:hidden !important; }
     `;
     document.head.appendChild(style);
   }
@@ -290,11 +291,83 @@
     context.drawImage(image, x, y, width, height);
   }
 
+  function equippedWearableIds(inventory, wearableRegistry) {
+    const bySlot = new Map();
+    handheldRows(inventory).forEach(item => {
+      if (!item || item.equipped !== true || item.functional_equipment !== true) return;
+      const id = String(item.item_id || item.id || '').trim();
+      const entry = wearableRegistry?.equipment?.[id];
+      if (!entry || entry.wearable_visibility === 'INVENTORY_ONLY' || !entry.asset) return;
+      if (bySlot.has(entry.slot)) return;
+      bySlot.set(entry.slot, id);
+    });
+    return [...bySlot.values()];
+  }
+
+  function drawWearableEntry(context, image, entry) {
+    context.drawImage(image, 0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+  }
+
+  async function renderHandheldComposition(
+    context,
+    character,
+    weapon,
+    inventory,
+    handheldRegistryValue,
+    wearableRegistry,
+    characterKey,
+  ) {
+    const wearableCharacter = wearableRegistry?.characters?.[characterKey] || {};
+    const wearableIds = equippedWearableIds(inventory, wearableRegistry);
+    const wearableEntries = wearableIds
+      .map(id => wearableRegistry?.equipment?.[id])
+      .filter(Boolean);
+    const layerOrder = Array.isArray(wearableRegistry?.layer_order)
+      ? wearableRegistry.layer_order
+      : [
+          'BACK_WEAPON', 'BACK_BODY', 'CHARACTER_BASE', 'TORSO_ARMOR',
+          'FRONT_BODY', 'FRONT_ACCESSORY', 'HEAD_FACE', 'HAIR_FRONT_MASK',
+        ];
+    const assets = new Map();
+    const needed = [
+      character.base_asset,
+      character.open_hand_suppression_mask,
+      character.front_grip_hand_asset,
+      weapon.asset,
+      ...wearableEntries.map(entry => entry.asset),
+    ];
+    if (wearableEntries.some(entry => (entry.mask_requirements || []).includes('HAIR_FRONT_MASK'))) {
+      if (wearableCharacter.hair_front_mask) needed.push(wearableCharacter.hair_front_mask);
+    }
+    await Promise.all([...new Set(needed)].map(async source => {
+      assets.set(source, await handheldImage(source));
+    }));
+    context.clearRect(0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    context.drawImage(assets.get(character.base_asset), 0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    eraseHandheldMask(context, assets.get(character.open_hand_suppression_mask));
+    for (const layer of layerOrder) {
+      if (layer === 'CHARACTER_BASE' || layer === 'HAIR_FRONT_MASK') continue;
+      wearableEntries
+        .filter(entry => entry.layer === layer)
+        .filter(entry => entry.layer !== 'MAIN_HAND_WEAPON' && entry.handheld_runtime_supported !== true)
+        .forEach(entry => drawWearableEntry(context, assets.get(entry.asset), entry));
+      if (layer === 'HEAD_FACE' && wearableEntries.some(entry => (entry.mask_requirements || []).includes('HAIR_FRONT_MASK'))) {
+        const mask = wearableCharacter.hair_front_mask;
+        if (mask && assets.get(mask)) drawWearableEntry(context, assets.get(mask), { layer: 'HAIR_FRONT_MASK' });
+      }
+    }
+    drawHandheldWeapon(context, assets.get(weapon.asset), weapon, handheldRegistryValue.grip_anchor);
+    drawHandheldFrontGrip(context, assets.get(character.front_grip_hand_asset), handheldRegistryValue);
+  }
+
   async function renderHandheld(stage, characterKey, inventory, options) {
     handheldStyles();
     if (!stage) return { supported: false, reason: 'missing_stage' };
     const opts = options || {};
     const registry = await handheldRegistry();
+    if (typeof opts.isCurrent === 'function' && !opts.isCurrent()) {
+      return { supported: false, reason: 'stale_render' };
+    }
     const character = registry.characters?.[characterKey];
     const equipped = resolveHandheldWeapon(inventory, registry);
     const weaponId = equipped ? String(equipped.item_id || equipped.id) : '';
@@ -311,12 +384,12 @@
       if (opts.figureElement) opts.figureElement.classList.remove('handheld-paper-doll-active');
       return { supported: false, reason: !character ? 'unsupported_character' : 'no_equipped_supported_weapon' };
     }
-    const [baseImage, maskImage, frontGripImage, weaponImage] = await Promise.all([
-      handheldImage(character.base_asset),
-      handheldImage(character.open_hand_suppression_mask),
-      handheldImage(character.front_grip_hand_asset),
-      handheldImage(weapon.asset),
-    ]);
+    const wearableRegistry = global.GoOdysseyWearableRenderer
+      ? await global.GoOdysseyWearableRenderer.loadRegistry()
+      : null;
+    if (typeof opts.isCurrent === 'function' && !opts.isCurrent()) {
+      return { supported: false, reason: 'stale_render' };
+    }
     const canvas = document.createElement('canvas');
     canvas.width = HANDHELD_FRAME.width;
     canvas.height = HANDHELD_FRAME.height;
@@ -324,11 +397,21 @@
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', `${weaponId} equipped in hand`);
     const context = canvas.getContext('2d');
-    context.clearRect(0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
-    context.drawImage(baseImage, 0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
-    eraseHandheldMask(context, maskImage);
-    drawHandheldWeapon(context, weaponImage, weapon, registry.grip_anchor);
-    drawHandheldFrontGrip(context, frontGripImage, registry);
+    // The final answer composition is one canvas: the existing EQ-B
+    // registry-driven armor/accessory layers remain present beneath the EQ-C
+    // handheld weapon, so a full-frame base canvas cannot cover them.
+    await renderHandheldComposition(
+      context,
+      character,
+      weapon,
+      inventory,
+      registry,
+      wearableRegistry,
+      characterKey,
+    );
+    if (typeof opts.isCurrent === 'function' && !opts.isCurrent()) {
+      return { supported: false, reason: 'stale_render' };
+    }
     stage.innerHTML = '';
     stage.appendChild(canvas);
     stage.hidden = false;

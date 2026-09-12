@@ -106,6 +106,15 @@ def sqlite_conn():
         source TEXT NOT NULL DEFAULT 'drop',
         UNIQUE(user_id, item_id)
     )''')
+    conn.execute('''CREATE TABLE player_inventory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        equip_id TEXT NOT NULL,
+        equipped INTEGER NOT NULL DEFAULT 0,
+        obtained_at TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'drop',
+        UNIQUE(user_id, equip_id)
+    )''')
     conn.execute('''CREATE TABLE user_stats (
         user_id INTEGER PRIMARY KEY,
         coins INTEGER NOT NULL DEFAULT 0

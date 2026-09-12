@@ -413,10 +413,22 @@ from equipment_commerce_service import (
     purchase_equipment_with_coins,
 )
 from equipment_shop_offer_authority import build_authoritative_equipment_offer_facts
+from equipment_portfolio_registry import (
+    EQ_F_FUNCTIONAL_EQUIPMENT_ART,
+    EQ_F_NEW_EQUIPMENT_DEFS,
+    build_canonical_equipment_defs,
+    validate_eq_f_portfolio,
+)
 from battlefield_boss_reward_service import (
     BattlefieldBossFirstClearSettlement,
     BattlefieldBossRewardError,
     grant_battlefield_boss_first_clear_reward,
+)
+from equipment_first_clear_reward_service import (
+    EquipmentFirstClearRewardError,
+    EquipmentFirstClearSettlement,
+    backfill_cleared_equipment,
+    grant_equipment_first_clear_reward,
 )
 from equipment_loadout_service import (
     EquipmentLoadoutError,
@@ -1496,9 +1508,15 @@ EQUIPMENT_DEFS = [
     },
 ]
 
+# EQ-F is an additive runtime extension.  Keep the historical literal
+# ``EQUIPMENT_DEFS`` intact for the accepted C045 15-item audit and expose one
+# merged server registry to ownership, loadout, inventory, and stat readers.
+CANONICAL_EQUIPMENT_DEFS = build_canonical_equipment_defs(EQUIPMENT_DEFS)
+validate_eq_f_portfolio(EQ_F_NEW_EQUIPMENT_DEFS)
+
 # 建立快查字典
 _SKILL_MAP = {s['id']: s for s in SKILL_DEFS}
-_EQUIP_MAP = {e['id']: e for e in EQUIPMENT_DEFS}
+_EQUIP_MAP = {e['id']: e for e in CANONICAL_EQUIPMENT_DEFS}
 
 # This trophy is deliberately an inventory record, not a wearable. Keep the
 # rule in the functional equipment authority rather than deriving it from the
@@ -1763,6 +1781,12 @@ FUNCTIONAL_EQUIPMENT_PRESENTATION_REGISTRY = {
     },
 }
 
+# EQ-E's art package is presentation-only.  The server registry above remains
+# the owner of slots/effects; these records only bind the exact accepted
+# overlay/icon bytes to the existing wearable projection shape.
+FUNCTIONAL_EQUIPMENT_ART.update(EQ_F_FUNCTIONAL_EQUIPMENT_ART)
+FUNCTIONAL_EQUIPMENT_PRESENTATION_REGISTRY.update(EQ_F_FUNCTIONAL_EQUIPMENT_ART)
+
 for _functional_id, _functional_art in FUNCTIONAL_EQUIPMENT_ART.items():
     _presentation = FUNCTIONAL_EQUIPMENT_PRESENTATION_REGISTRY[_functional_id]
     _functional_art.update({
@@ -1790,6 +1814,10 @@ _FUNCTIONAL_EFFECT_ACTIVE_KEYS = {
     'dragon_eye': {'crit_multiplier'},
     'go_stone_black': set(),
 }
+_FUNCTIONAL_EFFECT_ACTIVE_KEYS.update({
+    str(definition['id']): set(definition.get('effects') or {})
+    for definition in EQ_F_NEW_EQUIPMENT_DEFS
+})
 
 _FUNCTIONAL_EFFECT_LABELS = {
     'dmg_bonus': ('傷害加成', 'Damage modifier'),
@@ -1905,7 +1933,7 @@ def _canonical_equippability_projection(equip_id):
         build_slot_projection as _build_slot_projection,
     )
     equip_id = str(equip_id or '')
-    canonical_slot = _build_slot_projection(EQUIPMENT_DEFS).get(equip_id)
+    canonical_slot = _build_slot_projection(CANONICAL_EQUIPMENT_DEFS).get(equip_id)
     if canonical_slot is not None:
         return {
             'canonical_equippable': True,
@@ -10409,7 +10437,7 @@ def admin_user_assets(uid):
             (uid,)).fetchall()
         pet = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
 
-    eq_map = {e['id']: e for e in EQUIPMENT_DEFS}
+    eq_map = {e['id']: e for e in CANONICAL_EQUIPMENT_DEFS}
     ap_map = {a['id']: a for a in APPEARANCE_DEFS}
     return jsonify({
         'user': {'id': u['id'], 'username': u['username'], 'nickname': u['nickname'],
@@ -10436,7 +10464,7 @@ def admin_user_assets(uid):
             'shop_items': [{'key': k, 'name': v['name']} for k, v in SHOP_ITEMS.items()],
             'pet_food':   [{'key': k, 'name': v['name']} for k, v in PET_FOOD_CATALOG.items()],
             'equipment':  [{'key': e['id'], 'name': e['name'], 'slot': e['slot'],
-                            'rarity': e.get('rarity', '')} for e in EQUIPMENT_DEFS],
+                            'rarity': e.get('rarity', '')} for e in CANONICAL_EQUIPMENT_DEFS],
             'appearance': [{'key': a['id'], 'name': a['name'], 'slot': a.get('slot', ''),
                             'rarity': a.get('rarity', '')} for a in APPEARANCE_DEFS],
             'pets':       [{'key': k, 'name': v['name']} for k, v in PET_CATALOG.items()],
@@ -11034,7 +11062,7 @@ def admin_set_equipment(uid):
     action = str(body.get('action') or '')
     if action == 'grant':
         equip_id = str(body.get('equip_id') or '')
-        if not any(e['id'] == equip_id for e in EQUIPMENT_DEFS):
+        if not any(e['id'] == equip_id for e in CANONICAL_EQUIPMENT_DEFS):
             return jsonify({'error': 'unknown_equip'}), 400
         with get_db() as conn:
             try:
@@ -11043,7 +11071,7 @@ def admin_set_equipment(uid):
                     uid,
                     equip_id,
                     'admin',
-                    equipment_defs=EQUIPMENT_DEFS,
+                    equipment_defs=CANONICAL_EQUIPMENT_DEFS,
                 )
                 conn.commit()
             except EquipmentOwnershipError as exc:
@@ -13056,9 +13084,59 @@ def _adventure_attempt_first_clear_projection(
     }
 
 
+def _adventure_reconcile_first_clear_equipment(uid):
+    """Converge additive functional Equipment for authoritative past clears."""
+
+    try:
+        with get_db() as conn:
+            results = backfill_cleared_equipment(
+                conn,
+                int(uid),
+                equipment_defs=CANONICAL_EQUIPMENT_DEFS,
+                obtained_at=datetime.datetime.now().isoformat(timespec='seconds'),
+            )
+    except EquipmentFirstClearRewardError as exc:
+        # Legacy deployments/read fixtures may predate player_inventory or
+        # the authoritative progress table.  Do not turn an ordinary
+        # Adventure read into a false reward; production observability keeps
+        # the exact fail-closed code for the next reconciliation.
+        app.logger.warning(
+            'Adventure functional Equipment backfill unavailable for user %s (%s)',
+            uid,
+            exc.code,
+        )
+        return {
+            'status': 'UNAVAILABLE',
+            'converged': False,
+            'results': [],
+            'error_code': exc.code,
+        }
+    except Exception:
+        # Preserve the existing Adventure read/start compatibility contract:
+        # a transient database outage must not change the route response.
+        # Fresh first-clear settlement still fails closed in its caller-owned
+        # transaction below.
+        app.logger.exception(
+            'Adventure functional Equipment backfill read failed for user %s',
+            uid,
+        )
+        return {
+            'status': 'UNAVAILABLE',
+            'converged': False,
+            'results': [],
+            'error_code': 'BACKFILL_READ_UNAVAILABLE',
+        }
+    return {
+        'status': 'COMPLETED',
+        'converged': True,
+        'results': [result.as_response() for result in results],
+    }
+
+
 def _adventure_reconcile_first_clear_projections(uid):
     """Retry every pending first-clear projection for the authenticated user."""
 
+    _adventure_reconcile_first_clear_equipment(uid)
     try:
         with get_db() as conn:
             receipts = pending_first_clear_projection_receipts(conn, user_id=uid)
@@ -14082,6 +14160,7 @@ def _adventure_boss_record_attempt(conn, uid, zone_key, passed, correct,
 def adventure_boss_finish():
     uid = session['user_id']
     spirit_unlock_results = None
+    functional_equipment_reward_result = None
     # Parsed for backward-compatible request-body tolerance only. Client
     # correct/total fields (if present) are never read below -- the score is
     # always recomputed server-side from review_log evidence.
@@ -14196,7 +14275,19 @@ def adventure_boss_finish():
                 appearance_effects=APPEARANCE_EFFECTS,
                 obtained_at=now,
             )
-        except BattlefieldBossRewardError as exc:
+            functional_settlement = EquipmentFirstClearSettlement.from_authoritative_attempt(
+                user_id=uid,
+                zone_key=zone_key,
+                passed=passed,
+                attempt_result=settlement,
+            )
+            functional_equipment_reward_result = grant_equipment_first_clear_reward(
+                conn,
+                functional_settlement,
+                equipment_defs=CANONICAL_EQUIPMENT_DEFS,
+                obtained_at=now,
+            )
+        except (BattlefieldBossRewardError, EquipmentFirstClearRewardError) as exc:
             # A catalog/identity failure must not commit the progress
             # transition without its first-clear reward.  Keep the exam in
             # session so a corrected retry can be attempted; do not report a
@@ -14261,6 +14352,10 @@ def adventure_boss_finish():
     }
     if first_clear_projection is not None:
         response['first_clear_projection'] = first_clear_projection
+    if functional_equipment_reward_result is not None:
+        response['functional_equipment_reward'] = (
+            functional_equipment_reward_result.as_response()
+        )
     return jsonify(
         compose_adventure_boss_finish_response(
             response,
@@ -19766,7 +19861,7 @@ def equip_item():
                         uid,
                         row['equip_id'],
                         ownership_row_id=row['id'],
-                        equipment_defs=EQUIPMENT_DEFS,
+                        equipment_defs=CANONICAL_EQUIPMENT_DEFS,
                     )
                 else:
                     loadout_result = unequip_owned_item(
@@ -19774,7 +19869,7 @@ def equip_item():
                         uid,
                         row['equip_id'],
                         ownership_row_id=row['id'],
-                        equipment_defs=EQUIPMENT_DEFS,
+                        equipment_defs=CANONICAL_EQUIPMENT_DEFS,
                     )
                 conn.commit()
             except EquipmentLoadoutError as exc:
@@ -19826,7 +19921,7 @@ def equip_item():
                     (uid,),
                 ).fetchall()
             # 卸下同 slot 其他裝備
-            slot_ids = [e['id'] for e in EQUIPMENT_DEFS if e['slot'] == slot]
+            slot_ids = [e['id'] for e in CANONICAL_EQUIPMENT_DEFS if e['slot'] == slot]
             if slot_ids:
                 placeholders = ','.join(['?' for _ in slot_ids])
                 conn.execute(
@@ -24655,7 +24750,7 @@ def _canonical_equipment_slot_source():
 
     return {
         str(definition['id']): str(definition['slot'])
-        for definition in EQUIPMENT_DEFS
+        for definition in CANONICAL_EQUIPMENT_DEFS
         if definition.get('slot') in {'weapon', 'armor', 'accessory'}
     }
 
@@ -25287,7 +25382,7 @@ def _canonical_shop_purchase_response(uid, body, *, appearance_only=False):
                     catalog_authority=ServerFactEquipmentOfferAuthority(
                         equipment_facts
                     ),
-                    equipment_defs=EQUIPMENT_DEFS,
+                    equipment_defs=CANONICAL_EQUIPMENT_DEFS,
                 )
             else:
                 canonical_offer = _canonical_coin_purchase_offer(normalized_offer)

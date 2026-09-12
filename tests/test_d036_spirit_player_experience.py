@@ -153,6 +153,7 @@ def _d036_postgres_schema(conn):
         "currency_log",
         "user_stats",
         "player_wardrobe",
+        "player_inventory",
         "adventure_boss_progress",
         "adventure_zone_unlocks",
         "review_log",
@@ -215,6 +216,17 @@ def _d036_postgres_schema(conn):
             obtained_at TEXT NOT NULL,
             source TEXT NOT NULL DEFAULT 'drop',
             UNIQUE(user_id, item_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE player_inventory(
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            equip_id TEXT NOT NULL,
+            equipped INTEGER NOT NULL DEFAULT 0,
+            obtained_at TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'drop',
+            UNIQUE(user_id, equip_id)
         )"""
     )
     conn.execute(

@@ -8327,7 +8327,6 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
 </div>
 
 <script src="/js/hero_legacy_cache_guard.js?v=20260829a0401"></script>
-<script src="/js/rpg_wave2_wearable_renderer.js?v=eqc002"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 // ─── 玩家小頭像 & Toast ────────────────────────────────────────
@@ -10294,6 +10293,7 @@ let _answerEquipmentRenderRevision = 0;
 function _setAnswerEquipmentState(state) {
     const figure = document.getElementById('player-avatar-figure');
     const stage = document.getElementById('player-answer-equipment-stage');
+    const handheldStage = document.getElementById('player-avatar-handheld-stage');
     const fallback = document.getElementById('player-avatar-base');
     if (figure) figure.dataset.answerEquipmentState = state;
     if (stage) stage.dataset.answerEquipmentState = state;
@@ -10305,6 +10305,12 @@ function _setAnswerEquipmentState(state) {
             stage.hidden = true;
             delete stage.dataset.equippedIds;
         }
+        if (handheldStage) {
+            handheldStage.innerHTML = '';
+            handheldStage.hidden = true;
+            handheldStage.dataset.supported = 'false';
+        }
+        figure?.classList.remove('handheld-paper-doll-active');
         if (fallback) fallback.hidden = false;
     }
 }
@@ -10349,18 +10355,34 @@ async function _hydrateAnswerEquipmentProjection() {
                 equipped: true,
             }))
             .filter(item => typeof item.equipment_id === 'string' && item.equipment_id);
-        const result = await renderer.renderSafe(stage, characterKey, equipped, {
+        const handheldStage = document.getElementById('player-avatar-handheld-stage');
+        const handheldRenderer = window.GoOdysseyHandheldWeaponRenderer;
+        const renderPromises = [renderer.renderSafe(stage, characterKey, equipped, {
             baseAsset: _answerEquipmentAsset(characterKey),
             maskAsset: `${ANSWER_EQUIPMENT_MASK_ROOT}${characterKey}_hair_front.png`,
             fallbackElement: fallback,
             isCurrent: () => revision === _answerEquipmentRenderRevision,
-        });
+        })];
+        if (handheldRenderer && handheldStage) {
+            renderPromises.push(handheldRenderer.renderSafe(handheldStage, characterKey, inventory, {
+                figureElement: document.getElementById('player-avatar-figure'),
+                isCurrent: () => revision === _answerEquipmentRenderRevision,
+            }));
+        }
+        const [result, handheldResult] = await Promise.all(renderPromises);
         if (revision !== _answerEquipmentRenderRevision) return false;
         const ready = result && result.supported === true;
         _setAnswerEquipmentState(ready ? 'ready' : 'fallback');
+        if (!handheldResult || handheldResult.reason !== 'stale_render') {
+            const figure = document.getElementById('player-avatar-figure');
+            if (figure && !(handheldResult && handheldResult.supported)) {
+                figure.classList.remove('handheld-paper-doll-active');
+            }
+        }
         if (ready) {
             stage.dataset.answerEquipmentIds = (result.equipped || []).join(',');
             stage.dataset.answerEquipmentAuthority = 'player_inventory.equipped';
+            stage.dataset.handheldWeaponId = handheldResult?.weaponId || '';
         }
         return ready;
     } catch (error) {
@@ -10370,6 +10392,13 @@ async function _hydrateAnswerEquipmentProjection() {
             delete stage.dataset.equippedIds;
             delete stage.dataset.answerEquipmentIds;
             stage.dataset.answerEquipmentError = error.message || 'answer_equipment_unavailable';
+            const handheldStage = document.getElementById('player-avatar-handheld-stage');
+            if (handheldStage) {
+                handheldStage.innerHTML = '';
+                handheldStage.hidden = true;
+                handheldStage.dataset.supported = 'false';
+            }
+            document.getElementById('player-avatar-figure')?.classList.remove('handheld-paper-doll-active');
             fallback.hidden = false;
             _setAnswerEquipmentState('fallback');
         }

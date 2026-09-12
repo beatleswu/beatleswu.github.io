@@ -41,7 +41,9 @@ B033_MALFORMED_SCHEMA = "B033_MALFORMED_SCHEMA"
 # These are the exact server-owned source values used by the current Monster,
 # Admin, and Coin Shop writers. A route may not pass arbitrary client
 # provenance through this boundary.
-SUPPORTED_SOURCES = frozenset({"drop", "admin", "coin_shop"})
+SUPPORTED_SOURCES = frozenset(
+    {"drop", "admin", "coin_shop", "adventure_first_clear"}
+)
 
 REQUIRED_COLUMNS = frozenset(
     {"id", "user_id", "equip_id", "equipped", "obtained_at", "source"}
@@ -158,9 +160,9 @@ def _schema_state(conn: Any) -> str:
 def _load_authoritative_defs() -> Iterable[Mapping[str, Any]]:
     # Lazy import keeps the service route-agnostic and allows tests/callers to
     # inject a server-owned snapshot without importing Flask application state.
-    from app import EQUIPMENT_DEFS
+    from app import CANONICAL_EQUIPMENT_DEFS, EQUIPMENT_DEFS
 
-    return EQUIPMENT_DEFS
+    return CANONICAL_EQUIPMENT_DEFS or EQUIPMENT_DEFS
 
 
 def _catalog(
@@ -316,9 +318,10 @@ def grant_equipment_ownership(
     """Create one server-authorized, unequipped Equipment ownership row.
 
     The function performs no ``commit`` or ``rollback``. ``source`` is the
-    bounded server vocabulary used by the current Monster, Admin, and Coin
-    Shop writers: ``drop``, ``admin``, and ``coin_shop``. It accepts no client
-    slot or equipped flag; the row is always created with ``equipped=0``.
+    bounded server vocabulary used by the current Monster, Admin, Coin Shop,
+    and Adventure first-clear writers: ``drop``, ``admin``, ``coin_shop``, and
+    ``adventure_first_clear``. It accepts no client slot or equipped flag; the
+    row is always created with ``equipped=0``.
     """
 
     user_id = _validate_user_id(user_id)
