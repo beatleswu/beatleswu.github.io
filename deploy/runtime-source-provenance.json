@@ -196,14 +196,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "7111139afbbfa23b3ea572d1ad70d4726c79b400",
-      "source_branch_or_local_ref": "claude/w1-owner-postdeploy-acceptance-corrective-001",
-      "source_commit_subject": "fix(adventure): act on independent review of the acceptance corrective",
-      "source_date": "2026-09-10",
-      "content_sha256": "b168e58eadafdc52634ad3a9672a166c2a550a420e4e710e2b8480b32820b306",
-      "content_size_bytes": 1110166,
+      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
+      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_date": "2026-09-12",
+      "content_sha256": "767677760418374763947e6ac202ac250a34af61151cb7daec2003e3836f46bf",
+      "content_size_bytes": 1119039,
       "line_ending_policy": "LF",
-      "runtime_role": "startup-required static page/script (served by app.py routes)",
+      "runtime_role": "startup-required static page/script (served by app.py routes); EQ-B/EQ-C answer-screen Equipment projection and handheld integration surface",
       "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
@@ -1183,15 +1183,15 @@
     },
     {
       "path": "app.py",
-      "source_commit": "06ed3832a849a2ad2b014ff5f567f93c51d46958",
-      "source_branch_or_local_ref": "codex/shop-f-r1-exact-lane-integration-and-reopen-preflight-001",
-      "source_commit_subject": "feat(shop): integrate R1 launch catalog and bundles",
-      "source_date": "2026-09-11",
-      "content_sha256": "9f40fd47f64c3b7ff3d419f498f8430987e27009bca1b34db8cdcb51ae9e2ede",
-      "content_size_bytes": 1382021,
+      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
+      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_date": "2026-09-12",
+      "content_sha256": "3d0b24954988808ccf2ef965f30adb1fa347cfacf179726e0e9d5940e9196fba",
+      "content_size_bytes": 1385991,
       "line_ending_policy": "LF",
-      "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator",
-      "source_status": "feature-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; deployment remains separately gated"
+      "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear wiring",
+      "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "coin_purchase_authority.py",
@@ -1227,6 +1227,42 @@
       "content_size_bytes": 12372,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import; EQ-F merged server-owned Equipment definitions, slot/effect validation, and zone/shop identity mapping",
+      "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+    },
+    {
+      "path": "equipment_loadout_service.py",
+      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
+      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_date": "2026-09-12",
+      "content_sha256": "716124c2b2bd6d033361bfb9a2621cd4ee69fa7c99014411af55889a26e407d6",
+      "content_size_bytes": 19170,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py runtime dependency; canonical server-owned Equipment equip/unequip/same-slot loadout authority resolved against EQ-F's merged registry",
+      "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+    },
+    {
+      "path": "equipment_ownership_service.py",
+      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
+      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_date": "2026-09-12",
+      "content_sha256": "710a307a7a6432cee0ca93e52dff3b45d1f7e7fa92312fa97ea85eaae17d87e7",
+      "content_size_bytes": 12790,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py runtime dependency; canonical player_inventory ownership writer extended for server-owned Adventure first-clear Equipment grants",
+      "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+    },
+    {
+      "path": "js/rpg_wave2_wearable_renderer.js",
+      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
+      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_date": "2026-09-12",
+      "content_sha256": "4fcc209886c8d5ca5a0cc96bd222f74477f252fe5b4dfb3149e79b621953d0e1",
+      "content_size_bytes": 19171,
+      "line_ending_policy": "LF",
+      "runtime_role": "Dockerfile-packaged answer-screen presentation runtime; EQ-B full-body Equipment composition plus EQ-C data-driven handheld weapon composition",
       "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     }
   ]
