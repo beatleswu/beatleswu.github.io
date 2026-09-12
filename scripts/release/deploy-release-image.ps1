@@ -38,6 +38,12 @@ $archivePath = if ($ReleaseArchive) {
 $artifactBaseName = Get-ReleaseArtifactBaseName -GitSha $ExpectedGitSha
 $composeFilePath = Resolve-RepoPath 'docker-compose.release.yml'
 $healthcheckOverridePath = Join-Path ([System.IO.Path]::GetTempPath()) ("docker-compose.release.healthcheck.{0}.yml" -f $artifactBaseName)
+# EQ-F R3: the tracked Shop/Equipment product-flag authority. This file must
+# be part of every governed compose resolution and every governed
+# --force-recreate below -- see
+# docs/deployment/EQ_F_POST_MERGE_RELEASE_RUNBOOK_PREFLIGHT.md for why an
+# untracked, host-only override previously made this silently droppable.
+$productFlagsPath = Resolve-RepoPath 'docker-compose.release.product-flags.yml'
 $nginxConfigPath = Resolve-RepoPath 'nginx\default.conf'
 $deploymentRecordPath = Join-Path (Split-Path -Parent $manifestPath) ("{0}.deployment.json" -f $artifactBaseName)
 # RELEASE-TOOLING-HOTFIX-05: bound for the small config/manifest/record
@@ -1410,6 +1416,7 @@ $remoteArchivePath = Join-RemotePath $layout.remote_release_staging_directory ([
 $remoteManifestPath = Join-RemotePath $layout.remote_release_staging_directory ([IO.Path]::GetFileName($manifestPath))
 $remoteComposePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'
 $remoteHealthcheckOverridePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.healthcheck.override.yml'
+$remoteProductFlagsPath = Join-RemotePath $layout.compose_directory 'docker-compose.release.product-flags.yml'
 $remoteNginxPath = Join-RemotePath (Join-RemotePath $layout.compose_directory 'nginx') 'default.conf'
 $remoteDeploymentRecordPath = Join-RemotePath $layout.remote_release_staging_directory ([IO.Path]::GetFileName($deploymentRecordPath))
 $remoteArchiveSha = ''
@@ -1450,6 +1457,9 @@ try {
     # than a guessed constant.
     Invoke-BoundedReleaseUpload -LocalPath $composeFilePath -RemotePath $remoteComposePath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'docker-compose.release.yml' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $healthcheckOverridePath -RemotePath $remoteHealthcheckOverridePath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'docker-compose.release.healthcheck.override.yml' | Out-Null
+    # EQ-F R3: upload the tracked product-flag authority on every governed
+    # release so it is always present before any compose resolution below.
+    Invoke-BoundedReleaseUpload -LocalPath $productFlagsPath -RemotePath $remoteProductFlagsPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'docker-compose.release.product-flags.yml' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $nginxConfigPath -RemotePath $remoteNginxPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'nginx/default.conf' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $manifestPath -RemotePath $remoteManifestPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'the release manifest' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $archivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveUploadTimeoutSeconds -Description 'the release archive' | Out-Null
@@ -1515,7 +1525,7 @@ try {
     $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -QuestionsVolumeName $questionsVolumeName -CommunityRewardsFrozen:$FreezeCommunityLeaderboardRewards
     $composeProjectArg = "-p $(Quote-PosixShellArgument $layout.compose_project)"
     $composeEnvFileArg = "--env-file $(Quote-PosixShellArgument $layout.production_env_path)"
-    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --services"
+    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteProductFlagsPath) config --services"
     $composeServiceList = [regex]::Split($composeServices, '\r?\n') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     foreach ($serviceName in @($appComposeService, $schedulerComposeService, $nginxComposeService)) {
         if ($composeServiceList -notcontains $serviceName) {
@@ -1523,7 +1533,7 @@ try {
         }
     }
 
-    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --images"
+    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteProductFlagsPath) config --images"
     $composeImageMatches = ([regex]::Split($composeImages, '\r?\n') | Where-Object { $_.Trim() -eq $manifest.image_tag }).Count
     if ($composeImageMatches -lt 2) {
         throw "docker compose config did not resolve the exact release image for app and scheduler."
@@ -1617,7 +1627,7 @@ try {
     }
 
     $rollbackRequired = $true
-    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
+    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteProductFlagsPath) up -d --no-build --no-deps --force-recreate $appComposeService"
 
     $appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {
@@ -1653,7 +1663,7 @@ try {
         throw "Daily challenge returned 503 after the app image switch."
     }
 
-    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
+    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteProductFlagsPath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
     $schedulerAfter = Wait-ForRemoteContainerRunning -ContainerName $layout.scheduler_service_name
     if ($schedulerAfter.image_tag -ne $manifest.image_tag) {

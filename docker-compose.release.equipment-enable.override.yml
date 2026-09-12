@@ -1,0 +1,26 @@
+# Isolated, Owner-gated Equipment-enable override (EQ-F R3).
+#
+# This file changes exactly one value, for exactly one service (the only
+# real consumer -- app.py; scheduler.py never reads this flag):
+#
+#   EQUIPMENT_CANONICAL_LOADOUT_ENABLED: false -> true
+#
+# It must never be layered onto a running stack directly. The only approved
+# path is scripts/release/set-equipment-enable-state.ps1 -State Enable
+# -OwnerGate GO_EQUIPMENT_ENABLE -Execute, which composes this file on top of
+# docker-compose.release.product-flags.yml (never in place of it), so
+# CANONICAL_COIN_SHOP_PURCHASE_ENABLED stays "true" -- this file does not
+# mention that key at all, and Compose's per-key environment merge leaves an
+# unmentioned key exactly as the earlier file set it.
+#
+# To disable Equipment again (restore false) while preserving Shop=true, run
+# the same script with -State Disable -OwnerGate GO_ROLLBACK -Execute, which
+# simply omits this file from the compose invocation -- the baseline
+# docker-compose.release.product-flags.yml value (false) then applies again.
+#
+# Do not add any other key to this file, and do not add a `scheduler:` block
+# to it -- scheduler is not a consumer of this flag.
+services:
+  app:
+    environment:
+      EQUIPMENT_CANONICAL_LOADOUT_ENABLED: "true"
