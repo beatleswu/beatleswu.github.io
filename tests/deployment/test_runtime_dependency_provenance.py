@@ -128,12 +128,33 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         "coin_purchase_authority.py",
     }
 )
-CURRENT_EXPECTED_COUNT = B1_PRESENT_EXPECTED_COUNT + len(POST_B1_GOVERNED_RUNTIME_PATHS)
+
+# EQ-F added these six explicitly packaged runtime dependencies.  They are an
+# exact, byte-attested set rather than a wildcard: each path has a manifest
+# record, a direct runtime dependency, and a byte-producing source ancestor.
+EQ_F_GOVERNED_RUNTIME_PATHS = frozenset(
+    {
+        "equipment_first_clear_reward_service.py",
+        "equipment_loadout_service.py",
+        "equipment_ownership_service.py",
+        "equipment_portfolio_registry.py",
+        "equipment_shop_eq_f_admission.py",
+        "js/rpg_wave2_wearable_renderer.js",
+    }
+)
+
+CURRENT_EXPECTED_COUNT = (
+    B1_PRESENT_EXPECTED_COUNT
+    + len(POST_B1_GOVERNED_RUNTIME_PATHS)
+    + len(EQ_F_GOVERNED_RUNTIME_PATHS)
+)
 
 
 def _current_expected_governed_runtime_paths(presentation_present):
     return frozenset(
-        _expected_governed_runtime_paths(presentation_present) | POST_B1_GOVERNED_RUNTIME_PATHS
+        _expected_governed_runtime_paths(presentation_present)
+        | POST_B1_GOVERNED_RUNTIME_PATHS
+        | EQ_F_GOVERNED_RUNTIME_PATHS
     )
 
 
@@ -145,10 +166,35 @@ def test_post_b1_expected_set_is_exact():
         )
 
 
+def test_eq_f_expected_set_is_exact():
+    assert EQ_F_GOVERNED_RUNTIME_PATHS == frozenset(
+        {
+            "equipment_first_clear_reward_service.py",
+            "equipment_loadout_service.py",
+            "equipment_ownership_service.py",
+            "equipment_portfolio_registry.py",
+            "equipment_shop_eq_f_admission.py",
+            "js/rpg_wave2_wearable_renderer.js",
+        }
+    )
+    assert EQ_F_GOVERNED_RUNTIME_PATHS.isdisjoint(_expected_governed_runtime_paths(True))
+    assert EQ_F_GOVERNED_RUNTIME_PATHS.isdisjoint(POST_B1_GOVERNED_RUNTIME_PATHS)
+
+
 def _assert_runtime_manifest_contract(paths, count, presentation_present):
     expected = _expected_governed_runtime_paths(presentation_present)
     assert count == len(expected)
     assert paths == expected
+
+
+def _assert_exact_manifest_path_set(paths, expected):
+    actual = set(paths)
+    missing = set(expected) - actual
+    unexpected = actual - set(expected)
+    assert not missing and not unexpected, (
+        f"manifest governed path set drifted: missing={sorted(missing)} "
+        f"unexpected={sorted(unexpected)}"
+    )
 
 
 def test_runtime_dual_state_expected_sets_are_exact():
@@ -179,13 +225,24 @@ def test_manifest_exists_and_valid():
     assert isinstance(data["files"], list)
     expected = _current_expected_governed_runtime_paths(_presentation_source_present())
     assert len(data["files"]) == len(expected)
+    _assert_exact_manifest_path_set((entry["path"] for entry in data["files"]), expected)
 
 
 def test_manifest_covers_every_governed_runtime_file():
     data = load_manifest()
     paths = {entry["path"] for entry in data["files"]}
     expected = _current_expected_governed_runtime_paths(_presentation_source_present())
-    assert paths == expected
+    _assert_exact_manifest_path_set(paths, expected)
+
+
+def test_manifest_expected_set_rejects_missing_and_unexpected_paths():
+    expected = set(_current_expected_governed_runtime_paths(True))
+    with pytest.raises(AssertionError, match="missing"):
+        _assert_exact_manifest_path_set(
+            expected - {"equipment_first_clear_reward_service.py"}, expected
+        )
+    with pytest.raises(AssertionError, match="unexpected"):
+        _assert_exact_manifest_path_set(expected | {"unexpected_runtime.py"}, expected)
 
 
 BINARY_EXTENSIONS = (".png", ".jpg", ".jpeg")
@@ -281,6 +338,18 @@ def _assert_all_provenance_entries(entries, repo_root=REPO_ROOT, master_ref="ori
     ]
 
 
+def _assert_recorded_content_metadata(entry, repo_root=REPO_ROOT):
+    governed_path = repo_root / pathlib.PurePosixPath(entry["path"])
+    actual = governed_path.read_bytes()
+    assert hashlib.sha256(actual).hexdigest() == entry["content_sha256"], (
+        f"{entry['path']} content_sha256 drifted from recorded provenance"
+    )
+    if "content_size_bytes" in entry:
+        assert len(actual) == entry["content_size_bytes"], (
+            f"{entry['path']} content_size_bytes drifted from recorded provenance"
+        )
+
+
 def test_every_entry_has_required_fields():
     data = load_manifest()
     required = {"path", "source_commit", "source_branch_or_local_ref", "source_commit_subject",
@@ -329,9 +398,24 @@ def test_source_status_does_not_overclaim_canonical_master():
 def test_working_tree_matches_recorded_content_sha256():
     data = load_manifest()
     for entry in data["files"]:
-        p = REPO_ROOT / entry["path"]
-        actual = hashlib.sha256(p.read_bytes()).hexdigest()
-        assert actual == entry["content_sha256"], f"{entry['path']} content drifted from recorded provenance"
+        _assert_recorded_content_metadata(entry)
+
+
+def test_recorded_content_sha_mismatch_fails_closed(tmp_path):
+    repo, _source, _binary, commit = _synthetic_provenance_repository(tmp_path)
+    entry = _synthetic_entry(repo, "governed.txt", commit)
+    entry["content_sha256"] = "0" * 64
+    with pytest.raises(AssertionError, match="content_sha256"):
+        _assert_recorded_content_metadata(entry, repo_root=repo)
+
+
+def test_recorded_content_size_mismatch_fails_closed(tmp_path):
+    repo, source, _binary, commit = _synthetic_provenance_repository(tmp_path)
+    entry = _synthetic_entry(repo, "governed.txt", commit)
+    entry["content_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    entry["content_size_bytes"] = len(source.read_bytes()) + 1
+    with pytest.raises(AssertionError, match="content_size_bytes"):
+        _assert_recorded_content_metadata(entry, repo_root=repo)
 
 
 def test_working_tree_matches_recorded_source_commit_blob():
