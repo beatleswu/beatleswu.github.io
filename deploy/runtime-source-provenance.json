@@ -1183,14 +1183,14 @@
     },
     {
       "path": "app.py",
-      "source_commit": "4b41cc4a64d6e0024a1283899b43cd642c33e6aa",
+      "source_commit": "98a40584db1dfc2329068d75c8d8b764587a3caf",
       "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
-      "source_commit_subject": "Gate EQ-F rewards on loadout flag",
+      "source_commit_subject": "Admit C045-priced EQ-F Shop Equipment",
       "source_date": "2026-09-12",
-      "content_sha256": "a81cc409566f05c86c419abb9c4302221e88c6adde4c81dc1acf9c57cdd96868",
-      "content_size_bytes": 1386331,
+      "content_sha256": "890bd152ce8479059c0ca24b02e50aa72a0ce4b793bac1a353ca58b758c2c2bb",
+      "content_size_bytes": 1386533,
       "line_ending_policy": "LF",
-      "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear wiring",
+      "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear and C045 Shop admission wiring",
       "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
@@ -1219,14 +1219,26 @@
     },
     {
       "path": "equipment_portfolio_registry.py",
-      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_commit": "98a40584db1dfc2329068d75c8d8b764587a3caf",
       "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
-      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_commit_subject": "Admit C045-priced EQ-F Shop Equipment",
       "source_date": "2026-09-12",
-      "content_sha256": "519cdc97f678d3903ced4dfb52c0f239108382875f1caf12b5f201a71a8ecce0",
-      "content_size_bytes": 12372,
+      "content_sha256": "6816e51f88e5fb293067effeb26c866c7ad0703634277f31b325cab43c6020a0",
+      "content_size_bytes": 12371,
       "line_ending_policy": "LF",
       "runtime_role": "app.py top-level import; EQ-F merged server-owned Equipment definitions, slot/effect validation, and zone/shop identity mapping",
+      "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+    },
+    {
+      "path": "equipment_shop_eq_f_admission.py",
+      "source_commit": "98a40584db1dfc2329068d75c8d8b764587a3caf",
+      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
+      "source_commit_subject": "Admit C045-priced EQ-F Shop Equipment",
+      "source_date": "2026-09-12",
+      "content_sha256": "0f71a76859b25de49f60c16a02b4ac7f18625c31fde88711297e423878957cf0",
+      "content_size_bytes": 6573,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py runtime dependency; C045 exact six-item Shop Equipment price and eligibility fact authority",
       "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
