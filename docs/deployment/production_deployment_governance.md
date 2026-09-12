@@ -10,6 +10,12 @@ This document is the operational summary. For the full audit narrative and evide
 
 ## Approved entry points
 
+- **Recommended primary deployment**: `scripts/release/deploy-production.ps1`. One short, linear,
+  bounded, rollbackable sequence — `PRECHECK → BUILD → PACKAGE → BASELINE → STATIC → APP → VERIFY →
+  SUCCESS` — over the canonical scripts below. It never parses a child script's human-readable
+  stdout (its facts come from exit codes, artifact files at SHA-derived paths, and direct identity
+  reads) and it contains no generic recovery machinery. Uses the canonical `GO_DEPLOY` gate. See
+  [simplified_production_deploy.md](simplified_production_deploy.md).
 - **Full deployment**: `scripts/release/deploy-release-image.ps1`. Builds/verifies an exact-SHA
   container image, canaries it on the production host before touching live traffic, recreates the
   app and scheduler services, and auto-rolls-back on failure.
@@ -19,10 +25,13 @@ This document is the operational summary. For the full audit narrative and evide
   switch alone is filesystem-correct but functionally inert on already-running containers, which
   resolve the target once at start; this was discovered live in a real production deploy).
 - **Rollback**: `scripts/release/rollback-release.ps1`.
-- **Coordinated release with bounded recovery** (optional; additive, not a replacement for the
-  above): `scripts/release/deploy-coordinated-release.ps1`. Sequences a full static+app promotion
-  via the scripts above and recovers automatically from bounded operational failures; never
-  duplicates their low-level logic. See
+- **Coordinated release with bounded recovery** (NON-PRIMARY; retained for reference):
+  `scripts/release/deploy-coordinated-release.ps1`. Superseded as the recommended path by
+  `deploy-production.ps1` above. Its first real Production execution stopped safely before any
+  mutation but exposed defects in its generic layers — a successful build was misread as a failure
+  by stdout JSON scraping, and unrelated failures shared a single retry budget. It is deliberately
+  not deleted; retiring it is gated on the simplified path having successfully deployed Production
+  at least once. See
   [deployment_workflow_v3_bounded_recovery.md](deployment_workflow_v3_bounded_recovery.md).
 - **`deploy.ps1` does not exist in this repository's tracked history and is absent from the
   production host's container filesystem.** It must never be invented, restored, or guessed at.
@@ -30,9 +39,12 @@ This document is the operational summary. For the full audit narrative and evide
 ## Owner gates
 
 - **GO_MERGE** — authorizes merging a PR into `master`. Never implies deployment.
-- **GO_DEPLOY** — authorizes running `deploy-release-image.ps1 -Execute` or
-  `deploy-static-release.ps1 -Execute`. Passed via `-OwnerGate GO_DEPLOY`; without `-Execute`, both
-  scripts dry-run only and report identity/readiness. It authorizes deployment only.
+- **GO_DEPLOY** — authorizes running `deploy-production.ps1 -Execute` (the recommended primary
+  path), `deploy-release-image.ps1 -Execute`, or `deploy-static-release.ps1 -Execute`. Passed via
+  `-OwnerGate GO_DEPLOY`; without `-Execute` these scripts do not mutate Production and report
+  identity/readiness only. It authorizes deployment only. `deploy-production.ps1` performs its own
+  rollback under the canonical `GO_ROLLBACK` gate when a step fails after Production was mutated;
+  that is part of the same authorization, not a separate one.
 - **GO_ROLLBACK** — authorizes `rollback-release.ps1 -Execute -OwnerGate GO_ROLLBACK`.
 - **GO_DEPLOY_WITH_BOUNDED_RECOVERY** — authorizes
   `scripts/release/deploy-coordinated-release.ps1 -Execute`, an additive orchestration entrypoint
