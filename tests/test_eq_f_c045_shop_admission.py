@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import os
 from pathlib import Path
 import subprocess
@@ -226,3 +227,148 @@ def test_c045_price_and_shop_business_logic_is_not_duplicated_in_app() -> None:
     source = (ROOT / "app.py").read_text(encoding="utf-8")
     assert "C045_FINAL_COIN_PRICES" not in source
     assert "C045_AUTHORITY_COMMIT" not in source
+
+
+@pytest.fixture(scope="module")
+def c045_postgres_database():
+    """Opt-in disposable PostgreSQL database for the real Shop transaction."""
+
+    if os.environ.get("EQ_F_C045_RUN_POSTGRES", "") != "1":
+        pytest.skip(
+            "C045 PostgreSQL proof is explicit; set EQ_F_C045_RUN_POSTGRES=1"
+        )
+    from postgres_test_harness import disposable_postgres
+
+    with disposable_postgres(name_prefix="eq-f-c045-shop") as record:
+        yield record["database_url"]
+
+
+def _prepare_c045_postgres(database_url: str) -> None:
+    from migrations.equipment_canonical_slot_v1 import upgrade as upgrade_b033
+    from test_shop_e_16_sku_end_to_end_acceptance import (
+        _connect,
+        _reset_disposable_schema,
+    )
+
+    _reset_disposable_schema(database_url)
+    conn = _connect(database_url)
+    try:
+        conn.execute(
+            """CREATE TABLE public.player_inventory (
+                id BIGSERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                equip_id TEXT NOT NULL,
+                equipped INTEGER NOT NULL DEFAULT 0,
+                obtained_at TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'test'
+            )"""
+        )
+        app = importlib.import_module("app")
+        upgrade_b033(conn, equipment_defs=app.CANONICAL_EQUIPMENT_DEFS)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _c045_postgres_client(database_url: str, monkeypatch):
+    from test_shop_e_16_sku_end_to_end_acceptance import _PostgresDbContext
+
+    app = importlib.import_module("app")
+    monkeypatch.setenv(app.CANONICAL_COIN_SHOP_PURCHASE_FLAG, "1")
+    monkeypatch.setattr(
+        app,
+        "get_db",
+        lambda: _PostgresDbContext(database_url),
+    )
+    app.app.config.update(TESTING=True)
+    client = app.app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = 1
+        session["username"] = "eq-f-c045-postgres"
+    return client
+
+
+def test_c045_postgres_purchase_replay_and_rollback(
+    c045_postgres_database, monkeypatch
+) -> None:
+    from test_shop_e_16_sku_end_to_end_acceptance import _connect
+
+    database_url = c045_postgres_database
+    _prepare_c045_postgres(database_url)
+    client = _c045_postgres_client(database_url, monkeypatch)
+
+    first = client.post(
+        "/api/shop/buy",
+        json={
+            "item_id": "starglass_needle",
+            "purchase_operation_id": "c045-pg-replay",
+            "price": 1,
+        },
+    )
+    replay = client.post(
+        "/api/shop/buy",
+        json={
+            "item_id": "starglass_needle",
+            "purchase_operation_id": "c045-pg-replay",
+            "price": 999999,
+        },
+    )
+    assert first.status_code == 200
+    assert replay.status_code == 200
+    assert replay.get_json()["replayed"] is True
+    assert replay.get_json()["coins_spent"] == 1000
+
+    verify = _connect(database_url)
+    try:
+        assert verify.execute(
+            "SELECT coins FROM public.user_stats WHERE user_id=1"
+        ).fetchone()[0] == 999000
+        assert verify.execute(
+            "SELECT COUNT(*) FROM public.player_inventory WHERE user_id=1"
+        ).fetchone()[0] == 1
+        assert verify.execute(
+            "SELECT equipped FROM public.player_inventory WHERE user_id=1"
+        ).fetchone()[0] == 0
+        assert verify.execute(
+            "SELECT COUNT(*) FROM public.coin_purchase_operations "
+            "WHERE purchase_operation_id='c045-pg-replay'"
+        ).fetchone()[0] == 1
+    finally:
+        verify.rollback()
+        verify.close()
+
+    def fail_acquisition(*args, **kwargs):
+        raise equipment_commerce_service.EquipmentOwnershipError(
+            "forced C045 PostgreSQL acquisition failure"
+        )
+
+    monkeypatch.setattr(
+        equipment_commerce_service,
+        "grant_equipment_ownership",
+        fail_acquisition,
+    )
+    failed = client.post(
+        "/api/shop/buy",
+        json={
+            "item_id": "emberline_cutlass",
+            "purchase_operation_id": "c045-pg-rollback",
+            "price": 1,
+        },
+    )
+    assert failed.status_code == 422
+
+    verify = _connect(database_url)
+    try:
+        assert verify.execute(
+            "SELECT coins FROM public.user_stats WHERE user_id=1"
+        ).fetchone()[0] == 999000
+        assert verify.execute(
+            "SELECT COUNT(*) FROM public.player_inventory WHERE user_id=1"
+        ).fetchone()[0] == 1
+        assert verify.execute(
+            "SELECT COUNT(*) FROM public.coin_purchase_operations "
+            "WHERE purchase_operation_id='c045-pg-rollback'"
+        ).fetchone()[0] == 0
+    finally:
+        verify.rollback()
+        verify.close()
