@@ -99,6 +99,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
+    <script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0381"></script>
     <script src="/js/game/encounter_presentation_framework_v1.js?v=a023v1"></script>
     <script src="/js/game/battlefield_boss_reward_consumer.js?v=f029v1"></script>
     <script src="/monster_trash.js?v=20260622i18n1"></script>
@@ -5488,6 +5489,19 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
         /* 整個 figure 等比放大 → 底圖與所有裝備層（披風/盔甲/武器/副手）一起縮放、位置自動對齊 */
         zoom: 2.8;
     }
+    /* EQ-B: the answer surface uses the same registry-driven full-body
+       composition as Hero/Backpack.  The legacy combat images remain in the
+       DOM for compatibility, but are hidden whenever the canonical stage is
+       ready so one equipped item cannot be painted twice. */
+    #player-avatar-figure[data-answer-equipment-state="ready"] {
+        overflow: visible;
+    }
+    #player-answer-equipment-stage {
+        z-index: 4;
+    }
+    #player-avatar-figure[data-answer-equipment-state="ready"] .player-combat-layer {
+        display: none !important;
+    }
     #player-avatar-base {
         width: 46px; height: 46px; border-radius: 50%;
         background: var(--cream2); border: 2px solid var(--border);
@@ -7959,8 +7973,9 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
                     <div id="battle-arena">
                         <!-- 玩家 -->
                         <div class="fighter-cell player-cell" onclick="location.href='/hero#appearance'" title="點擊設定外觀" data-i18n-title="index.battle.appearance_title">
-                            <div id="player-avatar-figure">
+                            <div id="player-avatar-figure" data-answer-equipment-state="pending">
                                 <img class="player-combat-layer cape" id="player-cape-layer" alt="">
+                                <div class="rpg-wearable-stage" id="player-answer-equipment-stage" hidden aria-hidden="true"></div>
                                 <div id="player-avatar-base">🧑</div>
                                 <img class="player-combat-layer armor" id="player-armor-layer" alt="">
                                 <img class="player-combat-layer weapon" id="player-gear-weapon-layer" alt="">
@@ -10253,6 +10268,124 @@ async function loadQuizPet() {
     } catch(e) {}
 }
 
+const ANSWER_EQUIPMENT_CHARACTER_KEYS = new Set([
+    'apprentice', 'mage', 'paladin', 'trail_apprentice',
+    'night_runner', 'constellation_apprentice',
+]);
+const ANSWER_EQUIPMENT_CHARACTER_ROOT = '/assets/hero/characters/wave2_p1/';
+const ANSWER_EQUIPMENT_MASK_ROOT = '/assets/hero/equipment/wearables/masks/';
+let _answerEquipmentHydrationPromise = null;
+let _answerEquipmentRenderRevision = 0;
+
+function _setAnswerEquipmentState(state) {
+    const figure = document.getElementById('player-avatar-figure');
+    const stage = document.getElementById('player-answer-equipment-stage');
+    const fallback = document.getElementById('player-avatar-base');
+    if (figure) figure.dataset.answerEquipmentState = state;
+    if (stage) stage.dataset.answerEquipmentState = state;
+    if (state === 'loading') {
+        // Clear the old composition before the authoritative refresh starts;
+        // a previous loadout must never remain visible while a swap is read.
+        if (stage) {
+            stage.innerHTML = '';
+            stage.hidden = true;
+            delete stage.dataset.equippedIds;
+        }
+        if (fallback) fallback.hidden = false;
+    }
+}
+
+function _answerEquipmentAsset(characterKey) {
+    return `${ANSWER_EQUIPMENT_CHARACTER_ROOT}${characterKey}_p1.png`;
+}
+
+async function _hydrateAnswerEquipmentProjection() {
+    const stage = document.getElementById('player-answer-equipment-stage');
+    const fallback = document.getElementById('player-avatar-base');
+    const renderer = window.GoOdysseyWearableRenderer;
+    const revision = ++_answerEquipmentRenderRevision;
+    if (!stage || !fallback || !renderer) {
+        _setAnswerEquipmentState('fallback');
+        return false;
+    }
+    _setAnswerEquipmentState('loading');
+    try {
+        const [appearanceResponse, inventoryResponse] = await Promise.all([
+            fetch('/api/player/appearance', { credentials: 'include', cache: 'no-store' }),
+            fetch('/api/player/inventory', { credentials: 'include', cache: 'no-store' }),
+        ]);
+        if (!appearanceResponse.ok) throw new Error(`answer appearance HTTP ${appearanceResponse.status}`);
+        if (!inventoryResponse.ok) throw new Error(`answer inventory HTTP ${inventoryResponse.status}`);
+        const appearance = await appearanceResponse.json();
+        const inventory = await inventoryResponse.json();
+        const characterKey = String(appearance?.character_key || '');
+        if (!ANSWER_EQUIPMENT_CHARACTER_KEYS.has(characterKey)) {
+            throw new Error('answer character presentation key is unavailable');
+        }
+        if (!Array.isArray(inventory)) throw new Error('answer inventory projection is unavailable');
+
+        // The endpoint is the server-owned player_inventory projection.  The
+        // client forwards only its equipped functional rows to the shared
+        // registry renderer; it never invents ownership or effect state.
+        const equipped = inventory
+            .filter(item => item && item.equipped === true && item.functional_equipment === true)
+            .map(item => ({
+                equipment_id: item.item_id || item.id,
+                slot: item.slot,
+                equipped: true,
+            }))
+            .filter(item => typeof item.equipment_id === 'string' && item.equipment_id);
+        const result = await renderer.renderSafe(stage, characterKey, equipped, {
+            baseAsset: _answerEquipmentAsset(characterKey),
+            maskAsset: `${ANSWER_EQUIPMENT_MASK_ROOT}${characterKey}_hair_front.png`,
+            fallbackElement: fallback,
+            isCurrent: () => revision === _answerEquipmentRenderRevision,
+        });
+        if (revision !== _answerEquipmentRenderRevision) return false;
+        const ready = result && result.supported === true;
+        _setAnswerEquipmentState(ready ? 'ready' : 'fallback');
+        if (ready) {
+            stage.dataset.answerEquipmentIds = (result.equipped || []).join(',');
+            stage.dataset.answerEquipmentAuthority = 'player_inventory.equipped';
+        }
+        return ready;
+    } catch (error) {
+        if (revision === _answerEquipmentRenderRevision) {
+            stage.innerHTML = '';
+            stage.hidden = true;
+            delete stage.dataset.equippedIds;
+            delete stage.dataset.answerEquipmentIds;
+            stage.dataset.answerEquipmentError = error.message || 'answer_equipment_unavailable';
+            fallback.hidden = false;
+            _setAnswerEquipmentState('fallback');
+        }
+        return false;
+    }
+}
+
+function _ensureAnswerEquipmentProjection() {
+    if (!_answerEquipmentHydrationPromise) {
+        _answerEquipmentHydrationPromise = _hydrateAnswerEquipmentProjection();
+    }
+    return _answerEquipmentHydrationPromise;
+}
+
+function refreshAnswerScreenEquipment() {
+    _answerEquipmentHydrationPromise = null;
+    return _ensureAnswerEquipmentProjection();
+}
+
+window.GoOdysseyAnswerEquipment = Object.freeze({
+    refresh: refreshAnswerScreenEquipment,
+});
+
+document.addEventListener('go-odyssey:equipment-updated', refreshAnswerScreenEquipment);
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshAnswerScreenEquipment();
+});
+window.addEventListener('pageshow', refreshAnswerScreenEquipment);
+window.addEventListener('focus', refreshAnswerScreenEquipment);
+
 let _e10BattlePresentationPromise = null;
 
 function _isE10BattleShell() {
@@ -10264,11 +10397,16 @@ function _isE10BattleShell() {
 }
 
 async function _hydrateE10BattlePresentation() {
-    if (!_isAdventureZonePractice() || !_isE10BattleShell()) return;
+    const answerEquipment = _ensureAnswerEquipmentProjection();
+    if (!_isAdventureZonePractice() || !_isE10BattleShell()) {
+        await answerEquipment;
+        return;
+    }
     if (!_e10BattlePresentationPromise) {
         _e10BattlePresentationPromise = Promise.all([
             loadPlayerAvatar(),
             loadQuizPet(),
+            answerEquipment,
         ]).catch(() => null);
     }
     await _e10BattlePresentationPromise;

@@ -89,6 +89,13 @@
     if (!stage) return { supported: false, reason: 'missing_stage' };
     const opts = options || {};
     const registry = await loadRegistry();
+    // Answer screens can be refreshed while an earlier inventory/appearance
+    // request is still in flight (for example after an equip swap in another
+    // tab).  The caller owns the revision token; do not let an older render
+    // commit after a newer one has started.
+    if (typeof opts.isCurrent === 'function' && !opts.isCurrent()) {
+      return { supported: false, reason: 'stale_render' };
+    }
     const character = registry.characters?.[characterKey];
     const baseAsset = opts.baseAsset || character?.base || '';
     const baseCharacter = character
