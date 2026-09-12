@@ -1183,12 +1183,12 @@
     },
     {
       "path": "app.py",
-      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
+      "source_commit": "4b41cc4a64d6e0024a1283899b43cd642c33e6aa",
       "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
-      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
+      "source_commit_subject": "Gate EQ-F rewards on loadout flag",
       "source_date": "2026-09-12",
-      "content_sha256": "3d0b24954988808ccf2ef965f30adb1fa347cfacf179726e0e9d5940e9196fba",
-      "content_size_bytes": 1385991,
+      "content_sha256": "a81cc409566f05c86c419abb9c4302221e88c6adde4c81dc1acf9c57cdd96868",
+      "content_size_bytes": 1386331,
       "line_ending_policy": "LF",
       "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear wiring",
       "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
