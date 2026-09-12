@@ -413,6 +413,9 @@ from equipment_commerce_service import (
     purchase_equipment_with_coins,
 )
 from equipment_shop_offer_authority import build_authoritative_equipment_offer_facts
+from equipment_shop_eq_f_admission import (
+    build_authoritative_eq_f_shop_offer_facts,
+)
 from equipment_portfolio_registry import (
     EQ_F_FUNCTIONAL_EQUIPMENT_ART,
     EQ_F_NEW_EQUIPMENT_DEFS,
@@ -24764,15 +24767,18 @@ def _canonical_equipment_slot_source():
 
 
 def _canonical_equipment_shop_offer_facts():
-    """Return the C046 Owner-approved Equipment offer facts.
+    """Return the C046 and C045 server-owned Equipment offer facts.
 
-    ``EQUIPMENT_DEFS`` remains the server definition authority while the
-    sibling C046 module owns the exact starter assortment and Coins prices.
-    This function is only an app wiring seam; it does not duplicate catalog
-    or price data and does not mutate feature gates.
+    ``EQUIPMENT_DEFS`` remains the legacy definition authority for C046, while
+    the EQ-F portfolio and C045 sibling module own the six new products and
+    their exact accepted prices.  This is only an app wiring seam; it does
+    not duplicate catalog data or mutate feature gates.
     """
 
-    return build_authoritative_equipment_offer_facts(EQUIPMENT_DEFS)
+    return (
+        build_authoritative_equipment_offer_facts(EQUIPMENT_DEFS)
+        + build_authoritative_eq_f_shop_offer_facts(CANONICAL_EQUIPMENT_DEFS)
+    )
 
 
 def _canonical_shop_offer_facts(conn, *, appearance_only=False):

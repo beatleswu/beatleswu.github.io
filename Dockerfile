@@ -133,6 +133,7 @@ COPY battlefield_boss_reward_service.py ./
 COPY mapping_a_wardrobe_runtime.py ./
 COPY equipment_shop_offer_authority.py ./
 COPY equipment_shop_starter_catalog.py ./
+COPY equipment_shop_eq_f_admission.py ./
 COPY equipment_commerce_service.py ./
 COPY adventure_boss_finish_response.py ./
 COPY adventure_spirit_unlock_transport.py ./

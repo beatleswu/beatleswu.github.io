@@ -117,6 +117,7 @@
       "equipment_portfolio_registry.py",
       "equipment_loadout_service.py",
       "equipment_ownership_service.py",
+      "equipment_shop_eq_f_admission.py",
       "event_outbox.py",
       "item_use_operations.py",
       "login_journey_authority.py",
@@ -427,6 +428,7 @@
     "/app/equipment_portfolio_registry.py",
     "/app/equipment_loadout_service.py",
     "/app/equipment_ownership_service.py",
+    "/app/equipment_shop_eq_f_admission.py",
     "/app/event_outbox.py",
     "/app/item_use_operations.py",
     "/app/login_journey_authority.py",
@@ -582,9 +584,9 @@
   },
   "runtime_dependency_provenance": {
     "manifest_path": "deploy/runtime-source-provenance.json",
-      "files_covered": 105,
+      "files_covered": 106,
       "source_status": "local Git provenance -- not previously pushed to canonical origin (Graph A / Codex local branches only)",
-      "status": "governed Git provenance outside sgf_engine: 77 recovered or curated runtime files plus the governed shadow_event_storage.py, Lord Trial controller, PresentationDispatcher, B2 presentation-effects, B3 ReviewTransport, B4 GameSession, B5 QuestionLoader/BoardRenderer, B6 ModeContext, B7 GameBootstrap, Incident 019B R6 Zone-star authority modules, RPG V1 P0 hotfix runtime authorities, SHOP-F R1 application/coin authorities, and EQ-F Equipment registry/loadout/ownership/first-clear and answer renderer authorities (105 files total)",
+      "status": "governed Git provenance outside sgf_engine: 77 recovered or curated runtime files plus the governed shadow_event_storage.py, Lord Trial controller, PresentationDispatcher, B2 presentation-effects, B3 ReviewTransport, B4 GameSession, B5 QuestionLoader/BoardRenderer, B6 ModeContext, B7 GameBootstrap, Incident 019B R6 Zone-star authority modules, RPG V1 P0 hotfix runtime authorities, SHOP-F R1 application/coin authorities, and EQ-F Equipment registry/loadout/ownership/first-clear, Shop admission, and answer renderer authorities (106 files total)",
     "note": "Most curated HTML/JS files use each file's LATEST known Git commit, which does not always byte-match current Production exactly (e.g. cache-busting version-bump drift); this is documented per-file rather than silently copying Production bytes. Newly-authored governed modules record their first reachable byte-identical source commit. See deploy/runtime-source-provenance.json for exact per-file status."
   }
 }

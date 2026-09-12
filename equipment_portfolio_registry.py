@@ -61,7 +61,7 @@ EQ_F_HANDHELD_WEAPON_IDS: Final[frozenset[str]] = frozenset(
     }
 )
 
-EQ_F_PRICE_AUTHORITY_STATUS: Final[str] = "PENDING_C045"
+EQ_F_PRICE_AUTHORITY_STATUS: Final[str] = "LOCKED_C045"
 
 
 def _definition(

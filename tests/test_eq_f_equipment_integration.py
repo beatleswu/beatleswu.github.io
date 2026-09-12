@@ -36,8 +36,10 @@ from equipment_portfolio_registry import (  # noqa: E402
     validate_eq_f_portfolio,
 )
 from equipment_shop_eq_f_admission import (  # noqa: E402
-    EqFShopPriceAuthorityPending,
+    C045_FINAL_COIN_PRICES,
+    C045_PRICE_REFERENCES,
     admission_status,
+    build_authoritative_eq_f_shop_offer_facts,
     build_price_authorized_offer_facts,
 )
 from migrations.equipment_canonical_slot_v1 import upgrade as upgrade_b033  # noqa: E402
@@ -324,32 +326,38 @@ def test_first_clear_service_does_not_create_an_inner_transaction():
         conn.close()
 
 
-def test_price_gate_is_inactive_until_exact_c045_facts_are_supplied():
+def test_c045_price_authority_is_locked_and_projects_exact_facts():
     status = admission_status()
-    assert status["active"] is False
-    assert status["offer_count"] == 0
+    assert status["active"] is True
+    assert status["price_authority"] == "LOCKED_C045"
+    assert status["authority_commit"] == "a6d413e83c88bc2495eeaf06d339cfa77abd128a"
+    assert status["authority_tree"] == "65e20152a2d56e668494aa4ed34901f14d834f32"
+    assert status["offer_count"] == 6
     assert status["item_ids"] == list(EQ_F_SHOP_EQUIPMENT_IDS)
-    with pytest.raises(EqFShopPriceAuthorityPending):
-        build_price_authorized_offer_facts(DEFINITIONS)
+    assert status["prices"] == dict(C045_FINAL_COIN_PRICES)
 
-    prices = {
-        item_id: 100 + index
-        for index, item_id in enumerate(EQ_F_SHOP_EQUIPMENT_IDS)
-    }
-    references = {
-        item_id: f"test-c045:{item_id}"
-        for item_id in EQ_F_SHOP_EQUIPMENT_IDS
-    }
-    facts = build_price_authorized_offer_facts(
-        DEFINITIONS,
-        accepted_prices=prices,
-        price_references=references,
-    )
+    facts = build_authoritative_eq_f_shop_offer_facts(DEFINITIONS)
     assert len(facts) == 6
     assert [fact.item_id for fact in facts] == list(EQ_F_SHOP_EQUIPMENT_IDS)
+    assert [fact.server_price for fact in facts] == [
+        C045_FINAL_COIN_PRICES[item_id] for item_id in EQ_F_SHOP_EQUIPMENT_IDS
+    ]
+    assert [fact.price_reference for fact in facts] == [
+        C045_PRICE_REFERENCES[item_id] for item_id in EQ_F_SHOP_EQUIPMENT_IDS
+    ]
     assert {fact.destination for fact in facts} == {"player_inventory"}
     assert {fact.duplicate_policy for fact in facts} == {"REJECT_IF_OWNED"}
     assert all(fact.metadata["auto_equip"] is False for fact in facts)
+
+    with pytest.raises(ValueError, match="accepted authority"):
+        build_price_authorized_offer_facts(
+            DEFINITIONS,
+            accepted_prices={
+                **C045_FINAL_COIN_PRICES,
+                "emberline_cutlass": 1,
+            },
+            price_references=C045_PRICE_REFERENCES,
+        )
 
 
 def test_new_equipment_changes_server_stat_then_unequip_restores_baseline():

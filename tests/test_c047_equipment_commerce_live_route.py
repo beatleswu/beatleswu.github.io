@@ -26,6 +26,12 @@ APPROVED_OFFERS = {
     "wooden_sword": 300,
     "cloth_robe": 300,
     "lucky_stone": 400,
+    "emberline_cutlass": 700,
+    "starglass_needle": 1000,
+    "weaveguard_vest": 650,
+    "mirrorfall_mantle": 950,
+    "copper_jade_talisman": 600,
+    "prism_focus_charm": 900,
 }
 UNAUTHORIZED_IDS = (
     "iron_sword",
