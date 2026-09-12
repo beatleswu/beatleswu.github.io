@@ -13087,6 +13087,13 @@ def _adventure_attempt_first_clear_projection(
 def _adventure_reconcile_first_clear_equipment(uid):
     """Converge additive functional Equipment for authoritative past clears."""
 
+    if not _equipment_canonical_loadout_enabled():
+        return {
+            'status': 'DISABLED',
+            'converged': False,
+            'results': [],
+            'error_code': 'EQUIPMENT_CANONICAL_LOADOUT_DISABLED',
+        }
     try:
         with get_db() as conn:
             results = backfill_cleared_equipment(
@@ -14275,18 +14282,19 @@ def adventure_boss_finish():
                 appearance_effects=APPEARANCE_EFFECTS,
                 obtained_at=now,
             )
-            functional_settlement = EquipmentFirstClearSettlement.from_authoritative_attempt(
-                user_id=uid,
-                zone_key=zone_key,
-                passed=passed,
-                attempt_result=settlement,
-            )
-            functional_equipment_reward_result = grant_equipment_first_clear_reward(
-                conn,
-                functional_settlement,
-                equipment_defs=CANONICAL_EQUIPMENT_DEFS,
-                obtained_at=now,
-            )
+            if _equipment_canonical_loadout_enabled():
+                functional_settlement = EquipmentFirstClearSettlement.from_authoritative_attempt(
+                    user_id=uid,
+                    zone_key=zone_key,
+                    passed=passed,
+                    attempt_result=settlement,
+                )
+                functional_equipment_reward_result = grant_equipment_first_clear_reward(
+                    conn,
+                    functional_settlement,
+                    equipment_defs=CANONICAL_EQUIPMENT_DEFS,
+                    obtained_at=now,
+                )
         except (BattlefieldBossRewardError, EquipmentFirstClearRewardError) as exc:
             # A catalog/identity failure must not commit the progress
             # transition without its first-clear reward.  Keep the exam in

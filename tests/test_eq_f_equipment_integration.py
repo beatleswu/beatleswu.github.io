@@ -375,3 +375,21 @@ def test_new_equipment_changes_server_stat_then_unequip_restores_baseline():
         assert restored == baseline
     finally:
         conn.close()
+
+
+def test_production_loadout_flag_off_is_fail_closed_for_first_clear_backfill(
+    monkeypatch,
+):
+    import app as app_module
+
+    monkeypatch.delenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, raising=False)
+    assert app_module._equipment_canonical_loadout_enabled() is False
+    # The route-level reconciliation guard is intentionally tested without a
+    # database: OFF must not even open the writer transaction.
+    result = app_module._adventure_reconcile_first_clear_equipment(7007)
+    assert result == {
+        'status': 'DISABLED',
+        'converged': False,
+        'results': [],
+        'error_code': 'EQUIPMENT_CANONICAL_LOADOUT_DISABLED',
+    }
