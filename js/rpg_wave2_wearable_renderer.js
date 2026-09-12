@@ -171,3 +171,197 @@
     registryUrl: REGISTRY_URL,
   };
 })(window);
+
+/* EQ-C recovery: the true-handheld paper-doll API is kept in this already
+ * served presentation module, without a new server route or authority. */
+(function (global) {
+  'use strict';
+
+  const HANDHELD_REGISTRY_URL = '/assets/hero/equipment/wearables/handheld/handheld_runtime_registry.json';
+  const HANDHELD_FRAME = { width: 1056, height: 1408 };
+  let handheldRegistryPromise = null;
+  const handheldImages = new Map();
+
+  function handheldStyles() {
+    if (document.getElementById('go-odyssey-eq-c-handheld-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'go-odyssey-eq-c-handheld-styles';
+    style.textContent = `
+      .rpg-handheld-weapon-stage { position:absolute; inset:0; z-index:4; overflow:visible; display:block; pointer-events:none; aspect-ratio:1056 / 1408; }
+      .rpg-handheld-weapon-stage canvas { display:block; width:100%; height:100%; object-fit:contain; image-rendering:auto; pointer-events:none; }
+      #player-avatar-figure.handheld-paper-doll-active > .player-combat-layer { visibility:hidden !important; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function handheldRegistry() {
+    if (!handheldRegistryPromise) {
+      handheldRegistryPromise = fetch(HANDHELD_REGISTRY_URL, {
+        credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' },
+      }).then(response => {
+        if (!response.ok) throw new Error(`handheld registry HTTP ${response.status}`);
+        return response.json();
+      }).then(registry => {
+        if (!registry || registry.schema !== 'go-odyssey.true-handheld-weapon-runtime.v1'
+          || registry.frame?.id !== 'PLAYER_FRAME_A_STANDARD_CHIBI'
+          || registry.pose_id !== 'ONE_HAND_SWORD' || registry.renderer_slot !== 'MAIN_HAND') {
+          throw new Error('unsupported true-handheld registry');
+        }
+        return registry;
+      });
+    }
+    return handheldRegistryPromise;
+  }
+
+  function handheldImage(source) {
+    if (!handheldImages.has(source)) {
+      handheldImages.set(source, new Promise((resolve, reject) => {
+        const image = new global.Image();
+        image.decoding = 'async';
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error(`handheld asset failed: ${source}`));
+        image.src = source;
+      }));
+    }
+    return handheldImages.get(source);
+  }
+
+  function handheldRows(inventory) {
+    if (Array.isArray(inventory)) return inventory;
+    if (Array.isArray(inventory?.items)) return inventory.items;
+    if (Array.isArray(inventory?.inventory)) return inventory.inventory;
+    return [];
+  }
+
+  function resolveHandheldWeapon(inventory, registry) {
+    const weapons = registry?.weapons || {};
+    return handheldRows(inventory).find(item => {
+      if (!item || item.equipped !== true || item.functional_equipment !== true) return false;
+      const id = String(item.item_id || item.id || '').trim();
+      return item.slot === 'weapon' && Boolean(weapons[id]) && weapons[id].runtime_supported !== false;
+    }) || null;
+  }
+
+  function handheldFallback(stage, fallback, visible) {
+    if (stage) {
+      stage.hidden = visible;
+      stage.setAttribute('aria-hidden', visible ? 'true' : 'false');
+      stage.dataset.supported = visible ? 'false' : 'true';
+    }
+    if (fallback) fallback.hidden = !visible;
+  }
+
+  function eraseHandheldMask(context, maskImage) {
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = HANDHELD_FRAME.width;
+    maskCanvas.height = HANDHELD_FRAME.height;
+    const maskContext = maskCanvas.getContext('2d', { willReadFrequently: true });
+    maskContext.drawImage(maskImage, 0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    const maskData = maskContext.getImageData(0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    const eraseData = maskContext.createImageData(HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    for (let i = 0; i < maskData.data.length; i += 4) eraseData.data[i + 3] = maskData.data[i];
+    maskContext.clearRect(0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    maskContext.putImageData(eraseData, 0, 0);
+    context.save();
+    context.globalCompositeOperation = 'destination-out';
+    context.drawImage(maskCanvas, 0, 0);
+    context.restore();
+  }
+
+  function drawHandheldWeapon(context, image, spec, anchor) {
+    const width = Number(spec.asset_width || image.naturalWidth);
+    const height = Number(spec.asset_height || image.naturalHeight);
+    const scale = Number(spec.scale || 1);
+    context.save();
+    context.translate(Number(anchor.x || 0), Number(anchor.y || 0));
+    context.rotate(Number(spec.rotation_deg || 0) * Math.PI / 180);
+    context.scale(scale, scale);
+    context.translate(-Number(spec.weapon_grip_x) * width, -Number(spec.weapon_grip_y) * height);
+    context.drawImage(image, 0, 0, width, height);
+    context.restore();
+  }
+
+  function drawHandheldFrontGrip(context, image, registry) {
+    const grip = registry.grip_anchor || {};
+    const height = Number(grip.front_grip_target_height || 240);
+    const width = image.naturalWidth * height / image.naturalHeight;
+    const x = Number(grip.x || 0) - Number(grip.front_grip_asset_anchor_x || 0.8) * width;
+    const y = Number(grip.y || 0) - Number(grip.front_grip_asset_anchor_y || 0.58) * height;
+    context.drawImage(image, x, y, width, height);
+  }
+
+  async function renderHandheld(stage, characterKey, inventory, options) {
+    handheldStyles();
+    if (!stage) return { supported: false, reason: 'missing_stage' };
+    const opts = options || {};
+    const registry = await handheldRegistry();
+    const character = registry.characters?.[characterKey];
+    const equipped = resolveHandheldWeapon(inventory, registry);
+    const weaponId = equipped ? String(equipped.item_id || equipped.id) : '';
+    const weapon = weaponId ? registry.weapons?.[weaponId] : null;
+    const fallback = opts.fallbackElement || null;
+    stage.dataset.authority = 'server_equipped_projection';
+    stage.dataset.gameplayAuthority = 'none';
+    stage.dataset.frame = registry.frame.id;
+    stage.dataset.poseId = registry.pose_id;
+    stage.dataset.rendererSlot = registry.renderer_slot;
+    delete stage.dataset.renderError;
+    if (!character || !weapon) {
+      handheldFallback(stage, fallback, true);
+      if (opts.figureElement) opts.figureElement.classList.remove('handheld-paper-doll-active');
+      return { supported: false, reason: !character ? 'unsupported_character' : 'no_equipped_supported_weapon' };
+    }
+    const [baseImage, maskImage, frontGripImage, weaponImage] = await Promise.all([
+      handheldImage(character.base_asset),
+      handheldImage(character.open_hand_suppression_mask),
+      handheldImage(character.front_grip_hand_asset),
+      handheldImage(weapon.asset),
+    ]);
+    const canvas = document.createElement('canvas');
+    canvas.width = HANDHELD_FRAME.width;
+    canvas.height = HANDHELD_FRAME.height;
+    canvas.className = 'rpg-handheld-weapon-canvas';
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', `${weaponId} equipped in hand`);
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    context.drawImage(baseImage, 0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    eraseHandheldMask(context, maskImage);
+    drawHandheldWeapon(context, weaponImage, weapon, registry.grip_anchor);
+    drawHandheldFrontGrip(context, frontGripImage, registry);
+    stage.innerHTML = '';
+    stage.appendChild(canvas);
+    stage.hidden = false;
+    stage.setAttribute('aria-hidden', 'false');
+    stage.dataset.supported = 'true';
+    stage.dataset.weaponId = weaponId;
+    stage.dataset.layerOrder = registry.layer_order.join(',');
+    if (fallback) fallback.hidden = true;
+    if (opts.figureElement) opts.figureElement.classList.add('handheld-paper-doll-active');
+    return { supported: true, character: characterKey, weaponId, poseId: registry.pose_id, rendererSlot: registry.renderer_slot, layerOrder: registry.layer_order.slice(), responsive: 'scale_composition_as_unit' };
+  }
+
+  function renderHandheldSafe(stage, characterKey, inventory, options) {
+    return renderHandheld(stage, characterKey, inventory, options).catch(error => {
+      if (stage) {
+        stage.innerHTML = '';
+        stage.hidden = true;
+        stage.setAttribute('aria-hidden', 'true');
+        stage.dataset.supported = 'false';
+        stage.dataset.renderError = error.message || 'handheld_render_failed';
+      }
+      if (options?.fallbackElement) options.fallbackElement.hidden = false;
+      if (options?.figureElement) options.figureElement.classList.remove('handheld-paper-doll-active');
+      return { supported: false, reason: 'render_error', error: error.message };
+    });
+  }
+
+  global.GoOdysseyHandheldWeaponRenderer = {
+    loadRegistry: handheldRegistry,
+    inventoryRows: handheldRows,
+    resolveEquippedWeapon: resolveHandheldWeapon,
+    render: renderHandheld,
+    renderSafe: renderHandheldSafe,
+    registryUrl: HANDHELD_REGISTRY_URL,
+  };
+})(window);

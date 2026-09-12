@@ -1,0 +1,137 @@
+{
+  "schema": "go-odyssey.true-handheld-weapon-runtime.v1",
+  "runtime_active": true,
+  "presentation_only": true,
+  "authority": {
+    "equipped_state": "player_inventory.equipped",
+    "ownership": "player_inventory",
+    "effects": "server EQUIPMENT_DEFS",
+    "client_equipment_authority": false,
+    "client_combat_authority": false,
+    "acquire_does_not_equip": true,
+    "purchase_does_not_equip": true
+  },
+  "frame": {
+    "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas_width": 1056,
+    "canvas_height": 1408,
+    "responsive_rule": "scale_composition_as_unit"
+  },
+  "pose_id": "ONE_HAND_SWORD",
+  "renderer_slot": "MAIN_HAND",
+  "layer_order": [
+    "CHARACTER_BASE_WITH_OPEN_HAND_SUPPRESSION",
+    "MAIN_HAND_WEAPON",
+    "FRONT_GRIP_HAND"
+  ],
+  "grip_anchor": {
+    "x": 800.0,
+    "y": 800.0,
+    "x_normalized": 0.7575757575757576,
+    "y_normalized": 0.5681818181818182,
+    "coordinate_space": "PLAYER_FRAME_A_STANDARD_CHIBI pixels",
+    "front_grip_asset_anchor_x": 0.8,
+    "front_grip_asset_anchor_y": 0.58,
+    "front_grip_target_height": 240
+  },
+  "characters": {
+    "apprentice": {
+      "base_asset": "/assets/hero/characters/wave2_p1/apprentice_p1.png",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/apprentice_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/apprentice_grip_forearm.png",
+      "character_grip_x": 0.407197,
+      "character_grip_y": 0.536222
+    },
+    "mage": {
+      "base_asset": "/assets/hero/characters/wave2_p1/mage_p1.png",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/mage_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/mage_grip_forearm.png",
+      "character_grip_x": 0.373106,
+      "character_grip_y": 0.515057
+    },
+    "paladin": {
+      "base_asset": "/assets/hero/characters/wave2_p1/paladin_p1.png",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/paladin_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/paladin_grip_forearm.png",
+      "character_grip_x": 0.388258,
+      "character_grip_y": 0.536222
+    },
+    "trail_apprentice": {
+      "base_asset": "/assets/hero/characters/wave2_p1/trail_apprentice_p1.png",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/trail_apprentice_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/trail_apprentice_grip_forearm.png",
+      "character_grip_x": 0.392992,
+      "character_grip_y": 0.571733
+    },
+    "night_runner": {
+      "base_asset": "/assets/hero/characters/wave2_p1/night_runner_p1.png",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/night_runner_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/night_runner_grip_forearm.png",
+      "character_grip_x": 0.423295,
+      "character_grip_y": 0.589489
+    },
+    "constellation_apprentice": {
+      "base_asset": "/assets/hero/characters/wave2_p1/constellation_apprentice_p1.png",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/constellation_apprentice_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/constellation_apprentice_grip_forearm.png",
+      "character_grip_x": 0.331439,
+      "character_grip_y": 0.543324
+    }
+  },
+  "weapons": {
+    "wooden_sword": {
+      "renderer_slot": "MAIN_HAND",
+      "pose_id": "ONE_HAND_SWORD",
+      "asset": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+      "asset_width": 1056,
+      "asset_height": 1408,
+      "weapon_grip_x": 0.6723484848484849,
+      "weapon_grip_y": 0.48188920454545453,
+      "rotation_deg": 0.0,
+      "scale": 0.8,
+      "weapon_back": true,
+      "weapon_front": false,
+      "source_sha256": "12b4bbe4150d05bca39b507787c250f1418c2ad154fafb8d8e2df557186e4523",
+      "weapon_only": true
+    },
+    "iron_sword": {
+      "renderer_slot": "MAIN_HAND",
+      "pose_id": "ONE_HAND_SWORD",
+      "asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/iron_sword_handheld_universal.png",
+      "asset_width": 295,
+      "asset_height": 1267,
+      "weapon_grip_x": 0.5,
+      "weapon_grip_y": 0.235,
+      "rotation_deg": -8.0,
+      "scale": 0.375691397,
+      "weapon_back": true,
+      "weapon_front": false,
+      "source_sha256": "78ac35076b26687e13c4724c9b2910992de3e037fd0bb26e47c4f8da4f75180f",
+      "weapon_only": true,
+      "source_kind": "recovered_true_alpha_handheld_cutout",
+      "target_height": 475
+    },
+    "fox_fang": {
+      "renderer_slot": "MAIN_HAND",
+      "pose_id": "ONE_HAND_SWORD",
+      "asset": "/assets/hero/equipment/wearables/overlays/fox_fang.png",
+      "asset_width": 1056,
+      "asset_height": 1408,
+      "weapon_grip_x": 0.72,
+      "weapon_grip_y": 0.15,
+      "rotation_deg": -8.0,
+      "scale": 0.48,
+      "weapon_back": true,
+      "weapon_front": false,
+      "source_sha256": "5c3d3a50f64405b2e8756f1bd36fae0a1a75401c772150ceecc0d1ad23ad3ccd",
+      "weapon_only": true,
+      "runtime_supported": false,
+      "requires_validation": "HANDHELD_PROOF"
+    }
+  },
+  "fallback": {
+    "unsupported_character": "legacy_answer_avatar",
+    "missing_or_unequipped_weapon": "legacy_answer_avatar",
+    "asset_error": "legacy_answer_avatar"
+  }
+}

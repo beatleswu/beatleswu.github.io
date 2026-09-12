@@ -7977,6 +7977,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
                                 <img class="player-combat-layer cape" id="player-cape-layer" alt="">
                                 <div class="rpg-wearable-stage" id="player-answer-equipment-stage" hidden aria-hidden="true"></div>
                                 <div id="player-avatar-base">🧑</div>
+                                <div id="player-avatar-handheld-stage" class="rpg-handheld-weapon-stage" hidden aria-hidden="true"></div>
                                 <img class="player-combat-layer armor" id="player-armor-layer" alt="">
                                 <img class="player-combat-layer weapon" id="player-gear-weapon-layer" alt="">
                                 <img class="player-combat-layer offhand" id="player-offhand-layer" alt="">
@@ -8326,6 +8327,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
 </div>
 
 <script src="/js/hero_legacy_cache_guard.js?v=20260829a0401"></script>
+<script src="/js/rpg_wave2_wearable_renderer.js?v=eqc002"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 // ─── 玩家小頭像 & Toast ────────────────────────────────────────
@@ -8558,12 +8560,16 @@ async function loadPlayerAvatar() {
         const profilePromise = fetch('/api/skills/profile', { credentials:'include' })
             .then(r => r.ok ? r.json() : {})
             .catch(() => ({}));
-        const [meRes, appearRes] = await Promise.all([
+        const inventoryPromise = fetch('/api/player/inventory', { credentials:'include', cache:'no-store' })
+            .then(r => r.ok ? r.json() : [])
+            .catch(() => []);
+        const [meRes, appearRes, inventoryRes] = await Promise.all([
             getMe(),
             fetch('/api/player/appearance', { credentials:'include', cache:'no-store' }).then(r=>{
                 if (!r.ok) throw new Error(`appearance refresh ${r.status}`);
                 return r.json();
             }),
+            inventoryPromise,
         ]);
         getPetStatus().then(petRes => {
             _homeSpiritPet = (petRes && petRes.pet && petRes.pet.image) ? petRes.pet.image : null;
@@ -8575,6 +8581,14 @@ async function loadPlayerAvatar() {
         const byId     = Object.fromEntries(wardrobe.map(a => [a.id, a]));
         syncHeroCharacterFromAppearance(appearRes.character_key);
         applyHeroCombatAvatarToIndex();
+        const handheldStage = document.getElementById('player-avatar-handheld-stage');
+        const handheldRenderer = window.GoOdysseyHandheldWeaponRenderer;
+        if (handheldRenderer && handheldStage) {
+            handheldRenderer.renderSafe(handheldStage, _serverHeroCharacter, inventoryRes, {
+                fallbackElement: document.getElementById('player-avatar-base'),
+                figureElement: document.getElementById('player-avatar-figure'),
+            });
+        }
 
         const profileRes = await profilePromise;
         const displayName = profileRes.display_name || meRes.display_name || meRes.nickname || username || 'Player';

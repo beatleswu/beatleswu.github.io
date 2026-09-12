@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>EQ-C true handheld renderer harness</title>
+<style>
+  :root { color-scheme: light; font: 14px system-ui, sans-serif; }
+  body { margin: 24px; background: #f4f0e8; color: #2f251b; }
+  main { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  section { padding: 12px; background: #fffdf8; border: 1px solid #d7c8ad; }
+  .stage { position: relative; width: 264px; height: 352px; background: #15202b; }
+  .stage.mobile { width: 120px; height: 160px; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; color: #d7c8ad; }
+  [hidden] { display: none !important; }
+  img { width: 100%; height: 100%; object-fit: contain; }
+</style>
+<h1>EQ-C recovered ONE_HAND_SWORD paper doll</h1>
+<p>Local presentation fixture only. Inventory input below is a server-projection-shaped test fixture.</p>
+<main>
+  <section><h2>Wooden · desktop</h2><div class="stage"><div id="wooden-desktop" class="rpg-handheld-weapon-stage"><div class="fallback">fallback</div></div></div></section>
+  <section><h2>Iron · desktop</h2><div class="stage"><div id="iron-desktop" class="rpg-handheld-weapon-stage"><div class="fallback">fallback</div></div></div></section>
+  <section><h2>Wooden · mobile</h2><div class="stage mobile"><div id="wooden-mobile" class="rpg-handheld-weapon-stage"><div class="fallback">fallback</div></div></div></section>
+  <section><h2>Iron · mobile</h2><div class="stage mobile"><div id="iron-mobile" class="rpg-handheld-weapon-stage"><div class="fallback">fallback</div></div></div></section>
+</main>
+<script src="/js/rpg_wave2_wearable_renderer.js?v=eqc002"></script>
+<script>
+  const fixture = (item_id) => [{ item_id, id: item_id, slot: 'weapon', equipped: true, functional_equipment: true }];
+  const renderCase = (stageId, itemId) => {
+    const stage = document.getElementById(stageId);
+    return window.GoOdysseyHandheldWeaponRenderer.renderSafe(
+      stage,
+      'apprentice',
+      fixture(itemId),
+      { fallbackElement: stage.querySelector('.fallback') },
+    );
+  };
+  Promise.all([
+    renderCase('wooden-desktop', 'wooden_sword'),
+    renderCase('iron-desktop', 'iron_sword'),
+    renderCase('wooden-mobile', 'wooden_sword'),
+    renderCase('iron-mobile', 'iron_sword'),
+  ]).then(results => {
+    document.body.dataset.results = results.map(result => result.supported ? 'PASS' : 'FAIL').join(',');
+  });
+</script>
