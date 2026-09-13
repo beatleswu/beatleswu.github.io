@@ -886,14 +886,11 @@ def test_deploy_script_orders_release_mutations_safely():
         "$candidateHealthcheckTest = @($candidateCanary.healthcheck_test | ConvertFrom-Json)",
         "$candidateReadinessReport = Get-AppReadinessGateReport -ContainerName $candidateContainerName -UseContainerHttp",
         "if ($candidateReadinessReport.healthz_status -ne '200'",
-        # EQ-F R3 added the tracked Shop/Equipment product-flag authority
-        # (docker-compose.release.product-flags.yml) as a mandatory `-f`
-        # argument on both force-recreate calls, so a governed recreate can
-        # no longer silently drop CANONICAL_COIN_SHOP_PURCHASE_ENABLED back
-        # to its application default -- see
-        # docs/deployment/EQ_F_POST_MERGE_RELEASE_RUNBOOK_PREFLIGHT.md.
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteProductFlagsPath) up -d --no-build --no-deps --force-recreate $appComposeService"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteProductFlagsPath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
+        # EQ-F R5 makes docker-compose.release.yml itself the explicit
+        # Shop/Equipment authority. The governed force-recreate commands use
+        # that canonical file directly; no optional sidecar is required.
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
         "Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path",
     )

@@ -479,6 +479,9 @@ Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerific
 # docker-compose.prod.yml provenance found in the 2026-07-14 incident)
 # cannot be perpetuated by a rollback instead of corrected.
 $rollbackComposeWorkingDir = $layout.compose_directory
+# EQ-F R5: docker-compose.release.yml is self-contained release authority for
+# Shop=true and Equipment=false. Rollback must use this canonical file directly
+# and must not depend on an optional operator-side flag override.
 $canonicalComposeFile = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'
 $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -QuestionsVolumeName $questionsVolumeName
 $composeProjectArg = "-p $(Quote-PosixShellArgument $layout.compose_project)"

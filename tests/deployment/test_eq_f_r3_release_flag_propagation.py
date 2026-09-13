@@ -1,20 +1,18 @@
-"""EQ-F R3: release-safety contract for the Shop/Equipment product flags.
+"""EQ-F R5: release-stack safety contract for the Shop/Equipment flags.
 
 Proves, using the repository's real Docker Compose files and real Compose
 config resolution (not string-only assertions where a real resolution is
 practical), that:
 
-  A. the normal governed deploy stack resolves CANONICAL_COIN_SHOP_PURCHASE_
+  A. the canonical release compose stack resolves CANONICAL_COIN_SHOP_PURCHASE_
      ENABLED=true and EQUIPMENT_CANONICAL_LOADOUT_ENABLED=false for `app`;
   B. layering the isolated, Owner-gated equipment-enable override resolves
      EQUIPMENT_CANONICAL_LOADOUT_ENABLED=true while Shop stays true, and
      leaves `scheduler` untouched (scheduler is not a consumer);
   C. omitting that override (the Disable/rollback path) resolves back to the
      baseline (Shop=true, Equipment=false);
-  D. scripts/release/deploy-release-image.ps1 cannot construct its governed
-     app config-check or --force-recreate commands without the tracked
-     product-flags file -- source-verified against every one of its four
-     compose invocations, plus the upload step that ships the file;
+  D. scripts/release/deploy-release-image.ps1 uses the canonical release
+     compose file directly for every governed config/recreate invocation;
   E. scripts/release/set-equipment-enable-state.ps1 fails closed on a
      missing or incorrect Owner gate, for both States, entirely via its
      dry-run/gate-validation path (no SSH, no Docker, no host contact);
@@ -48,7 +46,6 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 COMPOSE_RELEASE = REPO_ROOT / "docker-compose.release.yml"
-PRODUCT_FLAGS = REPO_ROOT / "docker-compose.release.product-flags.yml"
 EQUIPMENT_ENABLE_OVERRIDE = REPO_ROOT / "docker-compose.release.equipment-enable.override.yml"
 DEPLOY_SCRIPT = REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1"
 CONTROL_SCRIPT = REPO_ROOT / "scripts" / "release" / "set-equipment-enable-state.ps1"
@@ -108,14 +105,14 @@ def _compose_config(extra_files: list[pathlib.Path]) -> dict:
 # ---------------------------------------------------------------------------
 
 def test_a_normal_governed_deploy_resolves_shop_true_equipment_false():
-    config = _compose_config([PRODUCT_FLAGS])
+    config = _compose_config([])
     app_env = config["services"]["app"]["environment"]
     assert app_env.get(SHOP_KEY) == "true"
     assert app_env.get(EQUIPMENT_KEY) == "false"
 
 
 def test_b_equipment_enabled_resolution_flips_only_equipment_for_app():
-    config = _compose_config([PRODUCT_FLAGS, EQUIPMENT_ENABLE_OVERRIDE])
+    config = _compose_config([EQUIPMENT_ENABLE_OVERRIDE])
     app_env = config["services"]["app"]["environment"]
     assert app_env.get(SHOP_KEY) == "true"
     assert app_env.get(EQUIPMENT_KEY) == "true"
@@ -129,40 +126,30 @@ def test_b_equipment_enabled_resolution_flips_only_equipment_for_app():
 def test_c_equipment_disable_rollback_resolution_restores_baseline():
     # Disable/rollback is "omit the enable override" -- prove that resolving
     # without it reproduces exactly the Test A baseline, not some other state.
-    config = _compose_config([PRODUCT_FLAGS])
+    config = _compose_config([])
     app_env = config["services"]["app"]["environment"]
     assert app_env.get(SHOP_KEY) == "true"
     assert app_env.get(EQUIPMENT_KEY) == "false"
 
 
 def test_shop_flag_appears_exactly_once_per_service_no_duplicate_authority():
-    # Guards against a future edit accidentally declaring the key twice
-    # (e.g. once in docker-compose.release.yml and again here) with
-    # conflicting values, which compose would silently resolve one way.
+    # The canonical release stack is the single normal-state authority. The
+    # values must be explicit for both services, while the Equipment override
+    # remains the only layer that changes Equipment for app.
     content = COMPOSE_RELEASE.read_text(encoding="utf-8")
-    assert SHOP_KEY not in content, (
-        "docker-compose.release.yml must not declare the Shop flag itself; "
-        "the tracked product-flags override is the sole authority."
-    )
-    assert EQUIPMENT_KEY not in content, (
-        "docker-compose.release.yml must not declare the Equipment flag "
-        "itself; the tracked product-flags override is the sole authority."
-    )
+    assert content.count(f"{SHOP_KEY}: \"true\"") == 2
+    assert content.count(f"{EQUIPMENT_KEY}: \"false\"") == 2
+    assert COMPOSE_RELEASE.is_file()
 
 
 # ---------------------------------------------------------------------------
-# D: deploy-release-image.ps1 mechanically always includes the authority
+# D: deploy-release-image.ps1 mechanically uses the canonical authority
 # ---------------------------------------------------------------------------
 
-def test_d_every_governed_compose_invocation_includes_product_flags_file():
+def test_d_every_governed_compose_invocation_uses_canonical_release_file():
     content = DEPLOY_SCRIPT.read_text(encoding="utf-8")
-    assert "$productFlagsPath = Resolve-RepoPath 'docker-compose.release.product-flags.yml'" in content
-    assert "$remoteProductFlagsPath = Join-RemotePath" in content
-    upload_lines = [
-        line for line in content.splitlines()
-        if "Invoke-BoundedReleaseUpload" in line and "productFlagsPath" in line
-    ]
-    assert upload_lines, "the tracked product-flags file must be uploaded on every governed release"
+    assert "productFlagsPath" not in content
+    assert "remoteProductFlagsPath" not in content
 
     compose_invocation_lines = [
         line for line in content.splitlines()
@@ -170,28 +157,27 @@ def test_d_every_governed_compose_invocation_includes_product_flags_file():
         and ("config --services" in line or "config --images" in line or "--force-recreate" in line)
     ]
     # Four expected call sites: services check, images check, app recreate,
-    # scheduler recreate -- every one of them must reference the tracked file.
+    # scheduler recreate -- every one must use the self-contained canonical
+    # release compose file.
     assert len(compose_invocation_lines) == 4, compose_invocation_lines
     for line in compose_invocation_lines:
         assert "remoteHealthcheckOverridePath" in line, line
-        assert "remoteProductFlagsPath" in line, (
+        assert "-f docker-compose.release.yml" in line, (
             "a governed compose/config or --force-recreate invocation omits "
-            "the tracked Shop-preservation authority: " + line
+            "the canonical release-stack authority: " + line
         )
 
 
-def test_d_recreate_cannot_omit_the_authority_even_if_healthcheck_override_is_absent():
-    # A stronger, structural version of the above: assert the product-flags
-    # `-f` argument is emitted unconditionally (not behind any `if`) for both
-    # --force-recreate call sites, so there is no code path that reaches
-    # --force-recreate while skipping it.
+def test_d_recreate_cannot_omit_the_canonical_authority():
+    # Both recreate call sites have the canonical release file literally in
+    # the command, so no optional sidecar can be forgotten by a caller.
     content = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     recreate_blocks = re.findall(
         r"Invoke-RemoteText\s+\"[^\"]*--force-recreate[^\"]*\"", content
     )
     assert len(recreate_blocks) == 2, recreate_blocks
     for block in recreate_blocks:
-        assert "-f $(Quote-PosixShellArgument $remoteProductFlagsPath)" in block
+        assert "-f docker-compose.release.yml" in block
 
 
 # ---------------------------------------------------------------------------
@@ -371,8 +357,10 @@ def test_h_dry_run_json_never_contains_a_known_secret_name():
             assert marker not in result.stdout, f"{marker} leaked into {state} dry-run output"
 
 
-def test_h_product_flags_file_contains_no_secret_shaped_values():
-    for path in (PRODUCT_FLAGS, EQUIPMENT_ENABLE_OVERRIDE):
-        content = path.read_text(encoding="utf-8")
-        for marker in _SECRET_NAME_MARKERS:
-            assert marker not in content
+def test_h_equipment_override_contains_no_secret_shaped_values():
+    # docker-compose.release.yml is the normal production stack and therefore
+    # legitimately names environment-backed secrets.  The isolated override
+    # must not introduce any secret material or additional configuration.
+    content = EQUIPMENT_ENABLE_OVERRIDE.read_text(encoding="utf-8")
+    for marker in _SECRET_NAME_MARKERS:
+        assert marker not in content

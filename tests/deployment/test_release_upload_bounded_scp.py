@@ -64,16 +64,15 @@ def test_every_upload_goes_through_the_shared_bounded_helper():
     # The shared helper itself delegates to the governed bounded primitive.
     assert "Invoke-BoundedScpUpload" in body
     assert "TimeoutSeconds" in body
-    # Every transfer site uses it (6 in the main upload block + 3 deployment
-    # record syncs = 9). EQ-F R3 added the 6th main-block upload -- the
-    # tracked docker-compose.release.product-flags.yml Shop/Equipment
-    # authority -- alongside the pre-existing 5 (compose file, healthcheck
-    # override, nginx config, manifest, release archive).
+    # Every transfer site uses it (5 in the main upload block + 3 deployment
+    # record syncs = 8). EQ-F R5 makes docker-compose.release.yml the
+    # self-contained Shop/Equipment authority, so no separate product-flags
+    # sidecar is uploaded.
     call_sites = [
         line for line in content.splitlines()
         if "Invoke-BoundedReleaseUpload -LocalPath" in line
     ]
-    assert len(call_sites) == 9, f"expected 9 bounded upload call sites, found {len(call_sites)}"
+    assert len(call_sites) == 8, f"expected 8 bounded upload call sites, found {len(call_sites)}"
     # ... and every one of them supplies an explicit bound.
     for line in call_sites:
         assert "-TimeoutSeconds" in line, f"upload call site without an explicit bound: {line}"

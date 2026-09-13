@@ -13,11 +13,11 @@ CANONICAL_COIN_SHOP_PURCHASE_ENABLED, payment/Turnstile/DB configuration, or
 any other flag.
 
 -State Enable layers docker-compose.release.equipment-enable.override.yml on
-top of the tracked docker-compose.release.product-flags.yml baseline and
+top of the tracked docker-compose.release.yml baseline and
 requires -OwnerGate GO_EQUIPMENT_ENABLE.
 
 -State Disable (Equipment-only rollback) simply omits that override, so the
-baseline file's EQUIPMENT_CANONICAL_LOADOUT_ENABLED=false applies again, and
+canonical release file's EQUIPMENT_CANONICAL_LOADOUT_ENABLED=false applies again, and
 requires -OwnerGate GO_ROLLBACK -- the repository's existing, established
 rollback gate (see rollback-release.ps1).
 
@@ -61,14 +61,15 @@ $flagName = 'EQUIPMENT_CANONICAL_LOADOUT_ENABLED'
 $expectedShopValue = 'true'
 $expectedEquipmentValue = if ($State -eq 'Enable') { 'true' } else { 'false' }
 
-# These two tracked files are the entire product-flag authority. This script
-# never writes to, edits, or depends on the historical untracked
+# The canonical release compose file and the Equipment-only override are the
+# entire tracked product-flag authority. This script never writes to, edits,
+# or depends on the historical untracked
 # /opt/go-odyssey/docker-compose.shop-reopen.override.yml -- see
 # docs/deployment/EQ_F_POST_MERGE_RELEASE_RUNBOOK_PREFLIGHT.md.
-$productFlagsPath = Resolve-RepoPath 'docker-compose.release.product-flags.yml'
+$composeFilePath = Resolve-RepoPath 'docker-compose.release.yml'
 $equipmentEnableOverridePath = Resolve-RepoPath 'docker-compose.release.equipment-enable.override.yml'
-if (-not (Test-Path -LiteralPath $productFlagsPath)) {
-    throw "Tracked product-flags file is missing: $productFlagsPath"
+if (-not (Test-Path -LiteralPath $composeFilePath)) {
+    throw "Canonical release compose file is missing: $composeFilePath"
 }
 if ($State -eq 'Enable' -and -not (Test-Path -LiteralPath $equipmentEnableOverridePath)) {
     throw "Tracked equipment-enable override is missing: $equipmentEnableOverridePath"
@@ -76,7 +77,6 @@ if ($State -eq 'Enable' -and -not (Test-Path -LiteralPath $equipmentEnableOverri
 
 $remoteComposePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'
 $remoteHealthcheckOverridePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.healthcheck.override.yml'
-$remoteProductFlagsPath = Join-RemotePath $layout.compose_directory 'docker-compose.release.product-flags.yml'
 $remoteEquipmentEnableOverridePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.equipment-enable.override.yml'
 
 # Order matters: the baseline file is always present; the enable override
@@ -85,8 +85,7 @@ $remoteEquipmentEnableOverridePath = Join-RemotePath $layout.compose_directory '
 # mentions.
 $composeFileArgs = @(
     '-f', 'docker-compose.release.yml',
-    '-f', $remoteHealthcheckOverridePath,
-    '-f', $remoteProductFlagsPath
+    '-f', $remoteHealthcheckOverridePath
 )
 if ($State -eq 'Enable') {
     $composeFileArgs += @('-f', $remoteEquipmentEnableOverridePath)
@@ -113,7 +112,7 @@ if (-not $Execute) {
     }
     $planSteps = @(
         'validate Owner gate',
-        'upload tracked product-flags file (idempotent; always uploaded, never assumed present)',
+        'upload the canonical release compose file (idempotent; explicit Shop=true/Equipment=false safety baseline)',
         $secondPlanStep,
         'force-recreate the app service only (scheduler is not a consumer of either flag)',
         'read back only CANONICAL_COIN_SHOP_PURCHASE_ENABLED and EQUIPMENT_CANONICAL_LOADOUT_ENABLED from the app container',
@@ -148,7 +147,7 @@ Assert-OwnerGate -Provided $OwnerGate -Expected $requiredOwnerGate
 
 Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -Command "mkdir -p $(Quote-PosixShellArgument $layout.compose_directory)" -TimeoutSeconds $SshTimeoutSeconds -OperationLabel 'ensure_compose_directory' | Out-Null
 
-Invoke-BoundedScpUpload -SshAlias $layout.ssh_alias -LocalPath $productFlagsPath -RemotePath $remoteProductFlagsPath -TimeoutSeconds $SshTimeoutSeconds -OperationLabel 'upload_product_flags' | Out-Null
+Invoke-BoundedScpUpload -SshAlias $layout.ssh_alias -LocalPath $composeFilePath -RemotePath $remoteComposePath -TimeoutSeconds $SshTimeoutSeconds -OperationLabel 'upload_canonical_release_compose' | Out-Null
 if ($State -eq 'Enable') {
     Invoke-BoundedScpUpload -SshAlias $layout.ssh_alias -LocalPath $equipmentEnableOverridePath -RemotePath $remoteEquipmentEnableOverridePath -TimeoutSeconds $SshTimeoutSeconds -OperationLabel 'upload_equipment_enable_override' | Out-Null
 }

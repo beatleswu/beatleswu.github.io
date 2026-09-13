@@ -1,12 +1,13 @@
 # EQ-F Post-Merge Release Runbook Preflight — Shop / Equipment Flag Propagation
 
-Status: **R3 corrective implemented and tested, 2026-09-13.** Sections 1-8
+Status: **R5 corrective implemented and tested, 2026-09-13.** Sections 1-8
 below are the original R2 read-only forensic record and are preserved
-unedited as history. Section 9 records what R3 built on top of that
-forensic evidence. This document is a runbook correction, not an
-authorization. It grants none of GO_MERGE, GO_DEPLOY, GO_EQUIPMENT_ENABLE,
-or GO_PRODUCTION_DB_MIGRATION — none of those gates were consumed by
-building or testing the R3 corrective, and none is consumed by this update.
+unedited as history. Section 9 records the superseded R3 sidecar mechanism;
+Section 10 is the current R5 release authority and complete recreate census.
+This document is a runbook correction, not an authorization. It grants none
+of GO_MERGE, GO_DEPLOY, GO_EQUIPMENT_ENABLE, or
+GO_PRODUCTION_DB_MIGRATION — none of those gates were consumed by building or
+testing the R5 corrective, and none is consumed by this update.
 
 ## 1. Actual flag consumers (source-verified, not assumed)
 
@@ -193,16 +194,20 @@ None of the above was implemented by the R2 task. GO_MERGE, GO_DEPLOY,
 GO_EQUIPMENT_ENABLE, and GO_PRODUCTION_DB_MIGRATION remained ungranted at
 the end of R2.
 
-## 9. R3 corrective — implemented mechanism (2026-09-13)
+## 9. Historical R3 corrective — SUPERSEDED BY R5
 
-R3 built exactly the shape recorded in §8, on top of the EQ-F product
+R3 built the shape recorded in §8, on top of the EQ-F product
 candidate at `e3df397cee89ac5446d5b84eee8aac9b151ed600`, and nowhere else:
 no equipment domain service, registry, asset, renderer, Shop pricing logic,
 first-clear/backfill logic, `app.py` product logic, or i18n content was
 touched (`EQ_F_PRODUCT_BYTES_CHANGED=NO`, verified by diff against that
 exact commit for every such path).
 
-### 9.1 Tracked Shop-preservation authority
+The R3 product-flags sidecar and its per-script upload/reference strategy are
+historical evidence only. They are not the current release mechanism and must
+not be used for a new recreate.
+
+### 9.1 Historical tracked Shop-preservation authority
 
 `docker-compose.release.product-flags.yml` (repo root, tracked, no secrets)
 is now the sole, versioned authority for both flags' normal-deploy values:
@@ -224,7 +229,7 @@ source-verified consumer classification from §1 — this file's `scheduler:`
 block is intentional harmless parity with the historical override it
 replaces, not a claim that the scheduler reads either key.
 
-### 9.2 Governed deploy path now mechanically includes it
+### 9.2 Historical governed deploy path
 
 `scripts/release/deploy-release-image.ps1` was edited (the only script
 touched) to resolve, upload, and reference
@@ -246,7 +251,7 @@ script contains the new `-f` argument, unconditionally) rather than a
 documentation promise. A future operator cannot omit it by forgetting a
 manual flag.
 
-### 9.3 Isolated, Owner-gated Equipment-enable control
+### 9.3 Historical isolated Equipment-enable control
 
 `docker-compose.release.equipment-enable.override.yml` (repo root, tracked)
 changes exactly one key, for exactly one service:
@@ -294,7 +299,7 @@ operator entry point:
 `TRACKED_EQUIPMENT_ENABLE_AUTHORITY_PATH = docker-compose.release.equipment-enable.override.yml`
 `EQUIPMENT_CONTROL_SCRIPT_PATH = scripts/release/set-equipment-enable-state.ps1`
 
-### 9.4 The historical host-only override is untouched
+### 9.4 Historical host-only override boundary
 
 Per the R3 task's explicit scope boundary, R3 did not read, edit, or delete
 `/opt/go-odyssey/docker-compose.shop-reopen.override.yml`, did not SSH to
@@ -303,7 +308,7 @@ NO`. Reconciling the live host (removing its reliance on the untracked file
 now that a tracked replacement exists) is a separate, later, explicitly
 authorized deploy-time procedure — not part of this corrective.
 
-### 9.5 Effective states (all proven via real local `docker compose config`
+### 9.5 Historical effective states
 resolution and/or the control script's dry-run, never by touching Production)
 
 | State | Shop (app) | Equipment (app) | Equipment (scheduler) |
@@ -312,7 +317,7 @@ resolution and/or the control script's dry-run, never by touching Production)
 | AFTER_GO_EQUIPMENT_ENABLE (+ enable override) | `true` | `true` | `false` |
 | EQUIPMENT_ROLLBACK (enable override removed) | `true` | `false` | `false` |
 
-### 9.6 Updated release safety classification
+### 9.6 Historical R3 classification
 
 `PASS_EQ_F_RELEASE_FLAG_PROPAGATION_AND_ISOLATED_EQUIPMENT_CONTROL_CORRECTIVE_READY_FOR_INDEPENDENT_REVIEW`
 
@@ -338,3 +343,156 @@ and `GO_PRODUCTION_DB_MIGRATION` remain ungranted; nothing in R3 was ever
 executed with `-Execute` against a real host, and Production's live
 containers and the historical host-only override are exactly as R2 left
 them.
+
+## 10. R5 final mechanism — canonical release-stack authority
+
+This section supersedes every current-state statement in §9. The R5
+corrective removes the separate `docker-compose.release.product-flags.yml`
+sidecar. The one normal-state authority is the tracked
+`docker-compose.release.yml` itself:
+
+```yaml
+services:
+  app:
+    environment:
+      CANONICAL_COIN_SHOP_PURCHASE_ENABLED: "true"
+      EQUIPMENT_CANONICAL_LOADOUT_ENABLED: "false"
+  scheduler:
+    environment:
+      CANONICAL_COIN_SHOP_PURCHASE_ENABLED: "true"
+      EQUIPMENT_CANONICAL_LOADOUT_ENABLED: "false"
+```
+
+The scheduler entries are explicit parity only. Source inspection confirms
+`app.py` is the only consumer of both flags; `scheduler.py` consumes neither.
+The scheduler values prevent process-environment drift without changing
+scheduler behaviour.
+
+`docker-compose.release.equipment-enable.override.yml` remains a deliberately
+narrow tracked override containing only:
+
+```yaml
+services:
+  app:
+    environment:
+      EQUIPMENT_CANONICAL_LOADOUT_ENABLED: "true"
+```
+
+It does not mention the Shop key and has no `scheduler:` block. Thus the only
+permitted state transitions are:
+
+| State | Shop (app) | Equipment (app) | Equipment (scheduler) |
+|---|---:|---:|---:|
+| `NORMAL_DEPLOY` | `true` | `false` | `false` |
+| `ROLLBACK` | `true` | `false` | `false` |
+| `COMMUNITY_FREEZE` | `true` | `false` | `false` |
+| `COMMUNITY_RESUME` | `true` | `false` | `false` |
+| `E9_ROLLOUT` | `true` | `false` | `false` |
+| `SHADOW_RECREATE` | `true` | `false` | `false` |
+| `EQUIPMENT_ENABLE` + `GO_EQUIPMENT_ENABLE` | `true` | `true` | `false` |
+| `EQUIPMENT_DISABLE` + `GO_ROLLBACK` | `true` | `false` | `false` |
+
+These values were resolved with local `docker compose config` using the actual
+release files. No Production host or container was contacted.
+
+### 10.1 Complete governed app-recreate census
+
+`tests/deployment/test_eq_f_r5_all_governed_app_recreate_product_flag_closure.py`
+discovers every release source containing an app-capable
+`--force-recreate`, then requires the discovered source set to match the
+reviewed operation registry. It follows the indirect Community Rewards
+module through both callers instead of counting its template as an independent
+unreviewed path.
+
+| Path ID | Entry / call chain | Compose authority | Can recreate app | Safe flags |
+|---|---|---|---|---|
+| `NORMAL_DEPLOY` | `deploy-coordinated-release.ps1` → `deploy-release-image.ps1` app recreate | `docker-compose.release.yml` + healthcheck | `YES` | `YES` |
+| `RELEASE_ROLLBACK` | coordinated/automatic rollback → `rollback-release.ps1` | canonical `docker-compose.release.yml` | `YES` | `YES` |
+| `COMMUNITY_FREEZE` | deploy freeze option → `CommunityRewardsExecutionControl.psm1` freeze template | caller passes canonical release file | `YES` | `YES` |
+| `COMMUNITY_RESUME` | `resume-community-leaderboard-rewards.ps1` → module resume template | caller passes canonical release file | `YES` | `YES` |
+| `E9_ROLLOUT` | `set-e9-rollout.ps1` | `$releaseFile` is canonical release file | `YES` | `YES` |
+| `SHADOW_RECREATE` | `set-shadow-judging.ps1` | `__RELEASE_FILE__` is canonical release file | `YES` | `YES` |
+| `EQUIPMENT_ENABLE` | `set-equipment-enable-state.ps1 -State Enable` | canonical release file + Equipment-only override | `YES` | `YES` |
+| `EQUIPMENT_DISABLE` | `set-equipment-enable-state.ps1 -State Disable` | canonical release file, override omitted | `YES` | `YES` |
+
+Therefore:
+
+```text
+ALL_GOVERNED_APP_RECREATE_PATHS_ENUMERATED=YES
+APP_RECREATE_PATHS_TOTAL=8
+APP_RECREATE_PATHS_WITH_SAFE_PRODUCT_FLAGS=8
+```
+
+The static publication scripts' `docker restart nginx` operations are not app
+service create/recreate paths and are not counted as such. The candidate
+canary is a separate non-Production app container and is not a governed
+Production app-service recreate.
+
+### 10.2 Remote file and upload binding
+
+The normal release uploads the tracked canonical compose file to the
+deterministic `$layout.compose_directory/docker-compose.release.yml` path
+before any compose config or recreate operation. The Equipment control script
+also uploads that same tracked file idempotently before its gated app recreate;
+the Enable override is uploaded afterward and is the only extra layer.
+
+The two direct bindings are source-verified as:
+
+```text
+LOCAL_TRACKED_FILE=docker-compose.release.yml
+  -> deploy-release-image.ps1 / set-equipment-enable-state.ps1 upload
+  -> REMOTE_PATH=$layout.compose_directory/docker-compose.release.yml
+  -> availability before compose use
+  -> docker compose -f docker-compose.release.yml ... --force-recreate
+```
+
+Community Freeze/Resume, E9, Shadow, and rollback use the same deterministic
+release-layout path. They are governed child operations after the canonical
+release compose has been uploaded, and each caller passes that exact path to
+its compose template. No `product-flags` sidecar or host-only override is
+required by any path. The historical
+`/opt/go-odyssey/docker-compose.shop-reopen.override.yml` remains untouched.
+
+### 10.3 Machine-enforced guard and test integrity
+
+The R5 guard is not a fixed-count-only assertion. It dynamically discovers
+app-capable force-recreate sources, rejects an unknown source, verifies every
+registered operation anchor, checks canonical compose binding for direct and
+indirect callers, and resolves the normal/enable/disable/rollback Compose
+matrix. A future governed app recreate without the canonical authority fails
+the guard before review can pass:
+
+```text
+FUTURE_NEW_RECREATE_PATH_WITHOUT_FLAGS_WOULD_FAIL_TEST=YES
+```
+
+The existing release-tooling assertions were re-pinned only to the shorter
+canonical commands and the bounded upload count after removing the redundant
+sidecar. No negative assertion was removed; no skip or xfail was added; no
+failure condition was weakened.
+
+### 10.4 Product and authorization boundaries
+
+The R5 diff changes only release compose authority, release-path wiring,
+release tests, the machine guard, and this runbook. The accepted Equipment and
+Shop product surface is byte-identical to
+`e3df397cee89ac5446d5b84eee8aac9b151ed600`; `app.py` and all Equipment/Shop
+domain, registry, price, first-clear, ownership, renderer, asset, and i18n
+files remain unchanged.
+
+No Production mutation, SSH write, host override mutation, container recreate,
+Shop toggle, Equipment enablement, DB migration, merge, or deploy is part of
+this corrective. The three Owner gates remain separate:
+
+```text
+GO_MERGE=NOT_GRANTED
+GO_DEPLOY=NOT_GRANTED
+GO_EQUIPMENT_ENABLE=NOT_GRANTED
+GO_PRODUCTION_DB_MIGRATION=NOT_GRANTED
+```
+
+Current R5 classification:
+
+```text
+PASS_EQ_F_R5_ALL_GOVERNED_APP_RECREATE_PATHS_PRODUCT_FLAG_SAFE_READY_FOR_INDEPENDENT_REVIEW
+```
