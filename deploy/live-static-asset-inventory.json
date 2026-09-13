@@ -67,6 +67,11 @@
         "staging_rule": "Stage exactly the files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage a file under assets/ that is not in this manifest, even if present on disk -- a partial or over-broad generation must fail closed (see package-static-release.ps1 and its tests)."
       },
       {
+        "prefix": "assets/hero/",
+        "manifest": "deploy/canonical-equipment-runtime-asset-manifest.json",
+        "staging_rule": "Stage exactly the current renderer-consumed Equipment registry and presentation files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. This disjoint file membership supplements the historical image pack; never stage an unlisted Equipment runtime asset or copy the assets/ tree wholesale."
+      },
+      {
         "prefix": "assets/storyboards/",
         "manifest": "deploy/canonical-audio-pack-manifest.json",
         "staging_rule": "Stage exactly the files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage a file under assets/storyboards/ that is not in this manifest, even if present on disk -- a partial or over-broad generation must fail closed (see package-static-release.ps1 and its tests). Deliberately disjoint from the image manifest above (zero *.mp3 entries there, zero non-audio entries here) -- no path is staged twice."
