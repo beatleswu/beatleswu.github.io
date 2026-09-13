@@ -74,6 +74,41 @@
       "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
       "base": "/assets/hero/characters/wave2_p1/constellation_apprentice_p1.png",
       "hair_front_mask": "/assets/hero/equipment/wearables/masks/constellation_apprentice_hair_front.png"
+    },
+    "apprentice_girl": {
+      "character_key": "apprentice_girl",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/chibi_apprentice_girl_normalized.webp"
+    },
+    "swordsman": {
+      "character_key": "swordsman",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/chibi_swordsman_normalized.webp"
+    },
+    "rogue": {
+      "character_key": "rogue",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/chibi_rogue_normalized.webp"
+    },
+    "ranger": {
+      "character_key": "ranger",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/chibi_ranger_normalized.webp"
+    },
+    "berserker": {
+      "character_key": "berserker",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/chibi_berserker_normalized.webp"
+    },
+    "guardian": {
+      "character_key": "guardian",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/chibi_guardian_normalized.webp"
+    },
+    "sage": {
+      "character_key": "sage",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/chibi_sage_normalized.webp"
     }
   },
   "equipment": {

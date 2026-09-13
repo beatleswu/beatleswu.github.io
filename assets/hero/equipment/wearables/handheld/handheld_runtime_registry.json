@@ -76,6 +76,55 @@
       "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/constellation_apprentice_grip_forearm.png",
       "character_grip_x": 0.331439,
       "character_grip_y": 0.543324
+    },
+    "apprentice_girl": {
+      "base_asset": "/assets/hero/characters/chibi_apprentice_girl_normalized.webp",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/apprentice_girl_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/apprentice_girl_grip_forearm.png",
+      "character_grip_x": 0.407197,
+      "character_grip_y": 0.536222
+    },
+    "swordsman": {
+      "base_asset": "/assets/hero/characters/chibi_swordsman_normalized.webp",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/swordsman_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/swordsman_grip_forearm.png",
+      "character_grip_x": 0.407197,
+      "character_grip_y": 0.536222
+    },
+    "rogue": {
+      "base_asset": "/assets/hero/characters/chibi_rogue_normalized.webp",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/rogue_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/rogue_grip_forearm.png",
+      "character_grip_x": 0.407197,
+      "character_grip_y": 0.536222
+    },
+    "ranger": {
+      "base_asset": "/assets/hero/characters/chibi_ranger_normalized.webp",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/ranger_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/ranger_grip_forearm.png",
+      "character_grip_x": 0.407197,
+      "character_grip_y": 0.536222
+    },
+    "berserker": {
+      "base_asset": "/assets/hero/characters/chibi_berserker_normalized.webp",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/berserker_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/berserker_grip_forearm.png",
+      "character_grip_x": 0.407197,
+      "character_grip_y": 0.536222
+    },
+    "guardian": {
+      "base_asset": "/assets/hero/characters/chibi_guardian_normalized.webp",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/guardian_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/guardian_grip_forearm.png",
+      "character_grip_x": 0.407197,
+      "character_grip_y": 0.536222
+    },
+    "sage": {
+      "base_asset": "/assets/hero/characters/chibi_sage_normalized.webp",
+      "open_hand_suppression_mask": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/sage_open_hand_suppression.png",
+      "front_grip_hand_asset": "/assets/hero/characters/wave2_p1/weapon_pose/handheld/sage_grip_forearm.png",
+      "character_grip_x": 0.407197,
+      "character_grip_y": 0.536222
     }
   },
   "weapons": {

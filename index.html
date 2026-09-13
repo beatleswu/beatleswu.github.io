@@ -10281,7 +10281,35 @@ async function loadQuizPet() {
     } catch(e) {}
 }
 
+// Owner-device corrective (2026-09-13): the answer surface originally only
+// recognized the 6 wave2_p1 art-pipeline keys. Only 3 of those (apprentice,
+// mage, paladin) are actually selectable (see ACTIVE_CHARACTER_KEYS in
+// app.py / HERO_COMBAT_GEAR.character above) -- the other 7 selectable
+// characters got no equipment overlay of any kind here, so an equipped
+// weapon was neither visible nor held while answering. Extended to the
+// full selectable roster: every one of the 10 now has an entry in both the
+// wearable registry AND the true-handheld registry
+// (assets/hero/equipment/wearables/handheld/handheld_runtime_registry.json),
+// so an equipped wieldable is genuinely held in hand on every character,
+// not merely visible. The 7 keep their own existing, unmodified,
+// already-approved full body/costume/face art -- only a minimal,
+// algorithmically-derived (not redrawn) hand/forearm overlay was added;
+// see handheld_runtime_registry.json's entries for those 7 and
+// tests/test_eq_c_true_handheld_weapon_renderer.py for the exact
+// provenance and geometry proof. trail_apprentice/night_runner/
+// constellation_apprentice are kept for compatibility but are not
+// currently selectable by any real player.
 const ANSWER_EQUIPMENT_CHARACTER_KEYS = new Set([
+    'apprentice', 'mage', 'paladin', 'trail_apprentice',
+    'night_runner', 'constellation_apprentice',
+    'apprentice_girl', 'swordsman', 'rogue', 'ranger',
+    'berserker', 'guardian', 'sage',
+]);
+// Only the base-portrait URL pattern differs by character (wave2_p1's own
+// transparent PNG export vs. the chibi_X_normalized.webp used everywhere
+// else) -- this set has nothing to do with handheld/wearable capability,
+// both of which now cover the full ANSWER_EQUIPMENT_CHARACTER_KEYS roster.
+const ANSWER_EQUIPMENT_WAVE2_P1_CHARACTER_KEYS = new Set([
     'apprentice', 'mage', 'paladin', 'trail_apprentice',
     'night_runner', 'constellation_apprentice',
 ]);
@@ -10316,7 +10344,13 @@ function _setAnswerEquipmentState(state) {
 }
 
 function _answerEquipmentAsset(characterKey) {
-    return `${ANSWER_EQUIPMENT_CHARACTER_ROOT}${characterKey}_p1.png`;
+    if (ANSWER_EQUIPMENT_WAVE2_P1_CHARACTER_KEYS.has(characterKey)) {
+        return `${ANSWER_EQUIPMENT_CHARACTER_ROOT}${characterKey}_p1.png`;
+    }
+    // Same already-approved portrait already used for this character
+    // everywhere else in the game (heroCombatAsset('character', ...) above
+    // resolves the identical path) -- not a new or redesigned asset.
+    return `${HERO_CHARACTER_ROOT}chibi_${characterKey}_normalized.webp`;
 }
 
 async function _hydrateAnswerEquipmentProjection() {
