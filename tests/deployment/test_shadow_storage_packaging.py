@@ -2,6 +2,10 @@
 import json
 import pathlib
 
+from test_runtime_dependency_provenance import (
+    _current_expected_governed_runtime_paths,
+    _presentation_source_present,
+)
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 DOCKERFILE = REPO_ROOT / "Dockerfile"
@@ -9,24 +13,6 @@ BUILD_MANIFEST = REPO_ROOT / "deploy" / "build-manifest.json"
 PROVENANCE = REPO_ROOT / "deploy" / "runtime-source-provenance.json"
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build-production-image.ps1"
 RELEASE_BUILD_SCRIPT = REPO_ROOT / "scripts" / "release" / "build-release-image.ps1"
-# Pre-B1 baseline (79) + presentation_dispatcher.js (B1) + the seven B2-B7
-# js/game/*.js additions (presentation_effects_b2.js, review_transport.js,
-# game_session.js, question_loader.js, board_renderer.js, mode_context.js,
-# game_bootstrap.js) = 87. deploy/runtime-source-provenance.json itself was
-# correctly updated at every wave; this was a stale, undocumented literal
-# left at the pre-B1 count and never advanced -- named and refreshed here
-# rather than left as an unexplained magic number.
-# +1 for js/game/cinematic_replay.js (E10_ZONE_GENERIC_CINEMATIC_REPLAY_001).
-# +2 for Incident 019B R6's app-start Zone-star authority and its imported
-# migration constants module (DDL remains operator-owned).
-# +4 for the RPG V1 P0 hotfix's app-start Zone 3 compatibility, progression,
-# Guild answer, and Lord admission authorities.
-# +1 for the R3 grandfathered legacy continuity runner, which is packaged in
-# the governed image because the owner-gated baseline migration and its
-# read-only preflight are executed from inside it.
-CURRENT_GOVERNED_PROVENANCE_COUNT = 98
-
-
 def _text(path):
     return path.read_text(encoding="utf-8")
 
@@ -46,8 +32,12 @@ def test_manifest_provenance_count_matches_exact_governed_set():
     manifest = json.loads(_text(BUILD_MANIFEST))
     provenance = json.loads(_text(PROVENANCE))
     governed_paths = {entry["path"] for entry in provenance["files"]}
+    expected_paths = set(
+        _current_expected_governed_runtime_paths(_presentation_source_present())
+    )
     assert len(provenance["files"]) == len(governed_paths)
-    assert len(governed_paths) == CURRENT_GOVERNED_PROVENANCE_COUNT
+    assert governed_paths == expected_paths
+    assert len(governed_paths) == len(expected_paths)
     assert "js/game/lord_trial_controller.js" in governed_paths
     assert manifest["runtime_dependency_provenance"]["files_covered"] == len(
         governed_paths

@@ -48,6 +48,10 @@ E9_CSS_FILES = [
     "art_directed_runtime.css", "cards.css", "immersive_rpg.css", "navigation.css",
     "quests.css", "reference_world_map.css", "rwd.css", "shell.css", "top_hud.css",
     "world_stage.css", "adventure_spirit_unlock.css",
+    # These three stylesheets are direct index.html references and are also
+    # present in the tracked live-static inventory. They were omitted from
+    # this evaluator's historical snapshot, not from the current E9 surface.
+    "journey_onboarding.css", "zone3_vertical_slice.css", "zone3_presentation_fx.css",
 ]
 E9_COMPONENT_FILES = [
     "bottom_dock.html", "left_nav.html", "right_cards.html", "top_hud.html", "world_stage.html",

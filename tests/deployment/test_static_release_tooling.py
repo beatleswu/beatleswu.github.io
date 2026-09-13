@@ -108,7 +108,7 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         # Guild question traversal threw before requesting a question.
         "srs.js",
         # F32 Batch A closes every first-party script referenced by index.html
-        # in the same static generation; these eight were the remaining gaps.
+        # in the same static generation; these were the remaining gaps.
         "wgo/wgo.min.js",
         "wgo/stone_skin.js",
         "community_reward_notifications.js",
@@ -120,6 +120,9 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         # F32 Batch B keeps the browser/PWA manifest in the same static
         # generation while reserving release-manifest.json for control data.
         "manifest.json",
+        # EQ-F adds this direct index.html first-party renderer to the same
+        # generation; the old 49-reference snapshot omitted it.
+        "js/rpg_wave2_wearable_renderer.js",
     }
 )
 STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)
@@ -293,6 +296,11 @@ F32_BATCH_A_ASSETS = frozenset(
         "monster_trash.js",
         "sound.js",
         "sgf_report_widget.js",
+        # EQ-F's answer-screen renderer is a direct index.html first-party
+        # script with its own app route and Dockerfile COPY. Keep it in the
+        # same static generation as the entrypoint; the old 49-reference
+        # evaluator snapshot omitted this legitimate 50th reference.
+        "js/rpg_wave2_wearable_renderer.js",
     }
 )
 
@@ -371,9 +379,11 @@ def test_f32_batch_a_closes_all_first_party_scripts_in_one_generation():
     required = set(inventory["required_in_generation"]["entries"])
     same_generation = _same_generation_script_references(inventory, references)
 
-    assert len(references) == 49
-    assert len(same_generation) == 49
-    assert set(references) <= same_generation
+    # The source-derived reference set is authoritative.  The historical
+    # 49-reference snapshot omitted the direct EQ-F renderer reference; exact
+    # set equality prevents either omission or an unreviewed extra reference.
+    assert set(references) == same_generation
+    assert len(references) == len(same_generation)
     assert F32_BATCH_A_ASSETS <= required
     assert F32_BATCH_A_ASSETS <= eligible
     for path in F32_BATCH_A_ASSETS:
