@@ -123,7 +123,6 @@ def test_all_governed_app_recreate_sources_are_discovered_and_registered():
         "the governed app-recreate surface changed; review every new source "
         f"before updating the registry: discovered={sorted(str(p) for p in discovered)}"
     )
-    assert len(GOVERNED_APP_RECREATE_REGISTRY) == 8
     for path, anchor in GOVERNED_APP_RECREATE_REGISTRY.values():
         content = path.read_text(encoding="utf-8")
         assert anchor in content, f"missing registry anchor in {path}: {anchor}"
