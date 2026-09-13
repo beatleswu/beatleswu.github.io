@@ -190,6 +190,10 @@ COPY sgf_answer_review_routes.py ./
 COPY sgf_admin_workbench.py ./
 COPY sgf_workbench_v2a.py ./
 COPY sgf_workbench_v2a_routes.py ./
+# The Owner-facing Question Management Center blueprint is imported by app.py
+# during process startup (see admin_question_center.create_question_management_blueprint).
+# Keep the server-side module explicit so image builds cannot omit this import.
+COPY admin_question_center.py ./
 # The Workbench's PostgreSQL schema path lazily imports these two governed
 # migration helpers. Keep the package boundary explicit; do not copy the
 # migrations directory wholesale.
@@ -254,7 +258,7 @@ COPY sgf_engine ./sgf_engine
 # Deliberately excludes debug pages, repair reports, backups, and other
 # root-level residue never referenced by app.py's routes.
 COPY login.html landing.html index.html terms.html manage.html admin.html \
-     shadow_dashboard.html sgf_answer_review.html \
+     shadow_dashboard.html sgf_answer_review.html admin_questions.html \
      bot.html daily_challenge.html community.html messages.html \
      share_view.html mistakes.html curriculum.html hero.html \
      rating_test.html shop.html profile.html premium_weekly.html \
@@ -264,7 +268,7 @@ COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
      community_reward_rules.js pwa.js sgf_answer_review.js \
      sgf_admin_workbench_ux_v2.js sgf_workbench_v2a.js \
-     sgf_report_widget.js ./
+     admin_questions.js sgf_report_widget.js ./
 COPY review_data/sgf_answer_review_queue_v1.json \
      ./review_data/sgf_answer_review_queue_v1.json
 # Legacy Map Battle V1 is an explicitly routed subpath asset. Keep the

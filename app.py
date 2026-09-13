@@ -509,6 +509,7 @@ from sgf_admin_workbench import (
     workbench_constants,
 )
 from sgf_workbench_v2a_routes import create_sgf_workbench_v2a_blueprint
+from admin_question_center import create_question_management_blueprint
 
 _startup_diagnostics.mark('application_creation', 'start')
 app = Flask(__name__)
@@ -6253,12 +6254,23 @@ app.register_blueprint(create_sgf_workbench_v2a_blueprint(
     mutation_throttle_failure=lambda: _workbench_mutation_throttle_failure(),
 ))
 
+# The Owner-facing question center is a read/adaptor layer.  Correction,
+# validation, staging, history, rollback and any future direct apply remain
+# owned by System C; the callbacks only connect the existing app authorities.
+app.register_blueprint(create_question_management_blueprint(
+    admin_required=admin_required,
+    get_db_provider=lambda: get_db(),
+    load_questions=lambda: _load_questions(),
+    direct_apply_enabled=lambda: _direct_apply_enabled(),
+))
+
 
 def _workbench_state_for_question(context):
     q = context['record']
     return {
         'question_id': context['question_id'],
         'record_index': context['record_index'],
+        'content': q.get('content'),
         'content_sha256': context['question_content_sha256'],
         'enabled': bool(q.get('enabled', True)),
         'solution_state': q.get('solution_state'),
@@ -6272,7 +6284,7 @@ def _workbench_staged_question(context, staged_repair):
     q = json.loads(json.dumps(context['record']))
     proposed = staged_repair.get('proposed_state') or {}
     if isinstance(proposed, dict):
-        for key in ('accepted_moves', 'enabled', 'solution_state'):
+        for key in ('content', 'accepted_moves', 'enabled', 'solution_state'):
             if key in proposed:
                 q[key] = proposed[key]
     return q
@@ -6406,17 +6418,24 @@ def admin_sgf_workbench_stage(item_id):
         if action in ('ADD_ALTERNATIVE_CORRECT_MOVE', 'REMOVE_INCORRECT_ACCEPTED_MOVE', 'REPLACE_ANSWER') and not candidate:
             return jsonify({'error': 'candidate_move_required'}), 400
         proposed = json.loads(json.dumps(original))
-        accepted = list(original.get('accepted_moves') or [])
-        if action == 'ADD_ALTERNATIVE_CORRECT_MOVE':
-            if not any(m.get('x') == candidate['x'] and m.get('y') == candidate['y'] for m in accepted):
-                accepted.append(candidate)
-            proposed['accepted_moves'] = accepted
-            proposed['solution_state'] = 'accepted_alternative'
-        elif action == 'REMOVE_INCORRECT_ACCEPTED_MOVE':
-            proposed['accepted_moves'] = [m for m in accepted if not (m.get('x') == candidate['x'] and m.get('y') == candidate['y'])]
-        elif action == 'REPLACE_ANSWER':
-            proposed['accepted_moves'] = [candidate]
-            proposed['solution_state'] = 'replaced_answer'
+        if action in ('EDIT_BOARD_SETUP', 'CHANGE_SIDE_TO_PLAY'):
+            try:
+                proposed_record = _direct_proposed_record(context['record'], action, data)
+            except (TypeError, ValueError) as error:
+                return jsonify({'error': str(error)}), 400
+            proposed['content'] = proposed_record.get('content')
+        elif action in ('ADD_ALTERNATIVE_CORRECT_MOVE', 'REMOVE_INCORRECT_ACCEPTED_MOVE', 'REPLACE_ANSWER'):
+            accepted = list(original.get('accepted_moves') or [])
+            if action == 'ADD_ALTERNATIVE_CORRECT_MOVE':
+                if not any(m.get('x') == candidate['x'] and m.get('y') == candidate['y'] for m in accepted):
+                    accepted.append(candidate)
+                proposed['accepted_moves'] = accepted
+                proposed['solution_state'] = 'accepted_alternative'
+            elif action == 'REMOVE_INCORRECT_ACCEPTED_MOVE':
+                proposed['accepted_moves'] = [m for m in accepted if not (m.get('x') == candidate['x'] and m.get('y') == candidate['y'])]
+            elif action == 'REPLACE_ANSWER':
+                proposed['accepted_moves'] = [candidate]
+                proposed['solution_state'] = 'replaced_answer'
         elif action == 'DISABLE_BROKEN_QUESTION':
             proposed['enabled'] = False
             proposed['solution_state'] = 'disabled_no_answer'
@@ -14399,7 +14418,7 @@ def get_questions():
         quest_ids = set(seg.get('question_ids') or []) if seg else set()
     slim_mode         = bool(request.args.get('slim'))   # 首頁用：只回前端實際用到的精簡欄位，砍掉傳輸量
     result  = []
-    for q in qs:
+    for record_index, q in enumerate(qs):
         if not q.get('enabled', True):
             continue
         if quest_ids is not None and q.get('id') not in quest_ids:
@@ -14419,6 +14438,7 @@ def get_questions():
             # 首頁 index.html 實際用到的欄位（loadQuestion / next-prev / scoped filter / 怪物 fallback）
             result.append({
                 'id':             q['id'],
+                'record_index':   record_index,
                 'topic':          q.get('topic', ''),
                 'topic_en':       _i18n_topic_en(q.get('topic', '')) or q.get('topic_en') or '',
                 'level':          q.get('level', ''),
@@ -14443,6 +14463,7 @@ def get_questions():
             continue
         result.append({
             'id':                q['id'],
+            'record_index':      record_index,
             'topic':             q.get('topic', ''),
             'topic_en':          _i18n_topic_en(q.get('topic', '')) or q.get('topic_en') or '',
             'level':             q.get('level', ''),
@@ -14635,13 +14656,19 @@ def get_question(qid):
     但前端會阻止實際落子（locked 旗標）。
     """
     qs  = _load_questions()
-    q   = next((x for x in qs if x['id'] == qid), None)
+    matches = [(index, record) for index, record in enumerate(qs) if record.get('id') == qid]
+    selected = matches[0] if matches else None
+    record_index, q = selected if selected else (None, None)
     if q is None:
         return jsonify({'error': '找不到題目'}), 404
     premium = is_premium()
     locked  = (not premium) and (not question_is_free(q))
     return jsonify({
         'id':           q['id'],
+        # A duplicate legacy id is deliberately not attachable to inline
+        # correction.  The admin context endpoint will fail closed until an
+        # exact record locator is available.
+        'record_index': record_index if len(matches) == 1 else None,
         'topic':        q.get('topic', ''),
         'topic_en':     q.get('topic_en', ''),
         'level':        q.get('level', ''),
@@ -14675,6 +14702,7 @@ def get_question(qid):
         'monster_name': q.get('monster_name', ''),
         'sort_order':   q.get('sort_order'),
         'content':          q.get('content', ''),
+        'content_sha256':   _question_content_sha256(q),
         'comment':          q.get('comment', ''),
         'rating':           q.get('rating'),
         'katago_best_move': q.get('katago_best_move', ''),
@@ -19189,12 +19217,17 @@ def get_mistakes():
     mistakes = [dict(r) for r in rows]
     if not mistakes: return jsonify([])
     qs     = _load_questions()
-    qs_map = {q['id']: q for q in qs}
+    qs_map = {}
+    for record_index, question in enumerate(qs):
+        qs_map.setdefault(question['id'], []).append((record_index, question))
     result = []
     for m in mistakes:
-        q = qs_map.get(m['question_id'])
-        if q:
-            result.append({**m, 'topic':q.get('topic',''), 'level':q.get('level',''),
+        matches = qs_map.get(m['question_id']) or []
+        if matches:
+            record_index, q = matches[0]
+            result.append({**m, 'record_index': record_index if len(matches) == 1 else None,
+                           'content_sha256': _question_content_sha256(q),
+                           'topic':q.get('topic',''), 'level':q.get('level',''),
                            'topic_en':_english_only(_i18n_topic_en(q.get('topic','')) or q.get('topic_en')),
                            'level_en':_english_only(_i18n_level_en(q.get('level','')) or q.get('level_en')),
                            'difficulty':q.get('difficulty',''),
@@ -19302,8 +19335,11 @@ def dc_today():
     if not dc:
         return jsonify({'error': '題庫為空'}), 503
 
-    qs_map = {q['id']: q for q in _load_questions()}
-    q      = qs_map.get(dc['question_id'])
+    question_matches = [
+        (index, record) for index, record in enumerate(_load_questions())
+        if record.get('id') == dc['question_id']
+    ]
+    record_index, q = question_matches[-1] if question_matches else (None, None)
     if not q:
         return jsonify({'error': '題目不存在'}), 404
 
@@ -19340,7 +19376,9 @@ def dc_today():
     return jsonify({
         'date':           today,
         'question_id':    q['id'],
+        'record_index':   record_index if len(question_matches) == 1 else None,
         'content':        q.get('content', ''),
+        'content_sha256': _question_content_sha256(q),
         'topic':          q.get('topic', ''),
         'topic_en':       _english_only(_i18n_topic_en(q.get('topic', '')) or q.get('topic_en')),
         'level':          q.get('level', ''),
@@ -30655,7 +30693,7 @@ def _build_rt_pool():
     n_calibrated = n_culled = n_unparseable = n_duplicate = n_verified = 0
     pool = []
     content_hashes = set()
-    for q in _load_questions():
+    for record_index, q in enumerate(_load_questions()):
         if not q.get('enabled', True):
             continue
         disc = q.get('discipline', '')
@@ -30730,7 +30768,9 @@ def _build_rt_pool():
         )
         pool.append({
             'id':               q['id'],
+            'record_index':     record_index,
             'content':          content,
+            'content_sha256':   _question_content_sha256(q),
             'rating':           rating,
             'difficulty':       q.get('difficulty') or q.get('rank', ''),
             'discipline':       disc,
@@ -30939,7 +30979,10 @@ def _strip_question(q: dict, sid: str, token: str | None = None) -> dict:
     size = int(size_m.group(1)) if size_m else 19
     result = {
         'id':         q['id'],
+        'record_index': q.get('record_index'),
         'content':    content,
+        'content_sha256': q.get('content_sha256'),
+        'transform_index': t,
         'rating':     q['rating'],
         'difficulty': q['difficulty'],
         'discipline': q['discipline'],

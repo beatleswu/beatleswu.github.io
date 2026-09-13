@@ -1027,6 +1027,17 @@ let practiceIdx   = -1;
 let practiceMode  = false;
 
 let board=null, currentProblem=null, currentNode=null, currentMistake=null;
+let adminInlineReviewMarker = null;
+window.addEventListener('sgf:inline-review-marker', (event) => {
+    const move = event.detail?.move;
+    if (adminInlineReviewMarker && board) {
+        try { board.removeObject(adminInlineReviewMarker); } catch (_) {}
+        adminInlineReviewMarker = null;
+    }
+    if (!move || !board) return;
+    adminInlineReviewMarker = {x: _bx(move.x), y: _by(move.y), type: WGo.Board.drawHandlers.CR};
+    board.addObject(adminInlineReviewMarker);
+});
 let playerColor='B', solved=false, answering=false;
 let logicBoard=[], boardSize=19;
 let _cropInfo={displayLines:19,startX:0,startY:0,offsetX:0,offsetY:0};
@@ -1118,10 +1129,12 @@ function loadMistake(m){
     currentMistake=m;
     window.SGFReportWidget?.setContext({
         question_id: Number(m.question_id),
+        record_index: m.record_index,
         surface: 'main_practice',
         system_verdict: 'WRONG',
         sgf_identity: m.content_sha256 || m.sgf_identity || null,
-        accepted_moves: m.accepted_moves || []
+        accepted_moves: m.accepted_moves || [],
+        next_handler: () => nextQ()
     });
     setNpc('select');
     hideRecommend();   // 切題時清掉舊推薦
@@ -1170,6 +1183,7 @@ function loadMistake(m){
 // ═══════════════════════════════════════════════════════════════
 function onBoardClick(bx,by){
     const x=_ox(bx), y=_oy(by);
+    if (window.SGFReportWidget?.consumeBoardMove?.({x, y})) return;
     if(_altAnswerReportMode){
         if(x>=0 && y>=0 && x<boardSize && y<boardSize) submitAlternativeAnswerReport({x,y});
         return;
@@ -1179,7 +1193,7 @@ function onBoardClick(bx,by){
     const matched=currentNode.children.find(c=>c.move&&c.move.x===x&&c.move.y===y);
     if(!matched){
         window.SGFReportWidget?.setContext({
-            question_id: Number(currentMistake?.question_id), surface: 'main_practice',
+            question_id: Number(currentMistake?.question_id), record_index: currentMistake?.record_index, surface: 'main_practice',
             move: {x,y}, system_verdict: 'WRONG'
         });
         playWrong();

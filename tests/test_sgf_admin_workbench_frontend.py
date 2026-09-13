@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +39,7 @@ def test_all_required_surface_documents_load_the_shared_report_widget():
     }
     for name, surface in expected.items():
         page = _read(name)
-        assert "<script src=\"/sgf_report_widget.js\"" in page
+        assert re.search(r'<script src="/sgf_report_widget\.js(?:\?[^\"]*)?"', page)
         assert f'data-sgf-report-surface="{surface}"' in page
 
 

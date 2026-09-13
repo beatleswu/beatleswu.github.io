@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 import base64
 import gzip
@@ -37,6 +38,8 @@ WORKBENCH_ACTIONS = (
     "ADD_ALTERNATIVE_CORRECT_MOVE",
     "REMOVE_INCORRECT_ACCEPTED_MOVE",
     "REPLACE_ANSWER",
+    "EDIT_BOARD_SETUP",
+    "CHANGE_SIDE_TO_PLAY",
     "DISABLE_BROKEN_QUESTION",
     "NEEDS_RESEARCH",
 )
@@ -1622,6 +1625,9 @@ def validate_staged_repair(conn, *, repair_id: int, actor_id: int,
             if "solution_state" in original and original.get("solution_state") != current_record.get("solution_state"):
                 result["status"] = "CONFLICT"
                 errors.append("original_solution_state_changed")
+            if "content" in original and original.get("content") != current_record.get("content"):
+                result["status"] = "CONFLICT"
+                errors.append("original_question_content_changed")
             proposed_moves = {_json(_normalize_move(move)) for move in (proposed.get("accepted_moves") or []) if _normalize_move(move)}
             candidate = _normalize_move(repair.get("candidate_move"))
             candidate_key = _json(candidate) if candidate else None
@@ -1710,6 +1716,15 @@ def validate_staged_repair(conn, *, repair_id: int, actor_id: int,
                 if proposed.get("enabled", True) is not False:
                     result["status"] = "FAIL"
                     errors.append("disable_state_missing")
+            elif action == "CHANGE_SIDE_TO_PLAY":
+                content = str(proposed.get("content") or "")
+                if not re.search(r"PL\[[BW]\]", content):
+                    result["status"] = "FAIL"
+                    errors.append("side_to_play_not_encoded")
+            elif action == "EDIT_BOARD_SETUP":
+                if not str(proposed.get("content") or "").strip():
+                    result["status"] = "FAIL"
+                    errors.append("question_content_missing")
             if verdict_fn is not None and candidate is not None:
                 before = verdict_fn(current_record, candidate)
                 after = verdict_fn(proposed, candidate)

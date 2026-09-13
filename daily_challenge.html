@@ -1001,6 +1001,17 @@ header:not(.cg-nav) {
 // State
 // ════════════════════════════════════════════════════════════
 let board        = null;
+let adminInlineReviewMarker = null;
+window.addEventListener('sgf:inline-review-marker', (event) => {
+  const move = event.detail?.move;
+  if (adminInlineReviewMarker && board) {
+    try { board.removeObject(adminInlineReviewMarker); } catch (_) {}
+    adminInlineReviewMarker = null;
+  }
+  if (!move || !board) return;
+  adminInlineReviewMarker = {x: move.x, y: move.y, type: WGo.Board.drawHandlers.CR};
+  board.addObject(adminInlineReviewMarker);
+});
 let logicBoard   = null;
 let boardSize    = 19;
 let koPoint      = null;
@@ -1328,6 +1339,7 @@ function initBoard(sgfContent) {
     if (!currentProblem) { setMsg(I18n.t('index.parse_err'), 'warn'); return; }
     window.SGFReportWidget?.setContext({
       question_id: Number(todayData?.question_id || todayData?.id),
+      record_index: todayData?.record_index,
       surface: 'daily_challenge_client',
       sgf_identity: todayData?.content_sha256 || todayData?.sgf_identity || null,
       native_sgf: todayData?.content || null
@@ -1490,6 +1502,7 @@ function playStone(x, y, color, skipRules = false) {
 }
 
 function onBoardClick(x, y) {
+  if (window.SGFReportWidget?.consumeBoardMove?.({x, y})) return;
   if (!currentProblem || !currentNode || submitted || answering || solved || gaveUp) return;
   if (!isOnBoard(x, y) || logicBoard[x][y]) return;
 
@@ -1508,7 +1521,7 @@ function onBoardClick(x, y) {
   if (!match) {
     // Wrong
     window.SGFReportWidget?.setContext({
-      question_id: Number(todayData?.question_id || todayData?.id),
+      question_id: Number(todayData?.question_id || todayData?.id), record_index: todayData?.record_index,
       surface: 'daily_challenge_client', move: {x, y}, system_verdict: 'WRONG'
     });
     setMsg(I18n.t('index.wrong'), 'err');

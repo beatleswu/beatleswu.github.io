@@ -1116,6 +1116,32 @@ function _rememberQuestionId(questionId) {
 
 // ── Board / Logic State ───────────────────────────────────────────
 let _board        = null;
+let _adminInlineReviewMarker = null;
+function _adminReviewDisplayPoint(move) {
+  const n = _boardSize - 1;
+  const t = Number(_curQ?.transform_index || 0);
+  switch (t) {
+    case 1: return {x: n - move.y, y: move.x};
+    case 2: return {x: n - move.x, y: n - move.y};
+    case 3: return {x: move.y, y: n - move.x};
+    case 4: return {x: n - move.x, y: move.y};
+    case 5: return {x: move.x, y: n - move.y};
+    case 6: return {x: move.y, y: move.x};
+    case 7: return {x: n - move.y, y: n - move.x};
+    default: return {x: move.x, y: move.y};
+  }
+}
+window.addEventListener('sgf:inline-review-marker', (event) => {
+  const move = event.detail?.move;
+  if (_adminInlineReviewMarker && _board) {
+    try { _board.removeObject(_adminInlineReviewMarker); } catch (_) {}
+    _adminInlineReviewMarker = null;
+  }
+  if (!move || !_board) return;
+  const displayMove = _adminReviewDisplayPoint(move);
+  _adminInlineReviewMarker = {x: _bx(displayMove.x), y: _by(displayMove.y), type: WGo.Board.drawHandlers.CR};
+  _board.addObject(_adminInlineReviewMarker);
+});
 let _cropInfo     = null;
 let _boardSize    = 19;
 let _playerColor  = 'B';
@@ -1357,8 +1383,10 @@ function makeAnswerRoot(tree) {
 
 // ── 點擊棋盤（測驗版：答錯直接結算，無探索模式）────────────────
 function onBoardClick(bx, by) {
+  const reviewX = _ox(bx), reviewY = _oy(by);
+  if (window.SGFReportWidget?.consumeBoardMove?.({x: reviewX, y: reviewY, displayCoordinates: true})) return;
   if (_answered || _testSolved || _testAnswering) return;
-  const x = _ox(bx), y = _oy(by);
+  const x = reviewX, y = reviewY;
   if (_logicBoard[x] && _logicBoard[x][y] !== null) return;  // 已有棋子
 
   // 禁著點 / 打劫提示（不扣分，只提示）
@@ -1583,11 +1611,15 @@ function loadTestQuestion(q) {
   _curQ     = q;
   window.SGFReportWidget?.setContext({
     question_id: Number(q.id),
+    record_index: q.record_index,
     surface: 'rating_test_server',
     system_verdict: null,
     sgf_identity: q.content_sha256 || q.sgf_identity || null,
     native_sgf: q.native_answer || q.solution || null,
-    accepted_moves: q.accepted_moves || []
+    accepted_moves: q.accepted_moves || [],
+    transform_index: q.transform_index,
+    board_size: Number((q.content || '').match(/SZ\[(\d+)\]/i)?.[1] || 19),
+    displayCoordinates: true
   });
   _playerMoves = [];
   _rememberQuestionId(q.id);
@@ -1626,10 +1658,14 @@ async function submitMove(result) {
   const reportedMove = _playerMoves.length ? _playerMoves[_playerMoves.length - 1] : null;
   window.SGFReportWidget?.setContext({
     question_id: Number(_curQ?.id),
+    record_index: _curQ?.record_index,
     surface: 'rating_test_server',
     move: reportedMove,
     moves: _playerMoves.slice(),
-    system_verdict: result === 'correct' ? 'CORRECT' : 'WRONG'
+    system_verdict: result === 'correct' ? 'CORRECT' : 'WRONG',
+    transform_index: _curQ?.transform_index,
+    board_size: Number((_curQ?.content || '').match(/SZ\[(\d+)\]/i)?.[1] || 19),
+    displayCoordinates: true
   });
   _answered = true;
   stopTimer();

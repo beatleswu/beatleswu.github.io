@@ -196,15 +196,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "c3bbe7f92cadcc68b5b943e98d986685b29b1e8b",
-      "source_branch_or_local_ref": "claude/owner-device-ipad-fullscreen-handheld-weapon-corrective-001",
-      "source_commit_subject": "fix(owner-device): 10/10 handheld weapon coverage, no new character art",
-      "source_date": "2026-09-13",
-      "content_sha256": "c9b53df2de35f3117ba16d7e80621c189e1a17d5fd55e5cbffa9b5aa576ad1c9",
-      "content_size_bytes": 1121200,
+      "source_commit": "0000000000000000000000000000000000000000",
+      "source_branch_or_local_ref": "claude/qm-and-act-f-reconciled-successor-001",
+      "source_commit_subject": "PENDING_RECONCILIATION_COMMIT",
+      "source_date": "PENDING_RECONCILIATION_COMMIT",
+      "content_sha256": "PENDING_RECONCILIATION_COMMIT",
+      "content_size_bytes": 0,
       "line_ending_policy": "LF",
-      "runtime_role": "startup-required static page/script (served by app.py routes); EQ-B/EQ-C answer-screen Equipment projection and handheld integration surface",
-      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+      "runtime_role": "startup-required static page/script (served by app.py routes); EQ-B/EQ-C answer-screen Equipment projection and handheld integration surface; inline admin question review board marker wiring",
+      "source_status": "PENDING_RECONCILIATION_COMMIT -- this entry is corrected in the very next commit on this branch once the reconciling commit's own hash is known; this intermediate commit does not pass provenance verification for index.html"
     },
     {
       "path": "terms.html",
@@ -232,15 +232,15 @@
     },
     {
       "path": "admin.html",
-      "source_commit": "5bc2da89f245f436a15e053c34575513872386f2",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "integrate C017 live Premium projection",
-      "source_date": "2026-08-25",
-      "content_sha256": "3ba7e847bed972cc1c26e64f60ad8e58c704cf264814646c7a70ca4d3286ec29",
+      "source_commit": "feafb23435bc453655db118ed8967133a0e3bd35",
+      "source_branch_or_local_ref": "claude/qm-owner-uat-app-ux-polish-001",
+      "source_commit_subject": "feat(admin): unify question management center",
+      "source_date": "2026-09-13",
+      "content_sha256": "bb2eee358903700d5b2b437e4160414442cb391b4cab2c8c4585002549779e1f",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "bot.html",
@@ -257,15 +257,15 @@
     },
     {
       "path": "daily_challenge.html",
-      "source_commit": "6f1d04215c137fc571e7559fd3aeabfb3b31d08a",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(daily): replay authoritative results through D5B",
-      "source_date": "2026-08-22",
-      "content_sha256": "43b4831068c67a9698f1da28ad815b007dce8df2232a8828d0eef595d17cf4a3",
+      "source_commit": "feafb23435bc453655db118ed8967133a0e3bd35",
+      "source_branch_or_local_ref": "claude/qm-owner-uat-app-ux-polish-001",
+      "source_commit_subject": "feat(admin): unify question management center",
+      "source_date": "2026-09-13",
+      "content_sha256": "33c19f7575f4776e45efdfe5ad0fe68c83c26cb491969e4ea646614dfb22ac24",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "canonical current-master provenance -- source_commit is byte-identical to current release content; deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "community.html",
@@ -305,15 +305,15 @@
     },
     {
       "path": "mistakes.html",
-      "source_commit": "1f0728663090a38931fc584e80005343d6d1d723",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat: unify SGF admin workbench and reports",
-      "source_date": "2026-08-12",
-      "content_sha256": "b27cd1a9cabf215e86d9ab06a05b344a3bf9335aed46b9eda03c8bcb31170e75",
+      "source_commit": "feafb23435bc453655db118ed8967133a0e3bd35",
+      "source_branch_or_local_ref": "claude/qm-owner-uat-app-ux-polish-001",
+      "source_commit_subject": "feat(admin): unify question management center",
+      "source_date": "2026-09-13",
+      "content_sha256": "5724001cae2352fcf148107ce431e13f139abe33b74c17d8dabc6587a5c54f3c",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "curriculum.html",
@@ -343,15 +343,15 @@
     },
     {
       "path": "rating_test.html",
-      "source_commit": "1f0728663090a38931fc584e80005343d6d1d723",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat: unify SGF admin workbench and reports",
-      "source_date": "2026-08-12",
-      "content_sha256": "6999823769892227dad755fffd00284ebb69ac6bc6a693ac11fca0ddee7abf88",
+      "source_commit": "feafb23435bc453655db118ed8967133a0e3bd35",
+      "source_branch_or_local_ref": "claude/qm-owner-uat-app-ux-polish-001",
+      "source_commit_subject": "feat(admin): unify question management center",
+      "source_date": "2026-09-13",
+      "content_sha256": "805c9cb4ac9d1a9c28075ecc640ef16eb745b59b5509cd626d59452c2935829e",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "shop.html",
@@ -1183,15 +1183,15 @@
     },
     {
       "path": "app.py",
-      "source_commit": "98a40584db1dfc2329068d75c8d8b764587a3caf",
-      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
-      "source_commit_subject": "Admit C045-priced EQ-F Shop Equipment",
-      "source_date": "2026-09-12",
-      "content_sha256": "890bd152ce8479059c0ca24b02e50aa72a0ce4b793bac1a353ca58b758c2c2bb",
-      "content_size_bytes": 1386533,
+      "source_commit": "a27e6359715edc2c9b5797ad65797f33e9b97f24",
+      "source_branch_or_local_ref": "claude/qm-owner-uat-app-ux-polish-001",
+      "source_commit_subject": "Merge unified Question Management Center candidate onto current canonical master",
+      "source_date": "2026-09-13",
+      "content_sha256": "36d61cb788b4fd2e71fa0afec51166d9fd27c9c1f794a3a761ac4ff4671c2c66",
+      "content_size_bytes": 1389072,
       "line_ending_policy": "LF",
       "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear and C045 Shop admission wiring",
-      "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+      "source_status": "merge-commit provenance -- app.py could not fast-forward onto the candidate blob alone because origin/master advanced app.py independently in the interim; recorded source_commit is the merge commit on this implementation branch that reconciled both, and is byte-identical to the current blob; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "coin_purchase_authority.py",

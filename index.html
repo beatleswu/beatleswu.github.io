@@ -9396,6 +9396,17 @@ const _boardRenderer = window.GoOdysseyBoardRenderer.create({
         }
     },
 });
+let _adminInlineReviewMarker = null;
+window.addEventListener('sgf:inline-review-marker', (event) => {
+    const move = event.detail?.move;
+    if (_adminInlineReviewMarker) {
+        try { _boardRenderer.removeObject(_adminInlineReviewMarker); } catch (_) {}
+        _adminInlineReviewMarker = null;
+    }
+    if (!move || !_boardRenderer.isMounted()) return;
+    _adminInlineReviewMarker = { x: _bx(move.x), y: _by(move.y), type: 'CR' };
+    _boardRenderer.addObject(_adminInlineReviewMarker);
+});
 // Page lifecycle is the outermost teardown boundary.  The bootstrap registry
 // removes this listener and all transient callbacks during destruction.
 _gameBootstrap.registerListener(window, 'pagehide', () => _gameBootstrap.destroy());
@@ -12198,6 +12209,17 @@ async function loadQuestion(q, options = {}) {
     return _questionLoader.load(q, options);
 }
 
+// Inline admin review may advance ordinary practice after a saved correction,
+// but must never become a second progression authority for Lord, Map Battle,
+// Guild, friend-challenge, or Adventure flows.
+function _adminInlineReviewNextHandler() {
+    if (_bossMode || _mapBattleV1IsActive() || _guildQuestMode || _challengeId
+        || (_adventureActiveQuestions && _adventureActiveQuestions.length)) {
+        return null;
+    }
+    return () => nextQuestion();
+}
+
 async function _loadQuestionImplementation(q, loadContext = {}){
     // Legacy marker retained for static compatibility readers: the increment
     // represented by this historical expression is now owned by
@@ -12220,10 +12242,12 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     _e10AcceptanceTrace('LOADQUESTION_GENERATION', { qid: questionId, generation });
     window.SGFReportWidget?.setContext({
         question_id: Number(q.id),
+        record_index: q.record_index,
         surface: document.body.dataset.sgfReportSurface || 'main_practice',
         sgf_identity: q.content_sha256 || q.sgf_identity || null,
         accepted_moves: q.accepted_moves || [],
-        native_sgf: q.native_answer || q.solution || null
+        native_sgf: q.native_answer || q.solution || null,
+        next_handler: _adminInlineReviewNextHandler()
     });
     _resetE10BattleRevealState();
     _clearMapBattleV1Transition();
@@ -12517,6 +12541,7 @@ function showSolutionNow() {
 
 function onBoardClick(bx,by){
     const x=_ox(bx),y=_oy(by);  // 顯示座標 → 原始19路座標
+    if (window.SGFReportWidget?.consumeBoardMove?.({x, y})) return;
     if(_questionBoardFailedClosed||answering||!currentNode)return;
     if(logicBoard[x]&&logicBoard[x][y]!==null)return;
 
@@ -13327,9 +13352,11 @@ function showExplanation(wrongMove, { reveal = false } = {}) {
     if (!currentQ) return;
     window.SGFReportWidget?.setContext({
         question_id: Number(currentQ.id),
+        record_index: currentQ.record_index,
         surface: document.body.dataset.sgfReportSurface || 'main_practice',
         move: wrongMove || null,
-        system_verdict: wrongMove ? 'WRONG' : 'CORRECT'
+        system_verdict: wrongMove ? 'WRONG' : 'CORRECT',
+        next_handler: _adminInlineReviewNextHandler()
     });
     const panel = document.getElementById('explanation-panel');
     if (!panel) return;
