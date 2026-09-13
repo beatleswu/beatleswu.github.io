@@ -168,7 +168,10 @@ def test_every_direct_recreate_source_uses_canonical_release_authority():
             assert "docker-compose.release.yml" in content.split("'__RELEASE_FILE__'", 1)[1]
 
     rollback = ROLLBACK_SCRIPT.read_text(encoding="utf-8")
+    assert "$localCanonicalComposeFile = Resolve-RepoPath 'docker-compose.release.yml'" in rollback
     assert "$canonicalComposeFile = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'" in rollback
+    assert "-LocalPath $localCanonicalComposeFile" in rollback
+    assert "-RemotePath $canonicalComposeFile" in rollback
     assert "$canonicalComposeFile" in rollback.split("$canonicalComposeFile =", 1)[1]
 
     equipment = EQUIPMENT_SCRIPT.read_text(encoding="utf-8")
@@ -231,4 +234,8 @@ def test_remote_canonical_compose_upload_precedes_equipment_recreate():
     # upload still precedes the remote command that consumes it.
     assert local < remote < upload
     assert "'-f', 'docker-compose.release.yml'" in control
+    rollback = ROLLBACK_SCRIPT.read_text(encoding="utf-8")
+    rollback_upload = rollback.index("-LocalPath $localCanonicalComposeFile -RemotePath $canonicalComposeFile") if "-LocalPath $localCanonicalComposeFile -RemotePath $canonicalComposeFile" in rollback else rollback.index("-LocalPath $localCanonicalComposeFile")
+    rollback_recreate = rollback.index("$rollbackAppCommand =")
+    assert rollback_upload < rollback_recreate
     assert "remoteProductFlagsPath" not in deploy + control
