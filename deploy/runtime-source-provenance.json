@@ -196,12 +196,12 @@
     },
     {
       "path": "index.html",
-      "source_commit": "5e5671dd89a06f97e32b9e1ea2d7f0d5bdd0db85",
-      "source_branch_or_local_ref": "codex/eq-f-full-equipment-weapon-integration-001",
-      "source_commit_subject": "Implement EQ-F equipment and weapon integration",
-      "source_date": "2026-09-12",
-      "content_sha256": "767677760418374763947e6ac202ac250a34af61151cb7daec2003e3836f46bf",
-      "content_size_bytes": 1119039,
+      "source_commit": "c3bbe7f92cadcc68b5b943e98d986685b29b1e8b",
+      "source_branch_or_local_ref": "claude/owner-device-ipad-fullscreen-handheld-weapon-corrective-001",
+      "source_commit_subject": "fix(owner-device): 10/10 handheld weapon coverage, no new character art",
+      "source_date": "2026-09-13",
+      "content_sha256": "c9b53df2de35f3117ba16d7e80621c189e1a17d5fd55e5cbffa9b5aa576ad1c9",
+      "content_size_bytes": 1121200,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes); EQ-B/EQ-C answer-screen Equipment projection and handheld integration surface",
       "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
