@@ -434,7 +434,8 @@ The normal release uploads the tracked canonical compose file to the
 deterministic `$layout.compose_directory/docker-compose.release.yml` path
 before any compose config or recreate operation. The Equipment control script
 also uploads that same tracked file idempotently before its gated app recreate;
-the Enable override is uploaded afterward and is the only extra layer.
+the rollback script does the same before its rollback recreate; the Enable
+override is uploaded afterward and is the only extra layer.
 
 The two direct bindings are source-verified as:
 
