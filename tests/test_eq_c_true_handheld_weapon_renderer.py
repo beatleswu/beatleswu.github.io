@@ -141,3 +141,106 @@ def test_renderer_does_not_create_a_new_equipment_or_loadout_authority():
     renderer = RENDERER_PATH.read_text(encoding="utf-8")
     for forbidden in ("/api/player/inventory/equip", "localStorage", "fetch('/api/shop", "POST"):
         assert forbidden not in renderer
+
+
+def test_owner_device_corrective_answer_projection_is_reachable_from_real_question_load():
+    """Owner-device corrective (2026-09-13).
+
+    Real iPad testing reported an equipped sword never visible while
+    answering. The answer-surface projection function
+    (_hydrateAnswerEquipmentProjection, wrapped by
+    _ensureAnswerEquipmentProjection) already existed, already called
+    GoOdysseyHandheldWeaponRenderer correctly, and already passed every
+    prior static assertion in this file -- but a static "the right strings
+    exist somewhere in index.html" check cannot prove the function is
+    actually reached from real gameplay. This proves the real call chain
+    exists end to end: _loadQuestionImplementation (every question load,
+    every surface that shares it: map/world battle, guild quests, boss/lord
+    trial, plain practice) awaits _hydrateE10BattlePresentation, which
+    unconditionally calls _ensureAnswerEquipmentProjection before any
+    adventure-zone/E10-shell branch -- so the projection runs on every
+    question, not only opportunistically.
+    """
+    index = INDEX_PATH.read_text(encoding="utf-8")
+
+    load_start = index.index("async function _loadQuestionImplementation")
+    load_body = index[load_start : load_start + 2000]
+    assert "await _hydrateE10BattlePresentation();" in load_body
+
+    hydrate_start = index.index("async function _hydrateE10BattlePresentation")
+    hydrate_body = index[hydrate_start : index.index("\n}\n", hydrate_start)]
+    assert "const answerEquipment = _ensureAnswerEquipmentProjection();" in hydrate_body
+    # This call happens before the adventure-zone/E10-shell branch, so it is
+    # not conditional on that check -- every question load reaches it.
+    assert hydrate_body.index("_ensureAnswerEquipmentProjection()") < hydrate_body.index(
+        "_isAdventureZonePractice()"
+    )
+
+
+def test_owner_device_corrective_supported_character_roster_is_explicit_and_tracked():
+    """Owner-device corrective (2026-09-13).
+
+    Root-cause finding: the answer-surface projection's character gate
+    (ANSWER_EQUIPMENT_CHARACTER_KEYS) and the wearable/handheld art
+    registries only cover 3 of the site's 10 selectable hero characters
+    (apprentice, mage, paladin -- tiers 0, 6, 7). For the other 7
+    (apprentice_girl, swordsman, rogue, ranger, berserker, guardian, sage)
+    _hydrateAnswerEquipmentProjection correctly and gracefully falls back
+    to the plain avatar with no equipment overlay, by design, because the
+    required base/mask/grip art for those characters does not exist --
+    confirmed live: for a supported character the exact same code renders
+    the equipped weapon correctly (verified by hand against the real
+    renderer in a browser). Producing the missing character art is new
+    asset work, out of scope for this corrective. This test makes the
+    current coverage boundary explicit and tracked: it fails the moment
+    anyone accidentally narrows the currently-supported set, and it must
+    be updated deliberately (not silently) if the roster is ever widened.
+    """
+    index = INDEX_PATH.read_text(encoding="utf-8")
+    app_py = (ROOT / "app.py").read_text(encoding="utf-8")
+    wearable_registry = json.loads(
+        (ROOT / "assets/hero/equipment/wearables/wearable_registry.json").read_text(encoding="utf-8")
+    )
+    handheld_registry = _registry()
+
+    keys_start = index.index("const ANSWER_EQUIPMENT_CHARACTER_KEYS = new Set([")
+    keys_block = index[keys_start : index.index("]);", keys_start)]
+    answer_equipment_keys = {
+        token.strip().strip("'")
+        for token in keys_block[keys_block.index("[") + 1 :].split(",")
+        if token.strip().strip("'")
+    }
+    assert answer_equipment_keys == {
+        "apprentice", "mage", "paladin",
+        "trail_apprentice", "night_runner", "constellation_apprentice",
+    }
+
+    roster_start = index.index("const HERO_COMBAT_GEAR = {")
+    roster_block = index[roster_start : index.index("armor: [", roster_start)]
+    full_roster = set(__import__("re").findall(r"key:'([a-z_]+)'", roster_block))
+    assert full_roster == {
+        "apprentice", "apprentice_girl", "swordsman", "rogue", "ranger",
+        "berserker", "guardian", "paladin", "mage", "sage",
+    }
+
+    assert "ACTIVE_CHARACTER_KEYS = frozenset({" in app_py
+    active_start = app_py.index("ACTIVE_CHARACTER_KEYS = frozenset({")
+    active_block = app_py[active_start : app_py.index("})", active_start)]
+    active_keys = set(__import__("re").findall(r"'([a-z_]+)'", active_block))
+    assert active_keys == full_roster, (
+        "the server's selectable-character allowlist and index.html's own "
+        "roster must name the same characters"
+    )
+
+    supported_and_selectable = answer_equipment_keys & full_roster
+    assert supported_and_selectable == {"apprentice", "mage", "paladin"}
+    unsupported_selectable = full_roster - answer_equipment_keys
+    assert unsupported_selectable == {
+        "apprentice_girl", "swordsman", "rogue", "ranger", "berserker", "guardian", "sage",
+    }
+
+    # Both art registries the answer surface depends on must agree on
+    # exactly the same 3-of-10 coverage -- a silent split here would mean
+    # one renderer thinks a character is supported and the other doesn't.
+    assert set(wearable_registry["characters"].keys()) == answer_equipment_keys
+    assert set(handheld_registry["characters"].keys()) == answer_equipment_keys

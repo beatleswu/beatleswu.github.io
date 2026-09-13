@@ -75,6 +75,31 @@ def test_a032_r1_stacked_layout_is_board_first_and_prompt_stays_in_flow():
     assert "insertBefore(el, actionRow)" in html
 
 
+def test_owner_device_ipad_corrective_relaxes_narrow_cap_for_touch_only():
+    """Owner-device iPad corrective (2026-09-13).
+
+    Real iPad screenshots showed the stacked board-first layout above
+    centered into a fixed 900px column with large dark gutters on both
+    sides, in both orientations. 900px is a sensible cap for a narrow
+    *desktop* browser window (mouse/trackpad) but was never meant to bind
+    on an actual touch tablet, which should use its own full width -- the
+    exact "width alone is not a device contract" distinction index.html's
+    own #main-row pointer:coarse rule already makes elsewhere. This proves
+    the fix: a coarse-pointer-scoped override removes the cap without
+    touching the board-first stacked arrangement itself.
+    """
+    css = CSS.read_text(encoding="utf-8")
+    assert "max-width: 900px;" in css
+    assert '@media (max-width: 1024px) and (pointer: coarse) {' in css
+    coarse_start = css.index('@media (max-width: 1024px) and (pointer: coarse) {')
+    coarse_block = css[coarse_start:coarse_start + 400]
+    assert 'body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row' in coarse_block
+    assert "max-width: none;" in coarse_block
+    # The narrow-desktop-window cap and the stacked board-first arrangement
+    # stay exactly as they were -- only touch devices get the wider column.
+    assert 'grid-template-areas: "board" "battle" !important' in css
+
+
 def test_a032_r1_prevents_narrow_monster_identity_ellipsis():
     css = CSS.read_text(encoding="utf-8")
     assert "#monster-name" in css

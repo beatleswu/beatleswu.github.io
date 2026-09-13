@@ -388,6 +388,22 @@ body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden
     }
 }
 
+/* Owner-device iPad corrective: the 900px cap above is a comfortable
+   reading width for a narrow *desktop* window (mouse/trackpad), matching
+   index.html's own established rule that "width alone is not a device
+   contract" (see the #main-row pointer:coarse rule a few hundred lines up
+   in index.html's own stylesheet). This surface never had a matching
+   touch-device carve-out, so real iPads/tablets in this same stacked
+   layout were being centered into that same 900px column with large
+   gutters on both sides instead of using their own full width. Only the
+   width changes here; the board-first stacked arrangement above is kept
+   exactly as designed. */
+@media (max-width: 1024px) and (pointer: coarse) {
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row {
+        max-width: none;
+    }
+}
+
 @media (max-width: 600px) {
     body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .practice {
         padding: 8px 8px 14px;
