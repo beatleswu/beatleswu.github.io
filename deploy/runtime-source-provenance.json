@@ -196,15 +196,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "0000000000000000000000000000000000000000",
+      "source_commit": "8ac3132571636d2bfab0bdd0c56be460c1385c6c",
       "source_branch_or_local_ref": "claude/qm-and-act-f-reconciled-successor-001",
-      "source_commit_subject": "PENDING_RECONCILIATION_COMMIT",
-      "source_date": "PENDING_RECONCILIATION_COMMIT",
-      "content_sha256": "PENDING_RECONCILIATION_COMMIT",
-      "content_size_bytes": 0,
+      "source_commit_subject": "feat(admin): reconcile Owner-approved Question Management onto owner-device canonical",
+      "source_date": "2026-09-13",
+      "content_sha256": "8e35c889a9ce02ffcd18592d7e50cc6fd60b4919296275985779ffdeefa44edf",
+      "content_size_bytes": 1122428,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes); EQ-B/EQ-C answer-screen Equipment projection and handheld integration surface; inline admin question review board marker wiring",
-      "source_status": "PENDING_RECONCILIATION_COMMIT -- this entry is corrected in the very next commit on this branch once the reconciling commit's own hash is known; this intermediate commit does not pass provenance verification for index.html"
+      "source_status": "candidate-branch provenance -- recorded source_commit is the reconciliation commit on this implementation branch that combined the owner-device Equipment corrective with the Owner-approved Question Management inline review wiring, and is byte-identical to the current file; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
     },
     {
       "path": "terms.html",
