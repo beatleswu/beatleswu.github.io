@@ -52,7 +52,7 @@ function Get-RemoteCurrentTarget {
 function Get-SwVersionFromUrl {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
-        [int]$TimeoutSeconds = 15
+        [int]$TimeoutSeconds = (Get-StaticPublicVerificationRequestTimeoutSeconds)
     )
     $response = $null
     try {
@@ -73,7 +73,7 @@ function Get-SwVersionFromUrl {
 function Get-PublicStaticReleaseProvenance {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
-        [int]$TimeoutSeconds = 15
+        [int]$TimeoutSeconds = (Get-StaticPublicVerificationRequestTimeoutSeconds)
     )
     $response = $null
     try {
@@ -90,7 +90,7 @@ function Get-PublicStaticReleaseProvenance {
 function Get-PublicFileSha256 {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
-        [int]$TimeoutSeconds = 15
+        [int]$TimeoutSeconds = (Get-StaticPublicVerificationRequestTimeoutSeconds)
     )
     $response = $null
     $stream = $null

@@ -12,10 +12,12 @@ since the whole point of this Sprint is that mocked/filesystem-only
 checks are exactly what let the original drift go undetected.
 """
 import json
+import hashlib
 import re
 import shutil
 import subprocess
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -263,6 +265,61 @@ Test-PublicAuthenticatedRoute -Url {_ps_quote(f'http://127.0.0.1:{server.server_
 """
         result = _run_powershell(tmp_path, body)
         assert result.returncode == 0, f"PowerShell route helper failed:\n{result.stdout}\n{result.stderr}"
+        return json.loads(result.stdout.strip().splitlines()[-1])
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def _run_raw_route_fixture(
+    tmp_path,
+    *,
+    status=200,
+    body=b"raw public bytes",
+    delay_seconds=0,
+    declared_length=None,
+    location=None,
+    timeout_seconds=None,
+):
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802 - stdlib handler contract
+            if delay_seconds:
+                time.sleep(delay_seconds)
+            try:
+                self.send_response(status)
+                if location is not None:
+                    self.send_header("Location", location)
+                if declared_length is not None:
+                    self.send_header("Content-Length", str(declared_length))
+                elif status == 200:
+                    self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                if body:
+                    self.wfile.write(body)
+                    self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                # The bounded-timeout case intentionally closes the client
+                # before this delayed fixture writes its response.
+                return
+
+        def log_message(self, *_args):
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    raw_file = tmp_path / "raw-fixture.bin"
+    raw_file.write_bytes(body)
+    expected_hash = hashlib.sha256(body).hexdigest()
+    timeout_arg = "" if timeout_seconds is None else f" -TimeoutSeconds {timeout_seconds}"
+    try:
+        body_ps = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+Test-PublicRawStaticRoute -Url {_ps_quote(f'http://127.0.0.1:{server.server_port}/raw')} -Path 'fixture.bin' -ExpectedHash '{expected_hash}'{timeout_arg} | ConvertTo-Json -Compress
+"""
+        result = _run_powershell(tmp_path, body_ps)
+        assert result.returncode == 0, f"raw fixture helper failed:\n{result.stdout}\n{result.stderr}"
         return json.loads(result.stdout.strip().splitlines()[-1])
     finally:
         server.shutdown()
@@ -807,6 +864,61 @@ $fail = Test-PublicRawStaticRoute -Url 'http://127.0.0.1:__PORT__/raw' -Path 'i1
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+
+
+def test_public_verification_timeout_policy_is_explicit_and_shared(tmp_path):
+    deploy = _read(DEPLOY_SCRIPT)
+    rollback = _read(ROLLBACK_SCRIPT)
+    tooling = _read(PSM1)
+    assert "$PublicVerificationRequestTimeoutSeconds = Get-StaticPublicVerificationRequestTimeoutSeconds" in deploy
+    assert "$PublicVerificationAttempts = 1" in deploy
+    assert "Get-StaticPublicVerificationRequestTimeoutSeconds" in rollback
+    assert "function Get-StaticPublicVerificationRequestTimeoutSeconds" in tooling
+    result = _run_powershell(
+        tmp_path,
+        f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+[ordered]@{{ timeout = Get-StaticPublicVerificationRequestTimeoutSeconds; deadline = Get-StaticPublicVerificationDeadlineSeconds -FileCount 2011 -Concurrency 8 -RequestTimeoutSeconds (Get-StaticPublicVerificationRequestTimeoutSeconds) -AttemptCount 1 }} | ConvertTo-Json -Compress
+""",
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload == {"timeout": 60, "deadline": 7200}
+
+
+def test_slow_valid_public_asset_within_new_bound_passes(tmp_path):
+    # A 16-second first-byte delay reproduces the observed >15s false-negative
+    # while remaining comfortably inside the new hard 60-second bound.
+    result = _run_raw_route_fixture(tmp_path, delay_seconds=16)
+    assert result["status"] == "passed"
+    assert result["sha256_match"] is True
+
+
+def test_public_timeout_beyond_explicit_bound_fails_closed(tmp_path):
+    result = _run_raw_route_fixture(tmp_path, delay_seconds=2, timeout_seconds=1)
+    assert result["status"] != "passed"
+    assert result["status"] in {"request_timeout", "transport_failure", "unexpected_exception"}
+
+
+@pytest.mark.parametrize("status", [404, 500])
+def test_raw_public_http_failure_fails_closed(status, tmp_path):
+    result = _run_raw_route_fixture(tmp_path, status=status)
+    assert result["status"] in {"http_non_200", "unexpected_redirect"}
+    assert result["status"] != "passed"
+
+
+def test_raw_public_unauthorized_redirect_fails_closed(tmp_path):
+    result = _run_raw_route_fixture(tmp_path, status=302, location="/login")
+    assert result["status"] == "unexpected_redirect"
+
+
+def test_raw_public_truncated_response_fails_closed(tmp_path):
+    result = _run_raw_route_fixture(
+        tmp_path,
+        body=b"short",
+        declared_length=32,
+    )
+    assert result["status"] != "passed"
 
 
 def test_static_verifiers_use_canonical_route_helper_for_inventory():

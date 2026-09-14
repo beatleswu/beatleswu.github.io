@@ -185,8 +185,8 @@ $RemoteHealthPollTimeoutSeconds = 20
 $RemoteDirectoryBatchTimeoutSeconds = 30
 $ScpUploadTimeoutSeconds = 90
 $PublicVerificationConcurrency = 8
-$PublicVerificationRequestTimeoutSeconds = 15
-$PublicVerificationAttempts = 1 # initial request plus configured retries; retries are currently zero
+$PublicVerificationRequestTimeoutSeconds = Get-StaticPublicVerificationRequestTimeoutSeconds
+$PublicVerificationAttempts = 1 # initial request only; retries remain disabled
 $PublicVerificationDeadlineSeconds = Get-StaticPublicVerificationDeadlineSeconds `
     -FileCount @($manifest.files).Count `
     -Concurrency $PublicVerificationConcurrency `

@@ -1634,6 +1634,18 @@ function Get-StaticPublicVerificationDeadlineSeconds {
     return [int][Math]::Ceiling($computed)
 }
 
+function Get-StaticPublicVerificationRequestTimeoutSeconds {
+    <#
+    Evidence-based allowance for one public static request/read.  The prior
+    15-second bound produced false negatives for legitimate cold-cache and
+    slow transport reads; two independent full verification runs timed out on
+    different assets and later longer probes proved those bytes exact.  This
+    remains a per-request hard bound: a request that exceeds it still fails
+    closed, and no retry or hash check is bypassed.
+    #>
+    return 60
+}
+
 function Get-ArchiveTransferTimeoutSeconds {
     <#
     .SYNOPSIS
@@ -2197,6 +2209,51 @@ function ConvertFrom-FramedJsonRecord {
     return $payload
 }
 
+function Assert-ReadinessReportSatisfiesGate {
+    <#
+    Validate the mandatory portion of the runtime-readiness contract without
+    requiring the optional questions sub-report.  Older production images
+    include `questions: null` because the readiness helper predates the
+    questions detail; rollback separately validates the corpus itself.  A
+    null/malformed/unhealthy top-level report still fails closed.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][object]$ReadinessReport,
+        [string]$Context = 'Runtime readiness'
+    )
+
+    if ($null -eq $ReadinessReport) {
+        throw "$Context is null."
+    }
+
+    $propertyNames = @($ReadinessReport.PSObject.Properties.Name)
+    if ($ReadinessReport -is [System.Collections.IDictionary]) {
+        $propertyNames = @($propertyNames + @($ReadinessReport.Keys)) | Select-Object -Unique
+    }
+    foreach ($propertyName in @('ok', 'app', 'database', 'static_root', 'shadow_events', 'failures')) {
+        if ($propertyNames -notcontains $propertyName) {
+            throw "$Context is missing required field '$propertyName'."
+        }
+    }
+    if ($ReadinessReport.ok -isnot [bool]) {
+        throw "$Context has an invalid 'ok' field; expected boolean."
+    }
+    if ($ReadinessReport.ok -ne $true) {
+        throw "$Context explicitly reports unhealthy state."
+    }
+    foreach ($propertyName in @('app', 'database', 'static_root', 'shadow_events')) {
+        if ($null -eq $ReadinessReport.$propertyName -or $ReadinessReport.$propertyName -isnot [psobject]) {
+            throw "$Context has an invalid '$propertyName' field; expected object."
+        }
+    }
+    if ($null -eq $ReadinessReport.failures -or $ReadinessReport.failures -isnot [System.Array]) {
+        throw "$Context has an invalid 'failures' field; expected array."
+    }
+    if (@($ReadinessReport.failures).Count -gt 0) {
+        throw "$Context reports readiness failures."
+    }
+}
+
 function Get-RemoteStandardOutput {
     param([Parameter(Mandatory = $true)]$Result)
     # Invoke-BoundedNativeCommand and Invoke-RemoteShellCommand return
@@ -2432,7 +2489,7 @@ function Test-PublicAuthenticatedRoute {
         [Parameter(Mandatory = $true)][string]$Path,
         [int]$ExpectedRedirectStatus = 302,
         [string]$ExpectedRedirectPath = '/login',
-        [int]$TimeoutSeconds = 15
+        [int]$TimeoutSeconds = (Get-StaticPublicVerificationRequestTimeoutSeconds)
     )
     $response = $null
     try {
@@ -2518,7 +2575,7 @@ function Test-PublicRawStaticRoute {
         [Parameter(Mandatory = $true)][string]$Url,
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)][string]$ExpectedHash,
-        [int]$TimeoutSeconds = 15
+        [int]$TimeoutSeconds = (Get-StaticPublicVerificationRequestTimeoutSeconds)
     )
     $response = $null
     $stream = $null
@@ -3262,6 +3319,7 @@ Export-ModuleMember -Function @(
     'ConvertFrom-NestedPowerShellJson',
     'ConvertFrom-FramedJsonRecord',
     'ConvertTo-FramedJsonRecord',
+    'Assert-ReadinessReportSatisfiesGate',
     'Get-RemoteStandardOutput',
     'ConvertTo-Utf8NoBomLfBytes',
     'Ensure-Directory',
@@ -3330,6 +3388,7 @@ Export-ModuleMember -Function @(
     'New-RemoteBatchShaVerificationScript',
     'Get-BatchVerificationTimeoutSeconds',
     'Get-StaticPublicVerificationDeadlineSeconds',
+    'Get-StaticPublicVerificationRequestTimeoutSeconds',
     'Get-ArchiveTransferTimeoutSeconds',
     'New-DeterministicStaticArchive',
     'Test-GnuTarExecutableCapability',

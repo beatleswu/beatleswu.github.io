@@ -523,10 +523,18 @@ if ($appAfter.health -ne 'healthy') {
 }
 
 $appReadinessReport = Get-AppReadinessGateReport -ContainerName $layout.app_service_name
-if ($appReadinessReport.readiness_mode -eq 'helper' -and $appReadinessReport.readiness.ok -ne $true) {
-    throw "App runtime readiness check failed after rollback."
+if ($appReadinessReport.readiness_mode -eq 'helper') {
+    Assert-ReadinessReportSatisfiesGate `
+        -ReadinessReport $appReadinessReport.readiness `
+        -Context 'App runtime readiness after rollback'
 }
-Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questions
+# A legacy helper may legitimately return questions = null.  The full
+# read-only corpus identity check immediately below remains mandatory and is
+# the authority for the questions dataset; only skip the duplicate detail
+# assertion when the optional helper sub-report is absent.
+if ($null -ne $appReadinessReport.questions) {
+    Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questions
+}
 Assert-RollbackCorpusIdentity -QuestionsReport (Get-RemoteQuestionsReport -ContainerName $layout.app_service_name -QuestionsPath $rollbackQuestionsPath)
 
 $null = Invoke-RemoteText $rollbackSchedulerCommand

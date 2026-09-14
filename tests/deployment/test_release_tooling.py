@@ -624,6 +624,65 @@ def test_preflight_uses_helper_when_runtime_helper_is_available(tmp_path):
     assert report["questions"]["record_count"] == 321
 
 
+def test_rollback_readiness_accepts_legacy_null_questions_but_rejects_unsafe_shapes(tmp_path):
+    module_path = str(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1").replace("'", "''")
+    body = f"""
+Import-Module '{module_path}' -Force -DisableNameChecking
+function New-Readiness([object]$questions) {{
+    [pscustomobject]@{{
+        ok = $true
+        app = [pscustomobject]@{{ git_sha = 'a' * 40; image_revision = 'a' * 40 }}
+        questions = $questions
+        database = [pscustomobject]@{{ reachable = $true }}
+        static_root = [pscustomobject]@{{ exists = $true; readable = $true }}
+        shadow_events = [pscustomobject]@{{ exists = $true; writable_or_valid = $true }}
+        failures = @()
+    }}
+}}
+$validNull = New-Readiness $null
+$validQuestions = New-Readiness ([pscustomobject]@{{ exists = $true; readable = $true; parseable = $true; record_count_ok = $true; record_count = 1; structural_record_check = $true }})
+$missingRequired = [pscustomobject]@{{ ok = $true; app = [pscustomobject]@{{}}; static_root = [pscustomobject]@{{}}; shadow_events = [pscustomobject]@{{}}; failures = @() }}
+$unhealthy = New-Readiness $null
+$unhealthy.ok = $false
+$results = [ordered]@{{}}
+foreach ($case in @(
+    [pscustomobject]@{{ name = 'legacy_null'; value = $validNull; expected = 'PASS' }},
+    [pscustomobject]@{{ name = 'present_valid'; value = $validQuestions; expected = 'PASS' }},
+    [pscustomobject]@{{ name = 'missing_required'; value = $missingRequired; expected = 'FAIL' }},
+    [pscustomobject]@{{ name = 'explicit_unhealthy'; value = $unhealthy; expected = 'FAIL' }},
+    [pscustomobject]@{{ name = 'null_entire'; value = $null; expected = 'FAIL' }}
+)) {{
+    try {{ Assert-ReadinessReportSatisfiesGate -ReadinessReport $case.value -Context $case.name | Out-Null; $actual = 'PASS' }}
+    catch {{ $actual = 'FAIL' }}
+    $results[$case.name] = $actual
+}}
+try {{ ConvertFrom-FramedJsonRecord -Output '__GO_ODYSSEY_READINESS_V1__:not-base64' -Prefix '__GO_ODYSSEY_READINESS_V1__:' -Context 'malformed' | Out-Null; $results.malformed = 'PASS' }}
+catch {{ $results.malformed = 'FAIL' }}
+$results | ConvertTo-Json -Compress
+"""
+    result = run_module_probe(tmp_path, body)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout.strip().splitlines()[-1]) == {
+        "legacy_null": "PASS",
+        "present_valid": "PASS",
+        "missing_required": "FAIL",
+        "explicit_unhealthy": "FAIL",
+        "null_entire": "FAIL",
+        "malformed": "FAIL",
+    }
+
+
+def test_rollback_readiness_preserves_full_corpus_gate_when_questions_detail_is_null():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
+    assert "Assert-ReadinessReportSatisfiesGate" in content
+    assert "-RequiredProperties @('ok','app','questions','database','static_root','shadow_events','failures')" in content
+    optional_gate = "if ($null -ne $appReadinessReport.questions)"
+    corpus_gate = "Assert-RollbackCorpusIdentity -QuestionsReport (Get-RemoteQuestionsReport"
+    assert optional_gate in content
+    assert content.index(optional_gate) < content.index(corpus_gate)
+    assert "QuestionsReport = null" not in content
+
+
 def test_preflight_full_static_manifest_requires_complete_observation(tmp_path):
     payload = make_fake_preflight_responses()
     payload["responses"]["static_current_manifest_files"] = {
