@@ -37,11 +37,13 @@ $archivePath = if ($ReleaseArchive) {
 }
 $artifactBaseName = Get-ReleaseArtifactBaseName -GitSha $ExpectedGitSha
 $composeFilePath = Resolve-RepoPath 'docker-compose.release.yml'
+$equipmentEnableOverridePath = Resolve-RepoPath 'docker-compose.release.equipment-enable.override.yml'
 $healthcheckOverridePath = Join-Path ([System.IO.Path]::GetTempPath()) ("docker-compose.release.healthcheck.{0}.yml" -f $artifactBaseName)
-# EQ-F R5: the canonical release compose file is the complete, tracked
-# Shop/Equipment product-flag authority. Every governed compose resolution
-# and --force-recreate below uses that file directly; no operator-supplied
-# product-flags sidecar is required or accepted.
+# The canonical release compose file retains the fail-closed Equipment
+# default. Production app recreation must explicitly layer the tracked,
+# app-only enable override so the authorized live state survives replacement.
+# The scheduler remains on the base release compose because it is not an
+# Equipment semantic consumer.
 $nginxConfigPath = Resolve-RepoPath 'nginx\default.conf'
 $deploymentRecordPath = Join-Path (Split-Path -Parent $manifestPath) ("{0}.deployment.json" -f $artifactBaseName)
 # RELEASE-TOOLING-HOTFIX-05: bound for the small config/manifest/record
@@ -420,6 +422,13 @@ for env in config.get("Env") or []:
     key, _, value = env.partition("=")
     if key and key != "HOSTNAME":
         env_map[key] = value
+
+# The canary is an app-only candidate, so it must exercise the same governed
+# product flags as the eventual app recreation rather than inheriting hidden
+# state from the source container. Direct Apply remains explicitly disabled.
+env_map["CANONICAL_COIN_SHOP_PURCHASE_ENABLED"] = "true"
+env_map["EQUIPMENT_CANONICAL_LOADOUT_ENABLED"] = "true"
+env_map["GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED"] = "false"
 
 volume_lines = []
 volume_defs = []
@@ -1414,6 +1423,7 @@ $remoteArchivePath = Join-RemotePath $layout.remote_release_staging_directory ([
 $remoteManifestPath = Join-RemotePath $layout.remote_release_staging_directory ([IO.Path]::GetFileName($manifestPath))
 $remoteComposePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'
 $remoteHealthcheckOverridePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.healthcheck.override.yml'
+$remoteEquipmentEnableOverridePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.equipment-enable.override.yml'
 $remoteNginxPath = Join-RemotePath (Join-RemotePath $layout.compose_directory 'nginx') 'default.conf'
 $remoteDeploymentRecordPath = Join-RemotePath $layout.remote_release_staging_directory ([IO.Path]::GetFileName($deploymentRecordPath))
 $remoteArchiveSha = ''
@@ -1454,6 +1464,13 @@ try {
     # than a guessed constant.
     Invoke-BoundedReleaseUpload -LocalPath $composeFilePath -RemotePath $remoteComposePath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'docker-compose.release.yml' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $healthcheckOverridePath -RemotePath $remoteHealthcheckOverridePath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'docker-compose.release.healthcheck.override.yml' | Out-Null
+    $equipmentOverrideUpload = @{
+        LocalPath = $equipmentEnableOverridePath
+        RemotePath = $remoteEquipmentEnableOverridePath
+        TimeoutSeconds = $SmallFileUploadTimeoutSeconds
+        Description = 'docker-compose.release.equipment-enable.override.yml'
+    }
+    Invoke-BoundedReleaseUpload @equipmentOverrideUpload | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $nginxConfigPath -RemotePath $remoteNginxPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'nginx/default.conf' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $manifestPath -RemotePath $remoteManifestPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'the release manifest' | Out-Null
     Invoke-BoundedReleaseUpload -LocalPath $archivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveUploadTimeoutSeconds -Description 'the release archive' | Out-Null
@@ -1621,7 +1638,7 @@ try {
     }
 
     $rollbackRequired = $true
-    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
+    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteEquipmentEnableOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
 
     $appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {

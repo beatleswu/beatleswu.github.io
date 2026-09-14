@@ -2288,7 +2288,8 @@ function Resolve-StaticPublicRoute {
     path.  `inventory.html` is the source/package filename; Flask serves it
     through `/inventory` (or `/inventory?e10=1` when the E10 ownership
     contract is being exercised), so the filename must never be used as the
-    public verification route.
+    public verification route. `item_journal.html` is likewise served by the
+    authenticated Flask `/item-journal` route.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$RelativePath,
@@ -2299,6 +2300,9 @@ function Resolve-StaticPublicRoute {
         if ($E10Context) { return '/inventory?e10=1' }
         return '/inventory'
     }
+    if ($normalized -eq 'item_journal.html') {
+        return '/item-journal'
+    }
     return "/$normalized"
 }
 
@@ -2308,6 +2312,7 @@ function Get-StaticPublicVerificationPlan {
     manifest entry.  Most entries are raw public bytes.  inventory.html is
     intentionally served by the authenticated Flask /inventory route, so it
     must be verified as an auth redirect rather than by hashing /login.
+    item_journal.html follows the same contract through /item-journal.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$RelativePath,
@@ -2315,7 +2320,7 @@ function Get-StaticPublicVerificationPlan {
     )
     $normalized = $RelativePath.Replace('\\', '/').TrimStart('/')
     $route = Resolve-StaticPublicRoute -RelativePath $normalized -E10Context:$E10Context
-    if ($normalized -eq 'inventory.html') {
+    if ($normalized -in @('inventory.html', 'item_journal.html')) {
         return [pscustomobject]@{
             path = $normalized
             route = $route

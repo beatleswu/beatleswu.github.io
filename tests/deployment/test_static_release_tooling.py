@@ -218,16 +218,22 @@ def _run_powershell(tmp_path, body):
     )
 
 
-def _run_route_fixture(tmp_path, inventory_status=302, inventory_location="/login"):
+def _run_route_fixture(
+    tmp_path,
+    inventory_status=302,
+    inventory_location="/login",
+    route_path="/inventory",
+    manifest_path="inventory.html",
+):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802 - stdlib handler contract
-            if self.path.startswith("/inventory"):
+            if self.path.startswith(route_path):
                 self.send_response(inventory_status)
                 if inventory_location is not None:
                     self.send_header("Location", inventory_location)
                 self.end_headers()
                 if inventory_status == 200:
-                    self.wfile.write(b"unexpected inventory body")
+                    self.wfile.write(b"unexpected authenticated body")
                 return
             if self.path.startswith("/login"):
                 body = b"login page body"
@@ -253,7 +259,7 @@ def _run_route_fixture(tmp_path, inventory_status=302, inventory_location="/logi
     try:
         body = f"""
 Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
-Test-PublicAuthenticatedRoute -Url {_ps_quote(f'http://127.0.0.1:{server.server_port}/inventory')} -Path 'inventory.html' | ConvertTo-Json -Compress
+Test-PublicAuthenticatedRoute -Url {_ps_quote(f'http://127.0.0.1:{server.server_port}{route_path}')} -Path {_ps_quote(manifest_path)} | ConvertTo-Json -Compress
 """
         result = _run_powershell(tmp_path, body)
         assert result.returncode == 0, f"PowerShell route helper failed:\n{result.stdout}\n{result.stderr}"
@@ -674,6 +680,7 @@ Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
 [ordered]@{{
     generic = Resolve-StaticPublicRoute -RelativePath 'inventory.html'
     e10 = Resolve-StaticPublicRoute -RelativePath 'inventory.html' -E10Context
+    item_journal = Resolve-StaticPublicRoute -RelativePath 'item_journal.html'
     javascript = Resolve-StaticPublicRoute -RelativePath 'site-nav.js'
 }} | ConvertTo-Json -Compress
 """
@@ -682,6 +689,7 @@ Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
     assert json.loads(result.stdout) == {
         "generic": "/inventory",
         "e10": "/inventory?e10=1",
+        "item_journal": "/item-journal",
         "javascript": "/site-nav.js",
     }
 
@@ -691,6 +699,7 @@ def test_inventory_verification_plan_is_authenticated_route_not_raw_bytes(tmp_pa
 Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
 [ordered]@{{
     inventory = Get-StaticPublicVerificationPlan -RelativePath 'inventory.html'
+    item_journal = Get-StaticPublicVerificationPlan -RelativePath 'item_journal.html'
     javascript = Get-StaticPublicVerificationPlan -RelativePath 'i18n.js'
 }} | ConvertTo-Json -Compress
 """
@@ -700,6 +709,10 @@ Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
     assert payload["inventory"]["verification_mode"] == "AUTHENTICATED_ROUTE"
     assert payload["inventory"]["route"] == "/inventory"
     assert payload["inventory"]["expected_redirect_path"] == "/login"
+    assert payload["item_journal"]["verification_mode"] == "AUTHENTICATED_ROUTE"
+    assert payload["item_journal"]["route"] == "/item-journal"
+    assert payload["item_journal"]["expected_redirect_status"] == 302
+    assert payload["item_journal"]["expected_redirect_path"] == "/login"
     assert payload["javascript"]["verification_mode"] == "RAW_PUBLIC_BYTES"
 
 
@@ -723,6 +736,32 @@ def test_authenticated_inventory_unexpected_unauthenticated_200_fails_closed(tmp
     result = _run_route_fixture(tmp_path, inventory_status=200, inventory_location=None)
     assert result["status"] == "unexpected_auth_status"
     assert result["http_status"] == 200
+    assert result["login_body_hashed"] is False
+
+
+def test_authenticated_item_journal_redirect_is_verified_without_hashing_login_body(tmp_path):
+    result = _run_route_fixture(
+        tmp_path,
+        route_path="/item-journal",
+        manifest_path="item_journal.html",
+    )
+    assert result["status"] == "passed"
+    assert result["verification_mode"] == "AUTHENTICATED_ROUTE"
+    assert result["http_status"] == 302
+    assert result["redirect_path"] == "/login"
+    assert result["authenticated_route_verified"] is True
+    assert result["login_body_hashed"] is False
+
+
+def test_authenticated_item_journal_unexpected_redirect_fails_closed(tmp_path):
+    result = _run_route_fixture(
+        tmp_path,
+        inventory_location="/other",
+        route_path="/item-journal",
+        manifest_path="item_journal.html",
+    )
+    assert result["status"] == "unexpected_redirect"
+    assert result["redirect_path"] == "/other"
     assert result["login_body_hashed"] is False
 
 
@@ -773,6 +812,7 @@ $fail = Test-PublicRawStaticRoute -Url 'http://127.0.0.1:__PORT__/raw' -Path 'i1
 def test_static_verifiers_use_canonical_route_helper_for_inventory():
     deploy = _read(DEPLOY_SCRIPT)
     rollback = _read(ROLLBACK_SCRIPT)
+    tooling = _read(PSM1)
     assert "Resolve-StaticPublicRoute -RelativePath" in deploy
     assert "Get-StaticPublicVerificationPlan" in deploy
     assert "Get-StaticPublicVerificationPlan" in rollback
@@ -786,6 +826,8 @@ def test_static_verifiers_use_canonical_route_helper_for_inventory():
     assert "container-internal inventory.html hash" in deploy
     assert "Mounted inventory.html hash" in rollback
     assert '"$publicBase/$($entry.path)"' not in rollback
+    assert "item_journal.html" in tooling
+    assert "'/item-journal'" in tooling
 
 
 def test_inventory_source_filename_is_not_an_application_public_route():

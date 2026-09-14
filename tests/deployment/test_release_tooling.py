@@ -886,14 +886,33 @@ def test_deploy_script_orders_release_mutations_safely():
         "$candidateHealthcheckTest = @($candidateCanary.healthcheck_test | ConvertFrom-Json)",
         "$candidateReadinessReport = Get-AppReadinessGateReport -ContainerName $candidateContainerName -UseContainerHttp",
         "if ($candidateReadinessReport.healthz_status -ne '200'",
-        # EQ-F R5 makes docker-compose.release.yml itself the explicit
-        # Shop/Equipment authority. The governed force-recreate commands use
-        # that canonical file directly; no optional sidecar is required.
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteEquipmentEnableOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
         'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
         "Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path",
     )
+    app_recreate = content.split("--force-recreate $appComposeService", 1)[0].splitlines()[-1]
+    scheduler_recreate = content.split("--force-recreate $schedulerComposeService", 1)[0].splitlines()[-1]
+    assert "remoteEquipmentEnableOverridePath" in app_recreate
+    assert "remoteEquipmentEnableOverridePath" not in scheduler_recreate
+
+
+def test_deploy_and_rollback_preserve_app_product_flags():
+    deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    rollback = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
+    for content in (deploy, rollback):
+        assert "docker-compose.release.equipment-enable.override.yml" in content
+    assert "CANONICAL_COIN_PURCHASE_ENABLED" not in deploy
+    assert 'env_map["CANONICAL_COIN_SHOP_PURCHASE_ENABLED"] = "true"' in deploy
+    assert 'env_map["EQUIPMENT_CANONICAL_LOADOUT_ENABLED"] = "true"' in deploy
+    assert 'env_map["GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED"] = "false"' in deploy
+    assert "-f $(Quote-PosixShellArgument $equipmentEnableOverrideFile)" in rollback
+    rollback_app = rollback.split("$rollbackSchedulerCommand = ", 1)[0]
+    assert "equipmentEnableOverrideFile" in rollback_app
+    rollback_scheduler = rollback.split("$rollbackSchedulerCommand = ", 1)[1].split(
+        "\n\n$null = Invoke-RemoteText $rollbackAppCommand", 1
+    )[0]
+    assert "equipmentEnableOverrideFile" not in rollback_scheduler
 
 
 def test_deploy_script_uses_operation_specific_timeout_for_remote_docker_load():
@@ -1016,7 +1035,8 @@ def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
         "verify-production-release.ps1",
         "compose_config_files",
         "compose_working_dir",
-        "docker compose $composeProjectArg $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate",
+        "docker compose $composeProjectArg $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile)",
+        "-f $(Quote-PosixShellArgument $equipmentEnableOverrideFile) up -d --no-build --no-deps --force-recreate",
         "image ID does not match the rollback image ID",
     ):
         assert token in content

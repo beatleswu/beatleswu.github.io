@@ -479,21 +479,31 @@ Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerific
 # docker-compose.prod.yml provenance found in the 2026-07-14 incident)
 # cannot be perpetuated by a rollback instead of corrected.
 $rollbackComposeWorkingDir = $layout.compose_directory
-# EQ-F R5: docker-compose.release.yml is self-contained release authority for
-# Shop=true and Equipment=false. Rollback must use this canonical file directly
-# and must not depend on an optional operator-side flag override.
+# The canonical release compose file retains the fail-closed Equipment
+# default. Rollback app recreation must explicitly layer the tracked,
+# app-only enable override so the authorized live state is restored. The
+# scheduler remains on the base release compose because it is not an
+# Equipment semantic consumer.
 $localCanonicalComposeFile = Resolve-RepoPath 'docker-compose.release.yml'
 $canonicalComposeFile = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'
+$localEquipmentEnableOverrideFile = Resolve-RepoPath 'docker-compose.release.equipment-enable.override.yml'
+$equipmentEnableOverrideFile = Join-RemotePath $layout.compose_directory 'docker-compose.release.equipment-enable.override.yml'
 $null = Invoke-BoundedScpUpload `
     -SshAlias $layout.ssh_alias `
     -LocalPath $localCanonicalComposeFile `
     -RemotePath $canonicalComposeFile `
     -TimeoutSeconds 120 `
     -OperationLabel 'upload_canonical_release_compose_for_rollback'
+$null = Invoke-BoundedScpUpload `
+    -SshAlias $layout.ssh_alias `
+    -LocalPath $localEquipmentEnableOverrideFile `
+    -RemotePath $equipmentEnableOverrideFile `
+    -TimeoutSeconds 120 `
+    -OperationLabel 'upload_equipment_enable_override_for_rollback'
 $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -QuestionsVolumeName $questionsVolumeName
 $composeProjectArg = "-p $(Quote-PosixShellArgument $layout.compose_project)"
 $composeEnvFileArg = "--env-file $(Quote-PosixShellArgument $layout.production_env_path)"
-$rollbackAppCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate $appComposeService"
+$rollbackAppCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) -f $(Quote-PosixShellArgument $equipmentEnableOverrideFile) up -d --no-build --no-deps --force-recreate $appComposeService"
 $rollbackSchedulerCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
 $null = Invoke-RemoteText $rollbackAppCommand
