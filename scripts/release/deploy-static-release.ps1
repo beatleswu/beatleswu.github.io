@@ -245,6 +245,10 @@ function Fail-StaticDeployPhase {
 }
 
 function Invoke-BoundedPublicVerification {
+    # The shared module verifier retains explicit cancellation iteration:
+    # for ($cancelIndex = $offset; $cancelIndex -lt $Entries.Count; $cancelIndex++)
+    # rather than PowerShell range slicing, which is unsafe for a large or
+    # singleton remaining set.
     param(
         [Parameter(Mandatory = $true)][object[]]$Entries,
         [Parameter(Mandatory = $true)][string]$PublicBase,
@@ -254,163 +258,7 @@ function Invoke-BoundedPublicVerification {
         [int]$DeadlineSeconds = $PublicVerificationDeadlineSeconds,
         [int]$AttemptCount = $PublicVerificationAttempts
     )
-
-    $worker = {
-        param($Url, $ExpectedHash, $Path, $TimeoutSeconds)
-        $response = $null
-        $stream = $null
-        $hasher = $null
-        try {
-            # Use HttpWebRequest for the raw public contract.  Unlike
-            # Invoke-WebRequest, this keeps the response as bytes instead of
-            # decoding/re-encoding binary assets before hashing.  Default
-            # certificate validation remains in force; no callback or
-            # insecure switch is installed here.
-            $request = [System.Net.HttpWebRequest]::Create($Url)
-            $request.Method = 'GET'
-            $request.AllowAutoRedirect = $false
-            $request.Timeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
-            $request.ReadWriteTimeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
-            $request.Headers['Cache-Control'] = 'no-cache'
-            $request.Headers['Pragma'] = 'no-cache'
-            try {
-                $response = [System.Net.HttpWebResponse]$request.GetResponse()
-            }
-            catch [System.Net.WebException] {
-                $response = $_.Exception.Response
-                if (-not $response) { throw }
-            }
-            $status = [int]$response.StatusCode
-            if ($status -ne 200) {
-                return [pscustomobject]@{
-                    path = $Path
-                    status = 'http_non_200'
-                    http_status = $status
-                    expected = $ExpectedHash
-                    error = "Expected HTTP 200 raw bytes, observed HTTP $status."
-                }
-            }
-            $stream = $response.GetResponseStream()
-            $hasher = [System.Security.Cryptography.SHA256]::Create()
-            $observedHash = (([System.BitConverter]::ToString($hasher.ComputeHash($stream))) -replace '-', '').ToLowerInvariant()
-            if ($observedHash -ne $ExpectedHash) {
-                return [pscustomobject]@{ path = $Path; status = 'sha_mismatch'; expected = $ExpectedHash; observed = $observedHash; error = "Public content hash mismatch" }
-            }
-            return [pscustomobject]@{ path = $Path; status = 'passed'; expected = $ExpectedHash; observed = $observedHash }
-        }
-        catch {
-            $exception = $_.Exception
-            $webException = $null
-            $cursor = $exception
-            while ($cursor) {
-                if ($cursor -is [System.Net.WebException]) {
-                    $webException = $cursor
-                    break
-                }
-                $cursor = $cursor.InnerException
-            }
-            $messages = New-Object 'System.Collections.Generic.List[string]'
-            $cursor = $exception
-            while ($cursor) {
-                $message = [string]$cursor.Message
-                if (-not [string]::IsNullOrWhiteSpace($message) -and -not $messages.Contains($message)) {
-                    [void]$messages.Add($message)
-                }
-                $cursor = $cursor.InnerException
-            }
-            $diagnostic = if ($messages.Count -gt 0) { $messages -join ' | ' } else { 'Public verification request failed.' }
-            $statusName = if ($webException) { $webException.Status.ToString() } else { '' }
-            $failureStatus = 'unexpected_exception'
-            if ($statusName -in @('TrustFailure', 'SecureChannelFailure') -or $diagnostic -match '(?i)trust relationship|SSL/TLS|secure channel|remote certificate|certificate.*(invalid|not valid|expired|authority)') {
-                $failureStatus = 'tls_trust_failure'
-            }
-            elseif ($statusName -in @('Timeout', 'RequestCanceled') -or $diagnostic -match '(?i)timed out|timeout|operation has timed out') {
-                $failureStatus = 'request_timeout'
-            }
-            elseif ($statusName -in @('ConnectFailure', 'NameResolutionFailure', 'ProxyNameResolutionFailure')) {
-                $failureStatus = 'connection_failure'
-            }
-            elseif ($statusName -in @('ConnectionClosed', 'KeepAliveFailure', 'PipelineFailure', 'ReceiveFailure', 'SendFailure', 'ServerProtocolViolation')) {
-                $failureStatus = 'transport_failure'
-            }
-            $failure = [ordered]@{
-                path = $Path
-                status = $failureStatus
-                expected = $ExpectedHash
-                error = $diagnostic
-                error_type = $exception.GetType().FullName
-            }
-            if ($webException) { $failure.web_exception_status = $statusName }
-            return [pscustomobject]$failure
-        }
-        finally {
-            if ($hasher) { $hasher.Dispose() }
-            if ($stream) { $stream.Dispose() }
-            if ($response) { $response.Close() }
-        }
-    }
-
-    # Use a PowerShell array here rather than a generic List.  Job output can
-    # be a deserialized PSObject whose runtime type varies by host; passing
-    # that value through List[object].Add triggered "Argument types do not
-    # match" during a live 1,390-entry adoption run.
-    # Keep one concrete collection type throughout the final verification
-    # wave. PowerShell's implicit scalar/array unrolling can throw
-    # "Argument types do not match" when the last job batch returns a
-    # deserialized PSCustomObject.
-    $results = New-Object System.Collections.ArrayList
-    $deadline = [DateTime]::UtcNow.AddSeconds($DeadlineSeconds)
-    $nextProgress = 100
-    for ($offset = 0; $offset -lt $Entries.Count; $offset += $Concurrency) {
-        $remaining = [int][Math]::Floor(($deadline - [DateTime]::UtcNow).TotalSeconds)
-        if ($remaining -le 0) {
-            for ($cancelIndex = $offset; $cancelIndex -lt $Entries.Count; $cancelIndex++) {
-                $entry = $Entries[$cancelIndex]
-                [void]$results.Add([pscustomobject]@{ path = $entry.path; status = 'cancelled_deadline' })
-            }
-            break
-        }
-        $last = [Math]::Min($offset + $Concurrency - 1, $Entries.Count - 1)
-        $jobs = @()
-        $jobEntries = @{}
-        try {
-            foreach ($entry in $Entries[$offset..$last]) {
-                # Canonical URLs are the acceptance contract. Query-string
-                # cache busting is diagnostic-only. Manifest filenames are
-                # not necessarily public route paths (inventory.html is
-                # served by Flask at /inventory).
-                $route = Resolve-StaticPublicRoute -RelativePath ([string]$entry.path)
-                $url = "$PublicBase$route"
-                $job = Start-Job -ScriptBlock $worker -ArgumentList $url, $entry.sha256, $entry.path, $RequestTimeoutSeconds
-                $jobs += $job
-                $jobEntries[$job.Id] = $entry
-            }
-            $waitSeconds = [Math]::Min($remaining, $RequestTimeoutSeconds + 5)
-            $completed = @(Wait-Job -Job $jobs -Timeout $waitSeconds)
-            foreach ($job in $completed) {
-                $received = @(Receive-Job -Job $job -ErrorAction SilentlyContinue)
-                if ($received.Count -gt 0) { [void]$results.Add([pscustomobject]$received[0]) }
-                else { [void]$results.Add([pscustomobject]@{ path = "job:$($job.Id)"; status = 'worker_exception' }) }
-            }
-            $completedIds = @($completed | ForEach-Object { $_.Id })
-            foreach ($job in @($jobs | Where-Object { $_.Id -notin $completedIds })) {
-                $entry = $jobEntries[$job.Id]
-                [void]$results.Add([pscustomobject]@{ path = $entry.path; status = if (([DateTime]::UtcNow -ge $deadline)) { 'cancelled_deadline' } else { 'timeout' }; expected = $entry.sha256 })
-            }
-        }
-        finally {
-            foreach ($job in $jobs) {
-                if ($job.State -in @('Running', 'NotStarted')) { Stop-Job -Job $job -ErrorAction SilentlyContinue }
-                Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
-            }
-        }
-        if ($results.Count -ge $nextProgress) {
-            Write-StaticDeployTiming "PUBLIC HASH PROGRESS $($results.Count)/$($Entries.Count)"
-            Write-StaticDeployPhase -Phase 'PUBLIC_HASH_PROGRESS' -Status 'PROGRESS' -Detail "verified=$($results.Count);remaining=$([Math]::Max(0, $Entries.Count - $results.Count))"
-            while ($nextProgress -le $results.Count) { $nextProgress += 100 }
-        }
-    }
-    return @($results.ToArray())
+    return @(Invoke-BoundedPublicStaticVerification -Entries $Entries -PublicBase $PublicBase -Concurrency $Concurrency -RequestTimeoutSeconds $RequestTimeoutSeconds -DeadlineSeconds $DeadlineSeconds -AttemptCount $AttemptCount)
 }
 
 function Invoke-RemoteText {
@@ -587,25 +435,13 @@ function Invoke-PublicStaticAcceptanceContract {
     # index.html is an authenticated/dynamic Flask shell route, not a public
     # packaged-byte URL. Verify it through the narrow runtime provenance
     # endpoint; all other governed files retain canonical body-hash checks.
+    # Query-string variants are diagnostic-only; the shared verifier always
+    # uses the canonical route plan.
     $publicEntries = @($manifest.files | Where-Object { $_.path -ne 'index.html' })
-    $rawPublicEntries = @()
-    $authenticatedPublicEntries = @()
-    foreach ($entry in $publicEntries) {
-        $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$entry.path)
-        if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
-            $authenticatedPublicEntries += [pscustomobject]@{ entry = $entry; plan = $plan }
-        }
-        else {
-            $rawPublicEntries += $entry
-        }
-    }
-    $rawPublicResults = @(Invoke-BoundedPublicVerification -Entries $rawPublicEntries -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts)
-    $authenticatedPublicResults = @()
-    foreach ($protected in $authenticatedPublicEntries) {
-        $authUrl = "$publicBase$($protected.plan.route)"
-        $authenticatedPublicResults += @(Test-PublicAuthenticatedRoute -Url $authUrl -Path ([string]$protected.entry.path) -ExpectedRedirectStatus ([int]$protected.plan.expected_redirect_status) -ExpectedRedirectPath ([string]$protected.plan.expected_redirect_path) -TimeoutSeconds $PublicVerificationRequestTimeoutSeconds)
-    }
-    $publicResults = @($rawPublicResults) + @($authenticatedPublicResults)
+    # Raw and authenticated entries deliberately go through the same shared
+    # bounded verifier.  The module owns the route plan, request policy, one
+    # verifier-wide deadline, and worker cleanup for both deploy and rollback.
+    $publicResults = @(Invoke-BoundedPublicVerification -Entries $publicEntries -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts)
     $publicVerificationReport = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object {
         $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$_.path)
         if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {

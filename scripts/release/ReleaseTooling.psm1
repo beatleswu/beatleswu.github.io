@@ -2647,6 +2647,261 @@ function Test-PublicRawStaticRoute {
     }
 }
 
+function Invoke-BoundedPublicStaticVerification {
+    <#
+    Run the complete manifest-entry public verification contract with one
+    bounded worker pool and one verifier-wide deadline.  Deploy and rollback
+    intentionally call this same function so that request timeout, redirect,
+    raw-byte hashing, failure classification, deadline, and worker cleanup
+    cannot drift between the two release paths.
+
+    AttemptCount remains an explicit input for the deadline contract, but this
+    verifier performs exactly one request per entry.  A retry would make a
+    transport false negative harder to reason about and is not part of the
+    accepted release policy.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Entries,
+        [Parameter(Mandatory = $true)][string]$PublicBase,
+        [int]$Concurrency = 8,
+        [int]$RequestTimeoutSeconds = (Get-StaticPublicVerificationRequestTimeoutSeconds),
+        [int]$DeadlineSeconds = 0,
+        [int]$AttemptCount = 1,
+        [switch]$E10Context
+    )
+
+    if ($Concurrency -lt 1) { throw 'Public verification concurrency must be at least 1.' }
+    if ($RequestTimeoutSeconds -lt 1) { throw 'Public verification request timeout must be at least 1 second.' }
+    if ($AttemptCount -ne 1) { throw 'Public verification retries are disabled; AttemptCount must be 1.' }
+    if ($DeadlineSeconds -le 0) {
+        $DeadlineSeconds = Get-StaticPublicVerificationDeadlineSeconds -FileCount @($Entries).Count -Concurrency $Concurrency -RequestTimeoutSeconds $RequestTimeoutSeconds -AttemptCount $AttemptCount
+    }
+    if ($DeadlineSeconds -lt 1) { throw 'Public verification deadline must be finite and at least 1 second.' }
+
+    $worker = {
+        param($Url, $ExpectedHash, $Path, $VerificationMode, $ExpectedRedirectStatus, $ExpectedRedirectPath, $TimeoutSeconds)
+        $response = $null
+        $stream = $null
+        $hasher = $null
+        try {
+            # HttpWebRequest keeps the response as bytes.  Redirects remain
+            # disabled so a login page can never be followed and accepted as
+            # the governed public asset.
+            $request = [System.Net.HttpWebRequest]::Create($Url)
+            $request.Method = 'GET'
+            $request.AllowAutoRedirect = $false
+            $request.Timeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+            $request.ReadWriteTimeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+            $request.Headers['Cache-Control'] = 'no-cache'
+            $request.Headers['Pragma'] = 'no-cache'
+            try {
+                $response = [System.Net.HttpWebResponse]$request.GetResponse()
+            }
+            catch [System.Net.WebException] {
+                $response = $_.Exception.Response
+                if (-not $response) { throw }
+            }
+
+            $status = [int]$response.StatusCode
+            if ($VerificationMode -eq 'AUTHENTICATED_ROUTE') {
+                $location = [string]$response.Headers['Location']
+                if ($status -ne $ExpectedRedirectStatus) {
+                    return [pscustomobject]@{
+                        path = $Path
+                        status = 'unexpected_auth_status'
+                        verification_mode = $VerificationMode
+                        http_status = $status
+                        redirect_location = $location
+                        login_body_hashed = $false
+                        error = "Expected HTTP $ExpectedRedirectStatus authentication redirect, observed HTTP $status."
+                    }
+                }
+                if ([string]::IsNullOrWhiteSpace($location)) {
+                    return [pscustomobject]@{
+                        path = $Path
+                        status = 'unexpected_redirect'
+                        verification_mode = $VerificationMode
+                        http_status = $status
+                        redirect_location = $location
+                        login_body_hashed = $false
+                        error = 'Authentication response did not include a Location header.'
+                    }
+                }
+                $resolved = [System.Uri]::new([System.Uri]$Url, $location)
+                if ($resolved.AbsolutePath -ne $ExpectedRedirectPath) {
+                    return [pscustomobject]@{
+                        path = $Path
+                        status = 'unexpected_redirect'
+                        verification_mode = $VerificationMode
+                        http_status = $status
+                        redirect_location = $location
+                        redirect_path = $resolved.AbsolutePath
+                        login_body_hashed = $false
+                        error = "Expected redirect path '$ExpectedRedirectPath', observed '$($resolved.AbsolutePath)'."
+                    }
+                }
+                return [pscustomobject]@{
+                    path = $Path
+                    status = 'passed'
+                    verification_mode = $VerificationMode
+                    http_status = $status
+                    redirect_location = $location
+                    redirect_path = $resolved.AbsolutePath
+                    authenticated_route_verified = $true
+                    login_body_hashed = $false
+                }
+            }
+
+            if ($status -ne 200) {
+                return [pscustomobject]@{
+                    path = $Path
+                    status = if ($status -ge 300 -and $status -lt 400) { 'unexpected_redirect' } else { 'http_non_200' }
+                    verification_mode = 'RAW_PUBLIC_BYTES'
+                    http_status = $status
+                    expected = $ExpectedHash
+                    error = "Expected HTTP 200 raw bytes, observed HTTP $status."
+                }
+            }
+            $stream = $response.GetResponseStream()
+            $hasher = [System.Security.Cryptography.SHA256]::Create()
+            $observedHash = (([System.BitConverter]::ToString($hasher.ComputeHash($stream))) -replace '-', '').ToLowerInvariant()
+            if ($observedHash -ne $ExpectedHash) {
+                return [pscustomobject]@{
+                    path = $Path
+                    status = 'sha_mismatch'
+                    verification_mode = 'RAW_PUBLIC_BYTES'
+                    http_status = $status
+                    expected = $ExpectedHash
+                    observed = $observedHash
+                    error = 'Public content hash mismatch.'
+                }
+            }
+            return [pscustomobject]@{
+                path = $Path
+                status = 'passed'
+                verification_mode = 'RAW_PUBLIC_BYTES'
+                http_status = $status
+                expected = $ExpectedHash
+                observed = $observedHash
+                sha256_match = $true
+            }
+        }
+        catch {
+            $exception = $_.Exception
+            $webException = $null
+            $cursor = $exception
+            while ($cursor) {
+                if ($cursor -is [System.Net.WebException]) {
+                    $webException = $cursor
+                    break
+                }
+                $cursor = $cursor.InnerException
+            }
+            $messages = New-Object 'System.Collections.Generic.List[string]'
+            $cursor = $exception
+            while ($cursor) {
+                $message = [string]$cursor.Message
+                if (-not [string]::IsNullOrWhiteSpace($message) -and -not $messages.Contains($message)) {
+                    [void]$messages.Add($message)
+                }
+                $cursor = $cursor.InnerException
+            }
+            $diagnostic = if ($messages.Count -gt 0) { $messages -join ' | ' } else { 'Public verification request failed.' }
+            $statusName = if ($webException) { $webException.Status.ToString() } else { '' }
+            $failureStatus = 'unexpected_exception'
+            if ($statusName -in @('TrustFailure', 'SecureChannelFailure') -or $diagnostic -match '(?i)trust relationship|SSL/TLS|secure channel|remote certificate|certificate.*(invalid|not valid|expired|authority)') {
+                $failureStatus = 'tls_trust_failure'
+            }
+            elseif ($statusName -in @('Timeout', 'RequestCanceled') -or $diagnostic -match '(?i)timed out|timeout|operation has timed out') {
+                $failureStatus = 'request_timeout'
+            }
+            elseif ($statusName -in @('ConnectFailure', 'NameResolutionFailure', 'ProxyNameResolutionFailure')) {
+                $failureStatus = 'connection_failure'
+            }
+            elseif ($statusName -in @('ConnectionClosed', 'KeepAliveFailure', 'PipelineFailure', 'ReceiveFailure', 'SendFailure', 'ServerProtocolViolation')) {
+                $failureStatus = 'transport_failure'
+            }
+            elseif ($diagnostic -match '(?i)ConvertFrom-Json|invalid JSON|malformed.*(response|json)|expected.*JSON') {
+                $failureStatus = 'malformed_response'
+            }
+            $failure = [ordered]@{
+                path = $Path
+                status = $failureStatus
+                verification_mode = $VerificationMode
+                expected = $ExpectedHash
+                error = $diagnostic
+                error_type = $exception.GetType().FullName
+            }
+            if ($webException) { $failure.web_exception_status = $statusName }
+            if ($VerificationMode -eq 'AUTHENTICATED_ROUTE') { $failure.login_body_hashed = $false }
+            return [pscustomobject]$failure
+        }
+        finally {
+            if ($hasher) { $hasher.Dispose() }
+            if ($stream) { $stream.Dispose() }
+            if ($response) { $response.Close() }
+        }
+    }
+
+    $prepared = @()
+    foreach ($entry in @($Entries)) {
+        $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$entry.path) -E10Context:$E10Context
+        $prepared += [pscustomobject]@{
+            entry = $entry
+            path = [string]$entry.path
+            url = "$PublicBase$($plan.route)"
+            verification_mode = [string]$plan.verification_mode
+            expected_hash = [string]$entry.sha256
+            expected_redirect_status = $plan.expected_redirect_status
+            expected_redirect_path = $plan.expected_redirect_path
+        }
+    }
+
+    $results = New-Object System.Collections.ArrayList
+    $deadline = [DateTime]::UtcNow.AddSeconds($DeadlineSeconds)
+    for ($offset = 0; $offset -lt $prepared.Count; $offset += $Concurrency) {
+        $remaining = [int][Math]::Floor(($deadline - [DateTime]::UtcNow).TotalSeconds)
+        if ($remaining -le 0) {
+            for ($cancelIndex = $offset; $cancelIndex -lt $prepared.Count; $cancelIndex++) {
+                [void]$results.Add([pscustomobject]@{ path = $prepared[$cancelIndex].path; status = 'cancelled_deadline'; expected = $prepared[$cancelIndex].expected_hash })
+            }
+            break
+        }
+
+        $last = [Math]::Min($offset + $Concurrency - 1, $prepared.Count - 1)
+        $jobs = @()
+        $jobEntries = @{}
+        try {
+            foreach ($item in @($prepared[$offset..$last])) {
+                $job = Start-Job -ScriptBlock $worker -ArgumentList $item.url, $item.expected_hash, $item.path, $item.verification_mode, $item.expected_redirect_status, $item.expected_redirect_path, $RequestTimeoutSeconds
+                $jobs += $job
+                $jobEntries[$job.Id] = $item
+            }
+            $waitSeconds = [Math]::Min($remaining, $RequestTimeoutSeconds + 5)
+            $completed = @(Wait-Job -Job $jobs -Timeout $waitSeconds)
+            foreach ($job in $completed) {
+                $received = @(Receive-Job -Job $job -ErrorAction SilentlyContinue)
+                if ($received.Count -gt 0) { [void]$results.Add([pscustomobject]$received[0]) }
+                else { [void]$results.Add([pscustomobject]@{ path = "job:$($job.Id)"; status = 'worker_exception' }) }
+            }
+            $completedIds = @($completed | ForEach-Object { $_.Id })
+            foreach ($job in @($jobs | Where-Object { $_.Id -notin $completedIds })) {
+                $item = $jobEntries[$job.Id]
+                [void]$results.Add([pscustomobject]@{ path = $item.path; status = if (([DateTime]::UtcNow -ge $deadline)) { 'cancelled_deadline' } else { 'timeout' }; expected = $item.expected_hash })
+            }
+        }
+        finally {
+            # Every exit path, including timeout and content failure, owns and
+            # cleans its jobs.  No verifier worker may outlive this function.
+            foreach ($job in $jobs) {
+                if ($job.State -in @('Running', 'NotStarted')) { Stop-Job -Job $job -ErrorAction SilentlyContinue }
+                Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    return @($results.ToArray())
+}
+
 function Get-SwVersionFromText {
     <#
     .SYNOPSIS
@@ -3366,6 +3621,7 @@ Export-ModuleMember -Function @(
     'Get-PublicVerificationFailureRecord',
     'Test-PublicAuthenticatedRoute',
     'Test-PublicRawStaticRoute',
+    'Invoke-BoundedPublicStaticVerification',
     'Get-SwVersionFromText',
     'Get-SwAssetIdentityFromText',
     'Get-StaticReleaseAssetIdentity',

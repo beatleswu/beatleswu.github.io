@@ -87,48 +87,6 @@ function Get-PublicStaticReleaseProvenance {
     }
 }
 
-function Get-PublicFileSha256 {
-    param(
-        [Parameter(Mandatory = $true)][string]$Url,
-        [int]$TimeoutSeconds = (Get-StaticPublicVerificationRequestTimeoutSeconds)
-    )
-    $response = $null
-    $stream = $null
-    $hasher = $null
-    try {
-        # Keep rollback verification byte-preserving and bounded just like the
-        # normal deployment verifier.  Default TLS validation remains active.
-        $request = [System.Net.HttpWebRequest]::Create($Url)
-        $request.Method = 'GET'
-        $request.AllowAutoRedirect = $false
-        $request.Timeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
-        $request.ReadWriteTimeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
-        $request.Headers['Cache-Control'] = 'no-cache'
-        $request.Headers['Pragma'] = 'no-cache'
-        try {
-            $response = [System.Net.HttpWebResponse]$request.GetResponse()
-        }
-        catch [System.Net.WebException] {
-            $response = $_.Exception.Response
-            if (-not $response) { throw }
-        }
-        $status = [int]$response.StatusCode
-        if ($status -ne 200) { throw "HTTP status $status" }
-        $stream = $response.GetResponseStream()
-        $hasher = [System.Security.Cryptography.SHA256]::Create()
-        return ([System.BitConverter]::ToString($hasher.ComputeHash($stream)) -replace '-', '').ToLowerInvariant()
-    }
-    catch {
-        $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Url -VerificationMode 'RAW_PUBLIC_BYTES' -Response $response
-        throw "Could not fetch $Url for content verification [$($failure.status)]: $($failure.error)"
-    }
-    finally {
-        if ($hasher) { $hasher.Dispose() }
-        if ($stream) { $stream.Dispose() }
-        if ($response) { $response.Close() }
-    }
-}
-
 $existsCheck = Invoke-RemoteText "if [ -d $(Quote-PosixShellArgument $TargetGenerationPath) ]; then echo EXISTS; else echo ABSENT; fi"
 if ($existsCheck.Trim() -ne 'EXISTS') {
     throw "Target generation directory does not exist on the remote host: $TargetGenerationPath"
@@ -189,35 +147,48 @@ if ($targetInventoryEntry.Count -eq 1) {
     }
 }
 
-$publicVerification = @()
-foreach ($entry in $targetManifest.files) {
-    if ($entry.path -eq 'index.html') { continue }
-    # Canonical URL verification is mandatory.  Query-string variants are
-    # diagnostic only and are not part of the rollback acceptance contract.
-    # Manifest filenames are not necessarily public route paths.
-    $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$entry.path)
-    $route = $plan.route
-    $url = "$publicBase$route"
-    if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
-        $authResult = Test-PublicAuthenticatedRoute -Url $url -Path ([string]$entry.path) -ExpectedRedirectStatus ([int]$plan.expected_redirect_status) -ExpectedRedirectPath ([string]$plan.expected_redirect_path)
-        if ($authResult.status -ne 'passed') {
-            throw "Authenticated public route verification failed after rollback for '$($entry.path)'. Details: $($authResult | ConvertTo-Json -Compress)"
+# This is the complete targetManifest.files set (the former equivalent was
+# `foreach ($entry in $targetManifest.files)`), with only the dynamic index
+# shell excluded because it is verified through static-release provenance.
+$rollbackPublicEntries = @($targetManifest.files | Where-Object { $_.path -ne 'index.html' })
+$rollbackPublicVerificationConcurrency = 8
+$rollbackPublicVerificationRequestTimeoutSeconds = Get-StaticPublicVerificationRequestTimeoutSeconds
+$rollbackPublicVerificationAttempts = 1
+$rollbackPublicVerificationDeadlineSeconds = Get-StaticPublicVerificationDeadlineSeconds -FileCount $rollbackPublicEntries.Count -Concurrency $rollbackPublicVerificationConcurrency -RequestTimeoutSeconds $rollbackPublicVerificationRequestTimeoutSeconds -AttemptCount $rollbackPublicVerificationAttempts
+$rollbackPublicResults = @(Invoke-BoundedPublicStaticVerification -Entries $rollbackPublicEntries -PublicBase $publicBase -Concurrency $rollbackPublicVerificationConcurrency -RequestTimeoutSeconds $rollbackPublicVerificationRequestTimeoutSeconds -DeadlineSeconds $rollbackPublicVerificationDeadlineSeconds -AttemptCount $rollbackPublicVerificationAttempts)
+$rollbackPublicFailures = @($rollbackPublicResults | Where-Object { $_.status -ne 'passed' })
+if ($rollbackPublicFailures.Count -gt 0 -or $rollbackPublicResults.Count -ne $rollbackPublicEntries.Count) {
+    $failureDetails = @($rollbackPublicFailures | Select-Object -First 10 | ForEach-Object {
+        [ordered]@{
+            path = $_.path
+            status = $_.status
+            http_status = $_.http_status
+            web_exception_status = $_.web_exception_status
+            error = $_.error
         }
-        $publicVerification += [ordered]@{
-            path = $entry.path
-            url = $url
+    }) | ConvertTo-Json -Compress -Depth 6
+    throw "Public content verification failed after rollback: total=$($rollbackPublicEntries.Count), completed=$($rollbackPublicResults.Count), failures=$($rollbackPublicFailures.Count), deadline_seconds=$rollbackPublicVerificationDeadlineSeconds. Details: $failureDetails"
+}
+$publicVerification = @($rollbackPublicResults | ForEach-Object {
+    $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$_.path)
+    if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
+        [ordered]@{
+            path = $_.path
+            url = "$publicBase$($plan.route)"
             verification_mode = 'AUTHENTICATED_ROUTE'
             authenticated_route_verified = $true
             login_body_hashed = $false
         }
-        continue
     }
-    $observedHash = Get-PublicFileSha256 -Url $url
-    if ($observedHash -ne $entry.sha256) {
-        throw "Public content hash mismatch after rollback for '$($entry.path)'. Expected '$($entry.sha256)', observed '$observedHash'."
+    else {
+        [ordered]@{
+            path = $_.path
+            url = "$publicBase$($plan.route)"
+            verification_mode = 'RAW_PUBLIC_BYTES'
+            sha256_match = $true
+        }
     }
-    $publicVerification += [ordered]@{ path = $entry.path; url = $url; verification_mode = 'RAW_PUBLIC_BYTES'; sha256_match = $true }
-}
+})
 $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js"
 if ($publicSwVersion -ne $targetManifest.service_worker_version) {
     throw "Public sw.js VERSION mismatch after rollback. Expected '$($targetManifest.service_worker_version)', observed '$publicSwVersion'."

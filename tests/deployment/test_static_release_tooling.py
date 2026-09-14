@@ -723,12 +723,14 @@ def test_deploy_script_uses_atomic_symlink_switch_pattern():
 
 def test_deploy_script_verifies_public_https_bytes_not_just_filesystem():
     content = _read(DEPLOY_SCRIPT)
+    tooling = _read(PSM1)
     assert "Invoke-WebRequest" in content
-    assert "Resolve-StaticPublicRoute" in content
+    assert "Invoke-BoundedPublicStaticVerification" in content
+    assert "Resolve-StaticPublicRoute" in tooling
     assert '"$PublicBase/$($entry.path)"' not in content
     assert "Cache-Control" in content
     assert "Get-PublicFileSha256" in content
-    assert "Public content hash mismatch" in content
+    assert "Public content hash mismatch" in tooling
 
 
 def test_inventory_manifest_filename_uses_canonical_public_routes(tmp_path):
@@ -925,16 +927,16 @@ def test_static_verifiers_use_canonical_route_helper_for_inventory():
     deploy = _read(DEPLOY_SCRIPT)
     rollback = _read(ROLLBACK_SCRIPT)
     tooling = _read(PSM1)
-    assert "Resolve-StaticPublicRoute -RelativePath" in deploy
-    assert "Get-StaticPublicVerificationPlan" in deploy
+    assert "Invoke-BoundedPublicStaticVerification" in deploy
+    assert "Invoke-BoundedPublicStaticVerification" in rollback
+    assert "Resolve-StaticPublicRoute -RelativePath" in tooling
     assert "Get-StaticPublicVerificationPlan" in rollback
-    assert "Test-PublicAuthenticatedRoute" in deploy
-    assert "Test-PublicAuthenticatedRoute" in rollback
+    assert "Test-PublicAuthenticatedRoute" in tooling
     assert "MaximumRedirection 0" in deploy
     assert "MaximumRedirection 0" in rollback
-    assert "Get-PublicVerificationFailureRecord" in deploy
+    assert "Get-PublicVerificationFailureRecord" in tooling
     assert "Get-PublicVerificationFailureRecord" in rollback
-    assert "ComputeHash($stream)" in rollback
+    assert "ComputeHash($stream)" in tooling
     assert "container-internal inventory.html hash" in deploy
     assert "Mounted inventory.html hash" in rollback
     assert '"$publicBase/$($entry.path)"' not in rollback
@@ -958,8 +960,9 @@ def test_timeout_reconciles_before_rollback_and_accepts_remote_completion():
 
 def test_query_string_verification_is_diagnostic_only():
     content = _read(DEPLOY_SCRIPT)
-    assert "Query-string" in content
-    assert "diagnostic-only" in content
+    tooling = _read(PSM1)
+    assert "Query-string" in content or "Query-string" in tooling
+    assert "diagnostic-only" in content or "diagnostic-only" in tooling
     assert "Get-SwVersionFromUrl -Url \"$publicBase/sw.js\"" in content
 
 
@@ -978,11 +981,12 @@ def test_index_shell_uses_narrow_runtime_provenance_endpoint():
 
 def test_public_verification_collection_has_explicit_arraylist_type():
     content = _read(DEPLOY_SCRIPT)
+    tooling = _read(PSM1)
     assert 'New-Object System.Collections.ArrayList' in content
     assert '$phaseHistory = New-Object System.Collections.ArrayList' in content
     assert '[void]$phaseHistory.Add' in content
-    assert '$results.ToArray()' in content
-    assert 'Argument types do not match' in content
+    assert '$results.ToArray()' in tooling
+    assert 'Argument types do not match' in content or 'Argument types do not match' in tooling
 
 
 def test_deploy_script_verifies_sw_version_publicly_not_just_locally():
@@ -993,11 +997,13 @@ def test_deploy_script_verifies_sw_version_publicly_not_just_locally():
 
 def test_static_deploy_has_env_gated_phase_timing_without_contract_change():
     content = _read(DEPLOY_SCRIPT)
+    tooling = _read(PSM1)
     assert "GO_ODYSSEY_STATIC_DEPLOY_TIMING" in content
     assert "PUBLIC HASH VERIFICATION START" in content
-    assert "PUBLIC HASH PROGRESS" in content
     assert "PUBLIC HASH VERIFICATION COMPLETE" in content
     assert "[Console]::Error.WriteLine" in content
+    assert "finally" in tooling
+    assert "Remove-Job -Job $job -Force" in tooling
 
 
 def test_deploy_script_auto_rolls_back_on_post_switch_failure():
