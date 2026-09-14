@@ -48,6 +48,18 @@ def test_public_verification_is_bounded_and_deadline_limited():
     assert "Remove-Job -Job $job -Force" in tooling
 
 
+def test_public_verifier_uses_at_most_one_job_per_bounded_worker():
+    tooling = PSM1.read_text(encoding="utf-8")
+    assert "if ($Concurrency -gt 8)" in tooling
+    assert "$workerCount = [Math]::Min($Concurrency, $prepared.Count)" in tooling
+    assert "$chunkSize = [int][Math]::Ceiling" in tooling
+    assert "for ($workerIndex = 0; $workerIndex -lt $workerCount; $workerIndex++)" in tooling
+    assert "param([object[]]$Items, [int]$TimeoutSeconds, [long]$DeadlineTicks)" in tooling
+    assert "Start-Job -ScriptBlock $worker -ArgumentList (,$chunkItems)" in tooling
+    assert "Start-Job -ScriptBlock $worker -ArgumentList $item.url" not in tooling
+    assert "for ($offset = 0; $offset -lt $prepared.Count; $offset += $Concurrency)" not in tooling
+
+
 def test_public_verification_keeps_complete_fail_closed_result_aggregation():
     tooling = PSM1.read_text(encoding="utf-8")
     assert "sha_mismatch" in tooling
