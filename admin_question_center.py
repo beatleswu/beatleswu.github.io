@@ -19,7 +19,7 @@ from sgf_admin_workbench import (
     direct_record_hash,
     ensure_sgf_workbench_tables,
     list_workbench_items,
-    list_direct_versions,
+    list_direct_versions_for_questions,
 )
 from sgf_answer_review_queue import load_review_source
 from sgf_workbench_v2a import load_human_review_index, record_hash, review_state_from_index
@@ -173,27 +173,31 @@ def _identity(
     except (TypeError, ValueError):
         return {"status": "MISSING", "message": "這題目前無法安全修改"}
 
-    matches = [(index, record) for index, record in enumerate(records) if _same_question_id(_record_id(record), qid)]
     selected: tuple[int, Mapping[str, Any]] | None = None
     if record_index not in (None, ""):
         try:
             index = int(record_index)
         except (TypeError, ValueError):
             return {"status": "MISSING", "message": "這題目前無法安全修改"}
-        selected = next(((idx, record) for idx, record in matches if idx == index), None)
-        if selected is None:
+        # Callers with a record index already hold the version-scoped locator.
+        # Validate that slot directly; scanning the full corpus here made the
+        # 200-row browse projection O(records * browse_rows).
+        if not (0 <= index < len(records)) or not _same_question_id(_record_id(records[index]), qid):
             return {"status": "STALE", "message": "題目已被更新，請重新確認"}
-    elif len(matches) == 1:
-        selected = matches[0]
-    elif len(matches) > 1:
-        return {
-            "status": "AMBIGUOUS",
-            "message": "這題目前無法安全修改",
-            "question_id": qid,
-            "candidate_count": len(matches),
-        }
+        selected = (index, records[index])
     else:
-        return {"status": "MISSING", "message": "這題目前無法安全修改", "question_id": qid}
+        matches = [(index, record) for index, record in enumerate(records) if _same_question_id(_record_id(record), qid)]
+        if len(matches) == 1:
+            selected = matches[0]
+        elif len(matches) > 1:
+            return {
+                "status": "AMBIGUOUS",
+                "message": "這題目前無法安全修改",
+                "question_id": qid,
+                "candidate_count": len(matches),
+            }
+        else:
+            return {"status": "MISSING", "message": "這題目前無法安全修改", "question_id": qid}
 
     index, record = selected
     digest = _content_sha256(record)
@@ -338,6 +342,7 @@ def _history_items(conn: Any, records: Sequence[Mapping[str, Any]]) -> list[dict
     """Project System C's existing version ledger without creating a ledger."""
     result: list[dict[str, Any]] = []
     seen: set[int] = set()
+    question_ids: list[int] = []
     for record in records:
         try:
             question_id = int(_record_id(record))
@@ -346,7 +351,13 @@ def _history_items(conn: Any, records: Sequence[Mapping[str, Any]]) -> list[dict
         if question_id in seen:
             continue
         seen.add(question_id)
-        for version in list_direct_versions(conn, question_id=question_id, limit=50):
+        question_ids.append(question_id)
+
+    versions_by_question = list_direct_versions_for_questions(
+        conn, question_ids=question_ids, limit=50,
+    )
+    for question_id in question_ids:
+        for version in versions_by_question.get(question_id, []):
             validation = version.get("validation_result") or {}
             validation_status = validation.get("status") if isinstance(validation, Mapping) else None
             result.append(

@@ -1050,6 +1050,62 @@ def list_direct_versions(conn, *, question_id: int, record_index: int | None = N
     return [_serialize_direct_version(row) for row in rows]
 
 
+def list_direct_versions_for_questions(
+    conn,
+    *,
+    question_ids: Iterable[int],
+    limit: int = 50,
+    chunk_size: int = 500,
+) -> dict[int, list[dict]]:
+    """Read version history for a corpus in bounded batches.
+
+    The question-center projection used to call ``list_direct_versions`` once
+    per corpus record.  That repeated the PostgreSQL schema validation for
+    every record and could hold one request's connection/event-loop turn for
+    the lifetime of a large corpus.  Keep the single-question API unchanged,
+    but make the corpus projection validate once and fetch disjoint ID chunks.
+    Results retain the per-question ``id DESC`` order and the existing limit.
+    """
+    ensure_sgf_workbench_tables(conn)
+    bounded = max(1, min(int(limit), 100))
+    batch_size = max(1, min(int(chunk_size), 500))
+    ids: list[int] = []
+    seen: set[int] = set()
+    for value in question_ids:
+        try:
+            question_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if question_id in seen:
+            continue
+        seen.add(question_id)
+        ids.append(question_id)
+
+    result: dict[int, list[dict]] = {question_id: [] for question_id in ids}
+    if not ids:
+        return result
+
+    for start in range(0, len(ids), batch_size):
+        batch = ids[start:start + batch_size]
+        placeholders = ",".join("?" for _ in batch)
+        rows = conn.execute(
+            "SELECT * FROM sgf_workbench_direct_versions "
+            f"WHERE question_id IN ({placeholders}) "
+            "ORDER BY question_id ASC, id DESC",
+            tuple(batch),
+        ).fetchall()
+        for row in rows:
+            value = _row_dict(row)
+            try:
+                question_id = int(value.get("question_id"))
+            except (TypeError, ValueError):
+                continue
+            versions = result.get(question_id)
+            if versions is not None and len(versions) < bounded:
+                versions.append(_serialize_direct_version(value))
+    return result
+
+
 def apply_direct_question_edit(conn, *, questions_path: str, actor_id: int,
                                question_id: int, record_index: int,
                                expected_predecessor_hash: str,

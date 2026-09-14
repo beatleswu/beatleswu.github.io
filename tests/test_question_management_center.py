@@ -96,6 +96,19 @@ class _ConnectionContext:
         return False
 
 
+class _CountingConnection:
+    def __init__(self, conn):
+        self._conn = conn
+        self.statements = []
+
+    def execute(self, statement, parameters=()):
+        self.statements.append(str(statement))
+        return self._conn.execute(statement, parameters)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 def _review_source(records):
     digest = hashlib.sha256(records[0]["content"].encode("utf-8")).hexdigest()
     return (
@@ -164,6 +177,95 @@ def test_center_projects_a_to_f_without_creating_a_new_write_authority():
     assert payload["metadata"]["canonical_question_mutation"] is False
     assert before == after
     assert "INSERT INTO corpus_review_queue" not in (ROOT / "admin_question_center.py").read_text(encoding="utf-8")
+
+
+def test_history_projection_uses_bounded_bulk_reads_for_a_full_corpus():
+    inner = _db()
+    conn = _CountingConnection(inner)
+    records = [
+        {
+            "id": index,
+            "topic": "活棋",
+            "level": "初級",
+            "source": "test-corpus",
+            "content": "(;SZ[19]PL[B];AB[dd])",
+            "accepted_moves": [{"x": 3, "y": 3}],
+        }
+        for index in range(1, 1202)
+    ]
+
+    payload = center.build_center_bootstrap(
+        conn=conn,
+        records=records,
+        review_source_loader=lambda: ({
+            "duplicate_group_count": 0,
+            "source_record_count": len(records),
+            "groups": [],
+        }, {"sha256": "evidence-sha"}),
+        reviewer_id=42,
+    )
+
+    history_queries = [
+        statement for statement in conn.statements
+        if "FROM sgf_workbench_direct_versions" in statement
+    ]
+    # 1201 ids are fetched in 500-id chunks, rather than once per question.
+    assert len(history_queries) == 3
+    assert payload["sections"]["history"] == []
+
+
+def test_bulk_history_read_preserves_per_question_order_and_limit():
+    conn = _db()
+    workbench.ensure_sgf_workbench_tables(conn)
+    for index in range(55):
+        conn.execute(
+            """
+            INSERT INTO sgf_workbench_direct_versions
+              (question_id, record_index, predecessor_hash, new_hash,
+               predecessor_version, new_version, operation_id, action_type,
+               actor_id, old_record_json, new_record_json,
+               validation_result_json, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                101, 0, "a" * 64, "b" * 64, f"v{index}", f"v{index + 1}",
+                f"bulk-history-{index}", "EDIT_QUESTION", 42, "{}", "{}",
+                "{}", "test", f"2026-09-14T00:00:{index:02d}",
+            ),
+        )
+    conn.commit()
+
+    direct = workbench.list_direct_versions(conn, question_id=101, limit=50)
+    bulk = workbench.list_direct_versions_for_questions(
+        conn, question_ids=[101, 101, 202], limit=50,
+    )
+
+    assert [row["id"] for row in bulk[101]] == [row["id"] for row in direct]
+    assert len(bulk[101]) == 50
+    assert bulk[202] == []
+
+
+def test_admin_questions_repeated_initialization_keeps_public_surfaces_responsive(monkeypatch):
+    application = pytest.importorskip("app")
+    admin = application.app.test_client()
+    public = application.app.test_client()
+    with admin.session_transaction() as session:
+        session["user_id"] = 42
+        session["is_admin"] = True
+    conn = _db()
+    records = _records()
+    monkeypatch.setattr(application, "get_db", lambda: _ConnectionContext(conn))
+    monkeypatch.setattr(application, "_load_questions", lambda: records)
+
+    for _ in range(25):
+        assert public.get("/").status_code == 200
+        assert public.get("/healthz").status_code == 200
+        assert public.get("/login").status_code == 200
+        assert admin.get("/admin/questions").status_code == 200
+        assert admin.get("/admin/questions.js").status_code == 200
+        assert admin.get("/api/admin/questions/bootstrap").status_code == 200
+
+    assert conn.in_transaction is False
 
 
 def test_center_routes_are_admin_only_and_bootstrap_is_get_only(monkeypatch):
