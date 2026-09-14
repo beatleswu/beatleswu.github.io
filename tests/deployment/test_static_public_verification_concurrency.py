@@ -32,7 +32,8 @@ def _run_powershell(script):
 
 def test_public_verification_is_bounded_and_deadline_limited():
     assert "$PublicVerificationConcurrency = 8" in DEPLOY
-    assert "$PublicVerificationRequestTimeoutSeconds = 15" in DEPLOY
+    assert "$PublicVerificationRequestTimeoutSeconds = Get-StaticPublicVerificationRequestTimeoutSeconds" in DEPLOY
+    assert "function Get-StaticPublicVerificationRequestTimeoutSeconds" in (PSM1.read_text(encoding="utf-8"))
     assert "Get-StaticPublicVerificationDeadlineSeconds" in DEPLOY
     assert "$PublicVerificationAttempts = 1" in DEPLOY
     assert "Invoke-BoundedPublicVerification" in DEPLOY
