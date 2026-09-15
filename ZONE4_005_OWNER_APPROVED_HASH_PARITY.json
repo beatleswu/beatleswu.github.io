@@ -1,0 +1,2933 @@
+{
+  "schema": "GO_ODYSSEY_ZONE4_005_OWNER_APPROVED_HASH_PARITY_V1",
+  "source_candidate": "a0b2a4de0bd75bf0b221d5c5c2b95c407251f606",
+  "owner_uat": "PASS",
+  "visual_count": 28,
+  "visual_hash_change_count": 0,
+  "dialogue_line_count": 46,
+  "localized_dialogue_count": 92,
+  "dialogue_content_change_count": 0,
+  "localized_dialogue_change_count": 0,
+  "audio_count": 111,
+  "audio_hash_change_count": 0,
+  "visuals": [
+    {
+      "record_key": "visual:Z4-LORD-01",
+      "asset_kind": "visual",
+      "asset_id": "Z4-LORD-01",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/lord/Z4-LORD-01.png",
+      "byte_size": 2966782,
+      "approved_sha256": "4c452590df1517f7e37f8826251ffc22e2ce8dd1c8d49f7f4d66bad8b5304ed7",
+      "current_sha256": "4c452590df1517f7e37f8826251ffc22e2ce8dd1c8d49f7f4d66bad8b5304ed7",
+      "approved_blob": "1130f37c72c2397b9a2538bddd4826e3e47d13aa",
+      "current_worktree_blob": "1130f37c72c2397b9a2538bddd4826e3e47d13aa",
+      "base_blob": "1130f37c72c2397b9a2538bddd4826e3e47d13aa",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-LORD-02",
+      "asset_kind": "visual",
+      "asset_id": "Z4-LORD-02",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/lord/Z4-LORD-02.png",
+      "byte_size": 3016383,
+      "approved_sha256": "1d5ecd438f1be7864ae8d15f7aa4057834634063b09d9b49e5b49d34b133583f",
+      "current_sha256": "1d5ecd438f1be7864ae8d15f7aa4057834634063b09d9b49e5b49d34b133583f",
+      "approved_blob": "de1d4349ed64baffb87e061629e4cfb4ace383df",
+      "current_worktree_blob": "de1d4349ed64baffb87e061629e4cfb4ace383df",
+      "base_blob": "de1d4349ed64baffb87e061629e4cfb4ace383df",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-LORD-03",
+      "asset_kind": "visual",
+      "asset_id": "Z4-LORD-03",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/lord/Z4-LORD-03.png",
+      "byte_size": 2740141,
+      "approved_sha256": "16e069fe47760d1a431730b8a5d9a794df4bbd3d6dc4ed58e3b5a3b74556ad1e",
+      "current_sha256": "16e069fe47760d1a431730b8a5d9a794df4bbd3d6dc4ed58e3b5a3b74556ad1e",
+      "approved_blob": "649258324cda3fe6f577ac07973ff15f69373122",
+      "current_worktree_blob": "649258324cda3fe6f577ac07973ff15f69373122",
+      "base_blob": "649258324cda3fe6f577ac07973ff15f69373122",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-LORD-04",
+      "asset_kind": "visual",
+      "asset_id": "Z4-LORD-04",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/lord/Z4-LORD-04.png",
+      "byte_size": 2781484,
+      "approved_sha256": "213045fcb3d40aa83628338e4356d21278731c049c0494af9b291d54b52d62f8",
+      "current_sha256": "213045fcb3d40aa83628338e4356d21278731c049c0494af9b291d54b52d62f8",
+      "approved_blob": "1836013bb2e461087ec98dcbfdedb232acf4952d",
+      "current_worktree_blob": "1836013bb2e461087ec98dcbfdedb232acf4952d",
+      "base_blob": "1836013bb2e461087ec98dcbfdedb232acf4952d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-LORD-05",
+      "asset_kind": "visual",
+      "asset_id": "Z4-LORD-05",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/lord/Z4-LORD-05.png",
+      "byte_size": 2712121,
+      "approved_sha256": "6ae81c0c26d34c0f1ef817b8f221c326dd4204b1db728ff5a5c38ff491cf60a7",
+      "current_sha256": "6ae81c0c26d34c0f1ef817b8f221c326dd4204b1db728ff5a5c38ff491cf60a7",
+      "approved_blob": "db92f0cf1676a7b79ac096f4e2b371746f72b23e",
+      "current_worktree_blob": "db92f0cf1676a7b79ac096f4e2b371746f72b23e",
+      "base_blob": "db92f0cf1676a7b79ac096f4e2b371746f72b23e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-LORD-06",
+      "asset_kind": "visual",
+      "asset_id": "Z4-LORD-06",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/lord/Z4-LORD-06.png",
+      "byte_size": 2484344,
+      "approved_sha256": "88d7f2ef260ae1604102b36b09e82af4068a3451801a86a3be4c143a609e2152",
+      "current_sha256": "88d7f2ef260ae1604102b36b09e82af4068a3451801a86a3be4c143a609e2152",
+      "approved_blob": "85a1372316e36615932efa0f9515433eddcfee9e",
+      "current_worktree_blob": "85a1372316e36615932efa0f9515433eddcfee9e",
+      "base_blob": "85a1372316e36615932efa0f9515433eddcfee9e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S1-01",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S1-01",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S1-01.png",
+      "byte_size": 3030257,
+      "approved_sha256": "b0fb54fb4291bcca98729c366526bf75af8125e518e8773b2d205e2438cd8ce4",
+      "current_sha256": "b0fb54fb4291bcca98729c366526bf75af8125e518e8773b2d205e2438cd8ce4",
+      "approved_blob": "8868c2db1519a74d41c286d3df0fd60ce93f31a4",
+      "current_worktree_blob": "8868c2db1519a74d41c286d3df0fd60ce93f31a4",
+      "base_blob": "8868c2db1519a74d41c286d3df0fd60ce93f31a4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S1-02",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S1-02",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S1-02.png",
+      "byte_size": 2649843,
+      "approved_sha256": "62bf5edd3678f7c77521f1fc3b1dac3ee9d594552ba86a064f438ddc507bd84a",
+      "current_sha256": "62bf5edd3678f7c77521f1fc3b1dac3ee9d594552ba86a064f438ddc507bd84a",
+      "approved_blob": "6cdba6bec66bf97a21ff4f4a0d822e41502ea45e",
+      "current_worktree_blob": "6cdba6bec66bf97a21ff4f4a0d822e41502ea45e",
+      "base_blob": "6cdba6bec66bf97a21ff4f4a0d822e41502ea45e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S1-03",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S1-03",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S1-03.png",
+      "byte_size": 2865864,
+      "approved_sha256": "0692e26b2a9dd402fde069b25d267358067e1840fb33449140a6c9a3c709ad12",
+      "current_sha256": "0692e26b2a9dd402fde069b25d267358067e1840fb33449140a6c9a3c709ad12",
+      "approved_blob": "eefce910d93eeb5f5df49e1f9eee46f8d2424fdc",
+      "current_worktree_blob": "eefce910d93eeb5f5df49e1f9eee46f8d2424fdc",
+      "base_blob": "eefce910d93eeb5f5df49e1f9eee46f8d2424fdc",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S1-04",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S1-04",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S1-04.png",
+      "byte_size": 2652785,
+      "approved_sha256": "5b8fe9795f21f67bfe8f6357e3574afcda1aa83c0eb4f5db3195bb7cba881e1f",
+      "current_sha256": "5b8fe9795f21f67bfe8f6357e3574afcda1aa83c0eb4f5db3195bb7cba881e1f",
+      "approved_blob": "f758db7697227c32b6cd09e3a86c0ee2ff42053c",
+      "current_worktree_blob": "f758db7697227c32b6cd09e3a86c0ee2ff42053c",
+      "base_blob": "f758db7697227c32b6cd09e3a86c0ee2ff42053c",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S1-05",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S1-05",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S1-05.png",
+      "byte_size": 2784098,
+      "approved_sha256": "1a8a2c01a050a9d52a209d8c917ff545bdd63e90c923e1e5ec60ac9efd494418",
+      "current_sha256": "1a8a2c01a050a9d52a209d8c917ff545bdd63e90c923e1e5ec60ac9efd494418",
+      "approved_blob": "e17875cadfdc9d85e1648ecb52d1327f26833bb3",
+      "current_worktree_blob": "e17875cadfdc9d85e1648ecb52d1327f26833bb3",
+      "base_blob": "e17875cadfdc9d85e1648ecb52d1327f26833bb3",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S1-06",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S1-06",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S1-06.png",
+      "byte_size": 2847352,
+      "approved_sha256": "74543853c474af8f0a3c89594a26c752d71d458010c60e5224ce2e588bfb6fa6",
+      "current_sha256": "74543853c474af8f0a3c89594a26c752d71d458010c60e5224ce2e588bfb6fa6",
+      "approved_blob": "b51227bc161f01a86188827fd3b763014aed4cc2",
+      "current_worktree_blob": "b51227bc161f01a86188827fd3b763014aed4cc2",
+      "base_blob": "b51227bc161f01a86188827fd3b763014aed4cc2",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S1-07",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S1-07",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S1-07.png",
+      "byte_size": 2692658,
+      "approved_sha256": "792bb50f21cbcf9fda92b04d0116a80d107e5e9bed93b10985611b5685032d61",
+      "current_sha256": "792bb50f21cbcf9fda92b04d0116a80d107e5e9bed93b10985611b5685032d61",
+      "approved_blob": "099a55effc5dc16917688530f7100159938286f4",
+      "current_worktree_blob": "099a55effc5dc16917688530f7100159938286f4",
+      "base_blob": "099a55effc5dc16917688530f7100159938286f4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S1-08",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S1-08",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S1-08.png",
+      "byte_size": 2840901,
+      "approved_sha256": "cf71dc136a2eca05d283ea31dbcbb3c142ce6114f307e2dfb2011a491da713c1",
+      "current_sha256": "cf71dc136a2eca05d283ea31dbcbb3c142ce6114f307e2dfb2011a491da713c1",
+      "approved_blob": "25e55b40ff288dc2e20a60dbac9720633c4ddcd0",
+      "current_worktree_blob": "25e55b40ff288dc2e20a60dbac9720633c4ddcd0",
+      "base_blob": "25e55b40ff288dc2e20a60dbac9720633c4ddcd0",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S2-01",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S2-01",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S2-01.png",
+      "byte_size": 2651192,
+      "approved_sha256": "f696925f6b8164d87f2c5967a50f997f636c44ce2658676e8028b1f99bc8e169",
+      "current_sha256": "f696925f6b8164d87f2c5967a50f997f636c44ce2658676e8028b1f99bc8e169",
+      "approved_blob": "7263929ba1a86bf57973432cd341b0b30aea02fc",
+      "current_worktree_blob": "7263929ba1a86bf57973432cd341b0b30aea02fc",
+      "base_blob": "7263929ba1a86bf57973432cd341b0b30aea02fc",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S2-02",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S2-02",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S2-02.png",
+      "byte_size": 2784379,
+      "approved_sha256": "7abc2665582cb5b00187daf29b9cfb71d3f9fd4b92d3e55c8568987eee3602d0",
+      "current_sha256": "7abc2665582cb5b00187daf29b9cfb71d3f9fd4b92d3e55c8568987eee3602d0",
+      "approved_blob": "c21d0581108cd754b869add3ed76877c6fbdb1c2",
+      "current_worktree_blob": "c21d0581108cd754b869add3ed76877c6fbdb1c2",
+      "base_blob": "c21d0581108cd754b869add3ed76877c6fbdb1c2",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S2-03",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S2-03",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S2-03.png",
+      "byte_size": 2473037,
+      "approved_sha256": "3ea7e268c4574f51f25a8c9d0825cb8bc5f802de31cd625d7da6c41dc2a37e0b",
+      "current_sha256": "3ea7e268c4574f51f25a8c9d0825cb8bc5f802de31cd625d7da6c41dc2a37e0b",
+      "approved_blob": "cf7336014573a94ea2ade1eb8e8722c70202d2cf",
+      "current_worktree_blob": "cf7336014573a94ea2ade1eb8e8722c70202d2cf",
+      "base_blob": "cf7336014573a94ea2ade1eb8e8722c70202d2cf",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S2-04",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S2-04",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S2-04.png",
+      "byte_size": 2571651,
+      "approved_sha256": "55e6ecc852e02b671532b8e28946da40d2a10671783b5e662782bfcbb91fc65b",
+      "current_sha256": "55e6ecc852e02b671532b8e28946da40d2a10671783b5e662782bfcbb91fc65b",
+      "approved_blob": "3e825f62320888844b4a6380d26727f713364dc0",
+      "current_worktree_blob": "3e825f62320888844b4a6380d26727f713364dc0",
+      "base_blob": "3e825f62320888844b4a6380d26727f713364dc0",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S2-05",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S2-05",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S2-05.png",
+      "byte_size": 2389353,
+      "approved_sha256": "a125744fa72d69a66ec3f041645d0feb10e0b592537c9c9002a613dc4a08abca",
+      "current_sha256": "a125744fa72d69a66ec3f041645d0feb10e0b592537c9c9002a613dc4a08abca",
+      "approved_blob": "ebcb2966880325f7ad95025f500f3ef9483dc200",
+      "current_worktree_blob": "ebcb2966880325f7ad95025f500f3ef9483dc200",
+      "base_blob": "ebcb2966880325f7ad95025f500f3ef9483dc200",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S2-06",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S2-06",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S2-06.png",
+      "byte_size": 2825113,
+      "approved_sha256": "a99a85ab164beac67edcb4e3d40de1d04afea03e36da10994e6a9c5af0b60488",
+      "current_sha256": "a99a85ab164beac67edcb4e3d40de1d04afea03e36da10994e6a9c5af0b60488",
+      "approved_blob": "f8a4bde3ba717df736e46afe0c31f5a2e576a4e0",
+      "current_worktree_blob": "f8a4bde3ba717df736e46afe0c31f5a2e576a4e0",
+      "base_blob": "f8a4bde3ba717df736e46afe0c31f5a2e576a4e0",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S2-07",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S2-07",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S2-07.png",
+      "byte_size": 2637817,
+      "approved_sha256": "0d219a0109c23a04dd863838885825be075b03fad8b72cd8524007c131f3e84a",
+      "current_sha256": "0d219a0109c23a04dd863838885825be075b03fad8b72cd8524007c131f3e84a",
+      "approved_blob": "a5280c7accea18975345a1d4bcef6f8992c8dee5",
+      "current_worktree_blob": "a5280c7accea18975345a1d4bcef6f8992c8dee5",
+      "base_blob": "a5280c7accea18975345a1d4bcef6f8992c8dee5",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S2-08",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S2-08",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S2-08.png",
+      "byte_size": 2657586,
+      "approved_sha256": "c5f1eb44895e86c35fbe9d75fa691be40d1e294a617d9ac6f649553337136829",
+      "current_sha256": "c5f1eb44895e86c35fbe9d75fa691be40d1e294a617d9ac6f649553337136829",
+      "approved_blob": "d8fbfeb5d6d72762e0461caf64e900c07a723c27",
+      "current_worktree_blob": "d8fbfeb5d6d72762e0461caf64e900c07a723c27",
+      "base_blob": "d8fbfeb5d6d72762e0461caf64e900c07a723c27",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S3-01",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S3-01",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S3-01.png",
+      "byte_size": 2934457,
+      "approved_sha256": "dfd884dbc3fd017754287f505cb86fa3197f7217e267d3ab5a7dd861ead4ce70",
+      "current_sha256": "dfd884dbc3fd017754287f505cb86fa3197f7217e267d3ab5a7dd861ead4ce70",
+      "approved_blob": "b4e7ca9e8b4b57d64238d1bf72acef7e8085cc3d",
+      "current_worktree_blob": "b4e7ca9e8b4b57d64238d1bf72acef7e8085cc3d",
+      "base_blob": "b4e7ca9e8b4b57d64238d1bf72acef7e8085cc3d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S3-02",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S3-02",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S3-02.png",
+      "byte_size": 2637605,
+      "approved_sha256": "e5cca968c7b8f0a767538cd1335c1a26494843d3380dd6277221fffe7c3c4916",
+      "current_sha256": "e5cca968c7b8f0a767538cd1335c1a26494843d3380dd6277221fffe7c3c4916",
+      "approved_blob": "15e1599e5e16f688d31c91dad67993d82827276e",
+      "current_worktree_blob": "15e1599e5e16f688d31c91dad67993d82827276e",
+      "base_blob": "15e1599e5e16f688d31c91dad67993d82827276e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S3-03",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S3-03",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S3-03.png",
+      "byte_size": 2966605,
+      "approved_sha256": "7eeaebf8e44eb42ae1f3fff2bd82081083a93f3c0725b821891f2137435a0e60",
+      "current_sha256": "7eeaebf8e44eb42ae1f3fff2bd82081083a93f3c0725b821891f2137435a0e60",
+      "approved_blob": "34a0c08143bd6ff60446eae2dc69a75bf05f1bc0",
+      "current_worktree_blob": "34a0c08143bd6ff60446eae2dc69a75bf05f1bc0",
+      "base_blob": "34a0c08143bd6ff60446eae2dc69a75bf05f1bc0",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S3-04",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S3-04",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S3-04.png",
+      "byte_size": 2998396,
+      "approved_sha256": "22149615c8f7080f2cd912672dda0a84756e31febc4f6802d06b74f31fba9db4",
+      "current_sha256": "22149615c8f7080f2cd912672dda0a84756e31febc4f6802d06b74f31fba9db4",
+      "approved_blob": "0d1e2469a45da34dbc472a395ac65fffe87021a7",
+      "current_worktree_blob": "0d1e2469a45da34dbc472a395ac65fffe87021a7",
+      "base_blob": "0d1e2469a45da34dbc472a395ac65fffe87021a7",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S3-05",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S3-05",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S3-05.png",
+      "byte_size": 2623878,
+      "approved_sha256": "4b595be1e2544f62206ec13a426a86a0b6349a335095eb3158011a23bd7e4f47",
+      "current_sha256": "4b595be1e2544f62206ec13a426a86a0b6349a335095eb3158011a23bd7e4f47",
+      "approved_blob": "adb1dda58c859e4ac1431fce5aa66c3f7d918f83",
+      "current_worktree_blob": "adb1dda58c859e4ac1431fce5aa66c3f7d918f83",
+      "base_blob": "adb1dda58c859e4ac1431fce5aa66c3f7d918f83",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "visual:Z4-S3-06",
+      "asset_kind": "visual",
+      "asset_id": "Z4-S3-06",
+      "identity_key": null,
+      "locale": null,
+      "path": "assets/e10/art/zone4/cinematic/Z4-S3-06.png",
+      "byte_size": 2787779,
+      "approved_sha256": "fc598221d04494fddcc34e14bb447f17b815baec42dcc22387cba1845fc25b0a",
+      "current_sha256": "fc598221d04494fddcc34e14bb447f17b815baec42dcc22387cba1845fc25b0a",
+      "approved_blob": "d0b8f0751fedb0b0df4a942ba1fb1796b0c04d75",
+      "current_worktree_blob": "d0b8f0751fedb0b0df4a942ba1fb1796b0c04d75",
+      "base_blob": "d0b8f0751fedb0b0df4a942ba1fb1796b0c04d75",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    }
+  ],
+  "dialogue": [
+    {
+      "line_id": "Z4_LORD_FAIL_HERO_001",
+      "content_hash_approved": "2aa1dc868a4b10d80a6a093dcc728b63a3a412796ec80527caa396b278e0f811",
+      "content_hash_current": "2aa1dc868a4b10d80a6a093dcc728b63a3a412796ec80527caa396b278e0f811",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "a7f1e4f738353483396b97d4950fefc937b52f09537a0a47ae21410614a0eb5c",
+          "current_hash": "a7f1e4f738353483396b97d4950fefc937b52f09537a0a47ae21410614a0eb5c"
+        },
+        "en-GB": {
+          "approved_hash": "32840a0fdb158d172a659f48f135f2fde9abab56fdadff7b3463fc2bbb94c5cb",
+          "current_hash": "32840a0fdb158d172a659f48f135f2fde9abab56fdadff7b3463fc2bbb94c5cb"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_LORD_FAIL_HERO_002",
+      "content_hash_approved": "72faa67376fca6b2f032f390635bdae8001a31cecc50a81e18373b0d60b9ee57",
+      "content_hash_current": "72faa67376fca6b2f032f390635bdae8001a31cecc50a81e18373b0d60b9ee57",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "0f8c7bcee12c0a975d0eff322c034ee737f614efea6e6d4c6d0b9c7b1072e73b",
+          "current_hash": "0f8c7bcee12c0a975d0eff322c034ee737f614efea6e6d4c6d0b9c7b1072e73b"
+        },
+        "en-GB": {
+          "approved_hash": "36208192b4b109225f769acb87e2c8f39677f2b242de2d645eb96280412a1a40",
+          "current_hash": "36208192b4b109225f769acb87e2c8f39677f2b242de2d645eb96280412a1a40"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_LORD_PRE_RABBIT_001",
+      "content_hash_approved": "7439515f439dda157740c4d4c2aea39df54d2f525fff1bfcf72afce2300cabd2",
+      "content_hash_current": "7439515f439dda157740c4d4c2aea39df54d2f525fff1bfcf72afce2300cabd2",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "330a5629fcb23a7f0c67d6eb14c940b410c401d7c8dec8183307bc94ace478c7",
+          "current_hash": "330a5629fcb23a7f0c67d6eb14c940b410c401d7c8dec8183307bc94ace478c7"
+        },
+        "en-GB": {
+          "approved_hash": "04e65d4b3e9d0b014341d1b3129399de711c8843c46e5efb42a48f05f6ffe714",
+          "current_hash": "04e65d4b3e9d0b014341d1b3129399de711c8843c46e5efb42a48f05f6ffe714"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_LORD_PRE_RABBIT_002",
+      "content_hash_approved": "ffe6b9442c250be2ae932184e0cbbf4b95670b40e31e115086800459a76dfc43",
+      "content_hash_current": "ffe6b9442c250be2ae932184e0cbbf4b95670b40e31e115086800459a76dfc43",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "4739d22bd7c2e62714178957a675f8e0bceb6ce57993239a648361cfea05c035",
+          "current_hash": "4739d22bd7c2e62714178957a675f8e0bceb6ce57993239a648361cfea05c035"
+        },
+        "en-GB": {
+          "approved_hash": "4ef108d73150f1bcf761591a868e388c4d0899db3590cc9faf7f5d4c51ff9896",
+          "current_hash": "4ef108d73150f1bcf761591a868e388c4d0899db3590cc9faf7f5d4c51ff9896"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_LORD_PRE_RABBIT_003",
+      "content_hash_approved": "4937b02e69a11f4e1df1354314fa0a3ae8a22d96bbe6ba146d8d1ce1d14b12ae",
+      "content_hash_current": "4937b02e69a11f4e1df1354314fa0a3ae8a22d96bbe6ba146d8d1ce1d14b12ae",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "02da15333b0556259efc253952b3ed172d38f1dbef5ec439c632fffa0fd91cee",
+          "current_hash": "02da15333b0556259efc253952b3ed172d38f1dbef5ec439c632fffa0fd91cee"
+        },
+        "en-GB": {
+          "approved_hash": "b955af06ea611df256231a9c27ce0be2cbd626adeb2a1365e34ee34dd2a5a9bf",
+          "current_hash": "b955af06ea611df256231a9c27ce0be2cbd626adeb2a1365e34ee34dd2a5a9bf"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_01_HERO_001",
+      "content_hash_approved": "e318b25340dc328ff3598c366881ff54096b12a7ff50278fb167e49eb0f3c0ee",
+      "content_hash_current": "e318b25340dc328ff3598c366881ff54096b12a7ff50278fb167e49eb0f3c0ee",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "ad57e0f3bc17a8498486b953076764ef0f4fa7f40074e1ca8e7b61b74eeeedd4",
+          "current_hash": "ad57e0f3bc17a8498486b953076764ef0f4fa7f40074e1ca8e7b61b74eeeedd4"
+        },
+        "en-GB": {
+          "approved_hash": "23c813d2aeb752fbc9d2fcbf4d6742b9bfbe9ef7d59a8917488a2e13575491f6",
+          "current_hash": "23c813d2aeb752fbc9d2fcbf4d6742b9bfbe9ef7d59a8917488a2e13575491f6"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_02_HERO_001",
+      "content_hash_approved": "1a13bca1c4359bd7ee3d24857c43788b0a2a9b30ff85c4a3a867ee061c47a601",
+      "content_hash_current": "1a13bca1c4359bd7ee3d24857c43788b0a2a9b30ff85c4a3a867ee061c47a601",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "83e84c3c7ca55bcb4759092ef434bfb8ec0fe226a5c2f4e2ed2de1adcfaf7bcc",
+          "current_hash": "83e84c3c7ca55bcb4759092ef434bfb8ec0fe226a5c2f4e2ed2de1adcfaf7bcc"
+        },
+        "en-GB": {
+          "approved_hash": "728d9d894a3c0a816844692f54639fa9ce02bcc7e3cea22335236cbf5de86813",
+          "current_hash": "728d9d894a3c0a816844692f54639fa9ce02bcc7e3cea22335236cbf5de86813"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_03_HERO_001",
+      "content_hash_approved": "3f3477158985dab88d379d64caa95b2750e1f9ed212fcf24c4b719f28d345f7c",
+      "content_hash_current": "3f3477158985dab88d379d64caa95b2750e1f9ed212fcf24c4b719f28d345f7c",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "9dd6f5ee71d14395f6f209b9386af0b2f12fece20734801093a58db3af427d72",
+          "current_hash": "9dd6f5ee71d14395f6f209b9386af0b2f12fece20734801093a58db3af427d72"
+        },
+        "en-GB": {
+          "approved_hash": "2ca1f0b5a7adf8ba9f19275839eb03df8a6424d42b064312f616f8c70a366125",
+          "current_hash": "2ca1f0b5a7adf8ba9f19275839eb03df8a6424d42b064312f616f8c70a366125"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_03_HERO_002",
+      "content_hash_approved": "1699de6e1a2c808a9888e380301ac7de6f70eff22230dcbe0b898cc1629a46a2",
+      "content_hash_current": "1699de6e1a2c808a9888e380301ac7de6f70eff22230dcbe0b898cc1629a46a2",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "0f27a0bb06a756bc787bd23609013fd499782975039f208bc3d78c7b1c2be6bf",
+          "current_hash": "0f27a0bb06a756bc787bd23609013fd499782975039f208bc3d78c7b1c2be6bf"
+        },
+        "en-GB": {
+          "approved_hash": "bec5a59d90af873882c80b4c5a8edc2b04183ed80edfa8742c32f4d683bdafd0",
+          "current_hash": "bec5a59d90af873882c80b4c5a8edc2b04183ed80edfa8742c32f4d683bdafd0"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_04_HERO_001",
+      "content_hash_approved": "041bf54c188fa87ca8cc343c5c9a3c10fef4787d6ff481a76be44af374e7f082",
+      "content_hash_current": "041bf54c188fa87ca8cc343c5c9a3c10fef4787d6ff481a76be44af374e7f082",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "0c7e9d1d71c0a4db846adb929d5740c620aeb00b9196432ce752868810274832",
+          "current_hash": "0c7e9d1d71c0a4db846adb929d5740c620aeb00b9196432ce752868810274832"
+        },
+        "en-GB": {
+          "approved_hash": "b9b2d689f1f3fecb4b55481588e7a2d765fb91ddc79c9ce3ed4df6517dbc86b0",
+          "current_hash": "b9b2d689f1f3fecb4b55481588e7a2d765fb91ddc79c9ce3ed4df6517dbc86b0"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_05_HERO_001",
+      "content_hash_approved": "03a8ca62116cc8d06da6f852fee521b366eec24a86070f7b69a7980dc43a84de",
+      "content_hash_current": "03a8ca62116cc8d06da6f852fee521b366eec24a86070f7b69a7980dc43a84de",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "ca7359c9b529f0c21d6ecab4b1679ccbbd17dd28ab02337cbe9481e42d96f047",
+          "current_hash": "ca7359c9b529f0c21d6ecab4b1679ccbbd17dd28ab02337cbe9481e42d96f047"
+        },
+        "en-GB": {
+          "approved_hash": "cc78a8cc865ca4b35ff2be02def48435fcb5f41b3356aae59d5c11cc5bcf85ab",
+          "current_hash": "cc78a8cc865ca4b35ff2be02def48435fcb5f41b3356aae59d5c11cc5bcf85ab"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_05_RABBIT_001",
+      "content_hash_approved": "4210afd4a28046fe54a4c77d7a977146cc660205927ab02edd55d41bdff00251",
+      "content_hash_current": "4210afd4a28046fe54a4c77d7a977146cc660205927ab02edd55d41bdff00251",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "05444a8e52f3c6398946155160f1ca64c3e4bc2b4c02ad5d286e34c99c8814ce",
+          "current_hash": "05444a8e52f3c6398946155160f1ca64c3e4bc2b4c02ad5d286e34c99c8814ce"
+        },
+        "en-GB": {
+          "approved_hash": "29870c5c0a552024b89816be6f70ed14dcfc31cc155cb07b7919e83e229ec9b2",
+          "current_hash": "29870c5c0a552024b89816be6f70ed14dcfc31cc155cb07b7919e83e229ec9b2"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_06_RABBIT_001",
+      "content_hash_approved": "44d76a418364fc2f0eae6229f4d646703fe4aa3f5b7196c4fa2a3a04f1b3f1db",
+      "content_hash_current": "44d76a418364fc2f0eae6229f4d646703fe4aa3f5b7196c4fa2a3a04f1b3f1db",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "a3ab463aa9c69f8256482b010dfe19e9b3a46b21ecc0ccf39cc2e24de8842e5c",
+          "current_hash": "a3ab463aa9c69f8256482b010dfe19e9b3a46b21ecc0ccf39cc2e24de8842e5c"
+        },
+        "en-GB": {
+          "approved_hash": "fc5331d29f71fae7c921334b0c78d2232da4b29fd0d315099c0e6cf28a61fc18",
+          "current_hash": "fc5331d29f71fae7c921334b0c78d2232da4b29fd0d315099c0e6cf28a61fc18"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_07_HERO_001",
+      "content_hash_approved": "20ae28d9d26a0c7b188b9c9ef8267882fa4eb2dfbc3e739d64a5218a718561a9",
+      "content_hash_current": "20ae28d9d26a0c7b188b9c9ef8267882fa4eb2dfbc3e739d64a5218a718561a9",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "8eed99f275c4eab4fefbb0418dad1d41acde3405c81515f2ee13bd23821787a7",
+          "current_hash": "8eed99f275c4eab4fefbb0418dad1d41acde3405c81515f2ee13bd23821787a7"
+        },
+        "en-GB": {
+          "approved_hash": "617774bf1c4edf9928e17cafd1270802a78f01c9fa2faa155574955b3a4ddd45",
+          "current_hash": "617774bf1c4edf9928e17cafd1270802a78f01c9fa2faa155574955b3a4ddd45"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_08_HERO_001",
+      "content_hash_approved": "627ee0876a6cf10e75b0865c4662cdae416fac0d0fa7a2fc85f96d4dcfaf4bb2",
+      "content_hash_current": "627ee0876a6cf10e75b0865c4662cdae416fac0d0fa7a2fc85f96d4dcfaf4bb2",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "6742dec3afb5b4ca7be27ca1a54d751842f3c64d31a7342a583b64ed88c6e4e3",
+          "current_hash": "6742dec3afb5b4ca7be27ca1a54d751842f3c64d31a7342a583b64ed88c6e4e3"
+        },
+        "en-GB": {
+          "approved_hash": "36a3ed13287b59c691c1ddb1dda485a77ca1d89560a909025dcc2203cc260db1",
+          "current_hash": "36a3ed13287b59c691c1ddb1dda485a77ca1d89560a909025dcc2203cc260db1"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S1_08_RABBIT_001",
+      "content_hash_approved": "7ed153d81fcb4cb8697756da71f7fee3146539c47241b012918b30f90d2b2198",
+      "content_hash_current": "7ed153d81fcb4cb8697756da71f7fee3146539c47241b012918b30f90d2b2198",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "a6d81c33f507a2571138b74da585b4fd357d56e5545ab247251e87461d375444",
+          "current_hash": "a6d81c33f507a2571138b74da585b4fd357d56e5545ab247251e87461d375444"
+        },
+        "en-GB": {
+          "approved_hash": "a23776cd13eef8b5998e2f20613dcc3e03df9c349bb29f08fca9c563bc5cffff",
+          "current_hash": "a23776cd13eef8b5998e2f20613dcc3e03df9c349bb29f08fca9c563bc5cffff"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_01_HERO_001",
+      "content_hash_approved": "a84dde05f24a98590380ad0d17c6199d650b85a52c44ce5a2b66092b89534513",
+      "content_hash_current": "a84dde05f24a98590380ad0d17c6199d650b85a52c44ce5a2b66092b89534513",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "1a731ba64f985c59e19c743fcde1bf6bce7334bf608179fe282e3108b64314fc",
+          "current_hash": "1a731ba64f985c59e19c743fcde1bf6bce7334bf608179fe282e3108b64314fc"
+        },
+        "en-GB": {
+          "approved_hash": "0a3ffac451e28e933e90bb78005ade260bcb7cc24bcd34f1d3a99be027562e4a",
+          "current_hash": "0a3ffac451e28e933e90bb78005ade260bcb7cc24bcd34f1d3a99be027562e4a"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_02_HERO_001",
+      "content_hash_approved": "60232fff4d8c98b23d668076f58867ef95e8a554f81ee721e42f71dc0a7038e4",
+      "content_hash_current": "60232fff4d8c98b23d668076f58867ef95e8a554f81ee721e42f71dc0a7038e4",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "a4d147ca9793a0cc211e71a1b020acbf3474bb8907cfc66074eb9291e0f6f522",
+          "current_hash": "a4d147ca9793a0cc211e71a1b020acbf3474bb8907cfc66074eb9291e0f6f522"
+        },
+        "en-GB": {
+          "approved_hash": "b4573bc3045f1e0edef6a027c15f96079095cfd1d198b96a807de5ca59df356b",
+          "current_hash": "b4573bc3045f1e0edef6a027c15f96079095cfd1d198b96a807de5ca59df356b"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_03_HERO_001",
+      "content_hash_approved": "02e3ce384af20f1b3f778aecb7111d5fb241da93c25520d441492ce644101b1b",
+      "content_hash_current": "02e3ce384af20f1b3f778aecb7111d5fb241da93c25520d441492ce644101b1b",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "0e3efc84140bdf7251cb0ee383003c78e79db22c1afa943eacdbe5dce90e27a0",
+          "current_hash": "0e3efc84140bdf7251cb0ee383003c78e79db22c1afa943eacdbe5dce90e27a0"
+        },
+        "en-GB": {
+          "approved_hash": "1cc86fb3a7cc36a69894fcd385a8d01280c301898123084154cce84834323b02",
+          "current_hash": "1cc86fb3a7cc36a69894fcd385a8d01280c301898123084154cce84834323b02"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_03_HERO_002",
+      "content_hash_approved": "5baba7ccd6674fb1f81db035e316639ddf72c78fecac6df745fdf1c2a79d85f5",
+      "content_hash_current": "5baba7ccd6674fb1f81db035e316639ddf72c78fecac6df745fdf1c2a79d85f5",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "0cc53d6f5e0591b2adcdbc19e17fc3958108333cee6a3a90b4cd2547d9ac64a3",
+          "current_hash": "0cc53d6f5e0591b2adcdbc19e17fc3958108333cee6a3a90b4cd2547d9ac64a3"
+        },
+        "en-GB": {
+          "approved_hash": "4ae1ad71b4c0457891037378ebf6b4bb123c3df80fa2913912535cedec31d108",
+          "current_hash": "4ae1ad71b4c0457891037378ebf6b4bb123c3df80fa2913912535cedec31d108"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_04_HERO_001",
+      "content_hash_approved": "019c81dcb8e91a7521f88c9b05e558453364fa7674ff80329d879259a8cb32d5",
+      "content_hash_current": "019c81dcb8e91a7521f88c9b05e558453364fa7674ff80329d879259a8cb32d5",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "fcd34c1258832690a748d184aef28272e35de858c1e3ad6375f0e6507b66683b",
+          "current_hash": "fcd34c1258832690a748d184aef28272e35de858c1e3ad6375f0e6507b66683b"
+        },
+        "en-GB": {
+          "approved_hash": "84bea787a735a5de4fd7fe325da9df263f9b5b0803dfbcadd464f0af787d1955",
+          "current_hash": "84bea787a735a5de4fd7fe325da9df263f9b5b0803dfbcadd464f0af787d1955"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_05_HERO_001",
+      "content_hash_approved": "9e8f34d28513743ffb8cb8a859a3da7d3969551c47ac7614274b7b68f8f4fc51",
+      "content_hash_current": "9e8f34d28513743ffb8cb8a859a3da7d3969551c47ac7614274b7b68f8f4fc51",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "dca8b88429c89e472828095ca752bdae2198bae638fcd26222b3037656792db0",
+          "current_hash": "dca8b88429c89e472828095ca752bdae2198bae638fcd26222b3037656792db0"
+        },
+        "en-GB": {
+          "approved_hash": "aabc2e75c4e6e0d40c81da396797ea33a0621143732319713eafbe321d8d2993",
+          "current_hash": "aabc2e75c4e6e0d40c81da396797ea33a0621143732319713eafbe321d8d2993"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_06_HERO_001",
+      "content_hash_approved": "61cf59bb99f1d2c83d0db7fab5731e8ae5002b960874132b59f8b1eafac2d4cc",
+      "content_hash_current": "61cf59bb99f1d2c83d0db7fab5731e8ae5002b960874132b59f8b1eafac2d4cc",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "aa6082a49bd05c1e0cab793bdcfbcc8c053b86d51998658743421034489f5de6",
+          "current_hash": "aa6082a49bd05c1e0cab793bdcfbcc8c053b86d51998658743421034489f5de6"
+        },
+        "en-GB": {
+          "approved_hash": "bc326db4b4a3c72ffad410eb08874d19b511d48aa4eb7d3580144c66e25393f0",
+          "current_hash": "bc326db4b4a3c72ffad410eb08874d19b511d48aa4eb7d3580144c66e25393f0"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_06_HERO_002",
+      "content_hash_approved": "c5f0f8d5584873bc6f8eefe19ecbdcd3a13148bea0d1c5df3a6c62c7dbca102d",
+      "content_hash_current": "c5f0f8d5584873bc6f8eefe19ecbdcd3a13148bea0d1c5df3a6c62c7dbca102d",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "ba90703f9951093566d4f03510447ce54bba61fca4fd2fd11e974840d5b52cc1",
+          "current_hash": "ba90703f9951093566d4f03510447ce54bba61fca4fd2fd11e974840d5b52cc1"
+        },
+        "en-GB": {
+          "approved_hash": "d09e2e34acea09e23a2f2572933308077d8a8444029e6d356a1fde98b824a9db",
+          "current_hash": "d09e2e34acea09e23a2f2572933308077d8a8444029e6d356a1fde98b824a9db"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_06_HERO_003",
+      "content_hash_approved": "6f6ed7a93bf8ae58932888c0e3d08b22f74cfa24984a7c53c22a933bd5bc23b9",
+      "content_hash_current": "6f6ed7a93bf8ae58932888c0e3d08b22f74cfa24984a7c53c22a933bd5bc23b9",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "60a9c08022dc95e6fb7c31f0cfc31fdbbbcbff87f08557fa5fc8d0f10dbe3d0a",
+          "current_hash": "60a9c08022dc95e6fb7c31f0cfc31fdbbbcbff87f08557fa5fc8d0f10dbe3d0a"
+        },
+        "en-GB": {
+          "approved_hash": "7fe5a66166fb38487a5555d41794cd7d6a5696cdf3e08e073e9e3fca4e39327f",
+          "current_hash": "7fe5a66166fb38487a5555d41794cd7d6a5696cdf3e08e073e9e3fca4e39327f"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_07_HERO_001",
+      "content_hash_approved": "bb8b4e31fdc5e88c6e9c3c5a171b0875e7c4321993255274ccb23482748d11f5",
+      "content_hash_current": "bb8b4e31fdc5e88c6e9c3c5a171b0875e7c4321993255274ccb23482748d11f5",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "d04620d53a911a4605846d13e83cd2146eb2392670af6fa36a060e462c1eb1c6",
+          "current_hash": "d04620d53a911a4605846d13e83cd2146eb2392670af6fa36a060e462c1eb1c6"
+        },
+        "en-GB": {
+          "approved_hash": "facd0a3e572b49aeebcbd2b2ebc5501f4dc5baee8e979b7a166ad90e09377a83",
+          "current_hash": "facd0a3e572b49aeebcbd2b2ebc5501f4dc5baee8e979b7a166ad90e09377a83"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_07_HERO_002",
+      "content_hash_approved": "bb24934d6850ef288adb9b77d8c8ff4e8debb6d35703955877ea5a59870ce2aa",
+      "content_hash_current": "bb24934d6850ef288adb9b77d8c8ff4e8debb6d35703955877ea5a59870ce2aa",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "90eaba73fe5de3c43f6e38381b128c9104a97ac1e5409a8f7ac3f76e60655aff",
+          "current_hash": "90eaba73fe5de3c43f6e38381b128c9104a97ac1e5409a8f7ac3f76e60655aff"
+        },
+        "en-GB": {
+          "approved_hash": "078e396c32f0c782e1c8a4c56534b19fd16503110233d8006f054a361b1ec1c7",
+          "current_hash": "078e396c32f0c782e1c8a4c56534b19fd16503110233d8006f054a361b1ec1c7"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_07_RABBIT_001",
+      "content_hash_approved": "e4753a557687fd0e946d0d98107a20f132798611509d3aa1452aa5582a0283f7",
+      "content_hash_current": "e4753a557687fd0e946d0d98107a20f132798611509d3aa1452aa5582a0283f7",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "8ed9f900ea5e6efaf76a5a1f4c6e27dd116db09c0e834ce1beaecf596b8b24d7",
+          "current_hash": "8ed9f900ea5e6efaf76a5a1f4c6e27dd116db09c0e834ce1beaecf596b8b24d7"
+        },
+        "en-GB": {
+          "approved_hash": "ae16afcd01cd53e457b3c896dd1aa8e79dff0f25778f726be1f90df4f3997177",
+          "current_hash": "ae16afcd01cd53e457b3c896dd1aa8e79dff0f25778f726be1f90df4f3997177"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_08_RABBIT_001",
+      "content_hash_approved": "392c78717b3db28e28e3da699d348bc829ab28af98928488491370c32417cc8f",
+      "content_hash_current": "392c78717b3db28e28e3da699d348bc829ab28af98928488491370c32417cc8f",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "489abe09d5886c1c7f5267156d352a153c5aea074d5e10448dc6521750035959",
+          "current_hash": "489abe09d5886c1c7f5267156d352a153c5aea074d5e10448dc6521750035959"
+        },
+        "en-GB": {
+          "approved_hash": "c71b917f7b51243e055c631a85804cf4d1a8c213be524dfba8eb0186d151bd50",
+          "current_hash": "c71b917f7b51243e055c631a85804cf4d1a8c213be524dfba8eb0186d151bd50"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_08_RABBIT_002",
+      "content_hash_approved": "0aad138d9a017fa7f0ae7ee7d9999351c51ecbf332cdd6aecc08219ff9bc256b",
+      "content_hash_current": "0aad138d9a017fa7f0ae7ee7d9999351c51ecbf332cdd6aecc08219ff9bc256b",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "d7efd04708131e26bd0c7b2b88e54a08bf30d8b62c8486d46de5849e3332d617",
+          "current_hash": "d7efd04708131e26bd0c7b2b88e54a08bf30d8b62c8486d46de5849e3332d617"
+        },
+        "en-GB": {
+          "approved_hash": "63a49501be7eeef0aa6868b39b314feb4426ecca057691f0e27e29fc97f1ab7f",
+          "current_hash": "63a49501be7eeef0aa6868b39b314feb4426ecca057691f0e27e29fc97f1ab7f"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S2_08_RABBIT_003",
+      "content_hash_approved": "31a306c71824f6604032f4a648cc511530a7e5fe5cf477aaf71e65c60d927bc7",
+      "content_hash_current": "31a306c71824f6604032f4a648cc511530a7e5fe5cf477aaf71e65c60d927bc7",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "d882a878433aba6eb84a4a8217edfc9a39234870c19be16a4f6fddd1037c5055",
+          "current_hash": "d882a878433aba6eb84a4a8217edfc9a39234870c19be16a4f6fddd1037c5055"
+        },
+        "en-GB": {
+          "approved_hash": "a7d2ca00318f39a3712f1ff30e0671a9730b5a30b9ac4dba25e97740d408ee4f",
+          "current_hash": "a7d2ca00318f39a3712f1ff30e0671a9730b5a30b9ac4dba25e97740d408ee4f"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_01_HERO_001",
+      "content_hash_approved": "cd8db1fc05704c49b9d3a316e46b151a6e2e864dbafc6dc9b489349ef9335792",
+      "content_hash_current": "cd8db1fc05704c49b9d3a316e46b151a6e2e864dbafc6dc9b489349ef9335792",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "f3e22bbc9fc78ea1073531164302e21ff7a27aaebe44b5295dcea760b2b8a110",
+          "current_hash": "f3e22bbc9fc78ea1073531164302e21ff7a27aaebe44b5295dcea760b2b8a110"
+        },
+        "en-GB": {
+          "approved_hash": "a4ecd280962f349dc4674a2acd4432ec2d2eb70755699180caae05214e61068e",
+          "current_hash": "a4ecd280962f349dc4674a2acd4432ec2d2eb70755699180caae05214e61068e"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_02_RABBIT_001",
+      "content_hash_approved": "40110313814a7935ea965178f3f254c46662f90246c95435ec9a07cec7ad200a",
+      "content_hash_current": "40110313814a7935ea965178f3f254c46662f90246c95435ec9a07cec7ad200a",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "3349b8f710df17f23f381224daeffa695d4ddd51fe88645afa07b621ccfc55a3",
+          "current_hash": "3349b8f710df17f23f381224daeffa695d4ddd51fe88645afa07b621ccfc55a3"
+        },
+        "en-GB": {
+          "approved_hash": "f18470f15c7f37ac3fb25c60f5a2eeb3b4b4c75bf6f3c842d6c2e5ebc614cae4",
+          "current_hash": "f18470f15c7f37ac3fb25c60f5a2eeb3b4b4c75bf6f3c842d6c2e5ebc614cae4"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_02_RABBIT_002",
+      "content_hash_approved": "d5259306ffb9a8c75aee657f5b01fd5088e2ada7abb3a98b0d1897f8dd557a3b",
+      "content_hash_current": "d5259306ffb9a8c75aee657f5b01fd5088e2ada7abb3a98b0d1897f8dd557a3b",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "5a0e37b94964148485276c8735b3edc08d120d5e0caf9ae0ae727db0a6657391",
+          "current_hash": "5a0e37b94964148485276c8735b3edc08d120d5e0caf9ae0ae727db0a6657391"
+        },
+        "en-GB": {
+          "approved_hash": "c786121b4c53c763b32a72cdd5901c17158b096380c7ca814714589a39fdcda0",
+          "current_hash": "c786121b4c53c763b32a72cdd5901c17158b096380c7ca814714589a39fdcda0"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_02_RABBIT_003",
+      "content_hash_approved": "491f705cd2bda33362939aca410c2ffdffb5931cd1fc158958cec24b21a691db",
+      "content_hash_current": "491f705cd2bda33362939aca410c2ffdffb5931cd1fc158958cec24b21a691db",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "0039f9baf43d7e9cf560461ce955bc1ab899217b1ca2fbbfec3f35e2f295f622",
+          "current_hash": "0039f9baf43d7e9cf560461ce955bc1ab899217b1ca2fbbfec3f35e2f295f622"
+        },
+        "en-GB": {
+          "approved_hash": "ee34eef051750efb0857f6dcbd851b39a9435847e205a74ec946b0ba9b30e142",
+          "current_hash": "ee34eef051750efb0857f6dcbd851b39a9435847e205a74ec946b0ba9b30e142"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_03_HERO_001",
+      "content_hash_approved": "4e36185dfc37eac926920504caad8e6305803009c6521dd667996d1100c9a970",
+      "content_hash_current": "4e36185dfc37eac926920504caad8e6305803009c6521dd667996d1100c9a970",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "2e72504e0dc1fb2a71ec1f9dbe61a6a259c8ce39c57b0d8ed7c24b1a0fb092d8",
+          "current_hash": "2e72504e0dc1fb2a71ec1f9dbe61a6a259c8ce39c57b0d8ed7c24b1a0fb092d8"
+        },
+        "en-GB": {
+          "approved_hash": "dcf151fa4fd8d18e18cf47f461f4146bd5e038ea449b58a9cd233531fce2c21c",
+          "current_hash": "dcf151fa4fd8d18e18cf47f461f4146bd5e038ea449b58a9cd233531fce2c21c"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_03_RABBIT_001",
+      "content_hash_approved": "699ffaa2a2608a1460095e1d7b0c6a3893da0fc2ba14c895a9821f07e9b21d4b",
+      "content_hash_current": "699ffaa2a2608a1460095e1d7b0c6a3893da0fc2ba14c895a9821f07e9b21d4b",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "ee07378d67096f3a45d99d0e706ae5dc9534685649e36367b150c0157f666bdc",
+          "current_hash": "ee07378d67096f3a45d99d0e706ae5dc9534685649e36367b150c0157f666bdc"
+        },
+        "en-GB": {
+          "approved_hash": "d37bf17e78dc62099c0bb9e8ec3df9c50bcf6292f2936e306f362da4dbf2ac36",
+          "current_hash": "d37bf17e78dc62099c0bb9e8ec3df9c50bcf6292f2936e306f362da4dbf2ac36"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_03_RABBIT_002",
+      "content_hash_approved": "550aef57b3373277cdb4c86af073a9db74a64a1deea52cb24dcd94c9b85d681a",
+      "content_hash_current": "550aef57b3373277cdb4c86af073a9db74a64a1deea52cb24dcd94c9b85d681a",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "bb00d6767fa8ff9e28ae76fe857f35992412a39fa6d4f54b5443e6000b8d2c35",
+          "current_hash": "bb00d6767fa8ff9e28ae76fe857f35992412a39fa6d4f54b5443e6000b8d2c35"
+        },
+        "en-GB": {
+          "approved_hash": "89146bf352081c15daca36ef77a1dc731d02e909c39f639cb3321fe63b42ec86",
+          "current_hash": "89146bf352081c15daca36ef77a1dc731d02e909c39f639cb3321fe63b42ec86"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_04_HERO_001",
+      "content_hash_approved": "8786fba80c66be0b19d143b6f20ed8ded5ff0de6fc3f8f33f2a5e19687850d2f",
+      "content_hash_current": "8786fba80c66be0b19d143b6f20ed8ded5ff0de6fc3f8f33f2a5e19687850d2f",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "e3ed498e4fe6f7399ecf15e62d0af5f691ecad6655befe08bccc0296a866b1c5",
+          "current_hash": "e3ed498e4fe6f7399ecf15e62d0af5f691ecad6655befe08bccc0296a866b1c5"
+        },
+        "en-GB": {
+          "approved_hash": "59d641548415f79dc74ed075c12a36a02f049d80f32fa2e2e24bf5c7fac5c4c2",
+          "current_hash": "59d641548415f79dc74ed075c12a36a02f049d80f32fa2e2e24bf5c7fac5c4c2"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_04_HERO_002",
+      "content_hash_approved": "c728662e58bf576c6feca756a02199a05bc9614a3c4b843574718d9f7ffb8c7f",
+      "content_hash_current": "c728662e58bf576c6feca756a02199a05bc9614a3c4b843574718d9f7ffb8c7f",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "77683ed5ed4379fc52acfa9e1b24b350edfdfdd3c35418009b08829681cda67f",
+          "current_hash": "77683ed5ed4379fc52acfa9e1b24b350edfdfdd3c35418009b08829681cda67f"
+        },
+        "en-GB": {
+          "approved_hash": "f9278632443d3edeb83a349ec541275f196fcd8c06e1a2bfa61d9ab849f72c4e",
+          "current_hash": "f9278632443d3edeb83a349ec541275f196fcd8c06e1a2bfa61d9ab849f72c4e"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_05_HERO_001",
+      "content_hash_approved": "0b005c49eb78d3417ca7a16dc5ba320b9d65783e5b8acca295b4ea548588b3d4",
+      "content_hash_current": "0b005c49eb78d3417ca7a16dc5ba320b9d65783e5b8acca295b4ea548588b3d4",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "2fe951975a2a963c4a739760a8d9c1bb70a1492b252b747896181ee933eb7402",
+          "current_hash": "2fe951975a2a963c4a739760a8d9c1bb70a1492b252b747896181ee933eb7402"
+        },
+        "en-GB": {
+          "approved_hash": "734345db2c845d7265fc0f5dfb68217e8f0a0ec65a2f75cefb9b15e64edc6a8e",
+          "current_hash": "734345db2c845d7265fc0f5dfb68217e8f0a0ec65a2f75cefb9b15e64edc6a8e"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_05_HERO_002",
+      "content_hash_approved": "beeef16beca7c837626c2413a5e31e01747a7c900a9ab6c79f647284d6d0a47f",
+      "content_hash_current": "beeef16beca7c837626c2413a5e31e01747a7c900a9ab6c79f647284d6d0a47f",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "f90a43aba62854e214b91cea74a9d20b650b6a7c39f01b9896eff0939e19295a",
+          "current_hash": "f90a43aba62854e214b91cea74a9d20b650b6a7c39f01b9896eff0939e19295a"
+        },
+        "en-GB": {
+          "approved_hash": "16956b84133d3de24148c7374791a3ada0709a249e7d6c129e33da2e255cea9c",
+          "current_hash": "16956b84133d3de24148c7374791a3ada0709a249e7d6c129e33da2e255cea9c"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_05_HERO_003",
+      "content_hash_approved": "2a8cc910e8d91bd3670827bb72cc24325656642dd6fa917d17c591c9779b0f04",
+      "content_hash_current": "2a8cc910e8d91bd3670827bb72cc24325656642dd6fa917d17c591c9779b0f04",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "b82aa3edaaaba575b1129702deb27fbf46db0b241ffc8291683d51d4ea19d9fb",
+          "current_hash": "b82aa3edaaaba575b1129702deb27fbf46db0b241ffc8291683d51d4ea19d9fb"
+        },
+        "en-GB": {
+          "approved_hash": "4b77fb34890bac7b55684ae7e67e458cf718a2818a7d6e8077470269b958d50c",
+          "current_hash": "4b77fb34890bac7b55684ae7e67e458cf718a2818a7d6e8077470269b958d50c"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_06_HERO_001",
+      "content_hash_approved": "3b907a7a1a264b6e4d01dddfddb179a367a56be4000bf1a83beb01a666f81647",
+      "content_hash_current": "3b907a7a1a264b6e4d01dddfddb179a367a56be4000bf1a83beb01a666f81647",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "eea7a414420da1da2459ba2fcfaf9d72bcbf5e3ec732a62af752517750a4fe24",
+          "current_hash": "eea7a414420da1da2459ba2fcfaf9d72bcbf5e3ec732a62af752517750a4fe24"
+        },
+        "en-GB": {
+          "approved_hash": "ac9d2ceed29f27f7c7fc6e6d7b98e94a6bed949eb7d17bbed55ea2389d0408cf",
+          "current_hash": "ac9d2ceed29f27f7c7fc6e6d7b98e94a6bed949eb7d17bbed55ea2389d0408cf"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_06_HERO_002",
+      "content_hash_approved": "d982099632a4cd1e18f5d981b7f170b292bcb683e98c5e82578ba33f804de18e",
+      "content_hash_current": "d982099632a4cd1e18f5d981b7f170b292bcb683e98c5e82578ba33f804de18e",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "4ac75bc2b143b881fde8990548bd14c803a5d5f18addcd9cb699d7a935eb861e",
+          "current_hash": "4ac75bc2b143b881fde8990548bd14c803a5d5f18addcd9cb699d7a935eb861e"
+        },
+        "en-GB": {
+          "approved_hash": "8d872cab62628df0e258d914e0b68b6f004b175ef6ef5a56c280c4b4027f198d",
+          "current_hash": "8d872cab62628df0e258d914e0b68b6f004b175ef6ef5a56c280c4b4027f198d"
+        }
+      }
+    },
+    {
+      "line_id": "Z4_S3_06_HERO_003",
+      "content_hash_approved": "102959c09594a82a5215774e87733548a4daeeae8f7b09e3263656fe8872dc11",
+      "content_hash_current": "102959c09594a82a5215774e87733548a4daeeae8f7b09e3263656fe8872dc11",
+      "localized_records": {
+        "zh-TW": {
+          "approved_hash": "fcd6325621fe406ccf5d8c23d87c96b94a850bb2ada8c9ee24eb9ac314884d25",
+          "current_hash": "fcd6325621fe406ccf5d8c23d87c96b94a850bb2ada8c9ee24eb9ac314884d25"
+        },
+        "en-GB": {
+          "approved_hash": "7dafa1e62b3b37c865fc03e12ea8e4b346426df986e9707c85e9e483dca7b8f6",
+          "current_hash": "7dafa1e62b3b37c865fc03e12ea8e4b346426df986e9707c85e9e483dca7b8f6"
+        }
+      }
+    }
+  ],
+  "audio": [
+    {
+      "record_key": "SHUI_VOX_ACK",
+      "asset_kind": "audio",
+      "asset_id": "SHUI_VOX_ACK",
+      "identity_key": "SHUI_VOX_ACK",
+      "locale": "shared",
+      "path": "assets/e10/audio/shared/shui/SHUI_VOX_ACK.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "c448791e02530f0dcd2260a9a51056d57e8c05626c698ba3869ea1d30233ec03",
+      "current_sha256": "c448791e02530f0dcd2260a9a51056d57e8c05626c698ba3869ea1d30233ec03",
+      "approved_blob": "dc4e8ca12ff1d0a5200352373a25447537881464",
+      "current_worktree_blob": "dc4e8ca12ff1d0a5200352373a25447537881464",
+      "base_blob": "dc4e8ca12ff1d0a5200352373a25447537881464",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "SHUI_VOX_ALERT",
+      "asset_kind": "audio",
+      "asset_id": "SHUI_VOX_ALERT",
+      "identity_key": "SHUI_VOX_ALERT",
+      "locale": "shared",
+      "path": "assets/e10/audio/shared/shui/SHUI_VOX_ALERT.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "a8f50bc9806fd71b33a7ac87aa81aad0cecd548555ce750321d2edaabd690184",
+      "current_sha256": "a8f50bc9806fd71b33a7ac87aa81aad0cecd548555ce750321d2edaabd690184",
+      "approved_blob": "9179b2a7894003194e737a9b251d7db86118cec0",
+      "current_worktree_blob": "9179b2a7894003194e737a9b251d7db86118cec0",
+      "base_blob": "9179b2a7894003194e737a9b251d7db86118cec0",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "SHUI_VOX_CURIOUS",
+      "asset_kind": "audio",
+      "asset_id": "SHUI_VOX_CURIOUS",
+      "identity_key": "SHUI_VOX_CURIOUS",
+      "locale": "shared",
+      "path": "assets/e10/audio/shared/shui/SHUI_VOX_CURIOUS.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "28fa9e1a40275bc2d9e5bda05a3d96aac0fcf9ac09f713347d8e98b21809c1d2",
+      "current_sha256": "28fa9e1a40275bc2d9e5bda05a3d96aac0fcf9ac09f713347d8e98b21809c1d2",
+      "approved_blob": "a957c4854a30250108b553b147cfb30014b4674d",
+      "current_worktree_blob": "a957c4854a30250108b553b147cfb30014b4674d",
+      "base_blob": "a957c4854a30250108b553b147cfb30014b4674d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "SHUI_VOX_ENCOURAGE",
+      "asset_kind": "audio",
+      "asset_id": "SHUI_VOX_ENCOURAGE",
+      "identity_key": "SHUI_VOX_ENCOURAGE",
+      "locale": "shared",
+      "path": "assets/e10/audio/shared/shui/SHUI_VOX_ENCOURAGE.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "a0bac3ad398f43de2e963ce8138f42c38125a9f069f7a3224549b4c16abe1fdd",
+      "current_sha256": "a0bac3ad398f43de2e963ce8138f42c38125a9f069f7a3224549b4c16abe1fdd",
+      "approved_blob": "97e0480d83453e6e5e93396e82d7f28c2f9bf55d",
+      "current_worktree_blob": "97e0480d83453e6e5e93396e82d7f28c2f9bf55d",
+      "base_blob": "97e0480d83453e6e5e93396e82d7f28c2f9bf55d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "SHUI_VOX_HAPPY",
+      "asset_kind": "audio",
+      "asset_id": "SHUI_VOX_HAPPY",
+      "identity_key": "SHUI_VOX_HAPPY",
+      "locale": "shared",
+      "path": "assets/e10/audio/shared/shui/SHUI_VOX_HAPPY.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "90c54cc8b42ceb2365c7f37cd4d9df6c5663be0d46b01c2d7cfcba5db097b270",
+      "current_sha256": "90c54cc8b42ceb2365c7f37cd4d9df6c5663be0d46b01c2d7cfcba5db097b270",
+      "approved_blob": "5c757acc5890f6627f98c62590fcc45b4e2e7825",
+      "current_worktree_blob": "5c757acc5890f6627f98c62590fcc45b4e2e7825",
+      "base_blob": "5c757acc5890f6627f98c62590fcc45b4e2e7825",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "SHUI_VOX_RUN",
+      "asset_kind": "audio",
+      "asset_id": "SHUI_VOX_RUN",
+      "identity_key": "SHUI_VOX_RUN",
+      "locale": "shared",
+      "path": "assets/e10/audio/shared/shui/SHUI_VOX_RUN.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "803b4e08b68431d8e2f0e5d10840853664689a97f78fdbfac5a59b6d3f01c5ac",
+      "current_sha256": "803b4e08b68431d8e2f0e5d10840853664689a97f78fdbfac5a59b6d3f01c5ac",
+      "approved_blob": "67fe7d3d6de8889fccdb280ed649419d8134d0c6",
+      "current_worktree_blob": "67fe7d3d6de8889fccdb280ed649419d8134d0c6",
+      "base_blob": "67fe7d3d6de8889fccdb280ed649419d8134d0c6",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_AMB_LORD_DOMAIN",
+      "asset_kind": "audio",
+      "asset_id": "Z4_AMB_LORD_DOMAIN",
+      "identity_key": "Z4_AMB_LORD_DOMAIN",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/ambience/Z4_AMB_LORD_DOMAIN.mp3",
+      "byte_size": 160958,
+      "approved_sha256": "5d27e356a97a955464610d758274b0e609d955158c92697c00cf69b61c4efad6",
+      "current_sha256": "5d27e356a97a955464610d758274b0e609d955158c92697c00cf69b61c4efad6",
+      "approved_blob": "14169b9bf55298946d0ad5788784a8f868e5a52d",
+      "current_worktree_blob": "14169b9bf55298946d0ad5788784a8f868e5a52d",
+      "base_blob": "14169b9bf55298946d0ad5788784a8f868e5a52d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_AMB_MIST_FOREST",
+      "asset_kind": "audio",
+      "asset_id": "Z4_AMB_MIST_FOREST",
+      "identity_key": "Z4_AMB_MIST_FOREST",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/ambience/Z4_AMB_MIST_FOREST.mp3",
+      "byte_size": 193141,
+      "approved_sha256": "90d3b39dd921f56c2766d0e7802397a94f206e7dc96df999dfdd561ae0a6bcc0",
+      "current_sha256": "90d3b39dd921f56c2766d0e7802397a94f206e7dc96df999dfdd561ae0a6bcc0",
+      "approved_blob": "e7e665608191fd3038b7cd0dc4f89e385ed472e7",
+      "current_worktree_blob": "e7e665608191fd3038b7cd0dc4f89e385ed472e7",
+      "base_blob": "e7e665608191fd3038b7cd0dc4f89e385ed472e7",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_BGM_A_MIST_ENTRY",
+      "asset_kind": "audio",
+      "asset_id": "Z4_BGM_A_MIST_ENTRY",
+      "identity_key": "Z4_BGM_A_MIST_ENTRY",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/bgm/Z4_BGM_A_MIST_ENTRY.mp3",
+      "byte_size": 479862,
+      "approved_sha256": "0211e4a626cbff261ac989e8928ce3d7395def0f50ca7ee3b53f18728da7b943",
+      "current_sha256": "0211e4a626cbff261ac989e8928ce3d7395def0f50ca7ee3b53f18728da7b943",
+      "approved_blob": "41806a35d3f5922d6b6f1ecacd653961b9d5cb19",
+      "current_worktree_blob": "41806a35d3f5922d6b6f1ecacd653961b9d5cb19",
+      "base_blob": "41806a35d3f5922d6b6f1ecacd653961b9d5cb19",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_BGM_B_ILLUSION_TRUST",
+      "asset_kind": "audio",
+      "asset_id": "Z4_BGM_B_ILLUSION_TRUST",
+      "identity_key": "Z4_BGM_B_ILLUSION_TRUST",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/bgm/Z4_BGM_B_ILLUSION_TRUST.mp3",
+      "byte_size": 480698,
+      "approved_sha256": "125a39aca1442f82273c2def0bedc42411fcc8a5386da514b793d06386f47e68",
+      "current_sha256": "125a39aca1442f82273c2def0bedc42411fcc8a5386da514b793d06386f47e68",
+      "approved_blob": "bfa1873c520dfcbe7ee2b2619a47f763f78acd56",
+      "current_worktree_blob": "bfa1873c520dfcbe7ee2b2619a47f763f78acd56",
+      "base_blob": "bfa1873c520dfcbe7ee2b2619a47f763f78acd56",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_BGM_C_CLEAR_DAWN",
+      "asset_kind": "audio",
+      "asset_id": "Z4_BGM_C_CLEAR_DAWN",
+      "identity_key": "Z4_BGM_C_CLEAR_DAWN",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/bgm/Z4_BGM_C_CLEAR_DAWN.mp3",
+      "byte_size": 480698,
+      "approved_sha256": "b7cec4e9fc08c4481cb3bb11258f7c98570155da6f4d876815888041b19165fd",
+      "current_sha256": "b7cec4e9fc08c4481cb3bb11258f7c98570155da6f4d876815888041b19165fd",
+      "approved_blob": "3e3663fe94105611558492186c5d197d365226c1",
+      "current_worktree_blob": "3e3663fe94105611558492186c5d197d365226c1",
+      "base_blob": "3e3663fe94105611558492186c5d197d365226c1",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_FAIL_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_FAIL_HERO_001",
+      "identity_key": "Z4_LORD_FAIL_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_LORD_FAIL_HERO_001.mp3",
+      "byte_size": 18852,
+      "approved_sha256": "70c239557df9a238c5f4aed80fdacf217f38227e050b45c54e0f2086249d489d",
+      "current_sha256": "70c239557df9a238c5f4aed80fdacf217f38227e050b45c54e0f2086249d489d",
+      "approved_blob": "b0ef835b5b7a6ece51a37ff6daa981b59a8261c9",
+      "current_worktree_blob": "b0ef835b5b7a6ece51a37ff6daa981b59a8261c9",
+      "base_blob": "b0ef835b5b7a6ece51a37ff6daa981b59a8261c9",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_FAIL_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_FAIL_HERO_001",
+      "identity_key": "Z4_LORD_FAIL_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_LORD_FAIL_HERO_001.mp3",
+      "byte_size": 24285,
+      "approved_sha256": "6d35edff4871c37b6d7c22b61c2f8b04fd1e9e477257e01c1d1c445bec27254a",
+      "current_sha256": "6d35edff4871c37b6d7c22b61c2f8b04fd1e9e477257e01c1d1c445bec27254a",
+      "approved_blob": "80fdcbb44c53a512dc68121983f153e347920cc4",
+      "current_worktree_blob": "80fdcbb44c53a512dc68121983f153e347920cc4",
+      "base_blob": "80fdcbb44c53a512dc68121983f153e347920cc4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_FAIL_HERO_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_FAIL_HERO_002",
+      "identity_key": "Z4_LORD_FAIL_HERO_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_LORD_FAIL_HERO_002.mp3",
+      "byte_size": 40586,
+      "approved_sha256": "5557dbb05a5371b6b4dd1d41318c6091dd420ecfb2e8ffbacc98cc7dfdbe35fe",
+      "current_sha256": "5557dbb05a5371b6b4dd1d41318c6091dd420ecfb2e8ffbacc98cc7dfdbe35fe",
+      "approved_blob": "718d801618e578459f6e733a0234d922ecb4d94d",
+      "current_worktree_blob": "718d801618e578459f6e733a0234d922ecb4d94d",
+      "base_blob": "718d801618e578459f6e733a0234d922ecb4d94d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_FAIL_HERO_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_FAIL_HERO_002",
+      "identity_key": "Z4_LORD_FAIL_HERO_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_LORD_FAIL_HERO_002.mp3",
+      "byte_size": 38078,
+      "approved_sha256": "f274a157ca13aaa600971baf92b75e96930e773b7c5b0227e046dd688dd46de4",
+      "current_sha256": "f274a157ca13aaa600971baf92b75e96930e773b7c5b0227e046dd688dd46de4",
+      "approved_blob": "f4b76953305c774d30df690bae15e0c5a383db2e",
+      "current_worktree_blob": "f4b76953305c774d30df690bae15e0c5a383db2e",
+      "base_blob": "f4b76953305c774d30df690bae15e0c5a383db2e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_PRE_RABBIT_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_PRE_RABBIT_001",
+      "identity_key": "Z4_LORD_PRE_RABBIT_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_LORD_PRE_RABBIT_001.mp3",
+      "byte_size": 20106,
+      "approved_sha256": "4d1ea32ebaf0856122537b66f175e5733633682da7e3f9d801290dc9c9631d3e",
+      "current_sha256": "4d1ea32ebaf0856122537b66f175e5733633682da7e3f9d801290dc9c9631d3e",
+      "approved_blob": "e1b5b8da2ce5b79fa2c23721d50c7f0b1587d755",
+      "current_worktree_blob": "e1b5b8da2ce5b79fa2c23721d50c7f0b1587d755",
+      "base_blob": "e1b5b8da2ce5b79fa2c23721d50c7f0b1587d755",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_PRE_RABBIT_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_PRE_RABBIT_001",
+      "identity_key": "Z4_LORD_PRE_RABBIT_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_LORD_PRE_RABBIT_001.mp3",
+      "byte_size": 23031,
+      "approved_sha256": "50072bf5d20b1ea5d1c6788d787047f11f34f03f7739d3f6ac1a0d7399afa514",
+      "current_sha256": "50072bf5d20b1ea5d1c6788d787047f11f34f03f7739d3f6ac1a0d7399afa514",
+      "approved_blob": "35e4656f2ffe7312e539d52d6beb4e0e506f3ef5",
+      "current_worktree_blob": "35e4656f2ffe7312e539d52d6beb4e0e506f3ef5",
+      "base_blob": "35e4656f2ffe7312e539d52d6beb4e0e506f3ef5",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_PRE_RABBIT_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_PRE_RABBIT_002",
+      "identity_key": "Z4_LORD_PRE_RABBIT_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_LORD_PRE_RABBIT_002.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "404c36dc74137635a45e2ff668196cba5d3f958ff002a68d78b871f5e325d902",
+      "current_sha256": "404c36dc74137635a45e2ff668196cba5d3f958ff002a68d78b871f5e325d902",
+      "approved_blob": "a1206c2a421b231138b95113c01e1cffd7ee3c84",
+      "current_worktree_blob": "a1206c2a421b231138b95113c01e1cffd7ee3c84",
+      "base_blob": "a1206c2a421b231138b95113c01e1cffd7ee3c84",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_PRE_RABBIT_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_PRE_RABBIT_002",
+      "identity_key": "Z4_LORD_PRE_RABBIT_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_LORD_PRE_RABBIT_002.mp3",
+      "byte_size": 38078,
+      "approved_sha256": "db2466b832e26c1cd138570221bcdca2a9484424ea078bb09107ecf306ee8e77",
+      "current_sha256": "db2466b832e26c1cd138570221bcdca2a9484424ea078bb09107ecf306ee8e77",
+      "approved_blob": "eb54528963741d9557d226b97b9673abf7760b00",
+      "current_worktree_blob": "eb54528963741d9557d226b97b9673abf7760b00",
+      "base_blob": "eb54528963741d9557d226b97b9673abf7760b00",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_PRE_RABBIT_003|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_PRE_RABBIT_003",
+      "identity_key": "Z4_LORD_PRE_RABBIT_003|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_LORD_PRE_RABBIT_003.mp3",
+      "byte_size": 71515,
+      "approved_sha256": "ebf21f24ae360caa4967d9f88bb645e3f1aef6de1473afe1330528540a33d9a3",
+      "current_sha256": "ebf21f24ae360caa4967d9f88bb645e3f1aef6de1473afe1330528540a33d9a3",
+      "approved_blob": "384225c21321afede7f72fa7801002779c9f8a5e",
+      "current_worktree_blob": "384225c21321afede7f72fa7801002779c9f8a5e",
+      "base_blob": "384225c21321afede7f72fa7801002779c9f8a5e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_LORD_PRE_RABBIT_003|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_LORD_PRE_RABBIT_003",
+      "identity_key": "Z4_LORD_PRE_RABBIT_003|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_LORD_PRE_RABBIT_003.mp3",
+      "byte_size": 28047,
+      "approved_sha256": "9bd5460fd558c1841408d9f430892a50d84e581c04f4040ea15c4f1ba6199fe8",
+      "current_sha256": "9bd5460fd558c1841408d9f430892a50d84e581c04f4040ea15c4f1ba6199fe8",
+      "approved_blob": "af291b5a30198ed6e8c0ab1eae0b8e360707a4bb",
+      "current_worktree_blob": "af291b5a30198ed6e8c0ab1eae0b8e360707a4bb",
+      "base_blob": "af291b5a30198ed6e8c0ab1eae0b8e360707a4bb",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_01_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_01_HERO_001",
+      "identity_key": "Z4_S1_01_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_01_HERO_001.mp3",
+      "byte_size": 61066,
+      "approved_sha256": "6a68fcb1a766fa0d3f5126b9feaac7fc3c92d92847e70fdbc33704f1f78fd3a2",
+      "current_sha256": "6a68fcb1a766fa0d3f5126b9feaac7fc3c92d92847e70fdbc33704f1f78fd3a2",
+      "approved_blob": "e4966cb76f92ccfc6013afe886bb236a5b65f9b7",
+      "current_worktree_blob": "e4966cb76f92ccfc6013afe886bb236a5b65f9b7",
+      "base_blob": "e4966cb76f92ccfc6013afe886bb236a5b65f9b7",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_01_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_01_HERO_001",
+      "identity_key": "Z4_S1_01_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_01_HERO_001.mp3",
+      "byte_size": 48527,
+      "approved_sha256": "3e2386a4aa350b3516b1c6e2359abffd0b17f61fa61ebcac2b094bae832f0121",
+      "current_sha256": "3e2386a4aa350b3516b1c6e2359abffd0b17f61fa61ebcac2b094bae832f0121",
+      "approved_blob": "eab1777e6b5fee73aa3e622cc062c20035864248",
+      "current_worktree_blob": "eab1777e6b5fee73aa3e622cc062c20035864248",
+      "base_blob": "eab1777e6b5fee73aa3e622cc062c20035864248",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_02_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_02_HERO_001",
+      "identity_key": "Z4_S1_02_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_02_HERO_001.mp3",
+      "byte_size": 47273,
+      "approved_sha256": "dbad297e525cb43b1304ccbbde0f3c81d38c00857a6af530bb600c09e8464405",
+      "current_sha256": "dbad297e525cb43b1304ccbbde0f3c81d38c00857a6af530bb600c09e8464405",
+      "approved_blob": "5881bc5de3d9f627fe9d49be1eda7a258cd6a77e",
+      "current_worktree_blob": "5881bc5de3d9f627fe9d49be1eda7a258cd6a77e",
+      "base_blob": "5881bc5de3d9f627fe9d49be1eda7a258cd6a77e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_02_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_02_HERO_001",
+      "identity_key": "Z4_S1_02_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_02_HERO_001.mp3",
+      "byte_size": 52288,
+      "approved_sha256": "e6ad8234baabc47067c8078dfb0b7903964433bf552ee9d6408ee71c0598ab8a",
+      "current_sha256": "e6ad8234baabc47067c8078dfb0b7903964433bf552ee9d6408ee71c0598ab8a",
+      "approved_blob": "aa680101146dc0fbcceedd17a399fa952bfa5146",
+      "current_worktree_blob": "aa680101146dc0fbcceedd17a399fa952bfa5146",
+      "base_blob": "aa680101146dc0fbcceedd17a399fa952bfa5146",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_03_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_03_HERO_001",
+      "identity_key": "Z4_S1_03_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_03_HERO_001.mp3",
+      "byte_size": 21359,
+      "approved_sha256": "8c2959d0aa17814344bba81d57948b5f1394545cfb12edbca35a17fc048362d9",
+      "current_sha256": "8c2959d0aa17814344bba81d57948b5f1394545cfb12edbca35a17fc048362d9",
+      "approved_blob": "c9aa5677fed1b08495c85f43e7eca19372fbec35",
+      "current_worktree_blob": "c9aa5677fed1b08495c85f43e7eca19372fbec35",
+      "base_blob": "c9aa5677fed1b08495c85f43e7eca19372fbec35",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_03_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_03_HERO_001",
+      "identity_key": "Z4_S1_03_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_03_HERO_001.mp3",
+      "byte_size": 24285,
+      "approved_sha256": "6fe9ab7ee634ef91db4362f67d133cbeb6c97072800fb9bde5f3706f3efa227d",
+      "current_sha256": "6fe9ab7ee634ef91db4362f67d133cbeb6c97072800fb9bde5f3706f3efa227d",
+      "approved_blob": "13e38c174b4dc6d791b8e3ddd7622a83fe49b490",
+      "current_worktree_blob": "13e38c174b4dc6d791b8e3ddd7622a83fe49b490",
+      "base_blob": "13e38c174b4dc6d791b8e3ddd7622a83fe49b490",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_03_HERO_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_03_HERO_002",
+      "identity_key": "Z4_S1_03_HERO_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_03_HERO_002.mp3",
+      "byte_size": 54796,
+      "approved_sha256": "61f5b9e8c0c399f714df85ccacef64c3b8d624f3d391009adc73684a18f93c15",
+      "current_sha256": "61f5b9e8c0c399f714df85ccacef64c3b8d624f3d391009adc73684a18f93c15",
+      "approved_blob": "98f05aa9bacbbac51d7758928b0e414574709ac9",
+      "current_worktree_blob": "98f05aa9bacbbac51d7758928b0e414574709ac9",
+      "base_blob": "98f05aa9bacbbac51d7758928b0e414574709ac9",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_03_HERO_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_03_HERO_002",
+      "identity_key": "Z4_S1_03_HERO_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_03_HERO_002.mp3",
+      "byte_size": 46019,
+      "approved_sha256": "2a9db84856e670501189ee7c65e670e8f2be6e2b1e4f11507ccd11b049f5d6bd",
+      "current_sha256": "2a9db84856e670501189ee7c65e670e8f2be6e2b1e4f11507ccd11b049f5d6bd",
+      "approved_blob": "cedd255e0d379b095833133d5470e45b73e5189b",
+      "current_worktree_blob": "cedd255e0d379b095833133d5470e45b73e5189b",
+      "base_blob": "cedd255e0d379b095833133d5470e45b73e5189b",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_04_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_04_HERO_001",
+      "identity_key": "Z4_S1_04_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_04_HERO_001.mp3",
+      "byte_size": 30555,
+      "approved_sha256": "c8047d88dd21253fb927fdfbd8ba1c4d555264b91650a9bf57bde4d4fbcc5f2c",
+      "current_sha256": "c8047d88dd21253fb927fdfbd8ba1c4d555264b91650a9bf57bde4d4fbcc5f2c",
+      "approved_blob": "cbf659ddb8b240a943a0eac9715980d351750bb9",
+      "current_worktree_blob": "cbf659ddb8b240a943a0eac9715980d351750bb9",
+      "base_blob": "cbf659ddb8b240a943a0eac9715980d351750bb9",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_04_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_04_HERO_001",
+      "identity_key": "Z4_S1_04_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_04_HERO_001.mp3",
+      "byte_size": 24285,
+      "approved_sha256": "1d4f05a477d666adae0cc63909bd936a787e7f81a9fd6f71a9283194740c44e2",
+      "current_sha256": "1d4f05a477d666adae0cc63909bd936a787e7f81a9fd6f71a9283194740c44e2",
+      "approved_blob": "7fec037d7efc1858a6b362acd299ccf8ebda9f44",
+      "current_worktree_blob": "7fec037d7efc1858a6b362acd299ccf8ebda9f44",
+      "base_blob": "7fec037d7efc1858a6b362acd299ccf8ebda9f44",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_05_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_05_HERO_001",
+      "identity_key": "Z4_S1_05_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_05_HERO_001.mp3",
+      "byte_size": 15090,
+      "approved_sha256": "c8c99965ce76b8c9d8c45ce4656208a0c27b7ae473d03cf9f581e3fb157e1d14",
+      "current_sha256": "c8c99965ce76b8c9d8c45ce4656208a0c27b7ae473d03cf9f581e3fb157e1d14",
+      "approved_blob": "ae5755e8d0dce31ee05b8573b5c35ef0dffb6bce",
+      "current_worktree_blob": "ae5755e8d0dce31ee05b8573b5c35ef0dffb6bce",
+      "base_blob": "ae5755e8d0dce31ee05b8573b5c35ef0dffb6bce",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_05_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_05_HERO_001",
+      "identity_key": "Z4_S1_05_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_05_HERO_001.mp3",
+      "byte_size": 20106,
+      "approved_sha256": "5c7599d33f449135d923be509b7e400f6070c5fd2955160ae237b7b7268a4948",
+      "current_sha256": "5c7599d33f449135d923be509b7e400f6070c5fd2955160ae237b7b7268a4948",
+      "approved_blob": "b98b073be897c67289e298192eb3c1c33af9d49a",
+      "current_worktree_blob": "b98b073be897c67289e298192eb3c1c33af9d49a",
+      "base_blob": "b98b073be897c67289e298192eb3c1c33af9d49a",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_05_RABBIT_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_05_RABBIT_001",
+      "identity_key": "Z4_S1_05_RABBIT_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_05_RABBIT_001.mp3",
+      "byte_size": 91995,
+      "approved_sha256": "4a88b9252999cd4cb25c82a75c164c4c714bb72ee1142cee6e3313e37df9b079",
+      "current_sha256": "4a88b9252999cd4cb25c82a75c164c4c714bb72ee1142cee6e3313e37df9b079",
+      "approved_blob": "19609f194c272410c80b97f01b1bd1605491ff5a",
+      "current_worktree_blob": "19609f194c272410c80b97f01b1bd1605491ff5a",
+      "base_blob": "19609f194c272410c80b97f01b1bd1605491ff5a",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_05_RABBIT_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_05_RABBIT_001",
+      "identity_key": "Z4_S1_05_RABBIT_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_05_RABBIT_001.mp3",
+      "byte_size": 49781,
+      "approved_sha256": "248026fc56b7be4d8751c11a4650916ca26c3ff322537c30c244a61ec50240dc",
+      "current_sha256": "248026fc56b7be4d8751c11a4650916ca26c3ff322537c30c244a61ec50240dc",
+      "approved_blob": "8db3fb24e006347e57c7f8281fd08d8388240fe9",
+      "current_worktree_blob": "8db3fb24e006347e57c7f8281fd08d8388240fe9",
+      "base_blob": "8db3fb24e006347e57c7f8281fd08d8388240fe9",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_06_RABBIT_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_06_RABBIT_001",
+      "identity_key": "Z4_S1_06_RABBIT_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_06_RABBIT_001.mp3",
+      "byte_size": 82799,
+      "approved_sha256": "36952ca37ac1173ddf651fbdb49973cdea99bb4e7b2477c935820e0c0cfc332e",
+      "current_sha256": "36952ca37ac1173ddf651fbdb49973cdea99bb4e7b2477c935820e0c0cfc332e",
+      "approved_blob": "97b44c0b79e00113517b82272735a02c351f4b4f",
+      "current_worktree_blob": "97b44c0b79e00113517b82272735a02c351f4b4f",
+      "base_blob": "97b44c0b79e00113517b82272735a02c351f4b4f",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_06_RABBIT_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_06_RABBIT_001",
+      "identity_key": "Z4_S1_06_RABBIT_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_06_RABBIT_001.mp3",
+      "byte_size": 75276,
+      "approved_sha256": "19c64a02279df2b86855e3f688a120105396c8c7ef108cb3dcc6cddcf70a5feb",
+      "current_sha256": "19c64a02279df2b86855e3f688a120105396c8c7ef108cb3dcc6cddcf70a5feb",
+      "approved_blob": "b92bc04c0143a5938c3a0e186fdec758e5517dac",
+      "current_worktree_blob": "b92bc04c0143a5938c3a0e186fdec758e5517dac",
+      "base_blob": "b92bc04c0143a5938c3a0e186fdec758e5517dac",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_07_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_07_HERO_001",
+      "identity_key": "Z4_S1_07_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_07_HERO_001.mp3",
+      "byte_size": 113728,
+      "approved_sha256": "db815d91d89ad0fd2189b1e3e9b029e53a20471f461eea38d76a2d36973469c9",
+      "current_sha256": "db815d91d89ad0fd2189b1e3e9b029e53a20471f461eea38d76a2d36973469c9",
+      "approved_blob": "25b8db56bcab66bc8e6f328950487c7d4e703ec8",
+      "current_worktree_blob": "25b8db56bcab66bc8e6f328950487c7d4e703ec8",
+      "base_blob": "25b8db56bcab66bc8e6f328950487c7d4e703ec8",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_07_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_07_HERO_001",
+      "identity_key": "Z4_S1_07_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_07_HERO_001.mp3",
+      "byte_size": 77784,
+      "approved_sha256": "acfb23b117d19f7b9e73b80dc944bebe971f01f7585f0e93c0aa4738a64eea0f",
+      "current_sha256": "acfb23b117d19f7b9e73b80dc944bebe971f01f7585f0e93c0aa4738a64eea0f",
+      "approved_blob": "4468ce2c611e0a66503c156ca419ed16539c6143",
+      "current_worktree_blob": "4468ce2c611e0a66503c156ca419ed16539c6143",
+      "base_blob": "4468ce2c611e0a66503c156ca419ed16539c6143",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_08_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_08_HERO_001",
+      "identity_key": "Z4_S1_08_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_08_HERO_001.mp3",
+      "byte_size": 31808,
+      "approved_sha256": "45b6887b04851d006657a43fb8301158e3440ded4f37dbabf3b0b74f856b8732",
+      "current_sha256": "45b6887b04851d006657a43fb8301158e3440ded4f37dbabf3b0b74f856b8732",
+      "approved_blob": "968efc4f1e436e0f775f62364f0a30fbb878e12b",
+      "current_worktree_blob": "968efc4f1e436e0f775f62364f0a30fbb878e12b",
+      "base_blob": "968efc4f1e436e0f775f62364f0a30fbb878e12b",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_08_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_08_HERO_001",
+      "identity_key": "Z4_S1_08_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_08_HERO_001.mp3",
+      "byte_size": 21359,
+      "approved_sha256": "7d604a9b1762345f660129cfc1683b91326fd5e178f518c15b65f31d38b6dc4f",
+      "current_sha256": "7d604a9b1762345f660129cfc1683b91326fd5e178f518c15b65f31d38b6dc4f",
+      "approved_blob": "0ec69faad979e5d3540bdeb6d032b931e81c67ef",
+      "current_worktree_blob": "0ec69faad979e5d3540bdeb6d032b931e81c67ef",
+      "base_blob": "0ec69faad979e5d3540bdeb6d032b931e81c67ef",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_08_RABBIT_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_08_RABBIT_001",
+      "identity_key": "Z4_S1_08_RABBIT_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S1_08_RABBIT_001.mp3",
+      "byte_size": 102026,
+      "approved_sha256": "c610f73fbd7b0275ab3e266783303e8ebc12255d2aa1449e4de7ea72ab5a6585",
+      "current_sha256": "c610f73fbd7b0275ab3e266783303e8ebc12255d2aa1449e4de7ea72ab5a6585",
+      "approved_blob": "de90b627c048fd0c6dce06d223cc1a6d887c2b90",
+      "current_worktree_blob": "de90b627c048fd0c6dce06d223cc1a6d887c2b90",
+      "base_blob": "de90b627c048fd0c6dce06d223cc1a6d887c2b90",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S1_08_RABBIT_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S1_08_RABBIT_001",
+      "identity_key": "Z4_S1_08_RABBIT_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S1_08_RABBIT_001.mp3",
+      "byte_size": 58558,
+      "approved_sha256": "2c503a1b58ba1e7d6569b49739422f975873454718a0333ce905482e05e95d2c",
+      "current_sha256": "2c503a1b58ba1e7d6569b49739422f975873454718a0333ce905482e05e95d2c",
+      "approved_blob": "3fa731f4c1679b0dd2343b38cdd954b318e87c55",
+      "current_worktree_blob": "3fa731f4c1679b0dd2343b38cdd954b318e87c55",
+      "base_blob": "3fa731f4c1679b0dd2343b38cdd954b318e87c55",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_01_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_01_HERO_001",
+      "identity_key": "Z4_S2_01_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_01_HERO_001.mp3",
+      "byte_size": 30555,
+      "approved_sha256": "fb20ee6394a0d4826f0f8501d0f01fc2d969001353593a561f9da0d6d08fe8ed",
+      "current_sha256": "fb20ee6394a0d4826f0f8501d0f01fc2d969001353593a561f9da0d6d08fe8ed",
+      "approved_blob": "6a0a38c8144e62cff5e16ebdc087392e4f6a96c4",
+      "current_worktree_blob": "6a0a38c8144e62cff5e16ebdc087392e4f6a96c4",
+      "base_blob": "6a0a38c8144e62cff5e16ebdc087392e4f6a96c4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_01_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_01_HERO_001",
+      "identity_key": "Z4_S2_01_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_01_HERO_001.mp3",
+      "byte_size": 34316,
+      "approved_sha256": "4d5582604095e11b751fab090480a06aee7066c130339f4c0d9149047e854216",
+      "current_sha256": "4d5582604095e11b751fab090480a06aee7066c130339f4c0d9149047e854216",
+      "approved_blob": "3e879d9c4da284c469938b05cf1949185ba9851e",
+      "current_worktree_blob": "3e879d9c4da284c469938b05cf1949185ba9851e",
+      "base_blob": "3e879d9c4da284c469938b05cf1949185ba9851e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_02_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_02_HERO_001",
+      "identity_key": "Z4_S2_02_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_02_HERO_001.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "5460dc71324b1c9dbe5442e6655001b2c6805ca86e10408b8858298b3e4f16ba",
+      "current_sha256": "5460dc71324b1c9dbe5442e6655001b2c6805ca86e10408b8858298b3e4f16ba",
+      "approved_blob": "4c860cffa96b50a0206e1b49eb629cb59c882c30",
+      "current_worktree_blob": "4c860cffa96b50a0206e1b49eb629cb59c882c30",
+      "base_blob": "4c860cffa96b50a0206e1b49eb629cb59c882c30",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_02_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_02_HERO_001",
+      "identity_key": "Z4_S2_02_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_02_HERO_001.mp3",
+      "byte_size": 41839,
+      "approved_sha256": "2f07b6c631beb634aa918505d065a9277afdcb23f30a4b6eb067784347e4e63f",
+      "current_sha256": "2f07b6c631beb634aa918505d065a9277afdcb23f30a4b6eb067784347e4e63f",
+      "approved_blob": "715130e5fdcb7085de630007c516715e9e15ba54",
+      "current_worktree_blob": "715130e5fdcb7085de630007c516715e9e15ba54",
+      "base_blob": "715130e5fdcb7085de630007c516715e9e15ba54",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_03_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_03_HERO_001",
+      "identity_key": "Z4_S2_03_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_03_HERO_001.mp3",
+      "byte_size": 39332,
+      "approved_sha256": "9ec0a9218482c5b607b91b760cda4a5605af2c651998132885e5be463982353d",
+      "current_sha256": "9ec0a9218482c5b607b91b760cda4a5605af2c651998132885e5be463982353d",
+      "approved_blob": "e90ec26d7b30246c9ee3184e5e6f58ec6b731fd4",
+      "current_worktree_blob": "e90ec26d7b30246c9ee3184e5e6f58ec6b731fd4",
+      "base_blob": "e90ec26d7b30246c9ee3184e5e6f58ec6b731fd4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_03_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_03_HERO_001",
+      "identity_key": "Z4_S2_03_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_03_HERO_001.mp3",
+      "byte_size": 30555,
+      "approved_sha256": "bbb740434e2eb434f6475d8d7dbaa811c82b8364a7085aed21a66bdcc6cb7299",
+      "current_sha256": "bbb740434e2eb434f6475d8d7dbaa811c82b8364a7085aed21a66bdcc6cb7299",
+      "approved_blob": "4bb27fcaa885f79752bf78aa93889aff92acc531",
+      "current_worktree_blob": "4bb27fcaa885f79752bf78aa93889aff92acc531",
+      "base_blob": "4bb27fcaa885f79752bf78aa93889aff92acc531",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_03_HERO_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_03_HERO_002",
+      "identity_key": "Z4_S2_03_HERO_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_03_HERO_002.mp3",
+      "byte_size": 25539,
+      "approved_sha256": "aea4ea8cee8ab090d2da6e19508b496e38064480f3445bac9199ab59d4b1bfe6",
+      "current_sha256": "aea4ea8cee8ab090d2da6e19508b496e38064480f3445bac9199ab59d4b1bfe6",
+      "approved_blob": "6f25ca787088805c064b35c07f8dd49bcd84a7b4",
+      "current_worktree_blob": "6f25ca787088805c064b35c07f8dd49bcd84a7b4",
+      "base_blob": "6f25ca787088805c064b35c07f8dd49bcd84a7b4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_03_HERO_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_03_HERO_002",
+      "identity_key": "Z4_S2_03_HERO_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_03_HERO_002.mp3",
+      "byte_size": 23031,
+      "approved_sha256": "74ebaf4f1e9f77b2c649f00e4c60ec4e2c22f21323a0b6413033581ae50ee829",
+      "current_sha256": "74ebaf4f1e9f77b2c649f00e4c60ec4e2c22f21323a0b6413033581ae50ee829",
+      "approved_blob": "be4d4214e015f67cb915dcd4066e37edb410885f",
+      "current_worktree_blob": "be4d4214e015f67cb915dcd4066e37edb410885f",
+      "base_blob": "be4d4214e015f67cb915dcd4066e37edb410885f",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_04_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_04_HERO_001",
+      "identity_key": "Z4_S2_04_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_04_HERO_001.mp3",
+      "byte_size": 16344,
+      "approved_sha256": "f3a65dc8c57737b9ef63917fbe8881cd03ef428c5e77f01261516e1c112534a2",
+      "current_sha256": "f3a65dc8c57737b9ef63917fbe8881cd03ef428c5e77f01261516e1c112534a2",
+      "approved_blob": "ccd91e66f9ca51e19ef47aa29e9cbefdcbe27eb4",
+      "current_worktree_blob": "ccd91e66f9ca51e19ef47aa29e9cbefdcbe27eb4",
+      "base_blob": "ccd91e66f9ca51e19ef47aa29e9cbefdcbe27eb4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_04_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_04_HERO_001",
+      "identity_key": "Z4_S2_04_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_04_HERO_001.mp3",
+      "byte_size": 23031,
+      "approved_sha256": "0f337bbceba3d71a9102856cca8940bbd5956995f3902fdb01511fef49a2a2ea",
+      "current_sha256": "0f337bbceba3d71a9102856cca8940bbd5956995f3902fdb01511fef49a2a2ea",
+      "approved_blob": "7f876f65e91062bd2fd4e4e01109e95c8ccb10d3",
+      "current_worktree_blob": "7f876f65e91062bd2fd4e4e01109e95c8ccb10d3",
+      "base_blob": "7f876f65e91062bd2fd4e4e01109e95c8ccb10d3",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_05_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_05_HERO_001",
+      "identity_key": "Z4_S2_05_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_05_HERO_001.mp3",
+      "byte_size": 99518,
+      "approved_sha256": "bade2bac1cf8d21fd015560369b87ee1c46d94179bdc0ef4b796436b65583ed3",
+      "current_sha256": "bade2bac1cf8d21fd015560369b87ee1c46d94179bdc0ef4b796436b65583ed3",
+      "approved_blob": "950dee0419590a0c624b1869825c69857daabd6d",
+      "current_worktree_blob": "950dee0419590a0c624b1869825c69857daabd6d",
+      "base_blob": "950dee0419590a0c624b1869825c69857daabd6d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_05_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_05_HERO_001",
+      "identity_key": "Z4_S2_05_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_05_HERO_001.mp3",
+      "byte_size": 69007,
+      "approved_sha256": "e677550b78f416de682c549fdfce72276d20df79197672be1ba0ab5dda59bddd",
+      "current_sha256": "e677550b78f416de682c549fdfce72276d20df79197672be1ba0ab5dda59bddd",
+      "approved_blob": "df284bf7b2caa4bb6a53ca99afd8c8d96283f894",
+      "current_worktree_blob": "df284bf7b2caa4bb6a53ca99afd8c8d96283f894",
+      "base_blob": "df284bf7b2caa4bb6a53ca99afd8c8d96283f894",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_06_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_06_HERO_001",
+      "identity_key": "Z4_S2_06_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_06_HERO_001.mp3",
+      "byte_size": 48527,
+      "approved_sha256": "af42de34466eba2edd4e886a8e631e2fda6e75e3ff1db4a98300640f80ee98d0",
+      "current_sha256": "af42de34466eba2edd4e886a8e631e2fda6e75e3ff1db4a98300640f80ee98d0",
+      "approved_blob": "b0285b71339780f65f218088ce73fde0cc9b2487",
+      "current_worktree_blob": "b0285b71339780f65f218088ce73fde0cc9b2487",
+      "base_blob": "b0285b71339780f65f218088ce73fde0cc9b2487",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_06_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_06_HERO_001",
+      "identity_key": "Z4_S2_06_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_06_HERO_001.mp3",
+      "byte_size": 29301,
+      "approved_sha256": "8060ea5b30e9a57f0d16ee86f8d9d1515ad72408940d3076602bf3eba67afc76",
+      "current_sha256": "8060ea5b30e9a57f0d16ee86f8d9d1515ad72408940d3076602bf3eba67afc76",
+      "approved_blob": "36784fdeb1f857337173f73a4d0e56dda3fb2d54",
+      "current_worktree_blob": "36784fdeb1f857337173f73a4d0e56dda3fb2d54",
+      "base_blob": "36784fdeb1f857337173f73a4d0e56dda3fb2d54",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_06_HERO_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_06_HERO_002",
+      "identity_key": "Z4_S2_06_HERO_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_06_HERO_002.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "09360335fc7f6369705aad1fb036feccf4fb52c9630cd844be9e42bde387e365",
+      "current_sha256": "09360335fc7f6369705aad1fb036feccf4fb52c9630cd844be9e42bde387e365",
+      "approved_blob": "6be306e496f77344c2a0c2b1d84945f7093c967d",
+      "current_worktree_blob": "6be306e496f77344c2a0c2b1d84945f7093c967d",
+      "base_blob": "6be306e496f77344c2a0c2b1d84945f7093c967d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_06_HERO_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_06_HERO_002",
+      "identity_key": "Z4_S2_06_HERO_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_06_HERO_002.mp3",
+      "byte_size": 31808,
+      "approved_sha256": "805518d12d4f7ae8d27f42333e9e978bcb61b0ceadb35f24e8c4974e33b985ba",
+      "current_sha256": "805518d12d4f7ae8d27f42333e9e978bcb61b0ceadb35f24e8c4974e33b985ba",
+      "approved_blob": "b370465559cbef08b3e9d1af49f718d038f5aadb",
+      "current_worktree_blob": "b370465559cbef08b3e9d1af49f718d038f5aadb",
+      "base_blob": "b370465559cbef08b3e9d1af49f718d038f5aadb",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_06_HERO_003|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_06_HERO_003",
+      "identity_key": "Z4_S2_06_HERO_003|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_06_HERO_003.mp3",
+      "byte_size": 26793,
+      "approved_sha256": "91e18b210dc7a9a717d051a1e34d5c488920045a19185338061ab0940169bc8e",
+      "current_sha256": "91e18b210dc7a9a717d051a1e34d5c488920045a19185338061ab0940169bc8e",
+      "approved_blob": "b3ccc08be17123ff898ab39b566e650b379a488e",
+      "current_worktree_blob": "b3ccc08be17123ff898ab39b566e650b379a488e",
+      "base_blob": "b3ccc08be17123ff898ab39b566e650b379a488e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_06_HERO_003|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_06_HERO_003",
+      "identity_key": "Z4_S2_06_HERO_003|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_06_HERO_003.mp3",
+      "byte_size": 41839,
+      "approved_sha256": "7329fa95e6a33b4516d87be62d690cd973c0981749ac33cd92f6394cfb1af45b",
+      "current_sha256": "7329fa95e6a33b4516d87be62d690cd973c0981749ac33cd92f6394cfb1af45b",
+      "approved_blob": "fbb741a616a3458bc80210f896eebd09a961e9d4",
+      "current_worktree_blob": "fbb741a616a3458bc80210f896eebd09a961e9d4",
+      "base_blob": "fbb741a616a3458bc80210f896eebd09a961e9d4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_07_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_07_HERO_001",
+      "identity_key": "Z4_S2_07_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_07_HERO_001.mp3",
+      "byte_size": 21359,
+      "approved_sha256": "0ea6bbda725f39d1faa5ca393ee793a8632ca96651fe1d9fb6189f90ee886020",
+      "current_sha256": "0ea6bbda725f39d1faa5ca393ee793a8632ca96651fe1d9fb6189f90ee886020",
+      "approved_blob": "a1f59c6b3f6e8f98ec3c9049710ef7d193c7b393",
+      "current_worktree_blob": "a1f59c6b3f6e8f98ec3c9049710ef7d193c7b393",
+      "base_blob": "a1f59c6b3f6e8f98ec3c9049710ef7d193c7b393",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_07_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_07_HERO_001",
+      "identity_key": "Z4_S2_07_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_07_HERO_001.mp3",
+      "byte_size": 34316,
+      "approved_sha256": "754941ad9352b91d376ec47b63a9f66060db5d027db2b0c22a3cc836b6ed3cbb",
+      "current_sha256": "754941ad9352b91d376ec47b63a9f66060db5d027db2b0c22a3cc836b6ed3cbb",
+      "approved_blob": "baac0a70e60d3effe462f63a8493686ac00be3b5",
+      "current_worktree_blob": "baac0a70e60d3effe462f63a8493686ac00be3b5",
+      "base_blob": "baac0a70e60d3effe462f63a8493686ac00be3b5",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_07_HERO_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_07_HERO_002",
+      "identity_key": "Z4_S2_07_HERO_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_07_HERO_002.mp3",
+      "byte_size": 41839,
+      "approved_sha256": "15ab68cc3eda3e2a6e01d5b314429254e9fffb98860f61e61c10ddc42e49fbb7",
+      "current_sha256": "15ab68cc3eda3e2a6e01d5b314429254e9fffb98860f61e61c10ddc42e49fbb7",
+      "approved_blob": "6586ae08935bf4a95d8ffbb2544719382b982dee",
+      "current_worktree_blob": "6586ae08935bf4a95d8ffbb2544719382b982dee",
+      "base_blob": "6586ae08935bf4a95d8ffbb2544719382b982dee",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_07_HERO_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_07_HERO_002",
+      "identity_key": "Z4_S2_07_HERO_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_07_HERO_002.mp3",
+      "byte_size": 53542,
+      "approved_sha256": "67d624fb32c57803c687fb33c0cb11fadab48f6cd9007f9983c47f90d51fc42d",
+      "current_sha256": "67d624fb32c57803c687fb33c0cb11fadab48f6cd9007f9983c47f90d51fc42d",
+      "approved_blob": "231b78bfe9e04efa524b0ab6cb0d9dc4360f5dfd",
+      "current_worktree_blob": "231b78bfe9e04efa524b0ab6cb0d9dc4360f5dfd",
+      "base_blob": "231b78bfe9e04efa524b0ab6cb0d9dc4360f5dfd",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_07_RABBIT_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_07_RABBIT_001",
+      "identity_key": "Z4_S2_07_RABBIT_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_07_RABBIT_001.mp3",
+      "byte_size": 47273,
+      "approved_sha256": "e407e92f4c4a0cbb31035db79f665967ef3247aa6902d43d9d75b6f7948e3f8d",
+      "current_sha256": "e407e92f4c4a0cbb31035db79f665967ef3247aa6902d43d9d75b6f7948e3f8d",
+      "approved_blob": "54577452254aec02b1549e44b9b06fa23b71b22a",
+      "current_worktree_blob": "54577452254aec02b1549e44b9b06fa23b71b22a",
+      "base_blob": "54577452254aec02b1549e44b9b06fa23b71b22a",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_07_RABBIT_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_07_RABBIT_001",
+      "identity_key": "Z4_S2_07_RABBIT_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_07_RABBIT_001.mp3",
+      "byte_size": 52288,
+      "approved_sha256": "2a71e3fc92809038c3b891a7160383bd1c6b3ffa4bcf1e5b34aab25dba9420d4",
+      "current_sha256": "2a71e3fc92809038c3b891a7160383bd1c6b3ffa4bcf1e5b34aab25dba9420d4",
+      "approved_blob": "1a4d7c7699681049acc52e7301b125517a570d5b",
+      "current_worktree_blob": "1a4d7c7699681049acc52e7301b125517a570d5b",
+      "base_blob": "1a4d7c7699681049acc52e7301b125517a570d5b",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_08_RABBIT_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_08_RABBIT_001",
+      "identity_key": "Z4_S2_08_RABBIT_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_08_RABBIT_001.mp3",
+      "byte_size": 21359,
+      "approved_sha256": "c41a1ce2a9b26087cfd5eb3908e747947bc78c5e740c8b8cfcafee247617d20e",
+      "current_sha256": "c41a1ce2a9b26087cfd5eb3908e747947bc78c5e740c8b8cfcafee247617d20e",
+      "approved_blob": "d5b1a1b819b7e7e5b48cce38d793101a7995718e",
+      "current_worktree_blob": "d5b1a1b819b7e7e5b48cce38d793101a7995718e",
+      "base_blob": "d5b1a1b819b7e7e5b48cce38d793101a7995718e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_08_RABBIT_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_08_RABBIT_001",
+      "identity_key": "Z4_S2_08_RABBIT_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_08_RABBIT_001.mp3",
+      "byte_size": 16344,
+      "approved_sha256": "9314c61ed76ec83a924527424eba7800f2a676ec6f6ab0a7ceb0c72e0edba32d",
+      "current_sha256": "9314c61ed76ec83a924527424eba7800f2a676ec6f6ab0a7ceb0c72e0edba32d",
+      "approved_blob": "b7c2491e5ec3da7b5a71fc56679d4bc2503da2e4",
+      "current_worktree_blob": "b7c2491e5ec3da7b5a71fc56679d4bc2503da2e4",
+      "base_blob": "b7c2491e5ec3da7b5a71fc56679d4bc2503da2e4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_08_RABBIT_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_08_RABBIT_002",
+      "identity_key": "Z4_S2_08_RABBIT_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_08_RABBIT_002.mp3",
+      "byte_size": 44765,
+      "approved_sha256": "1a1a427d115cd148e48eac105babd537b90d0685f7636b80464be47eb8ec2f77",
+      "current_sha256": "1a1a427d115cd148e48eac105babd537b90d0685f7636b80464be47eb8ec2f77",
+      "approved_blob": "f77d067b09878a05757010c872f8c4d9ca007ef1",
+      "current_worktree_blob": "f77d067b09878a05757010c872f8c4d9ca007ef1",
+      "base_blob": "f77d067b09878a05757010c872f8c4d9ca007ef1",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_08_RABBIT_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_08_RABBIT_002",
+      "identity_key": "Z4_S2_08_RABBIT_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_08_RABBIT_002.mp3",
+      "byte_size": 39332,
+      "approved_sha256": "7e8c00453e83e9194360811a121fcc6854876159c547fbc81e5971f5b7e6f6f9",
+      "current_sha256": "7e8c00453e83e9194360811a121fcc6854876159c547fbc81e5971f5b7e6f6f9",
+      "approved_blob": "f18bca389ede2748ea4c8ec69c80a9277049ed1e",
+      "current_worktree_blob": "f18bca389ede2748ea4c8ec69c80a9277049ed1e",
+      "base_blob": "f18bca389ede2748ea4c8ec69c80a9277049ed1e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_08_RABBIT_003|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_08_RABBIT_003",
+      "identity_key": "Z4_S2_08_RABBIT_003|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S2_08_RABBIT_003.mp3",
+      "byte_size": 58558,
+      "approved_sha256": "6ecd8beec7f037c942f4e499a346f52be052394ad98e335330ca2124ed4123cc",
+      "current_sha256": "6ecd8beec7f037c942f4e499a346f52be052394ad98e335330ca2124ed4123cc",
+      "approved_blob": "3faa07bcb49c7d48c8d3f1289a023218d0b04e59",
+      "current_worktree_blob": "3faa07bcb49c7d48c8d3f1289a023218d0b04e59",
+      "base_blob": "3faa07bcb49c7d48c8d3f1289a023218d0b04e59",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S2_08_RABBIT_003|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S2_08_RABBIT_003",
+      "identity_key": "Z4_S2_08_RABBIT_003|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S2_08_RABBIT_003.mp3",
+      "byte_size": 74022,
+      "approved_sha256": "d369531459dad8eb383c230d3eb655731d5d2e233251242cfe2ce5b1ff986afd",
+      "current_sha256": "d369531459dad8eb383c230d3eb655731d5d2e233251242cfe2ce5b1ff986afd",
+      "approved_blob": "4df1b83644d2f004d7d5e583de78032de85207f6",
+      "current_worktree_blob": "4df1b83644d2f004d7d5e583de78032de85207f6",
+      "base_blob": "4df1b83644d2f004d7d5e583de78032de85207f6",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_01_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_01_HERO_001",
+      "identity_key": "Z4_S3_01_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_01_HERO_001.mp3",
+      "byte_size": 20106,
+      "approved_sha256": "fa754381bf7572629aab71d1c22a3e3f3bf640d9e1cbda11254ab8001145c237",
+      "current_sha256": "fa754381bf7572629aab71d1c22a3e3f3bf640d9e1cbda11254ab8001145c237",
+      "approved_blob": "6c5b78040b2738a25a209910b41044c69d425bb2",
+      "current_worktree_blob": "6c5b78040b2738a25a209910b41044c69d425bb2",
+      "base_blob": "6c5b78040b2738a25a209910b41044c69d425bb2",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_01_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_01_HERO_001",
+      "identity_key": "Z4_S3_01_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_01_HERO_001.mp3",
+      "byte_size": 47273,
+      "approved_sha256": "7a4b5ddc19d1a5502b9b1bc88e8f611132eaed2d3eae4758e254831a63e086e8",
+      "current_sha256": "7a4b5ddc19d1a5502b9b1bc88e8f611132eaed2d3eae4758e254831a63e086e8",
+      "approved_blob": "fe17c02596d2eee76460b889f4cf486189af122c",
+      "current_worktree_blob": "fe17c02596d2eee76460b889f4cf486189af122c",
+      "base_blob": "fe17c02596d2eee76460b889f4cf486189af122c",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_02_RABBIT_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_02_RABBIT_001",
+      "identity_key": "Z4_S3_02_RABBIT_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_02_RABBIT_001.mp3",
+      "byte_size": 66499,
+      "approved_sha256": "f6aa51bdfd833b294a4d9d1dff03be767a154dedf88d10fe35a3c46ab1f164ef",
+      "current_sha256": "f6aa51bdfd833b294a4d9d1dff03be767a154dedf88d10fe35a3c46ab1f164ef",
+      "approved_blob": "4753a5851b93c7e58a82542fcb32d2cf563b14e7",
+      "current_worktree_blob": "4753a5851b93c7e58a82542fcb32d2cf563b14e7",
+      "base_blob": "4753a5851b93c7e58a82542fcb32d2cf563b14e7",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_02_RABBIT_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_02_RABBIT_001",
+      "identity_key": "Z4_S3_02_RABBIT_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_02_RABBIT_001.mp3",
+      "byte_size": 25539,
+      "approved_sha256": "6905b90382abbb2f527ba684495faeca127ce91a1fe31b2f3d07e841168f7f3a",
+      "current_sha256": "6905b90382abbb2f527ba684495faeca127ce91a1fe31b2f3d07e841168f7f3a",
+      "approved_blob": "518ea606defee59a355228c94676f6a4787cc7b6",
+      "current_worktree_blob": "518ea606defee59a355228c94676f6a4787cc7b6",
+      "base_blob": "518ea606defee59a355228c94676f6a4787cc7b6",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_02_RABBIT_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_02_RABBIT_002",
+      "identity_key": "Z4_S3_02_RABBIT_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_02_RABBIT_002.mp3",
+      "byte_size": 25539,
+      "approved_sha256": "01750c3c53260741c9483c7485925893d377b54e36175e8e572a6f0120611632",
+      "current_sha256": "01750c3c53260741c9483c7485925893d377b54e36175e8e572a6f0120611632",
+      "approved_blob": "310e6c4c08c6e7843a4717668de53e03a3627f61",
+      "current_worktree_blob": "310e6c4c08c6e7843a4717668de53e03a3627f61",
+      "base_blob": "310e6c4c08c6e7843a4717668de53e03a3627f61",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_02_RABBIT_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_02_RABBIT_002",
+      "identity_key": "Z4_S3_02_RABBIT_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_02_RABBIT_002.mp3",
+      "byte_size": 28047,
+      "approved_sha256": "fffdae734f527ce70a1443b46f372063609933f4d3208bf0bb3b5577083208a9",
+      "current_sha256": "fffdae734f527ce70a1443b46f372063609933f4d3208bf0bb3b5577083208a9",
+      "approved_blob": "ef34d0dfb44bac18ac49adb217c74be0ac38e657",
+      "current_worktree_blob": "ef34d0dfb44bac18ac49adb217c74be0ac38e657",
+      "base_blob": "ef34d0dfb44bac18ac49adb217c74be0ac38e657",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_02_RABBIT_003|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_02_RABBIT_003",
+      "identity_key": "Z4_S3_02_RABBIT_003|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_02_RABBIT_003.mp3",
+      "byte_size": 43511,
+      "approved_sha256": "e5820bed28e6fba0b415894a99342fc93bf62a67ee23cb369d4573aad0095f73",
+      "current_sha256": "e5820bed28e6fba0b415894a99342fc93bf62a67ee23cb369d4573aad0095f73",
+      "approved_blob": "89fff912960066e5312867029d953e8445bbcd45",
+      "current_worktree_blob": "89fff912960066e5312867029d953e8445bbcd45",
+      "base_blob": "89fff912960066e5312867029d953e8445bbcd45",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_02_RABBIT_003|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_02_RABBIT_003",
+      "identity_key": "Z4_S3_02_RABBIT_003|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_02_RABBIT_003.mp3",
+      "byte_size": 51035,
+      "approved_sha256": "956b88e08260795a1bc77e5d5abff99e5c13d600d2e6a6fdcb1479b4c3e53c8d",
+      "current_sha256": "956b88e08260795a1bc77e5d5abff99e5c13d600d2e6a6fdcb1479b4c3e53c8d",
+      "approved_blob": "e46a4ba4251960f0c276aff77037ba4c38b0dfcd",
+      "current_worktree_blob": "e46a4ba4251960f0c276aff77037ba4c38b0dfcd",
+      "base_blob": "e46a4ba4251960f0c276aff77037ba4c38b0dfcd",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_03_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_03_HERO_001",
+      "identity_key": "Z4_S3_03_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_03_HERO_001.mp3",
+      "byte_size": 17598,
+      "approved_sha256": "10ff2136cf6422d4a18907ec3f9764997612d3767c3204c725e8cb2817cc3e04",
+      "current_sha256": "10ff2136cf6422d4a18907ec3f9764997612d3767c3204c725e8cb2817cc3e04",
+      "approved_blob": "88a3c64ed398a4f9293127556e9145ae4d8ed749",
+      "current_worktree_blob": "88a3c64ed398a4f9293127556e9145ae4d8ed749",
+      "base_blob": "88a3c64ed398a4f9293127556e9145ae4d8ed749",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_03_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_03_HERO_001",
+      "identity_key": "Z4_S3_03_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_03_HERO_001.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "9c052f561fbee2e4b3fe690c35246a422879eb9aaeff6cf7604188484379e4d0",
+      "current_sha256": "9c052f561fbee2e4b3fe690c35246a422879eb9aaeff6cf7604188484379e4d0",
+      "approved_blob": "6049f43d653e4a2b941ebf19659686432129a680",
+      "current_worktree_blob": "6049f43d653e4a2b941ebf19659686432129a680",
+      "base_blob": "6049f43d653e4a2b941ebf19659686432129a680",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_03_RABBIT_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_03_RABBIT_001",
+      "identity_key": "Z4_S3_03_RABBIT_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_03_RABBIT_001.mp3",
+      "byte_size": 77784,
+      "approved_sha256": "1ad9e9372d5210a520f3827b838765790fc76f4d736421dc93f90d32ac8bc6e2",
+      "current_sha256": "1ad9e9372d5210a520f3827b838765790fc76f4d736421dc93f90d32ac8bc6e2",
+      "approved_blob": "c97375054acaca68794f2102b01876c22f3f27d2",
+      "current_worktree_blob": "c97375054acaca68794f2102b01876c22f3f27d2",
+      "base_blob": "c97375054acaca68794f2102b01876c22f3f27d2",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_03_RABBIT_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_03_RABBIT_001",
+      "identity_key": "Z4_S3_03_RABBIT_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_03_RABBIT_001.mp3",
+      "byte_size": 15090,
+      "approved_sha256": "5adf097692e4c8798939ceae1bdfbd9adf0c25dae6364c5878c4f85a7b098bdb",
+      "current_sha256": "5adf097692e4c8798939ceae1bdfbd9adf0c25dae6364c5878c4f85a7b098bdb",
+      "approved_blob": "5eadccfed4f5f38a9dedc3e4f49058606ccf7d25",
+      "current_worktree_blob": "5eadccfed4f5f38a9dedc3e4f49058606ccf7d25",
+      "base_blob": "5eadccfed4f5f38a9dedc3e4f49058606ccf7d25",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_03_RABBIT_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_03_RABBIT_002",
+      "identity_key": "Z4_S3_03_RABBIT_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_03_RABBIT_002.mp3",
+      "byte_size": 34316,
+      "approved_sha256": "3771710173bd1b24ad2c1f0ae98f58c9fc5e7aa4272abc6500d6d86c287bfab1",
+      "current_sha256": "3771710173bd1b24ad2c1f0ae98f58c9fc5e7aa4272abc6500d6d86c287bfab1",
+      "approved_blob": "b2110e698a9e749c118d1e2a2550a71ea583072e",
+      "current_worktree_blob": "b2110e698a9e749c118d1e2a2550a71ea583072e",
+      "base_blob": "b2110e698a9e749c118d1e2a2550a71ea583072e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_03_RABBIT_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_03_RABBIT_002",
+      "identity_key": "Z4_S3_03_RABBIT_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_03_RABBIT_002.mp3",
+      "byte_size": 28047,
+      "approved_sha256": "d2903e98ed404033de5429940ddab1a05c18a9431e369069d211cb5b097974cb",
+      "current_sha256": "d2903e98ed404033de5429940ddab1a05c18a9431e369069d211cb5b097974cb",
+      "approved_blob": "e7a080f78d1908631e41b3bc10f60c1055826808",
+      "current_worktree_blob": "e7a080f78d1908631e41b3bc10f60c1055826808",
+      "base_blob": "e7a080f78d1908631e41b3bc10f60c1055826808",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_04_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_04_HERO_001",
+      "identity_key": "Z4_S3_04_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_04_HERO_001.mp3",
+      "byte_size": 48527,
+      "approved_sha256": "5f4ce0e979fcf9decdd66ab2d393acb8e3ea2ef0baa84a5f6025dd6c79ca9bd7",
+      "current_sha256": "5f4ce0e979fcf9decdd66ab2d393acb8e3ea2ef0baa84a5f6025dd6c79ca9bd7",
+      "approved_blob": "8dfda49105670df4b8ba1a03296f67c543a3ffa2",
+      "current_worktree_blob": "8dfda49105670df4b8ba1a03296f67c543a3ffa2",
+      "base_blob": "8dfda49105670df4b8ba1a03296f67c543a3ffa2",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_04_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_04_HERO_001",
+      "identity_key": "Z4_S3_04_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_04_HERO_001.mp3",
+      "byte_size": 29301,
+      "approved_sha256": "5d4c42c6b08a2f7f310e74c71ee834a8422f8b08a73a6ea7037d7d69ec973a0d",
+      "current_sha256": "5d4c42c6b08a2f7f310e74c71ee834a8422f8b08a73a6ea7037d7d69ec973a0d",
+      "approved_blob": "54ddfaa91e365a274f29804e885381653fe36807",
+      "current_worktree_blob": "54ddfaa91e365a274f29804e885381653fe36807",
+      "base_blob": "54ddfaa91e365a274f29804e885381653fe36807",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_04_HERO_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_04_HERO_002",
+      "identity_key": "Z4_S3_04_HERO_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_04_HERO_002.mp3",
+      "byte_size": 36824,
+      "approved_sha256": "fd842a7acf50f513b20b4477723ae4639b43e3bdfabf6551842a8227ae23ede9",
+      "current_sha256": "fd842a7acf50f513b20b4477723ae4639b43e3bdfabf6551842a8227ae23ede9",
+      "approved_blob": "32584714a444abbfd5c0bdd35b74953f1a89dab9",
+      "current_worktree_blob": "32584714a444abbfd5c0bdd35b74953f1a89dab9",
+      "base_blob": "32584714a444abbfd5c0bdd35b74953f1a89dab9",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_04_HERO_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_04_HERO_002",
+      "identity_key": "Z4_S3_04_HERO_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_04_HERO_002.mp3",
+      "byte_size": 26793,
+      "approved_sha256": "7cc9ec90eafe483373f0266eb6689ac0c9d32f2ac8f478c37db6addce68cc793",
+      "current_sha256": "7cc9ec90eafe483373f0266eb6689ac0c9d32f2ac8f478c37db6addce68cc793",
+      "approved_blob": "7f157e2e3926c86a7fa25c37603361c4e34bd87b",
+      "current_worktree_blob": "7f157e2e3926c86a7fa25c37603361c4e34bd87b",
+      "base_blob": "7f157e2e3926c86a7fa25c37603361c4e34bd87b",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_05_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_05_HERO_001",
+      "identity_key": "Z4_S3_05_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_05_HERO_001.mp3",
+      "byte_size": 48527,
+      "approved_sha256": "f6774609a7b60213f4575a2543e47870ee83573766bddb2e9e5aaf47e642d85b",
+      "current_sha256": "f6774609a7b60213f4575a2543e47870ee83573766bddb2e9e5aaf47e642d85b",
+      "approved_blob": "f1fa6b2a1377030bfb324b73b1f3e121b23c6b80",
+      "current_worktree_blob": "f1fa6b2a1377030bfb324b73b1f3e121b23c6b80",
+      "base_blob": "f1fa6b2a1377030bfb324b73b1f3e121b23c6b80",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_05_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_05_HERO_001",
+      "identity_key": "Z4_S3_05_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_05_HERO_001.mp3",
+      "byte_size": 34316,
+      "approved_sha256": "34d42d4c8dae075bc54d12501470ba7f834b8182b17af5608da4bcee3d7409e1",
+      "current_sha256": "34d42d4c8dae075bc54d12501470ba7f834b8182b17af5608da4bcee3d7409e1",
+      "approved_blob": "d709a41d753bf062d71fee4d4028fefe80e92868",
+      "current_worktree_blob": "d709a41d753bf062d71fee4d4028fefe80e92868",
+      "base_blob": "d709a41d753bf062d71fee4d4028fefe80e92868",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_05_HERO_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_05_HERO_002",
+      "identity_key": "Z4_S3_05_HERO_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_05_HERO_002.mp3",
+      "byte_size": 36824,
+      "approved_sha256": "dd75786fa3201f61397b4a8a7e59942064fe809711bfb4e8b5173ff56cfe3737",
+      "current_sha256": "dd75786fa3201f61397b4a8a7e59942064fe809711bfb4e8b5173ff56cfe3737",
+      "approved_blob": "31971c7bf05856c3269e1c502fd296b54632fb67",
+      "current_worktree_blob": "31971c7bf05856c3269e1c502fd296b54632fb67",
+      "base_blob": "31971c7bf05856c3269e1c502fd296b54632fb67",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_05_HERO_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_05_HERO_002",
+      "identity_key": "Z4_S3_05_HERO_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_05_HERO_002.mp3",
+      "byte_size": 52288,
+      "approved_sha256": "21d023ea773094bd1df0289704e4725a20abdd75f5aecc92d3dee9f2cb7bf6bb",
+      "current_sha256": "21d023ea773094bd1df0289704e4725a20abdd75f5aecc92d3dee9f2cb7bf6bb",
+      "approved_blob": "f7191aa04226c3968cd9c1c9d75b0675f7c94b79",
+      "current_worktree_blob": "f7191aa04226c3968cd9c1c9d75b0675f7c94b79",
+      "base_blob": "f7191aa04226c3968cd9c1c9d75b0675f7c94b79",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_05_HERO_003|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_05_HERO_003",
+      "identity_key": "Z4_S3_05_HERO_003|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_05_HERO_003.mp3",
+      "byte_size": 24285,
+      "approved_sha256": "36b14a8246211942343eaf42bf780c3582613c453df9356a7230e58915d0569d",
+      "current_sha256": "36b14a8246211942343eaf42bf780c3582613c453df9356a7230e58915d0569d",
+      "approved_blob": "f8b9ed8889fdf5022bbe022b7d822baf8f280f3d",
+      "current_worktree_blob": "f8b9ed8889fdf5022bbe022b7d822baf8f280f3d",
+      "base_blob": "f8b9ed8889fdf5022bbe022b7d822baf8f280f3d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_05_HERO_003|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_05_HERO_003",
+      "identity_key": "Z4_S3_05_HERO_003|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_05_HERO_003.mp3",
+      "byte_size": 46019,
+      "approved_sha256": "12d58b51efb0292ae5078aadf4a5f5c072f3834360d07389a5e189b75781037f",
+      "current_sha256": "12d58b51efb0292ae5078aadf4a5f5c072f3834360d07389a5e189b75781037f",
+      "approved_blob": "d7f12fc24fde10242b9958b100effac4d3be7934",
+      "current_worktree_blob": "d7f12fc24fde10242b9958b100effac4d3be7934",
+      "base_blob": "d7f12fc24fde10242b9958b100effac4d3be7934",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_06_HERO_001|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_06_HERO_001",
+      "identity_key": "Z4_S3_06_HERO_001|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_06_HERO_001.mp3",
+      "byte_size": 17598,
+      "approved_sha256": "fbb861b44d9626c2e269a5d711280c29e04ffb9168a4c81cdddde8f2cfa9348e",
+      "current_sha256": "fbb861b44d9626c2e269a5d711280c29e04ffb9168a4c81cdddde8f2cfa9348e",
+      "approved_blob": "83f3442dbf54dcf66cf9140fc12514262fd6584e",
+      "current_worktree_blob": "83f3442dbf54dcf66cf9140fc12514262fd6584e",
+      "base_blob": "83f3442dbf54dcf66cf9140fc12514262fd6584e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_06_HERO_001|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_06_HERO_001",
+      "identity_key": "Z4_S3_06_HERO_001|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_06_HERO_001.mp3",
+      "byte_size": 49781,
+      "approved_sha256": "2cd605c85d27992bfed1e3c2b874949042042e33aa8d454814301fb7be875990",
+      "current_sha256": "2cd605c85d27992bfed1e3c2b874949042042e33aa8d454814301fb7be875990",
+      "approved_blob": "74906e87d33ebd7c65c11676e2a95ef9c691dacc",
+      "current_worktree_blob": "74906e87d33ebd7c65c11676e2a95ef9c691dacc",
+      "base_blob": "74906e87d33ebd7c65c11676e2a95ef9c691dacc",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_06_HERO_002|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_06_HERO_002",
+      "identity_key": "Z4_S3_06_HERO_002|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_06_HERO_002.mp3",
+      "byte_size": 26793,
+      "approved_sha256": "171bf96d8c0f42947c614f1ae5b0fb8fd0a956ce1949705f33522c3d1b164c66",
+      "current_sha256": "171bf96d8c0f42947c614f1ae5b0fb8fd0a956ce1949705f33522c3d1b164c66",
+      "approved_blob": "10546836270189d2b41a2397f106899e02b5c8d0",
+      "current_worktree_blob": "10546836270189d2b41a2397f106899e02b5c8d0",
+      "base_blob": "10546836270189d2b41a2397f106899e02b5c8d0",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_06_HERO_002|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_06_HERO_002",
+      "identity_key": "Z4_S3_06_HERO_002|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_06_HERO_002.mp3",
+      "byte_size": 48527,
+      "approved_sha256": "3b2c87192050e2bcdad678107ec07f0f87f826b9b4031551f720295cea7c2d73",
+      "current_sha256": "3b2c87192050e2bcdad678107ec07f0f87f826b9b4031551f720295cea7c2d73",
+      "approved_blob": "2ffd7e66a2195004bc51b8006ad155a464152fe1",
+      "current_worktree_blob": "2ffd7e66a2195004bc51b8006ad155a464152fe1",
+      "base_blob": "2ffd7e66a2195004bc51b8006ad155a464152fe1",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_06_HERO_003|en-GB",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_06_HERO_003",
+      "identity_key": "Z4_S3_06_HERO_003|en-GB",
+      "locale": "en-GB",
+      "path": "assets/e10/audio/zone4/voice/en-GB/Z4_S3_06_HERO_003.mp3",
+      "byte_size": 36824,
+      "approved_sha256": "ab03100b25f63c78c0b746d3b53d67093e3f7742e823f6849bfaaa3c18acd1b9",
+      "current_sha256": "ab03100b25f63c78c0b746d3b53d67093e3f7742e823f6849bfaaa3c18acd1b9",
+      "approved_blob": "af48dc76192caef2aff5554329321233042f803e",
+      "current_worktree_blob": "af48dc76192caef2aff5554329321233042f803e",
+      "base_blob": "af48dc76192caef2aff5554329321233042f803e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_S3_06_HERO_003|zh-TW",
+      "asset_kind": "audio",
+      "asset_id": "Z4_S3_06_HERO_003",
+      "identity_key": "Z4_S3_06_HERO_003|zh-TW",
+      "locale": "zh-TW",
+      "path": "assets/e10/audio/zone4/voice/zh-TW/Z4_S3_06_HERO_003.mp3",
+      "byte_size": 31808,
+      "approved_sha256": "c21178bf80ab84d73bf2c801e523e91ff41494f2edddd88abe7b50fd94c69fa2",
+      "current_sha256": "c21178bf80ab84d73bf2c801e523e91ff41494f2edddd88abe7b50fd94c69fa2",
+      "approved_blob": "755cd7ac74983df7fbcfebadb8f9c4e630823792",
+      "current_worktree_blob": "755cd7ac74983df7fbcfebadb8f9c4e630823792",
+      "base_blob": "755cd7ac74983df7fbcfebadb8f9c4e630823792",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_SFX_CHALLENGE_TRANSITION",
+      "asset_kind": "audio",
+      "asset_id": "Z4_SFX_CHALLENGE_TRANSITION",
+      "identity_key": "Z4_SFX_CHALLENGE_TRANSITION",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/sfx/Z4_SFX_CHALLENGE_TRANSITION.mp3",
+      "byte_size": 48945,
+      "approved_sha256": "2390bd12ceab3c422e11b91cd4daa09c79a8d1f158a4173dabc25ecda8b761ce",
+      "current_sha256": "2390bd12ceab3c422e11b91cd4daa09c79a8d1f158a4173dabc25ecda8b761ce",
+      "approved_blob": "cd6f55bb4a67fd6af45a8f0e9e2d1b6d205036a6",
+      "current_worktree_blob": "cd6f55bb4a67fd6af45a8f0e9e2d1b6d205036a6",
+      "base_blob": "cd6f55bb4a67fd6af45a8f0e9e2d1b6d205036a6",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_SFX_CLEAR_PATH_REVEAL",
+      "asset_kind": "audio",
+      "asset_id": "Z4_SFX_CLEAR_PATH_REVEAL",
+      "identity_key": "Z4_SFX_CLEAR_PATH_REVEAL",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/sfx/Z4_SFX_CLEAR_PATH_REVEAL.mp3",
+      "byte_size": 48945,
+      "approved_sha256": "ec4e80ed4822ac58a6dbce16551e2efcbfdfe91a55ee65972699e18c61cf4033",
+      "current_sha256": "ec4e80ed4822ac58a6dbce16551e2efcbfdfe91a55ee65972699e18c61cf4033",
+      "approved_blob": "393db69381b976e5136d6724e9fa8a2e95d778f0",
+      "current_worktree_blob": "393db69381b976e5136d6724e9fa8a2e95d778f0",
+      "base_blob": "393db69381b976e5136d6724e9fa8a2e95d778f0",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_SFX_ILLUSION_APPEAR",
+      "asset_kind": "audio",
+      "asset_id": "Z4_SFX_ILLUSION_APPEAR",
+      "identity_key": "Z4_SFX_ILLUSION_APPEAR",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/sfx/Z4_SFX_ILLUSION_APPEAR.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "dac935e9f26a00b02acde624fea9c5d35e96e3319c9e6bd531b0d926f822ded5",
+      "current_sha256": "dac935e9f26a00b02acde624fea9c5d35e96e3319c9e6bd531b0d926f822ded5",
+      "approved_blob": "7b628e3fa9a226e6cff78d917e60866c66fba4f4",
+      "current_worktree_blob": "7b628e3fa9a226e6cff78d917e60866c66fba4f4",
+      "base_blob": "7b628e3fa9a226e6cff78d917e60866c66fba4f4",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_SFX_ILLUSION_DISSOLVE",
+      "asset_kind": "audio",
+      "asset_id": "Z4_SFX_ILLUSION_DISSOLVE",
+      "identity_key": "Z4_SFX_ILLUSION_DISSOLVE",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/sfx/Z4_SFX_ILLUSION_DISSOLVE.mp3",
+      "byte_size": 33062,
+      "approved_sha256": "fb9d906418a87213d60fcc242e939dfd270499048f17b1b1a164bb34eb3231e4",
+      "current_sha256": "fb9d906418a87213d60fcc242e939dfd270499048f17b1b1a164bb34eb3231e4",
+      "approved_blob": "4757747a57b5de0d8f3b70d491e1e4211946979e",
+      "current_worktree_blob": "4757747a57b5de0d8f3b70d491e1e4211946979e",
+      "base_blob": "4757747a57b5de0d8f3b70d491e1e4211946979e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_SFX_LORD_REVEAL",
+      "asset_kind": "audio",
+      "asset_id": "Z4_SFX_LORD_REVEAL",
+      "identity_key": "Z4_SFX_LORD_REVEAL",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/sfx/Z4_SFX_LORD_REVEAL.mp3",
+      "byte_size": 48945,
+      "approved_sha256": "d345b74fb3d48e50127560725682476cb8fa7a8d03b4e82c3f05b6e5940ac137",
+      "current_sha256": "d345b74fb3d48e50127560725682476cb8fa7a8d03b4e82c3f05b6e5940ac137",
+      "approved_blob": "c4668d6416346fda9f23d78b08c3deae9d98c44e",
+      "current_worktree_blob": "c4668d6416346fda9f23d78b08c3deae9d98c44e",
+      "base_blob": "c4668d6416346fda9f23d78b08c3deae9d98c44e",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_SFX_MIST_SWEEP",
+      "asset_kind": "audio",
+      "asset_id": "Z4_SFX_MIST_SWEEP",
+      "identity_key": "Z4_SFX_MIST_SWEEP",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/sfx/Z4_SFX_MIST_SWEEP.mp3",
+      "byte_size": 48945,
+      "approved_sha256": "1eee686a92b5708f45a6a8cf8b79e6c04a68f9bca808cc52405df2cb33e755ed",
+      "current_sha256": "1eee686a92b5708f45a6a8cf8b79e6c04a68f9bca808cc52405df2cb33e755ed",
+      "approved_blob": "701702897a37ac4d18099abf43356799fffd435d",
+      "current_worktree_blob": "701702897a37ac4d18099abf43356799fffd435d",
+      "base_blob": "701702897a37ac4d18099abf43356799fffd435d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_SFX_RABBIT_PHANTOM_PASS",
+      "asset_kind": "audio",
+      "asset_id": "Z4_SFX_RABBIT_PHANTOM_PASS",
+      "identity_key": "Z4_SFX_RABBIT_PHANTOM_PASS",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/sfx/Z4_SFX_RABBIT_PHANTOM_PASS.mp3",
+      "byte_size": 48945,
+      "approved_sha256": "8b4585d6cb27e3645af4ae7aaf321d6a391bb960e9d6c44ca0819632d57f230a",
+      "current_sha256": "8b4585d6cb27e3645af4ae7aaf321d6a391bb960e9d6c44ca0819632d57f230a",
+      "approved_blob": "b3829022e0a86abe0f036aed6a1cd1288c133c8c",
+      "current_worktree_blob": "b3829022e0a86abe0f036aed6a1cd1288c133c8c",
+      "base_blob": "b3829022e0a86abe0f036aed6a1cd1288c133c8c",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    },
+    {
+      "record_key": "Z4_TO_Z5_WAR_DRUM_STING",
+      "asset_kind": "audio",
+      "asset_id": "Z4_TO_Z5_WAR_DRUM_STING",
+      "identity_key": "Z4_TO_Z5_WAR_DRUM_STING",
+      "locale": null,
+      "path": "assets/e10/audio/zone4/transition/Z4_TO_Z5_WAR_DRUM_STING.mp3",
+      "byte_size": 65245,
+      "approved_sha256": "d49765f2d57c3a4ee7757ea95226ba52e098e88eeb962bc788c2a0a0c366668a",
+      "current_sha256": "d49765f2d57c3a4ee7757ea95226ba52e098e88eeb962bc788c2a0a0c366668a",
+      "approved_blob": "818a74b43ef4d58fb7e28482c8da06481b9cb30d",
+      "current_worktree_blob": "818a74b43ef4d58fb7e28482c8da06481b9cb30d",
+      "base_blob": "818a74b43ef4d58fb7e28482c8da06481b9cb30d",
+      "live_blob": null,
+      "exact_owner_bytes": true
+    }
+  ]
+}
