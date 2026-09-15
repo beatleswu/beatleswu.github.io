@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zone 4 Owner-final Story Runtime Review</title>
+  <link rel="stylesheet" href="/css/e10/zone4_owner_story_runtime.css">
+</head>
+<body>
+  <main class="zone4-shell">
+    <header class="zone4-header">
+      <div>
+        <h1>Zone 4 · Owner-final story runtime</h1>
+        <p>Isolated review preview — source bytes are hash-locked and read-only.</p>
+      </div>
+      <div class="zone4-owner-lock">VISUALS 28/28 · AUDIO 111/111<br>OWNER UAT: NOT RUN</div>
+    </header>
+
+    <section class="zone4-toolbar" aria-label="Playback controls">
+      <button id="zone4-start" type="button">Start</button>
+      <button id="zone4-previous" type="button">Previous</button>
+      <button id="zone4-next" type="button">Next</button>
+      <button id="zone4-replay" type="button">Replay current</button>
+      <button id="zone4-pause" type="button">Pause</button>
+      <button id="zone4-enter-lord" type="button">Enter Lord Trial</button>
+      <button id="zone4-simulate-fail" type="button">SIMULATE FAIL</button>
+      <button id="zone4-simulate-pass" type="button">SIMULATE PASS</button>
+      <label><input id="zone4-autoplay" type="checkbox"> Auto-play</label>
+      <span class="zone4-spacer"></span>
+      <label for="zone4-locale">Locale</label>
+      <select id="zone4-locale" aria-label="Locale">
+        <option value="zh-TW">zh-TW</option>
+        <option value="en-GB">en-GB</option>
+      </select>
+      <label for="zone4-track">Track</label>
+      <select id="zone4-track" aria-label="Track">
+        <option value="main_story">Main story</option>
+        <option value="scene_s1">S1 scene</option>
+        <option value="scene_s2">S2 scene</option>
+        <option value="lord_trial">Lord Trial</option>
+        <option value="scene_s3">S3 scene</option>
+      </select>
+    </section>
+
+    <section class="zone4-navigation" aria-label="Jump controls">
+      <label for="zone4-beat-selector">Jump to beat</label>
+      <select id="zone4-beat-selector"></select>
+      <strong id="zone4-track-label">Main story · S1 → S2 → S3</strong>
+      <span id="zone4-beat-label"></span>
+    </section>
+
+    <section class="zone4-stage" aria-live="polite">
+      <img id="zone4-visual" alt="Zone 4 Owner-final visual" decoding="async">
+    </section>
+
+    <div class="zone4-meta">
+      <span>Section: <strong id="zone4-section"></strong></span>
+      <span>Narrative state: <strong id="zone4-narrative-state">PRACTICE</strong></span>
+      <span>Locale: <strong id="zone4-locale-label">zh-TW</strong></span>
+      <span>Status: <strong id="zone4-status">READY</strong></span>
+    </div>
+
+    <section class="zone4-subtitles-panel">
+      <div class="zone4-subtitles-title">Dialogue / subtitles</div>
+      <div id="zone4-subtitles"></div>
+    </section>
+
+    <section id="zone4-cues" class="zone4-cues"></section>
+
+    <aside class="zone4-uat-note">
+      <strong>Owner UAT boundary:</strong> this page is a local/network preview only. It does not modify gameplay rules, progression, rewards, canonical state, or Production.
+    </aside>
+  </main>
+  <script src="/js/e10/zone4_owner_story_runtime.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      var matrixPromise = fetch("/ZONE4_004_LORD_STATE_BINDING_MATRIX.json").then(function (response) {
+        if (!response.ok) throw new Error("binding matrix unavailable");
+        return response.json();
+      });
+      var manifestPromise = fetch("/ZONE4_004_RUNTIME_MANIFEST.json").then(function (response) {
+        if (!response.ok) throw new Error("runtime manifest unavailable");
+        return response.json();
+      });
+      Promise.all([matrixPromise, manifestPromise]).then(function (values) {
+        var matrix = values[0];
+        var manifest = values[1];
+        window.zone4OwnerStoryRuntime = Zone4OwnerStoryRuntime.create({
+          matrix: matrix,
+          manifest: manifest,
+          document: document,
+          onStateChange: function (snapshot) {
+            var status = document.getElementById("zone4-status");
+            if (status) status.textContent = snapshot.status + " · " + snapshot.lastAction;
+          }
+        });
+
+        document.getElementById("zone4-start").addEventListener("click", function () { window.zone4OwnerStoryRuntime.start(); });
+        document.getElementById("zone4-pause").addEventListener("click", function () { window.zone4OwnerStoryRuntime.pause(); });
+        document.getElementById("zone4-next").addEventListener("click", function () { window.zone4OwnerStoryRuntime.next(); });
+        document.getElementById("zone4-previous").addEventListener("click", function () { window.zone4OwnerStoryRuntime.previous(); });
+        document.getElementById("zone4-replay").addEventListener("click", function () { window.zone4OwnerStoryRuntime.replayCurrent(); });
+        document.getElementById("zone4-enter-lord").addEventListener("click", function () { window.zone4OwnerStoryRuntime.enterLordTrial(); });
+        document.getElementById("zone4-simulate-fail").addEventListener("click", function () { window.zone4OwnerStoryRuntime.simulateFail(); });
+        document.getElementById("zone4-simulate-pass").addEventListener("click", function () { window.zone4OwnerStoryRuntime.simulatePass(); });
+        document.getElementById("zone4-autoplay").addEventListener("change", function (event) { window.zone4OwnerStoryRuntime.setAutoPlay(event.target.checked); });
+        document.getElementById("zone4-locale").addEventListener("change", function (event) { window.zone4OwnerStoryRuntime.setLocale(event.target.value); });
+        document.getElementById("zone4-track").addEventListener("change", function (event) { window.zone4OwnerStoryRuntime.setTrack(event.target.value); });
+        document.getElementById("zone4-beat-selector").addEventListener("change", function (event) { window.zone4OwnerStoryRuntime.jumpToBeat(event.target.value); });
+      }).catch(function (error) {
+        var status = document.getElementById("zone4-status");
+        if (status) status.textContent = "RUNTIME_LOAD_FAILED · " + error.message;
+      });
+    }());
+  </script>
+</body>
+</html>
