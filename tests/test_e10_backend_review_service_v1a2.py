@@ -394,21 +394,66 @@ def test_review_service_instantiated_exactly_once_in_app():
     assert APP_SOURCE.count("def _dispatch_to_srs_review_operation(") == 1
 
 
-def test_only_srs_review_operation_writes_srs_cards():
-    """srs_cards has exactly one writer anywhere in app.py, with no
-    documented exception -- unlike review_log (see the Rating Test test
-    above), no other subsystem writes SRS scheduling state at all."""
-    op_start = APP_SOURCE.index("def _srs_review_operation")
-    op_end = APP_SOURCE.index("def _run_map_battle_progression", op_start)
-    for marker in ("INSERT INTO srs_cards", "srs_cards(user_id"):
-        assert marker in APP_SOURCE[op_start:op_end], f"expected durable write marker missing: {marker}"
-    for marker in ("INSERT INTO srs_cards",):
-        positions = _find_all(APP_SOURCE, marker)
-        assert positions, f"marker not found at all: {marker}"
-        for pos in positions:
-            assert op_start <= pos < op_end, (
-                f"{marker} written outside _srs_review_operation at offset {pos}"
-            )
+def test_srs_scheduling_core_is_the_only_srs_cards_writer():
+    """srs_cards has exactly one writer in the entire repository, and it is
+    the domain-free scheduling core -- not app.py, and not any per-domain
+    caller.
+
+    Incident 002/003G strengthening.  The previous form of this test
+    asserted the write lived inside ``_srs_review_operation`` *in app.py*,
+    which could only ever hold one domain's writer and had no way to stop a
+    second domain (practice) from adding its own.  The invariant is now
+    stated where it actually belongs: one module owns the write, app.py
+    owns none, and every caller of the core is explicitly enumerated so a
+    third one is a reviewed addition rather than silent drift.
+    """
+    repo_py = sorted(
+        path for path in ROOT.rglob("*.py")
+        if "tests" not in path.parts
+        and ".git" not in path.parts
+        and "__pycache__" not in path.parts
+    )
+
+    writers = []
+    for path in repo_py:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if "INSERT INTO srs_cards" in text or "UPDATE srs_cards" in text:
+            writers.append(path.relative_to(ROOT).as_posix())
+    assert writers == ["srs_scheduling_core.py"], (
+        f"srs_cards must have exactly one writer module; found: {writers}"
+    )
+
+    # app.py owns no SRS SQL and no SM-2 implementation of its own.
+    assert "INSERT INTO srs_cards" not in APP_SOURCE
+    assert "UPDATE srs_cards" not in APP_SOURCE
+    assert "def sm2_update" not in APP_SOURCE
+
+    core = (ROOT / "srs_scheduling_core.py").read_text(encoding="utf-8")
+    assert "def sm2_update" in core
+    assert "def apply_srs_scheduling" in core
+    assert "GREATEST(srs_cards.progress_credited" in core, (
+        "the sticky anti-farming progress_credited semantics must survive extraction"
+    )
+
+    # SM-2 is implemented exactly once repository-wide.
+    sm2_definers = [
+        path.relative_to(ROOT).as_posix() for path in repo_py
+        if "def sm2_update" in path.read_text(encoding="utf-8", errors="ignore")
+    ]
+    assert sm2_definers == ["srs_scheduling_core.py"], (
+        f"SM-2 must be implemented once; found: {sm2_definers}"
+    )
+
+    # Every production caller of the core is enumerated on purpose.
+    callers = []
+    for path in repo_py:
+        if path.name == "srs_scheduling_core.py":
+            continue
+        if "apply_srs_scheduling(" in path.read_text(encoding="utf-8", errors="ignore"):
+            callers.append(path.relative_to(ROOT).as_posix())
+    assert callers == ["app.py"], (
+        f"unenumerated caller of the SRS scheduling core: {callers}"
+    )
 
 
 def test_review_authority_review_log_writes_are_exactly_srs_review_operation_and_the_named_exception():

@@ -118,6 +118,9 @@ COPY quest_runtime_api.py ./
 COPY quest_runtime_config.py ./
 COPY question_capacity_authority.py ./
 COPY question_idempotency.py ./
+# Incident 002/003G: the one canonical SRS scheduling writer, imported by
+# app.py at module load. Keep the runtime dependency closure explicit.
+COPY srs_scheduling_core.py ./
 COPY shop_acquisition_result_bridge.py ./
 COPY shop_offer_authority.py ./
 COPY shop_offer_identity_projection.py ./

@@ -267,6 +267,15 @@ from question_idempotency import (
     insert_review_log_with_identity,
     normalize_identity,
 )
+# The one canonical SRS scheduling writer.  app.py performs domain
+# validation and orchestration only; it owns no srs_cards SQL and no SM-2
+# implementation of its own (Incident 002/003G).
+from srs_scheduling_core import (
+    ProgressCreditPolicy,
+    apply_srs_scheduling,
+    should_grant_review_progress as _srs_core_should_grant_review_progress,
+    sm2_update as _srs_core_sm2_update,
+)
 from srs_review_authority import (
     AUTHORITATIVE_REVIEW_SOURCE_PREFIXES,
     AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX,
@@ -6953,36 +6962,13 @@ def admin_shadow_dashboard_recent():
 def admin_deployment_readiness():
     return jsonify(_read_runtime_deployment_readiness())
 
-def sm2_update(ef, iv, rp, grade):
-    q = grade
-    if q < 3:
-        rp, iv = 0, 1
-    else:
-        iv = 1 if rp==0 else (6 if rp==1 else round(iv*ef))
-        rp += 1
-    iv = min(iv, 3650)
-    ef  = max(1.3, ef + 0.1 - (5-q)*(0.08+(5-q)*0.02))
-    due = (datetime.date.today() + datetime.timedelta(days=iv)).isoformat()
-    return ef, iv, rp, due
-
-def should_grant_review_progress(existing_srs_row, grade):
-    """Phase 4D anti-farming: True only for the first-ever passing review
-    of a (user, question) pair. Progression side effects (XP, pet XP,
-    monster/boss damage, kills, loot, SP, daily-quest credit) must gate on
-    this, not on `last_grade` -- last_grade flips on every submission and
-    can be reset by an intentional fail/pass toggle to re-farm rewards,
-    while `progress_credited` is sticky once set. SRS scheduling itself
-    (ease_factor/interval/due_date/last_grade) is unaffected and still
-    updates on every review regardless of this check."""
-    if grade < 3:
-        return False
-    if not existing_srs_row:
-        return True
-    try:
-        credited = existing_srs_row['progress_credited']
-    except (KeyError, IndexError, TypeError):
-        credited = existing_srs_row.get('progress_credited')
-    return not bool(credited)
+# SM-2 calculation and the anti-farming progress-credit rule moved to
+# srs_scheduling_core (Incident 002/003G), which is now the sole owner of
+# both and the sole writer of srs_cards.  Re-exported here so existing
+# importers of app.sm2_update / app.should_grant_review_progress keep
+# working unchanged.
+sm2_update = _srs_core_sm2_update
+should_grant_review_progress = _srs_core_should_grant_review_progress
 
 def _apply_credited_review_counters(total, streak, mx, combo_streak, max_combo, should_grant_progress):
     """Phase 4E anti-farming: total_correct/current_streak/max_streak/
@@ -16921,8 +16907,6 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             ) is None:
                 return jsonify({'error': 'boss_verdict_unavailable'}), 503
             return _review_submission_duplicate_response(existing_submission)
-        row = conn.execute(
-            'SELECT * FROM srs_cards WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
         if boss_verdict is not None:
             incident018_log_stage(
                 'VERDICT_PERSISTENCE_ENTER',
@@ -16956,30 +16940,29 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 PERSISTENCE_STAGE_COMPLETED=True,
                 PERSISTENCE_RESULT='VERDICT_BOUND',
             )
-        ef,iv,rp = (row['ease_factor'],row['interval'],row['repetitions']) if row else (2.5,0,0)
-        ef,iv,rp,due = sm2_update(ef,iv,rp,grade)
-        # Phase 4D anti-farming: computed from the row as it existed BEFORE
-        # this submission. Once true for a (user, question) pair, stays
-        # true forever via progress_credited (see should_grant_review_progress).
-        # Only the server-owned Map Battle handoff can produce a correctness
-        # result. A public grade continues to update SM-2 below, but is never
+        # SRS scheduling is delegated to the one canonical writer.  Only the
+        # server-owned Map Battle handoff (internal) may mint progression
+        # credit; a public grade continues to update SM-2 but is never
         # allowed to become progression/reward/combat authority.
-        should_grant_progress = (
-            should_grant_review_progress(row, grade) if internal else False
+        _srs_outcome = apply_srs_scheduling(
+            conn,
+            user_id=uid,
+            question_id=qid,
+            grade=grade,
+            now=now,
+            progress_credit_policy=(
+                ProgressCreditPolicy.FIRST_PASS_ONLY if internal
+                else ProgressCreditPolicy.NEVER
+            ),
         )
-        existing_progress_credited = (
-            row['progress_credited'] if row else 0
+        ef, iv, rp, due = (
+            _srs_outcome.ease_factor,
+            _srs_outcome.interval,
+            _srs_outcome.repetitions,
+            _srs_outcome.due_date,
         )
-        progress_credited_flag = 1 if (
-            should_grant_progress or existing_progress_credited
-        ) else 0
-        conn.execute('''INSERT INTO srs_cards(user_id,question_id,ease_factor,interval,repetitions,due_date,last_grade,updated_at,progress_credited)
-            VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,question_id) DO UPDATE SET
-            ease_factor=excluded.ease_factor, interval=excluded.interval,
-            repetitions=excluded.repetitions, due_date=excluded.due_date,
-            last_grade=excluded.last_grade, updated_at=excluded.updated_at,
-            progress_credited=GREATEST(srs_cards.progress_credited, excluded.progress_credited)''',
-            (uid,qid,ef,iv,rp,due,grade,now,progress_credited_flag))
+        should_grant_progress = _srs_outcome.progress_credit_granted
+        srs_row_existed = _srs_outcome.existed
 
         # Premium training completion is correctness/progression state, not
         # SRS scheduling. A public self-reported grade cannot complete it.
@@ -17038,7 +17021,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             total, streak, mx, combo_streak, max_combo = _apply_credited_review_counters(
                 total, streak, mx, combo_streak, max_combo, should_grant_progress)
 
-            is_new  = not row   # 首次作答此題
+            is_new  = not srs_row_existed   # 首次作答此題
             is_mc   = bool(mrow and mrow['wrong_count'] > 0)
 
             if should_grant_progress:
