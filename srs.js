@@ -254,6 +254,78 @@ const SRS = (() => {
         return data;
     }
 
+    function _practiceAttemptStorageKey(qid) {
+        const key = _questionIdKey(qid);
+        return key ? `go:practice:attempt:v1:${key}` : null;
+    }
+
+    function _practiceAttemptLoad(qid) {
+        const key = _practiceAttemptStorageKey(qid);
+        if (!key || typeof sessionStorage === 'undefined') return null;
+        try {
+            const token = sessionStorage.getItem(key);
+            return token && token.trim() ? token : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function _practiceAttemptSave(qid, token) {
+        const key = _practiceAttemptStorageKey(qid);
+        if (!key || typeof sessionStorage === 'undefined') return;
+        try { sessionStorage.setItem(key, token); } catch (_) {}
+    }
+
+    function _practiceAttemptClear(qid) {
+        const key = _practiceAttemptStorageKey(qid);
+        if (!key || typeof sessionStorage === 'undefined') return;
+        try { sessionStorage.removeItem(key); } catch (_) {}
+    }
+
+    async function practiceAnswer(qid, moves, metadata = {}) {
+        if (!_reviewTransport
+            || typeof _reviewTransport.practiceAttempt !== 'function'
+            || typeof _reviewTransport.practiceAnswer !== 'function') {
+            throw new Error('practice_review_transport_unavailable');
+        }
+        let token = _practiceAttemptLoad(qid);
+        if (!token) {
+            const attempt = await _reviewTransport.practiceAttempt(qid);
+            token = attempt.attempt_token;
+            _practiceAttemptSave(qid, token);
+        }
+        let data;
+        try {
+            data = await _reviewTransport.practiceAnswer(
+                token,
+                Array.isArray(moves) ? moves : [],
+                metadata.response_ms,
+            );
+        } catch (error) {
+            // Expiry/identity invalidation means this signed event can no
+            // longer be resumed.  Do not silently mint a replacement event;
+            // the next explicit answer starts a new attempt.
+            if (error && error.kind === 'REJECTED'
+                && ['practice_attempt_expired', 'practice_attempt_invalid',
+                    'practice_identity_mismatch', 'practice_identity_unavailable']
+                    .includes(error.code)) {
+                _practiceAttemptClear(qid);
+            }
+            throw error;
+        }
+        _practiceAttemptClear(qid);
+        if (data.ok) {
+            _allCards[qid] = {
+                ...(_allCards[qid] || {}),
+                ...(data.srs || {}),
+                ...data,
+                question_id: qid,
+            };
+            if (Number(data.authoritative_grade) >= 3 && _dueSet) _dueSet.delete(qid);
+        }
+        return data;
+    }
+
     function dispatchReviewPresentation(data, { onError } = {}) {
         if (!_presentationDispatcher || typeof _presentationDispatcher.dispatch !== 'function') {
             throw new Error('presentation_dispatcher_unavailable');
@@ -384,7 +456,7 @@ const SRS = (() => {
     return {
         GRADE, DIFFICULTY_ORDER, MONSTER_AVATARS, QUEST_COLORS,
         init, isDue, isSeen, markSeen, getCard, getBadgeDef, isEarned, allDefs, allEarned,
-        review, dispatchReviewPresentation, loadQuests, reportUnitProgress,
+        review, practiceAnswer, dispatchReviewPresentation, loadQuests, reportUnitProgress,
         questionRevision, quarantineQuestion, isQuestionQuarantined,
         clearSessionQuarantine, findNextAvailableQuestion, recordRejectedAnswer,
         diffBadge, intervalLabel, badgeHtml, monsterHtml, questListHtml

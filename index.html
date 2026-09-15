@@ -9286,6 +9286,20 @@ function _currentReviewMetadata(){
     }
     return metadata;
 }
+
+// Incident 002: ordinary practice is the only flow that may use the new
+// server-judged evidence transport.  Lord, Map Battle, Guild, friend
+// challenge, daily, and premium-training flows retain their existing owners.
+function _incident002ServerPracticeFlow() {
+    return !_bossMode
+        && !_guildQuestMode?.key
+        && !_challengeId
+        && !_dailyMode
+        && !_premiumWeeklyMode
+        && !_mapBattleV1IsActive()
+        && _mapBattleV1Mode !== 'blocked'
+        && typeof SRS?.practiceAnswer === 'function';
+}
 let playerColor='B',solved=false,answering=false,currentIndex=-1;
 let allQuestions=[],logicBoard=[],boardSize=19;
 window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false;
@@ -9304,6 +9318,7 @@ let _adventureActiveQuestions = null;
 let _mapBattleV1State = null;
 let _mapBattleV1Mode = 'disabled';
 let _mapBattleV1Moves = [];
+let _practiceAnswerMoves = [];
 let _lordTrialAnswerMoves = [];
 let _guildQuestAnswerMoves = [];
 let _mapBattleV1Context = null;
@@ -9917,6 +9932,7 @@ async function submitSRS(grade){
         setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
         return;
     }
+    const incident002Practice = _incident002ServerPracticeFlow();
     const reviewMetadata = _currentReviewMetadata();
     if (_bossMode && bossAnswer) reviewMetadata.boss_answer = bossAnswer;
     const identity = _gameSession.adoptQuestion(currentQ, {
@@ -9927,7 +9943,7 @@ async function submitSRS(grade){
     if (!_gameSession.beginReview(identity)) return;
     return (async () => {
     const unit=currentUnitName();let unitDone=false;
-    if(!_bossMode&&grade>=3&&unit){
+    if(!_bossMode&&grade>=3&&unit&&!incident002Practice){
         try{const prog=await SRS.reportUnitProgress(currentQ.id,unit);unitDone=prog.unit_complete;}
         catch(e){/* /api/unit-progress 不存在時靜默忽略 */}
     }
@@ -9941,10 +9957,16 @@ async function submitSRS(grade){
         questionId: bossAnswerContext?.questionId,
     });
     try {
-        data = await SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata);
+        data = incident002Practice
+            ? await SRS.practiceAnswer(
+                currentQ.id,
+                _practiceAnswerMoves.map(move => ({...move})),
+                reviewMetadata,
+            )
+            : await SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata);
     } catch(e) {
         const diagnosticRef = e?.payload?.diagnostic_ref || null;
-        console.warn('[SRS.review] failed; answer was not saved', {
+        console.warn(incident002Practice ? '[SRS.practiceAnswer] failed; answer was not saved' : '[SRS.review] failed; answer was not saved', {
             errorType: e?.name || 'Error',
             errorCode: e?.code || null,
             diagnosticRef,
@@ -9957,6 +9979,11 @@ async function submitSRS(grade){
             'err',
         );
         return;
+    }
+    if (incident002Practice) {
+        // The server judge, not the button argument, owns the committed grade.
+        grade = Number(data.authoritative_grade);
+        _practiceAnswerMoves = [];
     }
     if (data.ok) SRS.markSeen(currentQ.id); // 只在伺服器接受後標記已作答
     if(!data.ok){
@@ -10064,14 +10091,20 @@ async function submitSRS(grade){
         }
         return;
     }
-    _todayTotal++; if(grade>=3) _todayCorrect++;
+    if (!incident002Practice || !data.duplicate) {
+        _todayTotal++; if(grade>=3) _todayCorrect++;
+    }
     updateTodayMini();
     let shouldAdvance = true;
     try {
         _e10AcceptanceTrace('PRESENTATION_DISPATCH_STARTED', {
             qid: Number(currentQ.id), grade,
         });
-        _dispatchCommittedReviewPresentation(data, grade);
+        if (incident002Practice) {
+            setMsg(grade >= 3 ? I18n.t('index.correct') : I18n.t('index.wrong'), grade >= 3 ? 'ok' : 'err');
+        } else {
+            _dispatchCommittedReviewPresentation(data, grade);
+        }
         // Map bootstrap reconstructs the full historical compatibility read
         // model.  It is intentionally not on the ordinary answer critical
         // path; the next question must render without waiting for a map HUD
@@ -10824,6 +10857,7 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
     _resetE10BattleRevealState();
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
+    _practiceAnswerMoves = [];
     _lordTrialAnswerMoves = [];
     _guildQuestAnswerMoves = [];
     _mapBattleV1Context = null;
@@ -12293,6 +12327,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     _e10AcceptanceTrace('CURRENT_Q_ASSIGNED', { qid: questionId, generation });
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
+    _practiceAnswerMoves = [];
     _mapBattleV1Context = null;
     _mapBattleV1Mode = (!_bossMode && _isAdventureZonePractice()) ? 'pending' : 'disabled';
     _questionStartedAt=performance.now();
@@ -12583,6 +12618,7 @@ function onBoardClick(bx,by){
     if(solved)return;
     if (_bossMode) _lordTrialAnswerMoves.push({action:'play',x,y});
     else if (_guildQuestMode?.key) _guildQuestAnswerMoves.push({action:'play',x,y});
+    else if (_incident002ServerPracticeFlow()) _practiceAnswerMoves.push({action:'play',x,y});
     const bossAnswer = _bossMode
         ? {moves:_lordTrialAnswerMoves.map(move => ({...move}))}
         : null;
@@ -12607,7 +12643,26 @@ function onBoardClick(bx,by){
             return;
         }
         if(_challengeId&&window._challengeWrongHandler){window._challengeWrongHandler();}
-        if(currentQ&&!_dailyLimitReached&&window.ReviewTransport&&typeof window.ReviewTransport.review==='function'){
+        if (_incident002ServerPracticeFlow()) {
+            const practiceQuestion = currentQ;
+            const practiceMoves = _practiceAnswerMoves.map(move => ({...move}));
+            _practiceAnswerMoves = [];
+            SRS.practiceAnswer(
+                practiceQuestion.id,
+                practiceMoves,
+                _currentReviewMetadata(),
+            ).then(data => {
+                if (!data || !data.ok || currentQ !== practiceQuestion) return;
+                SRS.markSeen(practiceQuestion.id);
+                if (!data.duplicate) {
+                    _todayTotal++;
+                    if (Number(data.authoritative_grade) >= 3) _todayCorrect++;
+                    updateTodayMini();
+                }
+            }).catch(error => {
+                console.warn('[SRS.practiceAnswer] wrong answer evidence was not saved', error);
+            });
+        } else if(currentQ&&!_dailyLimitReached&&window.ReviewTransport&&typeof window.ReviewTransport.review==='function'){
             const observerCommand={
                 question_id:currentQ.id,
                 grade:0,

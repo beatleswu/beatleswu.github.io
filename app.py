@@ -226,6 +226,7 @@ from migrations.review_log_submission_idempotency_v1 import (
     upgrade as upgrade_review_log_submission_schema,
 )
 from adventure_progress_compatibility import (
+    SERVER_TRUSTED_REVIEW_SOURCE_PREFIXES,
     TRUSTED_REVIEW_SOURCE_PREFIXES,
     current_adventure_question_count,
     trusted_correct_count_after,
@@ -260,7 +261,7 @@ from adventure_zone_progression_authority import (
 # ("legacy", str(question_id)) and the resolver is not queried, so the
 # aggregate readers retain their byte-identical raw-integer fallback.  When the
 # bootstrap is hot and the tables are present, the reader is queried below.
-from identity_read_adapter import BootstrapGatedIdentityReader
+from identity_read_adapter import BootstrapGatedIdentityReader, IdentityNotAttachable
 from question_idempotency import (
     IdempotencyIdentityError,
     canonical_payload_digest,
@@ -276,9 +277,23 @@ from srs_scheduling_core import (
     should_grant_review_progress as _srs_core_should_grant_review_progress,
     sm2_update as _srs_core_sm2_update,
 )
+from practice_answer_authority import (
+    PRACTICE_ATTEMPT_TTL_SECONDS,
+    PRACTICE_JUDGE_VERSION,
+    PracticeAttemptError,
+    canonicalize_practice_answer,
+    issue_practice_attempt,
+    judge_practice_answer,
+    practice_source_context,
+    practice_submission_id,
+    practice_submission_payload,
+    verify_practice_attempt,
+)
 from srs_review_authority import (
     AUTHORITATIVE_REVIEW_SOURCE_PREFIXES,
     AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX,
+    PRACTICE_TRUSTED_SOURCE_CONTEXT_PREFIX,
+    SERVER_TRUSTED_REVIEW_SOURCE_CONTEXT_PREFIXES,
     PublicSrsReviewAuthorityError,
     is_authoritative_review_source_context,
     resolve_public_srs_review_authority,
@@ -12525,7 +12540,7 @@ def _adventure_correct_question_ids(conn, uid, cards):
     return visible_adventure_question_ids(
         conn,
         uid,
-        trusted_source_prefixes=TRUSTED_REVIEW_SOURCE_PREFIXES,
+        trusted_source_prefixes=SERVER_TRUSTED_REVIEW_SOURCE_PREFIXES,
     )
 
 
@@ -12535,7 +12550,7 @@ def _adventure_trusted_question_ids(conn, uid):
     return set(
         trusted_current_memberships(
             conn,
-            source_prefixes=TRUSTED_REVIEW_SOURCE_PREFIXES,
+            source_prefixes=SERVER_TRUSTED_REVIEW_SOURCE_PREFIXES,
             user_id=uid,
         )
     )
@@ -13277,7 +13292,13 @@ def _adventure_lord_retry_state(conn, uid, zone_key, zone_ids):
             'unresolvable_failure_reference': True,
         }
     try:
-        achieved = trusted_correct_count_after(conn, uid, zone_ids, since)
+        achieved = trusted_correct_count_after(
+            conn,
+            uid,
+            zone_ids,
+            since,
+            trusted_source_prefixes=SERVER_TRUSTED_REVIEW_SOURCE_PREFIXES,
+        )
     except Exception:
         # The post-failure count is the whole measurement.  If it cannot be
         # read there is no evidence the debt was paid, so the lock stands.
@@ -16273,6 +16294,295 @@ def srs_review():
         raise
     finally:
         incident018_end_request(observation_token)
+
+
+def _practice_identity_for_write(conn, question_id):
+    """Return an attachable canonical UUID or fail closed.
+
+    The practice writer is deliberately stricter than a read caller: a cold
+    bootstrap, missing alias, retired record, or ambiguous alias cannot receive
+    new trusted evidence.  This helper never creates or repairs identity rows.
+    """
+    reader = BootstrapGatedIdentityReader(conn)
+    try:
+        return reader.assert_attachable(question_id)
+    except IdentityNotAttachable as error:
+        key = reader.key_for(question_id)
+        reason = f'identity_{key.kind}'
+        raise PracticeAttemptError(
+            'practice_identity_unavailable',
+            status=503,
+            retryable=True,
+            reason_code=reason,
+        ) from error
+
+
+def _practice_question_by_id(question_id):
+    questions = _load_questions()
+    matches = [
+        question for question in questions
+        if isinstance(question, dict)
+        and type(question.get('id')) is int
+        and question.get('id') == question_id
+        and question.get('enabled', True) is not False
+    ]
+    if len(matches) != 1:
+        raise PracticeAttemptError('unknown_question', status=400)
+    return matches[0]
+
+
+def _practice_error_response(error):
+    return jsonify({
+        'error': getattr(error, 'code', 'practice_answer_unavailable'),
+        'code': getattr(error, 'code', 'practice_answer_unavailable'),
+        'reason_code': getattr(error, 'reason_code', getattr(error, 'code', 'practice_answer_unavailable')),
+        'retryable': bool(getattr(error, 'retryable', False)),
+    }), int(getattr(error, 'status', 409))
+
+
+def _practice_duplicate_payload(row):
+    grade = int(row['grade'])
+    return {
+        'ok': True,
+        'duplicate': True,
+        'submission_id': str(row['submission_id']),
+        'question_id': int(row['question_id']),
+        'result': 'CORRECT' if grade >= 3 else 'INCORRECT',
+        'authoritative_grade': grade,
+        'judge_version': PRACTICE_JUDGE_VERSION,
+    }
+
+
+@app.route('/api/srs/practice/attempt', methods=['POST'])
+@login_required
+def srs_practice_attempt():
+    """Issue one signed, server-bound practice answer attempt.
+
+    The token is an envelope, not correctness authority.  Its only purpose is
+    to bind the later moves to the authenticated player, exact canonical
+    question identity, immutable revision, and one answer-event nonce.
+    """
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'practice_question_required', 'code': 'practice_question_required'}), 400
+    question_id = data.get('question_id')
+    if isinstance(question_id, bool) or not isinstance(question_id, int):
+        return jsonify({'error': 'invalid_question_id', 'code': 'invalid_question_id'}), 400
+    try:
+        question = _practice_question_by_id(question_id)
+        question_context = _map_battle_question_context(question)
+        with get_db() as conn:
+            source_record_uuid = _practice_identity_for_write(conn, question_id)
+        token = issue_practice_attempt(
+            app.secret_key,
+            user_id=int(session['user_id']),
+            question=question,
+            source_record_uuid=source_record_uuid,
+            question_context=question_context,
+        )
+    except PracticeAttemptError as error:
+        return _practice_error_response(error)
+    except (MapBattleRuntimeError, RequestRejected) as error:
+        return _practice_error_response(PracticeAttemptError(
+            'practice_question_unavailable',
+            status=int(getattr(error, 'status', 503)),
+            retryable=True,
+            reason_code='question_context_unavailable',
+        ))
+    return jsonify({
+        'ok': True,
+        'attempt_token': token,
+        'question_id': question_id,
+        'question_revision': question_context['question_revision'],
+        'expires_in': PRACTICE_ATTEMPT_TTL_SECONDS,
+    })
+
+
+@app.route('/api/srs/practice/answer', methods=['POST'])
+@login_required
+def srs_practice_answer():
+    """Judge and persist one public-practice answer at the server boundary.
+
+    Only ``attempt_token``, ``moves`` and optional telemetry are accepted from
+    the browser.  Correctness, canonical identity, trust marker, submission
+    identity and all SRS values are reconstructed server-side.
+    """
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'practice_answer_required', 'code': 'practice_answer_required'}), 400
+    allowed = {'attempt_token', 'moves', 'response_ms'}
+    if set(data).difference(allowed):
+        return jsonify({
+            'error': 'forbidden_answer_field',
+            'code': 'forbidden_answer_field',
+            'retryable': False,
+        }), 400
+    attempt_token = data.get('attempt_token')
+    try:
+        attempt = verify_practice_attempt(
+            app.secret_key,
+            attempt_token,
+            user_id=int(session['user_id']),
+        )
+        question_id = int(attempt['question_id'])
+        question = _practice_question_by_id(question_id)
+        with get_db() as identity_conn:
+            source_record_uuid = _practice_identity_for_write(identity_conn, question_id)
+        if source_record_uuid != attempt.get('source_record_uuid'):
+            raise PracticeAttemptError(
+                'practice_identity_mismatch',
+                status=409,
+                reason_code='identity_changed_since_attempt',
+            )
+        question_revision = question_revision_for(question)
+        attempt = verify_practice_attempt(
+            app.secret_key,
+            attempt_token,
+            user_id=int(session['user_id']),
+            question_id=question_id,
+            question_revision=question_revision,
+            source_record_uuid=source_record_uuid,
+        )
+        canonical = canonicalize_practice_answer({'moves': data.get('moves')}, attempt)
+        judge = judge_practice_answer(question, attempt, canonical)
+        submission_id = practice_submission_id(attempt)
+        source_context = practice_source_context(attempt)
+        submission_payload_hash = canonical_payload_digest(
+            practice_submission_payload(
+                attempt=attempt,
+                canonical=canonical,
+                authoritative_grade=int(judge.authoritative_grade),
+            )
+        )
+        try:
+            response_ms = max(0, min(600000, int(data.get('response_ms')))) \
+                if data.get('response_ms') is not None else None
+        except (TypeError, ValueError):
+            response_ms = None
+    except PracticeAttemptError as error:
+        return _practice_error_response(error)
+    except (MapBattleRuntimeError, RequestRejected) as error:
+        return _practice_error_response(PracticeAttemptError(
+            'malformed_answer',
+            status=int(getattr(error, 'status', 400)),
+            reason_code='server_answer_canonicalization_failed',
+        ))
+
+    uid = int(session['user_id'])
+    # A committed retry is checked before quota enforcement.  The same signed
+    # nonce is the event identity; a new nonce for the same UUID is a new
+    # legitimate play event.
+    with get_db() as identity_conn:
+        existing = identity_conn.execute(
+            'SELECT submission_id, question_id, grade, submission_payload_hash '
+            'FROM review_log WHERE user_id=? AND submission_id=?',
+            (uid, submission_id),
+        ).fetchone()
+    if existing:
+        if existing['submission_payload_hash'] != submission_payload_hash:
+            return _review_submission_conflict_response(submission_id)
+        return jsonify(_practice_duplicate_payload(existing))
+
+    if not is_premium(uid):
+        if not question_is_free(question):
+            return jsonify({
+                'error': 'premium_required',
+                'code': 'premium_required',
+                'upgrade_url': '/upgrade',
+            }), 403
+        with get_db() as quota_conn:
+            extra = _extra_questions_today(quota_conn, uid)
+        effective_limit = FREE_DAILY_LIMIT + extra
+        if get_today_free_count(uid) >= effective_limit:
+            return jsonify({
+                'error': 'daily_limit',
+                'code': 'daily_limit',
+                'today_count': get_today_free_count(uid),
+                'limit': effective_limit,
+            }), 429
+
+    now = datetime.datetime.now().isoformat()
+    ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
+    with get_db() as conn:
+        # Re-check identity inside the write transaction.  This is a read-only
+        # identity gate; no alias or UUID row is created here.
+        if _practice_identity_for_write(conn, question_id) != source_record_uuid:
+            return _practice_error_response(PracticeAttemptError(
+                'practice_identity_mismatch', status=409,
+                reason_code='identity_changed_before_persist',
+            ))
+        player_row = conn.execute(
+            'SELECT elo_rating FROM users WHERE id=?', (uid,)
+        ).fetchone()
+        player_rating_snapshot = float(player_row['elo_rating'] or 1400) if player_row else 1400.0
+        question_rating_snapshot = rank_to_rating(
+            question.get('rank') or question.get('difficulty')
+        )
+        review_insert = insert_review_log_with_identity(
+            conn,
+            user_id=uid,
+            question_id=question_id,
+            grade=int(judge.authoritative_grade),
+            topic=question.get('topic', ''),
+            level=question.get('level', ''),
+            difficulty=question.get('difficulty', ''),
+            reviewed_at=now,
+            response_ms=response_ms,
+            discipline=question.get('discipline') or 'whole_board',
+            player_rating_snapshot=player_rating_snapshot,
+            question_rating_snapshot=question_rating_snapshot,
+            item_rating_version=ITEM_RATING_VERSION,
+            question_version=str(question.get('source') or question_id),
+            source_context=source_context,
+            is_scaffolding=0,
+            training_set_id=None,
+            submission_id=submission_id,
+            submission_payload_hash=submission_payload_hash,
+        )
+        if not review_insert['inserted']:
+            existing_submission = review_insert['existing']
+            if existing_submission['submission_payload_hash'] != submission_payload_hash:
+                return _review_submission_conflict_response(submission_id)
+            return jsonify(_practice_duplicate_payload(existing_submission))
+
+        # SRS is scheduling state and is updated for both outcomes.  Practice
+        # owns its own judging, identity and idempotency above, then delegates
+        # the scheduling write to the one canonical srs_cards writer inside
+        # this same transaction (Incident 003G).  NEVER: the sticky
+        # progress_credited flag is preserved but never set by the practice
+        # path; trusted Adventure/leaderboard readers consume the
+        # server-written review evidence above.  Practice enters no Map Battle
+        # ledger and triggers no reward or progression side effect.
+        _practice_srs_outcome = apply_srs_scheduling(
+            conn,
+            user_id=uid,
+            question_id=question_id,
+            grade=int(judge.authoritative_grade),
+            now=now,
+            progress_credit_policy=ProgressCreditPolicy.NEVER,
+        )
+        ef = _practice_srs_outcome.ease_factor
+        interval = _practice_srs_outcome.interval
+        repetitions = _practice_srs_outcome.repetitions
+        due = _practice_srs_outcome.due_date
+        conn.commit()
+
+    return jsonify({
+        'ok': True,
+        'duplicate': False,
+        'submission_id': submission_id,
+        'question_id': question_id,
+        'result': judge.result,
+        'authoritative_grade': int(judge.authoritative_grade),
+        'judge_version': judge.judge_version,
+        'reason_code': judge.reason_code,
+        'srs': {
+            'ease_factor': ef,
+            'interval': interval,
+            'repetitions': repetitions,
+            'due_date': due,
+        },
+    })
 
 
 def _review_submission_duplicate_response(row):
@@ -20746,10 +21056,11 @@ def leaderboard():
         rows = conn.execute(
             """SELECT u.id, u.username,
                       COUNT(*)                                       AS total,
-                      SUM(CASE WHEN r.grade>=3 AND
-                                    (r.source_context LIKE ? OR
-                                     r.source_context LIKE ? OR
-                                     r.source LIKE ?)
+                       SUM(CASE WHEN r.grade>=3 AND
+                                     (r.source_context LIKE ? OR
+                                      r.source_context LIKE ? OR
+                                      r.source_context LIKE ? OR
+                                      r.source LIKE ?)
                                THEN 1 ELSE 0 END)                    AS correct,
                       MAX(DATE(r.reviewed_at))                        AS last_active,
                       COALESCE(us.xp, 0)                             AS xp,
@@ -20763,9 +21074,10 @@ def leaderboard():
                ORDER BY correct DESC, total ASC
                LIMIT 50""",
             (
-                f'{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX}%',
-                f'{DAILY_D5B_SOURCE_PREFIX}%',
-                f'{AUTHORITATIVE_REVIEW_SOURCE_PREFIXES[0]}%',
+                 f'{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX}%',
+                 f'{DAILY_D5B_SOURCE_PREFIX}%',
+                 f'{PRACTICE_TRUSTED_SOURCE_CONTEXT_PREFIX}%',
+                 f'{AUTHORITATIVE_REVIEW_SOURCE_PREFIXES[0]}%',
                 month_start,
             )
         ).fetchall()

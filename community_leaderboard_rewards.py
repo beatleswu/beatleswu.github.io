@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from srs_review_authority import (
     AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES,
     AUTHORITATIVE_REVIEW_SOURCE_PREFIXES,
+    PRACTICE_TRUSTED_SOURCE_CONTEXT_PREFIX,
 )
 from lord_trial_answer_service import (
     LORD_TRIAL_JUDGE_VERSION,
@@ -621,6 +622,7 @@ WITH trusted_evidence AS (
        AND rl.grade >= 3
        AND (rl.source_context LIKE ? OR
             rl.source_context LIKE ? OR
+            rl.source_context LIKE ? OR
             rl.source LIKE ?)
      GROUP BY rl.user_id, rl.question_id
 ){historical_cte}{lord_cte}{guild_cte}{qualifying_cte}
@@ -670,6 +672,11 @@ SELECT u.id,
     params.extend([
         f"{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES[0]}%",
         f"{AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES[1]}%",
+        # Incident 002: recognize only the exact server-minted practice
+        # trust namespace (minted solely by practice_answer_authority.py's
+        # practice_source_context()). This is additive; every existing
+        # trusted prefix above is unchanged.
+        f"{PRACTICE_TRUSTED_SOURCE_CONTEXT_PREFIX}%",
         f"{AUTHORITATIVE_REVIEW_SOURCE_PREFIXES[0]}%",
     ])
     params.extend(historical_params)

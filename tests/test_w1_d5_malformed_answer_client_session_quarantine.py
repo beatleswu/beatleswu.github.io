@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import subprocess
+import tempfile
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -14,13 +16,32 @@ INDEX_PATH = ROOT / "index.html"
 
 
 def _run_node(script: str) -> dict:
-    result = subprocess.run(
-        ["node", "-e", script],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    # Incident 002/003E: this test suite embeds the full current text of one
+    # or more product JS files into the verification script. `node -e
+    # <script>` passes that text as a single OS command-line argument, which
+    # is subject to a hard platform length ceiling (observed: Windows'
+    # CreateProcess rejects the whole invocation with WinError 206 once the
+    # combined embedded source crosses roughly 32K characters) that ordinary,
+    # legitimate product growth can cross with no change to this test's own
+    # logic or to the JS it verifies. Writing the identical script to a temp
+    # CommonJS file (`.cjs`, so Node never mis-treats it as an ES module
+    # regardless of any ancestor package.json) and running `node <file>`
+    # instead removes that ceiling entirely.
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".cjs", dir=ROOT, delete=False, encoding="utf-8",
+    ) as handle:
+        handle.write(script)
+        script_path = pathlib.Path(handle.name)
+    try:
+        result = subprocess.run(
+            ["node", str(script_path)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    finally:
+        script_path.unlink(missing_ok=True)
     assert result.returncode == 0, f"stdout={result.stdout}\nstderr={result.stderr}"
     return json.loads(result.stdout)
 
@@ -234,9 +255,39 @@ def test_index_contract_quarantines_permanent_only_and_handles_exhaustion():
 
 
 def test_index_does_not_report_unit_progress_before_review_acceptance():
+    """SRS.reportUnitProgress (a real, server-recorded side effect) must
+    stay upstream of -- and outside -- the review commit assignment: it may
+    not depend on this specific review having been accepted, and it must
+    not itself become the value branch of that commit.
+
+    Incident 002/003E: the review commit line legitimately gained a
+    practice-vs-legacy ternary (``data = incident002Practice ? await
+    SRS.practiceAnswer(...) : await SRS.review(...)``), so the exact prior
+    literal ``data = await SRS.review(...)`` no longer appears contiguously.
+    This checks the same two invariants the original assertions protected --
+    the call is still reachable with its exact legacy argument list, it is
+    still the value assigned to ``data``, and the unit-progress report still
+    precedes it in source order -- without depending on the surrounding
+    expression's exact literal formatting.
+    """
     source = INDEX_PATH.read_text(encoding="utf-8")
-    assert "data = await SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata);" in source
-    assert "SRS.reportUnitProgress(currentQ.id,unit)" in source
+    unit_progress_match = re.search(
+        r"SRS\.reportUnitProgress\(currentQ\.id,unit\)", source,
+    )
+    assert unit_progress_match, "SRS.reportUnitProgress call site is missing"
+    review_commit_match = re.search(
+        r"data\s*=\s*(?:incident002Practice\s*\?[\s\S]*?:\s*)?"
+        r"await SRS\.review\(currentQ\.id,grade,unit,unitDone,reviewMetadata\);",
+        source,
+    )
+    assert review_commit_match, (
+        "the legacy SRS.review(...) commit, assigned to `data`, is missing "
+        "or no longer has its exact historical argument list"
+    )
+    assert unit_progress_match.start() < review_commit_match.start(), (
+        "SRS.reportUnitProgress must still be called upstream of the review "
+        "commit that decides whether this answer was accepted"
+    )
     assert "_quarantineRejectedAnswer" in SRS_PATH.read_text(encoding="utf-8")
 
 

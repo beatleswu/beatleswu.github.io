@@ -7,6 +7,7 @@ no xfail/skip hides a missing implementation seam.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -40,7 +41,19 @@ def test_review_transport_is_the_only_frontend_review_post():
 
 
 def test_rejected_review_paths_cannot_advance_or_dispatch():
-    review_start = INDEX_SOURCE.index("data = await SRS.review")
+    # Incident 002/003E: the review commit assignment legitimately gained a
+    # practice-vs-legacy ternary (``data = incident002Practice ? await
+    # SRS.practiceAnswer(...) : await SRS.review(...)``), so the literal
+    # ``data = await SRS.review`` no longer appears contiguously. A regex
+    # tolerant of that intervening conditional still anchors on the same
+    # assignment -- the boundary this test actually cares about -- without
+    # depending on the exact prior formatting.
+    review_commit_match = re.search(
+        r"data\s*=\s*(?:incident002Practice\s*\?[\s\S]*?:\s*)?await SRS\.review\(",
+        INDEX_SOURCE,
+    )
+    assert review_commit_match, "the legacy SRS.review(...) commit assignment is missing"
+    review_start = review_commit_match.start()
     committed_start = INDEX_SOURCE.index("_e10AcceptanceTrace('REVIEW_COMMITTED'", review_start)
     failure_region = INDEX_SOURCE[review_start:committed_start]
 

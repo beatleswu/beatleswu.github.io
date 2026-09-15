@@ -846,6 +846,17 @@ async function characterizeReviewCommitAndMapBattleAuthority() {
     _mapBattleV1State: null,
     _mapBattleV1Moves: [],
     _mapBattleV1LifecycleGeneration: 0,
+    // Incident 002/003E: submitSRS's very first statement now calls this
+    // gate to choose the legacy vs. server-judged-practice transport. It is
+    // a real top-level function in index.html, not part of the extracted
+    // submitSRS source under test, so this sandbox must supply it directly
+    // rather than its five transitive globals. `false` is not a shortcut
+    // here -- it is what the real gate would itself compute for this exact
+    // scenario, since every one of its other conditions (no boss/guild/
+    // challenge/daily/premium/MapBattle mode active) already holds below,
+    // and this sandbox's own `SRS` stub (see below) has no `practiceAnswer`
+    // function either, which alone would make the real gate return false.
+    _incident002ServerPracticeFlow: () => false,
     _dailyLimitBlocksCurrentFlow: () => false,
     _reviewRequestInFlightKey: null,
     _activeBossZone: null,

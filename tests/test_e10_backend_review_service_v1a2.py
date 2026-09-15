@@ -24,6 +24,7 @@ Three tiers, matching the task's required evidence layers:
 
 from __future__ import annotations
 
+import sqlite3
 import subprocess
 import sys
 import types
@@ -837,3 +838,233 @@ def test_runtime_map_battle_progression_routes_through_handoff(app_module, monke
     assert calls[0]["internal"] is True
     assert calls[0]["submission_id"] == "settled-1"
     assert payload["status"] == "applied"
+
+
+# ---------------------------------------------------------------------------
+# Incident 002/003E addition -- real Flask test client + real disposable
+# SQLite database (nothing stubbed on the persistence path) proving the
+# server-judged practice-answer route's actual observable behavior: exactly
+# one review_log row and one srs_cards row per genuine answer event,
+# idempotent retries, legitimate repeat play, and forbidden-field rejection.
+#
+# This does not exercise _srs_review_operation (see
+# INCIDENT_003E_SINGLE_WRITER_CORRECTIVE_REPORT.md / BLOCKED_INCIDENT_003E
+# _CANONICAL_WRITER_CONTRACT: routing this route's persistence through that
+# operation's internal=True mode was attempted and reverted, because that
+# mode unconditionally requires and re-derives question_id/grade from an
+# actual, already-settled map_battle_submissions row -- a contract this
+# signed-attempt-token-based writer cannot satisfy without fabricating an
+# unrelated domain's ledger rows). This suite instead closes the coverage
+# gap flagged in the prior independent review: proving the route's actual
+# behavior end-to-end, which the previously-existing pure-unit tests in
+# tests/test_incident_002_practice_answer_authority.py did not do.
+# ---------------------------------------------------------------------------
+
+_PRACTICE_QUESTION = {
+    "id": 90701,
+    "content": "(;GM[1]SZ[5]PL[B];B[aa])",
+}
+
+
+class _PracticeDbContext:
+    def __init__(self, conn):
+        self.conn = conn
+
+    def __enter__(self):
+        return self.conn
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type:
+            self.conn.rollback()
+        else:
+            self.conn.commit()
+        return False
+
+
+@pytest.fixture()
+def practice_api_env(app_module, monkeypatch):
+    from migrations.review_log_submission_idempotency_v1 import (
+        upgrade as upgrade_review_log_submission_schema,
+    )
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.create_function("GREATEST", 2, max)
+    conn.execute(
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, elo_rating REAL NOT NULL DEFAULT 1400)"
+    )
+    conn.execute("INSERT INTO users(id) VALUES (9101)")
+    conn.execute(
+        """CREATE TABLE srs_cards (
+             user_id INTEGER NOT NULL,
+             question_id INTEGER NOT NULL,
+             ease_factor REAL NOT NULL DEFAULT 2.5,
+             interval INTEGER NOT NULL DEFAULT 0,
+             repetitions INTEGER NOT NULL DEFAULT 0,
+             due_date TEXT,
+             last_grade INTEGER,
+             updated_at TEXT,
+             progress_credited INTEGER NOT NULL DEFAULT 0,
+             PRIMARY KEY (user_id, question_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE review_log (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             user_id INTEGER NOT NULL,
+             question_id INTEGER NOT NULL,
+             grade INTEGER NOT NULL,
+             topic TEXT, level TEXT, difficulty TEXT,
+             reviewed_at TEXT NOT NULL,
+             response_ms INTEGER,
+             discipline TEXT,
+             player_rating_snapshot REAL,
+             question_rating_snapshot REAL,
+             item_rating_version TEXT,
+             question_version TEXT,
+             source_context TEXT,
+             source TEXT,
+             is_scaffolding INTEGER NOT NULL DEFAULT 0,
+             training_set_id INTEGER
+        )"""
+    )
+    upgrade_review_log_submission_schema(conn)
+
+    # This corrective's identity gate (_practice_identity_for_write) is a
+    # thin caller-side wrapper around the pre-existing, independently-tested
+    # BootstrapGatedIdentityReader; exercising its own cold/hot/ambiguous
+    # matrix is that reader's own test suite's job, not this one's. Pinning
+    # it to a fixed canonical UUID isolates this test to the route's own
+    # observable answer-event behavior.
+    monkeypatch.setattr(
+        app_module, "_practice_identity_for_write",
+        lambda conn, question_id: "practice-fixed-canonical-uuid",
+    )
+    monkeypatch.setattr(app_module, "get_db", lambda: _PracticeDbContext(conn))
+    monkeypatch.setattr(app_module, "_load_questions", lambda: [dict(_PRACTICE_QUESTION)])
+    monkeypatch.setattr(app_module, "is_premium", lambda *args, **kwargs: True)
+    app_module.app.config["TESTING"] = True
+    client = app_module.app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = 9101
+    try:
+        yield client, conn
+    finally:
+        conn.close()
+
+
+def _issue_practice_attempt(client):
+    response = client.post(
+        "/api/srs/practice/attempt",
+        json={"question_id": _PRACTICE_QUESTION["id"]},
+    )
+    assert response.status_code == 200, response.get_json()
+    return response.get_json()["attempt_token"]
+
+
+def test_practice_answer_persists_exactly_one_review_log_and_srs_card_row(practice_api_env):
+    client, conn = practice_api_env
+    token = _issue_practice_attempt(client)
+    response = client.post(
+        "/api/srs/practice/answer",
+        json={"attempt_token": token, "moves": [{"action": "play", "x": 0, "y": 0}]},
+    )
+    body = response.get_json()
+    assert response.status_code == 200, body
+    assert body["ok"] is True
+    assert body["duplicate"] is False
+    assert body["result"] == "CORRECT"
+    assert body["authoritative_grade"] == 5
+    assert body["srs"]["ease_factor"] > 0
+
+    review_rows = conn.execute(
+        "SELECT user_id, question_id, grade, source_context FROM review_log"
+    ).fetchall()
+    assert len(review_rows) == 1
+    assert review_rows[0]["user_id"] == 9101
+    assert review_rows[0]["question_id"] == _PRACTICE_QUESTION["id"]
+    assert review_rows[0]["grade"] == 5
+    assert review_rows[0]["source_context"].startswith("practice:v1:")
+
+    srs_rows = conn.execute("SELECT user_id, question_id FROM srs_cards").fetchall()
+    assert len(srs_rows) == 1
+    assert srs_rows[0]["user_id"] == 9101
+    assert srs_rows[0]["question_id"] == _PRACTICE_QUESTION["id"]
+
+
+def test_practice_answer_wrong_move_persists_incorrect_grade(practice_api_env):
+    client, conn = practice_api_env
+    token = _issue_practice_attempt(client)
+    response = client.post(
+        "/api/srs/practice/answer",
+        json={"attempt_token": token, "moves": [{"action": "play", "x": 4, "y": 4}]},
+    )
+    body = response.get_json()
+    assert response.status_code == 200, body
+    assert body["result"] == "INCORRECT"
+    assert body["authoritative_grade"] == 0
+    review_rows = conn.execute("SELECT grade FROM review_log").fetchall()
+    assert len(review_rows) == 1
+    assert review_rows[0]["grade"] == 0
+
+
+def test_practice_answer_retry_with_same_token_is_exactly_one_write(practice_api_env):
+    """DUPLICATE_POST_EXACTLY_ONCE=YES: replaying the identical attempt_token
+    returns the cached duplicate without a second review_log/srs_cards
+    write."""
+    client, conn = practice_api_env
+    token = _issue_practice_attempt(client)
+    first = client.post(
+        "/api/srs/practice/answer",
+        json={"attempt_token": token, "moves": [{"action": "play", "x": 0, "y": 0}]},
+    ).get_json()
+    assert first["duplicate"] is False
+    second = client.post(
+        "/api/srs/practice/answer",
+        json={"attempt_token": token, "moves": [{"action": "play", "x": 0, "y": 0}]},
+    ).get_json()
+    assert second["ok"] is True
+    assert second["duplicate"] is True
+    assert second["submission_id"] == first["submission_id"]
+    assert second["authoritative_grade"] == first["authoritative_grade"]
+    assert conn.execute("SELECT COUNT(*) AS n FROM review_log").fetchone()["n"] == 1
+    assert conn.execute("SELECT COUNT(*) AS n FROM srs_cards").fetchone()["n"] == 1
+
+
+def test_practice_answer_new_attempt_is_a_legitimate_new_play_not_a_duplicate(practice_api_env):
+    """LEGITIMATE_REPEAT_PLAY_PRESERVED=YES: a fresh /attempt call for the
+    identical question mints a new nonce, so replaying the question is a
+    second genuine review_log row, not a duplicate of the first."""
+    client, conn = practice_api_env
+    first_token = _issue_practice_attempt(client)
+    first = client.post(
+        "/api/srs/practice/answer",
+        json={"attempt_token": first_token, "moves": [{"action": "play", "x": 0, "y": 0}]},
+    ).get_json()
+    assert first["duplicate"] is False
+
+    second_token = _issue_practice_attempt(client)
+    assert second_token != first_token
+    second = client.post(
+        "/api/srs/practice/answer",
+        json={"attempt_token": second_token, "moves": [{"action": "play", "x": 0, "y": 0}]},
+    ).get_json()
+    assert second["duplicate"] is False
+    assert second["submission_id"] != first["submission_id"]
+    assert conn.execute("SELECT COUNT(*) AS n FROM review_log").fetchone()["n"] == 2
+
+
+def test_practice_answer_forbidden_field_rejected_before_any_write(practice_api_env):
+    client, conn = practice_api_env
+    token = _issue_practice_attempt(client)
+    response = client.post(
+        "/api/srs/practice/answer",
+        json={
+            "attempt_token": token,
+            "moves": [{"action": "play", "x": 0, "y": 0}],
+            "grade": 5,
+        },
+    )
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "forbidden_answer_field"
+    assert conn.execute("SELECT COUNT(*) AS n FROM review_log").fetchone()["n"] == 0

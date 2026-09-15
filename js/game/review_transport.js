@@ -254,6 +254,89 @@
         return mapOutcome(payload);
     }
 
+    async function practiceAttempt(questionId, fetchImpl) {
+        const requester = typeof fetchImpl === 'function'
+            ? fetchImpl
+            : (typeof fetch === 'function' ? fetch : null);
+        if (!requester) {
+            throw new ReviewTransportError('review_transport_error', 'fetch_unavailable');
+        }
+        let response;
+        try {
+            response = await requester('/api/srs/practice/attempt', {
+                credentials: 'include',
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question_id: questionId }),
+            });
+        } catch (cause) {
+            throw new ReviewTransportError('review_transport_error', 'review_transport_error', cause);
+        }
+        let payload;
+        try {
+            payload = await response.json();
+        } catch (cause) {
+            throw new ReviewTransportError('review_response_parse_error', 'review_response_parse_error', cause);
+        }
+        if (!response.ok) {
+            if (isObjectPayload(payload) && typeof payload.error === 'string' && payload.error) {
+                throw new ReviewRejected(payload, response.status);
+            }
+            throw new ReviewTransportError('review_http_error', 'review_http_error');
+        }
+        if (!isObjectPayload(payload) || payload.ok !== true
+            || typeof payload.attempt_token !== 'string' || !payload.attempt_token) {
+            throw invalidResponse();
+        }
+        return snapshot(payload);
+    }
+
+    async function practiceAnswer(attemptToken, moves, responseMs, fetchImpl) {
+        const requester = typeof fetchImpl === 'function'
+            ? fetchImpl
+            : (typeof fetch === 'function' ? fetch : null);
+        if (!requester) {
+            throw new ReviewTransportError('review_transport_error', 'fetch_unavailable');
+        }
+        // This allowlist is intentional: grade/trust/source fields are not
+        // transport inputs for the server-judged practice contract.
+        const request = {
+            attempt_token: attemptToken,
+            moves: Array.isArray(moves) ? moves : [],
+            response_ms: responseMs == null ? null : responseMs,
+        };
+        let response;
+        try {
+            response = await requester('/api/srs/practice/answer', {
+                credentials: 'include',
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(request),
+            });
+        } catch (cause) {
+            throw new ReviewTransportError('review_transport_error', 'review_transport_error', cause);
+        }
+        let payload;
+        try {
+            payload = await response.json();
+        } catch (cause) {
+            throw new ReviewTransportError('review_response_parse_error', 'review_response_parse_error', cause);
+        }
+        if (!response.ok) {
+            if (isObjectPayload(payload) && typeof payload.error === 'string' && payload.error) {
+                throw new ReviewRejected(payload, response.status);
+            }
+            throw new ReviewTransportError('review_http_error', 'review_http_error');
+        }
+        if (!isObjectPayload(payload) || payload.ok !== true
+            || typeof payload.submission_id !== 'string'
+            || !Number.isInteger(Number(payload.authoritative_grade))
+            || !['CORRECT', 'INCORRECT'].includes(payload.result)) {
+            throw invalidResponse();
+        }
+        return snapshot(payload);
+    }
+
     // Server-owned rejection states: the request reached the server, the server
     // made a decision, and it reported a specific reason. These are handed back
     // to the caller as a payload so it can say what actually happened.
@@ -318,6 +401,8 @@
         buildRequest,
         mapOutcome,
         review,
+        practiceAttempt,
+        practiceAnswer,
         legacyReview
     };
 }(typeof window !== 'undefined' ? window : globalThis));

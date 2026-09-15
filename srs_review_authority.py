@@ -26,6 +26,13 @@ AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES: Final[tuple[str, ...]] = (
     "daily_d5b:v1:",
 )
 AUTHORITATIVE_REVIEW_SOURCE_PREFIXES: Final[tuple[str, ...]] = ("rt:",)
+# Additive Incident 002 namespace.  Keep the historical tuple above stable;
+# callers that mean "any server-trusted review" use this explicit union.
+PRACTICE_TRUSTED_SOURCE_CONTEXT_PREFIX: Final[str] = "practice:v1:"
+SERVER_TRUSTED_REVIEW_SOURCE_CONTEXT_PREFIXES: Final[tuple[str, ...]] = (
+    *AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES,
+    PRACTICE_TRUSTED_SOURCE_CONTEXT_PREFIX,
+)
 
 
 class PublicSrsReviewAuthorityError(ValueError):
@@ -71,7 +78,7 @@ def is_authoritative_review_source_context(value: Any) -> bool:
 
     return (
         isinstance(value, str)
-        and value.startswith(AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES)
+        and value.startswith(SERVER_TRUSTED_REVIEW_SOURCE_CONTEXT_PREFIXES)
     )
 
 
@@ -90,6 +97,8 @@ __all__ = [
     "AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIX",
     "AUTHORITATIVE_REVIEW_SOURCE_CONTEXT_PREFIXES",
     "AUTHORITATIVE_REVIEW_SOURCE_PREFIXES",
+    "PRACTICE_TRUSTED_SOURCE_CONTEXT_PREFIX",
+    "SERVER_TRUSTED_REVIEW_SOURCE_CONTEXT_PREFIXES",
     "PublicSrsReviewAuthority",
     "PublicSrsReviewAuthorityError",
     "is_authoritative_review_source_context",
