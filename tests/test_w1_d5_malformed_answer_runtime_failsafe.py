@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import pathlib
+import re
 import sys
 import types
 
@@ -335,7 +336,22 @@ def test_review_operation_judges_before_the_first_durable_review_write():
 def test_failed_answer_has_no_fake_progress_or_success_contract():
     index_source = (ROOT / "index.html").read_text(encoding="utf-8")
     srs_source = (ROOT / "srs.js").read_text(encoding="utf-8")
-    review_position = index_source.index("data = await SRS.review")
+    # Incident 002/003G: the review commit assignment legitimately gained a
+    # practice-vs-legacy ternary (``data = incident002Practice ? await
+    # SRS.practiceAnswer(...) : await SRS.review(...)``), so the literal
+    # ``data = await SRS.review`` no longer appears contiguously. A regex
+    # tolerant of that intervening conditional still anchors on the same
+    # assignment -- the region boundary this test actually cares about --
+    # without depending on the exact prior formatting. This is the same
+    # already-reviewed anchor 003E applied to the sibling occurrence in
+    # tests/test_e10_review_transport_v1b.py; every assertion below is
+    # unchanged.
+    review_match = re.search(
+        r"data\s*=\s*(?:incident002Practice\s*\?[\s\S]*?:\s*)?await SRS\.review\(",
+        index_source,
+    )
+    assert review_match, "the legacy SRS.review(...) commit assignment is missing"
+    review_position = review_match.start()
     rejection_position = index_source.index("if(!data.ok)", review_position)
     commit_position = index_source.index("_e10AcceptanceTrace('REVIEW_COMMITTED'", review_position)
 
