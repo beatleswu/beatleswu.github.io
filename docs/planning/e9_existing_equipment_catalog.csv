@@ -1,0 +1,283 @@
+﻿item_id,display_name,category,slot,rarity,asset_path,ownership_source,unlock_condition,premium_only,stat_effect,rendered_now,legacy_only,asset_exists,catalog_referenced,duplicate,orphaned,recommended_e9_action,source_catalog
+robe_plain,素布道袍,Outfit,outfit,common,emoji(no file),monster drop (any),defeat any monster,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_student,學子短衫,Outfit,outfit,common,emoji(no file),drop,answer 50 questions,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_bamboo,竹林道袍,Outfit,outfit,uncommon,emoji(no file),drop,hint text says streak; actual grant is drop,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_crane,仙鶴袍,Outfit,outfit,uncommon,emoji(no file),drop (wolf/fox),drop,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_fox,妖狐錦袍,Outfit,outfit,rare,emoji(no file),drop (fox),rare drop,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_snow,雪地羽絨袍,Outfit,outfit,rare,emoji(no file),daily streak,14-day daily streak,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_dragon,龍紋袍,Outfit,outfit,epic,emoji(no file),drop (golem/dragon),drop,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_celestial,天命玄袍,Outfit,outfit,legendary,emoji(no file),drop (dragon),rare drop,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_rank_1d,初段御衣,Outfit,outfit,rare,emoji(no file),rank unlock,go_rank 1d,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_rank_3d,三段戰袍,Outfit,outfit,epic,emoji(no file),rank unlock,go_rank 3d,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_rank_5d,五段仙袍,Outfit,outfit,legendary,emoji(no file),rank unlock,go_rank 5d,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+robe_premium,至尊御袍,Outfit,outfit,legendary,emoji(no file),premium subscription (auto-equip),subscribe,True,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_cloth,布巾,Head,hat,common,emoji(no file),drop (any),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_bamboo,竹笠,Head,hat,common,emoji(no file),drop (goblin/wolf),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_student,學子書帶,Head,hat,common,emoji(no file),drop,answer 100 questions (drop-tagged),False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_feather,白鷺羽冠,Head,hat,uncommon,emoji(no file),drop (wolf/fox),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_scholar,儒士方巾,Head,hat,uncommon,emoji(no file),daily streak,daily_streak 5,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_foxmask,狐面,Head,hat,rare,emoji(no file),drop (fox),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_onihorns,鬼角盔,Head,hat,rare,emoji(no file),drop (golem),hint says win streak 10,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_dragon_horn,龍角冠,Head,hat,epic,emoji(no file),drop (dragon),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_celestial_crown,天龍金冠,Head,hat,legendary,emoji(no file),drop (dragon),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+hat_premium,鑽石冠冕,Head,hat,legendary,emoji(no file),premium subscription (auto-equip),subscribe,True,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+back_pack,棋具布包,Back,back,common,emoji(no file),drop (any),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+back_flag,出陣小旗,Back,back,common,emoji(no file),drop (goblin/wolf),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+back_lantern,紅燈籠,Back,back,uncommon,emoji(no file),daily streak 7,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+back_wings,白羽翼,Back,back,uncommon,emoji(no file),drop (wolf/fox),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+back_scroll,古典棋譜,Back,back,rare,emoji(no file),daily streak 10,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+back_foxtail,九尾狐尾,Back,back,rare,emoji(no file),drop (fox),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+back_cloak,星紋斗篷,Back,back,epic,emoji(no file),drop (golem/dragon),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+back_dragon_wings,龍翼,Back,back,legendary,emoji(no file),drop (dragon),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+acc_bracelet,棋緣手串,Accessory,accessory,common,emoji(no file),drop (turtle/rabbit),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+acc_fan,折扇,Accessory,accessory,uncommon,emoji(no file),drop (wolf/fox),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+acc_goboard_bag,棋袋,Accessory,accessory,common,emoji(no file),drop,answer 30 questions (drop-tagged),False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+acc_jade_ring,翡翠扳指,Accessory,accessory,rare,emoji(no file),"drop (turtle/rabbit, rare)",,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+acc_goban_seal,棋院印章,Accessory,accessory,rare,emoji(no file),daily streak 21,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+acc_dragon_pendant,龍形玉佩,Accessory,accessory,epic,emoji(no file),drop (dragon),,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+acc_golden_bell,金鈴鐺,Accessory,accessory,legendary,emoji(no file),daily_streak 30 field,hint text mismatch vs grant mechanism - verify before reuse,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+acc_premium,黃金棋墜,Accessory,accessory,legendary,emoji(no file),premium subscription (auto-equip),subscribe,True,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+pet_cat,棋院貓,Pet,pet,common,emoji(no file),drop (caterpillar/bee/turtle/rabbit),,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+pet_turtle,石龜,Pet,pet,uncommon,emoji(no file),drop (turtle),,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+pet_rabbit,白兔,Pet,pet,uncommon,emoji(no file),drop (rabbit),,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+pet_fox,幻狐,Pet,pet,rare,emoji(no file),drop (fox),,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+pet_wolf,孤狼,Pet,pet,rare,emoji(no file),drop (wolf),,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+pet_dragon,迷你龍,Pet,pet,legendary,emoji(no file),drop (dragon),,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+pet_premium,麒麟寵物,Pet,pet,legendary,emoji(no file),premium subscription (auto-equip),subscribe,True,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+aura_green,碧玉光環,Aura,aura,uncommon,emoji(no file),daily streak 14,,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+aura_blue,藍晶光環,Aura,aura,rare,emoji(no file),drop (wolf/fox),hint says 30 PvP wins; actual grant is drop,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+aura_flame,熾焰光環,Aura,aura,epic,emoji(no file),drop (golem/dragon),,False,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+aura_moon,月光光環,Aura,aura,epic,emoji(no file),"BROKEN - tagged rank 2d, RANK_APPEARANCE_UNLOCKS has no 2d key","go_rank 2d (declared, never granted)",False,True,True,False,N/A(emoji),True,False,False,NEEDS ADAPTER,APPEARANCE_DEFS
+aura_celestial,天命星輝,Aura,aura,legendary,emoji(no file),"BROKEN - tagged rank 5d, not in RANK_APPEARANCE_UNLOCKS[5d] grant list","go_rank 5d (declared, never granted)",False,True,True,False,N/A(emoji),True,False,False,NEEDS ADAPTER,APPEARANCE_DEFS
+aura_premium,尊爵光環,Aura,aura,legendary,emoji(no file),premium subscription (auto-equip),subscribe,True,True,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_beginner,學棋人,Title,title,common,emoji(no file),TITLE_ACHIEVEMENTS,total_correct>=1,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_scholar,棋典學者,Title,title,uncommon,emoji(no file),TITLE_ACHIEVEMENTS,mistake_corrected>=50,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_wanderer,棋海漫遊,Title,title,rare,emoji(no file),TITLE_ACHIEVEMENTS,units_done>=5,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_streak,不敗傳說,Title,title,rare,emoji(no file),TITLE_ACHIEVEMENTS,max_streak>=15,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_foxwit,狡狐之智,Title,title,rare,emoji(no file),TITLE_ACHIEVEMENTS,challenge_wins>=25,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_master,千題宗師,Title,title,epic,emoji(no file),TITLE_ACHIEVEMENTS,total_correct>=1000,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_dragonslayer,龍殺者,Title,title,epic,emoji(no file),TITLE_ACHIEVEMENTS,dragon_kills>=100,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_godshand,神之一手,Title,title,epic,emoji(no file),TITLE_ACHIEVEMENTS,total_answered>=300 and precision>=90,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_celestial,天命棋士,Title,title,legendary,emoji(no file),"TITLE_ACHIEVEMENTS + RANK_APPEARANCE_UNLOCKS[5d] (dup grant path, harmless)",strength>=5d,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_eternity,永恆之局,Title,title,legendary,emoji(no file),TITLE_ACHIEVEMENTS,total_correct>=5000 (hint text wrongly says rank 9d),False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+title_newbie_voyage,棋海初航,Title,title,common,emoji(no file),tutorial Stage 3 completion (grant path not confirmed),,False,False,True,False,N/A(emoji),True,False,False,NEEDS ADAPTER,APPEARANCE_DEFS
+title_claire_recruit,克萊兒認證新兵,Title,title,uncommon,emoji(no file),tutorial 7-stage completion (grant path not confirmed),,False,False,True,False,N/A(emoji),True,False,False,NEEDS ADAPTER,APPEARANCE_DEFS
+title_premium,尊爵棋士,Title,title,legendary,emoji(no file),premium subscription (auto-equip),subscribe,True,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,APPEARANCE_DEFS
+newbie_first_bounty,newbie_quest,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=newbie_quest,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_3,streak,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_5,streak,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_7,streak,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_10,streak,Badge,badge,silver,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_15,streak,Badge,badge,silver,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_20,streak,Badge,badge,silver,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_30,streak,Badge,badge,gold,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_50,streak,Badge,badge,gold,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_75,streak,Badge,badge,gold,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+streak_100,streak,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+best_5,max_streak,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=max_streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+best_10,max_streak,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=max_streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+best_20,max_streak,Badge,badge,silver,emoji(no file),BADGE_DEFS type=max_streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+best_30,max_streak,Badge,badge,silver,emoji(no file),BADGE_DEFS type=max_streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+best_50,max_streak,Badge,badge,gold,emoji(no file),BADGE_DEFS type=max_streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+best_100,max_streak,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=max_streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_10,total_correct,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_25,total_correct,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_50,total_correct,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_100,total_correct,Badge,badge,silver,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_200,total_correct,Badge,badge,silver,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_300,total_correct,Badge,badge,silver,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_500,total_correct,Badge,badge,gold,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_750,total_correct,Badge,badge,gold,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_1000,total_correct,Badge,badge,gold,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_1500,total_correct,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_2000,total_correct,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_3000,total_correct,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+total_5000,total_correct,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=total_correct,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+combo_3,combo,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=combo,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+combo_5,combo,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=combo,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+combo_10,combo,Badge,badge,silver,emoji(no file),BADGE_DEFS type=combo,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+combo_15,combo,Badge,badge,silver,emoji(no file),BADGE_DEFS type=combo,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+combo_20,combo,Badge,badge,gold,emoji(no file),BADGE_DEFS type=combo,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+combo_30,combo,Badge,badge,gold,emoji(no file),BADGE_DEFS type=combo,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+combo_50,combo,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=combo,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+mistake_1,mistake_corrected,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=mistake_corrected,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+mistake_5,mistake_corrected,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=mistake_corrected,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+mistake_master,mistake_corrected,Badge,badge,silver,emoji(no file),BADGE_DEFS type=mistake_corrected,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+mistake_20,mistake_corrected,Badge,badge,silver,emoji(no file),BADGE_DEFS type=mistake_corrected,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+mistake_30,mistake_corrected,Badge,badge,gold,emoji(no file),BADGE_DEFS type=mistake_corrected,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+mistake_50,mistake_corrected,Badge,badge,gold,emoji(no file),BADGE_DEFS type=mistake_corrected,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+mistake_100,mistake_corrected,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=mistake_corrected,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_first,daily_challenge,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_ace,daily_challenge,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_3,daily_challenge,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_7,daily_challenge,Badge,badge,silver,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_14,daily_challenge,Badge,badge,silver,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_30,daily_challenge,Badge,badge,gold,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_60,daily_challenge,Badge,badge,gold,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_100,daily_challenge,Badge,badge,gold,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_200,daily_challenge,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+daily_365,daily_challenge,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=daily_challenge,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_19k,rank,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_18k,rank,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_17k,rank,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_15k,rank,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_13k,rank,Badge,badge,silver,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_10k,rank,Badge,badge,silver,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_8k,rank,Badge,badge,silver,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_5k,rank,Badge,badge,gold,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_3k,rank,Badge,badge,gold,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_1k,rank,Badge,badge,gold,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_1d,rank,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_2d,rank,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+rank_3d,rank,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=rank,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+xp_100,xp,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=xp,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+xp_250,xp,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=xp,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+xp_500,xp,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=xp,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+xp_1000,xp,Badge,badge,silver,emoji(no file),BADGE_DEFS type=xp,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+xp_2500,xp,Badge,badge,silver,emoji(no file),BADGE_DEFS type=xp,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+xp_5000,xp,Badge,badge,gold,emoji(no file),BADGE_DEFS type=xp,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+xp_10000,xp,Badge,badge,gold,emoji(no file),BADGE_DEFS type=xp,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+xp_25000,xp,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=xp,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+challenge_win_1,challenge_win,Badge,badge,bronze,emoji(no file),BADGE_DEFS type=challenge_win,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+challenge_win_3,challenge_win,Badge,badge,silver,emoji(no file),BADGE_DEFS type=challenge_win,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+challenge_win_10,challenge_win,Badge,badge,gold,emoji(no file),BADGE_DEFS type=challenge_win,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+challenge_win_30,challenge_win,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=challenge_win,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+challenge_streak_3,challenge_win_streak,Badge,badge,silver,emoji(no file),BADGE_DEFS type=challenge_win_streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+challenge_streak_5,challenge_win_streak,Badge,badge,gold,emoji(no file),BADGE_DEFS type=challenge_win_streak,,False,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+premium_member,premium,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=premium,,True,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+premium_founder,premium,Badge,badge,legendary,emoji(no file),BADGE_DEFS type=premium,,True,False,True,False,N/A(emoji),True,False,False,REUSE AS-IS,BADGE_DEFS
+badge_lb_weekly_1,community_leaderboard,Badge,badge,gold,emoji(no file),BADGE_DEFS type=community_leaderboard,"comment: Phase 3B, not yet actually granted - treat as ungranted",False,False,True,False,N/A(emoji),True,False,True,NEEDS ADAPTER,BADGE_DEFS
+character_apprentice,apprentice,Character,character,n/a,/assets/hero/characters/chibi_apprentice_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_apprentice_girl,apprentice_girl,Character,character,n/a,/assets/hero/characters/chibi_apprentice_girl_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_swordsman,swordsman,Character,character,n/a,/assets/hero/characters/chibi_swordsman_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_rogue,rogue,Character,character,n/a,/assets/hero/characters/chibi_rogue_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_ranger,ranger,Character,character,n/a,/assets/hero/characters/chibi_ranger_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_berserker,berserker,Character,character,n/a,/assets/hero/characters/chibi_berserker_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_guardian,guardian,Character,character,n/a,/assets/hero/characters/chibi_guardian_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_paladin,paladin,Character,character,n/a,/assets/hero/characters/chibi_paladin_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_mage,mage,Character,character,n/a,/assets/hero/characters/chibi_mage_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+character_sage,sage,Character,character,n/a,/assets/hero/characters/chibi_sage_normalized.webp,gear-tier / cosmetic unlock progression,rank_tier + total_correct gate (see COMBAT_GEAR unlock),True,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_default,armor_cloth,Armor,armor,common,"n/a (default, no asset)",default equipped,none,False,False,True,False,N/A(default),True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t1,armor tier 1,Armor,armor,tiered,/assets/hero/gear_v2/armor_t1.webp,rank_tier + total_correct gate,rank_tier>=1 and total_correct>=0,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t2,armor tier 2,Armor,armor,tiered,/assets/hero/gear_v2/armor_t2.webp,rank_tier + total_correct gate,rank_tier>=2 and total_correct>=200,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t3,armor tier 3,Armor,armor,tiered,/assets/hero/gear_v2/armor_t3.webp,rank_tier + total_correct gate,rank_tier>=3 and total_correct>=500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t4,armor tier 4,Armor,armor,tiered,/assets/hero/gear_v2/armor_t4.webp,rank_tier + total_correct gate,rank_tier>=4 and total_correct>=1000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t5,armor tier 5,Armor,armor,tiered,/assets/hero/gear_v2/armor_t5.webp,rank_tier + total_correct gate,rank_tier>=5 and total_correct>=2000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t6,armor tier 6,Armor,armor,tiered,/assets/hero/gear_v2/armor_t6.webp,rank_tier + total_correct gate,rank_tier>=6 and total_correct>=3500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t7,armor tier 7,Armor,armor,tiered,/assets/hero/gear_v2/armor_t7.webp,rank_tier + total_correct gate,rank_tier>=7 and total_correct>=5000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t8,armor tier 8,Armor,armor,tiered,/assets/hero/gear_v2/armor_t8.webp,rank_tier + total_correct gate,rank_tier>=8 and total_correct>=7000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t9,armor tier 9,Armor,armor,tiered,/assets/hero/gear_v2/armor_t9.webp,rank_tier + total_correct gate,rank_tier>=9 and total_correct>=10000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+armor_t10,armor tier 10,Armor,armor,tiered,/assets/hero/gear_v2/armor_t10.webp,rank_tier + total_correct gate,rank_tier>=10 and total_correct>=15000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_default,cape_none,Cape,cape,common,"n/a (default, no asset)",default equipped,none,False,False,True,False,N/A(default),True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t1,cape tier 1,Cape,cape,tiered,/assets/hero/gear_v2/cape_t1.webp,rank_tier + total_correct gate,rank_tier>=1 and total_correct>=0,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t2,cape tier 2,Cape,cape,tiered,/assets/hero/gear_v2/cape_t2.webp,rank_tier + total_correct gate,rank_tier>=2 and total_correct>=200,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t3,cape tier 3,Cape,cape,tiered,/assets/hero/gear_v2/cape_t3.webp,rank_tier + total_correct gate,rank_tier>=3 and total_correct>=500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t4,cape tier 4,Cape,cape,tiered,/assets/hero/gear_v2/cape_t4.webp,rank_tier + total_correct gate,rank_tier>=4 and total_correct>=1000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t5,cape tier 5,Cape,cape,tiered,/assets/hero/gear_v2/cape_t5.webp,rank_tier + total_correct gate,rank_tier>=5 and total_correct>=2000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t6,cape tier 6,Cape,cape,tiered,/assets/hero/gear_v2/cape_t6.webp,rank_tier + total_correct gate,rank_tier>=6 and total_correct>=3500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t7,cape tier 7,Cape,cape,tiered,/assets/hero/gear_v2/cape_t7.webp,rank_tier + total_correct gate,rank_tier>=7 and total_correct>=5000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t8,cape tier 8,Cape,cape,tiered,/assets/hero/gear_v2/cape_t8.webp,rank_tier + total_correct gate,rank_tier>=8 and total_correct>=7000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t9,cape tier 9,Cape,cape,tiered,/assets/hero/gear_v2/cape_t9.webp,rank_tier + total_correct gate,rank_tier>=9 and total_correct>=10000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+cape_t10,cape tier 10,Cape,cape,tiered,/assets/hero/gear_v2/cape_t10.webp,rank_tier + total_correct gate,rank_tier>=10 and total_correct>=15000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_default,weapon_none,Weapon,weapon,common,"n/a (default, no asset)",default equipped,none,False,False,True,False,N/A(default),True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t1,weapon tier 1,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t1.webp,rank_tier + total_correct gate,rank_tier>=1 and total_correct>=0,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t2,weapon tier 2,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t2.webp,rank_tier + total_correct gate,rank_tier>=2 and total_correct>=200,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t3,weapon tier 3,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t3.webp,rank_tier + total_correct gate,rank_tier>=3 and total_correct>=500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t4,weapon tier 4,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t4.webp,rank_tier + total_correct gate,rank_tier>=4 and total_correct>=1000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t5,weapon tier 5,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t5.webp,rank_tier + total_correct gate,rank_tier>=5 and total_correct>=2000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t6,weapon tier 6,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t6.webp,rank_tier + total_correct gate,rank_tier>=6 and total_correct>=3500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t7,weapon tier 7,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t7.webp,rank_tier + total_correct gate,rank_tier>=7 and total_correct>=5000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t8,weapon tier 8,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t8.webp,rank_tier + total_correct gate,rank_tier>=8 and total_correct>=7000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t9,weapon tier 9,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t9.webp,rank_tier + total_correct gate,rank_tier>=9 and total_correct>=10000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+weapon_t10,weapon tier 10,Weapon,weapon,tiered,/assets/hero/gear_v2/weapon_t10.webp,rank_tier + total_correct gate,rank_tier>=10 and total_correct>=15000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_default,offhand_none,Offhand,offhand,common,"n/a (default, no asset)",default equipped,none,False,False,True,False,N/A(default),True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t1,offhand tier 1,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t1.webp,rank_tier + total_correct gate,rank_tier>=1 and total_correct>=0,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t2,offhand tier 2,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t2.webp,rank_tier + total_correct gate,rank_tier>=2 and total_correct>=200,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t3,offhand tier 3,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t3.webp,rank_tier + total_correct gate,rank_tier>=3 and total_correct>=500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t4,offhand tier 4,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t4.webp,rank_tier + total_correct gate,rank_tier>=4 and total_correct>=1000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t5,offhand tier 5,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t5.webp,rank_tier + total_correct gate,rank_tier>=5 and total_correct>=2000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t6,offhand tier 6,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t6.webp,rank_tier + total_correct gate,rank_tier>=6 and total_correct>=3500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t7,offhand tier 7,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t7.webp,rank_tier + total_correct gate,rank_tier>=7 and total_correct>=5000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t8,offhand tier 8,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t8.webp,rank_tier + total_correct gate,rank_tier>=8 and total_correct>=7000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t9,offhand tier 9,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t9.webp,rank_tier + total_correct gate,rank_tier>=9 and total_correct>=10000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+offhand_t10,offhand tier 10,Offhand,offhand,tiered,/assets/hero/gear_v2/offhand_t10.webp,rank_tier + total_correct gate,rank_tier>=10 and total_correct>=15000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+hat_default,hat_none,Hat,hat,common,"n/a (default, no asset)",default equipped,none,False,False,True,False,N/A(default),True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+hat_t1,hat tier 1,Hat,hat,tiered,/assets/hero/gear_v2/hat_t1.webp,rank_tier + total_correct gate,rank_tier>=1 and total_correct>=0,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+hat_t2,hat tier 2,Hat,hat,tiered,/assets/hero/gear_v2/hat_t2.webp,rank_tier + total_correct gate,rank_tier>=2 and total_correct>=200,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+hat_t3,hat tier 3,Hat,hat,tiered,/assets/hero/gear_v2/hat_t3.webp,rank_tier + total_correct gate,rank_tier>=3 and total_correct>=500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+hat_t4,hat tier 4,Hat,hat,tiered,/assets/hero/gear_v2/hat_t4.webp,rank_tier + total_correct gate,rank_tier>=4 and total_correct>=1000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+hat_t5,hat tier 5,Hat,hat,tiered,/assets/hero/gear_v2/hat_t5.webp,rank_tier + total_correct gate,rank_tier>=5 and total_correct>=2000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+hat_t6,hat tier 6,Hat,hat,tiered,/assets/hero/gear_v2/hat_t6.webp,rank_tier + total_correct gate,rank_tier>=6 and total_correct>=3500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+hat_t7,hat tier 7,Hat,hat,tiered,/assets/hero/gear_v2/hat_t7.webp,rank_tier + total_correct gate,rank_tier>=7 and total_correct>=5000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+aura_default,aura_none,Aura,aura,common,"n/a (default, no asset)",default equipped,none,False,False,True,False,N/A(default),True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+aura_t1,aura tier 1,Aura,aura,tiered,/assets/hero/gear_v2/aura_t1.webp,rank_tier + total_correct gate,rank_tier>=1 and total_correct>=0,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+aura_t2,aura tier 2,Aura,aura,tiered,/assets/hero/gear_v2/aura_t2.webp,rank_tier + total_correct gate,rank_tier>=2 and total_correct>=200,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+aura_t3,aura tier 3,Aura,aura,tiered,/assets/hero/gear_v2/aura_t3.webp,rank_tier + total_correct gate,rank_tier>=3 and total_correct>=500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+aura_t4,aura tier 4,Aura,aura,tiered,/assets/hero/gear_v2/aura_t4.webp,rank_tier + total_correct gate,rank_tier>=4 and total_correct>=1000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+aura_t5,aura tier 5,Aura,aura,tiered,/assets/hero/gear_v2/aura_t5.webp,rank_tier + total_correct gate,rank_tier>=5 and total_correct>=2000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+aura_t6,aura tier 6,Aura,aura,tiered,/assets/hero/gear_v2/aura_t6.webp,rank_tier + total_correct gate,rank_tier>=6 and total_correct>=3500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+aura_t7,aura tier 7,Aura,aura,tiered,/assets/hero/gear_v2/aura_t7.webp,rank_tier + total_correct gate,rank_tier>=7 and total_correct>=5000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+acc_default,acc_none,Acc,acc,common,"n/a (default, no asset)",default equipped,none,False,False,True,False,N/A(default),True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+acc_t1,acc tier 1,Acc,acc,tiered,/assets/hero/gear_v2/acc_t1.webp,rank_tier + total_correct gate,rank_tier>=1 and total_correct>=0,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+acc_t2,acc tier 2,Acc,acc,tiered,/assets/hero/gear_v2/acc_t2.webp,rank_tier + total_correct gate,rank_tier>=2 and total_correct>=200,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+acc_t3,acc tier 3,Acc,acc,tiered,/assets/hero/gear_v2/acc_t3.webp,rank_tier + total_correct gate,rank_tier>=3 and total_correct>=500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+acc_t4,acc tier 4,Acc,acc,tiered,/assets/hero/gear_v2/acc_t4.webp,rank_tier + total_correct gate,rank_tier>=4 and total_correct>=1000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+acc_t5,acc tier 5,Acc,acc,tiered,/assets/hero/gear_v2/acc_t5.webp,rank_tier + total_correct gate,rank_tier>=5 and total_correct>=2000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+acc_t6,acc tier 6,Acc,acc,tiered,/assets/hero/gear_v2/acc_t6.webp,rank_tier + total_correct gate,rank_tier>=6 and total_correct>=3500,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+acc_t7,acc tier 7,Acc,acc,tiered,/assets/hero/gear_v2/acc_t7.webp,rank_tier + total_correct gate,rank_tier>=7 and total_correct>=5000,False,True,True,False,False,True,False,False,"REUSE DATA, REDRAW ART",COMBAT_GEAR
+stone_classic,classic,Other(Stone Skin),stone,common,CSS color skin (no file),STONE_SKINS unlock table,default,False,False,True,False,N/A(css),True,False,False,REUSE AS-IS,STONE_SKINS
+stone_jade,jade,Other(Stone Skin),stone,uncommon,CSS color skin (no file),STONE_SKINS unlock table,units_done>=5,False,False,True,False,N/A(css),True,False,False,REUSE AS-IS,STONE_SKINS
+stone_marble,marble,Other(Stone Skin),stone,rare,CSS color skin (no file),STONE_SKINS unlock table,total_correct>=3000,False,False,True,False,N/A(css),True,False,False,REUSE AS-IS,STONE_SKINS
+stone_cosmic,cosmic,Other(Stone Skin),stone,epic,CSS color skin (no file),STONE_SKINS unlock table,strength>=3k,False,False,True,False,N/A(css),True,False,False,REUSE AS-IS,STONE_SKINS
+stone_radiant,radiant,Other(Stone Skin),stone,legendary,CSS color skin (no file),STONE_SKINS unlock table,premium subscription,True,False,True,False,N/A(css),True,False,False,REUSE AS-IS,STONE_SKINS
+board_classic,classic,Other(Board Skin),board,common,CSS color skin (no file),BOARD_SKINS unlock table,default,False,False,True,False,N/A(css),True,True,False,REUSE AS-IS,BOARD_SKINS
+board_jade,jade,Other(Board Skin),board,uncommon,CSS color skin (no file),BOARD_SKINS unlock table,total_correct>=2000,False,False,True,False,N/A(css),True,True,False,REUSE AS-IS,BOARD_SKINS
+board_marble,marble,Other(Board Skin),board,rare,CSS color skin (no file),BOARD_SKINS unlock table,challenge_wins>=50,False,False,True,False,N/A(css),True,True,False,REUSE AS-IS,BOARD_SKINS
+board_cosmic,cosmic,Other(Board Skin),board,epic,CSS color skin (no file),BOARD_SKINS unlock table,strength>=5k,False,False,True,False,N/A(css),True,True,False,REUSE AS-IS,BOARD_SKINS
+board_radiant,radiant,Other(Board Skin),board,legendary,CSS color skin (no file),BOARD_SKINS unlock table,premium subscription,True,False,True,False,N/A(css),True,True,False,REUSE AS-IS,BOARD_SKINS
+wooden_sword,wooden_sword,Weapon,weapon,common,n/a (no UI asset path used),drop (goblin),dmg_bonus 0.05,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+iron_sword,iron_sword,Weapon,weapon,common,n/a (no UI asset path used),drop (goblin/fox),dmg_bonus 0.12,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+fox_fang,fox_fang,Weapon,weapon,rare,n/a (no UI asset path used),drop (fox),dmg_bonus 0.20 + fox_dmg_bonus 0.15,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+dragon_claw,dragon_claw,Weapon,weapon,epic,n/a (no UI asset path used),drop (dragon),dmg_bonus 0.35 + dragon_dmg_bonus 0.20,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+celestial_blade,celestial_blade,Weapon,weapon,legendary,n/a (no UI asset path used),drop (dragon),dmg_bonus 0.60 + combo_multiplier_double,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+cloth_robe,cloth_robe,Outfit(combat armor),armor,common,n/a (no UI asset path used),drop (goblin),player_dmg_reduce 0.08,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+leather_armor,leather_armor,Outfit(combat armor),armor,common,n/a (no UI asset path used),drop (goblin/fox),player_dmg_reduce 0.15,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+fox_pelt,fox_pelt,Outfit(combat armor),armor,rare,n/a (no UI asset path used),drop (fox),player_dmg_reduce 0.25 + xp_bonus 0.10,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+dragon_scale,dragon_scale,Outfit(combat armor),armor,epic,n/a (no UI asset path used),drop (dragon),player_dmg_reduce 0.40 + sp_bonus 30,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+void_mantle,void_mantle,Outfit(combat armor),armor,legendary,n/a (no UI asset path used),drop (dragon),player_dmg_reduce 0.60 + negate_counter,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+lucky_stone,lucky_stone,Accessory,accessory,common,n/a (no UI asset path used),drop (goblin),loot_bonus 0.10,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+xp_amulet,xp_amulet,Accessory,accessory,rare,n/a (no UI asset path used),drop (fox/goblin),xp_bonus 0.20,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+fox_mask,fox_mask,Accessory,accessory,rare,n/a (no UI asset path used),drop (fox),quest_xp_bonus 0.25,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+dragon_eye,dragon_eye,Accessory,accessory,epic,n/a (no UI asset path used),drop (dragon),crit_multiplier 3,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+go_stone_black,go_stone_black,Accessory,accessory,legendary,n/a (no UI asset path used),drop (dragon),first_question_ace,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,EQUIPMENT_DEFS
+skill_focus,focus,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_endurance,endurance,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_combo_start,combo_start,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_eagle_eye,eagle_eye,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_berserker,berserker,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_second_chance,second_chance,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_treasure_hunter,treasure_hunter,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_dragon_slayer,dragon_slayer,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_time_stop,time_stop,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+skill_enlightenment,enlightenment,Skill(non-cosmetic),skill,n/a,n/a,unlock_rank gate (17k to 4d),,False,True,False,True,N/A(unused),True,False,True,LEGACY ONLY,SKILL_DEFS
+hint_ticket,hint_ticket,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+premium_hint_bundle,premium_hint_bundle,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+ai_explain_ticket,ai_explain_ticket,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+ai_explain_ticket_bundle,ai_explain_ticket_bundle,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+extra_questions_small,extra_questions_small,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+extra_questions,extra_questions,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+grand_training_pass,grand_training_pass,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+small_xp_potion,small_xp_potion,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+xp_potion,xp_potion,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+grand_xp_potion,grand_xp_potion,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+streak_shield,streak_shield,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+double_streak_shield,double_streak_shield,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+pet_snack,pet_snack,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+starfruit_basket,starfruit_basket,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+moon_dew_vial,moon_dew_vial,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+pet_feast_box,pet_feast_box,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+rare_appearance_fragment,rare_appearance_fragment,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+pet_evolution_core,pet_evolution_core,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+ai_analysis_pack,ai_analysis_pack,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+collector_archive_crate,collector_archive_crate,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
+growth_vault,growth_vault,Other(Consumable),consumable,n/a,/assets/shop/*.webp (not verified in repo),shop purchase (coins),,False,True,True,False,UNKNOWN(assets/ untracked),True,False,False,REUSE AS-IS,SHOP_CONSUMABLES
