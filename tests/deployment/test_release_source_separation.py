@@ -270,7 +270,7 @@ def _assert_provenance_contract(governed_paths, presentation_present, expected_c
 # SHOP-F R1 adds the app.py entrypoint and canonical Coin acquisition authority.
 # EQ-F adds the app-imported first-clear/portfolio/loadout/ownership/Shop
 # admission authorities and the Dockerfile-packaged answer renderer.
-POST_B1_PROVENANCE_ADDITIONS = 26
+POST_B1_PROVENANCE_ADDITIONS = 28
 CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 
@@ -468,6 +468,8 @@ def test_provenance_count_recovery_and_controller_membership_remain_intact():
         _presentation_source_present(),
         expected_count_override=CURRENT_PROVENANCE_COUNT,
     )
+    assert "srs_scheduling_core.py" in governed_paths
+    assert "practice_answer_authority.py" in governed_paths
 
 
 def _dry_run(
