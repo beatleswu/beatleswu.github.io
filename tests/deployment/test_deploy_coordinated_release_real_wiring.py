@@ -808,6 +808,54 @@ catch {{ $schema_rejected = $true }}
     }
 
 
+def test_real_coordinator_closure_binds_the_tracked_pair_document():
+    source = ORCHESTRATOR.read_text(encoding="utf-8")
+    start = source.index("$historicalRollbackPairsPath =")
+    end = source.index("$releaseArtifactsDir =", start)
+    initialization_and_matcher = source[start:end]
+    pair = json.loads(KNOWN_PAIR.read_text(encoding="utf-8"))["pairs"][0]
+
+    def ps(value: str) -> str:
+        return "'" + value.replace("'", "''") + "'"
+
+    fields = {
+        "app_sha": pair["runtime_source_sha"],
+        "scheduler_sha": pair["scheduler_source_sha"],
+        "static_sha": pair["static_source_sha"],
+        "app_image_tag": pair["runtime_image_tag"],
+        "app_image_id": pair["runtime_image_id"],
+        "scheduler_image_tag": pair["scheduler_image_tag"],
+        "scheduler_image_id": pair["scheduler_image_id"],
+        "static_generation_path": pair["static_generation_path"],
+    }
+    fields_literal = "\n".join(f"    {name} = {ps(value)}" for name, value in fields.items())
+    probe = f"""
+$ErrorActionPreference = 'Stop'
+Import-Module '{MODULE.as_posix()}' -Force -DisableNameChecking
+Import-Module '{STATE_MACHINE_MODULE.as_posix()}' -Force -DisableNameChecking
+function Fail($message) {{ throw $message }}
+{initialization_and_matcher}
+$good = [pscustomobject]@{{
+{fields_literal}
+}}
+$bad = $good | Select-Object *
+$bad.static_sha = 'f'*40
+$good_result = & $ProvenMixedBaselineValidator $good
+$bad_result = & $ProvenMixedBaselineValidator $bad
+[ordered]@{{ good = $good_result; bad = $bad_result; pair_count = $historicalRollbackPairs.Count }} | ConvertTo-Json -Compress
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", probe],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=20, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout.strip().splitlines()[-1]) == {
+        "good": True,
+        "bad": False,
+        "pair_count": 1,
+    }
+
+
 def test_coordinator_uses_exact_historical_pair_validator_and_keeps_default_strict_gate():
     content = ORCHESTRATOR.read_text(encoding="utf-8")
     assert "known-production-rollback-pairs.json" in content
