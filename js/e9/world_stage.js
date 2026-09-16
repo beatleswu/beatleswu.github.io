@@ -805,17 +805,35 @@
     return !!(entry && entry.seen === true);
   }
 
+  // Zone 4 (k11_15) was the proven 007C defect: this ladder stopped at Zone 3,
+  // so dispatchZone1Entry() received a null key and returned before the
+  // cinematic host was ever asked to start. e10_zone4_intro_v1 had therefore
+  // never fired for any player in Production, while Zone 4's intro film,
+  // assets and server registry key all already existed and shipped.
+  //
+  // Deliberately still an explicit per-zone ladder rather than deriving the
+  // key generically from ADVENTURE_ZONES (which is what index.html's
+  // adventureCinematicKey() does): a generic derivation would silently wire
+  // Zones 5-10 in the same edit, and those zones have not had their
+  // presentation lifecycle bound. Converging the two is a separate,
+  // Owner-scoped decision about which zones go live.
   function introCinematicKeyForZone(zoneKey) {
     if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return ACTIVE_INTRO_CINEMATIC_KEY;
     if (zoneKey === 'k21_25') return 'e10_zone2_intro_v1';
     if (zoneKey === 'k16_20') return 'e10_zone3_intro_v1';
+    if (zoneKey === 'k11_15') return 'e10_zone4_intro_v1';
     return null;
   }
 
+  // Must be extended in lockstep with introCinematicKeyForZone: the trailing
+  // fallback returns Zone 2's key, so a zone that gained a cinematic key but
+  // not an in-flight key would share Zone 2's re-entrancy guard and the two
+  // zones could suppress each other's first-entry cinematic.
   function introEntryInFlightKey(zoneKey) {
     if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return 'zone1EntryInFlight';
     if (zoneKey === 'k21_25') return 'zone2EntryInFlight';
     if (zoneKey === 'k16_20') return 'zone3EntryInFlight';
+    if (zoneKey === 'k11_15') return 'zone4EntryInFlight';
     return 'zone2EntryInFlight';
   }
 
