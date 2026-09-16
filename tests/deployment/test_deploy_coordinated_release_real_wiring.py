@@ -56,6 +56,10 @@ def _snapshot_baseline_block() -> str:
     return _extract_block("$SnapshotBaseline = {", "$VerifyRollbackReady = {")
 
 
+def _verify_rollback_ready_block() -> str:
+    return _extract_block("$VerifyRollbackReady = {", "$PromoteStatic = {")
+
+
 def _promote_app_block() -> str:
     return _extract_block("$PromoteApp = {", "$VerifyApp = {")
 
@@ -882,3 +886,34 @@ $missing.scheduler_image_id = ''
     assert result.returncode == 0, result.stdout + result.stderr
     payload = json.loads(result.stdout.strip().splitlines()[-1])
     assert payload == {"good": True, "bad_path": False, "missing_image": False}
+
+
+def test_real_verify_rollback_ready_uses_the_same_proven_mixed_baseline_policy():
+    baseline = """
+[pscustomobject]@{
+    app_sha = 'd'*40
+    scheduler_sha = 'd'*40
+    static_sha = 'e'*40
+    static_generation_path = '/opt/go-odyssey-static/releases/proven'
+}
+"""
+    probe = FAKE_DEPENDENCIES_PREAMBLE + f"""
+$ProvenMixedBaselineValidator = {{ param($state) return [bool]$script:AllowProven }}
+$baseline = {baseline}
+{_verify_rollback_ready_block()}
+$script:AllowProven = $true
+$accepted = & $VerifyRollbackReady $baseline
+$script:AllowProven = $false
+$rejected = & $VerifyRollbackReady $baseline
+[ordered]@{{ accepted = $accepted.success; rejected = $rejected.success; rejected_is_incoherent = $rejected.baseline_incoherent }} | ConvertTo-Json -Compress
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", probe],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=20, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout.strip().splitlines()[-1]) == {
+        "accepted": True,
+        "rejected": False,
+        "rejected_is_incoherent": True,
+    }
