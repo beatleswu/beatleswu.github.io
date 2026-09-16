@@ -221,6 +221,137 @@ Assert-OwnerGate -Provided $OwnerGate -Expected $requiredOwnerGate
 # otherwise fail (or prompt) only after BUILD_APP has already run.
 $script:questionsCorpusArgs = Assert-QuestionsCorpusParameters -RequirePresent
 
+$historicalRollbackPairsPath = Resolve-RepoPath 'deploy\known-production-rollback-pairs.json'
+$historicalRollbackPairsDocument = Read-JsonFile -Path $historicalRollbackPairsPath
+
+function Get-HistoricalRollbackPairField {
+    param($Object, [Parameter(Mandatory = $true)][string]$Name)
+    return Get-PhaseResultProperty -Object $Object -Name $Name -Default $null
+}
+
+function Assert-HistoricalRollbackPairDocument {
+    <#
+    Validate the local, tracked provenance authority before the first build or
+    Production mutation. This is intentionally an exact-record contract, not
+    a general "mixed sources are okay" switch: every pair must carry all
+    identities needed to bind the running images and immutable static target.
+    #>
+    param($Document)
+
+    if (-not $Document -or
+        (Get-HistoricalRollbackPairField -Object $Document -Name 'schema') -ne 'go-odyssey-production-rollback-pair-v1') {
+        Fail "Historical rollback-pair provenance is missing or has an unsupported schema: $historicalRollbackPairsPath"
+    }
+    $policy = Get-HistoricalRollbackPairField -Object $Document -Name 'provenance_policy'
+    if (-not $policy -or
+        (Get-HistoricalRollbackPairField -Object $policy -Name 'mixed_pair_acceptance') -ne 'exact_record_only' -or
+        (Get-HistoricalRollbackPairField -Object $policy -Name 'same_sha_pair_acceptance') -ne 'strict_identity_coherence') {
+        Fail "Historical rollback-pair provenance policy is not the fail-closed exact-record contract: $historicalRollbackPairsPath"
+    }
+
+    $pairs = @(Get-HistoricalRollbackPairField -Object $Document -Name 'pairs')
+    if ($pairs.Count -eq 0) {
+        Fail "Historical rollback-pair provenance contains no usable pairs: $historicalRollbackPairsPath"
+    }
+
+    $sourceShaFields = @('runtime_source_sha', 'scheduler_source_sha', 'static_source_sha', 'expected_runtime_base_sha')
+    $imageIdFields = @('runtime_image_id', 'scheduler_image_id')
+    $hashFields = @('static_manifest_sha256', 'static_archive_sha256', 'static_sw_sha256', 'static_i18n_sha256', 'static_index_sha256', 'schema_fingerprint')
+    $requiredFields = @(
+        'pair_id', 'runtime_source_sha', 'scheduler_source_sha', 'runtime_image_tag',
+        'runtime_image_id', 'scheduler_image_tag', 'scheduler_image_id',
+        'static_source_sha', 'expected_runtime_base_sha', 'static_overlay',
+        'static_generation_id', 'static_generation_path', 'static_manifest_sha256',
+        'static_archive_sha256', 'static_service_worker_version', 'static_sw_sha256',
+        'static_i18n_sha256', 'static_index_sha256', 'static_asset_count',
+        'schema_fingerprint', 'schema_migration_required', 'evidence'
+    )
+    $seenPairIds = @{}
+    foreach ($pair in $pairs) {
+        foreach ($field in $requiredFields) {
+            $value = Get-HistoricalRollbackPairField -Object $pair -Name $field
+            if ($null -eq $value -or [string]::IsNullOrWhiteSpace([string]$value)) {
+                Fail "Historical rollback-pair '$field' is missing or empty in $historicalRollbackPairsPath"
+            }
+        }
+        $pairId = [string](Get-HistoricalRollbackPairField -Object $pair -Name 'pair_id')
+        if ($seenPairIds.ContainsKey($pairId)) {
+            Fail "Historical rollback-pair provenance contains duplicate pair_id '$pairId'."
+        }
+        $seenPairIds[$pairId] = $true
+        foreach ($field in $sourceShaFields) {
+            $value = [string](Get-HistoricalRollbackPairField -Object $pair -Name $field)
+            if ($value -notmatch '^[0-9a-fA-F]{40}$') {
+                Fail "Historical rollback-pair '$pairId' has invalid $field."
+            }
+        }
+        foreach ($field in $imageIdFields) {
+            $value = [string](Get-HistoricalRollbackPairField -Object $pair -Name $field)
+            if ($value -notmatch '^sha256:[0-9a-fA-F]{64}$') {
+                Fail "Historical rollback-pair '$pairId' has invalid $field."
+            }
+        }
+        foreach ($field in $hashFields) {
+            $value = [string](Get-HistoricalRollbackPairField -Object $pair -Name $field)
+            if ($value -notmatch '^[0-9a-fA-F]{64}$') {
+                Fail "Historical rollback-pair '$pairId' has invalid $field."
+            }
+        }
+        if ((Get-HistoricalRollbackPairField -Object $pair -Name 'static_overlay') -isnot [bool] -or
+            -not [bool](Get-HistoricalRollbackPairField -Object $pair -Name 'static_overlay')) {
+            Fail "Historical rollback-pair '$pairId' must explicitly identify a static overlay."
+        }
+        if ((Get-HistoricalRollbackPairField -Object $pair -Name 'schema_migration_required') -isnot [bool] -or
+            [bool](Get-HistoricalRollbackPairField -Object $pair -Name 'schema_migration_required')) {
+            Fail "Historical rollback-pair '$pairId' is not schema-compatible without a migration."
+        }
+        $assetCount = [long](Get-HistoricalRollbackPairField -Object $pair -Name 'static_asset_count')
+        if ($assetCount -le 0) {
+            Fail "Historical rollback-pair '$pairId' has an invalid static_asset_count."
+        }
+        $evidence = Get-HistoricalRollbackPairField -Object $pair -Name 'evidence'
+        $runtimeRecords = @(Get-HistoricalRollbackPairField -Object $evidence -Name 'runtime_release_records')
+        $basis = @(Get-HistoricalRollbackPairField -Object $evidence -Name 'compatibility_basis')
+        if (-not $evidence -or $runtimeRecords.Count -eq 0 -or $basis.Count -eq 0) {
+            Fail "Historical rollback-pair '$pairId' lacks positive deployment compatibility evidence."
+        }
+    }
+    return $pairs
+}
+
+$historicalRollbackPairs = @(Assert-HistoricalRollbackPairDocument -Document $historicalRollbackPairsDocument)
+
+function Test-ProvenHistoricalMixedBaseline {
+    <#
+    Return true only when the observed state matches exactly one tracked
+    historical pair across the runtime image identities, source labels, and
+    immutable static generation path. SHA fields alone are not enough: an
+    image tag/digest or generation path drift must fail closed.
+    #>
+    param($State, [Parameter(Mandatory = $true)][object[]]$Pairs)
+    if (-not $State) { return $false }
+    $matches = @()
+    foreach ($pair in $Pairs) {
+        $same = (
+            [string](Get-HistoricalRollbackPairField -Object $State -Name 'app_sha') -eq [string](Get-HistoricalRollbackPairField -Object $pair -Name 'runtime_source_sha') -and
+            [string](Get-HistoricalRollbackPairField -Object $State -Name 'scheduler_sha') -eq [string](Get-HistoricalRollbackPairField -Object $pair -Name 'scheduler_source_sha') -and
+            [string](Get-HistoricalRollbackPairField -Object $State -Name 'static_sha') -eq [string](Get-HistoricalRollbackPairField -Object $pair -Name 'static_source_sha') -and
+            [string](Get-HistoricalRollbackPairField -Object $State -Name 'app_image_tag') -eq [string](Get-HistoricalRollbackPairField -Object $pair -Name 'runtime_image_tag') -and
+            [string](Get-HistoricalRollbackPairField -Object $State -Name 'app_image_id') -eq [string](Get-HistoricalRollbackPairField -Object $pair -Name 'runtime_image_id') -and
+            [string](Get-HistoricalRollbackPairField -Object $State -Name 'scheduler_image_tag') -eq [string](Get-HistoricalRollbackPairField -Object $pair -Name 'scheduler_image_tag') -and
+            [string](Get-HistoricalRollbackPairField -Object $State -Name 'scheduler_image_id') -eq [string](Get-HistoricalRollbackPairField -Object $pair -Name 'scheduler_image_id') -and
+            [string](Get-HistoricalRollbackPairField -Object $State -Name 'static_generation_path') -eq [string](Get-HistoricalRollbackPairField -Object $pair -Name 'static_generation_path')
+        )
+        if ($same) { $matches += $pair }
+    }
+    return ($matches.Count -eq 1)
+}
+
+$ProvenMixedBaselineValidator = {
+    param($State)
+    return [bool](Test-ProvenHistoricalMixedBaseline -State $State -Pairs $historicalRollbackPairs)
+}
+
 $releaseArtifactsDir = Join-Path $repoRoot 'release-artifacts'
 $buildScript = Join-Path $PSScriptRoot 'build-release-image.ps1'
 $packageAppScript = Join-Path $PSScriptRoot 'package-release-image.ps1'
@@ -510,7 +641,9 @@ $SnapshotBaseline = {
         app_sha = $state.app_sha
         scheduler_sha = $state.scheduler_sha
         static_sha = $state.static_sha
+        app_image_tag = $state.app_image_tag
         app_image_id = $state.app_image_id
+        scheduler_image_tag = $state.scheduler_image_tag
         scheduler_image_id = $state.scheduler_image_id
         static_generation_path = $state.static_generation_path
     }
@@ -525,11 +658,13 @@ $VerifyRollbackReady = {
         [string]::IsNullOrWhiteSpace([string]$baseline.static_generation_path)) {
         return [ordered]@{ success = $false; detail = 'baseline identity is incomplete; refusing to proceed without a usable rollback target' }
     }
-    # Defence in depth: the state machine already refuses an incoherent
-    # baseline at SNAPSHOT_BASELINE (L3, before any mutation). Re-assert it
-    # here so this executor is independently safe if ever reused.
-    if (-not (Test-ReleaseIdentityCoherent -State $baseline)) {
-        return [ordered]@{ success = $false; baseline_incoherent = $true; detail = "baseline is not coherent: app_sha=$($baseline.app_sha) scheduler_sha=$($baseline.scheduler_sha) static_sha=$($baseline.static_sha)" }
+    # Defence in depth: the state machine already refuses an unproven
+    # baseline at SNAPSHOT_BASELINE (L3, before any mutation). Re-assert the
+    # same accepted-baseline policy here so this executor is independently
+    # safe if ever reused. The custom validator can admit only an exact,
+    # positively-proven historical static overlay.
+    if (-not (Test-ReleaseBaselineIdentityAccepted -State $baseline -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator)) {
+        return [ordered]@{ success = $false; baseline_incoherent = $true; detail = "baseline is not coherent or positively proven: app_sha=$($baseline.app_sha) scheduler_sha=$($baseline.scheduler_sha) static_sha=$($baseline.static_sha)" }
     }
     [ordered]@{ success = $true }
 }
@@ -745,6 +880,7 @@ $result = Invoke-CoordinatedReleaseStateMachine `
     -ProductionSmoke $ProductionSmoke `
     -RollbackStatic $RollbackStatic `
     -RollbackApp $RollbackApp `
+    -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator `
     -MaxAttemptsPerRootCause $MaxAttemptsPerRootCause
 
 $result | ConvertTo-Json -Depth 12 | Write-Output

@@ -32,10 +32,13 @@ for the full operator-facing contract):
     the same phase) gets its own independent budget rather than sharing one
     global counter.
 
-  - static_sha == app_sha is enforced, not merely documented: JOINT_PROVENANCE
-    independently re-reads current state via -GetCurrentState and fails
-    (forcing rollback) if the two identities, or either against
-    -ExpectedGitSha, disagree.
+  - static_sha == app_sha is enforced, not merely documented for the
+    candidate and for ordinary baselines: JOINT_PROVENANCE independently
+    re-reads current state via -GetCurrentState and fails (forcing rollback)
+    if the three identities, or either against -ExpectedGitSha, disagree.
+    A caller may provide -ProvenMixedBaselineValidator for one or more
+    positively-proven historical static-overlay baselines. That opt-in is
+    exact and caller-owned; without it every mixed baseline remains rejected.
 #>
 
 $PRE_MUTATION_PHASES = @(
@@ -182,6 +185,39 @@ function Test-ReleaseIdentityCoherent {
     return ($appSha -eq $schedulerSha -and $appSha -eq $staticSha)
 }
 
+function Test-ReleaseBaselineIdentityAccepted {
+    <#
+    .SYNOPSIS
+    Accepts an ordinary same-SHA baseline, or one exact historical mixed
+    baseline explicitly proven by the caller.
+    .DESCRIPTION
+    Same-SHA coherence remains the default safety rule. The optional
+    -ProvenMixedBaselineValidator is deliberately a narrow extension point
+    for a release coordinator that has independently loaded immutable
+    provenance for a known static-only overlay. It must return exactly one
+    Boolean value. Any missing, non-Boolean, multiple, or throwing result
+    fails closed. This function never accepts a mixed state merely because
+    its fields are non-empty or happen to match a caller-supplied baseline.
+    #>
+    param($State, [scriptblock]$ProvenMixedBaselineValidator = $null)
+    if (Test-ReleaseIdentityCoherent -State $State) {
+        return $true
+    }
+    if ($null -eq $ProvenMixedBaselineValidator) {
+        return $false
+    }
+    try {
+        $decision = @(& $ProvenMixedBaselineValidator $State)
+        if ($decision.Count -ne 1 -or $decision[0] -isnot [bool]) {
+            return $false
+        }
+        return [bool]$decision[0]
+    }
+    catch {
+        return $false
+    }
+}
+
 function Get-ReleaseStateDomain {
     <#
     .SYNOPSIS
@@ -194,14 +230,19 @@ function Get-ReleaseStateDomain {
     all) is always reported honestly as MIXED_OR_UNVERIFIED, never
     silently treated as one of the two safe outcomes.
     .DESCRIPTION
-    All THREE identities (app, scheduler, static) must agree for either
-    safe domain. In particular a MIXED captured baseline can never yield
-    BASELINE_BASELINE: restoring Production to a state that was itself
-    incoherent is not a safe outcome, so such a result is reported as
-    MIXED_OR_UNVERIFIED even when current state matches that baseline
-    field-for-field.
+    All THREE identities (app, scheduler, static) must agree for the
+    candidate domain. An ordinary baseline must also be same-SHA. A mixed
+    baseline can yield BASELINE_BASELINE only when the caller supplies a
+    positively-proven exact historical-overlay validator, and both the
+    captured baseline and the independently re-observed current state pass
+    that validator. Field equality alone is never sufficient.
     #>
-    param($State, [string]$ExpectedGitSha, $Baseline)
+    param(
+        $State,
+        [string]$ExpectedGitSha,
+        $Baseline,
+        [scriptblock]$ProvenMixedBaselineValidator = $null
+    )
     if (-not $State) {
         return 'MIXED_OR_UNVERIFIED'
     }
@@ -217,7 +258,8 @@ function Get-ReleaseStateDomain {
         return 'CANDIDATE_CANDIDATE'
     }
     if ($Baseline -and
-        (Test-ReleaseIdentityCoherent -State $Baseline) -and
+        (Test-ReleaseBaselineIdentityAccepted -State $Baseline -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator) -and
+        (Test-ReleaseBaselineIdentityAccepted -State $State -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator) -and
         $appSha -eq [string](Get-PhaseResultProperty -Object $Baseline -Name 'app_sha' -Default '') -and
         $schedulerSha -eq [string](Get-PhaseResultProperty -Object $Baseline -Name 'scheduler_sha' -Default '') -and
         $staticSha -eq [string](Get-PhaseResultProperty -Object $Baseline -Name 'static_sha' -Default '')) {
@@ -357,6 +399,7 @@ function Invoke-CoordinatedReleaseStateMachine {
         [Parameter(Mandatory = $true)][scriptblock]$ProductionSmoke,
         [Parameter(Mandatory = $true)][scriptblock]$RollbackStatic,
         [Parameter(Mandatory = $true)][scriptblock]$RollbackApp,
+        [scriptblock]$ProvenMixedBaselineValidator = $null,
         [int]$MaxAttemptsPerRootCause = $MAX_AUTOMATIC_RECOVERY_ATTEMPTS_PER_ROOT_CAUSE
     )
 
@@ -402,7 +445,7 @@ function Invoke-CoordinatedReleaseStateMachine {
                 if (-not $snapshotResult.success) {
                     $snapshotResult
                 }
-                elseif (-not (Test-ReleaseIdentityCoherent -State $snapshotResult.data)) {
+                elseif (-not (Test-ReleaseBaselineIdentityAccepted -State $snapshotResult.data -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator)) {
                     # Coordinator-review fix: Production's CURRENT state is
                     # already mixed before this run mutates anything. Refuse
                     # to promote on top of an incoherent baseline -- there
@@ -641,7 +684,7 @@ function Invoke-CoordinatedReleaseStateMachine {
                 $finalState = Invoke-ReleasePhase -Action $GetCurrentState
                 $recoveryEntry.post_recovery_state = $finalState.data
                 $report.final_current_state = $finalState.data
-                $report.final_state_domain = Get-ReleaseStateDomain -State $finalState.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline
+                $report.final_state_domain = Get-ReleaseStateDomain -State $finalState.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator
             }
             $recoveryEntry.final_outcome = 'STOPPED'
             $report.recovery_log += $recoveryEntry
@@ -681,7 +724,7 @@ function Invoke-CoordinatedReleaseStateMachine {
         # still-candidate scheduler is not a restored baseline.
         $baselineRestored = (
             $rollbackOk -and $verify.success -and
-            (Get-ReleaseStateDomain -State $verify.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline) -eq 'BASELINE_BASELINE'
+            (Get-ReleaseStateDomain -State $verify.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator) -eq 'BASELINE_BASELINE'
         )
 
         if (-not $baselineRestored) {
@@ -692,7 +735,7 @@ function Invoke-CoordinatedReleaseStateMachine {
             $report.stop_phase = $phase
             $report.final_state = 'STOPPED_OWNER_DECISION_REQUIRED'
             $report.final_current_state = $verify.data
-            $report.final_state_domain = Get-ReleaseStateDomain -State $verify.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline
+            $report.final_state_domain = Get-ReleaseStateDomain -State $verify.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator
             $report.success = $false
             return [pscustomobject]$report
         }
@@ -719,6 +762,7 @@ Export-ModuleMember -Function @(
     'Update-RecoveryBudget',
     'New-RootCauseKey',
     'Test-ReleaseIdentityCoherent',
+    'Test-ReleaseBaselineIdentityAccepted',
     'Get-ReleaseStateDomain',
     'Get-PhaseResultProperty',
     'Invoke-ReleasePhase',
