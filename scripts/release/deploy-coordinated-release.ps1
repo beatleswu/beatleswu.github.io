@@ -584,12 +584,12 @@ $Precheck = {
 }
 
 $BuildApp = {
+    # BUILD_APP delegates to build-release-image.ps1, whose bounded
+    # canonical image-build envelope is 3900s. Keep the outer coordinator
+    # bound aligned with that existing inner bound so a legitimate slow
+    # arm64 build is not killed by a shorter wrapper timeout.
     $r = Invoke-GovernedScript -ScriptPath $buildScript `
         -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile) `
-        # BUILD_APP delegates to build-release-image.ps1, whose bounded
-        # canonical image-build envelope is 3900s. Keep the outer coordinator
-        # bound aligned with that existing inner bound so a legitimate slow
-        # arm64 build is not killed by a shorter wrapper timeout.
         -TimeoutSeconds 3900 -OperationLabel 'coordinated-release: build app image'
     if (-not $r.success) {
         return [ordered]@{ success = $false; detail = $r.output }
