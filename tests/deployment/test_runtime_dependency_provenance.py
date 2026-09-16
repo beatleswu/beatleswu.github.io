@@ -143,10 +143,24 @@ EQ_F_GOVERNED_RUNTIME_PATHS = frozenset(
     }
 )
 
+# Incident 003G added these two explicitly packaged runtime dependencies: the
+# one canonical SRS scheduling writer and the server-judged practice answer
+# boundary that routes through it.  Both are app.py module-level imports, both
+# are Dockerfile/build-manifest inputs, and both therefore require a
+# byte-attested provenance record.  Listing them here is what makes a future
+# omission fail closed rather than pass on a stale expected count.
+INCIDENT_003G_GOVERNED_RUNTIME_PATHS = frozenset(
+    {
+        "practice_answer_authority.py",
+        "srs_scheduling_core.py",
+    }
+)
+
 CURRENT_EXPECTED_COUNT = (
     B1_PRESENT_EXPECTED_COUNT
     + len(POST_B1_GOVERNED_RUNTIME_PATHS)
     + len(EQ_F_GOVERNED_RUNTIME_PATHS)
+    + len(INCIDENT_003G_GOVERNED_RUNTIME_PATHS)
 )
 
 
@@ -155,6 +169,7 @@ def _current_expected_governed_runtime_paths(presentation_present):
         _expected_governed_runtime_paths(presentation_present)
         | POST_B1_GOVERNED_RUNTIME_PATHS
         | EQ_F_GOVERNED_RUNTIME_PATHS
+        | INCIDENT_003G_GOVERNED_RUNTIME_PATHS
     )
 
 
@@ -179,6 +194,20 @@ def test_eq_f_expected_set_is_exact():
     )
     assert EQ_F_GOVERNED_RUNTIME_PATHS.isdisjoint(_expected_governed_runtime_paths(True))
     assert EQ_F_GOVERNED_RUNTIME_PATHS.isdisjoint(POST_B1_GOVERNED_RUNTIME_PATHS)
+
+
+def test_incident_003g_expected_set_is_exact():
+    assert INCIDENT_003G_GOVERNED_RUNTIME_PATHS == frozenset(
+        {
+            "practice_answer_authority.py",
+            "srs_scheduling_core.py",
+        }
+    )
+    assert INCIDENT_003G_GOVERNED_RUNTIME_PATHS.isdisjoint(
+        _expected_governed_runtime_paths(True)
+    )
+    assert INCIDENT_003G_GOVERNED_RUNTIME_PATHS.isdisjoint(POST_B1_GOVERNED_RUNTIME_PATHS)
+    assert INCIDENT_003G_GOVERNED_RUNTIME_PATHS.isdisjoint(EQ_F_GOVERNED_RUNTIME_PATHS)
 
 
 def _assert_runtime_manifest_contract(paths, count, presentation_present):

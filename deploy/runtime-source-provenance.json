@@ -1276,6 +1276,30 @@
       "line_ending_policy": "LF",
       "runtime_role": "Dockerfile-packaged answer-screen presentation runtime; EQ-B full-body Equipment composition plus EQ-C data-driven handheld weapon composition",
       "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+    },
+    {
+      "path": "srs_scheduling_core.py",
+      "source_commit": "b1b17e77e4b595ddb27b70d261ed093e5469a625",
+      "source_branch_or_local_ref": "claude/incident-003g-shared-srs-persistence-core-001",
+      "source_commit_subject": "refactor(srs): extract the one canonical SRS scheduling writer (Stage A)",
+      "source_date": "2026-09-16",
+      "content_sha256": "4fd9465f32128b5d7fb8eacd59ab786cda2998cb273dc098b7e2e227880606a1",
+      "content_size_bytes": 7115,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py module-level import (line 274); startup-required -- an import failure prevents application start. Sole owner of the srs_cards scheduling write and the sole SM-2 implementation in the runtime closure; exports ProgressCreditPolicy, apply_srs_scheduling, should_grant_review_progress and sm2_update. Explicitly packaged at Dockerfile:123 and recorded in deploy/build-manifest.json tracked build inputs and /app post-build verification.",
+      "source_status": "Incident 003G Stage A -- newly-authored governed runtime module extracted on this implementation branch so one writer owns SRS scheduling persistence. Recorded source_commit is the Stage A commit on this branch that introduced the current blob and is byte-identical to it; it is not an ancestor of origin/master until Owner merge, and deployment remains separately gated."
+    },
+    {
+      "path": "practice_answer_authority.py",
+      "source_commit": "12294e9ae5e1d1033c874db583b5784ad53a59aa",
+      "source_branch_or_local_ref": "claude/incident-003g-shared-srs-persistence-core-001",
+      "source_commit_subject": "feat(practice): route the server-judged practice path through the shared SRS core (Stage B)",
+      "source_date": "2026-09-16",
+      "content_sha256": "11f0eb39adef912bb69db5832e93fdd4a16cc5d1d135abdd74bc942cb3676dba",
+      "content_size_bytes": 16543,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py module-level import (line 280); startup-required -- an import failure prevents application start. Server-owned public-practice answer boundary backing the /api/srs/practice/attempt and /api/srs/practice/answer routes: signed attempt issuance/verification, server-side canonicalization and judging, and the server-minted practice:v1: trusted source context. Contains no Flask or database code. Explicitly packaged at Dockerfile:127 and recorded in deploy/build-manifest.json tracked build inputs and /app post-build verification.",
+      "source_status": "Incident 003G Stage B -- governed runtime module added to the image on this implementation branch as the server-judged practice answer boundary that routes through srs_scheduling_core.apply_srs_scheduling. Recorded source_commit is the Stage B commit on this branch that introduced the current blob and is byte-identical to it; it is not an ancestor of origin/master until Owner merge, and deployment remains separately gated."
     }
   ]
 }
