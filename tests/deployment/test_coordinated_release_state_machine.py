@@ -922,3 +922,182 @@ $__report = Invoke-CoordinatedReleaseStateMachine `
     # PROMOTE_STATIC's mutating action was never replayed.
     assert payload["promote_static_call_count"] == 1
     assert report["static_rolled_back"] is False
+
+
+# ---------------------------------------------------------------------------
+# Production baseline reconciliation: same-SHA coherence remains the default,
+# while one exact caller-proven historical static-overlay pair may be used as
+# a rollback baseline. These tests do not contact Production; the validator is
+# an injected positive-provenance boundary.
+# ---------------------------------------------------------------------------
+
+def test_mixed_baseline_is_accepted_only_by_an_exact_positive_validator():
+    script = COMMON_PREAMBLE + """
+$mixed = [pscustomobject]@{
+    app_sha = ('b' * 40)
+    scheduler_sha = ('b' * 40)
+    static_sha = ('c' * 40)
+    pair_marker = 'production-70f7-runtime-a2f33-static-overlay-20260914'
+}
+$validator = {
+    param($state)
+    return [bool](
+        $state.pair_marker -eq 'production-70f7-runtime-a2f33-static-overlay-20260914' -and
+        $state.app_sha -eq ('b' * 40) -and
+        $state.scheduler_sha -eq ('b' * 40) -and
+        $state.static_sha -eq ('c' * 40)
+    )
+}
+$wrong = $mixed | Select-Object *
+$wrong.static_sha = ('d' * 40)
+[ordered]@{
+    default = (Test-ReleaseBaselineIdentityAccepted -State $mixed)
+    proven = (Test-ReleaseBaselineIdentityAccepted -State $mixed -ProvenMixedBaselineValidator $validator)
+    wrong = (Test-ReleaseBaselineIdentityAccepted -State $wrong -ProvenMixedBaselineValidator $validator)
+    domain = (Get-ReleaseStateDomain -State $mixed -ExpectedGitSha $ExpectedSha -Baseline $mixed -ProvenMixedBaselineValidator $validator)
+    same_sha_with_rejecting_validator = (Test-ReleaseBaselineIdentityAccepted -State ([pscustomobject]@{ app_sha = ('b' * 40); scheduler_sha = ('b' * 40); static_sha = ('b' * 40) }) -ProvenMixedBaselineValidator { param($state) return $false })
+} | ConvertTo-Json -Compress
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=15, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload == {
+        "default": False,
+        "proven": True,
+        "wrong": False,
+        "domain": "BASELINE_BASELINE",
+        "same_sha_with_rejecting_validator": True,
+    }
+
+
+def test_mixed_baseline_validator_must_return_one_boolean_or_fail_closed():
+    script = COMMON_PREAMBLE + """
+$mixed = [pscustomobject]@{ app_sha = ('b' * 40); scheduler_sha = ('b' * 40); static_sha = ('c' * 40) }
+$multiple = { param($state) $true; $true }
+$non_boolean = { param($state) 'true' }
+$throws = { param($state) throw 'validator unavailable' }
+[ordered]@{
+    multiple = (Test-ReleaseBaselineIdentityAccepted -State $mixed -ProvenMixedBaselineValidator $multiple)
+    non_boolean = (Test-ReleaseBaselineIdentityAccepted -State $mixed -ProvenMixedBaselineValidator $non_boolean)
+    throws = (Test-ReleaseBaselineIdentityAccepted -State $mixed -ProvenMixedBaselineValidator $throws)
+} | ConvertTo-Json -Compress
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=15, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload == {"multiple": False, "non_boolean": False, "throws": False}
+
+
+def test_coordinator_can_run_from_a_proven_mixed_baseline_without_relaxing_candidate_domain():
+    script = COMMON_PREAMBLE + """
+$script:currentStaticSha = ('c' * 40)
+$knownAppTag = 'go-odyssey-app:70f7ed50'
+$knownImageId = 'sha256:' + ('1' * 64)
+$knownStaticPath = '/opt/go-odyssey-static/releases/20260913-164722-a2f33eb0-v241-p0-srs-static-closure-hotfix'
+$GetCurrentState = {
+    [ordered]@{
+        success = $true
+        app_sha = $script:currentAppSha
+        scheduler_sha = $script:currentSchedulerSha
+        static_sha = $script:currentStaticSha
+        app_image_tag = $knownAppTag
+        app_image_id = $knownImageId
+        scheduler_image_tag = $knownAppTag
+        scheduler_image_id = $knownImageId
+        static_generation_path = $knownStaticPath
+    }
+}
+$SnapshotBaseline = { & $GetCurrentState }
+$ProvenMixedBaselineValidator = {
+    param($state)
+    return [bool]($state.app_sha -eq ('b' * 40) -and
+        $state.scheduler_sha -eq ('b' * 40) -and
+        $state.static_sha -eq ('c' * 40) -and
+        $state.app_image_tag -eq $knownAppTag -and
+        $state.app_image_id -eq $knownImageId -and
+        $state.scheduler_image_tag -eq $knownAppTag -and
+        $state.scheduler_image_id -eq $knownImageId -and
+        $state.static_generation_path -eq $knownStaticPath)
+}
+"""
+    invocation = INVOKE_AND_EMIT.replace(
+        "    -RollbackApp $RollbackApp\n",
+        "    -RollbackApp $RollbackApp `\n    -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator\n",
+    )
+    script += invocation
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=20, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload["success"] is True
+    assert payload["baseline"]["static_sha"] == "c" * 40
+    assert payload["final_state_domain"] == "CANDIDATE_CANDIDATE"
+
+
+def test_proven_mixed_baseline_is_confirmed_after_rollback_before_retry():
+    script = COMMON_PREAMBLE + """
+$script:currentStaticSha = ('c' * 40)
+$knownAppTag = 'go-odyssey-app:70f7ed50'
+$knownImageId = 'sha256:' + ('1' * 64)
+$knownStaticPath = '/opt/go-odyssey-static/releases/20260913-164722-a2f33eb0-v241-p0-srs-static-closure-hotfix'
+$GetCurrentState = {
+    [ordered]@{
+        success = $true
+        app_sha = $script:currentAppSha
+        scheduler_sha = $script:currentSchedulerSha
+        static_sha = $script:currentStaticSha
+        app_image_tag = $knownAppTag
+        app_image_id = $knownImageId
+        scheduler_image_tag = $knownAppTag
+        scheduler_image_id = $knownImageId
+        static_generation_path = $knownStaticPath
+    }
+}
+$SnapshotBaseline = { & $GetCurrentState }
+$PromoteApp = {
+    $n = Get-AttemptCount 'mixed baseline rollback'
+    $script:currentAppSha = $ExpectedSha
+    $script:currentSchedulerSha = $ExpectedSha
+    if ($n -eq 1) {
+        [ordered]@{ success = $false; root_cause_class = 'mixed-baseline-test-failure'; detail = 'force rollback to the proven historical pair' }
+    } else {
+        [ordered]@{ success = $true; app_sha = $ExpectedSha }
+    }
+}
+$ProvenMixedBaselineValidator = {
+    param($state)
+    return [bool]($state.app_sha -eq ('b' * 40) -and
+        $state.scheduler_sha -eq ('b' * 40) -and
+        $state.static_sha -eq ('c' * 40) -and
+        $state.app_image_tag -eq $knownAppTag -and
+        $state.app_image_id -eq $knownImageId -and
+        $state.scheduler_image_tag -eq $knownAppTag -and
+        $state.scheduler_image_id -eq $knownImageId -and
+        $state.static_generation_path -eq $knownStaticPath)
+}
+"""
+    invocation = INVOKE_AND_EMIT.replace(
+        "    -RollbackApp $RollbackApp\n",
+        "    -RollbackApp $RollbackApp `\n    -ProvenMixedBaselineValidator $ProvenMixedBaselineValidator\n",
+    )
+    script += invocation
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=20, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload["success"] is True
+    assert payload["app_rolled_back"] is True
+    assert any(
+        item["recovery_action"] == "COORDINATED_ROLLBACK_VERIFIED_BASELINE_RETRY_SAME_SHA"
+        for item in payload["recovery_log"]
+    )

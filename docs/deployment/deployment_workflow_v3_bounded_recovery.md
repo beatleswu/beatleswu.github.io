@@ -166,19 +166,23 @@ generation-path identities that are tracked alongside them:
 phase's self-reported identity) and fails — forcing the L2 rollback path — unless all three agree
 *and* match the authorized `-ExpectedGitSha`.
 
-The only two states this workflow can end a run in are `CANDIDATE_CANDIDATE` (all three on the
-authorized SHA) or `BASELINE_BASELINE` (all three restored to a *coherent* pre-run identity).
-Anything else — including a candidate app beside a baseline scheduler — is reported honestly as
-`MIXED_OR_UNVERIFIED` by `Get-ReleaseStateDomain`, never as a safe outcome.
+The only two state domains this workflow can end a run in are `CANDIDATE_CANDIDATE` (all three on
+the authorized SHA) or `BASELINE_BASELINE` (the exact, positively-proven pre-run rollback pair).
+For an ordinary release that baseline pair must still be same-SHA. The production coordinator may
+also pass `-ProvenMixedBaselineValidator` for a tracked historical static-only overlay, in which
+case the validator must bind every observed runtime image identity and the immutable static
+generation path to one exact record in `deploy/known-production-rollback-pairs.json`. Anything
+else — including a candidate app beside a baseline scheduler or an unproven mixed baseline — is
+reported honestly as `MIXED_OR_UNVERIFIED` by `Get-ReleaseStateDomain`, never as a safe outcome.
 
 ### Baseline coherence is a pre-mutation gate
 
-If the captured baseline is itself mixed (the three identities disagree *before* this run mutates
+If the captured baseline is mixed (the three identities disagree *before* this run mutates
 anything), the run STOPS at `SNAPSHOT_BASELINE` with `stop_reason=baseline_not_coherent`, as an L3
-Owner boundary — promoting on top of an already-incoherent state would leave no coherent state to
-roll back to. `Get-ReleaseStateDomain` also refuses to call a mixed captured baseline
-`BASELINE_BASELINE` even when current state matches it field-for-field: restoring an incoherent
-state is not a safe end.
+Owner boundary, unless the coordinator has an exact positive provenance record for that historical
+overlay. Field equality alone never proves a mixed baseline: `Get-ReleaseStateDomain` requires both
+the captured baseline and the independently re-observed rollback state to pass the validator. An
+unknown, incomplete, ambiguous, or schema-incompatible mixed pair remains an unsafe end.
 
 ### A timeout may skip replay only on a *fully proven* postcondition
 

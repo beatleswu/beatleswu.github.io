@@ -735,3 +735,150 @@ def test_public_acceptance_is_skipped_when_the_earlier_live_generation_gate_alre
     )
     assert result["success"] is False
     assert "Scheduler container is not running" in result["detail"]
+
+
+# ---------------------------------------------------------------------------
+# Production baseline reconciliation: the real coordinator may admit the
+# one tracked 70f7-runtime/a2f33-static pair, but only after exact identity
+# matching. The metadata is local and tracked; these probes never contact
+# Production or invoke a mutating phase.
+# ---------------------------------------------------------------------------
+
+KNOWN_PAIR = REPO_ROOT / "deploy" / "known-production-rollback-pairs.json"
+
+
+def test_historical_rollback_pair_metadata_is_exact_and_positive_provenance_bound():
+    document = json.loads(KNOWN_PAIR.read_text(encoding="utf-8"))
+    assert document["schema"] == "go-odyssey-production-rollback-pair-v1"
+    assert document["provenance_policy"] == {
+        "mixed_pair_acceptance": "exact_record_only",
+        "same_sha_pair_acceptance": "strict_identity_coherence",
+    }
+    assert len(document["pairs"]) == 1
+    pair = document["pairs"][0]
+    assert pair["pair_id"] == "production-70f7-runtime-a2f33-static-overlay-20260914"
+    assert pair["runtime_source_sha"] == "70f7ed5067e8163eb7bc4cf1cfc664baec06f496"
+    assert pair["scheduler_source_sha"] == pair["runtime_source_sha"]
+    assert pair["static_source_sha"] == "a2f33eb0b1b567f02d6e46fbe4d19f6a13c358c8"
+    assert pair["static_overlay"] is True
+    assert pair["schema_migration_required"] is False
+    assert pair["schema_fingerprint"] == "5ebf4094dcec631137efe27e3ae38db8ccfde82068a33b2043c3399363dbd3c1"
+    assert len(pair["evidence"]["runtime_release_records"]) == 2
+    assert pair["evidence"]["compatibility_basis"]
+
+
+def test_real_pair_document_validator_rejects_a_record_without_compatibility_evidence():
+    validator_block = _extract_block(
+        "function Get-HistoricalRollbackPairField {",
+        "$historicalRollbackPairs =",
+    )
+    probe = f"""
+$ErrorActionPreference = 'Stop'
+Import-Module '{STATE_MACHINE_MODULE.as_posix()}' -Force -DisableNameChecking
+function Fail($message) {{ throw $message }}
+$historicalRollbackPairsPath = '{KNOWN_PAIR.as_posix()}'
+{validator_block}
+$document = Get-Content -Raw -LiteralPath '{KNOWN_PAIR.as_posix()}' | ConvertFrom-Json
+$valid = @(Assert-HistoricalRollbackPairDocument -Document $document)
+$broken = Get-Content -Raw -LiteralPath '{KNOWN_PAIR.as_posix()}' | ConvertFrom-Json
+$broken.pairs[0].evidence.compatibility_basis = @()
+$rejected = $false
+try {{ Assert-HistoricalRollbackPairDocument -Document $broken | Out-Null }}
+catch {{ $rejected = $true }}
+$schema_broken = Get-Content -Raw -LiteralPath '{KNOWN_PAIR.as_posix()}' | ConvertFrom-Json
+$schema_broken.pairs[0].schema_migration_required = $true
+$schema_rejected = $false
+try {{ Assert-HistoricalRollbackPairDocument -Document $schema_broken | Out-Null }}
+catch {{ $schema_rejected = $true }}
+[ordered]@{{ valid_count = $valid.Count; broken_rejected = $rejected; schema_rejected = $schema_rejected }} | ConvertTo-Json -Compress
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", probe],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=20, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout.strip().splitlines()[-1]) == {
+        "valid_count": 1,
+        "broken_rejected": True,
+        "schema_rejected": True,
+    }
+
+
+def test_coordinator_uses_exact_historical_pair_validator_and_keeps_default_strict_gate():
+    content = ORCHESTRATOR.read_text(encoding="utf-8")
+    assert "known-production-rollback-pairs.json" in content
+    assert "Assert-HistoricalRollbackPairDocument" in content
+    assert "Test-ProvenHistoricalMixedBaseline" in content
+    assert "Test-ReleaseBaselineIdentityAccepted" in content
+    assert "-ProvenMixedBaselineValidator $ProvenMixedBaselineValidator" in content
+    assert "static_generation_path = $state.static_generation_path" in content
+    assert "app_image_tag = $state.app_image_tag" in content
+    assert "scheduler_image_tag = $state.scheduler_image_tag" in content
+    # The real coordinator does not replace the default same-SHA validator or
+    # accept mixed state from a non-empty SHA/path alone.
+    assert "Test-ReleaseIdentityCoherent -State $baseline" not in content
+    assert "exact_record_only" in content
+    assert "schema_migration_required" in content
+
+
+def test_real_historical_pair_matcher_accepts_only_the_exact_runtime_static_identity():
+    pair = json.loads(KNOWN_PAIR.read_text(encoding="utf-8"))["pairs"][0]
+    matcher_dependencies = _extract_block(
+        "function Get-HistoricalRollbackPairField {",
+        "function Assert-HistoricalRollbackPairDocument {",
+    )
+    matcher_block = _extract_block(
+        "function Test-ProvenHistoricalMixedBaseline {",
+        "$releaseArtifactsDir =",
+    )
+    def ps(value: str) -> str:
+        return "'" + value.replace("'", "''") + "'"
+
+    state_fields = {
+        "app_sha": pair["runtime_source_sha"],
+        "scheduler_sha": pair["scheduler_source_sha"],
+        "static_sha": pair["static_source_sha"],
+        "app_image_tag": pair["runtime_image_tag"],
+        "app_image_id": pair["runtime_image_id"],
+        "scheduler_image_tag": pair["scheduler_image_tag"],
+        "scheduler_image_id": pair["scheduler_image_id"],
+        "static_generation_path": pair["static_generation_path"],
+    }
+    fields_literal = "\n".join(f"    {name} = {ps(value)}" for name, value in state_fields.items())
+    pair_fields = {
+        "runtime_source_sha": pair["runtime_source_sha"],
+        "scheduler_source_sha": pair["scheduler_source_sha"],
+        "static_source_sha": pair["static_source_sha"],
+        "runtime_image_tag": pair["runtime_image_tag"],
+        "runtime_image_id": pair["runtime_image_id"],
+        "scheduler_image_tag": pair["scheduler_image_tag"],
+        "scheduler_image_id": pair["scheduler_image_id"],
+        "static_generation_path": pair["static_generation_path"],
+    }
+    pair_fields_literal = "\n".join(f"    {name} = {ps(value)}" for name, value in pair_fields.items())
+    probe = FAKE_DEPENDENCIES_PREAMBLE + f"""
+{matcher_dependencies}
+{matcher_block}
+$pair = [pscustomobject]@{{
+{pair_fields_literal}
+}}
+$good = [pscustomobject]@{{
+{fields_literal}
+}}
+$bad = $good | Select-Object *
+$bad.static_generation_path = $good.static_generation_path + '-tampered'
+$missing = $good | Select-Object *
+$missing.scheduler_image_id = ''
+[ordered]@{{
+    good = (Test-ProvenHistoricalMixedBaseline -State $good -Pairs @($pair))
+    bad_path = (Test-ProvenHistoricalMixedBaseline -State $bad -Pairs @($pair))
+    missing_image = (Test-ProvenHistoricalMixedBaseline -State $missing -Pairs @($pair))
+}} | ConvertTo-Json -Compress
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", probe],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=20, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload == {"good": True, "bad_path": False, "missing_image": False}

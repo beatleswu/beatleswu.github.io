@@ -1,0 +1,69 @@
+{
+  "$schema_note": "Exact, immutable provenance for historically deployed rollback combinations. Same-SHA pairs remain governed by strict identity coherence; a mixed pair is admissible only when every observed identity matches one record here.",
+  "schema": "go-odyssey-production-rollback-pair-v1",
+  "provenance_policy": {
+    "mixed_pair_acceptance": "exact_record_only",
+    "same_sha_pair_acceptance": "strict_identity_coherence"
+  },
+  "pairs": [
+    {
+      "pair_id": "production-70f7-runtime-a2f33-static-overlay-20260914",
+      "runtime_source_sha": "70f7ed5067e8163eb7bc4cf1cfc664baec06f496",
+      "scheduler_source_sha": "70f7ed5067e8163eb7bc4cf1cfc664baec06f496",
+      "runtime_image_tag": "go-odyssey-app:70f7ed50",
+      "runtime_image_id": "sha256:2ac430fa687a11e7b7459ddcbd06cc97701d0352eb3b905691d0afae3f211636",
+      "scheduler_image_tag": "go-odyssey-app:70f7ed50",
+      "scheduler_image_id": "sha256:2ac430fa687a11e7b7459ddcbd06cc97701d0352eb3b905691d0afae3f211636",
+      "static_source_sha": "a2f33eb0b1b567f02d6e46fbe4d19f6a13c358c8",
+      "expected_runtime_base_sha": "a2f33eb0b1b567f02d6e46fbe4d19f6a13c358c8",
+      "static_overlay": true,
+      "static_generation_id": "20260913-164722-a2f33eb0-v241-p0-srs-static-closure-hotfix",
+      "static_generation_path": "/opt/go-odyssey-static/releases/20260913-164722-a2f33eb0-v241-p0-srs-static-closure-hotfix",
+      "static_manifest_sha256": "99754033e02b362163c214524368ca738528e48cc45bab97b39b3b473ab606fb",
+      "static_archive_sha256": "a35c859f55785d9af2b0538fdc596a02929467742eac368b057135619c008d0d",
+      "static_service_worker_version": "v241-p0-srs-static-closure-hotfix",
+      "static_sw_sha256": "30977dd39dd90f4bea2f07dcd1f3e1159b10b0f179945d29cef8c58121d00136",
+      "static_i18n_sha256": "46d68158b7482e66fc28df9dd4020360ca1c2addfb191c400ee6259541d7d668",
+      "static_index_sha256": "8e35c889a9ce02ffcd18592d7e50cc6fd60b4919296275985779ffdeefa44edf",
+      "static_asset_count": 2012,
+      "schema_fingerprint": "5ebf4094dcec631137efe27e3ae38db8ccfde82068a33b2043c3399363dbd3c1",
+      "schema_migration_required": false,
+      "evidence": {
+        "runtime_release_records": [
+          {
+            "path": "/opt/go-odyssey/releases/go-odyssey-app_a2f33eb0.deployment.json",
+            "sha256": "fbece5ac157c5f5f2a0de79bbe95fe224b7dc68dfc898a525ac2ef4839df9fcb",
+            "source_sha": "a2f33eb0b1b567f02d6e46fbe4d19f6a13c358c8",
+            "verification_result": "production verified stable 3x"
+          },
+          {
+            "path": "/opt/go-odyssey/releases/go-odyssey-app_70f7ed50.deployment.json",
+            "sha256": "f21ef7732b63f14808d3723c0db6b6278c056fddf7aa1e0e4eec12e6803e20de",
+            "source_sha": "70f7ed5067e8163eb7bc4cf1cfc664baec06f496",
+            "previous_runtime_source_sha": "a2f33eb0b1b567f02d6e46fbe4d19f6a13c358c8",
+            "verification_result": "production verified stable 3x"
+          }
+        ],
+        "runtime_artifact": {
+          "path": "/opt/go-odyssey/releases/go-odyssey-app_70f7ed50.tar",
+          "sha256": "558e250b384267535048403caebd3c686d2325c9eadc90f43e2dbf9d84c6cae7",
+          "image_id": "sha256:2ac430fa687a11e7b7459ddcbd06cc97701d0352eb3b905691d0afae3f211636"
+        },
+        "static_release_manifest": {
+          "path": "/opt/go-odyssey-static/releases/20260913-164722-a2f33eb0-v241-p0-srs-static-closure-hotfix/release-manifest.json",
+          "sha256": "99754033e02b362163c214524368ca738528e48cc45bab97b39b3b473ab606fb",
+          "release_git_sha": "a2f33eb0b1b567f02d6e46fbe4d19f6a13c358c8",
+          "archive_sha256": "a35c859f55785d9af2b0538fdc596a02929467742eac368b057135619c008d0d",
+          "archive_retention_note": "The immutable generation directory is the rollback target; the archive hash remains locked by this manifest even when the staging archive is not retained."
+        },
+        "compatibility_basis": [
+          "The a2f33 static generation was served from its immutable generation directory before and after the later 70f7 runtime deployment.",
+          "The a2f33 app and scheduler deployment was recorded stable 3x before 70f7 was deployed.",
+          "The 70f7 deployment record records the a2f33 runtime image as its previous runtime and was recorded stable 3x.",
+          "The a2f33-to-70f7 path changed no app.py, scheduler.py, Dockerfile, production compose file, migrations, public JavaScript, sw.js, or i18n.js files.",
+          "The current Production schema fingerprint matches the recorded schema and neither a2f33 nor 70f7 contains a migration change."
+        ]
+      }
+    }
+  ]
+}
