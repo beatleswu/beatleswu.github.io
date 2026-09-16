@@ -318,3 +318,41 @@ def test_stale_from_path_move_fails_closed(sqlite_store):
     with pytest.raises(PuzzleIdentityError):
         st.record_move(u, from_path="fabricated.sgf", to_path="fc/2.sgf", actor="a", reason="m")
     assert st.get_lineage(u) == before
+
+
+# ---------------------------------------------------------- TD-003 (has_identity_tables)
+
+def test_pg_has_identity_tables_false_path_preserves_callers_uncommitted_work(pg_conn):
+    """The real-PostgreSQL proof for TD-003: the original bug was specifically
+    about clearing PostgreSQL's "current transaction is aborted" state after
+    an UndefinedTable error, via a plain connection-wide rollback() - which
+    also discarded whatever else the caller had done on that connection.
+    Deliberately do NOT call upgrade(pg_conn) here, so the identity tables
+    genuinely do not exist and has_identity_tables() hits a real psycopg2
+    UndefinedTable, inside a transaction that already holds unrelated,
+    uncommitted caller work.
+    """
+    pg_conn.execute("CREATE TABLE caller_owned_marker (id SERIAL PRIMARY KEY, note TEXT)")
+    pg_conn.commit()  # DDL committed up front; only the INSERT below stays uncommitted
+    pg_conn.execute(
+        "INSERT INTO caller_owned_marker (note) VALUES (%s)", ("caller wrote this first",)
+    )
+
+    store = PuzzleIdentityStore(pg_conn, clock=lambda: _FIXED)
+    assert store.has_identity_tables() is False
+
+    # the caller's own prior uncommitted row must still be visible on this
+    # same connection/transaction - a bare rollback() would have erased it
+    row = pg_conn.execute("SELECT note FROM caller_owned_marker").fetchone()
+    assert row is not None and row[0] == "caller wrote this first"
+
+    # and the connection must still be in a normal, usable state for
+    # whatever the caller does next (a real PostgreSQL "aborted transaction"
+    # would reject *any* further statement, even a harmless SELECT, until
+    # rolled back)
+    pg_conn.execute(
+        "INSERT INTO caller_owned_marker (note) VALUES (%s)", ("subsequent write too",)
+    )
+    pg_conn.commit()
+    count = pg_conn.execute("SELECT COUNT(*) FROM caller_owned_marker").fetchone()[0]
+    assert count == 2

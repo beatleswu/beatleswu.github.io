@@ -178,7 +178,34 @@ def _load_existing_audio_entries() -> dict[str, dict]:
     }
 
 
-def _production_entry(beat: dict) -> dict:
+# Fields that together prove a rebuilt entry is the exact same canonical
+# dialogue/audio slot as a prior entry with the same BEAT_ID - not just the
+# same beat position, but the same text, speaker and locked voice. Any
+# mismatch (a rewritten line, a recast character, a changed locked voice)
+# means the prior PRONUNCIATION_OVERRIDE no longer provably applies, so it
+# is not carried forward. No fuzzy matching, no inference: this is the
+# generator's own already-deterministic identity fields, checked for exact
+# equality only.
+_OVERRIDE_IDENTITY_FIELDS = ("BEAT_ID", "TEXT_HASH", "CHARACTER", "VOICE_ID")
+
+
+def _preserved_pronunciation_override(existing_entries: dict[str, dict], entry: dict):
+    """The existing PRONUNCIATION_OVERRIDE for ``entry``, or None.
+
+    Fails closed to None (the same value a brand-new entry gets) whenever
+    identity cannot be proven exactly: no prior entry for this BEAT_ID, or
+    any of the identity fields differ, or the prior entry never had an
+    override to begin with.
+    """
+    existing = existing_entries.get(entry["BEAT_ID"])
+    if not isinstance(existing, dict):
+        return None
+    if any(existing.get(field) != entry.get(field) for field in _OVERRIDE_IDENTITY_FIELDS):
+        return None
+    return existing.get("PRONUNCIATION_OVERRIDE")
+
+
+def _production_entry(beat: dict, existing_entries: dict[str, dict] | None = None) -> dict:
     character = beat["CHARACTER"]
     voice_id, voice_name = LOCKED_PRODUCTION_VOICES[character]
     path = _runtime_path(beat)
@@ -201,6 +228,8 @@ def _production_entry(beat: dict) -> dict:
         "VOICE_STATUS": "OWNER_APPROVED_PENDING_GENERATION",
         "PRONUNCIATION_OVERRIDE": None,
     }
+    if existing_entries:
+        entry["PRONUNCIATION_OVERRIDE"] = _preserved_pronunciation_override(existing_entries, entry)
     if path.is_file():
         try:
             entry["DURATION_MS"], entry["BYTES"], entry["SHA256"] = _file_metadata(path)
@@ -212,7 +241,14 @@ def _production_entry(beat: dict) -> dict:
 
 
 def _write_final_audio_manifest(subtitles: dict) -> dict:
-    """Write the one locale-scoped production manifest from subtitle beats."""
+    """Write the one locale-scoped production manifest from subtitle beats.
+
+    Existing PRONUNCIATION_OVERRIDE values on the manifest currently on disk
+    are carried forward for entries that provably keep the same identity
+    (see _preserved_pronunciation_override) - a rebuild must not silently
+    discard Owner-approved pronunciation repairs.
+    """
+    existing_entries = _load_existing_audio_entries()
     AUDIO_MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     document = {
         "SCHEMA_VERSION": "E10_ZONE3_CINEMATIC_AUDIO_MANIFEST_V1",
@@ -224,7 +260,7 @@ def _write_final_audio_manifest(subtitles: dict) -> dict:
         "VOICE_LANGUAGE_MISMATCH": "FORBIDDEN",
         "MISSING_LOCALE_VOICE_FALLBACK": "SUBTITLE_ONLY",
         "REPLAY_DIALOGUE_SOURCE": _relative(SUBTITLE_MANIFEST_PATH),
-        "entries": [_production_entry(beat) for beat in subtitles["beats"]],
+        "entries": [_production_entry(beat, existing_entries) for beat in subtitles["beats"]],
     }
     AUDIO_MANIFEST_PATH.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return document
