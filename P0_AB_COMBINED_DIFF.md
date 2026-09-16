@@ -50,4 +50,7 @@ MBV1_AUTHORITY_REDESIGN_CHANGED=NO
 HISTORICAL_RECOVERY_INCLUDED=NO
 ~~~
 
-git diff --check was clean before the governance reports were added.
+The Product-code scoped git diff --check was clean before the governance
+reports were added. A full base-to-branch diff still reports only the three
+pre-existing accepted Lane A evidence reports' blank-at-EOF warnings; no
+Product-code whitespace warning is present.
