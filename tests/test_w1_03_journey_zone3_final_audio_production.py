@@ -98,11 +98,37 @@ def test_missing_locale_voice_contract_remains_subtitle_only_without_cross_langu
     assert all(entry["VOICE_LANGUAGE"] == "zh" for entry in audio["entries"])
 
 
-def test_final_generation_is_resumable_and_does_not_regenerate_valid_assets(monkeypatch, capsys):
+def test_final_generation_is_resumable_and_does_not_regenerate_valid_assets(
+    monkeypatch, capsys, tmp_path
+):
     tool_dir = ROOT / "tools" / "e10_zone3_audio"
     sys.path.insert(0, str(tool_dir))
     try:
         import generate_zone3_audio as generator  # noqa: PLC0415
+
+        # generator._generate_final_production() always ends with an
+        # unconditional _write_final_audio_manifest() call, even when
+        # (as here) every beat is already valid and nothing is regenerated -
+        # that's the "resumable checkpoint" behaviour under test. That write
+        # target is generator.AUDIO_MANIFEST_PATH, a REPO_ROOT-relative
+        # constant pointing at the real, tracked, Owner-approved manifest -
+        # not a fixture. Rebuilding each entry from scratch
+        # (generator._production_entry) also unconditionally sets
+        # PRONUNCIATION_OVERRIDE to None rather than carrying forward any
+        # existing value, so running this test used to both rewrite the
+        # canonical manifest AND silently null out every pronunciation
+        # override it contained. Audio *reading* stays against the real
+        # committed files (legitimate read-only ground truth used to prove
+        # "already valid, skip"); only the manifest *write* target is
+        # redirected, to a copy seeded with the real file's current content
+        # so the skip/match logic sees the same existing entries it would in
+        # production.
+        real_manifest = generator.AUDIO_MANIFEST_PATH
+        fixture_manifest = tmp_path / real_manifest.name
+        fixture_manifest.write_text(real_manifest.read_text(encoding="utf-8"), encoding="utf-8")
+        monkeypatch.setattr(generator, "AUDIO_MANIFEST_PATH", fixture_manifest)
+
+        real_manifest_bytes_before = real_manifest.read_bytes()
 
         class NoNetworkTts:
             def _text_to_speech(self, *args, **kwargs):
@@ -115,5 +141,11 @@ def test_final_generation_is_resumable_and_does_not_regenerate_valid_assets(monk
         assert "FINAL_PRODUCTION_GENERATED=0" in output
         assert "FINAL_PRODUCTION_SKIPPED=56" in output
         assert "FINAL_PRODUCTION_VERIFICATION=PASS" in output
+
+        # The isolation itself, proven rather than assumed: the fixture copy
+        # received the checkpoint write(s) the real function performs...
+        assert fixture_manifest.is_file()
+        # ...and the real, tracked manifest was never opened for writing.
+        assert real_manifest.read_bytes() == real_manifest_bytes_before
     finally:
         sys.path.remove(str(tool_dir))
