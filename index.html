@@ -9263,18 +9263,27 @@ function _e10MeasureElementRect(el, attemptNumber) {
     return { width: rect.width || 0, height: rect.height || 0 };
 }
 
+const ADVENTURE_UNAVAILABLE_SOURCE_CONTEXT = 'adventure_unavailable';
+
 function _currentReviewMetadata(){
     const params=new URLSearchParams(location.search);
     const setId=params.get('premium_set');
     const bossSourceContext = _bossMode && _bossAttemptId
         ? `boss_trial:${_bossAttemptId}`
         : null;
+    const adventureUnavailable = !_bossMode
+        && _isAdventureZonePractice()
+        && !_mapBattleV1IsActive();
+    const legacyReviewSourceContext = setId?'premium_weekly':(_guildQuestMode?'guild_quest':'practice');
     const metadata = {
         response_ms:_questionStartedAt?Math.round(performance.now()-_questionStartedAt):null,
-        source_context:bossSourceContext || (setId?'premium_weekly':(_guildQuestMode?'guild_quest':'practice')),
+        source_context:bossSourceContext || (adventureUnavailable
+            ? ADVENTURE_UNAVAILABLE_SOURCE_CONTEXT
+            : legacyReviewSourceContext),
         training_set_id:setId?Number(setId):null,
         is_scaffolding:params.get('scaffold')==='1'||!!_premiumWeeklyMode?.rescue
     };
+    if (adventureUnavailable) metadata.adventure_failure_mode = _mapBattleV1Mode;
     // Guild leaderboard credit is settled by the server judge, never by the
     // `guild_quest` label or the client's own grade.  A Guild-mode submission
     // always carries the answer envelope, even when the move list is empty;
@@ -9296,6 +9305,7 @@ function _incident002ServerPracticeFlow() {
         && !_challengeId
         && !_dailyMode
         && !_premiumWeeklyMode
+        && !_isAdventureZonePractice()
         && !_mapBattleV1IsActive()
         && _mapBattleV1Mode !== 'blocked'
         && typeof SRS?.practiceAnswer === 'function';
@@ -9926,6 +9936,10 @@ async function submitSRS(grade){
         : null;
     if (!_bossMode && _mapBattleV1Mode === 'active' && _mapBattleV1State) {
         await _submitMapBattleV1IfActive(_mapBattleV1Moves);
+        return;
+    }
+    if (!_bossMode && _isAdventureZonePractice() && !_mapBattleV1IsActive()) {
+        _blockAdventureProgression('answer_submission_without_active_map_battle');
         return;
     }
     if (!_bossMode && _mapBattleV1Mode === 'blocked') {
@@ -10805,6 +10819,21 @@ function _mapBattleV1IsActive() {
         && _mapBattleV1State.active === true;
 }
 
+function _blockAdventureProgression(reason) {
+    _mapBattleV1Mode = 'blocked';
+    _mapBattleV1State = null;
+    _syncE10BattleActions(false);
+    setMsg('Adventure is temporarily unavailable; no answer fallback was used.', 'err');
+    if (typeof document !== 'undefined') {
+        notifyAdventureQuestionRuntimeError(reason || 'map_battle_unavailable');
+    }
+    _e10AcceptanceTrace('ADVENTURE_PROGRESS_BLOCKED', {
+        reason: reason || 'map_battle_unavailable',
+        source_context: ADVENTURE_UNAVAILABLE_SOURCE_CONTEXT,
+    });
+    _publishMapBattleV1Lifecycle();
+}
+
 function _mapBattleV1QuestionContext(q) {
     const params = new URLSearchParams(location.search);
     return {
@@ -10875,7 +10904,7 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
     }
     const adapter = window.MapBattleV1 && window.MapBattleV1.legacy;
     if (!adapter || typeof adapter.prepare !== 'function') {
-        _mapBattleV1Mode = 'disabled';
+        _blockAdventureProgression('map_battle_adapter_unavailable');
         return null;
     }
     const context = _mapBattleV1QuestionContext(q);
@@ -10928,10 +10957,9 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
         }
         const code = error && error.code;
         if (code === 'map_battle_v1_disabled' || code === 'map_battle_mode_not_eligible') {
-            _mapBattleV1Mode = 'disabled';
+            _blockAdventureProgression(code);
         } else {
-            _mapBattleV1Mode = 'blocked';
-            setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
+            _blockAdventureProgression('map_battle_runtime_failure');
         }
         _publishMapBattleV1Lifecycle();
         return null;
@@ -12491,6 +12519,16 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     }
     if (!isCurrent() || generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_after_prepare' });
+        return false;
+    }
+    if (!_bossMode && _isAdventureZonePractice() && !_mapBattleV1IsActive()) {
+        _blockAdventureProgression(`map_battle_${_mapBattleV1Mode || 'unavailable'}`);
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', {
+            ok: false,
+            qid: questionId,
+            reason: 'adventure_progression_unavailable',
+            source_context: ADVENTURE_UNAVAILABLE_SOURCE_CONTEXT,
+        });
         return false;
     }
     _syncE10BattleActions(true);

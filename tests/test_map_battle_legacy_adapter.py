@@ -931,6 +931,70 @@ def test_global_mode_remains_available_without_admin_status(api_env, monkeypatch
     assert state["attempt_id"]
 
 
+def test_global_mode_admits_authoritative_admin_without_session_privilege_claim(api_env, monkeypatch):
+    client, conn = api_env
+    monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "global")
+    _set_authoritative_admin(conn, 101, True)
+    with client.session_transaction() as session:
+        session["is_admin"] = False
+        session["plan"] = "free"
+
+    state = _prepare(client, "legacy::global-admin")
+    assert state["battle_id"]
+    assert state["attempt_id"]
+
+
+def test_anonymous_map_battle_attempt_preserves_canonical_login_boundary(api_env):
+    client, conn = api_env
+    with client.session_transaction() as session:
+        session.clear()
+
+    response = client.post(
+        ATTEMPT_ENDPOINT,
+        json={"zone_key": "legacy::anonymous", "question_id": QUESTION["id"]},
+        headers=PROTOCOL,
+    )
+
+    assert response.status_code == 401
+    assert response.get_json()["error"] == "未登入"
+    assert conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0] == 0
+
+
+def test_global_non_admin_adventure_answer_progresses_once_and_replays_safely(api_env, monkeypatch):
+    client, conn = api_env
+    monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "global")
+    with client.session_transaction() as session:
+        session["is_admin"] = False
+        session["plan"] = "free"
+
+    state = _prepare(client, "legacy::lane-b-global-e2e")
+    first_response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert first_response.status_code == 200, first_response.get_json()
+    first = first_response.get_json()
+    assert first["result"] == "CORRECT"
+    assert first["progression"]["status"] == "applied"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101 AND source_context LIKE 'mbv1:%'"
+    ).fetchone()[0] == 1
+
+    replay_response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert replay_response.status_code == 200, replay_response.get_json()
+    replay = replay_response.get_json()
+    assert replay["duplicate"] is True
+    assert replay["progression"]["status"] == "duplicate"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101 AND source_context LIKE 'mbv1:%'"
+    ).fetchone()[0] == 1
+
+
 def test_map_battle_progression_reuses_canonical_antifarming_for_new_attempts(api_env):
     client, conn = api_env
 
