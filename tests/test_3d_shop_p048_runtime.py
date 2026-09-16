@@ -73,6 +73,34 @@ def test_forbidden_foundation_field_fails_closed():
     assert error.value.code == "FORBIDDEN_AUTHORITY_FIELD"
 
 
+def test_runtime_projection_rejects_forbidden_field_fail_closed():
+    candidate = copy.deepcopy(_runtime())
+    candidate["entries"][0]["sku"] = "NOT_A_PRESENTATION_FIELD"
+    with pytest.raises(AssertionError, match="forbidden business/self-hash"):
+        validate_runtime_manifest(candidate, _foundation())
+
+
+def test_runtime_projection_rejects_missing_derivative_hash():
+    candidate = copy.deepcopy(_runtime())
+    candidate["entries"][0]["runtime_sha256"] = ""
+    with pytest.raises(AssertionError, match="runtime hash mismatch"):
+        validate_runtime_manifest(candidate, _foundation())
+
+
+def test_runtime_projection_rejects_wrong_domain_identity():
+    candidate = copy.deepcopy(_runtime())
+    candidate["entries"][6]["authority_domain"] = "HEAD_PRESENTATION"
+    with pytest.raises(AssertionError, match="wrong presentation authority domain"):
+        validate_runtime_manifest(candidate, _foundation())
+
+
+def test_runtime_projection_rejects_unsupported_companion_profile():
+    candidate = copy.deepcopy(_runtime())
+    candidate["entries"][7]["animation_profile"] = "UNSUPPORTED_PROFILE"
+    with pytest.raises(AssertionError, match="C04 segmented timeline contract changed"):
+        validate_runtime_manifest(candidate, _foundation())
+
+
 def test_c01_is_rigid_and_c04_subclips_are_segmented_from_clip():
     entries = {entry["presentation_id"]: entry for entry in _runtime()["entries"]}
     assert entries["P045_C01_BUNNY"]["animation_profile"] == "RIGID_TRANSFORM"

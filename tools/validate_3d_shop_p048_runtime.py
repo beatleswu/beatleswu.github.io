@@ -137,9 +137,12 @@ def _verify_entry_asset(entry: dict[str, Any], report: dict[str, Any]) -> None:
         }
 
 
-def validate_runtime_manifest() -> dict[str, Any]:
-    runtime = json.loads(RUNTIME_MANIFEST_PATH.read_text(encoding="utf-8"))
-    foundation = json.loads(FOUNDATION_MANIFEST_PATH.read_text(encoding="utf-8"))
+def validate_runtime_manifest(
+    runtime: dict[str, Any] | None = None,
+    foundation: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    runtime = runtime if runtime is not None else json.loads(RUNTIME_MANIFEST_PATH.read_text(encoding="utf-8"))
+    foundation = foundation if foundation is not None else json.loads(FOUNDATION_MANIFEST_PATH.read_text(encoding="utf-8"))
 
     if _collect_keys(runtime) & FORBIDDEN_KEYS:
         raise AssertionError(f"forbidden business/self-hash field in P048 runtime projection: {_collect_keys(runtime) & FORBIDDEN_KEYS}")
@@ -161,6 +164,16 @@ def validate_runtime_manifest() -> dict[str, Any]:
         raise AssertionError("P048 gate is not the explicit default-OFF contract")
     if tuple(item["presentation_id"] for item in runtime["entries"]) != EXPECTED_PROMOTED_IDS:
         raise AssertionError("P048 promoted entry order or logical set changed")
+    expected_domains = {
+        **{presentation_id: "HEAD_PRESENTATION" for presentation_id in EXPECTED_PROMOTED_IDS[:5]},
+        "P045_B02_BACKPACK": "BACK_PRESENTATION",
+        "P045_C01_BUNNY": "COMPANION_PRESENTATION",
+        "P045_C04_CORGI": "COMPANION_PRESENTATION",
+        "P045_V01_CONFETTI": "VICTORY_EFFECT_PRESENTATION",
+    }
+    for entry in runtime["entries"]:
+        if entry["authority_domain"] != expected_domains[entry["presentation_id"]]:
+            raise AssertionError(f"wrong presentation authority domain for {entry['presentation_id']}")
     if runtime["p045_runtime_asset_promotion_deferred"] is not False:
         raise AssertionError("P048 projection did not record promotion")
     if runtime["paid_asset_purchase_count"] != 0 or runtime["paid_asset_runtime_promotion"] != 0:

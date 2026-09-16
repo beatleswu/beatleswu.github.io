@@ -144,7 +144,7 @@
   "tests": {
     "foundation": "29 passed",
     "player_presentation": "37 passed",
-    "runtime": "9 passed",
+    "runtime": "13 passed",
     "relevant_regressions": "33 passed, 2 skipped"
   },
   "visual_evidence": {
