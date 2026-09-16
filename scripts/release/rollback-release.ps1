@@ -237,7 +237,11 @@ print(json.dumps(report, ensure_ascii=False))
         # The failed candidate app may be stopped. Probe the preserved volume
         # with the known rollback image, read-only and without network access,
         # so rollback availability never depends on candidate app execution.
-        $command = "docker run --rm --network none --read-only --entrypoint python -v $(Quote-PosixShellArgument $volumeSpec) $(Quote-PosixShellArgument $ImageTag) -X utf8 -"
+        # Keep stdin attached: the bounded Python probe is sent over SSH and
+        # must be consumed by the one-shot rollback image. Without `-i`,
+        # docker run gives Python an immediate EOF and exits 0 with no report,
+        # causing the mandatory corpus identity gate to bind a null report.
+        $command = "docker run --rm -i --network none --read-only --entrypoint python -v $(Quote-PosixShellArgument $volumeSpec) $(Quote-PosixShellArgument $ImageTag) -X utf8 -"
     }
     else {
         if ([string]::IsNullOrWhiteSpace($ContainerName)) {

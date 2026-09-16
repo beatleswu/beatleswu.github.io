@@ -113,7 +113,7 @@ def test_actual_rollback_execution_constructs_and_preserves_identity(tmp_path):
     events = json.loads((tmp_path / 'events.json').read_text(encoding='utf-8-sig'))
     assert events[0] == 'lock'
     assert events[-2:] == ['verify', 'unlock']
-    assert events[1].startswith('corpus-volume:docker run --rm --network none --read-only')
+    assert events[1].startswith('corpus-volume:docker run --rm -i --network none --read-only')
     assert '--entrypoint python' in events[1]
     assert 'fixture-volume:/app/data:ro' in events[1]
     assert 'fixture:baseline' in events[1]
@@ -149,7 +149,7 @@ def test_live_corpus_mismatch_blocks_before_runtime_switch(tmp_path, field):
     assert not (tmp_path / 'verify.json').exists()
     events = json.loads((tmp_path / 'events.json').read_text())
     assert events[0] == 'lock'
-    assert events[1].startswith('corpus-volume:docker run --rm --network none --read-only')
+    assert events[1].startswith('corpus-volume:docker run --rm -i --network none --read-only')
     assert events[2] == 'unlock'
     assert not any('up -d' in event for event in events)
 

@@ -780,6 +780,7 @@ Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
 [ordered]@{{
     inventory = Get-StaticPublicVerificationPlan -RelativePath 'inventory.html'
     item_journal = Get-StaticPublicVerificationPlan -RelativePath 'item_journal.html'
+    zone4_story = Get-StaticPublicVerificationPlan -RelativePath 'zone4_owner_story_runtime.html'
     javascript = Get-StaticPublicVerificationPlan -RelativePath 'i18n.js'
 }} | ConvertTo-Json -Compress
 """
@@ -793,6 +794,10 @@ Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
     assert payload["item_journal"]["route"] == "/item-journal"
     assert payload["item_journal"]["expected_redirect_status"] == 302
     assert payload["item_journal"]["expected_redirect_path"] == "/login"
+    assert payload["zone4_story"]["verification_mode"] == "AUTHENTICATED_ROUTE"
+    assert payload["zone4_story"]["route"] == "/zone4_owner_story_runtime.html"
+    assert payload["zone4_story"]["expected_redirect_status"] == 302
+    assert payload["zone4_story"]["expected_redirect_path"] == "/login"
     assert payload["javascript"]["verification_mode"] == "RAW_PUBLIC_BYTES"
 
 
@@ -839,6 +844,32 @@ def test_authenticated_item_journal_unexpected_redirect_fails_closed(tmp_path):
         inventory_location="/other",
         route_path="/item-journal",
         manifest_path="item_journal.html",
+    )
+    assert result["status"] == "unexpected_redirect"
+    assert result["redirect_path"] == "/other"
+    assert result["login_body_hashed"] is False
+
+
+def test_authenticated_zone4_story_redirect_is_verified_without_hashing_login_body(tmp_path):
+    result = _run_route_fixture(
+        tmp_path,
+        route_path="/zone4_owner_story_runtime.html",
+        manifest_path="zone4_owner_story_runtime.html",
+    )
+    assert result["status"] == "passed"
+    assert result["verification_mode"] == "AUTHENTICATED_ROUTE"
+    assert result["http_status"] == 302
+    assert result["redirect_path"] == "/login"
+    assert result["authenticated_route_verified"] is True
+    assert result["login_body_hashed"] is False
+
+
+def test_authenticated_zone4_story_unexpected_redirect_fails_closed(tmp_path):
+    result = _run_route_fixture(
+        tmp_path,
+        inventory_location="/other",
+        route_path="/zone4_owner_story_runtime.html",
+        manifest_path="zone4_owner_story_runtime.html",
     )
     assert result["status"] == "unexpected_redirect"
     assert result["redirect_path"] == "/other"
