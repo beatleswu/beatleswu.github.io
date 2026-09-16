@@ -113,9 +113,12 @@ captures.
 
 ## Source control
 
-The branch is based on the fresh `origin/master` snapshot above. Origin had
-four release-only drift commits touching six release/deployment files since
-the P046 parent; no Foundation-relevant or semantic conflict was found.
+The branch is based on the fresh `origin/master` snapshot above. Comparing
+P046's original parent to live `origin/master` spans five commits and twelve
+files, including the already-admitted P046 Foundation commit. Comparing the
+authorized P046 source head to live `origin/master` shows four subsequent
+release-only commits touching six release/deployment files. The Foundation is
+already present and no semantic conflict was found.
 The preserved local `secret_key.txt` is excluded from the candidate commit and
 was not read, staged, or changed.
 
