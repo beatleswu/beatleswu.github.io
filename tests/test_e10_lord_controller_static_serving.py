@@ -6,8 +6,11 @@ contract at the HTTP boundary: status, MIME type, exact candidate bytes, and
 traversal rejection.
 """
 
+import json
 import os
+import subprocess
 import sys
+import textwrap
 import types
 from pathlib import Path
 
@@ -22,33 +25,22 @@ SYNTHETIC_SECRET = "e10-v1a-runtime-serving-test-secret"
 # process-only synthetic value before this module can import the application.
 os.environ["SECRET_KEY"] = SYNTHETIC_SECRET
 
-SECRET_FILE_ACCESS_ATTEMPTS = []
-KATAGO_CACHE_ACCESS_ATTEMPTS = []
-
-
-def _protected_file_audit_hook(event, args):
-    """Fail closed before a runtime process can touch protected stray files."""
-    if event == "open":
-        try:
-            target = args[0]
-            name = os.path.basename(os.fspath(target))
-        except Exception:
-            return
-        if str(name).lower() == "secret_key.txt":
-            SECRET_FILE_ACCESS_ATTEMPTS.append({"blocked": True})
-            raise PermissionError("runtime-serving test refuses secret_key.txt access")
-    elif event == "sqlite3.connect":
-        try:
-            target = args[0]
-            name = os.path.basename(os.fspath(target))
-        except Exception:
-            return
-        if str(name).lower() == "katago_cache.db":
-            KATAGO_CACHE_ACCESS_ATTEMPTS.append({"blocked": True})
-            raise PermissionError("runtime-serving test refuses katago_cache.db access")
-
-
-sys.addaudithook(_protected_file_audit_hook)
+# NOTE: this module used to call sys.addaudithook(...) here, at module level.
+# Audit hooks cannot be removed for the lifetime of the process (CPython/PEP
+# 578 - that irreversibility is the whole point of the mechanism), so once
+# pytest collected this module the hook stayed armed for every later test in
+# the same session - including unrelated tests in other files that
+# legitimately touch a temp-directory file that happens to also be named
+# secret_key.txt (this hook only matches on basename). Reproduced directly:
+# running this module ahead of
+# tests/deployment/test_release_build_working_directory.py::
+# test_protected_untracked_filename_fails_without_content_read in one pytest
+# session made that unrelated test fail with a PermissionError raised from
+# THIS module's hook, on a synthetic-repo fixture file in a tmp_path this
+# module has no relationship to. Fixed the same way the sibling file
+# (test_e10_presentation_dispatcher_static_serving.py) already does it: the
+# audit hook only ever gets armed inside an isolated subprocess (see
+# _run_protected_runtime_probe below), never in the shared pytest process.
 
 
 def _install_app_import_stubs():
@@ -147,6 +139,116 @@ def test_controller_route_rejects_traversal_and_other_assets(client, path):
     assert response.status_code != 500
 
 
+def _protected_runtime_probe_source():
+    return textwrap.dedent(
+        f"""
+        import json
+        import os
+        import sys
+        import types
+
+        secret_file_access_attempts = []
+        katago_cache_access_attempts = []
+
+        def protected_file_audit_hook(event, args):
+            if event == "open":
+                try:
+                    name = os.path.basename(os.fspath(args[0]))
+                except Exception:
+                    return
+                if str(name).lower() == "secret_key.txt":
+                    secret_file_access_attempts.append({{"blocked": True}})
+                    raise PermissionError("runtime-serving probe refuses secret_key.txt access")
+            elif event == "sqlite3.connect":
+                try:
+                    name = os.path.basename(os.fspath(args[0]))
+                except Exception:
+                    return
+                if str(name).lower() == "katago_cache.db":
+                    katago_cache_access_attempts.append({{"blocked": True}})
+                    raise PermissionError("runtime-serving probe refuses katago_cache.db access")
+
+        sys.addaudithook(protected_file_audit_hook)
+        os.environ["SECRET_KEY"] = {SYNTHETIC_SECRET!r}
+
+        from flask import Blueprint
+
+        katago_explain = types.ModuleType("katago_explain")
+        katago_explain.KataGoExplainer = type("KataGoExplainer", (), {{}})
+        explain_overrides = types.ModuleType("explain_overrides")
+        explain_overrides.get_override = lambda *args, **kwargs: None
+        grimoire_api = types.ModuleType("grimoire_api")
+        grimoire_api.grimoire_bp = Blueprint("runtime_serving_probe_grimoire", __name__)
+        question_taxonomy = types.ModuleType("question_taxonomy")
+        question_taxonomy.get_taxonomy = lambda *args, **kwargs: {{}}
+        monster_taxonomy = types.ModuleType("monster_taxonomy")
+        monster_taxonomy.get_monster_taxonomy = lambda *args, **kwargs: {{}}
+        monster_taxonomy.mark_encounters = lambda *args, **kwargs: None
+        chapter_i18n = types.ModuleType("chapter_i18n")
+        chapter_i18n.localize_topic = lambda *args, **kwargs: ""
+        chapter_i18n.localize_level = lambda *args, **kwargs: ""
+        backend_i18n = types.ModuleType("backend_i18n")
+        backend_i18n.badge_en = lambda *args, **kwargs: ""
+        backend_i18n.skill_node_en = lambda *args, **kwargs: ""
+        backend_i18n.title_en = lambda *args, **kwargs: ""
+
+        sys.modules.update({{
+            "katago_explain": katago_explain,
+            "explain_overrides": explain_overrides,
+            "grimoire_api": grimoire_api,
+            "question_taxonomy": question_taxonomy,
+            "monster_taxonomy": monster_taxonomy,
+            "chapter_i18n": chapter_i18n,
+            "backend_i18n": backend_i18n,
+        }})
+
+        import app as app_module
+
+        app_module.CACHE_DB = ":memory:"
+        client = app_module.app.test_client()
+        response = client.get("/js/game/lord_trial_controller.js")
+
+        print(json.dumps({{
+            "status_code": response.status_code,
+            "mimetype": response.mimetype,
+            "body_matches_controller_bytes": response.data == open(
+                {str(CONTROLLER)!r}, "rb"
+            ).read(),
+            "secret_file_access_attempts": secret_file_access_attempts,
+            "katago_cache_access_attempts": katago_cache_access_attempts,
+        }}))
+        """
+    )
+
+
+def _run_protected_runtime_probe():
+    environment = os.environ.copy()
+    environment["SECRET_KEY"] = SYNTHETIC_SECRET
+    completed = subprocess.run(
+        [sys.executable, "-c", _protected_runtime_probe_source()],
+        cwd=REPO_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, (
+        f"protected probe failed: stdout={completed.stdout!r} "
+        f"stderr={completed.stderr!r}"
+    )
+    output_lines = [line for line in completed.stdout.splitlines() if line.strip()]
+    assert output_lines, f"protected probe produced no output: {completed.stderr!r}"
+    return json.loads(output_lines[-1])
+
+
 def test_protected_runtime_files_remain_unaccessed():
-    assert SECRET_FILE_ACCESS_ATTEMPTS == []
-    assert KATAGO_CACHE_ACCESS_ATTEMPTS == []
+    """Same claim as before (the route never touches secret_key.txt or
+    katago_cache.db), proved with an audit hook that only ever lives inside
+    its own subprocess rather than the shared pytest process."""
+    probe = _run_protected_runtime_probe()
+
+    assert probe["status_code"] == 200
+    assert probe["mimetype"] in {"application/javascript", "text/javascript"}
+    assert probe["body_matches_controller_bytes"] is True
+    assert probe["secret_file_access_attempts"] == []
+    assert probe["katago_cache_access_attempts"] == []
