@@ -809,6 +809,7 @@
     if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return ACTIVE_INTRO_CINEMATIC_KEY;
     if (zoneKey === 'k21_25') return 'e10_zone2_intro_v1';
     if (zoneKey === 'k16_20') return 'e10_zone3_intro_v1';
+    if (zoneKey === 'k11_15') return 'e10_zone4_intro_v1';
     return null;
   }
 
@@ -816,6 +817,7 @@
     if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return 'zone1EntryInFlight';
     if (zoneKey === 'k21_25') return 'zone2EntryInFlight';
     if (zoneKey === 'k16_20') return 'zone3EntryInFlight';
+    if (zoneKey === 'k11_15') return 'zone4EntryInFlight';
     return 'zone2EntryInFlight';
   }
 
