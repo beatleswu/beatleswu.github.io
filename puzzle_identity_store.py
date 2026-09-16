@@ -552,17 +552,28 @@ class PuzzleIdentityStore:
         A missing table surfaces as a driver error (SQLite ``OperationalError``,
         PostgreSQL ``UndefinedTable``); either way the read window degrades to
         UNAVAILABLE rather than raising into a caller.
+
+        This is a probe, not the owner of ``self._conn``'s transaction: a
+        caller may hold other uncommitted work on the same connection when it
+        calls this (e.g. via ``DualIdReadWindow``, constructed around a
+        caller-supplied connection). The previous implementation called
+        ``self._conn.rollback()`` on the failure path to clear PostgreSQL's
+        "aborted transaction" state after the UndefinedTable error - but a
+        plain ``rollback()`` discards the *whole* transaction, including any
+        of the caller's own prior uncommitted writes on that connection, not
+        just this probe's two no-op SELECTs. Every mutating method in this
+        class already solves the identical problem with ``self._unit()``
+        (SAVEPOINT / ROLLBACK TO SAVEPOINT / RELEASE), which undoes only what
+        happened since the savepoint and leaves the caller's outer
+        transaction otherwise untouched; reusing it here closes the same gap
+        for this read-only probe.
         """
         try:
-            self._one("SELECT 1 FROM puzzle_identity_alias WHERE 1=0")
-            self._one("SELECT 1 FROM puzzle_identity_registry WHERE 1=0")
+            with self._unit("has_identity_tables"):
+                self._one("SELECT 1 FROM puzzle_identity_alias WHERE 1=0")
+                self._one("SELECT 1 FROM puzzle_identity_registry WHERE 1=0")
             return True
         except Exception:  # noqa: BLE001
-            try:
-                if hasattr(self._conn, "rollback"):
-                    self._conn.rollback()  # clear an aborted PG transaction
-            except Exception:  # noqa: BLE001
-                pass
             return False
 
     def resolve(self, alias_kind: str, alias_value: str, *,
