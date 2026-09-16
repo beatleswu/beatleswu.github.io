@@ -1,0 +1,113 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #10131a;
+  color: #f5f7fb;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: radial-gradient(circle at top, #20283a 0, #10131a 52%);
+}
+
+button, select {
+  border: 1px solid #4d5d7a;
+  border-radius: 8px;
+  background: #1b2435;
+  color: inherit;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+}
+
+button { cursor: pointer; }
+button:hover, select:hover { border-color: #93b5ff; }
+
+.zone4-shell {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.zone4-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.zone4-header h1 { margin: 0; font-size: clamp(1.2rem, 2vw, 1.8rem); }
+.zone4-header p { margin: 0.35rem 0 0; color: #b9c3d7; }
+.zone4-owner-lock { color: #9ee6b3; font-size: 0.8rem; text-align: right; white-space: nowrap; }
+
+.zone4-toolbar, .zone4-navigation, .zone4-cues, .zone4-subtitles-panel, .zone4-uat-note {
+  border: 1px solid #2f3a51;
+  border-radius: 12px;
+  background: rgba(18, 24, 36, 0.88);
+  padding: 0.75rem;
+}
+
+.zone4-toolbar, .zone4-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.zone4-toolbar label, .zone4-navigation label { color: #c8d2e5; font-size: 0.9rem; }
+.zone4-toolbar .zone4-spacer { flex: 1; }
+
+.zone4-stage {
+  min-height: 420px;
+  border: 1px solid #34415c;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #07090e;
+  display: grid;
+  place-items: center;
+}
+
+#zone4-visual {
+  display: block;
+  width: 100%;
+  height: min(68vh, 720px);
+  object-fit: contain;
+  background: #07090e;
+}
+
+.zone4-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  padding: 0.7rem 0;
+  color: #bac7dd;
+  font-size: 0.86rem;
+}
+
+.zone4-meta strong { color: #fff; }
+.zone4-subtitles-panel { margin-top: 0.75rem; min-height: 5rem; }
+.zone4-subtitles-title { color: #91a8d4; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.zone4-dialogue-row { display: flex; gap: 0.75rem; padding-top: 0.45rem; line-height: 1.45; }
+.zone4-speaker { min-width: 6rem; color: #ffd58a; font-weight: 700; }
+.zone4-line-text { color: #f5f7fb; }
+
+.zone4-cues { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.zone4-cues:before { content: "Event-bound review cues"; width: 100%; color: #91a8d4; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.zone4-cue-button { font-size: 0.82rem; }
+
+.zone4-status { margin-top: 0.75rem; color: #9ee6b3; font: 0.8rem ui-monospace, SFMono-Regular, Consolas, monospace; }
+.zone4-uat-note { margin-top: 0.75rem; color: #d4d9e6; font-size: 0.86rem; }
+.zone4-uat-note strong { color: #ffd58a; }
+
+@media (max-width: 680px) {
+  .zone4-header { display: block; }
+  .zone4-owner-lock { margin-top: 0.5rem; text-align: left; }
+  .zone4-dialogue-row { display: block; }
+  .zone4-speaker { display: block; margin-bottom: 0.15rem; }
+  .zone4-stage { min-height: 240px; }
+  #zone4-visual { height: 52vh; }
+}

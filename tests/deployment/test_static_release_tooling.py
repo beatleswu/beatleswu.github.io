@@ -127,12 +127,31 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         "js/rpg_wave2_wearable_renderer.js",
     }
 )
-STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)
+
+# Zone4's Owner-final story review is now a separately governed static
+# presentation closure. Keep it additive to the historical B1/B2-B7 expected
+# sets so the older rollout snapshots remain meaningful.
+ZONE4_REQUIRED_IN_GENERATION = frozenset(
+    {
+        "zone4_owner_story_runtime.html",
+        "ZONE4_004_LORD_STATE_BINDING_MATRIX.json",
+        "ZONE4_004_RUNTIME_MANIFEST.json",
+        "ZONE4_RUNTIME_MANIFEST.json",
+        "css/e10/zone4_owner_story_runtime.css",
+    }
+)
+STATIC_CURRENT_REQUIRED_COUNT = (
+    STATIC_B1_REQUIRED_COUNT
+    + len(POST_B1_REQUIRED_IN_GENERATION)
+    + len(ZONE4_REQUIRED_IN_GENERATION)
+)
 
 
 def _current_expected_required_in_generation(presentation_present):
     return frozenset(
-        _expected_required_in_generation(presentation_present) | POST_B1_REQUIRED_IN_GENERATION
+        _expected_required_in_generation(presentation_present)
+        | POST_B1_REQUIRED_IN_GENERATION
+        | ZONE4_REQUIRED_IN_GENERATION
     )
 
 
@@ -562,9 +581,9 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
 def test_inventory_declares_complete_e10_runtime_dependency_boundary():
     inventory = _load_inventory()
     closure = inventory["runtime_dependency_closure"]
-    assert closure["entrypoints"] == ["index.html"]
+    assert closure["entrypoints"] == ["index.html", "zone4_owner_story_runtime.html"]
     assert {item["prefix"] for item in closure["subtrees"]} == {
-        "js/e9/", "css/e9/", "components/adventure/"
+        "js/e9/", "css/e9/", "components/adventure/", "js/e10/"
     }
     eligible = set(inventory["eligible_files"]["entries"])
     for required_path in (
@@ -572,6 +591,8 @@ def test_inventory_declares_complete_e10_runtime_dependency_boundary():
         "js/e9/adapters/adventure_state.js",
         "css/e9/world_stage.css",
         "components/adventure/world_stage.html",
+        "js/e10/zone4_owner_story_runtime.js",
+        "css/e10/zone4_owner_story_runtime.css",
     ):
         assert required_path in eligible
         assert (REPO_ROOT / required_path).is_file()

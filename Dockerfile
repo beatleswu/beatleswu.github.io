@@ -270,7 +270,9 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
      share_view.html mistakes.html curriculum.html hero.html \
      rating_test.html shop.html profile.html premium_weekly.html \
      stats.html upgrade.html play.html inventory.html badges.html \
-     item_journal.html games.html ./
+     item_journal.html games.html zone4_owner_story_runtime.html \
+     ZONE4_004_LORD_STATE_BINDING_MATRIX.json ZONE4_004_RUNTIME_MANIFEST.json \
+     ZONE4_RUNTIME_MANIFEST.json ./
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
      community_reward_rules.js pwa.js sgf_answer_review.js \
@@ -315,6 +317,11 @@ COPY js/game/cinematic_replay.js ./js/game/cinematic_replay.js
 # A041 Hero legacy-cache guard is a narrow browser runtime module referenced by
 # the server-owned Hero shell; keep the release copy explicit.
 COPY js/hero_legacy_cache_guard.js ./js/hero_legacy_cache_guard.js
+# Zone 4 Owner-final story review is a narrow presentation runtime. Keep its
+# page dependencies explicit in the image so the authenticated route remains
+# restorable when the live-static override is unavailable.
+COPY js/e10/zone4_owner_story_runtime.js ./js/e10/zone4_owner_story_runtime.js
+COPY css/e10/zone4_owner_story_runtime.css ./css/e10/zone4_owner_story_runtime.css
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog

@@ -28691,7 +28691,9 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     'mistakes.html', 'curriculum.html', 'hero.html', 'rating_test.html',
     'shop.html', 'profile.html', 'premium_weekly.html', 'stats.html',
     'upgrade.html', 'play.html', 'inventory.html', 'item_journal.html', 'badges.html',
-    'games.html',
+    'games.html', 'zone4_owner_story_runtime.html',
+    'ZONE4_004_LORD_STATE_BINDING_MATRIX.json', 'ZONE4_004_RUNTIME_MANIFEST.json',
+    'ZONE4_RUNTIME_MANIFEST.json',
 })
 
 
@@ -29028,6 +29030,43 @@ def serve_e9_components(subpath):
     if not subpath.endswith('.html'):
         abort(404)
     return _serve_live_static_or_baked_subpath(subpath, 'components/adventure', 'components/adventure')
+
+# Zone 4 Owner-final story review is a narrow authenticated presentation
+# surface. Keep its route set explicit: the page and manifests are root-level
+# governed files, while the single JS/CSS pair is served from its own exact
+# subpaths. This carries no gameplay, progression, reward, or state authority.
+@app.route('/ZONE4_004_LORD_STATE_BINDING_MATRIX.json')
+def serve_zone4_lord_state_binding_matrix():
+    return _serve_live_static_or_baked(
+        'ZONE4_004_LORD_STATE_BINDING_MATRIX.json',
+        mimetype='application/json; charset=utf-8',
+    )
+
+@app.route('/ZONE4_004_RUNTIME_MANIFEST.json')
+def serve_zone4_004_runtime_manifest():
+    return _serve_live_static_or_baked(
+        'ZONE4_004_RUNTIME_MANIFEST.json',
+        mimetype='application/json; charset=utf-8',
+    )
+
+@app.route('/ZONE4_RUNTIME_MANIFEST.json')
+def serve_zone4_runtime_manifest():
+    return _serve_live_static_or_baked(
+        'ZONE4_RUNTIME_MANIFEST.json',
+        mimetype='application/json; charset=utf-8',
+    )
+
+@app.route('/js/e10/zone4_owner_story_runtime.js')
+def serve_zone4_owner_story_runtime_js():
+    return _serve_live_static_or_baked_subpath(
+        'zone4_owner_story_runtime.js', 'js/e10', 'js/e10'
+    )
+
+@app.route('/css/e10/zone4_owner_story_runtime.css')
+def serve_zone4_owner_story_runtime_css():
+    return _serve_live_static_or_baked_subpath(
+        'zone4_owner_story_runtime.css', 'css/e10', 'css/e10'
+    )
 
 # ══════════════════════════════════════════════════════════════
 # 線上對弈模組（Socket.IO）
