@@ -1,0 +1,187 @@
+{
+  "task": "GO_ODYSSEY_3D_SHOP_THREEJS_RUNTIME_V1_FIRST_WAVE_INTEGRATION_048",
+  "baseline": {
+    "origin_master": "357d56a1de273c691e1e2c36974c0b5e2df63cae",
+    "origin_tree": "05ec3a69b22e1f19f7b620b8432a600d4be1d786",
+    "foundation_external_sha256": "9739f2a8d477dd0ad45174a40e3a5112d8d43d13008483d1acd74aa871e306e7"
+  },
+  "scope": {
+    "foundation_canonical_present": true,
+    "runtime_implemented": true,
+    "promoted_logical_ids": [
+      "P045_H06_BEANIE",
+      "P045_H06_TOP_HAT",
+      "P045_H06_FROG_HAT",
+      "P045_H06_SANTA_HAT",
+      "P045_H06_SUNGLASSES",
+      "P045_B02_BACKPACK",
+      "P045_C01_BUNNY",
+      "P045_C04_CORGI",
+      "P045_V01_CONFETTI"
+    ],
+    "hold_assets_not_promoted": ["H01", "B01", "B19", "H09", "A10", "T01", "V05"],
+    "paid_asset_purchase_count": 0,
+    "paid_asset_runtime_promotion": 0
+  },
+  "gate_and_authority": {
+    "gate": "3D_SHOP_PRESENTATION_ENABLED",
+    "default_enabled": false,
+    "preview_override": "?preview=1",
+    "model_request_when_gate_off": 0,
+    "normal_non_3d_page_model_requests": 0,
+    "shop_grid_realtime_renderers": 0,
+    "max_active_realtime_renderers": 1,
+    "preview_mutates_ownership": false,
+    "preview_mutates_equipment": false,
+    "product_sku_created": 0,
+    "commerce_authority_change": false,
+    "payment_change": false,
+    "db_migration": false,
+    "db_schema_change": false
+  },
+  "asset_integrity": {
+    "source_sha_validation": "PASS",
+    "derivative_sha_validation": "PASS",
+    "hero": {
+      "path": "assets/3d_shop/p048/hero/a1_basic_adventurer.glb",
+      "sha256": "AD6C0F6D96140BBA2CEE3033DA2AF45A7C583FDF5AC82990B8431ACDEA04D040"
+    },
+    "runtime_hashes": {
+      "P045_H06_BEANIE": "249AC0BCA07017CD49B44FF3F35DA4C053302FDD2CA67BF23EB08CD2FA1C2166",
+      "P045_H06_TOP_HAT": "EF8539BADC1BB900019A33FC81A19A3E773D5676D696B8CCD928A2E809259FF6",
+      "P045_H06_FROG_HAT": "BF1C037EE0B11537D6291FAC6114048CA2D39F2EED858BE2DEBA5D2D4643A458",
+      "P045_H06_SANTA_HAT": "4A6EB96E85EF4D41AF120CE0157618EAD56E007495ABC209248564EB33F29279",
+      "P045_H06_SUNGLASSES": "12EAF26C4FEC1E430F130F3F406AD1588D518E2646D81B0A6287360A275C6DD0",
+      "P045_B02_BACKPACK": "2447D90B7B3E1D12DDCF83BC9AC860445C5844ACD19FACCCA0304D4267DDE0F5",
+      "P045_C01_BUNNY": "94B654915D9DE70071BCF0BFA13DE379A3BA4FDFEB231F0FEC49335232CBC821",
+      "P045_C04_CORGI": "95CD2C4D53D70EE9DD2E1329DCB6DE7D4A725301D504A4F2F00ECB34DC1A0851",
+      "P045_V01_CONFETTI_2048": "6CEB7537F2D4D68A7490DC569E9849062246AB84FDB2E4BBA9C89FD626B93E37",
+      "P045_V01_CONFETTI_1024": "FCD9731D6E2FF4E856BB30138278317D4E356E0C24CF4B66B17C4F8123B974CF",
+      "P045_C01_TEXTURE": "2F6D0032E51C2D49B13B8E689D59EB39AA3EE6C32F2A1851213E11FC7593177D"
+    }
+  },
+  "runtime_checks": {
+    "hero_render": "PASS",
+    "hero_rotation_mouse": "PASS",
+    "hero_rotation_touch": "PASS",
+    "head_switch_count": 5,
+    "head_all_five": "PASS",
+    "duplicate_head_objects": 0,
+    "head_attachment_drift": 0,
+    "back_show_hide": "PASS",
+    "c01_profile": "RIGID_TRANSFORM",
+    "c01_runtime": "PASS",
+    "c04_profile": "SKINNED_SEGMENTED_TIMELINE",
+    "c04_idle": "PASS",
+    "c04_walk": "PASS",
+    "c04_attack": "PASS",
+    "c04_source_clip": "clip",
+    "c04_subclips": {
+      "idle": [0, 30],
+      "attack": [30, 60],
+      "dead": [60, 90],
+      "walk": [90, 120]
+    },
+    "v01_derivative": 2048,
+    "v01_trigger": "PASS",
+    "v01_retrigger": "PASS",
+    "v01_resource_leak": 0
+  },
+  "browser_evidence": {
+    "desktop": {
+      "viewport": [1280, 800],
+      "renderer_count": 1,
+      "model_requests_after_full_interaction": 10,
+      "js_errors": 0,
+      "webgl_errors": 0,
+      "layout_overflow": false,
+      "head_duplicate_samples": [0, 0, 0, 0, 0],
+      "v01_trigger_count": 2,
+      "v01_retrigger_count": 1,
+      "v01_resource_leak": 0,
+      "mouse_rotation_events": 6,
+      "touch_rotation_events": 0
+    },
+    "ipad_landscape": {
+      "viewport": [1180, 820],
+      "renderer_count": 1,
+      "model_requests": 5,
+      "js_errors": 0,
+      "webgl_errors": 0,
+      "layout_overflow": false,
+      "controls_visible": true
+    },
+    "ipad_portrait": {
+      "viewport": [820, 1180],
+      "renderer_count": 1,
+      "model_requests": 1,
+      "js_errors": 0,
+      "webgl_errors": 0,
+      "layout_overflow": false,
+      "controls_visible": true
+    },
+    "mobile_portrait": {
+      "viewport": [390, 844],
+      "renderer_count": 1,
+      "model_requests": 1,
+      "js_errors": 0,
+      "webgl_errors": 0,
+      "layout_overflow": false,
+      "controls_visible": true,
+      "touch_rotation_events": 2
+    },
+    "default_off_page": {
+      "renderer_count": 0,
+      "model_requests": 0,
+      "gate_label": "Default OFF · no model request"
+    },
+    "lan_http": {
+      "url": "http://192.168.0.237:8048/p048_3d_shop_preview.html?preview=1",
+      "http_status": 200,
+      "interactive_tab_ready": true
+    }
+  },
+  "tests": {
+    "foundation": "29 passed",
+    "player_presentation": "37 passed",
+    "runtime": "9 passed",
+    "relevant_regressions": "33 passed, 2 skipped"
+  },
+  "visual_evidence": {
+    "source": "actual P048 WebGL runtime canvas",
+    "desktop": [
+      "artifacts/p048_visual_evidence/desktop/baseline.png",
+      "artifacts/p048_visual_evidence/desktop/head-1.png",
+      "artifacts/p048_visual_evidence/desktop/head-2.png",
+      "artifacts/p048_visual_evidence/desktop/head-3.png",
+      "artifacts/p048_visual_evidence/desktop/head-4.png",
+      "artifacts/p048_visual_evidence/desktop/head-5.png",
+      "artifacts/p048_visual_evidence/desktop/backpack.png",
+      "artifacts/p048_visual_evidence/desktop/c01-idle.png",
+      "artifacts/p048_visual_evidence/desktop/c04-idle.png",
+      "artifacts/p048_visual_evidence/desktop/c04-walk.png",
+      "artifacts/p048_visual_evidence/desktop/c04-attack.png",
+      "artifacts/p048_visual_evidence/desktop/v01-active-retrigger.png",
+      "artifacts/p048_visual_evidence/desktop/mouse-rotated.png",
+      "artifacts/p048_visual_evidence/desktop/view-front.png",
+      "artifacts/p048_visual_evidence/desktop/view-three-quarter.png",
+      "artifacts/p048_visual_evidence/desktop/view-side.png",
+      "artifacts/p048_visual_evidence/desktop/view-back.png"
+    ],
+    "responsive": [
+      "artifacts/p048_visual_evidence/ipad-landscape.png",
+      "artifacts/p048_visual_evidence/ipad-portrait.png",
+      "artifacts/p048_visual_evidence/mobile-touch.png",
+      "artifacts/p048_visual_evidence/mobile-portrait.png"
+    ]
+  },
+  "governance": {
+    "app_py_changed": false,
+    "source_fbx_modified": false,
+    "product_sku_created": 0,
+    "merge": false,
+    "deploy": false,
+    "production_mutation": false,
+    "owner_visual_uat": "NOT_RUN"
+  }
+}

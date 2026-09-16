@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#081321">
+  <title>P048 · Go Odyssey 3D Shop Preview</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111e;
+      --panel: rgba(13, 29, 49, .94);
+      --panel-2: #102640;
+      --line: rgba(151, 202, 244, .25);
+      --text: #f4f8ff;
+      --muted: #a9bfd8;
+      --accent: #91d5ff;
+      --accent-2: #ffd779;
+      --good: #9be6bd;
+      --warn: #ffd08b;
+    }
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--bg); }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(57, 127, 188, .26), transparent 34rem),
+        radial-gradient(circle at 90% 12%, rgba(130, 79, 158, .18), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+      font: 15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, select { font: inherit; }
+    .shell { width: min(1280px, 100%); margin: 0 auto; padding: 22px clamp(14px, 3vw, 36px) 30px; }
+    header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 3px 0 3px; font-size: clamp(24px, 4vw, 38px); line-height: 1.08; }
+    .lede { max-width: 700px; margin: 0; color: var(--muted); }
+    .gate {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      border: 1px solid rgba(155, 230, 189, .38);
+      border-radius: 999px;
+      color: var(--good);
+      background: rgba(33, 91, 72, .22);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+    }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 346px; gap: 18px; align-items: start; }
+    .card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .22);
+      overflow: hidden;
+    }
+    .stage-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+    .stage-title { font-weight: 800; }
+    .stage-subtitle { color: var(--muted); font-size: 12px; }
+    #viewport {
+      position: relative;
+      width: 100%;
+      height: clamp(430px, 69vh, 720px);
+      min-height: 390px;
+      background: #081321;
+      touch-action: none;
+    }
+    #viewport canvas { display: block; width: 100%; height: 100%; }
+    .stage-tip { padding: 10px 16px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); }
+    .controls { padding: 16px; }
+    .controls h2 { margin: 0 0 5px; font-size: 18px; }
+    .controls .helper { margin: 0 0 13px; color: var(--muted); font-size: 12px; }
+    .control-group { margin: 0 0 12px; }
+    label { display: block; margin-bottom: 5px; color: #c6d9ec; font-size: 12px; font-weight: 750; }
+    select, button {
+      width: 100%;
+      min-height: 44px;
+      border-radius: 10px;
+      border: 1px solid #3c6388;
+      color: var(--text);
+      background: var(--panel-2);
+      padding: 9px 11px;
+    }
+    select:focus-visible, button:focus-visible { outline: 3px solid rgba(145, 213, 255, .45); outline-offset: 2px; }
+    button { cursor: pointer; font-weight: 800; }
+    button.primary { color: #061321; border-color: transparent; background: var(--accent); }
+    button.secondary { background: #173451; }
+    button:disabled { cursor: wait; opacity: .62; }
+    .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .diagnostics { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
+    .diagnostics h3 { margin: 0 0 7px; font-size: 13px; }
+    .diagnostics dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-size: 12px; }
+    .diagnostics dt { color: var(--muted); }
+    .diagnostics dd { margin: 0; color: #d9ebfc; text-align: right; font-variant-numeric: tabular-nums; }
+    .notice { margin-top: 13px; padding: 10px 11px; border-radius: 10px; background: rgba(255, 215, 121, .09); color: var(--warn); font-size: 12px; }
+    footer { margin-top: 16px; color: var(--muted); font-size: 12px; }
+    .hidden { display: none; }
+    @media (max-width: 900px) {
+      header { flex-direction: column; }
+      .gate { align-self: flex-start; }
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      #viewport { height: min(64vh, 640px); }
+    }
+    @media (max-width: 560px) {
+      .shell { padding: 14px 10px 22px; }
+      .card { border-radius: 14px; }
+      .stage-head { padding: 11px 12px; }
+      #viewport { height: 54vh; min-height: 360px; }
+      .stage-tip { padding: 9px 12px; }
+      .controls { padding: 13px 12px 14px; }
+      .button-row { grid-template-columns: 1fr; }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./assets/3d_shop/p048/vendor/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">GO ODYSSEY · P048 · ISOLATED PREVIEW</div>
+        <h1>3D Shop presentation room</h1>
+        <p class="lede">A1 Basic Adventurer with the approved first-wave presentation assets. Preview only: this page does not own, purchase, equip, or mutate gameplay state.</p>
+      </div>
+      <div class="gate" id="gate-label">Loading gate…</div>
+    </header>
+    <main class="layout">
+      <section class="card">
+        <div class="stage-head">
+          <div>
+            <div class="stage-title">A1 · Basic Adventurer</div>
+            <div class="stage-subtitle" id="stage-subtitle">Loading the presentation runtime…</div>
+          </div>
+          <div class="stage-subtitle" id="stage-view">3/4 view</div>
+        </div>
+        <div id="viewport" aria-label="P048 interactive 3D presentation stage"></div>
+        <div class="stage-tip">Drag with a mouse or one finger to rotate. Use the controls to lazy-load HEAD, BACK, COMPANION, and V01 presentations.</div>
+      </section>
+      <aside class="card controls" aria-label="P048 Owner preview controls">
+        <h2>Presentation controls</h2>
+        <p class="helper">All selections stay in the presentation layer. Default gate remains OFF outside this explicit preview override.</p>
+
+        <div class="control-group">
+          <label for="view-select">View</label>
+          <select id="view-select">
+            <option value="front">Front</option>
+            <option value="three-quarter" selected>3/4</option>
+            <option value="side">Side</option>
+            <option value="back">Back</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="head-select">HEAD · approved five</label>
+          <select id="head-select">
+            <option value="NONE">None</option>
+            <option value="P045_H06_BEANIE">Beanie</option>
+            <option value="P045_H06_TOP_HAT">Top Hat</option>
+            <option value="P045_H06_FROG_HAT">Frog Hat</option>
+            <option value="P045_H06_SANTA_HAT">Santa Hat</option>
+            <option value="P045_H06_SUNGLASSES">Sunglasses</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="back-select">BACK</label>
+          <select id="back-select">
+            <option value="NONE">None</option>
+            <option value="B02">B02 Backpack</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="companion-select">COMPANION</label>
+          <select id="companion-select">
+            <option value="NONE">None</option>
+            <option value="P045_C01_BUNNY">C01 · Bunny</option>
+            <option value="P045_C04_CORGI">C04 · Corgi</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="c04-action-group">
+          <label for="c04-action-select">C04 timeline segment</label>
+          <select id="c04-action-select">
+            <option value="idle">Idle</option>
+            <option value="walk">Walk</option>
+            <option value="attack">Attack</option>
+          </select>
+        </div>
+
+        <div class="button-row">
+          <button class="primary" id="victory-button" type="button">Trigger V01 Confetti</button>
+          <button class="secondary" id="reset-button" type="button">Reset presentation</button>
+        </div>
+
+        <div class="diagnostics">
+          <h3>Runtime evidence</h3>
+          <dl>
+            <dt>Renderer count</dt><dd id="diag-renderer">0</dd>
+            <dt>Model requests</dt><dd id="diag-requests">0</dd>
+            <dt>HEAD duplicates</dt><dd id="diag-head-duplicates">0</dd>
+            <dt>V01 trigger / retrigger</dt><dd id="diag-v01-counts">0 / 0</dd>
+            <dt>V01 active / leaks</dt><dd id="diag-v01">no / 0</dd>
+            <dt>Mouse / touch drags</dt><dd id="diag-rotate">0 / 0</dd>
+            <dt>JS errors</dt><dd id="diag-js-errors">0</dd>
+            <dt>WebGL errors</dt><dd id="diag-webgl-errors">0</dd>
+            <dt>Layout overflow</dt><dd id="diag-overflow">no</dd>
+          </dl>
+        </div>
+        <div class="notice" id="runtime-note">Starting…</div>
+      </aside>
+    </main>
+    <footer>Owner UAT is intentionally <strong>NOT RUN</strong>. This isolated page is the P048 candidate preview; merge, deploy, and Production remain out of scope.</footer>
+  </div>
+
+  <script type="module">
+    import { mountP048Preview } from "./js/3d_shop_p048_runtime.js";
+
+    const $ = (selector) => document.querySelector(selector);
+    const query = new URLSearchParams(location.search);
+    const previewOverride = query.get("preview") === "1";
+    const errors = [];
+    let runtime = null;
+    let busy = false;
+
+    window.addEventListener("error", (event) => {
+      errors.push(String(event.error?.stack || event.message || "JavaScript error"));
+      updateDiagnostics(runtime?.getDiagnostics?.());
+    });
+    window.addEventListener("unhandledrejection", (event) => {
+      errors.push(String(event.reason?.stack || event.reason || "Unhandled rejection"));
+      updateDiagnostics(runtime?.getDiagnostics?.());
+    });
+
+    function updateDiagnostics(diagnostics) {
+      const data = diagnostics || {};
+      $("#diag-renderer").textContent = String(data.renderer_count ?? 0);
+      $("#diag-requests").textContent = String(data.model_request_count ?? 0);
+      $("#diag-head-duplicates").textContent = String(data.duplicate_head_objects ?? 0);
+      $("#diag-v01-counts").textContent = String(data.v01_trigger_count ?? 0) + " / " + String(data.v01_retrigger_count ?? 0);
+      $("#diag-v01").textContent = (data.v01_active ? "yes" : "no") + " / " + String(data.v01_resource_leak ?? 0);
+      $("#diag-rotate").textContent = String(data.mouse_rotation_events ?? 0) + " / " + String(data.touch_rotation_events ?? 0);
+      $("#diag-js-errors").textContent = String(errors.length);
+      $("#diag-webgl-errors").textContent = String(data.webgl_errors ?? 0);
+      const overflow = document.documentElement.scrollWidth > document.documentElement.clientWidth ||
+        document.body.scrollWidth > document.body.clientWidth;
+      $("#diag-overflow").textContent = overflow ? "YES" : "no";
+      if (data.view) $("#stage-view").textContent = data.view === "three-quarter" ? "3/4 view" : data.view + " view";
+      if (data.enabled) {
+        $("#stage-subtitle").textContent = "Interactive runtime ready · " + (data.companion || "no companion") +
+          " · " + (data.back_visible ? "B02 shown" : "no backpack");
+      } else if (data.disabled_reason) {
+        $("#stage-subtitle").textContent = "Runtime disabled until explicit preview override";
+      }
+      $("#gate-label").textContent = data.enabled ? "Preview override · default OFF" : "Default OFF · no model request";
+    }
+
+    function setBusy(value) {
+      busy = value;
+      document.querySelectorAll("select, button").forEach((control) => { control.disabled = value; });
+    }
+
+    async function perform(operation) {
+      if (!runtime || busy || !runtime.enabled) return;
+      setBusy(true);
+      try {
+        await operation();
+      } catch (error) {
+        errors.push(String(error.stack || error));
+        $("#runtime-note").textContent = "Action failed: " + (error.message || error);
+      } finally {
+        setBusy(false);
+        updateDiagnostics(runtime.getDiagnostics());
+      }
+    }
+
+    async function init() {
+      $("#gate-label").textContent = previewOverride ? "Starting explicit preview…" : "Default OFF · no model request";
+      runtime = await mountP048Preview($("#viewport"), {
+        previewOverride,
+        manifestUrl: "assets/3d_shop/p048/runtime_manifest.json",
+        onStateChange: updateDiagnostics,
+      });
+      window.__GO_ODYSSEY_P048_RUNTIME__ = runtime;
+      updateDiagnostics(runtime.getDiagnostics());
+      if (previewOverride && runtime.enabled) {
+        $("#runtime-note").textContent = "Ready. HEAD/BACK/COMPANION/V01 are lazy-loaded on selection.";
+      } else {
+        $("#runtime-note").textContent = "Default gate is OFF. Add ?preview=1 to explicitly exercise this isolated runtime.";
+      }
+    }
+
+    window.addEventListener("pagehide", () => runtime?.dispose(), { once: true });
+
+    $("#view-select").addEventListener("change", () => perform(() => runtime.setView($("#view-select").value)));
+    $("#head-select").addEventListener("change", () => perform(() => runtime.setHead($("#head-select").value)));
+    $("#back-select").addEventListener("change", () => perform(() => runtime.setBack($("#back-select").value === "B02")));
+    $("#companion-select").addEventListener("change", () => perform(() =>
+      runtime.setCompanion($("#companion-select").value, $("#c04-action-select").value)));
+    $("#c04-action-select").addEventListener("change", () => perform(() =>
+      runtime.setCompanionAction($("#c04-action-select").value)));
+    $("#victory-button").addEventListener("click", () => perform(async () => {
+      await runtime.triggerVictory();
+      $("#runtime-note").textContent = "V01 Confetti triggered. Timing is runtime PROPOSED_ONLY.";
+    }));
+    $("#reset-button").addEventListener("click", () => perform(() => {
+      runtime.reset();
+      $("#head-select").value = "NONE";
+      $("#back-select").value = "NONE";
+      $("#companion-select").value = "NONE";
+      $("#c04-action-select").value = "idle";
+      $("#view-select").value = "three-quarter";
+      $("#runtime-note").textContent = "Reset to the A1 baseline presentation.";
+    }));
+
+    init().catch((error) => {
+      errors.push(String(error.stack || error));
+      $("#runtime-note").textContent = "Runtime failed to initialize: " + (error.message || error);
+      updateDiagnostics(null);
+    });
+  </script>
+</body>
+</html>
