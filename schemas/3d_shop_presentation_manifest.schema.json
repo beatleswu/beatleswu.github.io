@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://godokoro.com/schemas/3d_shop_presentation_manifest.schema.json",
+  "title": "Go Odyssey 3D Shop V1 Presentation Foundation Manifest",
+  "description": "Presentation-only metadata. Business, commerce, inventory, equipment and ownership identities are deliberately not schema fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_name",
+    "manifest_version",
+    "foundation_contract",
+    "canonical_asset_promotion",
+    "p045_runtime_asset_promotion_deferred",
+    "owner_visual_gate",
+    "feature_gate",
+    "provenance_policy",
+    "companion_authority",
+    "precedent_contracts",
+    "entries"
+  ],
+  "properties": {
+    "manifest_name": {"type": "string", "minLength": 1},
+    "manifest_version": {"type": "string", "minLength": 1},
+    "foundation_contract": {"const": "3D_SHOP_V1_PRESENTATION_FOUNDATION"},
+    "canonical_asset_promotion": {"const": false},
+    "p045_runtime_asset_promotion_deferred": {"const": true},
+    "owner_visual_gate": {"const": "PASS"},
+    "feature_gate": {"$ref": "#/$defs/featureGate"},
+    "provenance_policy": {"$ref": "#/$defs/provenancePolicy"},
+    "companion_authority": {"$ref": "#/$defs/companionAuthority"},
+    "precedent_contracts": {"$ref": "#/$defs/precedentContracts"},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "vector3": {
+      "type": "array",
+      "prefixItems": [
+        {"type": "number"},
+        {"type": "number"},
+        {"type": "number"}
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "featureGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "default_enabled", "model_request_when_off"],
+      "properties": {
+        "name": {"const": "3D_SHOP_PRESENTATION_ENABLED"},
+        "default_enabled": {"const": false},
+        "model_request_when_off": {"const": 0}
+      }
+    },
+    "provenancePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["license_required", "source_sha_required", "derivative_sha_required"],
+      "properties": {
+        "license_required": {"const": true},
+        "source_sha_required": {"const": true},
+        "derivative_sha_required": {"const": true}
+      }
+    },
+    "companionAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supply_quantity", "functional_ownership", "active_selection", "second_ownership_registry_created"],
+      "properties": {
+        "supply_quantity": {"const": "pet_inventory"},
+        "functional_ownership": {"const": "pet_collection.pet_key"},
+        "active_selection": {"const": "user_pets.pet_key"},
+        "second_ownership_registry_created": {"const": false}
+      }
+    },
+    "precedentContracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["p040_equipment"],
+      "properties": {
+        "p040_equipment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "owner_uat",
+            "sword_presentation_scale",
+            "shield_presentation_scale",
+            "shield_original_baseline",
+            "shield_world_scale",
+            "shield_local_forward_offset",
+            "shield_local_forward_direction"
+          ],
+          "properties": {
+            "owner_uat": {"const": "PASS"},
+            "sword_presentation_scale": {"const": 5.0},
+            "shield_presentation_scale": {"const": 3.5},
+            "shield_original_baseline": {"type": "number", "exclusiveMinimum": 0},
+            "shield_world_scale": {"type": "number", "exclusiveMinimum": 0},
+            "shield_local_forward_offset": {"$ref": "#/$defs/vector3"},
+            "shield_local_forward_direction": {"const": "+Z"}
+          }
+        }
+      }
+    },
+    "sourceProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "author",
+        "source_url",
+        "license",
+        "commercial_use_allowed",
+        "derivative_work_allowed",
+        "attribution_required",
+        "original_source_sha256",
+        "derivative_sha256"
+      ],
+      "properties": {
+        "author": {"type": "string", "minLength": 1},
+        "source_url": {"type": "string", "format": "uri", "minLength": 1},
+        "license": {"type": "string", "minLength": 1},
+        "commercial_use_allowed": {"type": "boolean"},
+        "derivative_work_allowed": {"type": "boolean"},
+        "attribution_required": {"type": "boolean"},
+        "original_source_sha256": {"$ref": "#/$defs/sha256"},
+        "derivative_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "subclip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "source_clip", "start_frame", "end_frame_exclusive", "fps"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "source_clip": {"type": "string", "minLength": 1},
+        "start_frame": {"type": "integer", "minimum": 0},
+        "end_frame_exclusive": {"type": "integer", "minimum": 1},
+        "fps": {"const": 24}
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "presentation_id",
+        "authority_domain",
+        "authority_id",
+        "model_format",
+        "runtime_asset",
+        "runtime_sha256",
+        "source_provenance"
+      ],
+      "properties": {
+        "presentation_id": {"type": "string", "minLength": 1},
+        "authority_domain": {"enum": ["HEAD_PRESENTATION", "BACK_PRESENTATION", "COMPANION_PRESENTATION", "VICTORY_EFFECT_PRESENTATION"]},
+        "authority_id": {"type": "string", "minLength": 1},
+        "model_format": {"enum": ["GLB", "GLB_EXTERNAL_PNG", "PNG_SPRITESHEET"]},
+        "runtime_asset": {"type": "string", "minLength": 1},
+        "runtime_sha256": {"$ref": "#/$defs/sha256"},
+        "fallback_runtime_asset": {"type": "string", "minLength": 1},
+        "fallback_runtime_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_texture_assets": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "normalized_asset_scale": {"type": "number", "exclusiveMinimum": 0},
+        "presentation_scale": {"type": "number", "exclusiveMinimum": 0},
+        "orientation": {"type": "string", "minLength": 1},
+        "pivot": {"type": "string", "minLength": 1},
+        "attachment_slot": {"type": "string", "minLength": 1},
+        "attachment_anchor": {"type": "string", "minLength": 1},
+        "local_position_offset": {"$ref": "#/$defs/vector3"},
+        "local_forward_offset": {"$ref": "#/$defs/vector3"},
+        "offset_semantics": {"type": "string", "minLength": 1},
+        "adapter_profile": {"type": "string", "minLength": 1},
+        "adapter_per_character_transform": {"type": "boolean"},
+        "follow_anchor": {"type": "string", "minLength": 1},
+        "follow_offset": {"$ref": "#/$defs/vector3"},
+        "animation_profile": {"type": "string", "minLength": 1},
+        "animation_source": {"type": "string", "minLength": 1},
+        "skeleton_profile": {"type": "string", "minLength": 1},
+        "subclips": {"type": "array", "items": {"$ref": "#/$defs/subclip"}},
+        "fps": {"type": "integer", "exclusiveMinimum": 0},
+        "vfx_profile": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1},
+        "persistent_aura": {"type": "boolean"},
+        "atlas_metadata": {"type": "object", "additionalProperties": true},
+        "frame_metadata": {"type": "object", "additionalProperties": true},
+        "texture_class": {"type": "string", "minLength": 1},
+        "runtime_timing_profile": {"type": "object", "additionalProperties": true},
+        "timing_authority": {"type": "string", "minLength": 1},
+        "source_timing_authority": {"type": "string", "minLength": 1},
+        "source_provenance": {"$ref": "#/$defs/sourceProvenance"},
+        "mobile_class": {"enum": ["LOW", "MEDIUM", "HIGH"]},
+        "runtime_bytes": {"type": "integer", "minimum": 0},
+        "geometry": {"type": "object", "additionalProperties": true},
+        "material_count": {"type": "integer", "minimum": 0},
+        "texture_count": {"type": "integer", "minimum": 0},
+        "presentation_tags": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

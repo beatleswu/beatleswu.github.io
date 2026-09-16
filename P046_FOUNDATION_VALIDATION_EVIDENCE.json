@@ -1,0 +1,81 @@
+{
+  "task": "GO_ODYSSEY_3D_SHOP_V1_FOUNDATION_CANONICAL_INTEGRATION_046",
+  "base": {
+    "origin_master": "038203ad13fe6211ada665e48a6b04a689efd733",
+    "origin_tree": "8114c929aa2eae0a801cbb2d703d466cb89599e3",
+    "worktree": "D:/go-website-worktrees/3d-shop-v1-foundation-canonical-integration-046",
+    "branch": "codex/3d-shop-v1-foundation-canonical-integration-046",
+    "canonical_preexisting_dirty_entries_observed": 70,
+    "canonical_dirty_entries_preserved": true
+  },
+  "reconciliation": {
+    "foundation_reconciled_to_current_canonical": true,
+    "prior_foundation_file_level_candidate_reachable": false,
+    "canonical_drift_files": 0,
+    "foundation_conflict_files": 0,
+    "semantic_conflict_count": 0,
+    "duplicate_exact_foundation_symbols_found": false
+  },
+  "manifest": {
+    "path": "docs/contracts/3d_shop_v1_p045_presentation_reference_manifest.json",
+    "entries": 9,
+    "head_entries": 5,
+    "back_entries": 1,
+    "companion_entries": 2,
+    "victory_effect_entries": 1,
+    "external_sha256": "9739f2a8d477dd0ad45174a40e3a5112d8d43d13008483d1acd74aa871e306e7",
+    "forbidden_business_fields_rejected": true,
+    "self_hash_rejected": true,
+    "universal_item_id_created": false,
+    "p045_runtime_asset_promotion_deferred": true
+  },
+  "contracts": {
+    "manifest_validator": "PASS",
+    "forbidden_field_fail_closed": "PASS",
+    "manifest_hash_policy": "external SHA-256 over sorted-key compact UTF-8 JSON; no manifest_sha256 field",
+    "hero_base_3d_registry": "PASS",
+    "head_contract": "PASS",
+    "back_contract": "PASS",
+    "c01_profile_contract": "PASS",
+    "c04_profile_contract": "PASS",
+    "c04_subclips": [
+      {"name": "idle", "start_frame": 0, "end_frame_exclusive": 30, "fps": 24},
+      {"name": "attack", "start_frame": 30, "end_frame_exclusive": 60, "fps": 24},
+      {"name": "dead", "start_frame": 60, "end_frame_exclusive": 90, "fps": 24},
+      {"name": "walk", "start_frame": 90, "end_frame_exclusive": 120, "fps": 24}
+    ],
+    "v01_victory_contract": "PASS",
+    "v01_timing_authority": "PROPOSED_ONLY",
+    "companion_authority_reconciled": true,
+    "default_off_presentation_gate": "PASS",
+    "model_request_when_gate_off": 0
+  },
+  "tests": {
+    "foundation": {"passed": 29, "failed": 0, "skipped": 0},
+    "player_presentation": {"passed": 36, "failed": 0, "skipped": 0},
+    "companion": {"passed": 7, "failed": 0, "skipped": 2},
+    "shop_equipment": {"passed": 21, "failed": 0, "skipped": 0},
+    "relevant_regression": {"passed": 64, "failed": 0, "skipped": 2}
+  },
+  "boundary": {
+    "app_py_changed": false,
+    "db_migration": false,
+    "db_schema_change": false,
+    "commerce_authority_change": false,
+    "payment_change": false,
+    "product_sku_created": 0,
+    "paid_asset_added": false,
+    "three_js_product_runtime_implemented": false,
+    "merge": false,
+    "deploy": false,
+    "production_mutation": false
+  },
+  "candidate_files": [
+    "shop_3d_presentation_foundation.py",
+    "schemas/3d_shop_presentation_manifest.schema.json",
+    "docs/contracts/3d_shop_v1_p045_presentation_reference_manifest.json",
+    "docs/contracts/P046_FOUNDATION_CANONICAL_INTEGRATION_REPORT.md",
+    "P046_FOUNDATION_VALIDATION_EVIDENCE.json",
+    "tests/test_3d_shop_presentation_foundation.py"
+  ]
+}
