@@ -326,6 +326,11 @@ COPY css/e10/zone4_owner_story_runtime.css ./css/e10/zone4_owner_story_runtime.c
 # live-static serves it in normal operation, and this baked copy is the
 # fallback the /js/e10/ route resolves to when that override is unavailable.
 COPY js/e10/zone4_cinematic_content.js ./js/e10/zone4_cinematic_content.js
+# These two index.html stylesheets are in the same explicit-route-only /css/e10/
+# class, but unlike the files above they are NOT in the live-static inventory,
+# so the baked copy is their only serving source rather than a fallback.
+COPY css/e10/encounter_presentation_framework_v1.css ./css/e10/encounter_presentation_framework_v1.css
+COPY css/e10/go_combat_owner_reference_v1.css ./css/e10/go_combat_owner_reference_v1.css
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog

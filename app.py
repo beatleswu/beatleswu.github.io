@@ -29080,6 +29080,24 @@ def serve_zone4_cinematic_content_js():
         'zone4_cinematic_content.js', 'js/e10', 'js/e10'
     )
 
+# Two further index.html stylesheet references in the same explicit-route-only
+# /css/e10/ class, both returning public 404 for the same reason: no rule ever
+# matched them. They differ from the adapter above in one respect -- they are
+# not in the live-static inventory and were never staged into a static release,
+# so the baked image copy below is their only serving source, not a fallback.
+# Neither carries gameplay, progression, reward, or state authority.
+@app.route('/css/e10/encounter_presentation_framework_v1.css')
+def serve_encounter_presentation_framework_v1_css():
+    return _serve_live_static_or_baked_subpath(
+        'encounter_presentation_framework_v1.css', 'css/e10', 'css/e10'
+    )
+
+@app.route('/css/e10/go_combat_owner_reference_v1.css')
+def serve_go_combat_owner_reference_v1_css():
+    return _serve_live_static_or_baked_subpath(
+        'go_combat_owner_reference_v1.css', 'css/e10', 'css/e10'
+    )
+
 # ══════════════════════════════════════════════════════════════
 # 線上對弈模組（Socket.IO）
 # ══════════════════════════════════════════════════════════════
