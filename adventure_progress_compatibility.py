@@ -59,6 +59,9 @@ from migrations.adventure_historical_mastery_v1 import (
     baseline_readiness,
     upgrade as upgrade_schema,
 )
+from migrations.adventure_progress_recovery_v1 import (
+    TABLE_NAME as RECOVERY_TABLE_NAME,
+)
 from adventure_zone_progression_authority import (
     lord_eligibility_requirement,
     map_milestone_star,
@@ -431,6 +434,38 @@ def trusted_current_memberships(
     return result.get(int(user_id), set())
 
 
+def recovery_memberships(
+    conn: Any,
+    *,
+    question_ids: Iterable[Any] | None = None,
+    user_id: int | None = None,
+) -> dict[int, set[int]] | set[int]:
+    """Return explicit governed recovery credits, fail-closed when absent.
+
+    Owner-policy rows are additive progression evidence.  They are never
+    reclassified as review history and remain invisible until their ledger row
+    is explicitly marked ``apply_eligible=1``.
+    """
+
+    if not _table_exists(conn, RECOVERY_TABLE_NAME):
+        return {} if user_id is None else set()
+    normalized_ids = _normalize_question_ids(question_ids)
+    user_sql = " AND user_id=?" if user_id is not None else ""
+    params_list: list[Any] = []
+    if user_id is not None:
+        params_list.append(int(user_id))
+    sql = (
+        f"SELECT DISTINCT user_id, legacy_question_id AS question_id "
+        f"FROM {_table_ref(conn, RECOVERY_TABLE_NAME)} "
+        f"WHERE apply_eligible=1{user_sql}"
+        "{question_filter}"
+    )
+    result = _fetch_memberships(conn, sql, tuple(params_list), normalized_ids)
+    if user_id is None:
+        return result
+    return result.get(int(user_id), set())
+
+
 def _frozen_baseline_ready(conn: Any, *, baseline_version: str) -> bool:
     """Return whether a complete frozen baseline is safe for request reads.
 
@@ -588,7 +623,8 @@ def visible_adventure_question_ids(
         source_prefixes=trusted_source_prefixes,
         user_id=int(user_id),
     )
-    return set(historical) | set(trusted)
+    recovered = recovery_memberships(conn, user_id=int(user_id))
+    return set(historical) | set(trusted) | set(recovered)
 
 
 def visible_adventure_question_count(
@@ -599,6 +635,7 @@ def visible_adventure_question_count(
     trusted_source_prefixes: Iterable[str] = TRUSTED_REVIEW_SOURCE_PREFIXES,
     baseline_version: str = BASELINE_VERSION,
     include_baseline: bool = True,
+    include_recovery: bool = True,
 ) -> int:
     """Count visible questions with bounded SQL, without materializing history.
 
@@ -622,37 +659,47 @@ def visible_adventure_question_count(
     baseline_ready = include_baseline and _frozen_baseline_ready(
         conn, baseline_version=baseline_version
     )
+    recovery_ready = include_recovery and _table_exists(conn, RECOVERY_TABLE_NAME)
     total = 0
     for start in range(0, len(normalized_ids), _QUERY_CHUNK_SIZE):
         batch = normalized_ids[start : start + _QUERY_CHUNK_SIZE]
         placeholders = ",".join("?" for _ in batch)
         current_clauses = " OR ".join("source_context LIKE ?" for _ in prefixes)
-        current_params: list[Any] = [int(user_id), *[f"{prefix}%" for prefix in prefixes], *batch]
+        union_parts: list[str] = []
+        params: list[Any] = []
         if baseline_ready:
-            sql = (
-                "SELECT COUNT(*) FROM ("
+            union_parts.append(
                 f"SELECT question_id FROM {_table_ref(conn, TABLE_NAME)} "
                 "WHERE user_id=? AND baseline_version=? AND entitlement_source=? "
-                "AND question_id IN (" + placeholders + ") "
-                "UNION "
-                "SELECT question_id FROM review_log WHERE user_id=? AND grade>=3 "
-                "AND (" + current_clauses + ") AND question_id IN (" + placeholders + ")"
-                ") visible_questions"
-            )
-            params = [
-                int(user_id),
-                baseline_version,
-                GRANDFATHERED_ENTITLEMENT_SOURCE,
-                *batch,
-                *current_params,
-            ]
-        else:
-            sql = (
-                "SELECT COUNT(DISTINCT question_id) FROM review_log "
-                "WHERE user_id=? AND grade>=3 AND (" + current_clauses + ") "
                 "AND question_id IN (" + placeholders + ")"
             )
-            params = current_params
+            params.extend(
+                [
+                    int(user_id),
+                    baseline_version,
+                    GRANDFATHERED_ENTITLEMENT_SOURCE,
+                    *batch,
+                ]
+            )
+        union_parts.append(
+            "SELECT question_id FROM review_log WHERE user_id=? AND grade>=3 "
+            "AND (" + current_clauses + ") AND question_id IN (" + placeholders + ")"
+        )
+        params.extend([int(user_id), *[f"{prefix}%" for prefix in prefixes], *batch])
+        if recovery_ready:
+            union_parts.append(
+                f"SELECT legacy_question_id AS question_id FROM "
+                f"{_table_ref(conn, RECOVERY_TABLE_NAME)} "
+                "WHERE user_id=? AND apply_eligible=1 AND legacy_question_id IN ("
+                + placeholders
+                + ")"
+            )
+            params.extend([int(user_id), *batch])
+        sql = (
+            "SELECT COUNT(DISTINCT question_id) FROM ("
+            + " UNION ".join(union_parts)
+            + ") visible_questions"
+        )
         total += int(conn.execute(sql, tuple(params)).fetchone()[0] or 0)
     return total
 
@@ -677,6 +724,7 @@ def current_adventure_question_count(
         question_ids,
         trusted_source_prefixes=trusted_source_prefixes,
         include_baseline=False,
+        include_recovery=False,
     )
 
 
@@ -1338,6 +1386,7 @@ __all__ = [
     "trusted_correct_count_after",
     "qualifying_card_memberships",
     "trusted_current_memberships",
+    "recovery_memberships",
     "current_adventure_question_count",
     "visible_adventure_question_ids",
 ]

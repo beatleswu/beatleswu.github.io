@@ -225,6 +225,9 @@ from migrations.question_capacity_lineage_v1 import (
 from migrations.review_log_submission_idempotency_v1 import (
     upgrade as upgrade_review_log_submission_schema,
 )
+from migrations.adventure_progress_recovery_v1 import (
+    upgrade as upgrade_adventure_progress_recovery_schema,
+)
 from adventure_progress_compatibility import (
     SERVER_TRUSTED_REVIEW_SOURCE_PREFIXES,
     TRUSTED_REVIEW_SOURCE_PREFIXES,
@@ -5141,6 +5144,12 @@ def init_db():
         # D5B: historical rows keep NULL identities; new canonical review
         # submissions receive a server-bound identity and payload digest.
         upgrade_review_log_submission_schema(conn)
+
+        # P0 Lane C: admit the additive recovery ledger schema only.  This
+        # migration creates no recovery rows and does not rewrite review
+        # history; the separately gated Owner package writer remains the only
+        # path that can add applied recovery credit.
+        upgrade_adventure_progress_recovery_schema(conn)
 
         # ── Premium 每週修行報告（shadow-first） ──
         conn.execute('''CREATE TABLE IF NOT EXISTS weekly_reports (
