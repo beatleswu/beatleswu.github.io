@@ -115,6 +115,10 @@ def test_zone4_serving_boundary_is_explicit_and_baked_fallback_is_present():
         "@app.route('/ZONE4_RUNTIME_MANIFEST.json')",
         "@app.route('/js/e10/zone4_owner_story_runtime.js')",
         "@app.route('/css/e10/zone4_owner_story_runtime.css')",
+        # P0 corrective: this file was staged into the static release and
+        # referenced by index.html, but never given a rule. /js/e10/ has no
+        # generic route to cover the omission, so it 404'd in Production.
+        "@app.route('/js/e10/zone4_cinematic_content.js')",
     ):
         assert route in app
     for source in (
@@ -124,6 +128,7 @@ def test_zone4_serving_boundary_is_explicit_and_baked_fallback_is_present():
         "ZONE4_RUNTIME_MANIFEST.json",
         "js/e10/zone4_owner_story_runtime.js",
         "css/e10/zone4_owner_story_runtime.css",
+        "js/e10/zone4_cinematic_content.js",
     ):
         assert source in dockerfile
     assert '/css/e10/zone4_owner_story_runtime.css' in page
