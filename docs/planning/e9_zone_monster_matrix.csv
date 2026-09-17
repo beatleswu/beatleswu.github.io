@@ -1,0 +1,11 @@
+zone_number,zone_name,rank_range,existing_monster,existing_monster_hp_atk,existing_boss,monster_id,boss_id,asset_exists,current_runtime_use,e9_action
+1,Beginner Village,26-30 kyu,LV1 史萊姆/哥布林 (app.py:4417),80HP/2ATK,村莊考核官 Village Examiner (app.py:7838),caterpillar,village_examiner,UNKNOWN (assets/ untracked in repo),"Zone def app.py:7825 (k26_30); real rows in adventure_boss_progress/adventure_zone_unlocks",None - fully mapped
+2,Slime Plains,21-25 kyu,LV2 哥布林/洞窟蝙蝠 (app.py:4419),130HP/3ATK,蜂群領主 Swarm Lord (app.py:7839),bee,swarm_lord,UNKNOWN (assets/ untracked in repo),Zone def app.py:7826 (k21_25),None - fully mapped
+3,Goblin Cave,16-20 kyu,LV3 獸人小兵 (app.py:4421),200HP/4ATK,哥布林百夫長 Goblin Centurion (app.py:7840),turtle,goblin_centurion,UNKNOWN (assets/ untracked in repo),Zone def app.py:7827 (k16_20),None - fully mapped
+4,Misty Forest,11-15 kyu,LV4 森林精靈 (app.py:4423),220HP/5ATK,迷霧幻影兔王 Misty Phantom Rabbit King (app.py:7841),rabbit,misty_phantom_rabbit_king,UNKNOWN (assets/ untracked in repo),Zone def app.py:7828 (k11_15),None - fully mapped
+5,Orc Tribe,6-10 kyu,LV5 部落獸人 (app.py:4425),260HP/6ATK,鋼鐵獸人酋長 Iron Orc Chieftain (app.py:7842),raccoon,iron_orc_chieftain,UNKNOWN (assets/ untracked in repo),Zone def app.py:7829 (k6_10),None - fully mapped
+6,Dragon Valley,1-5 kyu,LV6 飛龍/低階神靈 (app.py:4427),520HP/12ATK,聖殿大騎士長 Grand Temple Knight (app.py:7843),wolf,grand_temple_knight,UNKNOWN (assets/ untracked in repo),Zone def app.py:7830 (k1_5),None - fully mapped
+7,Sage Tower,1-2 dan,LV7 賢者/魔法師/亡靈 (app.py:4429),760HP/16ATK,大魔法師幻影 Archmage Phantom (app.py:7844),fox,archmage_phantom,UNKNOWN (assets/ untracked in repo),Zone def app.py:7831 (d1_2),None - fully mapped
+8,Demon Castle,3-4 dan,LV8 騎士/混沌領主 (app.py:4431),1100HP/20ATK,混沌領主 Chaos Lord (app.py:7845),golem,chaos_lord,UNKNOWN (assets/ untracked in repo),Zone def app.py:7832 (d3_4),None - fully mapped
+9,Ragnarök,5-6 dan,LV9 諸神 (app.py:4433),1700HP/28ATK,墮落戰神古像 Fallen War-God Statue (app.py:7846),dragon,fallen_war_god_statue,UNKNOWN (assets/ untracked in repo),Zone def app.py:7833 (d5_6),None - fully mapped
+10,Ancient Doom Temple,7 dan+,LV10 上古終焉神殿 (app.py:4435),2400HP/36ATK,黑白秩序之源 Source of Black-White Order (app.py:7847),dragon,source_of_black_white_order,UNKNOWN (assets/ untracked in repo),Zone def app.py:7834 (d7_plus),None - fully mapped
