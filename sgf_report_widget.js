@@ -388,6 +388,73 @@
     });
   }
 
+  function bindAdminControls(host) {
+    var surface = host.dataset.sgfReportSurface || '';
+    host.querySelectorAll('[data-sgf-inline-action]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        beginInlineAction(button.dataset.sgfInlineAction);
+      });
+    });
+    host.querySelector('[data-sgf-inline-cancel]').addEventListener('click', function () {
+      if (confirmInlineLeave()) clearInlineReview();
+    });
+    host.querySelector('[data-sgf-inline-save]').addEventListener('click', function () {
+      commitInlineEdit(false);
+    });
+    host.querySelector('[data-sgf-inline-save-next]').addEventListener('click', function () {
+      commitInlineEdit(true);
+    });
+    host.querySelector('[data-sgf-inline-side]').addEventListener('change', function (event) {
+      state.inline.side = event.target.value === 'W' ? 'W' : 'B';
+      renderInlineReview();
+    });
+    host.querySelector('[data-sgf-admin-flag]').addEventListener('click', flagForReview);
+    host.querySelector('[data-sgf-admin-direct]').addEventListener('click', openDirectWorkbench);
+    host.querySelector('[data-sgf-admin-direct-last]').addEventListener('click', directApplyLastMove);
+    host.querySelector('[data-sgf-admin-stage]').addEventListener('click', stageRepair);
+    host.querySelector('[data-sgf-admin-retest]').addEventListener('click', retestStaged);
+    if (surface === 'admin_questions') {
+      host.querySelector('[data-sgf-report-trigger]').hidden = true;
+      host.querySelector('[data-sgf-admin-tools]').hidden = true;
+    }
+    refreshMainPracticeLabels(host);
+    renderInlineReview();
+  }
+
+  function quarantineAdminControls(host) {
+    var inlineTemplate = document.createElement('template');
+    inlineTemplate.dataset.sgfAdminControlsTemplate = 'inline';
+    var inlineBar = host.querySelector('[data-sgf-inline-review-bar]');
+    var inlinePanel = host.querySelector('[data-sgf-inline-review-panel]');
+    if (!inlineBar || !inlinePanel) return;
+    inlineTemplate.content.appendChild(inlineBar);
+    inlineTemplate.content.appendChild(inlinePanel);
+    host.insertBefore(inlineTemplate, host.firstChild);
+
+    var tools = host.querySelector('[data-sgf-admin-tools]');
+    var reportSheet = host.querySelector('[data-sgf-report-sheet]');
+    if (tools && reportSheet) {
+      var toolsTemplate = document.createElement('template');
+      toolsTemplate.dataset.sgfAdminControlsTemplate = 'tools';
+      toolsTemplate.content.appendChild(tools);
+      reportSheet.insertBefore(toolsTemplate, reportSheet.firstChild);
+    }
+  }
+
+  function mountAdminControls(host) {
+    if (!host || host.querySelector('[data-sgf-inline-review-bar]')) return false;
+    var templates = Array.prototype.slice.call(
+      host.querySelectorAll('template[data-sgf-admin-controls-template]')
+    );
+    if (!templates.length) return false;
+    templates.forEach(function (template) {
+      template.parentNode.insertBefore(template.content.cloneNode(true), template);
+      template.remove();
+    });
+    bindAdminControls(host);
+    return true;
+  }
+
   function ensureHost() {
     if (state.host && document.documentElement.contains(state.host)) return state.host;
     if (state.host && !document.documentElement.contains(state.host)) {
@@ -428,6 +495,7 @@
     var mount = surface === 'admin_questions'
       ? document.querySelector('#question-review-controls')
       : (isMainPracticeSurface(surface) ? document.querySelector('#board-col') : document.body);
+    quarantineAdminControls(host);
     (mount || document.body).appendChild(host);
     var style = document.createElement('style');
     style.textContent = '.sgf-report-widget{position:fixed;z-index:70;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));font:14px/1.4 system-ui,sans-serif;color:#17231d}.sgf-inline-review-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding:8px;border:1px solid #b7d5c2;border-radius:14px;background:#f2fff5;box-shadow:0 8px 24px rgba(0,0,0,.18)}.sgf-inline-review-title{font-weight:800;margin-right:2px}.sgf-inline-review-bar button,.sgf-inline-review-actions button,.sgf-inline-review-panel select{min-height:44px;border:1px solid #9ec4aa;border-radius:10px;background:#fff;color:#173b28;padding:7px 10px;font-weight:700;touch-action:manipulation}.sgf-inline-review-bar button[aria-pressed=true]{background:#d8f2df;border-color:#2d8e59}.sgf-inline-review-bar button:disabled,.sgf-inline-review-actions button:disabled{opacity:.55}.sgf-inline-review-panel{width:min(380px,calc(100vw - 28px));margin-bottom:8px;padding:14px;border:1px solid #b7d5c2;border-radius:16px;background:#f8fff9;box-shadow:0 16px 42px rgba(0,0,0,.24)}.sgf-inline-review-panel strong{display:block;font-size:16px}.sgf-inline-review-panel p{margin:5px 0 10px;color:#356c49;font-size:13px}.sgf-inline-review-panel select{width:100%;margin-bottom:8px}.sgf-inline-review-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}.sgf-inline-review-actions button:last-child{background:#2d8e59;color:#fff;border-color:#2d8e59}.sgf-inline-review-status{min-height:20px;margin-top:7px;color:#356c49;font-size:12px}.sgf-inline-review-status.error{color:#a43125}.sgf-report-trigger{min-height:48px;border:1px solid #80622b;border-radius:999px;padding:0 16px;background:#fff7df;color:#3a2a12;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.2);touch-action:manipulation}.sgf-report-sheet{width:min(360px,calc(100vw - 28px));margin-top:8px;padding:14px;border:1px solid #d6c59c;border-radius:16px;background:#fffdf7;box-shadow:0 16px 42px rgba(0,0,0,.28)}.sgf-report-sheet strong{display:block;font-size:16px}.sgf-report-context{margin:5px 0 10px;color:#695b42;font-size:12px}.sgf-report-reasons{display:grid;gap:7px}.sgf-report-reasons button,.sgf-report-actions button,.sgf-admin-actions button,.sgf-admin-actions select{min-height:44px;border:1px solid #c9b98e;border-radius:11px;background:#fff;color:#352914;padding:7px 10px;text-align:left;touch-action:manipulation}.sgf-report-reasons button[aria-pressed=true]{border-color:#2d8e59;background:#e6f5eb}.sgf-report-sheet textarea{display:block;width:100%;margin-top:10px;border:1px solid #c9b98e;border-radius:10px;padding:8px;resize:vertical}.sgf-report-actions,.sgf-admin-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}.sgf-report-actions button:last-child,.sgf-admin-actions button{background:#2d8e59;color:#fff;border-color:#2d8e59}.sgf-report-actions button:disabled{opacity:.5}.sgf-report-status,.sgf-admin-status{min-height:20px;margin-top:7px;color:#356c49;font-size:12px}.sgf-report-status.error,.sgf-admin-status.error{color:#a43125}.sgf-admin-tools{margin-top:14px;padding-top:12px;border-top:1px solid #d6c59c}.sgf-admin-tools strong{font-size:13px}.sgf-admin-actions select{max-width:100%;flex:1 1 150px}@media(max-width:600px){.sgf-report-widget{left:14px;right:14px}.sgf-inline-review-bar{justify-content:stretch}.sgf-inline-review-bar button{flex:1 1 calc(50% - 8px)}.sgf-inline-review-panel,.sgf-report-sheet{width:100%}.sgf-report-trigger{width:100%}}' + (isEmbeddedReviewSurface(surface) ? '.sgf-report-widget[data-sgf-report-surface="main_practice"],.sgf-report-widget[data-sgf-report-surface="admin_questions"]{position:static!important;inset:auto!important;right:auto!important;bottom:auto!important;width:100%;margin:10px auto 0;z-index:2}.sgf-report-widget[data-sgf-report-surface="main_practice"] .sgf-report-trigger{width:100%}@media(max-width:600px){.sgf-report-widget[data-sgf-report-surface="main_practice"],.sgf-report-widget[data-sgf-report-surface="admin_questions"]{width:100%;margin-top:10px}}' : '')
@@ -456,24 +524,6 @@
     state.host = host;
     state.panel = host.querySelector('[data-sgf-report-sheet]');
     state.status = host.querySelector('[data-sgf-report-status]');
-    host.querySelectorAll('[data-sgf-inline-action]').forEach(function (button) {
-      button.addEventListener('click', function () {
-        beginInlineAction(button.dataset.sgfInlineAction);
-      });
-    });
-    host.querySelector('[data-sgf-inline-cancel]').addEventListener('click', function () {
-      if (confirmInlineLeave()) clearInlineReview();
-    });
-    host.querySelector('[data-sgf-inline-save]').addEventListener('click', function () {
-      commitInlineEdit(false);
-    });
-    host.querySelector('[data-sgf-inline-save-next]').addEventListener('click', function () {
-      commitInlineEdit(true);
-    });
-    host.querySelector('[data-sgf-inline-side]').addEventListener('change', function (event) {
-      state.inline.side = event.target.value === 'W' ? 'W' : 'B';
-      renderInlineReview();
-    });
     var reasonsHost = host.querySelector('[data-sgf-report-reasons]');
     (isMainPracticeSurface(surface) ? mainPracticeReasonLabels() : reasons).forEach(function (entry) {
       var button = document.createElement('button');
@@ -494,30 +544,22 @@
     });
     host.querySelector('[data-sgf-report-cancel]').addEventListener('click', function () { state.panel.hidden = true; });
     host.querySelector('[data-sgf-report-submit]').addEventListener('click', submit);
-    host.querySelector('[data-sgf-admin-flag]').addEventListener('click', flagForReview);
-    host.querySelector('[data-sgf-admin-direct]').addEventListener('click', openDirectWorkbench);
-    host.querySelector('[data-sgf-admin-direct-last]').addEventListener('click', directApplyLastMove);
-    host.querySelector('[data-sgf-admin-stage]').addEventListener('click', stageRepair);
-    host.querySelector('[data-sgf-admin-retest]').addEventListener('click', retestStaged);
-    if (surface === 'admin_questions') {
-      host.querySelector('[data-sgf-report-trigger]').hidden = true;
-      host.querySelector('[data-sgf-admin-tools]').hidden = true;
-    }
     loadAdminCapabilities();
     renderInlineReview();
     return host;
   }
 
   async function loadAdminCapabilities() {
+    state.admin = false;
+    state.csrfHeader = null;
+    state.csrfToken = null;
     try {
       var me = await fetch('/api/auth/me', { credentials: 'include', cache: 'no-store' }).then(function (response) { return response.json(); });
-      if (!me || !me.is_admin) return;
+      if (!me || me.logged_in !== true || me.is_admin !== true) return;
       var bootstrap = await fetch('/api/admin/sgf-workbench/bootstrap', { credentials: 'include', cache: 'no-store' }).then(function (response) { return response.json(); });
       if (!bootstrap || !bootstrap.security) return;
       state.admin = true; state.csrfHeader = bootstrap.security.csrf_header; state.csrfToken = bootstrap.security.csrf_token;
-      var tools = state.host.querySelector('[data-sgf-admin-tools]');
-      if (tools && document.body.getAttribute('data-sgf-report-surface') !== 'admin_questions') tools.hidden = false;
-      renderInlineReview();
+      mountAdminControls(state.host);
     } catch (error) { /* unauthenticated players receive only the report control */ }
   }
 
