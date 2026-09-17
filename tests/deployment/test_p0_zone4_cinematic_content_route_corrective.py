@@ -48,7 +48,7 @@ AUTHORIZED_ROUTES = [
     (
         "/js/e10/zone4_cinematic_content.js",
         "js/e10/zone4_cinematic_content.js",
-        "50e86317bfbc0105e67ce3bee27b778912371b0abe0d350a004155e9e328999b",
+        "081154d6142212eaa0b7fe732b6e49f7dffe999938377a8a6f6f9967513598c3",
     ),
     (
         "/css/e10/encounter_presentation_framework_v1.css",

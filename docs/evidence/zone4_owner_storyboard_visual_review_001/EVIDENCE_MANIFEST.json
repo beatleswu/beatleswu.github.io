@@ -1,0 +1,43 @@
+{
+  "package": "ZONE4_OWNER_STORYBOARD_VISUAL_REVIEW_PACKAGE_001",
+  "source": "current accepted ZONE4_CINEMATIC_STORYBOARD_RUNTIME_RECOVERY_001 candidate",
+  "real_owner_device_uat": "PENDING",
+  "generated_outputs": [
+    {
+      "file": "ZONE4_STORYBOARD_CONTACT_SHEET.png",
+      "sha256": "2e0a1f9f01a4558eb9d21743fdcce11d5a7000145367549db84815aabcf8f3a4",
+      "width": 1792,
+      "height": 2448
+    },
+    {
+      "file": "LORD_TRIAL_CONTACT_SHEET.png",
+      "sha256": "c4c5308f945f5178f2c1be16cee547d7908cce4c333ed70a9aad2bf0feeb5ec1",
+      "width": 1840,
+      "height": 1666
+    },
+    {
+      "file": "ZONE4_CARD_EVIDENCE_FIRST_CLEAR_MOCK.png",
+      "sha256": "e7d0a8bc993788fdcc82a02b057c9a384638f55b12955e0b1b82a505a55b32e2",
+      "width": 834,
+      "height": 1194
+    },
+    {
+      "file": "ZONE4_CARD_EVIDENCE_REPLAY_MOCK.png",
+      "sha256": "d4ced428a5823315238828cc2f51405be12571be70f67f14d29583f77fa602fc",
+      "width": 834,
+      "height": 1194
+    },
+    {
+      "file": "SAFARI_RESPONSIVE_EVIDENCE_MOCK.png",
+      "sha256": "d4ced428a5823315238828cc2f51405be12571be70f67f14d29583f77fa602fc",
+      "width": 834,
+      "height": 1194
+    },
+    {
+      "file": "PWA_RESPONSIVE_EVIDENCE_MOCK.png",
+      "sha256": "839526cadf8a745bd8772ef8eb445fb732bde35f0fc2db14fcdc3cf0e93467fe",
+      "width": 834,
+      "height": 1194
+    }
+  ]
+}

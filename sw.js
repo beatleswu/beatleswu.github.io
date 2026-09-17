@@ -6,12 +6,12 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v241-p0-srs-static-closure-hotfix';
+const VERSION     = 'v242-zone4-storyboard-pwa-parity';
 // The static release packager replaces this deterministic source fallback with
 // a release-<full-git-sha> identity in the staged worker. Keeping a valid
 // source fallback makes the checked-in worker executable while ensuring that
 // every generated release gets a distinct cache namespace automatically.
-const ASSET_IDENTITY = 'source-v241-f17-authenticated-entry-spinner-failsafe';
+const ASSET_IDENTITY = 'source-v242-zone4-storyboard-pwa-parity';
 // p0-f26 superseded identity: const VERSION     = 'v240-a028-hero-player-presentation-readonly';
 // incident-017 superseded identity: const VERSION = 'v237-e10-replay-story-cross-surface-hotfix';
 // exact-b3cb superseded identity: const VERSION     = 'v230-e10-lord-trial-safari-recovery';

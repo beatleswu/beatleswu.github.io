@@ -47,7 +47,7 @@ test('Owner-final Zone4 manifest validates and keeps Lord review separate', () =
   assert.strictEqual(validated.tracks.lord_review.autoplay_allowed, false);
 });
 
-test('Zone4 adapter resolves the new main-story runtime with all 22 shots', async () => {
+test('Zone4 adapter resolves the full runtime and exposes the pre-Lord entry segment', async () => {
   const api = adapter.create({
     fetchImpl: async (requestPath, options) => {
       assert.strictEqual(requestPath, '/ZONE4_RUNTIME_MANIFEST.json');
@@ -61,7 +61,14 @@ test('Zone4 adapter resolves the new main-story runtime with all 22 shots', asyn
   assert.strictEqual(api.isReady(), true);
   const locale = api.localeConfig('en', { filmTitle: 'Misty Forest: Phantoms and True Form' });
   assert.strictEqual(locale.track, 'main_story');
-  assert.strictEqual(locale.timeline.length, 22);
+  assert.strictEqual(locale.timeline.length, 16);
+  assert.strictEqual(locale.preLordTimeline.length, 16);
+  assert.strictEqual(locale.postClearTimeline.length, 6);
+  assert.strictEqual(locale.fullTimeline.length, 22);
+  assert.strictEqual(locale.timeline[locale.timeline.length - 1].ownerBeatId, 'Z4_S2_08');
+  assert.strictEqual(locale.postClearTimeline[0].ownerBeatId, 'Z4_S3_01');
+  assert.strictEqual(locale.lordBoundary.triggerAfterBeat, 'Z4_S2_08');
+  assert.strictEqual(locale.lordBoundary.postLordFirstBeat, 'Z4_S3_01');
   assert.ok(locale.bgmMainTheme.startsWith('/assets/e10/audio/zone4/'));
   assert.ok(locale.ambienceVillageDawn.startsWith('/assets/e10/audio/zone4/'));
   assert.ok(locale.timeline.every(item => item.imageSrc.startsWith('/assets/e10/art/zone4/cinematic/')));
