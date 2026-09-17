@@ -99,6 +99,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
+    <script src="/js/e10/zone4_cinematic_content.js?v=20260917z4content001"></script>
     <script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0381"></script>
     <script src="/js/game/encounter_presentation_framework_v1.js?v=a023v1"></script>
     <script src="/js/game/battlefield_boss_reward_consumer.js?v=f029v1"></script>
@@ -15837,15 +15838,80 @@ async function startAdventureStage(zoneKey, options = {}) {
         return;
     }
     _activeBossZone = zone;
+    if (zone.key === 'k11_15' && !(await _ensureZone4CinematicContentReady(zone))) return;
     // This function is reached from the real map CTA user gesture.  Zone 2's
     // first spoken beat intentionally starts on Shot 2 (Shot 1 is silent), so
     // prime the reusable media elements before the cinematic's silent hold.
-    if (zone.key === 'k21_25' || zone.key === 'k16_20') {
+    if (zone.key === 'k21_25' || zone.key === 'k16_20' || zone.key === 'k11_15') {
         await _unlockIntroAudioFromGesture();
     }
     await showStageIntroCinematic(zone, {
         mode: options.mode || 'legacy',
     });
+}
+
+function _showZone4CinematicUnavailable(zone, detail) {
+    const message = 'Zone 4 story is temporarily unavailable. Please retry.';
+    const overlay = document.getElementById('boss-cinematic');
+    const title = document.getElementById('boss-cinematic-title');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    if (typeof _logIntroAudio === 'function') {
+        _logIntroAudio('ZONE4_CINEMATIC_UNAVAILABLE', {
+            zoneKey: zone?.key || 'k11_15',
+            reason: detail || 'manifest_unavailable',
+        });
+    }
+    if (!overlay || !title || !btn) {
+        setMsg(message, 'err');
+        return;
+    }
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic show phase-boss';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone?.key || 'k11_15';
+    title.textContent = zone?.filmTitle || 'Zone 4';
+    if (line) line.textContent = message;
+    if (rules) rules.hidden = true;
+    btn.disabled = false;
+    btn.textContent = 'Retry story';
+    btn.onclick = async () => {
+        btn.disabled = true;
+        const runtime = window.Zone4CinematicContent;
+        const ok = runtime && typeof runtime.retry === 'function'
+            ? await runtime.retry()
+            : false;
+        if (ok) {
+            await showStageIntroCinematic(zone, { mode: 'manual_replay' });
+            return;
+        }
+        btn.disabled = false;
+        if (line) line.textContent = message;
+    };
+    if (cancelBtn) {
+        cancelBtn.style.display = '';
+        cancelBtn.disabled = false;
+        cancelBtn.onclick = () => hideBossCinematic();
+    }
+}
+
+async function _ensureZone4CinematicContentReady(zone) {
+    if (zone?.key !== 'k11_15') return true;
+    const runtime = window.Zone4CinematicContent;
+    if (!runtime || typeof runtime.ready !== 'function') {
+        _showZone4CinematicUnavailable(zone, 'runtime_adapter_missing');
+        return false;
+    }
+    try {
+        const ready = await runtime.ready();
+        if (ready === true) return true;
+        _showZone4CinematicUnavailable(zone, runtime.failure?.() || 'manifest_rejected');
+    } catch (error) {
+        _showZone4CinematicUnavailable(zone, String(error));
+    }
+    return false;
 }
 
 // W1-OWNER-POSTDEPLOY-ACCEPTANCE-001 Issue B: the Zone 3 story is segmented by
@@ -16358,6 +16424,7 @@ async function showZone3EntrySafeFallback(zone, options = {}) {
 }
 
 async function showStageIntroCinematic(zone, options = {}) {
+    if (zone?.key === 'k11_15' && !(await _ensureZone4CinematicContentReady(zone))) return;
     if (zone?.key === 'k16_20') {
         // The Zone 3 visual package is a WORLD-owned slot. The helper keeps a
         // text-safe fallback if delivery is unavailable, but never passes
@@ -16377,6 +16444,10 @@ async function showStageIntroCinematic(zone, options = {}) {
     const progress = document.getElementById('boss-cinematic-progress');
     const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
     if (!overlay || !title || !btn) {
+        if (zone?.key === 'k11_15') {
+            _showZone4CinematicUnavailable(zone, 'cinematic_host_missing');
+            return;
+        }
         window.location.href = firstQuestionHref(zone);
         return;
     }
@@ -16637,7 +16708,11 @@ function _startIntroBgm(src, opts = {}) {
         audio.onended = null;
         audio.onerror = null;
         audio.loop = loop;
-        audio.muted = isZone3Presentation ? Boolean(window.SFX?.muted) : false;
+        // Zone 3 owns its own presentation audio runtime. The shared
+        // sequencer must never read a function-local Zone 3 flag here; all
+        // shared cinematic beds are intentionally audible unless a caller
+        // explicitly asks for mute.
+        audio.muted = opts.muted === true;
         audio.volume = volume;
         _introBgmBaseVolume = volume;
         _introBgmAudio = audio;
@@ -17406,97 +17481,17 @@ function _getIntroFilmLocaleConfigBase(zone) {
         };
     }
     if (zone?.key === 'k11_15') {
-        if (isEnglish) {
-            return {
-                uiLang: 'en',
-                preferredLang: 'en-GB',
-                filmTitle: zone?.filmTitle || ADVENTURE_STORY_EN[zone?.key]?.filmTitle || 'Misty Forest: Phantoms and True Form',
-                finalCaption: 'Final beat: Beyond the Light',
-                finalLine: 'The mist lifts; far off, a firelight flickers. You pluck one black, one white, and their weight matches, exactly, the two moves still unplayed in that thousand-year game. You are no longer the boy you were yesterday. And that game is coming for you, one move at a time.',
-                timeline: [
-                    {
-                        shot: 0,
-                        caption: 'Shot 1: The Call of the Mist',
-                        text: 'Through the goblins\' shadow, you step into the white mist. Ancient trees twist in the fog, reaching out, then drawing back. The crystal\'s glow is the one thing here that does not lie.',
-                        audioSrc: '/assets/storyboards/go_misty_forest_voice_en_01.mp3',
-                        imageSrc: '/assets/storyboards/go_misty_forest_scene_01.webp',
-                        imageAlt: 'Entering the misty forest',
-                        sfx: 'mystic',
-                    },
-                    {
-                        shot: 1,
-                        caption: 'Shot 2: The Game of Phantoms',
-                        text: 'Deep in the mist, a phantom appears. Out of the fog rise countless copies of you, each reaching to place a stone. Which move is real? Which one did it play for you? Only a still, united mind can see through the illusion.',
-                        audioSrc: '/assets/storyboards/go_misty_forest_voice_en_02.mp3',
-                        imageSrc: '/assets/storyboards/go_misty_forest_scene_02.webp',
-                        imageAlt: 'Facing phantoms in the mist',
-                        sfx: 'pulse',
-                    },
-                    {
-                        shot: 2,
-                        caption: 'Shot 3: The Forest\'s Eye',
-                        text: 'You look up. On the ancient tree, fruit gleams like stones on a board. Black and white, the one truth that will not waver in the fog. Fix your gaze, find the true, break the illusion! That is the forest\'s eye, and the very eye that lets you live.',
-                        audioSrc: '/assets/storyboards/go_misty_forest_voice_en_03.mp3',
-                        imageSrc: '/assets/storyboards/go_misty_forest_scene_03.webp',
-                        imageAlt: 'The forest tree with black and white fruit',
-                        sfx: 'woodhit',
-                    },
-                    {
-                        shot: 3,
-                        caption: 'Shot 4: Beyond the Light',
-                        text: 'The mist lifts; far off, a firelight flickers. You pluck one black, one white, and their weight matches, exactly, the two moves still unplayed in that thousand-year game. You are no longer the boy you were yesterday. And that game is coming for you, one move at a time.',
-                        audioSrc: '/assets/storyboards/go_misty_forest_voice_en_04.mp3',
-                        imageSrc: '/assets/storyboards/go_misty_forest_scene_04.webp',
-                        imageAlt: 'Walking beyond the mist',
-                        sfx: 'journey',
-                    },
-                ],
-            };
-        }
+        // Zone 4 Owner-final content is loaded and validated by
+        // Zone4CinematicContent before this helper is called. Keep this
+        // fallback deliberately empty so an accidental early call cannot
+        // revive the retired storyboard package.
         return {
-            uiLang: 'zh',
-            preferredLang: 'zh-TW',
-            filmTitle: zone?.filmTitle || ADVENTURE_STORY[zone?.key]?.filmTitle || '迷霧森林：幻影與真形',
-            finalCaption: '終幕：光明的彼岸',
-            finalLine: '迷霧散去，遠方火光隱現。你摘下一枚黑、一枚白。它們的重量，竟和那局千年殘棋裡，遲遲未落的兩手，分毫不差。你已不再是昨日的少年。而那盤棋，正一手一手，向你走來。',
-            timeline: [
-                {
-                    shot: 0,
-                    caption: '第一段：迷霧的召喚',
-                    text: '穿過哥布林的陰影，你踏入白霧。古老的樹木在霧裡扭曲，伸手，又縮回。晶石的微光，是這片朦朧裡，唯一不說謊的東西。',
-                    audioSrc: '/assets/storyboards/go_misty_forest_voice_01.mp3',
-                    imageSrc: '/assets/storyboards/go_misty_forest_scene_01.webp',
-                    imageAlt: '迷霧的召喚',
-                    sfx: 'mystic',
-                },
-                {
-                    shot: 1,
-                    caption: '第二段：幻影的棋局',
-                    text: '霧深處，幻影現身。白霧裡浮出無數個你，每一個都伸手要落子。哪一手是真？哪一手，是它替你下的？心神合一，才看得穿這場幻術。',
-                    audioSrc: '/assets/storyboards/go_misty_forest_voice_02.mp3',
-                    imageSrc: '/assets/storyboards/go_misty_forest_scene_02.webp',
-                    imageAlt: '幻影的棋局',
-                    sfx: 'pulse',
-                },
-                {
-                    shot: 2,
-                    caption: '第三段：森林之眼',
-                    text: '抬頭。古樹上，果實如棋子般閃耀。黑白分明，是霧中唯一不變的真。凝視，辨真，破幻！那是森林的眼睛，也是你活棋的關鍵。',
-                    audioSrc: '/assets/storyboards/go_misty_forest_voice_03.mp3',
-                    imageSrc: '/assets/storyboards/go_misty_forest_scene_03.webp',
-                    imageAlt: '森林之眼',
-                    sfx: 'woodhit',
-                },
-                {
-                    shot: 3,
-                    caption: '第四段：光明的彼岸',
-                    text: '迷霧散去，遠方火光隱現。你摘下一枚黑、一枚白。它們的重量，竟和那局千年殘棋裡，遲遲未落的兩手，分毫不差。你已不再是昨日的少年。而那盤棋，正一手一手，向你走來。',
-                    audioSrc: '/assets/storyboards/go_misty_forest_voice_04.mp3',
-                    imageSrc: '/assets/storyboards/go_misty_forest_scene_04.webp',
-                    imageAlt: '光明的彼岸',
-                    sfx: 'journey',
-                },
-            ],
+            uiLang: isEnglish ? 'en' : 'zh',
+            preferredLang: isEnglish ? 'en-GB' : 'zh-TW',
+            filmTitle: zone?.filmTitle || (isEnglish ? 'Misty Forest: Phantoms and True Form' : '迷霧森林：幻影與真形'),
+            finalCaption: '',
+            finalLine: '',
+            timeline: [],
         };
     }
     if (zone?.key === 'k21_25') {
@@ -18215,6 +18210,12 @@ function _zone3CinematicLocaleConfig(zone) {
 
 function getIntroFilmLocaleConfig(zone) {
     if (zone?.key === 'k16_20') return _zone3CinematicLocaleConfig(zone);
+    if (zone?.key === 'k11_15') {
+        const runtime = window.Zone4CinematicContent;
+        if (runtime?.isReady?.()) {
+            return runtime.localeConfig(getCurrentUiLang(), zone);
+        }
+    }
     const locale = _getIntroFilmLocaleConfigBase(zone);
     if (zone?.key !== 'k21_25' || !locale) return locale;
     const isEnglish = locale.uiLang === 'en';
@@ -18467,6 +18468,7 @@ async function replayIntroFilm() {
 // finishPostClearFilm). Zone 1 and Zone 2 use the latter two phase contracts;
 // later zones keep the legacy path until separately authorized.
 async function playNewbieVillageIntroFilm(zone, opts = {}) {
+    if (zone?.key === 'k11_15' && !(await _ensureZone4CinematicContentReady(zone))) return;
     const overlay = document.getElementById('boss-cinematic');
     const stage = document.getElementById('intro-film-stage');
     const caption = document.getElementById('intro-film-caption');
@@ -18477,6 +18479,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
     const phase = opts.phase || 'pre_play';
     const timeline = opts.timeline || locale.timeline;
     const isZone3Presentation = zone?.key === 'k16_20';
+    const isZone4Presentation = zone?.key === 'k11_15';
     const zone3Runtime = isZone3Presentation ? _ensureZone3PresentationRuntime() : null;
     if (zone3Runtime?.audio) void zone3Runtime.audio.load().catch(() => {});
     _introFilmActiveOpts = {
@@ -18709,7 +18712,15 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         // Each cinematic phase is its own audio session.  Zone 2 uses the
         // Owner-locked A3/B3/C3 cues; Zone 1 keeps its historical fallback
         // fields and therefore remains byte/behavior compatible.
-        if (shotIndex === 0 && !isZone3Presentation) {
+        if (isZone4Presentation) {
+            // Owner-final Zone 4 declares a bed per shot. Keep that package
+            // separate from the legacy locale fields so a failed or partial
+            // manifest can never fall back to the old storyboard beds.
+            if (item.bgmSrc) _startIntroBgm(item.bgmSrc, { loop: true, volume: 0.35 });
+            else _stopIntroBgm();
+            if (item.ambienceSrc) _startIntroAmbience(item.ambienceSrc, { loop: true, volume: 0.22 });
+            else _stopIntroAmbience();
+        } else if (shotIndex === 0 && !isZone3Presentation) {
             const phaseBgm = phase === 'boss_ready'
                 ? (locale.bgmBossReady || locale.bgmMainTheme)
                 : phase === 'post_clear'
@@ -18762,8 +18773,8 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             caption.style.display = zone?.key === 'k26_30' ? 'none' : '';
             caption.textContent = item.caption || '';
         }
-        if (!isZone3Presentation && item.sfx) playBossSfx(item.sfx);
-        if (!isZone3Presentation && item.shot === 0) {
+        if (!isZone3Presentation && !isZone4Presentation && item.sfx) playBossSfx(item.sfx);
+        if (!isZone3Presentation && !isZone4Presentation && item.shot === 0) {
             _introFilmTimers.push(setTimeout(() => playBossSfx('grub'), 620));
         }
         // Old-shape items (every existing non-Zone-1 zone) carry a flat
@@ -19465,11 +19476,17 @@ function playZoneStoryReplay(zoneKey) {
     const model = _cinematicReplay();
     const zone = _zoneForCinematic(zoneKey);
     if (!model || !zone) return false;
-    const sequence = model.replaySequence(zone);
-    if (!sequence.length) return false;
     const replayOptions = arguments[1] && typeof arguments[1] === 'object'
         ? arguments[1]
         : {};
+    if (zone.key === 'k11_15' && !window.Zone4CinematicContent?.isReady?.()) {
+        void _ensureZone4CinematicContentReady(zone).then(ready => {
+            if (ready) playZoneStoryReplay(zoneKey, replayOptions);
+        });
+        return true;
+    }
+    const sequence = model.replaySequence(zone);
+    if (!sequence.length) return false;
     return _playZoneCinematicSequence(zone, sequence, {
         presentationOnly: true,
         audioUnlockPromise: replayOptions.audioUnlockPromise,

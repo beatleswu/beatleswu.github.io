@@ -22,7 +22,7 @@
       "js/e9/journey_onboarding_content.js", "js/e9/journey_onboarding_spine.js", "js/e9/journey_onboarding_view.js",
       "js/e9/journey_zone3_presentation_audio.js", "js/e9/journey_zone3_vertical_slice.js", "js/e9/journey_zone3_vertical_slice_content.js",
       "js/e9/journey_zone3_vertical_slice_view.js", "js/e9/zone3_presentation_fx.js",
-      "js/e10/zone4_owner_story_runtime.js",
+      "js/e10/zone4_owner_story_runtime.js", "js/e10/zone4_cinematic_content.js",
       "css/e9/art_directed_runtime.css", "css/e9/cards.css",
       "css/e9/immersive_rpg.css", "css/e9/navigation.css",
       "css/e9/quests.css", "css/e9/reference_world_map.css",
