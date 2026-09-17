@@ -1183,15 +1183,15 @@
     },
     {
       "path": "app.py",
-      "source_commit": "becbf9786c0a428417097a7199e2438721fb9e6b",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): route the two index-referenced e10 stylesheets (same serving class)",
+      "source_commit": "a5caeec4bb993fbd280b451ce05afd6e116001ff",
+      "source_branch_or_local_ref": "codex/p0-zone4-lanec-package-provenance-closure-001",
+      "source_commit_subject": "admit P0 Lane C recovery runtime",
       "source_date": "2026-09-17",
-      "content_sha256": "dbb59995bc268cb5059683f18b496432bc86bb52493bd79b8d51384aa2dc6f6a",
-      "content_size_bytes": 1403977,
+      "content_sha256": "e2edbb54a11c0516cc3aec2226bf47dc51f7cb2a572c711f211a84da6c2a8edd",
+      "content_size_bytes": 1404431,
       "line_ending_policy": "LF",
       "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear and C045 Shop admission wiring; narrow Zone4 Owner-final presentation serving routes",
-      "source_status": "canonical origin/master provenance -- recorded source_commit is the commit that introduced the current blob and is byte-identical to it. That commit adds only explicit E10 static serving routes (/js/e10/zone4_cinematic_content.js, /css/e10/encounter_presentation_framework_v1.css, /css/e10/go_combat_owner_reference_v1.css) alongside the existing Zone4 Owner-final routes; it adds no gameplay, progression, reward, question, or canonical-state authority. Deployment remains separately gated."
+      "source_status": "candidate integration provenance -- recorded source_commit introduced the current integrated blob and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
     },
     {
       "path": "coin_purchase_authority.py",
@@ -1276,6 +1276,18 @@
       "line_ending_policy": "LF",
       "runtime_role": "Dockerfile-packaged answer-screen presentation runtime; EQ-B full-body Equipment composition plus EQ-C data-driven handheld weapon composition",
       "source_status": "candidate-branch provenance -- recorded source_commit introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+    },
+    {
+      "path": "migrations/adventure_progress_recovery_v1.py",
+      "source_commit": "a5caeec4bb993fbd280b451ce05afd6e116001ff",
+      "source_branch_or_local_ref": "codex/p0-zone4-lanec-package-provenance-closure-001",
+      "source_commit_subject": "admit P0 Lane C recovery runtime",
+      "source_date": "2026-09-17",
+      "content_sha256": "7e845a1615f7205780632e043711e88158613d25f3c9d6a509b15a55749ed9a9",
+      "content_size_bytes": 14723,
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py startup dependency; additive Lane C recovery-ledger schema validator and idempotent migration helper. It creates schema only and never inserts recovery rows.",
+      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
     },
     {
       "path": "srs_scheduling_core.py",

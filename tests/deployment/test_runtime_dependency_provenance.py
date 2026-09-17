@@ -156,11 +156,21 @@ INCIDENT_003G_GOVERNED_RUNTIME_PATHS = frozenset(
     }
 )
 
+# P0 Lane C adds the startup-imported recovery-ledger migration helper.  It
+# is an explicit image dependency, so keep the exact governed set aligned
+# with its Dockerfile COPY, build-manifest entry, and provenance record.
+P0_LANE_C_GOVERNED_RUNTIME_PATHS = frozenset(
+    {
+        "migrations/adventure_progress_recovery_v1.py",
+    }
+)
+
 CURRENT_EXPECTED_COUNT = (
     B1_PRESENT_EXPECTED_COUNT
     + len(POST_B1_GOVERNED_RUNTIME_PATHS)
     + len(EQ_F_GOVERNED_RUNTIME_PATHS)
     + len(INCIDENT_003G_GOVERNED_RUNTIME_PATHS)
+    + len(P0_LANE_C_GOVERNED_RUNTIME_PATHS)
 )
 
 
@@ -170,6 +180,7 @@ def _current_expected_governed_runtime_paths(presentation_present):
         | POST_B1_GOVERNED_RUNTIME_PATHS
         | EQ_F_GOVERNED_RUNTIME_PATHS
         | INCIDENT_003G_GOVERNED_RUNTIME_PATHS
+        | P0_LANE_C_GOVERNED_RUNTIME_PATHS
     )
 
 
@@ -208,6 +219,20 @@ def test_incident_003g_expected_set_is_exact():
     )
     assert INCIDENT_003G_GOVERNED_RUNTIME_PATHS.isdisjoint(POST_B1_GOVERNED_RUNTIME_PATHS)
     assert INCIDENT_003G_GOVERNED_RUNTIME_PATHS.isdisjoint(EQ_F_GOVERNED_RUNTIME_PATHS)
+
+
+def test_p0_lane_c_expected_set_is_exact():
+    assert P0_LANE_C_GOVERNED_RUNTIME_PATHS == frozenset(
+        {
+            "migrations/adventure_progress_recovery_v1.py",
+        }
+    )
+    assert P0_LANE_C_GOVERNED_RUNTIME_PATHS.isdisjoint(
+        _expected_governed_runtime_paths(True)
+    )
+    assert P0_LANE_C_GOVERNED_RUNTIME_PATHS.isdisjoint(POST_B1_GOVERNED_RUNTIME_PATHS)
+    assert P0_LANE_C_GOVERNED_RUNTIME_PATHS.isdisjoint(EQ_F_GOVERNED_RUNTIME_PATHS)
+    assert P0_LANE_C_GOVERNED_RUNTIME_PATHS.isdisjoint(INCIDENT_003G_GOVERNED_RUNTIME_PATHS)
 
 
 def _assert_runtime_manifest_contract(paths, count, presentation_present):

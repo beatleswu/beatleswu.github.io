@@ -269,8 +269,9 @@ def _assert_provenance_contract(governed_paths, presentation_present, expected_c
 # census runner, which is executed from inside the governed image.
 # SHOP-F R1 adds the app.py entrypoint and canonical Coin acquisition authority.
 # EQ-F adds the app-imported first-clear/portfolio/loadout/ownership/Shop
-# admission authorities and the Dockerfile-packaged answer renderer.
-POST_B1_PROVENANCE_ADDITIONS = 28
+# admission authorities and the Dockerfile-packaged answer renderer. P0 Lane
+# C adds one explicit startup migration dependency to the governed image.
+POST_B1_PROVENANCE_ADDITIONS = 29
 CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 
