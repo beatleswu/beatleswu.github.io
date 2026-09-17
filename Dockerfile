@@ -322,6 +322,10 @@ COPY js/hero_legacy_cache_guard.js ./js/hero_legacy_cache_guard.js
 # restorable when the live-static override is unavailable.
 COPY js/e10/zone4_owner_story_runtime.js ./js/e10/zone4_owner_story_runtime.js
 COPY css/e10/zone4_owner_story_runtime.css ./css/e10/zone4_owner_story_runtime.css
+# Same contract for the Zone4 cinematic content adapter that index.html loads:
+# live-static serves it in normal operation, and this baked copy is the
+# fallback the /js/e10/ route resolves to when that override is unavailable.
+COPY js/e10/zone4_cinematic_content.js ./js/e10/zone4_cinematic_content.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog

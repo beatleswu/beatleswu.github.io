@@ -29068,6 +29068,18 @@ def serve_zone4_owner_story_runtime_css():
         'zone4_owner_story_runtime.css', 'css/e10', 'css/e10'
     )
 
+# Zone4 Owner-final cinematic content adapter, loaded by index.html. Unlike
+# /js/e9/, the /js/e10/ prefix has no generic <path:subpath> route -- each file
+# is an explicit, governed entry (see the comment above). The static release
+# already ships this file into live-static, but without a rule here Flask 404s
+# at URL routing, before the live-static resolver is ever consulted.
+# This carries no gameplay, progression, reward, or state authority.
+@app.route('/js/e10/zone4_cinematic_content.js')
+def serve_zone4_cinematic_content_js():
+    return _serve_live_static_or_baked_subpath(
+        'zone4_cinematic_content.js', 'js/e10', 'js/e10'
+    )
+
 # ══════════════════════════════════════════════════════════════
 # 線上對弈模組（Socket.IO）
 # ══════════════════════════════════════════════════════════════
