@@ -2611,6 +2611,26 @@ function Test-PublicRawStaticRoute {
         $stream = $response.GetResponseStream()
         $memory = New-Object System.IO.MemoryStream
         $stream.CopyTo($memory)
+        # A response that declares more bytes than it delivers must fail closed
+        # on its own evidence. Do not rely on the HTTP stack to raise: .NET
+        # Framework (Windows PowerShell 5.1) returns the short body from
+        # CopyTo without throwing, while .NET (pwsh 7) raises -- so truncation
+        # detection was runtime-dependent. ContentLength is -1 when the server
+        # sends no Content-Length (e.g. chunked), which is not a truncation.
+        $declaredLength = [int64]$response.ContentLength
+        $observedLength = [int64]$memory.Length
+        if ($declaredLength -ge 0 -and $declaredLength -ne $observedLength) {
+            return [pscustomobject]@{
+                path = $Path
+                status = 'truncated_response'
+                verification_mode = 'RAW_PUBLIC_BYTES'
+                http_status = $status
+                expected = $ExpectedHash
+                declared_length = $declaredLength
+                observed_length = $observedLength
+                error = "Declared Content-Length $declaredLength does not match $observedLength received bytes."
+            }
+        }
         $hasher = [System.Security.Cryptography.SHA256]::Create()
         try {
             $observedHash = ([System.BitConverter]::ToString($hasher.ComputeHash($memory.ToArray())) -replace '-', '').ToLowerInvariant()
@@ -2792,8 +2812,39 @@ function Invoke-BoundedPublicStaticVerification {
                     }
                 }
                 $stream = $response.GetResponseStream()
+                # Hash incrementally while counting bytes, so a truncated
+                # response is caught on its own evidence without buffering a
+                # whole asset in memory. ComputeHash($stream) alone cannot
+                # report how many bytes it consumed. See the matching guard in
+                # Test-PublicRawStaticRoute for why the HTTP stack must not be
+                # relied on to raise here.
                 $hasher = [System.Security.Cryptography.SHA256]::Create()
-                $observedHash = (([System.BitConverter]::ToString($hasher.ComputeHash($stream))) -replace '-', '').ToLowerInvariant()
+                try {
+                    $chunk = New-Object byte[] 81920
+                    $observedLength = [int64]0
+                    while (($read = $stream.Read($chunk, 0, $chunk.Length)) -gt 0) {
+                        [void]$hasher.TransformBlock($chunk, 0, $read, $null, 0)
+                        $observedLength += $read
+                    }
+                    [void]$hasher.TransformFinalBlock((New-Object byte[] 0), 0, 0)
+                    $observedHash = (([System.BitConverter]::ToString($hasher.Hash)) -replace '-', '').ToLowerInvariant()
+                }
+                finally {
+                    $hasher.Dispose()
+                }
+                $declaredLength = [int64]$response.ContentLength
+                if ($declaredLength -ge 0 -and $declaredLength -ne $observedLength) {
+                    return [pscustomobject]@{
+                        path = $Path
+                        status = 'truncated_response'
+                        verification_mode = 'RAW_PUBLIC_BYTES'
+                        http_status = $status
+                        expected = $ExpectedHash
+                        declared_length = $declaredLength
+                        observed_length = $observedLength
+                        error = "Declared Content-Length $declaredLength does not match $observedLength received bytes."
+                    }
+                }
                 if ($observedHash -ne $ExpectedHash) {
                     return [pscustomobject]@{
                         path = $Path
