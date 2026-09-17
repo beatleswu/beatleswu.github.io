@@ -25,4 +25,3 @@
 The read-only corroboration did not submit, replay, or alter `test01` state.
 The exact UI counter transition remains the Owner's recorded `59 -> 60`
 acceptance evidence.
-

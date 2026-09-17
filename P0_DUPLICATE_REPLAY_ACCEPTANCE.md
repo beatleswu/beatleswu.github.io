@@ -19,4 +19,3 @@ incident remains open until a separately approved safe acceptance records
 `DUPLICATE_REPLAY_DELTA=0` and an exact UTC closure timestamp.
 
 `DUPLICATE_REPLAY_STATUS=SEPARATE_SAFE_ACCEPTANCE_REQUIRED`
-

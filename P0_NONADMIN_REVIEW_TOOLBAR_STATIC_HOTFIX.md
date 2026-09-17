@@ -32,4 +32,3 @@ Pre-hotfix Production read-only identity was:
 Promotion fields are intentionally recorded by the coordinator after
 canonical admission and public verification; this candidate report does not
 claim a live promotion.
-

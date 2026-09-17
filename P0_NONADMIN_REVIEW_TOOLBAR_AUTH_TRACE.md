@@ -48,4 +48,3 @@ non-admin persistent mutation was found or exercised in Production.
 `NONADMIN_PRIVILEGED_MUTATION_REJECTED=YES`
 
 `CLASSIFICATION=UI_AUTHORIZATION_VISIBILITY_LEAK`
-

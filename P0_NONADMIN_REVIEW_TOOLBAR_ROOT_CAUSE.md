@@ -33,4 +33,3 @@ the authoritative `/api/auth/me` response (`logged_in === true` and
 Normal `回報這題` remains available to players. Answer submission,
 Adventure progression, Map Battle settlement, SRS, D1, and server
 authorization are unchanged.
-

@@ -30,4 +30,3 @@ toolbar/action/admin-tool nodes and retain one normal report control. Admin
 contexts mount five action buttons and the admin tools only after bootstrap.
 
 No test was skipped, xfailed, deleted, or weakened by this candidate.
-

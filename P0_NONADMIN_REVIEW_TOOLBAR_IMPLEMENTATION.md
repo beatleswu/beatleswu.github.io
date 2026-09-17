@@ -26,4 +26,3 @@ progression file changed.
   `tests/test_p0_nonadmin_review_toolbar.py`,
   `tests/e2e/run_p0_nonadmin_review_toolbar_contract.mjs`
 - Product semantic change outside visibility: `NO`
-

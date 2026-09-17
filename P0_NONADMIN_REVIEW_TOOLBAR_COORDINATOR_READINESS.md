@@ -35,4 +35,3 @@ Preserve: 返回地圖 / 上一題 / 重試 / 下一題
 
 `READY_FOR_OWNER_NONADMIN_TOOLBAR_UAT=YES` applies only after public static
 promotion. `OWNER_UAT=NOT_RUN` and `INCIDENT_END=NOT_SET` remain true here.
-
