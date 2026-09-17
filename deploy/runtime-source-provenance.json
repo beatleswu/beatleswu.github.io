@@ -1290,6 +1290,18 @@
       "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
     },
     {
+      "path": "adventure_progress_recovery.py",
+      "source_commit": "a5caeec4bb993fbd280b451ce05afd6e116001ff",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "admit P0 Lane C recovery runtime",
+      "source_date": "2026-09-17",
+      "content_sha256": "73445547306f15c189b2d965c79a77e48d93fea8f53a975232f36c3c9b81cb04",
+      "content_size_bytes": 47439,
+      "line_ending_policy": "LF",
+      "runtime_role": "Lane C recovery read/apply runtime dependency; explicit Dockerfile and build-manifest input used by the owner-gated historical recovery path. It validates trusted recovery-ledger identity and does not invent recovery evidence.",
+      "source_status": "canonical origin/master provenance -- recorded source_commit introduced the current blob and is byte-identical to it; deployment remains separately gated."
+    },
+    {
       "path": "srs_scheduling_core.py",
       "source_commit": "b1b17e77e4b595ddb27b70d261ed093e5469a625",
       "source_branch_or_local_ref": "claude/incident-003g-shared-srs-persistence-core-001",

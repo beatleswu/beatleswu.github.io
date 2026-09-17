@@ -156,11 +156,13 @@ INCIDENT_003G_GOVERNED_RUNTIME_PATHS = frozenset(
     }
 )
 
-# P0 Lane C adds the startup-imported recovery-ledger migration helper.  It
-# is an explicit image dependency, so keep the exact governed set aligned
-# with its Dockerfile COPY, build-manifest entry, and provenance record.
+# P0 Lane C adds the recovery-ledger runtime/read boundary and its
+# startup-imported migration helper.  Both are explicit image dependencies,
+# so keep the exact governed set aligned with their Dockerfile COPY,
+# build-manifest entries, and provenance records.
 P0_LANE_C_GOVERNED_RUNTIME_PATHS = frozenset(
     {
+        "adventure_progress_recovery.py",
         "migrations/adventure_progress_recovery_v1.py",
     }
 )
@@ -224,6 +226,7 @@ def test_incident_003g_expected_set_is_exact():
 def test_p0_lane_c_expected_set_is_exact():
     assert P0_LANE_C_GOVERNED_RUNTIME_PATHS == frozenset(
         {
+            "adventure_progress_recovery.py",
             "migrations/adventure_progress_recovery_v1.py",
         }
     )

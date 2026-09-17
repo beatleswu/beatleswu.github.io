@@ -46,6 +46,9 @@ COPY adventure_zone1_2_monster_runtime_provider.py ./
 # Incident 019B: app.py imports the compatibility reader at process startup.
 # Keep this runtime dependency explicit; it does not execute the migration.
 COPY adventure_progress_compatibility.py ./
+# P0 Lane C: the recovery read/apply boundary is an explicit runtime
+# dependency. Keep it in the curated image alongside its compatibility layer.
+COPY adventure_progress_recovery.py ./
 # RPG V1 P0 hotfix: app.py imports the Zone 3 legacy compatibility and
 # distinct-correct progression authorities at process startup. Keep both
 # explicit in the curated image boundary.
