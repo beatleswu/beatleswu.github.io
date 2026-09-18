@@ -3786,6 +3786,50 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
             max-width: 100%;
         }
     }
+    /* PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_001: Zone 4's intro-film storyboard
+       had no zone-specific portrait rule at all, so it fell through to the
+       generic .boss-cinematic.intro-film .boss-cinematic-scene contract
+       (width: min(900px, 94vw); min-height: min(560px, 86vh)). On any tall
+       portrait viewport (86vh always exceeds 560px above ~651px of viewport
+       height -- every tablet and phone in portrait), min-height resolves to
+       the fixed 560px and never grows to fill the screen: a small, landscape
+       -shaped, vertically centered box with large empty top/bottom bands --
+       reproduced and measured on an iPad-portrait viewport (784x560 scene in
+       an 834x1194 viewport: 317px of empty space above and below). This is
+       the same defect class Zone 2 (k21_25) already carries a fix for; this
+       block is that same, already-shipped fix pattern applied to k11_15. It
+       only changes the intro-film's own frame -- the 22-shot storyboard
+       content, Lord checkpoint, Lord visuals, and replay semantics are
+       untouched, and Zone 4's Lord Card rules (phase-zone4-lord-card etc.,
+       lines above) are not modified. */
+    @media (orientation: portrait) and (max-width: 900px) {
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .boss-cinematic-scene {
+            width: 100vw;
+            min-height: 100dvh;
+            border-radius: 0;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .film-shot img {
+            object-fit: contain;
+            background: transparent;
+            object-position: center;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .boss-cinematic-content {
+            left: max(12px, env(safe-area-inset-left));
+            right: max(12px, env(safe-area-inset-right));
+            bottom: max(12px, env(safe-area-inset-bottom));
+            max-height: 34dvh;
+            overflow: auto;
+        }
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .boss-cinematic-line {
+            font-size: clamp(12px, 3.4vw, 15px);
+            line-height: 1.45;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .intro-film-controls {
+            max-width: calc(100vw - 24px);
+        }
+    }
     /* Zone 2 Lord Trial visual integration (Owner attachments 1-6).
        These rules reuse the Zone 1 DOM/state contract while giving Zone 2
        its own governed backplates, portraits, and ritual key art. All
