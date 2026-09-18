@@ -369,7 +369,13 @@
     var tabletPortraitViewport = tabletPortrait
       && typeof window.innerHeight === 'number'
       && window.innerHeight >= 960;
-    return mobile || (tablet && (tabletPortraitViewport || appleTouchSurface));
+    // PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: the `tablet` gate
+    // above requires width 768-1279, which misses an affected device whose
+    // layout viewport is misreported as desktop-class (>=1280). See
+    // js/e9/feature_flags.js.
+    var portraitOverride = window.E9 && window.E9.isPortraitTabletOverride
+      && window.E9.isPortraitTabletOverride();
+    return mobile || (tablet && (tabletPortraitViewport || appleTouchSurface)) || portraitOverride;
   }
 
   function updateRouteProgress(root, zones) {
@@ -1209,9 +1215,9 @@
     }
     if (regionProgress) regionProgress.textContent = (zone.__e10Index || 0) + ' / 10';
     if (bossProgress) bossProgress.textContent = zoneBossProgressText(zone);
-    var portraitSurface = window.matchMedia && window.matchMedia(
+    var portraitSurface = (window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-    ).matches;
+    ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
     if (landmark) {
       if (portraitSurface && ZONE_LANDMARKS[zone.key]) {
         if (landmark.getAttribute('src') !== ZONE_LANDMARKS[zone.key]) {
@@ -1334,9 +1340,13 @@
     // if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);
     // Selection-only renders must not move the authoritative player marker.
     var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-    var isPortraitTablet = window.matchMedia && window.matchMedia(
+    // PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: this is the Zone
+    // Card visibility gate. See js/e9/feature_flags.js for why the raw
+    // matchMedia orientation check cannot be trusted alone on an affected
+    // device -- without this OR, the Zone Card is deliberately hidden.
+    var isPortraitTablet = (window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-    ).matches;
+    ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
     if (details) details.hidden = VS1E_STATIC_CONTRACT_ACTIVE ? !isPortraitTablet : isMobile;
     updateSelectedZoneCopy(root, zone);
     configureStoryReplayButton(replay, zone);
@@ -1709,9 +1719,9 @@
         configurePrimaryCta(root, recommended, state);
         dispatchZoneSelection(root, recommended, state);
         var portraitDetails = root.querySelector('#e9-world-stage-details');
-        var portraitTablet = window.matchMedia && window.matchMedia(
+        var portraitTablet = (window.matchMedia && window.matchMedia(
           '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-        ).matches;
+        ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
         if (portraitDetails) portraitDetails.hidden = !portraitTablet;
       }
     }

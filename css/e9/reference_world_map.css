@@ -923,6 +923,94 @@ body[data-e10-visual-skin="immersive-rpg"] #ios-install-guide { display: none !i
   body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot:not(.is-drawer-open) { position: fixed; top: max(124px, env(safe-area-inset-top,0px)); right: 12px; bottom: auto; width: min(360px,calc(100vw - 32px)); }
 }
 
+/* PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: some installed iPad
+   PWAs report a layout viewport (window.innerWidth/orientation) that is
+   misreported as desktop-class even though the device is physically
+   portrait -- proven in production by the Adventure Shell rendering its
+   desktop-only "desktop-legacy" bottom dock category on a real portrait
+   iPad, which requires innerWidth >= 1280 and cannot happen on a genuine
+   iPad portrait viewport. Every rule above keys off
+   @media (orientation: ...) / (min-width: ...), which all read from that
+   same misreported viewport and so cannot be trusted on an affected device.
+   index.html's <head> computes a hardware-level correction (Macintosh-UA
+   -with-touch iPad whose screen.orientation disagrees with its own layout
+   viewport) and sets html[data-go-portrait-tablet-override] when the
+   disagreement is detected; see js/e9/feature_flags.js. This block re-
+   applies the exact portrait ruleset above under that attribute instead of
+   the (untrustworthy) media query, so it wins by specificity over whichever
+   width/orientation breakpoint incorrectly activated. It changes nothing on
+   a correctly-reporting device -- including a genuinely landscape iPad,
+   which never sets this attribute in the first place. */
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: 100vw !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 100dvh !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border-width: 0;
+  border-radius: 0;
+  aspect-ratio: auto !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell::before,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell::after { display: none; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-top-hud-slot { position: relative; top: auto; right: auto; left: auto; height: auto; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud { display: grid; grid-template-columns: minmax(150px, .9fr) minmax(0, 1.1fr); height: auto; padding: 8px; border: 3px solid var(--e10-ref-gold); border-radius: 0; background: #214f51; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-hud-brand { display: none; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud__player { grid-template-columns: 44px minmax(0,1fr) 12px; width: 100%; min-height: 52px; padding: 3px 12px 3px 4px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud__avatar { width: 44px; height: 44px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-hud__right { position: static !important; top: auto !important; right: auto !important; transform: none !important; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body.is-right-drawer-open {
+  position: relative !important;
+  inset: auto !important;
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-slot,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #adventure-stage,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage {
+  aspect-ratio: 16 / 9 !important;
+  border: 3px solid var(--e10-ref-gold);
+  overflow: hidden !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage .e9-map-stage__base { position: absolute; inset: 0; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] .e10-adventure-progress { display: none; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-map-primary-cta { display: none; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-details:not([hidden]) { display: block; position: static !important; margin: 10px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { position: fixed; z-index: 60; top: auto; right: 8px; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); left: 8px; width: auto; height: auto; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav { padding: 5px; border: 2px solid var(--e10-ref-gold); border-radius: 8px; background: #4b2813; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list { grid-template-columns: repeat(6,minmax(0,1fr)); grid-template-rows: 1fr; gap: 3px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li:has([data-e10-command="adventure"]) { display: block; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item { width: 100%; min-height: 62px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon { width: 30px; height: 30px; padding: 4px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item > span:not(.e10-nav-status-lock) { width: 100%; min-height: 20px; border: 0; background: transparent; box-shadow: none; font-size: 9px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-dock { display: none !important; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot:not(.is-drawer-open) { position: fixed; top: max(124px, env(safe-area-inset-top,0px)); right: 12px; bottom: auto; width: min(360px,calc(100vw - 32px)); }
+
 @media (max-width: 600px) {
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud { grid-template-columns: minmax(132px,.8fr) minmax(0,1.2fr); }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-utility-control { border-radius: 8px; }

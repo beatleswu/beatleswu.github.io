@@ -18,6 +18,76 @@
         }
     }());
     </script>
+    <script>
+    // GO_ODYSSEY_PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001:
+    // some installed iPad PWAs report a desktop-class layout viewport
+    // (width >= 1280) while the device is physically portrait -- proven by
+    // production evidence, the Adventure Shell's "desktop-legacy" bottom
+    // dock category (soul_records/battle_log/tavern/star_chart/arena; see
+    // js/e9/navigation_registry.js) renders on a real iPad in portrait,
+    // which requires window.innerWidth >= 1280 and is architecturally
+    // impossible for a genuine iPad portrait viewport under a correctly
+    // honoured `width=device-width` (the largest real iPad portrait CSS
+    // width is 1024). Every @media (orientation: ...) / matchMedia query in
+    // the Adventure Shell therefore cannot be trusted on an affected device,
+    // because they all read from the same misreported layout viewport.
+    //
+    // This reuses the exact "Macintosh UA + touch points = iPad running in
+    // desktop-site mode" signature this codebase already relies on
+    // elsewhere (js/e9/world_stage.js's usesInlinePlayerMarkerSurface, and
+    // this file's own showIOSInstallGuide isIPadOSDesktopUA check) -- a
+    // real Mac has no touch points, so this combination is, in practice,
+    // always an iPad. screen.orientation reflects the device's physical
+    // rotation via the hardware Screen Orientation API and is not part of
+    // the layout viewport that desktop-site mode overrides, so it is used
+    // as the trusted "is this device actually portrait" signal instead.
+    //
+    // This only activates when the viewport's own orientation signal
+    // DISAGREES with the hardware signal -- a correctly-reporting device,
+    // including a genuinely landscape iPad, is completely unaffected.
+    (function () {
+        function computeOverride() {
+            try {
+                var nav = window.navigator || {};
+                var ua = nav.userAgent || '';
+                var maxTouchPoints = nav.maxTouchPoints || 0;
+                var isAppleTouchSurface = maxTouchPoints > 1 && /iPad|Macintosh/.test(ua);
+                if (!isAppleTouchSurface) return false;
+
+                var hardwareOrientation = null;
+                if (window.screen && window.screen.orientation && typeof window.screen.orientation.type === 'string') {
+                    var type = window.screen.orientation.type;
+                    hardwareOrientation = type.indexOf('portrait') === 0
+                        ? 'portrait' : (type.indexOf('landscape') === 0 ? 'landscape' : null);
+                } else if (window.screen && typeof window.screen.width === 'number'
+                    && typeof window.screen.height === 'number' && window.screen.width !== window.screen.height) {
+                    hardwareOrientation = window.screen.width < window.screen.height ? 'portrait' : 'landscape';
+                }
+                if (hardwareOrientation !== 'portrait') return false;
+
+                // Without matchMedia there is no way to confirm a genuine
+                // disagreement, so this must fail closed (no override) --
+                // not treat "cannot check" as "must be wrong".
+                if (!window.matchMedia) return false;
+                var viewportSaysPortrait = window.matchMedia('(orientation: portrait)').matches;
+                return !viewportSaysPortrait;
+            } catch (err) {
+                return false;
+            }
+        }
+        function apply() {
+            var active = computeOverride();
+            window.__GO_PORTRAIT_TABLET_OVERRIDE__ = active;
+            document.documentElement.toggleAttribute('data-go-portrait-tablet-override', active);
+        }
+        apply();
+        window.addEventListener('resize', apply, { passive: true });
+        window.addEventListener('orientationchange', apply, { passive: true });
+        if (window.screen && window.screen.orientation && window.screen.orientation.addEventListener) {
+            window.screen.orientation.addEventListener('change', apply);
+        }
+    }());
+    </script>
     <meta name="go-odyssey-static-contract" content="e10-vs1f-integrated-world-map">
     <title>弈境奇兵 (Go Odyssey) — 練習</title>
     <meta name="description" content="弈境奇兵修煉大廳：每日修行委託、魔物試煉、錯題淨化與棋力鑑定。把圍棋練習變成 RPG 冒險。">

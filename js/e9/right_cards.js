@@ -394,7 +394,13 @@
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
     );
     var syncDetailSurfaceOwnership = function () {
-      var lowerCardOwnsDetails = !!(stackedDetailSurface && stackedDetailSurface.matches);
+      // PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: OR in the
+      // JS-verified override so an affected device (viewport misreported as
+      // desktop-class; see js/e9/feature_flags.js) still hands ownership to
+      // the stacked/lower Zone Card instead of the desktop side drawer.
+      var portraitOverride = !!(window.E9 && window.E9.isPortraitTabletOverride
+        && window.E9.isPortraitTabletOverride());
+      var lowerCardOwnsDetails = !!(stackedDetailSurface && stackedDetailSurface.matches) || portraitOverride;
       var adventureShell = document.querySelector('#e9-adventure-shell');
       var immersiveShell = !!(adventureShell && adventureShell.getAttribute('data-e10-visual-skin') === 'immersive-rpg');
       var lowerCard = adventureShell && adventureShell.querySelector('#e9-world-stage-details');
@@ -409,7 +415,7 @@
       }
       if (backdrop && lowerCardOwnsDetails) backdrop.hidden = true;
       if (immersiveShell && lowerCard) {
-        lowerCard.hidden = !(portraitLowerCardSurface && portraitLowerCardSurface.matches);
+        lowerCard.hidden = !((portraitLowerCardSurface && portraitLowerCardSurface.matches) || portraitOverride);
       }
     };
     if (toggle && panel) {
