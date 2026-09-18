@@ -46,32 +46,60 @@
     // DISAGREES with the hardware signal -- a correctly-reporting device,
     // including a genuinely landscape iPad, is completely unaffected.
     (function () {
+        // GO_ODYSSEY_PWA_REAL_IPAD_RUNTIME_GEOMETRY_DIAGNOSTIC_001: the
+        // production-fix candidate did not resolve the Owner's real device.
+        // computeOverride() now also records its own intermediate signals
+        // (not just the final boolean) on window.__GO_PORTRAIT_DIAGNOSTIC__,
+        // so the on-device diagnostic panel below can display the actual
+        // runtime values this algorithm saw -- not a source-code inference
+        // of what it should have seen. This changes no return value and no
+        // behaviour; it only records what already happened.
         function computeOverride() {
+            var diag = {
+                maxTouchPoints: null, userAgent: null, isAppleTouchSurface: null,
+                hardwareOrientationSource: null, hardwareOrientation: null,
+                matchMediaAvailable: null, viewportSaysPortrait: null,
+                result: false, error: null,
+            };
             try {
                 var nav = window.navigator || {};
                 var ua = nav.userAgent || '';
                 var maxTouchPoints = nav.maxTouchPoints || 0;
+                diag.maxTouchPoints = maxTouchPoints;
+                diag.userAgent = ua;
                 var isAppleTouchSurface = maxTouchPoints > 1 && /iPad|Macintosh/.test(ua);
-                if (!isAppleTouchSurface) return false;
+                diag.isAppleTouchSurface = isAppleTouchSurface;
+                if (!isAppleTouchSurface) { window.__GO_PORTRAIT_DIAGNOSTIC__ = diag; return false; }
 
                 var hardwareOrientation = null;
                 if (window.screen && window.screen.orientation && typeof window.screen.orientation.type === 'string') {
+                    diag.hardwareOrientationSource = 'screen.orientation.type: ' + window.screen.orientation.type;
                     var type = window.screen.orientation.type;
                     hardwareOrientation = type.indexOf('portrait') === 0
                         ? 'portrait' : (type.indexOf('landscape') === 0 ? 'landscape' : null);
                 } else if (window.screen && typeof window.screen.width === 'number'
                     && typeof window.screen.height === 'number' && window.screen.width !== window.screen.height) {
+                    diag.hardwareOrientationSource = 'screen.width/height fallback: ' + window.screen.width + 'x' + window.screen.height;
                     hardwareOrientation = window.screen.width < window.screen.height ? 'portrait' : 'landscape';
+                } else {
+                    diag.hardwareOrientationSource = 'unavailable';
                 }
-                if (hardwareOrientation !== 'portrait') return false;
+                diag.hardwareOrientation = hardwareOrientation;
+                if (hardwareOrientation !== 'portrait') { window.__GO_PORTRAIT_DIAGNOSTIC__ = diag; return false; }
 
                 // Without matchMedia there is no way to confirm a genuine
                 // disagreement, so this must fail closed (no override) --
                 // not treat "cannot check" as "must be wrong".
-                if (!window.matchMedia) return false;
+                diag.matchMediaAvailable = !!window.matchMedia;
+                if (!window.matchMedia) { window.__GO_PORTRAIT_DIAGNOSTIC__ = diag; return false; }
                 var viewportSaysPortrait = window.matchMedia('(orientation: portrait)').matches;
-                return !viewportSaysPortrait;
+                diag.viewportSaysPortrait = viewportSaysPortrait;
+                diag.result = !viewportSaysPortrait;
+                window.__GO_PORTRAIT_DIAGNOSTIC__ = diag;
+                return diag.result;
             } catch (err) {
+                diag.error = err && err.message ? err.message : String(err);
+                window.__GO_PORTRAIT_DIAGNOSTIC__ = diag;
                 return false;
             }
         }
@@ -24271,5 +24299,328 @@ window.addEventListener('appinstalled', () => {
 <script src="/js/e9/journey_zone3_vertical_slice_view.js?v=20260903w103"></script>
 <script src="/js/e9/shell.js?v=20260804e10navcache1"></script>
 <script src="/sgf_report_widget.js?v=a032r1" defer></script>
+<script>
+/* GO_ODYSSEY_PWA_REAL_IPAD_RUNTIME_GEOMETRY_DIAGNOSTIC_001
+ *
+ * Temporary, bounded, read-only diagnostic surface. Renders the exact
+ * runtime signals a real installed PWA saw -- not a source-code inference
+ * of what it should see -- as on-screen text so the Owner can screenshot it
+ * without a Mac, Safari remote inspector, or clearing any app state.
+ *
+ * Activation: 6 taps within 3 seconds on a small invisible zone fixed to
+ * the top-left corner of the viewport (present regardless of shell state,
+ * including the broken landscape-shaped shell, since that state always
+ * leaves the true top-left screen corner empty). Same gesture toggles the
+ * panel closed. Nothing else on the page is affected: no network calls, no
+ * DOM mutation outside the panel itself, no state written anywhere.
+ *
+ * DIAGNOSTIC ONLY -- ships no layout fix. Safe to leave inert in
+ * Production; the trigger zone is invisible and 60x60px, and every value
+ * shown is read, never computed differently from what the app itself
+ * already computed (window.__GO_PORTRAIT_DIAGNOSTIC__ /
+ * window.__GO_PORTRAIT_TABLET_OVERRIDE__ are read directly from
+ * index.html's own detection script; the Zone Card decision is read
+ * directly from the live #e9-world-stage-details.hidden property that
+ * world_stage.js itself set, not recomputed here).
+ */
+(function () {
+    'use strict';
+
+    function fmt(value) {
+        if (value === undefined) return 'undefined';
+        if (value === null) return 'null';
+        if (typeof value === 'number' && isNaN(value)) return 'NaN';
+        return String(value);
+    }
+
+    function safeMatchMedia(query) {
+        try {
+            return window.matchMedia ? window.matchMedia(query).matches : 'matchMedia unavailable';
+        } catch (err) {
+            return 'error: ' + err.message;
+        }
+    }
+
+    function elementSnapshot(selector) {
+        var el = document.querySelector(selector);
+        if (!el) return { selector: selector, present: false };
+        var rect = el.getBoundingClientRect();
+        var cs = window.getComputedStyle(el);
+        return {
+            selector: selector,
+            present: true,
+            hidden: el.hasAttribute('hidden'),
+            rect: {
+                x: Math.round(rect.x), y: Math.round(rect.y),
+                w: Math.round(rect.width), h: Math.round(rect.height),
+            },
+            computed: {
+                display: cs.display, position: cs.position,
+                width: cs.width, height: cs.height,
+                minWidth: cs.minWidth, maxWidth: cs.maxWidth,
+                minHeight: cs.minHeight, maxHeight: cs.maxHeight,
+                aspectRatio: cs.aspectRatio, overflow: cs.overflow,
+                flex: cs.flex, gridTemplateColumns: cs.gridTemplateColumns,
+                transform: cs.transform,
+            },
+        };
+    }
+
+    function captureDiagnostics() {
+        var html = document.documentElement;
+        var body = document.body;
+        var vv = window.visualViewport;
+
+        // The exact expressions the shipped shell logic itself evaluates --
+        // not a re-derivation. See js/e9/world_stage.js renderSelectedZone()
+        // and usesInlinePlayerMarkerSurface() for the identical strings.
+        var mqPortraitTablet = '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)';
+        var mqLandscapeTablet = '(min-width: 768px) and (max-width: 1279px) and (orientation: landscape)';
+        var mqMobile = '(max-width: 767px)';
+        var mqDesktop = '(min-width: 1280px)';
+
+        var portraitDiag = window.__GO_PORTRAIT_DIAGNOSTIC__ || {};
+        var portraitOverride = !!window.__GO_PORTRAIT_TABLET_OVERRIDE__;
+
+        var zoneCardEl = document.getElementById('e9-world-stage-details');
+        var zoneCardDecision = zoneCardEl
+            ? (zoneCardEl.hidden ? 'HIDDEN (details.hidden = true)' : 'VISIBLE (details.hidden = false)')
+            : 'element not found in DOM';
+
+        return {
+            captured_at: new Date().toISOString(),
+
+            innerWidth: window.innerWidth,
+            innerHeight: window.innerHeight,
+            clientWidth: html.clientWidth,
+            clientHeight: html.clientHeight,
+            visualViewport: vv ? { width: vv.width, height: vv.height, scale: vv.scale } : 'unavailable',
+            screen: {
+                width: screen.width, height: screen.height,
+                availWidth: screen.availWidth, availHeight: screen.availHeight,
+                orientationType: (screen.orientation && screen.orientation.type) || 'unavailable',
+                orientationAngle: (screen.orientation && screen.orientation.angle),
+            },
+            devicePixelRatio: window.devicePixelRatio,
+
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            maxTouchPoints: navigator.maxTouchPoints,
+
+            mediaQueries: {
+                'display-mode: standalone': safeMatchMedia('(display-mode: standalone)'),
+                'orientation: portrait': safeMatchMedia('(orientation: portrait)'),
+                'orientation: landscape': safeMatchMedia('(orientation: landscape)'),
+                'min-width: 1280px': safeMatchMedia(mqDesktop),
+                'max-width: 1279px': safeMatchMedia('(max-width: 1279px)'),
+                'tablet-portrait (768-1279 + portrait)': safeMatchMedia(mqPortraitTablet),
+                'tablet-landscape (768-1279 + landscape)': safeMatchMedia(mqLandscapeTablet),
+                'mobile (max-width: 767px)': safeMatchMedia(mqMobile),
+            },
+
+            portraitTabletOverrideDiagnostic: {
+                maxTouchPoints: portraitDiag.maxTouchPoints,
+                userAgent: portraitDiag.userAgent,
+                isAppleTouchSurface: portraitDiag.isAppleTouchSurface,
+                hardwareOrientationSource: portraitDiag.hardwareOrientationSource,
+                hardwareOrientation: portraitDiag.hardwareOrientation,
+                matchMediaAvailable: portraitDiag.matchMediaAvailable,
+                viewportSaysPortrait: portraitDiag.viewportSaysPortrait,
+                result: portraitDiag.result,
+                error: portraitDiag.error,
+            },
+            PWA_PORTRAIT_OVERRIDE_final: portraitOverride,
+
+            htmlAttributes: {
+                'data-go-display-mode': html.getAttribute('data-go-display-mode'),
+                'data-go-portrait-tablet-override': html.hasAttribute('data-go-portrait-tablet-override'),
+                'data-world-presentation-state': html.getAttribute('data-world-presentation-state'),
+            },
+            bodyAttributes: {
+                'data-adventure-shell-active': body.getAttribute('data-adventure-shell-active'),
+                'data-e10-visual-skin': body.getAttribute('data-e10-visual-skin'),
+                'data-e10-art-kit': body.getAttribute('data-e10-art-kit'),
+                'data-sgf-report-surface': body.getAttribute('data-sgf-report-surface'),
+            },
+
+            elements: {
+                worldStageShell: elementSnapshot('#e9-adventure-shell'),
+                mapContainer: elementSnapshot('#e9-map-stage'),
+                mapImage: elementSnapshot('#e9-map-stage .e9-map-stage__base'),
+                zoneCardContainer: elementSnapshot('#e9-world-stage-details'),
+                bottomDock: elementSnapshot('#e9-bottom-dock-slot'),
+                leftNav: elementSnapshot('#e9-left-nav-slot'),
+            },
+
+            jsDecisions: {
+                IS_MOBILE_maxWidth767: safeMatchMedia(mqMobile),
+                IS_PORTRAIT_TABLET_768to1279: safeMatchMedia(mqPortraitTablet),
+                IS_LANDSCAPE_TABLET_768to1279: safeMatchMedia(mqLandscapeTablet),
+                IS_DESKTOP_min1280: safeMatchMedia(mqDesktop),
+                APPLE_TOUCH_SURFACE: portraitDiag.isAppleTouchSurface,
+                PWA_PORTRAIT_OVERRIDE: portraitOverride,
+                ZONE_CARD_VISIBLE_DECISION: zoneCardDecision,
+            },
+        };
+    }
+
+    function renderText(data) {
+        function section(title, obj) {
+            var lines = [title, '─'.repeat(Math.min(title.length, 48))];
+            Object.keys(obj).forEach(function (key) {
+                var v = obj[key];
+                if (v && typeof v === 'object' && !Array.isArray(v)) {
+                    lines.push(key + ':');
+                    Object.keys(v).forEach(function (k2) {
+                        lines.push('    ' + k2 + ' = ' + fmt(v[k2]));
+                    });
+                } else {
+                    lines.push(key + ' = ' + fmt(v));
+                }
+            });
+            return lines.join('\n');
+        }
+        var out = [];
+        out.push('GO ODYSSEY -- PWA RUNTIME DIAGNOSTIC');
+        out.push('captured_at = ' + data.captured_at);
+        out.push('');
+        out.push(section('VIEWPORT / SCREEN', {
+            innerWidth: data.innerWidth, innerHeight: data.innerHeight,
+            clientWidth: data.clientWidth, clientHeight: data.clientHeight,
+            visualViewport: data.visualViewport,
+            screen: data.screen,
+            devicePixelRatio: data.devicePixelRatio,
+        }));
+        out.push('');
+        out.push(section('NAVIGATOR', {
+            userAgent: data.userAgent, platform: data.platform, maxTouchPoints: data.maxTouchPoints,
+        }));
+        out.push('');
+        out.push(section('MEDIA QUERIES (live matchMedia results)', data.mediaQueries));
+        out.push('');
+        out.push(section('PORTRAIT-TABLET OVERRIDE ALGORITHM (actual recorded run)', data.portraitTabletOverrideDiagnostic));
+        out.push('PWA_PORTRAIT_OVERRIDE_final = ' + fmt(data.PWA_PORTRAIT_OVERRIDE_final));
+        out.push('');
+        out.push(section('HTML / BODY ATTRIBUTES', Object.assign({}, data.htmlAttributes, data.bodyAttributes)));
+        out.push('');
+        Object.keys(data.elements).forEach(function (key) {
+            var el = data.elements[key];
+            out.push('ELEMENT: ' + key + '  (' + el.selector + ')');
+            if (!el.present) { out.push('    NOT FOUND IN DOM'); out.push(''); return; }
+            out.push('    hidden attribute = ' + fmt(el.hidden));
+            out.push('    rect = x:' + el.rect.x + ' y:' + el.rect.y + ' w:' + el.rect.w + ' h:' + el.rect.h);
+            Object.keys(el.computed).forEach(function (k2) {
+                out.push('    ' + k2 + ' = ' + fmt(el.computed[k2]));
+            });
+            out.push('');
+        });
+        out.push(section('JS VISIBILITY DECISIONS', data.jsDecisions));
+        out.push('');
+        out.push('(點擊上方「關閉 Close」按鈕即可關閉本面板；關閉後於螢幕左上角連續點 6 下可重新開啟 / tap the Close button above to close -- tap the top-left corner 6x again afterward to reopen)');
+        return out.join('\n');
+    }
+
+    var panel = null;
+    var textEl = null;
+
+    function buildPanel() {
+        panel = document.createElement('div');
+        panel.setAttribute('id', 'go-pwa-diagnostic-panel');
+        panel.style.cssText = [
+            'position:fixed', 'inset:0', 'z-index:2147483647',
+            'background:#0b0f14', 'color:#e8f0f4',
+            'overflow:auto', '-webkit-overflow-scrolling:touch',
+            'padding:16px', 'box-sizing:border-box',
+            'font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+        ].join(';');
+
+        var bar = document.createElement('div');
+        // padding-left clears the same top-left corner the external trigger
+        // occupies, so a stray tap there while the panel is open doesn't
+        // spam-click whichever button happens to render first.
+        bar.style.cssText = 'display:flex;gap:8px;margin-bottom:10px;margin-left:64px;flex-wrap:wrap;';
+
+        var copyBtn = document.createElement('button');
+        copyBtn.textContent = '複製 Copy';
+        copyBtn.style.cssText = 'padding:10px 16px;font-size:15px;border-radius:8px;border:1px solid #3a4650;background:#1a232b;color:#e8f0f4;';
+        copyBtn.addEventListener('click', function () {
+            var text = textEl ? textEl.textContent : '';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () {
+                    copyBtn.textContent = '已複製 Copied ✓';
+                    setTimeout(function () { copyBtn.textContent = '複製 Copy'; }, 1500);
+                }, function () { copyBtn.textContent = '複製失敗 Failed'; });
+            }
+        });
+
+        var refreshBtn = document.createElement('button');
+        refreshBtn.textContent = '重新擷取 Refresh';
+        refreshBtn.style.cssText = copyBtn.style.cssText;
+        refreshBtn.addEventListener('click', function () { renderInto(captureDiagnostics()); });
+
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '關閉 Close ✕';
+        closeBtn.style.cssText = copyBtn.style.cssText;
+        closeBtn.addEventListener('click', hidePanel);
+
+        bar.appendChild(copyBtn);
+        bar.appendChild(refreshBtn);
+        bar.appendChild(closeBtn);
+        panel.appendChild(bar);
+
+        textEl = document.createElement('pre');
+        textEl.style.cssText = 'white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.5;margin:0;-webkit-user-select:text;user-select:text;';
+        panel.appendChild(textEl);
+
+        document.body.appendChild(panel);
+    }
+
+    function renderInto(data) {
+        if (textEl) textEl.textContent = renderText(data);
+    }
+
+    function showPanel() {
+        if (!panel) buildPanel();
+        renderInto(captureDiagnostics());
+        panel.style.display = 'block';
+    }
+
+    function hidePanel() {
+        if (panel) panel.style.display = 'none';
+    }
+
+    function isPanelOpen() {
+        return !!(panel && panel.style.display !== 'none');
+    }
+
+    // Invisible 60x60 trigger fixed to the true top-left viewport corner --
+    // present regardless of the shell's own layout/z-index state, and
+    // regardless of whether the shell has finished loading.
+    var trigger = document.createElement('div');
+    trigger.setAttribute('id', 'go-pwa-diagnostic-trigger');
+    trigger.style.cssText = 'position:fixed;top:0;left:0;width:60px;height:60px;z-index:2147483646;background:transparent;';
+    var tapCount = 0;
+    var tapTimer = null;
+    trigger.addEventListener('pointerdown', function () {
+        tapCount += 1;
+        if (tapTimer) clearTimeout(tapTimer);
+        tapTimer = setTimeout(function () { tapCount = 0; }, 3000);
+        if (tapCount >= 6) {
+            tapCount = 0;
+            clearTimeout(tapTimer);
+            if (isPanelOpen()) hidePanel(); else showPanel();
+        }
+    }, { passive: true });
+
+    function mount() {
+        document.body.appendChild(trigger);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mount);
+    } else {
+        mount();
+    }
+}());
+</script>
 </body>
 </html>
