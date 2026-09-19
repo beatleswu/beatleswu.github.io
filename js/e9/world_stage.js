@@ -369,7 +369,13 @@
     var tabletPortraitViewport = tabletPortrait
       && typeof window.innerHeight === 'number'
       && window.innerHeight >= 960;
-    return mobile || (tablet && (tabletPortraitViewport || appleTouchSurface));
+    // PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: the `tablet` gate
+    // above requires width 768-1279, which misses an affected device whose
+    // layout viewport is misreported as desktop-class (>=1280). See
+    // js/e9/feature_flags.js.
+    var portraitOverride = window.E9 && window.E9.isPortraitTabletOverride
+      && window.E9.isPortraitTabletOverride();
+    return mobile || (tablet && (tabletPortraitViewport || appleTouchSurface)) || portraitOverride;
   }
 
   function updateRouteProgress(root, zones) {
@@ -938,23 +944,35 @@
   // player's authoritative unlock state -- never from a zone-key allowlist
   // here. A zone with no cinematics, or a player who has unlocked nothing,
   // yields false and the affordance stays hidden.
-  // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002 / 002A: this is the SINGLE
+  // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002 / 002A, revised by
+  // A_PWA_PORTRAIT_AND_REPLAY_CORRECTIVE_CANDIDATE_005: this is the SINGLE
   // presentation predicate for the Replay Story affordance, on every surface
   // (portrait Zone card and landscape drawer alike). It answers from the
-  // Owner's product rule and nothing else -- never from a zone-key allowlist,
-  // and never from a per-surface variant. All four conditions are required:
+  // story model and nothing else -- never from a zone-key allowlist, a
+  // per-surface variant, or a special case for how the zone was reached. All
+  // three conditions are required:
   //
   //   1. an AUTHORITATIVE zone record is available;
   //   2. the zone is not locked;
-  //   3. the zone is cleared -- Replay Story is a reward for finishing a zone,
-  //      so an unlocked-but-unfinished zone offers nothing, even though its
-  //      intro is technically "unlocked" in the cinematic model's sense;
-  //   4. the canonical model reports at least one replayable unlocked segment.
+  //   3. the canonical story model reports at least one CURRENTLY UNLOCKED,
+  //      replayable segment for the zone.
+  //
+  // "The zone is cleared" is deliberately NOT a condition here any more. It used
+  // to be (Replay Story as a reward for finishing a zone), which hid the
+  // affordance for a zone the player skipped past through placement even
+  // though the model already knew which segments were legitimately unlocked.
+  // Segment unlock stays exactly where it was decided: js/game/cinematic_replay.js
+  // unlocks pre-play on entry access and everything from post-clear on only
+  // after an authoritative clear, so a placement-skipped zone replays its
+  // opening only and never a later segment. Replay itself is presentation only
+  // (playStoryReplay writes nothing), so no progression, reward or unlock state
+  // is involved in this decision.
   //
   // Every failure path returns false, including "I could not tell". Failing
-  // closed is deliberate: the entire defect class this hotfix exists to remove
-  // is a button that renders without the authority to act, so an unanswerable
-  // question must hide the affordance rather than show a hopeful one.
+  // closed is deliberate: the defect class this predicate exists to prevent is a
+  // button that renders without the authority to act, so an unanswerable
+  // question (no record, no model, a provider that has not loaded or failed to
+  // load) hides the affordance rather than showing a hopeful one.
   function zoneStoryReplayAvailable(zoneKey, zoneRecord) {
     if (!zoneKey) return false;
     // (1) Authoritative record. A caller that holds one passes it; otherwise
@@ -973,12 +991,12 @@
     }
     if (!zone) return false;
 
-    // (2) + (3) Authoritative unlock and clear state.
+    // (2) Authoritative access state.
     if (zone.locked === true) return false;
-    if (zone.cleared !== true) return false;
 
-    // (4) Canonical replayable segments. No model loaded means the question is
-    // unanswerable, which fails closed rather than guessing from zone identity.
+    // (3) Canonical currently-unlocked replayable segments. No model loaded
+    // means the question is unanswerable, which fails closed rather than
+    // guessing from zone identity.
     var api = window.E10Cinematic;
     if (!api || typeof api.hasReplayableStory !== 'function') return false;
     try {
@@ -986,6 +1004,56 @@
     } catch (error) {
       return false;
     }
+  }
+
+  // A zone's story provider can load lazily (Zone 4's manifest is fetched on
+  // first use), in which case the model answers "no replayable story" simply
+  // because the content is not there yet -- and nothing else asks it to load
+  // for a player who never enters the zone's first-entry film. So when a zone
+  // is selected, ask the cinematic layer to make its provider ready and, once
+  // that settles, re-evaluate the affordance on every surface.
+  //
+  //   - one request per zone at a time (E10Cinematic.prepareStoryProvider
+  //     returns null when there is nothing to load, and the page-level flag
+  //     stops a second concurrent request), so no polling and no listener is
+  //     ever added;
+  //   - it only loads that zone's own provider, never other zones' assets;
+  //   - a failed load clears the flag and leaves the affordance hidden (fail
+  //     closed); the next selection of the zone is the only retry, so a
+  //     persistent failure cannot become a loop;
+  //   - it changes no gameplay state -- it only re-renders presentation.
+  var storyProviderRequests = {};
+
+  function refreshSelectedZoneReplay(zoneKey) {
+    var root = worldStageRoot();
+    var state = root && root.__e9WorldStageState;
+    // The player may have selected another zone while the provider loaded.
+    if (!state || state.selectedZoneKey !== zoneKey) return;
+    var zone = findZone(state.zones || [], zoneKey);
+    if (!zone) return;
+    // Re-render the selected-zone card (portrait card, mobile inline panel),
+    // then let the landscape drawer re-evaluate from the same predicate.
+    renderSelectedZone(root, state.zones, zoneKey, false);
+    if (window.E9 && typeof window.E9.refreshDrawerZoneReplay === 'function') {
+      window.E9.refreshDrawerZoneReplay();
+    }
+  }
+
+  function scheduleStoryProviderRefresh(zoneKey) {
+    var api = window.E10Cinematic;
+    if (!zoneKey || storyProviderRequests[zoneKey]) return;
+    if (!api || typeof api.prepareStoryProvider !== 'function') return;
+    var pending = null;
+    try { pending = api.prepareStoryProvider(zoneKey); } catch (error) { pending = null; }
+    if (!pending || typeof pending.then !== 'function') return;
+    storyProviderRequests[zoneKey] = true;
+    pending.then(function (ready) {
+      if (ready === true) refreshSelectedZoneReplay(zoneKey);
+    }).catch(function () {
+      /* fail closed: the affordance simply stays hidden */
+    }).then(function () {
+      delete storyProviderRequests[zoneKey];
+    });
   }
 
   // Replays every legitimately unlocked segment of the zone, in canonical
@@ -1209,9 +1277,9 @@
     }
     if (regionProgress) regionProgress.textContent = (zone.__e10Index || 0) + ' / 10';
     if (bossProgress) bossProgress.textContent = zoneBossProgressText(zone);
-    var portraitSurface = window.matchMedia && window.matchMedia(
+    var portraitSurface = (window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-    ).matches;
+    ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
     if (landmark) {
       if (portraitSurface && ZONE_LANDMARKS[zone.key]) {
         if (landmark.getAttribute('src') !== ZONE_LANDMARKS[zone.key]) {
@@ -1334,12 +1402,17 @@
     // if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);
     // Selection-only renders must not move the authoritative player marker.
     var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-    var isPortraitTablet = window.matchMedia && window.matchMedia(
+    // PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: this is the Zone
+    // Card visibility gate. See js/e9/feature_flags.js for why the raw
+    // matchMedia orientation check cannot be trusted alone on an affected
+    // device -- without this OR, the Zone Card is deliberately hidden.
+    var isPortraitTablet = (window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-    ).matches;
+    ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
     if (details) details.hidden = VS1E_STATIC_CONTRACT_ACTIVE ? !isPortraitTablet : isMobile;
     updateSelectedZoneCopy(root, zone);
     configureStoryReplayButton(replay, zone);
+    scheduleStoryProviderRefresh(zone.key);
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
       : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
@@ -1709,9 +1782,9 @@
         configurePrimaryCta(root, recommended, state);
         dispatchZoneSelection(root, recommended, state);
         var portraitDetails = root.querySelector('#e9-world-stage-details');
-        var portraitTablet = window.matchMedia && window.matchMedia(
+        var portraitTablet = (window.matchMedia && window.matchMedia(
           '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-        ).matches;
+        ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
         if (portraitDetails) portraitDetails.hidden = !portraitTablet;
       }
     }

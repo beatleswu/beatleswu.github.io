@@ -1,20 +1,24 @@
 /**
  * Executable contract for the shared Replay Story availability predicate
- * (E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002A).
+ * (E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002A, revised by
+ * A_PWA_PORTRAIT_AND_REPLAY_CORRECTIVE_CANDIDATE_005).
  *
- * The Owner's product rule, verbatim:
+ * The product rule (Coordinator decisions 1-3):
  *
- *   zoneReplayStoryAvailable(zoneKey, zoneRecord) must require
+ *   zoneReplayStoryAvailable(zoneKey, zoneRecord) requires
  *     1. zoneRecord is authoritative
  *     2. zoneRecord.locked != true
- *     3. zoneRecord.cleared == true
- *     4. canonical replayable unlocked segment count > 0
+ *     3. the canonical story model reports at least one CURRENTLY UNLOCKED
+ *        replayable segment
+ *
+ *   Whether the zone is cleared is NOT a condition, and the predicate carries no
+ *   special case for how a zone was reached (for example placement): segment
+ *   unlock is the model's job, and the model already keeps post-clear segments
+ *   locked until an authoritative clear.
  *
  * This runs the real function out of js/e9/world_stage.js against synthetic
- * authoritative records, so the four conditions are asserted by execution
- * rather than by matching source text. It covers the combinations a seeded
- * fixture cannot always produce -- notably "cleared zone that declares no
- * replayable segments", which no current zone is.
+ * authoritative records, so the conditions are asserted by execution rather
+ * than by matching source text.
  */
 
 import { readFileSync } from 'node:fs';
@@ -77,25 +81,37 @@ const locked = (key) => ({ key, locked: true, cleared: false });
 // rule 2 is not subordinate to rule 3.
 const lockedButCleared = (key) => ({ key, locked: true, cleared: true });
 
-// ---- positive: all four conditions satisfied --------------------------------
+// ---- positive: every condition satisfied ----------------------------------
 check('zone1 cleared + replayable', call('k26_30', cleared('k26_30')), true);
 check('zone2 cleared + replayable', call('k21_25', cleared('k21_25')), true);
 
-// ---- rule 3: cleared is REQUIRED -------------------------------------------
-check('unlocked but not cleared is refused',
-  call('k26_30', unlockedNotCleared('k26_30')), false);
-check('missing cleared field is refused',
-  call('k26_30', { key: 'k26_30', locked: false }), false);
-check('cleared must be strictly true, not truthy',
-  call('k26_30', { key: 'k26_30', locked: false, cleared: 1 }), false);
+// ---- cleared is NOT required (decision 3) ------------------------------------
+// The model is the authority on which segments are unlocked; a zone that is
+// accessible and not cleared is answered by the model, not refused here.
+check('accessible but not cleared is answered by the model (replayable -> allowed)',
+  call('k26_30', unlockedNotCleared('k26_30')), true);
+check('a record without a cleared field is answered by the model',
+  call('k26_30', { key: 'k26_30', locked: false }), true);
+check('the cleared field, truthy or not, does not change the answer',
+  call('k26_30', { key: 'k26_30', locked: false, cleared: 1 }), true);
+check('accessible, not cleared, model reports nothing unlocked -> refused',
+  call('k16_20', unlockedNotCleared('k16_20')), false);
 
 // ---- rule 2: locked is refused --------------------------------------------
 check('locked zone is refused', call('k16_20', locked('k16_20')), false);
 check('locked wins over cleared', call('k26_30', lockedButCleared('k26_30')), false);
 
-// ---- rule 4: canonical replayable segments required ------------------------
+// ---- rule 3: canonical currently-unlocked replayable segments required ------
 check('cleared zone with no replayable segments is refused',
   call('k16_20', cleared('k16_20')), false);
+
+// ---- no special case for placement (decision 1 / 3) ---------------------------
+// A placement-skipped record is not cleared; the answer is still the model's.
+const placementSkipped = (key) => ({ key, locked: false, cleared: false, status: 'skipped_by_placement', skippedByPlacement: true });
+check('placement-skipped with an unlocked replayable segment -> allowed',
+  call('k26_30', placementSkipped('k26_30')), true);
+check('placement-skipped with nothing unlocked -> refused',
+  call('k16_20', placementSkipped('k16_20')), false);
 
 // ---- rule 1: an authoritative record is required (fail closed) -------------
 check('no record and no resolvable state is refused', call('k26_30', null), false);
@@ -113,7 +129,7 @@ check('throwing model is refused',
 
 // ---- the predicate must not be keyed on zone identity ----------------------
 // A synthetic zone key that no allowlist could know about still works when it
-// satisfies all four conditions.
+// satisfies the conditions.
 REPLAYABLE.add('zone_that_did_not_exist_before');
 check('unknown-but-eligible zone is allowed (no allowlist)',
   call('zone_that_did_not_exist_before', cleared('zone_that_did_not_exist_before')), true);

@@ -3,6 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+    // Keep installed iOS/Web App launches on the same product surface as
+    // Safari.  This marker is presentation-only; it does not select a
+    // different Adventure renderer or alter authenticated state.
+    (function () {
+        try {
+            var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                || window.navigator.standalone === true;
+            document.documentElement.setAttribute('data-go-display-mode', standalone ? 'standalone' : 'browser');
+        } catch (error) {
+            // A missing capability signal must retain the normal browser
+            // surface rather than hide any Adventure content.
+        }
+    }());
+    </script>
+    <script>
+    // GO_ODYSSEY_PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001:
+    // some installed iPad PWAs report a desktop-class layout viewport
+    // (width >= 1280) while the device is physically portrait -- proven by
+    // production evidence, the Adventure Shell's "desktop-legacy" bottom
+    // dock category (soul_records/battle_log/tavern/star_chart/arena; see
+    // js/e9/navigation_registry.js) renders on a real iPad in portrait,
+    // which requires window.innerWidth >= 1280 and is architecturally
+    // impossible for a genuine iPad portrait viewport under a correctly
+    // honoured `width=device-width` (the largest real iPad portrait CSS
+    // width is 1024). Every @media (orientation: ...) / matchMedia query in
+    // the Adventure Shell therefore cannot be trusted on an affected device,
+    // because they all read from the same misreported layout viewport.
+    //
+    // This reuses the exact "Macintosh UA + touch points = iPad running in
+    // desktop-site mode" signature this codebase already relies on
+    // elsewhere (js/e9/world_stage.js's usesInlinePlayerMarkerSurface, and
+    // this file's own showIOSInstallGuide isIPadOSDesktopUA check) -- a
+    // real Mac has no touch points, so this combination is, in practice,
+    // always an iPad. screen.orientation reflects the device's physical
+    // rotation via the hardware Screen Orientation API and is not part of
+    // the layout viewport that desktop-site mode overrides, so it is used
+    // as the trusted "is this device actually portrait" signal instead.
+    //
+    // The correction is intentionally narrower than a generic touch-device
+    // rule: it requires an installed standalone PWA, the existing Apple-touch
+    // signature, a physical screen size in the supported tablet range, and
+    // hardware portrait orientation.  The physical screen dimensions are
+    // trusted here because Safari desktop-site mode can expose a scaled
+    // layout viewport (for example innerWidth=1640 on an 820px iPad screen).
+    (function () {
+        // GO_ODYSSEY_PWA_REAL_IPAD_RUNTIME_GEOMETRY_DIAGNOSTIC_001: the
+        // production-fix candidate did not resolve the Owner's real device.
+        // computeOverride() now also records its own intermediate signals
+        // (not just the final boolean) on window.__GO_PORTRAIT_DIAGNOSTIC__,
+        // so the on-device diagnostic panel below can display the actual
+        // runtime values this algorithm saw -- not a source-code inference
+        // of what it should have seen. This changes no return value and no
+        // behaviour; it only records what already happened.
+        function computeOverride() {
+            var diag = {
+                maxTouchPoints: null, userAgent: null, isAppleTouchSurface: null,
+                standalonePwa: null, screenWidth: null, screenHeight: null,
+                screenShortEdge: null, screenLongEdge: null, physicalTablet: null,
+                hardwareOrientationSource: null, hardwareOrientation: null,
+                matchMediaAvailable: null, viewportSaysPortrait: null,
+                result: false, error: null,
+            };
+            try {
+                var nav = window.navigator || {};
+                var ua = nav.userAgent || '';
+                var maxTouchPoints = nav.maxTouchPoints || 0;
+                diag.maxTouchPoints = maxTouchPoints;
+                diag.userAgent = ua;
+                var isAppleTouchSurface = maxTouchPoints > 1 && /iPad|Macintosh/.test(ua);
+                diag.isAppleTouchSurface = isAppleTouchSurface;
+                if (!isAppleTouchSurface) { window.__GO_PORTRAIT_DIAGNOSTIC__ = diag; return false; }
+
+                diag.matchMediaAvailable = !!window.matchMedia;
+                if (!window.matchMedia) { window.__GO_PORTRAIT_DIAGNOSTIC__ = diag; return false; }
+                var standalonePwa = !!(window.matchMedia('(display-mode: standalone)').matches
+                    || nav.standalone === true);
+                diag.standalonePwa = standalonePwa;
+                if (!standalonePwa) { window.__GO_PORTRAIT_DIAGNOSTIC__ = diag; return false; }
+
+                var screenInfo = window.screen || {};
+                var screenWidth = screenInfo.width;
+                var screenHeight = screenInfo.height;
+                if (typeof screenWidth !== 'number' || typeof screenHeight !== 'number'
+                    || !isFinite(screenWidth) || !isFinite(screenHeight)
+                    || screenWidth <= 0 || screenHeight <= 0) {
+                    window.__GO_PORTRAIT_DIAGNOSTIC__ = diag;
+                    return false;
+                }
+                var screenShortEdge = Math.min(screenWidth, screenHeight);
+                var screenLongEdge = Math.max(screenWidth, screenHeight);
+                // Supported iPad/tablet CSS screen envelope: the smallest
+                // supported tablet short edge is 768px and the largest
+                // supported iPad long edge is 1366px.  These are the same
+                // device dimensions covered by the existing tablet layout
+                // acceptance matrix, not a generic desktop touch rule.
+                var physicalTablet = screenShortEdge >= 768 && screenLongEdge <= 1366;
+                diag.screenWidth = screenWidth;
+                diag.screenHeight = screenHeight;
+                diag.screenShortEdge = screenShortEdge;
+                diag.screenLongEdge = screenLongEdge;
+                diag.physicalTablet = physicalTablet;
+                if (!physicalTablet) { window.__GO_PORTRAIT_DIAGNOSTIC__ = diag; return false; }
+
+                var hardwareOrientation = null;
+                if (screenInfo.orientation && typeof screenInfo.orientation.type === 'string') {
+                    diag.hardwareOrientationSource = 'screen.orientation.type: ' + screenInfo.orientation.type;
+                    var type = screenInfo.orientation.type;
+                    hardwareOrientation = type.indexOf('portrait') === 0
+                        ? 'portrait' : (type.indexOf('landscape') === 0 ? 'landscape' : null);
+                }
+                if (!hardwareOrientation) {
+                    diag.hardwareOrientationSource = 'screen.width/height fallback: ' + screenWidth + 'x' + screenHeight;
+                    hardwareOrientation = screenHeight >= screenWidth ? 'portrait' : 'landscape';
+                }
+                diag.hardwareOrientation = hardwareOrientation;
+                if (hardwareOrientation !== 'portrait') { window.__GO_PORTRAIT_DIAGNOSTIC__ = diag; return false; }
+
+                var viewportSaysPortrait = window.matchMedia('(orientation: portrait)').matches;
+                diag.viewportSaysPortrait = viewportSaysPortrait;
+                // The viewport orientation is diagnostic context only.  It is
+                // not an eligibility condition because the same polluted
+                // layout viewport can report desktop width while retaining a
+                // portrait orientation match.
+                diag.result = true;
+                window.__GO_PORTRAIT_DIAGNOSTIC__ = diag;
+                return diag.result;
+            } catch (err) {
+                diag.error = err && err.message ? err.message : String(err);
+                window.__GO_PORTRAIT_DIAGNOSTIC__ = diag;
+                return false;
+            }
+        }
+        function apply() {
+            var active = computeOverride();
+            window.__GO_PORTRAIT_TABLET_OVERRIDE__ = active;
+            document.documentElement.toggleAttribute('data-go-portrait-tablet-override', active);
+        }
+        apply();
+        window.addEventListener('resize', apply, { passive: true });
+        window.addEventListener('orientationchange', apply, { passive: true });
+        if (window.screen && window.screen.orientation && window.screen.orientation.addEventListener) {
+            window.screen.orientation.addEventListener('change', apply);
+        }
+    }());
+    </script>
     <meta name="go-odyssey-static-contract" content="e10-vs1f-integrated-world-map">
     <title>弈境奇兵 (Go Odyssey) — 練習</title>
     <meta name="description" content="弈境奇兵修煉大廳：每日修行委託、魔物試煉、錯題淨化與棋力鑑定。把圍棋練習變成 RPG 冒險。">
@@ -99,7 +245,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
-    <script src="/js/e10/zone4_cinematic_content.js?v=20260917z4content001"></script>
+    <script src="/js/e10/zone4_cinematic_content.js?v=20260918z4storyfix001"></script>
     <script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0381"></script>
     <script src="/js/game/encounter_presentation_framework_v1.js?v=a023v1"></script>
     <script src="/js/game/battlefield_boss_reward_consumer.js?v=f029v1"></script>
@@ -2044,6 +2190,69 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
             0 14px 28px rgba(78, 51, 18, .12);
         color: #402812;
     }
+    /* The legacy Adventure surface and the E9 World Stage are two rollout
+       surfaces, not two Zone Card authorities.  This marker is emitted by
+       the existing shared renderer below so a Zone-specific skin can change
+       only presentation while keeping the same hierarchy, progress rows and
+       CTA grammar. */
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"] {
+        position: relative;
+        overflow: hidden;
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] {
+        border-color: rgba(74, 137, 119, .58);
+        background-color: #e8f3eb;
+        background-image:
+            linear-gradient(180deg, rgba(239, 250, 244, .94), rgba(224, 241, 235, .96)),
+            url('/assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp');
+        background-position: center;
+        background-size: cover;
+        color: #23423c;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.78),
+            0 14px 28px rgba(33, 84, 70, .14);
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-panel-kicker,
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-quest-label {
+        color: #2f665b;
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-panel-title,
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-quest-boss-name,
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-quest-star-summary {
+        color: #153e40;
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-panel-subtitle,
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-panel-meta,
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-quest-star-copy {
+        color: #35645c;
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-panel-card.quest-card {
+        background:
+            radial-gradient(circle at top right, rgba(128, 211, 181, .22), transparent 34%),
+            linear-gradient(180deg, rgba(247, 255, 249, .95), rgba(231, 247, 239, .9));
+        border-color: rgba(74, 137, 119, .34);
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-panel-card.quest-card::before {
+        background: linear-gradient(90deg, rgba(45, 118, 101, .92), rgba(112, 190, 161, .52), rgba(228, 184, 91, .48));
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-quest-boss-card {
+        background:
+            radial-gradient(circle at 20% 18%, rgba(240, 255, 248, .96), transparent 30%),
+            linear-gradient(145deg, rgba(239, 253, 245, .96), rgba(211, 239, 229, .86));
+        border-color: rgba(74, 137, 119, .28);
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-quest-boss-badge {
+        background:
+            radial-gradient(circle at 32% 28%, rgba(235, 255, 248, .98), rgba(67, 146, 121, .94) 62%, rgba(28, 75, 69, .98) 100%);
+        border-color: rgba(28, 75, 69, .26);
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-panel-btn.primary {
+        background: linear-gradient(135deg, #2f7665, #58aa8c);
+        box-shadow: 0 10px 18px rgba(33, 103, 83, .24);
+    }
+    #adventure-map-panel[data-worldstyle-family="go-odyssey"][data-zone-key="k11_15"] .adventure-panel-btn.primary:hover {
+        filter: brightness(.96);
+    }
     .adventure-map-panel.empty {
         text-align: center;
         color: #8b6a30;
@@ -3708,6 +3917,50 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
             max-width: 100%;
         }
     }
+    /* PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_001: Zone 4's intro-film storyboard
+       had no zone-specific portrait rule at all, so it fell through to the
+       generic .boss-cinematic.intro-film .boss-cinematic-scene contract
+       (width: min(900px, 94vw); min-height: min(560px, 86vh)). On any tall
+       portrait viewport (86vh always exceeds 560px above ~651px of viewport
+       height -- every tablet and phone in portrait), min-height resolves to
+       the fixed 560px and never grows to fill the screen: a small, landscape
+       -shaped, vertically centered box with large empty top/bottom bands --
+       reproduced and measured on an iPad-portrait viewport (784x560 scene in
+       an 834x1194 viewport: 317px of empty space above and below). This is
+       the same defect class Zone 2 (k21_25) already carries a fix for; this
+       block is that same, already-shipped fix pattern applied to k11_15. It
+       only changes the intro-film's own frame -- the 22-shot storyboard
+       content, Lord checkpoint, Lord visuals, and replay semantics are
+       untouched, and Zone 4's Lord Card rules (phase-zone4-lord-card etc.,
+       lines above) are not modified. */
+    @media (orientation: portrait) and (max-width: 900px) {
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .boss-cinematic-scene {
+            width: 100vw;
+            min-height: 100dvh;
+            border-radius: 0;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .film-shot img {
+            object-fit: contain;
+            background: transparent;
+            object-position: center;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .boss-cinematic-content {
+            left: max(12px, env(safe-area-inset-left));
+            right: max(12px, env(safe-area-inset-right));
+            bottom: max(12px, env(safe-area-inset-bottom));
+            max-height: 34dvh;
+            overflow: auto;
+        }
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .boss-cinematic-line {
+            font-size: clamp(12px, 3.4vw, 15px);
+            line-height: 1.45;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k11_15"] .intro-film-controls {
+            max-width: calc(100vw - 24px);
+        }
+    }
     /* Zone 2 Lord Trial visual integration (Owner attachments 1-6).
        These rules reuse the Zone 1 DOM/state contract while giving Zone 2
        its own governed backplates, portraits, and ritual key art. All
@@ -4346,6 +4599,179 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
         }
         .boss-cinematic.result-zone3-win[data-zone-key="k16_20"] .boss-cinematic-actions > button,
         .boss-cinematic.result-zone3-fail[data-zone-key="k16_20"] .boss-cinematic-actions > button {
+            width: 100%;
+            min-height: 44px;
+        }
+    }
+
+    /* Zone 4 Lord Trial presentation.  The six Rabbit King PNGs are the
+       current Zone 4 Lord package; they are deliberately scoped to k11_15 so
+       the generic/Zone 1-3 presentation contracts cannot select them.  The
+       DOM copy and CTA remain server-derived; these rules only provide the
+       visual surface and responsive framing. */
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-scene,
+    #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-scene,
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-scene,
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-scene {
+        display: block;
+        overflow: hidden;
+        min-height: 0;
+        /* Shared Lord shell geometry: Zone 4 changes art and accent only;
+           the card family stays aligned with the Zone 1/2 shell. */
+        width: min(760px, 92vw);
+        aspect-ratio: 16 / 9;
+        padding: 0;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        border-color: rgba(245, 201, 112, .62);
+        box-shadow: 0 24px 90px rgba(0, 0, 0, .64), inset 0 0 44px rgba(245, 201, 112, .16);
+        animation: lordCardFrameReveal .6s ease-out both;
+    }
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone4/lord/Z4-LORD-01.png');
+    }
+    #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone4/lord/Z4-LORD-02.png');
+    }
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone4/lord/Z4-LORD-04.png');
+        border-color: rgba(255, 214, 111, .78);
+    }
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone4/lord/Z4-LORD-03.png');
+        border-color: rgba(157, 199, 208, .62);
+        filter: saturate(.88) brightness(.94);
+    }
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-monster,
+    #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-monster,
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-monster,
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-monster,
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-progress,
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-progress,
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-cancel-btn,
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-cancel-btn {
+        display: none;
+    }
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-content,
+    #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-content,
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-content,
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-content {
+        position: absolute;
+        left: 6%;
+        right: 6%;
+        bottom: 5%;
+        z-index: 5;
+        max-width: 88%;
+        box-sizing: border-box;
+        padding: 14px 18px;
+        border: 1px solid rgba(245, 201, 112, .38);
+        border-radius: 14px;
+        background: rgba(15, 14, 10, .72);
+        backdrop-filter: blur(6px);
+        text-align: center;
+    }
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-content,
+    #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-content {
+        max-height: 58%;
+        overflow: auto;
+        box-sizing: border-box;
+    }
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-kicker,
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-title,
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-books,
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-line,
+    #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-title,
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-title,
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-title,
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-books,
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-books,
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-line,
+    #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-line {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-kicker {
+        display: none;
+    }
+    #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] #zone4-lord-card-plaque-title {
+        display: block;
+        position: absolute;
+        top: 6.5%;
+        left: 50%;
+        z-index: 4;
+        transform: translateX(-50%);
+        width: 84%;
+        color: #fff4cc;
+        font: 700 clamp(12px, 2vw, 18px)/1.2 'DM Mono', monospace;
+        letter-spacing: .16em;
+        text-align: center;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, .78), 0 0 12px rgba(0, 0, 0, .46);
+        pointer-events: none;
+    }
+    #zone4-lord-card-plaque-title,
+    #zone4-success-lord-portrait { display: none; }
+    #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] #zone4-success-lord-portrait {
+        display: block;
+        position: absolute;
+        top: 31%;
+        left: 50%;
+        z-index: 4;
+        width: min(26%, 210px);
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        object-fit: cover;
+        object-position: center;
+        border: 5px solid rgba(255, 219, 124, .86);
+        border-radius: 50%;
+        box-shadow: 0 0 0 5px rgba(50, 35, 16, .68), 0 0 34px rgba(255, 202, 83, .62);
+        pointer-events: none;
+    }
+    #boss-cinematic.result-zone4-replay[data-zone-key="k11_15"] #zone4-success-lord-portrait {
+        display: none !important;
+    }
+    #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-content {
+        top: auto;
+        bottom: 6%;
+    }
+    @media (max-width: 700px), (max-height: 760px) {
+        #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-scene,
+        #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-scene,
+        #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-scene,
+        #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-scene {
+            width: 94vw;
+            height: min(88dvh, 760px);
+            max-height: calc(100dvh - 20px);
+            aspect-ratio: auto;
+        }
+        #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-content,
+        #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-content,
+        #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-content,
+        #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-content {
+            left: 4%;
+            right: 4%;
+            bottom: 4%;
+            max-height: 62%;
+            padding: 11px 12px;
+            overflow: auto;
+        }
+        #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] #zone4-success-lord-portrait {
+            top: 28%;
+            width: 38%;
+        }
+        #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-actions,
+        #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-actions,
+        #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-actions,
+        #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            width: 100%;
+        }
+        #boss-cinematic.phase-zone4-lord-card[data-zone-key="k11_15"] .boss-cinematic-actions > button,
+        #boss-cinematic.phase-zone4-lord-ritual[data-zone-key="k11_15"] .boss-cinematic-actions > button,
+        #boss-cinematic.result-zone4-win[data-zone-key="k11_15"] .boss-cinematic-actions > button,
+        #boss-cinematic.result-zone4-fail[data-zone-key="k11_15"] .boss-cinematic-actions > button {
             width: 100%;
             min-height: 44px;
         }
@@ -7504,6 +7930,40 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     <link rel="stylesheet" href="/css/e9/journey_onboarding.css?v=20260903w103">
     <link rel="stylesheet" href="/css/e9/zone3_vertical_slice.css?v=20260903w103">
     <link rel="stylesheet" href="/css/e9/zone3_presentation_fx.css?v=20260904w1010">
+    <style>
+    /* Installed PWA / Safari parity: standalone may use different viewport
+       geometry, but it must retain the canonical Adventure vertical flow.
+       This only relaxes the outer clipping created by the legacy full-height
+       shell; it does not create a second map, card, or navigation renderer. */
+    html[data-go-display-mode="standalone"],
+    html[data-go-display-mode="standalone"] body {
+        height: auto;
+        min-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+    html[data-go-display-mode="standalone"] body {
+        min-height: 100dvh;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    html[data-go-display-mode="standalone"] body main {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+    html[data-go-display-mode="standalone"] body main .practice {
+        min-height: max-content;
+        overflow-y: visible !important;
+        padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    }
+    html[data-go-display-mode="standalone"] body[data-adventure-shell-active="e9"] #e9-adventure-shell {
+        min-height: max-content;
+    }
+    html[data-go-display-mode="standalone"] #skill-map {
+        margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+    </style>
 </head>
 <body data-sgf-report-surface="main_practice">
 <div id="world-presentation-pending" role="status" aria-live="polite">
@@ -8124,7 +8584,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
 </div>
 
 <!-- BOSS 劇情 Overlay -->
-<div id="boss-cinematic" class="boss-cinematic" aria-hidden="true">
+<div id="boss-cinematic" class="boss-cinematic" data-worldstyle-family="go-odyssey" aria-hidden="true">
     <div class="boss-cinematic-scene modal-system-card">
         <button type="button" class="boss-cinematic-close-x" id="boss-cinematic-close-x" onclick="cancelBossCinematic()" aria-label="關閉，返回地圖" title="關閉，返回地圖" data-i18n-aria-label="index.adv.stage_intro_close" data-i18n-title="index.adv.stage_intro_close">&times;</button>
         <div class="intro-film-stage z3-fx-stage" id="intro-film-stage" aria-hidden="true">
@@ -8175,6 +8635,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
         <img id="zone2-lord-portrait" src="/assets/e10/art/zone2/lord_trial/zone2_lord_portrait.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
         <img id="zone2-success-lord-portrait" src="/assets/e10/art/zone2/lord_trial/zone2_success_lord_portrait.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
         <img id="zone3-success-lord-portrait" src="/assets/e10/art/zone3/lord_trial/zone3_lord_06_success_lord_portrait.webp" alt="" aria-hidden="true" hidden loading="lazy" decoding="async">
+        <img id="zone4-success-lord-portrait" src="/assets/e10/art/zone4/lord/Z4-LORD-05.png" alt="" aria-hidden="true" hidden loading="lazy" decoding="async">
         <!-- Real DOM title placed over the Lord Challenge Card backplate's
              own top ornamental plaque (Owner polish request), instead of
              leaving that plaque blank while the kicker also sits in the
@@ -8185,6 +8646,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
              phase only (see CSS). -->
         <div id="zone1-lord-card-plaque-title" aria-hidden="true"></div>
         <div id="zone2-lord-card-plaque-title" aria-hidden="true"></div>
+        <div id="zone4-lord-card-plaque-title" aria-hidden="true"></div>
         <div class="boss-cinematic-content" id="boss-cinematic-content">
             <div class="boss-cinematic-kicker modal-system-eyebrow" id="boss-cinematic-kicker" data-i18n="index.boss.kicker">領主封印解除</div>
             <div class="boss-cinematic-progress" id="boss-cinematic-progress">
@@ -14513,6 +14975,11 @@ function _adventureCanEnter(zone) {
     if (typeof zone?.unlocked === 'boolean') return zone.unlocked;
     if (typeof stage?.can_enter === 'boolean') return stage.can_enter;
     if (typeof zone?.can_enter === 'boolean') return zone.can_enter;
+    // The E9 shell registers its normalized zone records (camelCase) as the
+    // authoritative snapshot when the legacy map has not loaded its own. Without
+    // this the model saw "cannot enter" for every zone in that snapshot and a
+    // placement-skipped zone could never report its opening as unlocked.
+    if (typeof zone?.canEnter === 'boolean') return zone.canEnter;
     return false;
 }
 
@@ -15143,6 +15610,23 @@ function _adventureQuestCtaState(zone) {
     };
 }
 
+// Legacy Adventure and E9 share the same presentation-only replay model.
+// This helper is intentionally fail-closed: if the canonical cinematic model
+// is unavailable, the legacy Zone Card exposes no speculative replay action.
+function _adventureStoryReplayAvailable(zone) {
+    if (!zone?.key || typeof window.zoneHasReplayableStory !== 'function') return false;
+    try {
+        return window.zoneHasReplayableStory(zone.key) === true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function _replayAdventureStoryFromZoneCard(zoneKey) {
+    if (!zoneKey || typeof window.playZoneStoryReplay !== 'function') return false;
+    return window.playZoneStoryReplay(zoneKey) === true;
+}
+
 function _renderNewbieVillageMainline(zone, cta) {
     const bossReady = cta?.state === 'boss_ready';
     const replay = cta?.state === 'boss_replay';
@@ -15201,11 +15685,15 @@ function renderAdventureInfoPanel(zones = _adventureProgress) {
     const recommendedZone = adventureRecommendedZone(zones || []);
     if (!selectedZone) {
         panel.className = 'adventure-map-panel empty';
+        panel.removeAttribute('data-worldstyle-family');
+        panel.removeAttribute('data-zone-key');
         panel.textContent = I18n.t('index.adv.info_empty');
         _normalizeAdventureMapCopy(panel);
         return;
     }
     panel.className = 'adventure-map-panel';
+    panel.dataset.worldstyleFamily = 'go-odyssey';
+    panel.dataset.zoneKey = selectedZone.key;
     const selectedStageLabel = _adventureStageLabel(selectedZone);
     const recommendedStageLabel = recommendedZone ? _adventureStageLabel(recommendedZone) : '';
     const badges = [
@@ -15250,6 +15738,9 @@ function renderAdventureInfoPanel(zones = _adventureProgress) {
     const actions = [];
     if (cta.action && cta.labelKey) {
         actions.push(`<button type="button" class="adventure-panel-btn primary modal-system-cta" data-sfx="${cta.sfx || 'none'}" onclick="${cta.action}">${I18n.t(cta.labelKey)}</button>`);
+    }
+    if (_adventureStoryReplayAvailable(selectedZone)) {
+        actions.push(`<button type="button" class="adventure-panel-btn ghost adventure-panel-story-replay" data-sfx="none" onclick="_replayAdventureStoryFromZoneCard('${selectedZone.key}')">${I18n.t('e10.world_stage.replay_story')}</button>`);
     }
     if (recommendedZone && recommendedZone.key !== selectedZone.key) {
         actions.push(`<button type="button" class="adventure-panel-btn secondary" data-sfx="none" onclick="returnToRecommendedAdventure()">${I18n.t('index.adv.return_main_path')}</button>`);
@@ -16114,9 +16605,41 @@ function clearAdventurePostClearPending(zone) {
 // per account -- notably it must NOT replay on a Lord retry after a failed
 // challenge -- and a browser-scoped flag cannot guarantee that across devices.
 
+function _ensureIntroFilmShotSlots(timeline = []) {
+    const stage = document.getElementById('intro-film-stage');
+    const media = stage?.querySelector('.intro-film-stage-media');
+    if (!media) return [];
+    const highestShot = timeline.reduce((highest, item) => {
+        const shot = Number(item?.shot);
+        return Number.isInteger(shot) && shot > highest ? shot : highest;
+    }, -1);
+    if (highestShot < 0) return Array.from(media.querySelectorAll('.film-shot'));
+    const existing = Array.from(media.querySelectorAll('.film-shot'));
+    const existingIndexes = new Set(existing.map(el => Number(el.dataset.shot)).filter(Number.isInteger));
+    // The Owner-final Zone4 manifest has 22 ordered beats while the legacy
+    // host markup historically carried only ten slots. Create only the
+    // missing, manifest-addressed slots; the image source still comes solely
+    // from the validated runtime manifest below, never from a guessed asset.
+    for (let shot = 0; shot <= highestShot; shot += 1) {
+        if (existingIndexes.has(shot)) continue;
+        const shotEl = document.createElement('div');
+        shotEl.className = `film-shot film-shot-${shot + 1}`;
+        shotEl.dataset.shot = String(shot);
+        const img = document.createElement('img');
+        img.id = `intro-film-shot-${shot + 1}`;
+        img.alt = '';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        shotEl.appendChild(img);
+        media.appendChild(shotEl);
+    }
+    return Array.from(media.querySelectorAll('.film-shot'))
+        .sort((left, right) => Number(left.dataset.shot) - Number(right.dataset.shot));
+}
+
 function applyIntroFilmShotAssets(timeline = [], options = {}) {
     const stage = document.getElementById('intro-film-stage');
-    const shots = stage ? Array.from(stage.querySelectorAll('.film-shot')) : [];
+    const shots = _ensureIntroFilmShotSlots(timeline);
     const onPresentationFailure = typeof options.onPresentationFailure === 'function'
         ? options.onPresentationFailure
         : null;
@@ -18282,7 +18805,7 @@ function speakIntroNarration(text, preferredLang = 'zh-TW', retrying = false) {
 async function finishIntroFilm(zone) {
     _zoneCinematicPresentationOnly = false;
     const mode = _introFilmActiveOpts.mode || 'legacy';
-    const isZoneCardFlow = (zone?.key === 'k26_30' || zone?.key === 'k21_25')
+    const isZoneCardFlow = (zone?.key === 'k26_30' || zone?.key === 'k21_25' || zone?.key === 'k11_15')
         && (mode === 'first_entry' || mode === 'manual_replay');
     // FIRST_ENTRY waits for the server write before showing the Zone Card.
     // Legacy playback keeps its established synchronous completion contract
@@ -18490,7 +19013,12 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
     };
     if (titleCard) titleCard.textContent = locale.filmTitle;
     stage.classList.remove('show-title-card');
-    const shots = Array.from(stage.querySelectorAll('.film-shot'));
+    // Ensure the host has one slot for every validated manifest shot before
+    // the sequencer captures its active-state collection.  The historical
+    // host markup carried ten slots while Zone 4 owns twenty-two beats; if we
+    // captured first, the later shots would still receive audio/subtitles but
+    // could never receive the active visual class.
+    const shots = _ensureIntroFilmShotSlots(timeline);
     const runId = _introFilmRunId;
     applyIntroFilmShotAssets(timeline, {
         onPresentationFailure: opts.onPresentationFailure,
@@ -19549,10 +20077,32 @@ function _triggerZonePostClearFromBossWin(zone, options = {}) {
     });
 }
 
+// A_PWA_PORTRAIT_AND_REPLAY_CORRECTIVE_CANDIDATE_005: Replay availability is
+// asked before a lazily-loaded story provider has any reason to load (Zone 4's
+// manifest is fetched on first use, and only the zone's first-entry film asked
+// for it), so a cleared or placement-skipped Zone 4 answered "nothing to
+// replay" until something else warmed it. Returns null when the zone's provider
+// is already available (or the zone has none), otherwise a promise for whether
+// it became ready. Uses the provider's own ready(), which shares one in-flight
+// request; never throws, and never shows the "story unavailable" overlay -- a
+// failed load only means the Replay affordance stays hidden.
+function prepareZoneStoryProvider(zoneKey) {
+    if (zoneKey !== 'k11_15') return null;
+    const runtime = window.Zone4CinematicContent;
+    if (!runtime || typeof runtime.ready !== 'function') return null;
+    if (runtime.isReady?.()) return null;
+    try {
+        return Promise.resolve(runtime.ready()).then(ready => ready === true, () => false);
+    } catch (error) {
+        return Promise.resolve(false);
+    }
+}
+
 window.zoneHasReplayableStory = zoneHasReplayableStory;
 window.playZoneStoryReplay = playZoneStoryReplay;
 window.E10Cinematic = {
     hasReplayableStory: zoneHasReplayableStory,
+    prepareStoryProvider: prepareZoneStoryProvider,
     playStoryReplay: playZoneStoryReplay,
     // Read-only registration hook for shells that already hold the
     // authoritative bootstrap snapshot (E9). See _zoneForCinematic.
@@ -19835,6 +20385,10 @@ async function startBossBattle(zoneKey) {
         showZone3LordChallengeCard(zone);
         return;
     }
+    if (zone.key === 'k11_15') {
+        showZone4LordChallengeCard(zone);
+        return;
+    }
     await showBossCinematic(zone);
 }
 
@@ -19861,6 +20415,10 @@ async function openAdventureBossFromQuestCard(zoneKey) {
     }
     if (zone.key === 'k16_20') {
         showZone3LordChallengeCard(zone);
+        return true;
+    }
+    if (zone.key === 'k11_15') {
+        showZone4LordChallengeCard(zone);
         return true;
     }
     await showBossCinematic(zone);
@@ -19963,6 +20521,189 @@ function showZone3LordChallengeCard(zone) {
         eventId: `zone3-lord-cta-${Date.now()}`,
     });
     return true;
+}
+
+// Zone 4 Lord Trial presentation.  The visual package is already present in
+// the canonical Zone 4 runtime closure (Z4-LORD-01..06); this adapter only
+// selects the appropriate presentation state.  Eligibility, exam numbers,
+// retry rules and the eventual result remain server-owned facts copied from
+// the existing adventure-progress/boss responses.
+function _zone4LordCopy(isEn) {
+    return isEn ? {
+        kicker: 'Lord Trial',
+        title: 'Misty Forest · Phantom Rabbit King',
+        eligibility: pct => `Misty Forest training progress ${pct}% ✓`,
+        reward: 'Defeat the Phantom Rabbit King to earn the zone star.',
+        prompt: 'The mist is hiding the true form. Are you ready?',
+        continueTraining: 'Continue Training',
+        startChallenge: 'Start Challenge',
+        success: 'Lord Trial Cleared',
+        firstStar: 'First Zone Star Earned',
+        replaySuccess: 'Replay Complete',
+        replayLine: 'The clear state and rewards remain unchanged.',
+        failure: 'Trial Failed',
+        replayFailure: 'Replay Not Passed',
+        replayFailureLine: 'The clear state remains unchanged. You can challenge again.',
+        goTrain: 'Go Train',
+    } : {
+        kicker: '領主試煉',
+        title: '迷霧森林・幻影兔王',
+        eligibility: pct => `迷霧森林修行進度 ${pct}% ✓`,
+        reward: '擊敗幻影兔王，取得本區星星。',
+        prompt: '迷霧藏著真正的形。準備好接受挑戰了嗎？',
+        continueTraining: '繼續修行',
+        startChallenge: '開始挑戰',
+        success: '領主試煉通關',
+        firstStar: '取得本區首顆星',
+        replaySuccess: '再次挑戰完成',
+        replayLine: '本次挑戰不會改變清關狀態或再次取得獎勵。',
+        failure: '領主試煉失敗',
+        replayFailure: '再次挑戰未通過',
+        replayFailureLine: '清關狀態維持不變；你之後仍可再次挑戰。',
+        goTrain: '前往修行',
+    };
+}
+
+function _zone4LordNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+function _hideZone4ResultPortrait() {
+    const portrait = document.getElementById('zone4-success-lord-portrait');
+    if (portrait) portrait.hidden = true;
+}
+
+function _clearZone4LordMetadata() {
+    const overlay = document.getElementById('boss-cinematic');
+    if (!overlay) return;
+    delete overlay.dataset.zone4LordAsset;
+    delete overlay.dataset.zone4Presentation;
+}
+
+function showZone4LordChallengeCard(zone) {
+    if (!zone || zone.key !== 'k11_15') return false;
+    _hideZone4ResultPortrait();
+    _clearZone4LordMetadata();
+    _hideZone3ResultPortrait();
+    _clearZone3ResultMetadata();
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
+    const progressBody = document.getElementById('boss-cinematic-progress-body');
+    const plaqueTitle = document.getElementById('zone4-lord-card-plaque-title');
+    if (!overlay || !title || !btn) {
+        _pendingBossZone = null;
+        setMsg(I18n.t('index.boss.start_fail'), 'warn');
+        return false;
+    }
+    _pendingBossZone = zone;
+    _activeBossZone = zone;
+    _stopIntroFilm();
+    const isEn = getCurrentUiLang() === 'en';
+    const copy = _zone4LordCopy(isEn);
+    const replay = _adventureBossReplayAvailable(zone);
+    overlay.className = 'boss-cinematic show phase-lord-card phase-zone4-lord-card';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key;
+    overlay.dataset.zone4LordAsset = '/assets/e10/art/zone4/lord/Z4-LORD-01.png';
+    overlay.dataset.zone4Presentation = 'challenge_card';
+    overlay.dataset.assetStatus = 'OWNER_APPROVED_PRESENT';
+    if (monster) {
+        monster.textContent = '';
+        monster.hidden = true;
+    }
+    if (kicker) kicker.textContent = copy.kicker;
+    if (plaqueTitle) plaqueTitle.textContent = copy.kicker;
+    if (title) {
+        const story = ADVENTURE_STORY[zone.key] || {};
+        const bossName = zone.boss?.name || _storyField(zone.key, story, 'boss') || copy.title;
+        const zoneName = _zoneName(zone) || (isEn ? 'Misty Forest' : '迷霧森林');
+        title.textContent = `${zoneName} · ${bossName}`;
+    }
+    const pct = Math.max(0, Math.min(100, Math.round(Number(zone.pct) || 0)));
+    if (books) {
+        books.textContent = copy.eligibility(pct);
+        books.dataset.authoritySource = '/api/adventure/bootstrap';
+    }
+    if (line) line.textContent = replay
+        ? _adventureText('index.adv.boss_replay_ready')
+        : copy.reward;
+    if (rules) {
+        const total = _zone4LordNumber(zone.boss_exam_size);
+        const pass = _zone4LordNumber(zone.boss_pass_score);
+        const cooldown = _zone4LordNumber(zone.cooldown_required);
+        const ruleLines = [];
+        if (total !== null) ruleLines.push(I18n.t('index.boss.rule_trial').replace('{n}', total));
+        if (pass !== null) ruleLines.push(I18n.t('index.boss.rule_breakthrough').replace('{n}', pass));
+        if (cooldown !== null) ruleLines.push(I18n.t('index.boss.rule_fail').replace('{n}', cooldown));
+        rules.innerHTML = ruleLines.map(text => `<span>${text}</span>`).join('');
+        rules.hidden = ruleLines.length === 0;
+        rules.dataset.authoritySource = '/api/adventure/bootstrap';
+    }
+    if (progress) progress.style.display = '';
+    if (progressBody) progressBody.textContent = copy.prompt;
+    if (cancelBtn) {
+        cancelBtn.style.display = '';
+        cancelBtn.textContent = copy.continueTraining;
+        cancelBtn.disabled = false;
+        cancelBtn.onclick = cancelBossCinematic;
+    }
+    btn.disabled = false;
+    btn.textContent = replay ? (isEn ? 'Challenge Again' : '再次挑戰領主') : copy.startChallenge;
+    btn.onclick = () => startZone4LordRitual(zone);
+    playBossSfx('appear');
+    return true;
+}
+
+function startZone4LordRitual(zone) {
+    const overlay = document.getElementById('boss-cinematic');
+    const title = document.getElementById('boss-cinematic-title');
+    const line = document.getElementById('boss-cinematic-line');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    if (!overlay || !zone || zone.key !== 'k11_15') return;
+    void _unlockIntroAudioFromGesture();
+    _pendingBossZone = zone;
+    _activeBossZone = zone;
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic show phase-lord-ritual phase-zone4-lord-ritual';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key;
+    overlay.dataset.zone4LordAsset = '/assets/e10/art/zone4/lord/Z4-LORD-02.png';
+    overlay.dataset.zone4Presentation = 'ritual';
+    overlay.dataset.assetStatus = 'OWNER_APPROVED_PRESENT';
+    const ritualArt = document.getElementById('lord-ritual-key-art');
+    if (ritualArt) {
+        ritualArt.src = '/assets/e10/art/zone4/lord/Z4-LORD-02.png';
+        ritualArt.alt = getCurrentUiLang() === 'en' ? 'The Phantom Rabbit King ritual' : '幻影兔王領主儀式';
+    }
+    if (btn) btn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (title) title.textContent = getCurrentUiLang() === 'en' ? 'Misty Forest Lord Trial' : '迷霧森林領主試煉';
+    if (line) line.textContent = getCurrentUiLang() === 'en' ? 'The mist parts. Read the true form.' : '迷霧散開，看清真正的形。';
+    _spawnLordRitualStones();
+    _spawnLordRitualParticles();
+    const finalStoneEl = document.getElementById('lord-ritual-final-stone');
+    if (finalStoneEl) finalStoneEl.innerHTML = '';
+    playBossSfx('start');
+    const ritualTimers = [
+        setTimeout(() => {
+            if (ritualArt) ritualArt.src = '/assets/e10/art/zone4/lord/Z4-LORD-06.png';
+            if (overlay) overlay.dataset.zone4LordAsset = '/assets/e10/art/zone4/lord/Z4-LORD-06.png';
+            _spawnLordRitualFinalStone();
+            playBossSfx('appear');
+        }, 2200),
+        setTimeout(() => { _startBossBattleNow(zone); }, 3000),
+    ];
+    _introFilmTimers.push(...ritualTimers);
 }
 
 // ============================================================
@@ -20321,6 +21062,9 @@ function _spawnLordRitualStones() {
 }
 
 async function showBossCinematic(zone) {
+    if (zone?.key === 'k11_15') return showZone4LordChallengeCard(zone);
+    _hideZone4ResultPortrait();
+    _clearZone4LordMetadata();
     _hideZone3ResultPortrait();
     _clearZone3ResultMetadata();
     _pendingBossZone = zone;
@@ -20496,6 +21240,8 @@ async function _startBossBattleNow(zone) {
 
 function hideBossCinematic() {
     _stopIntroFilm();
+    _hideZone4ResultPortrait();
+    _clearZone4LordMetadata();
     _hideZone3ResultPortrait();
     _clearZone3ResultMetadata();
     if (typeof BattlefieldBossRewardConsumer !== 'undefined') {
@@ -20511,8 +21257,125 @@ function hideBossCinematic() {
         delete overlay.dataset.zone3Replay;
         delete overlay.dataset.zone3Presentation;
         delete overlay.dataset.zone3PresentationOnly;
+        delete overlay.dataset.zone4Presentation;
     }
     _pendingBossZone = null;
+}
+
+function _triggerZone4PostClearFromBossWin(zone, options = {}) {
+    if (!zone || zone.key !== 'k11_15') return false;
+    const zone4Cleared = zone.cleared === true
+        || zone.completed === true
+        || zone.status === 'completed';
+    if (!zone4Cleared) return false;
+    return _triggerZonePostClearFromBossWin(zone, options);
+}
+
+function showZone4LordResultCard(result, zone) {
+    _stopIntroFilm();
+    _hideZone4ResultPortrait();
+    _clearZone4LordMetadata();
+    _hideZone3ResultPortrait();
+    _clearZone3ResultMetadata();
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    const successPortrait = document.getElementById('zone4-success-lord-portrait');
+    if (!overlay || !title || !btn || !zone || zone.key !== 'k11_15') return false;
+    const passed = result?.passed === true;
+    const replay = result?.replay === true;
+    const firstClear = passed && !replay && result?.firstClear === true;
+    const isEn = getCurrentUiLang() === 'en';
+    const copy = _zone4LordCopy(isEn);
+    overlay.className = `boss-cinematic show ${passed ? 'result-win result-zone4-win' : 'result-lose result-zone4-fail'}${replay ? ' result-zone4-replay' : ''}`;
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key;
+    overlay.dataset.zone4Presentation = passed ? (replay ? 'replay_completion' : 'first_clear_success') : 'failure';
+    overlay.dataset.zone4LordAsset = passed
+        ? '/assets/e10/art/zone4/lord/Z4-LORD-04.png'
+        : '/assets/e10/art/zone4/lord/Z4-LORD-03.png';
+    overlay.dataset.assetStatus = 'OWNER_APPROVED_PRESENT';
+    if (monster) {
+        monster.textContent = '';
+        monster.hidden = true;
+    }
+    if (progress) {
+        progress.style.display = 'none';
+        progress.textContent = '';
+    }
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (kicker) kicker.textContent = passed
+        ? (firstClear ? copy.firstStar : (replay ? copy.replaySuccess : copy.success))
+        : (replay ? copy.replayFailure : copy.failure);
+    if (title) title.textContent = passed
+        ? (firstClear ? copy.firstStar : (replay ? copy.replaySuccess : copy.success))
+        : (replay ? copy.replayFailure : copy.failure);
+    if (books) {
+        books.dataset.authoritySource = '/api/adventure/boss/finish';
+        books.textContent = passed && !replay && Number.isFinite(Number(result.correct))
+            ? (isEn ? `Record: ${result.correct}/${result.total}` : `戰績 ${result.correct}/${result.total}`)
+            : '';
+    }
+    if (line) {
+        if (replay) line.textContent = passed ? copy.replayLine : copy.replayFailureLine;
+        else if (passed) line.textContent = isEn
+            ? `You answered ${result.correct} of ${result.total} correctly.`
+            : `你答對了 ${result.total} 題中的 ${result.correct} 題。`;
+        else line.textContent = isEn
+            ? 'Train again before challenging the Phantom Rabbit King.'
+            : '再修行後，才能再次挑戰幻影兔王。';
+    }
+    if (rules) {
+        if (passed || replay) {
+            rules.innerHTML = '';
+            rules.hidden = true;
+        } else {
+            const retry = _zone4LordNumber(result.cooldown);
+            const total = _zone4LordNumber(result.bossExamSize);
+            const passScore = _zone4LordNumber(result.bossPassScore);
+            const ruleLines = [];
+            if (retry !== null) ruleLines.push(isEn
+                ? `Train ${retry} more questions before retrying`
+                : `再修行 ${retry} 題後即可重試`);
+            if (total !== null && passScore !== null) ruleLines.push(isEn
+                ? `Answer ${passScore} of ${total} correctly to pass`
+                : `${total} 題中答對 ${passScore} 題即可通過`);
+            rules.innerHTML = ruleLines.map(text => `<span>${text}</span>`).join('');
+            rules.hidden = ruleLines.length === 0;
+        }
+        rules.dataset.authoritySource = '/api/adventure/boss/finish';
+    }
+    if (passed) {
+        if (successPortrait) {
+            successPortrait.src = '/assets/e10/art/zone4/lord/Z4-LORD-05.png';
+            successPortrait.hidden = !firstClear;
+        }
+        btn.disabled = false;
+        btn.textContent = isEn ? 'Continue' : '繼續';
+        btn.onclick = () => {
+            hideBossCinematic();
+            setTimeout(() => _triggerZone4PostClearFromBossWin(zone, { replay }), 400);
+        };
+    } else if (replay) {
+        btn.disabled = false;
+        btn.textContent = isEn ? 'Continue' : '繼續';
+        btn.onclick = () => hideBossCinematic();
+    } else {
+        btn.disabled = false;
+        btn.textContent = copy.goTrain;
+        btn.onclick = () => {
+            hideBossCinematic();
+            window.location.href = firstQuestionHref(zone);
+        };
+    }
+    return true;
 }
 
 function _hideZone3ResultPortrait() {
@@ -20904,6 +21767,20 @@ async function _finishBossBattle() {
                     rewardSettled,
                     zones: data.zones || [],
                     attemptId: lordAttemptId,
+                }, finishedZone);
+            } else if (finishedZone?.key === 'k11_15') {
+                showZone4LordResultCard({
+                    passed: data.passed === true,
+                    correct: serverCorrect,
+                    total: serverTotal,
+                    cooldown: replay
+                        ? 0
+                        : (Number.isFinite(Number(data.cooldown_left))
+                            ? Number(data.cooldown_left) : null),
+                    bossExamSize: _zone4LordNumber(finishedZone.boss_exam_size),
+                    bossPassScore: _zone4LordNumber(finishedZone.boss_pass_score),
+                    firstClear: data.reward?.first_clear === true,
+                    replay,
                 }, finishedZone);
             } else {
                 await showBossResultCinematic({
@@ -23482,5 +24359,384 @@ window.addEventListener('appinstalled', () => {
 <script src="/js/e9/journey_zone3_vertical_slice_view.js?v=20260903w103"></script>
 <script src="/js/e9/shell.js?v=20260804e10navcache1"></script>
 <script src="/sgf_report_widget.js?v=a032r1" defer></script>
+<script>
+/* GO_ODYSSEY_PWA_REAL_IPAD_RUNTIME_GEOMETRY_DIAGNOSTIC_001
+ *
+ * Temporary, bounded, read-only diagnostic surface. Renders the exact
+ * runtime signals a real installed PWA saw -- not a source-code inference
+ * of what it should see -- as on-screen text so the Owner can screenshot it
+ * without a Mac, Safari remote inspector, or clearing any app state.
+ *
+ * Activation: dormant by default. An explicit `?pwa_diag=1` opt-in enables
+ * the panel, its visible DIAG button, and the original 6 taps within 3
+ * seconds fallback. A standalone PWA alone is never diagnostic authority.
+ * Nothing else on the page is affected: no network calls, no state written
+ * anywhere.
+ *
+ * DIAGNOSTIC ONLY -- ships no layout fix. Safe to leave inert in
+ * Production; without the explicit debug query no diagnostic DOM is mounted,
+ * and every value shown in opt-in mode is read, never computed differently
+ * from what the app itself
+ * already computed (window.__GO_PORTRAIT_DIAGNOSTIC__ /
+ * window.__GO_PORTRAIT_TABLET_OVERRIDE__ are read directly from
+ * index.html's own detection script; the Zone Card decision is read
+ * directly from the live #e9-world-stage-details.hidden property that
+ * world_stage.js itself set, not recomputed here).
+ */
+(function () {
+    'use strict';
+
+    function fmt(value) {
+        if (value === undefined) return 'undefined';
+        if (value === null) return 'null';
+        if (typeof value === 'number' && isNaN(value)) return 'NaN';
+        return String(value);
+    }
+
+    function safeMatchMedia(query) {
+        try {
+            return window.matchMedia ? window.matchMedia(query).matches : 'matchMedia unavailable';
+        } catch (err) {
+            return 'error: ' + err.message;
+        }
+    }
+
+    function elementSnapshot(selector) {
+        var el = document.querySelector(selector);
+        if (!el) return { selector: selector, present: false };
+        var rect = el.getBoundingClientRect();
+        var cs = window.getComputedStyle(el);
+        return {
+            selector: selector,
+            present: true,
+            hidden: el.hasAttribute('hidden'),
+            rect: {
+                x: Math.round(rect.x), y: Math.round(rect.y),
+                w: Math.round(rect.width), h: Math.round(rect.height),
+            },
+            computed: {
+                display: cs.display, position: cs.position,
+                width: cs.width, height: cs.height,
+                minWidth: cs.minWidth, maxWidth: cs.maxWidth,
+                minHeight: cs.minHeight, maxHeight: cs.maxHeight,
+                aspectRatio: cs.aspectRatio, overflow: cs.overflow,
+                flex: cs.flex, gridTemplateColumns: cs.gridTemplateColumns,
+                transform: cs.transform,
+            },
+        };
+    }
+
+    function captureDiagnostics() {
+        var html = document.documentElement;
+        var body = document.body;
+        var vv = window.visualViewport;
+
+        // The exact expressions the shipped shell logic itself evaluates --
+        // not a re-derivation. See js/e9/world_stage.js renderSelectedZone()
+        // and usesInlinePlayerMarkerSurface() for the identical strings.
+        var mqPortraitTablet = '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)';
+        var mqLandscapeTablet = '(min-width: 768px) and (max-width: 1279px) and (orientation: landscape)';
+        var mqMobile = '(max-width: 767px)';
+        var mqDesktop = '(min-width: 1280px)';
+
+        var portraitDiag = window.__GO_PORTRAIT_DIAGNOSTIC__ || {};
+        var portraitOverride = !!window.__GO_PORTRAIT_TABLET_OVERRIDE__;
+
+        var zoneCardEl = document.getElementById('e9-world-stage-details');
+        var zoneCardDecision = zoneCardEl
+            ? (zoneCardEl.hidden ? 'HIDDEN (details.hidden = true)' : 'VISIBLE (details.hidden = false)')
+            : 'element not found in DOM';
+
+        return {
+            captured_at: new Date().toISOString(),
+
+            innerWidth: window.innerWidth,
+            innerHeight: window.innerHeight,
+            clientWidth: html.clientWidth,
+            clientHeight: html.clientHeight,
+            visualViewport: vv ? { width: vv.width, height: vv.height, scale: vv.scale } : 'unavailable',
+            screen: {
+                width: screen.width, height: screen.height,
+                availWidth: screen.availWidth, availHeight: screen.availHeight,
+                orientationType: (screen.orientation && screen.orientation.type) || 'unavailable',
+                orientationAngle: (screen.orientation && screen.orientation.angle),
+            },
+            devicePixelRatio: window.devicePixelRatio,
+
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            maxTouchPoints: navigator.maxTouchPoints,
+
+            mediaQueries: {
+                'display-mode: standalone': safeMatchMedia('(display-mode: standalone)'),
+                'orientation: portrait': safeMatchMedia('(orientation: portrait)'),
+                'orientation: landscape': safeMatchMedia('(orientation: landscape)'),
+                'min-width: 1280px': safeMatchMedia(mqDesktop),
+                'max-width: 1279px': safeMatchMedia('(max-width: 1279px)'),
+                'tablet-portrait (768-1279 + portrait)': safeMatchMedia(mqPortraitTablet),
+                'tablet-landscape (768-1279 + landscape)': safeMatchMedia(mqLandscapeTablet),
+                'mobile (max-width: 767px)': safeMatchMedia(mqMobile),
+            },
+
+            portraitTabletOverrideDiagnostic: {
+                maxTouchPoints: portraitDiag.maxTouchPoints,
+                userAgent: portraitDiag.userAgent,
+                isAppleTouchSurface: portraitDiag.isAppleTouchSurface,
+                standalonePwa: portraitDiag.standalonePwa,
+                screenWidth: portraitDiag.screenWidth,
+                screenHeight: portraitDiag.screenHeight,
+                screenShortEdge: portraitDiag.screenShortEdge,
+                screenLongEdge: portraitDiag.screenLongEdge,
+                physicalTablet: portraitDiag.physicalTablet,
+                hardwareOrientationSource: portraitDiag.hardwareOrientationSource,
+                hardwareOrientation: portraitDiag.hardwareOrientation,
+                matchMediaAvailable: portraitDiag.matchMediaAvailable,
+                viewportSaysPortrait: portraitDiag.viewportSaysPortrait,
+                result: portraitDiag.result,
+                error: portraitDiag.error,
+            },
+            PWA_PORTRAIT_OVERRIDE_final: portraitOverride,
+
+            htmlAttributes: {
+                'data-go-display-mode': html.getAttribute('data-go-display-mode'),
+                'data-go-portrait-tablet-override': html.hasAttribute('data-go-portrait-tablet-override'),
+                'data-world-presentation-state': html.getAttribute('data-world-presentation-state'),
+            },
+            bodyAttributes: {
+                'data-adventure-shell-active': body.getAttribute('data-adventure-shell-active'),
+                'data-e10-visual-skin': body.getAttribute('data-e10-visual-skin'),
+                'data-e10-art-kit': body.getAttribute('data-e10-art-kit'),
+                'data-sgf-report-surface': body.getAttribute('data-sgf-report-surface'),
+            },
+
+            elements: {
+                worldStageShell: elementSnapshot('#e9-adventure-shell'),
+                mapContainer: elementSnapshot('#e9-map-stage'),
+                mapImage: elementSnapshot('#e9-map-stage .e9-map-stage__base'),
+                zoneCardContainer: elementSnapshot('#e9-world-stage-details'),
+                bottomDock: elementSnapshot('#e9-bottom-dock-slot'),
+                leftNav: elementSnapshot('#e9-left-nav-slot'),
+            },
+
+            jsDecisions: {
+                IS_MOBILE_maxWidth767: safeMatchMedia(mqMobile),
+                IS_PORTRAIT_TABLET_768to1279: safeMatchMedia(mqPortraitTablet),
+                IS_LANDSCAPE_TABLET_768to1279: safeMatchMedia(mqLandscapeTablet),
+                IS_DESKTOP_min1280: safeMatchMedia(mqDesktop),
+                APPLE_TOUCH_SURFACE: portraitDiag.isAppleTouchSurface,
+                PWA_PORTRAIT_OVERRIDE: portraitOverride,
+                ZONE_CARD_VISIBLE_DECISION: zoneCardDecision,
+            },
+        };
+    }
+
+    function renderText(data) {
+        function section(title, obj) {
+            var lines = [title, '─'.repeat(Math.min(title.length, 48))];
+            Object.keys(obj).forEach(function (key) {
+                var v = obj[key];
+                if (v && typeof v === 'object' && !Array.isArray(v)) {
+                    lines.push(key + ':');
+                    Object.keys(v).forEach(function (k2) {
+                        lines.push('    ' + k2 + ' = ' + fmt(v[k2]));
+                    });
+                } else {
+                    lines.push(key + ' = ' + fmt(v));
+                }
+            });
+            return lines.join('\n');
+        }
+        var out = [];
+        out.push('GO ODYSSEY -- PWA RUNTIME DIAGNOSTIC');
+        out.push('captured_at = ' + data.captured_at);
+        out.push('');
+        out.push(section('VIEWPORT / SCREEN', {
+            innerWidth: data.innerWidth, innerHeight: data.innerHeight,
+            clientWidth: data.clientWidth, clientHeight: data.clientHeight,
+            visualViewport: data.visualViewport,
+            screen: data.screen,
+            devicePixelRatio: data.devicePixelRatio,
+        }));
+        out.push('');
+        out.push(section('NAVIGATOR', {
+            userAgent: data.userAgent, platform: data.platform, maxTouchPoints: data.maxTouchPoints,
+        }));
+        out.push('');
+        out.push(section('MEDIA QUERIES (live matchMedia results)', data.mediaQueries));
+        out.push('');
+        out.push(section('PORTRAIT-TABLET OVERRIDE ALGORITHM (actual recorded run)', data.portraitTabletOverrideDiagnostic));
+        out.push('PWA_PORTRAIT_OVERRIDE_final = ' + fmt(data.PWA_PORTRAIT_OVERRIDE_final));
+        out.push('');
+        out.push(section('HTML / BODY ATTRIBUTES', Object.assign({}, data.htmlAttributes, data.bodyAttributes)));
+        out.push('');
+        Object.keys(data.elements).forEach(function (key) {
+            var el = data.elements[key];
+            out.push('ELEMENT: ' + key + '  (' + el.selector + ')');
+            if (!el.present) { out.push('    NOT FOUND IN DOM'); out.push(''); return; }
+            out.push('    hidden attribute = ' + fmt(el.hidden));
+            out.push('    rect = x:' + el.rect.x + ' y:' + el.rect.y + ' w:' + el.rect.w + ' h:' + el.rect.h);
+            Object.keys(el.computed).forEach(function (k2) {
+                out.push('    ' + k2 + ' = ' + fmt(el.computed[k2]));
+            });
+            out.push('');
+        });
+        out.push(section('JS VISIBILITY DECISIONS', data.jsDecisions));
+        out.push('');
+        out.push('(點擊上方「關閉 Close」按鈕即可關閉本面板；關閉後可按左上角 DIAG 重新開啟，隱藏六連點仍保留相容性 / tap Close to close, then use the top-left DIAG button to reopen; the hidden 6-tap gesture remains supported)');
+        return out.join('\n');
+    }
+
+    var panel = null;
+    var textEl = null;
+
+    function buildPanel() {
+        panel = document.createElement('div');
+        panel.setAttribute('id', 'go-pwa-diagnostic-panel');
+        panel.style.cssText = [
+            'position:fixed', 'inset:0', 'z-index:2147483646',
+            'background:#0b0f14', 'color:#e8f0f4',
+            'overflow:auto', '-webkit-overflow-scrolling:touch',
+            'padding:16px', 'box-sizing:border-box',
+            'font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+        ].join(';');
+
+        var bar = document.createElement('div');
+        // padding-left clears the same top-left corner the external trigger
+        // occupies, so a stray tap there while the panel is open doesn't
+        // spam-click whichever button happens to render first.
+        bar.style.cssText = 'display:flex;gap:8px;margin-bottom:10px;margin-left:64px;flex-wrap:wrap;';
+
+        var copyBtn = document.createElement('button');
+        copyBtn.textContent = '複製 Copy';
+        copyBtn.style.cssText = 'padding:10px 16px;font-size:15px;border-radius:8px;border:1px solid #3a4650;background:#1a232b;color:#e8f0f4;';
+        copyBtn.addEventListener('click', function () {
+            var text = textEl ? textEl.textContent : '';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () {
+                    copyBtn.textContent = '已複製 Copied ✓';
+                    setTimeout(function () { copyBtn.textContent = '複製 Copy'; }, 1500);
+                }, function () { copyBtn.textContent = '複製失敗 Failed'; });
+            }
+        });
+
+        var refreshBtn = document.createElement('button');
+        refreshBtn.textContent = '重新擷取 Refresh';
+        refreshBtn.style.cssText = copyBtn.style.cssText;
+        refreshBtn.addEventListener('click', function () { renderInto(captureDiagnostics()); });
+
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '關閉 Close ✕';
+        closeBtn.style.cssText = copyBtn.style.cssText;
+        closeBtn.addEventListener('click', hidePanel);
+
+        bar.appendChild(copyBtn);
+        bar.appendChild(refreshBtn);
+        bar.appendChild(closeBtn);
+        panel.appendChild(bar);
+
+        textEl = document.createElement('pre');
+        textEl.style.cssText = 'white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.5;margin:0;-webkit-user-select:text;user-select:text;';
+        panel.appendChild(textEl);
+
+        document.body.appendChild(panel);
+    }
+
+    function renderInto(data) {
+        if (textEl) textEl.textContent = renderText(data);
+    }
+
+    function showPanel() {
+        if (!panel) buildPanel();
+        renderInto(captureDiagnostics());
+        panel.style.display = 'block';
+    }
+
+    function hidePanel() {
+        if (panel) panel.style.display = 'none';
+    }
+
+    function isPanelOpen() {
+        return !!(panel && panel.style.display !== 'none');
+    }
+
+    function isStandalonePwa() {
+        try {
+            var standaloneDisplay = !!(window.matchMedia
+                && window.matchMedia('(display-mode: standalone)').matches);
+            var appleStandalone = !!(window.navigator && window.navigator.standalone === true);
+            return standaloneDisplay || appleStandalone;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    function isExplicitDiagnosticOptIn() {
+        try {
+            var search = (window.location && window.location.search) || '';
+            return /(?:^|&)pwa_diag=1(?:&|$)/.test(search.replace(/^\?/, ''));
+        } catch (err) {
+            return false;
+        }
+    }
+
+    // Visible fallback fixed to the true top-left viewport corner. It stays
+    // above the diagnostic panel so it remains available after Close.
+    var diagButton = document.createElement('button');
+    diagButton.setAttribute('id', 'go-pwa-diagnostic-button');
+    diagButton.setAttribute('type', 'button');
+    diagButton.setAttribute('aria-label', 'Open diagnostics');
+    diagButton.textContent = 'DIAG';
+    diagButton.style.cssText = [
+        'position:fixed', 'top:8px', 'left:8px',
+        'min-width:44px', 'min-height:44px',
+        'padding:6px 8px', 'box-sizing:border-box',
+        'z-index:2147483647', 'pointer-events:auto',
+        'touch-action:manipulation',
+        'border:2px solid #fff', 'border-radius:8px',
+        'background:#b91c1c', 'color:#fff',
+        'font:bold 14px sans-serif',
+    ].join(';');
+    diagButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        showPanel();
+    });
+
+    // Invisible 60x60 trigger fixed to the true top-left viewport corner --
+    // retained for backward compatibility with the original diagnostic path.
+    var trigger = document.createElement('div');
+    trigger.setAttribute('id', 'go-pwa-diagnostic-trigger');
+    trigger.style.cssText = 'position:fixed;top:0;left:0;width:60px;height:60px;z-index:2147483645;background:transparent;';
+    var tapCount = 0;
+    var tapTimer = null;
+    trigger.addEventListener('pointerdown', function () {
+        tapCount += 1;
+        if (tapTimer) clearTimeout(tapTimer);
+        tapTimer = setTimeout(function () { tapCount = 0; }, 3000);
+        if (tapCount >= 6) {
+            tapCount = 0;
+            clearTimeout(tapTimer);
+            if (isPanelOpen()) hidePanel(); else showPanel();
+        }
+    }, { passive: true });
+
+    function mount() {
+        // The panel is a diagnostic aid, not a normal user surface. Keep it
+        // completely dormant unless the Owner explicitly opts in through the
+        // bounded debug query parameter.
+        if (!isExplicitDiagnosticOptIn()) return;
+        document.body.appendChild(trigger);
+        document.body.appendChild(diagButton);
+        if (isStandalonePwa()) {
+            setTimeout(function () { showPanel(); }, 750);
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mount);
+    } else {
+        mount();
+    }
+}());
+</script>
 </body>
 </html>

@@ -201,12 +201,14 @@ def test_registration_is_read_only_and_never_writes_progression():
         assert forbidden not in body, f"registration must not {forbidden}"
 
 
-def test_availability_requires_all_four_authoritative_conditions():
-    """The Owner's product rule (002A), pinned as source structure.
+def test_availability_requires_the_three_authoritative_conditions():
+    """The product rule, pinned as source structure (revised by
+    A_PWA_PORTRAIT_AND_REPLAY_CORRECTIVE_CANDIDATE_005).
 
     The executable proof is test_availability_contract_runner_is_green below;
-    this keeps the four conditions individually greppable so a future edit that
-    silently drops one is visible in review.
+    this keeps the conditions individually greppable, and pins what was removed,
+    so a future edit that reintroduces the old gate or adds a special case is
+    visible in review.
     """
     body = _function_body(
         WORLD_STAGE, "function zoneStoryReplayAvailable(zoneKey, zoneRecord)"
@@ -215,16 +217,21 @@ def test_availability_requires_all_four_authoritative_conditions():
     assert "if (!zone) return false;" in body
     # (2) not locked
     assert "zone.locked === true" in body
-    # (3) cleared REQUIRED
-    assert "zone.cleared !== true" in body, (
-        "Replay Story must require an authoritative clear"
-    )
-    # (4) canonical replayable segments, and no identity-based guessing when
-    # the model is absent
+    # (3) canonical currently-unlocked replayable segments, and no
+    # identity-based guessing when the model is absent
     assert "hasReplayableStory" in body
     assert "introCinematicKeyForZone" not in body, (
         "a missing model must fail closed, never fall back to zone identity"
     )
+    # The former hard requirement is gone, and nothing replaced it with a
+    # special case for how the zone was reached.
+    assert "zone.cleared" not in body and ".cleared" not in body, (
+        "Replay availability must not read the zone's cleared flag"
+    )
+    for special_case in ("skipped_by_placement", "skippedByPlacement", "placement"):
+        assert special_case not in body, (
+            f"Replay availability must not special-case {special_case}"
+        )
 
 
 def test_availability_contract_runner_is_green():

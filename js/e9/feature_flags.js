@@ -76,4 +76,15 @@
   global.E9.PRODUCTION_FLAGS = PRODUCTION_FLAGS;
   global.E9.isDebugEnvironment = isDebugEnvironment;
   global.E9.getFlags = resolveFlags;
+
+  // PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: reads the flag the
+  // inline <head> script computed (Macintosh-UA-with-touch iPad whose
+  // layout viewport disagrees with its hardware screen.orientation). Every
+  // isPortraitTablet-style matchMedia('(orientation: portrait)') check in
+  // the Adventure Shell should OR this in, since on an affected device that
+  // matchMedia call reads from the same misreported viewport this flag is
+  // correcting for.
+  global.E9.isPortraitTabletOverride = function () {
+    return !!global.__GO_PORTRAIT_TABLET_OVERRIDE__;
+  };
 })(window);
