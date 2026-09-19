@@ -11,6 +11,12 @@
     var MANIFEST_SCHEMA = 'GO_ODYSSEY_ZONE4_OWNER_FINAL_STORY_RUNTIME_INTEGRATION_V1';
     var MAIN_STORY_COUNT = 22;
     var LORD_REVIEW_COUNT = 6;
+    // ZONE4_004_LORD_STATE_BINDING_MATRIX is the authority for the player
+    // story boundary: S2_08 is the last pre-Lord beat and S3_01 is the first
+    // post-clear beat. Keep the boundary in this adapter, rather than asking
+    // the generic player sequencer to infer it from filenames or array length.
+    var LORD_GATE_BEAT_ID = 'Z4_S2_08';
+    var POST_LORD_FIRST_BEAT_ID = 'Z4_S3_01';
     var SUPPORTED_LOCALES = ['zh-TW', 'en-GB'];
     var OLD_STORYBOARD_PREFIX = '/assets/storyboards/';
     var CINEMATIC_PREFIX = 'assets/e10/art/zone4/cinematic/';
@@ -107,6 +113,10 @@
         if (mainTrack.beats.length !== MAIN_STORY_COUNT || manifest.counts.main_story_beats !== MAIN_STORY_COUNT) {
             fail('main_story beat count is not ' + MAIN_STORY_COUNT);
         }
+        var lordGateIndex = mainTrack.beats.indexOf(LORD_GATE_BEAT_ID);
+        if (lordGateIndex !== 15 || mainTrack.beats[lordGateIndex + 1] !== POST_LORD_FIRST_BEAT_ID) {
+            fail('main_story Lord boundary is not Z4_S2_08 -> Z4_S3_01');
+        }
         if (lordTrack.beats.length !== LORD_REVIEW_COUNT || manifest.counts.lord_review_beats !== LORD_REVIEW_COUNT) {
             fail('lord_review beat count is not ' + LORD_REVIEW_COUNT);
         }
@@ -177,7 +187,13 @@
                 ownerAudioPolicy: 'EVENT_BOUND_AUDIO_NOT_AUTO_TRIGGERED',
             };
         });
-        var lastBeat = byId[ids[ids.length - 1]];
+        var lordGateIndex = ids.indexOf(LORD_GATE_BEAT_ID);
+        if (lordGateIndex !== 15 || ids[lordGateIndex + 1] !== POST_LORD_FIRST_BEAT_ID) {
+            fail('locale boundary is not Z4_S2_08 -> Z4_S3_01');
+        }
+        var preLordTimeline = timeline.slice(0, lordGateIndex + 1);
+        var postClearTimeline = timeline.slice(lordGateIndex + 1);
+        var lastBeat = byId[ids[lordGateIndex]];
         var finalLine = lastBeat && asArray(lastBeat.dialogue)[0];
         var firstBeat = byId[ids[0]];
         var firstBgm = firstBeat && firstBeat.audio && firstBeat.audio.bgm;
@@ -192,7 +208,18 @@
             finalLine: finalLine && finalLine.text ? finalLine.text[locale] : '',
             bgmMainTheme: firstBgm ? publicPath(firstBgm.path) : '',
             ambienceVillageDawn: firstAmbience ? publicPath(firstAmbience.path) : '',
-            timeline: timeline,
+            // The generic player host maps `timeline` to FIRST_ENTRY/pre_play.
+            // It must stop at the server-owned Lord boundary. The post-clear
+            // tail is declared separately so Replay Story and the
+            // authoritative Lord-success path can unlock it only after clear.
+            timeline: preLordTimeline,
+            preLordTimeline: preLordTimeline,
+            postClearTimeline: postClearTimeline,
+            fullTimeline: timeline,
+            lordBoundary: {
+                triggerAfterBeat: LORD_GATE_BEAT_ID,
+                postLordFirstBeat: POST_LORD_FIRST_BEAT_ID,
+            },
             sourceManifest: MANIFEST_PATH,
             track: 'main_story',
         };

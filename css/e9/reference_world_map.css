@@ -41,12 +41,43 @@ body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
   display: none;
 }
 
+/* A_PWA_REAL_IPAD_SHELL_GEOMETRY_CLOSURE_003 -- the World Stage's width cap.
+
+   The shell is sized as a 16/9 box that fits the viewport, with an upper
+   bound so the art is never upscaled past its 1920px master on a large
+   desktop monitor. That bound is expressed as a custom property because an
+   installed iPad PWA is the case it was never written for: the owner's device
+   reports a landscape layout viewport of roughly 2360 CSS px, so the bound
+   stops being an anti-upscale guard and instead pins a fixed 1920x1080
+   canvas inside a much larger viewport -- measured at exactly 1920x1080 at
+   x=220,y=280 in 2360x1640, i.e. the owner-reported brown bands above and
+   below the map.
+
+   Driving the bound from a property (rather than a competing rule) is
+   deliberate: the binding declaration further down this file is !important
+   inside @media (min-width: 1280px), so any override would have to win an
+   !important/specificity fight, whereas a custom property is substituted at
+   computed-value time and simply produces the right number in place. */
+:root {
+  --e10-shell-art-width-cap: 1920px;
+}
+
+/* Touch tablets size from their own viewport instead. The 16/9 ratio is
+   unchanged, so only the geometric minimum letterbox that any
+   aspect-preserving fit requires is left. Fine-pointer desktops never match
+   this query and keep the 1920px cap exactly as before. */
+@media (hover: none), (pointer: coarse) {
+  :root {
+    --e10-shell-art-width-cap: 100vw;
+  }
+}
+
 body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
   position: relative;
   left: 50%;
   transform: translateX(-50%);
   isolation: isolate;
-  width: min(100vw, 1920px, 177.778dvh);
+  width: min(100vw, var(--e10-shell-art-width-cap), 177.778dvh);
   aspect-ratio: 16 / 9;
   min-height: 0;
   margin: max(0px, calc((100dvh - min(56.25vw, 1080px)) / 2)) auto;
@@ -840,7 +871,12 @@ body[data-e10-visual-skin="immersive-rpg"] #ios-install-guide { display: none !i
 
 @media (min-width: 1280px) {
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
-    width: min(calc(100vw - 16px), 1920px, calc(177.778dvh - 16px)) !important;
+    /* A_PWA_REAL_IPAD_SHELL_GEOMETRY_CLOSURE_003: this is the declaration
+       that actually binds the shell's width (it is !important and this media
+       query matches the misreporting iPad's ~2360px landscape viewport). The
+       art cap is a property so a touch tablet resolves it to 100vw and fills
+       its viewport, while a desktop keeps 1920px. */
+    width: min(calc(100vw - 16px), var(--e10-shell-art-width-cap), calc(177.778dvh - 16px)) !important;
     max-width: none !important;
     min-height: 0 !important;
     height: auto !important;
@@ -921,6 +957,141 @@ body[data-e10-visual-skin="immersive-rpg"] #ios-install-guide { display: none !i
   body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot { display: none; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot,
   body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot:not(.is-drawer-open) { position: fixed; top: max(124px, env(safe-area-inset-top,0px)); right: 12px; bottom: auto; width: min(360px,calc(100vw - 32px)); }
+}
+
+/* PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: some installed iPad
+   PWAs report a layout viewport (window.innerWidth/orientation) that is
+   misreported as desktop-class even though the device is physically
+   portrait -- proven in production by the Adventure Shell rendering its
+   desktop-only "desktop-legacy" bottom dock category on a real portrait
+   iPad, which requires innerWidth >= 1280 and cannot happen on a genuine
+   iPad portrait viewport. Every rule above keys off
+   @media (orientation: ...) / (min-width: ...), which all read from that
+   same misreported viewport and so cannot be trusted on an affected device.
+   index.html's <head> computes a hardware-level correction (Macintosh-UA
+   -with-touch iPad whose screen.orientation disagrees with its own layout
+   viewport) and sets html[data-go-portrait-tablet-override] when the
+   disagreement is detected; see js/e9/feature_flags.js. This block re-
+   applies the exact portrait ruleset above under that attribute instead of
+   the (untrustworthy) media query, so it wins by specificity over whichever
+   width/orientation breakpoint incorrectly activated. It changes nothing on
+   a correctly-reporting device -- including a genuinely landscape iPad,
+   which never sets this attribute in the first place. */
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: 100vw !important;
+  max-width: none !important;
+  height: auto !important;
+  /* A_PWA_REAL_IPAD_SHELL_GEOMETRY_CLOSURE_003: this was min-height:100dvh,
+     which forced the shell to the full misreported viewport height (2360px on
+     the affected device) even though the HUD + map + detail flow only reach
+     about 1070px. The remainder rendered as the owner-reported dead brown
+     region between the detail card and the bottom bar. The shell now tracks
+     its own content; the page background still paints everything below it. */
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  /* Reserve the fixed bottom nav bar's height so the last card in the flow
+     stays reachable instead of sitting underneath it. */
+  padding: 0 0 calc(92px + env(safe-area-inset-bottom, 0px)) !important;
+  overflow: visible !important;
+  border-width: 0;
+  border-radius: 0;
+  aspect-ratio: auto !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell::before,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell::after { display: none; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-top-hud-slot { position: relative; top: auto; right: auto; left: auto; height: auto; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud { display: grid; grid-template-columns: minmax(150px, .9fr) minmax(0, 1.1fr); height: auto; padding: 8px; border: 3px solid var(--e10-ref-gold); border-radius: 0; background: #214f51; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-hud-brand { display: none; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud__player { grid-template-columns: 44px minmax(0,1fr) 12px; width: 100%; min-height: 52px; padding: 3px 12px 3px 4px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud__avatar { width: 44px; height: 44px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-hud__right { position: static !important; top: auto !important; right: auto !important; transform: none !important; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body.is-right-drawer-open {
+  position: relative !important;
+  inset: auto !important;
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-slot,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #adventure-stage,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage {
+  aspect-ratio: 16 / 9 !important;
+  border: 3px solid var(--e10-ref-gold);
+  overflow: hidden !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage .e9-map-stage__base { position: absolute; inset: 0; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] .e10-adventure-progress { display: none; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-map-primary-cta { display: none; }
+/* A_PWA_REAL_IPAD_SHELL_GEOMETRY_CLOSURE_003: the selected-zone detail surface
+   kept the desktop side-panel geometry (width: min(350px, 100% - 48px), taken
+   out of flow and pinned to the right edge), so on a tablet-width portrait
+   viewport it rendered as a narrow column with the rest of the row empty. It
+   is a flow block with a readable tablet measure instead -- still the same
+   component, just no longer sized for a desktop side rail. */
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-details:not([hidden]) {
+  display: block;
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  width: auto !important;
+  max-width: min(760px, 100% - 20px) !important;
+  margin: 10px auto !important;
+}
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { position: fixed; z-index: 60; top: auto; right: 8px; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); left: 8px; width: auto; height: auto; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav { padding: 5px; border: 2px solid var(--e10-ref-gold); border-radius: 8px; background: #4b2813; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list { grid-template-columns: repeat(6,minmax(0,1fr)); grid-template-rows: 1fr; gap: 3px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li:has([data-e10-command="adventure"]) { display: block; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item { width: 100%; min-height: 62px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon { width: 30px; height: 30px; padding: 4px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item > span:not(.e10-nav-status-lock) { width: 100%; min-height: 20px; border: 0; background: transparent; box-shadow: none; font-size: 9px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-dock { display: none !important; }
+/* A_PWA_REAL_IPAD_SHELL_GEOMETRY_CLOSURE_003: the current-task cards were a
+   fixed 360px overlay pinned to the viewport's right edge -- a desktop rail
+   width, and outside the vertical flow, so the map / task / bottom-bar reading
+   order the owner expects never formed. They now follow the map in normal
+   flow at the same tablet measure as the detail card above. */
+/* !important is required here, not decorative: the drawer states this slot
+   can be left in (see the .is-drawer-open / :not(.is-drawer-open) pair
+   earlier in this file) set position and width with !important themselves, so
+   a player who opens the drawer in landscape and rotates back to portrait
+   would otherwise return to the absolutely-positioned desktop rail -- or to
+   the 42px collapsed handle -- instead of the portrait flow. Caught by the
+   portrait -> landscape -> portrait transition contract in
+   tests/e2e/run_a_pwa_ipad_shell_geometry_contract.mjs. */
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot.is-drawer-open,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot:not(.is-drawer-open) {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  width: auto !important;
+  max-width: min(760px, calc(100% - 20px)) !important;
+  margin: 10px auto !important;
 }
 
 @media (max-width: 600px) {

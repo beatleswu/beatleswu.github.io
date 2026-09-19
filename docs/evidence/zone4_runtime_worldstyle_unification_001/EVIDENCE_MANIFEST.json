@@ -1,0 +1,45 @@
+{
+  "package": "ZONE4_RUNTIME_AND_WORLDSTYLE_UNIFICATION_001",
+  "source_authority": {
+    "origin_master": "4097053dcf87d5eeca826e03d8a21adbfcb9a47a",
+    "candidate": "codex/zone4-cinematic-storyboard-runtime-recovery-001"
+  },
+  "real_owner_device_uat": "PENDING",
+  "source_derived_truth": {
+    "zone_card_renderer": "index.html:renderAdventureInfoPanel + js/e9/world_stage.js:renderZones/renderSelectedZone",
+    "lord_card_renderer": "single #boss-cinematic shared DOM/CSS",
+    "storyboard": "reused exact accepted candidate bytes"
+  },
+  "generated_outputs": [
+    {
+      "file": "ZONE_CARD_WORLDSTYLE_COMPARISON.png",
+      "sha256": "4fcbc1ed3cc533c9dd4c4e4a21e1826b6e33255e56e767d2a06cf62262c38daa",
+      "bytes": 549819
+    },
+    {
+      "file": "LORD_CARD_WORLDSTYLE_COMPARISON.png",
+      "sha256": "8318d8903c8c0d4748b22e397ee758b4d156fb3baeb9125df913ff4ff6e627c2",
+      "bytes": 1268983
+    },
+    {
+      "file": "SAFARI_PWA_WORLDSTYLE_EVIDENCE.png",
+      "sha256": "87006e4b5b30a0bbd78a56034b04a480cb020783288c39a2a973ea056d82509d",
+      "bytes": 491552
+    },
+    {
+      "file": "RESPONSIVE_WORLDSTYLE_EVIDENCE.png",
+      "sha256": "a7ada2646a733001ad9b7df8c4f90482841b6884417da8e4a117f1c245aa9886",
+      "bytes": 27729
+    },
+    {
+      "file": "ZONE4_STORYBOARD_CONTACT_SHEET.png",
+      "sha256": "2e0a1f9f01a4558eb9d21743fdcce11d5a7000145367549db84815aabcf8f3a4",
+      "bytes": 3994104
+    },
+    {
+      "file": "LORD_TRIAL_CONTACT_SHEET.png",
+      "sha256": "c4c5308f945f5178f2c1be16cee547d7908cce4c333ed70a9aad2bf0feeb5ec1",
+      "bytes": 1182837
+    }
+  ]
+}
