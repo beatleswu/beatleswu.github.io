@@ -85,6 +85,30 @@
     }
   }
 
+  // The Replay Story affordance for the drawer, from the one shared predicate
+  // (world_stage.js zoneStoryReplayAvailable). Split out of
+  // updateDrawerZoneSummary so a lazily-loaded story provider can re-evaluate it
+  // when it becomes ready (E9.refreshDrawerZoneReplay) without re-running the
+  // rest of the summary.
+  function applyReplayAffordance(root, detail) {
+    var replay = root.querySelector('[data-e10-zone-replay]');
+    if (!replay || !detail) return;
+    // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002: ask the one shared
+    // availability authority (world_stage.js), never a zone-key allowlist.
+    // Visibility and dispatch answer to the same predicate, so this surface
+    // cannot render a dead button.
+    var replayEnabled = !!(window.E9
+      && typeof window.E9.zoneReplayStoryAvailable === 'function'
+      && window.E9.zoneReplayStoryAvailable(detail.zoneKey, detail));
+    replay.hidden = !replayEnabled;
+    replay.disabled = !replayEnabled;
+    replay.setAttribute('aria-hidden', replayEnabled ? 'false' : 'true');
+    if (replayEnabled) {
+      replay.textContent = t('e10.world_stage.replay_story', 'Replay Story');
+      replay.removeAttribute('data-i18n');
+    }
+  }
+
   function updateDrawerZoneSummary(root, detail) {
     if (!detail) return;
     var kicker = root.querySelector('.e10-drawer-zone-summary__kicker');
@@ -99,7 +123,6 @@
     var regionBar = root.querySelector('[data-e10-zone-region-bar]');
     var cta = root.querySelector('[data-e10-zone-cta]');
     var secondaryCta = root.querySelector('[data-e10-zone-secondary-cta]');
-    var replay = root.querySelector('[data-e10-zone-replay]');
     root.__e10SelectedLandmarkSrc = detail.landmarkSrc || '';
     root.__e10SelectedZoneKey = detail.zoneKey || '';
     root.__e10ChallengeTargetZoneKey = detail.challengeTargetZoneKey || '';
@@ -153,25 +176,8 @@
       secondaryCta.textContent = detail.secondaryCtaLabel || t('e10.world_stage.replenish_stars', 'Replenish Stars');
       secondaryCta.removeAttribute('data-i18n');
     }
-    if (replay) {
-      // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002: ask the one shared
-      // availability authority (world_stage.js), never a zone-key allowlist.
-      // This used to read `detail.zoneKey === 'k26_30'`, which both showed a
-      // button the dispatcher would refuse (Zone 1, dead tap on iPad
-      // landscape) and hid a legitimate one (Zone 2, which declares
-      // replayable segments). Visibility and dispatch now answer to the same
-      // predicate, so this surface cannot render a dead button again.
-      var replayEnabled = !!(window.E9
-        && typeof window.E9.zoneReplayStoryAvailable === 'function'
-        && window.E9.zoneReplayStoryAvailable(detail.zoneKey, detail));
-      replay.hidden = !replayEnabled;
-      replay.disabled = !replayEnabled;
-      replay.setAttribute('aria-hidden', replayEnabled ? 'false' : 'true');
-      if (replayEnabled) {
-        replay.textContent = t('e10.world_stage.replay_story', 'Replay Story');
-        replay.removeAttribute('data-i18n');
-      }
-    }
+    root.__e10SelectedDetail = detail;
+    applyReplayAffordance(root, detail);
     if (body) {
       body.textContent = [detail.summary, detail.progress].filter(Boolean).join(' · ');
       body.removeAttribute('data-i18n');
@@ -433,9 +439,19 @@
         // zone's replay action. Open the already-rendered drawer only when
         // the shared replay predicate made that action genuinely available;
         // portrait/mobile ownership remains unchanged.
+        //
+        // Replay availability no longer implies a cleared zone (every accessible
+        // zone whose opening is unlocked offers it), but this auto-open is a
+        // layout side effect that shipped for CLEARED zones only, and the drawer
+        // starts collapsed for every other zone -- including the zone selected
+        // on first load. Widening the trigger would have opened it on page load,
+        // changing the accepted landscape presentation, so it stays limited to
+        // the zones it always applied to. A player can still open the drawer
+        // for any other zone with its handle, and Replay is there.
         var replay = root.querySelector('[data-e10-zone-replay]');
         var lowerOwner = root.getAttribute('data-e10-detail-owner') === 'lower-card';
-        if (!lowerOwner && replay && !replay.hidden && !replay.disabled) {
+        var clearedSelection = !!(evt.detail && evt.detail.cleared === true);
+        if (!lowerOwner && clearedSelection && replay && !replay.hidden && !replay.disabled) {
           setOpen(true, false);
         }
       };
@@ -489,9 +505,16 @@
       }
     }
 
+    if (window.E9) {
+      window.E9.refreshDrawerZoneReplay = function () {
+        if (root.__e10SelectedDetail) applyReplayAffordance(root, root.__e10SelectedDetail);
+      };
+    }
     if (window.E9 && typeof window.E9.registerCleanup === 'function') {
       window.E9.registerCleanup(function () {
         delete root.__e9CompactProgress;
+        delete root.__e10SelectedDetail;
+        if (window.E9) delete window.E9.refreshDrawerZoneReplay;
         delete root.__e10SelectedLandmarkSrc;
         delete root.__e10SelectedZoneKey;
         delete root.__e10ChallengeTargetZoneKey;

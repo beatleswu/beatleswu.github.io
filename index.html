@@ -14975,6 +14975,11 @@ function _adventureCanEnter(zone) {
     if (typeof zone?.unlocked === 'boolean') return zone.unlocked;
     if (typeof stage?.can_enter === 'boolean') return stage.can_enter;
     if (typeof zone?.can_enter === 'boolean') return zone.can_enter;
+    // The E9 shell registers its normalized zone records (camelCase) as the
+    // authoritative snapshot when the legacy map has not loaded its own. Without
+    // this the model saw "cannot enter" for every zone in that snapshot and a
+    // placement-skipped zone could never report its opening as unlocked.
+    if (typeof zone?.canEnter === 'boolean') return zone.canEnter;
     return false;
 }
 
@@ -20072,10 +20077,32 @@ function _triggerZonePostClearFromBossWin(zone, options = {}) {
     });
 }
 
+// A_PWA_PORTRAIT_AND_REPLAY_CORRECTIVE_CANDIDATE_005: Replay availability is
+// asked before a lazily-loaded story provider has any reason to load (Zone 4's
+// manifest is fetched on first use, and only the zone's first-entry film asked
+// for it), so a cleared or placement-skipped Zone 4 answered "nothing to
+// replay" until something else warmed it. Returns null when the zone's provider
+// is already available (or the zone has none), otherwise a promise for whether
+// it became ready. Uses the provider's own ready(), which shares one in-flight
+// request; never throws, and never shows the "story unavailable" overlay -- a
+// failed load only means the Replay affordance stays hidden.
+function prepareZoneStoryProvider(zoneKey) {
+    if (zoneKey !== 'k11_15') return null;
+    const runtime = window.Zone4CinematicContent;
+    if (!runtime || typeof runtime.ready !== 'function') return null;
+    if (runtime.isReady?.()) return null;
+    try {
+        return Promise.resolve(runtime.ready()).then(ready => ready === true, () => false);
+    } catch (error) {
+        return Promise.resolve(false);
+    }
+}
+
 window.zoneHasReplayableStory = zoneHasReplayableStory;
 window.playZoneStoryReplay = playZoneStoryReplay;
 window.E10Cinematic = {
     hasReplayableStory: zoneHasReplayableStory,
+    prepareStoryProvider: prepareZoneStoryProvider,
     playStoryReplay: playZoneStoryReplay,
     // Read-only registration hook for shells that already hold the
     // authoritative bootstrap snapshot (E9). See _zoneForCinematic.

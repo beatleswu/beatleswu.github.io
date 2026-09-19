@@ -235,17 +235,107 @@ test('reference_world_map.css defines the override block with matching !importan
   // Every property that the conflicting desktop (min-width:1280px) and
   // tablet-landscape breakpoints declare with !important must be matched,
   // or !important there would still win regardless of this rule's higher
-  // selector specificity.
-  ['width', 'height', 'min-height', 'max-height', 'max-width', 'position', 'overflow'].forEach((prop) => {
+  // selector specificity. min-height is deliberately NOT forced here any more:
+  // forcing it to 0 shrank the shell to its content while the bottom bar stayed
+  // fixed to the viewport (the dead region). Its polluted-viewport fill lives in
+  // the gated block, covered by the tests below.
+  ['width', 'height', 'max-height', 'max-width', 'position', 'overflow'].forEach((prop) => {
     const re = new RegExp(prop + '\\s*:[^;]+!important');
     assert.ok(re.test(block), `expected ${prop} to carry !important in the shell override block`);
   });
+  assert.ok(!/min-height\s*:\s*0\s*!important/.test(block),
+    'the shell override must not force min-height: 0 (it opens a dead region above the fixed bottom bar)');
+});
+
+// A_PWA_PORTRAIT_AND_REPLAY_CORRECTIVE_CANDIDATE_005: the portrait mirror block.
+function portraitMirrorBlock() {
+  const marker = '/* A_PWA_PORTRAIT_AND_REPLAY_CORRECTIVE_CANDIDATE_005 -- PWA portrait mirror.';
+  const start = referenceWorldMapCss.indexOf(marker);
+  assert.ok(start !== -1, 'portrait mirror block is missing');
+  const open = referenceWorldMapCss.indexOf('@media (min-width: 1280px) {', start);
+  assert.ok(open !== -1);
+  let depth = 0;
+  let end = -1;
+  for (let i = open; i < referenceWorldMapCss.length; i += 1) {
+    const ch = referenceWorldMapCss[i];
+    if (ch === '{') depth += 1;
+    if (ch === '}') { depth -= 1; if (depth === 0) { end = i; break; } }
+  }
+  assert.ok(end !== -1, 'portrait mirror block is not closed');
+  return referenceWorldMapCss.slice(open, end + 1);
+}
+
+function mirrorRules(block) {
+  const stripped = block.replace(/\/\*[\s\S]*?\*\//g, '');
+  return stripped.slice(stripped.indexOf('{') + 1, stripped.lastIndexOf('}'))
+    .split('}').map((r) => r.trim()).filter(Boolean);
+}
+
+test('the portrait mirror only applies on a polluted viewport, under the override attribute', () => {
+  const block = portraitMirrorBlock();
+  assert.ok(block.startsWith('@media (min-width: 1280px) {'), 'must be gated to a >= 1280px layout viewport');
+  mirrorRules(block).forEach((rule) => {
+    rule.slice(0, rule.indexOf('{')).split(',').forEach((selector) => {
+      assert.ok(selector.trim().startsWith('html[data-go-portrait-tablet-override]'),
+        `mirror selector is not scoped to the override attribute: ${selector.trim()}`);
+    });
+  });
+});
+
+test('the portrait mirror scales through one documented factor and uses no viewport units under zoom', () => {
+  const block = portraitMirrorBlock();
+  assert.strictEqual((block.match(/--go-pwa-portrait-zoom:\s*\d/g) || []).length, 1,
+    'the zoom factor must be declared exactly once');
+  assert.ok(/--go-pwa-portrait-zoom:\s*2\s*;/.test(block), 'the factor is the 2x of a DPR-2 iPad');
+  assert.ok(/zoom:\s*var\(--go-pwa-portrait-zoom\)/.test(block), 'the HUD and body must be zoomed by the shared factor');
+  // Viewport units resolve differently under zoom in different engines, so the
+  // zoomed subtrees (everything but the un-zoomed shell's own fill) must not
+  // use them.
+  mirrorRules(block).forEach((rule) => {
+    const isShellFill = /min-height:\s*calc\(100dvh/.test(rule)
+      && !rule.includes('.e9-body') && !rule.includes('.e9-zone-details');
+    if (isShellFill) return;
+    assert.ok(!/\d\s*(vw|vh|dvh|svh|lvh|vmin|vmax)\b/.test(rule),
+      `viewport unit inside a zoomed subtree rule: ${rule.slice(0, 90)}`);
+  });
+});
+
+test('the portrait mirror restores the native wrapper sizing that the desktop rules override', () => {
+  const block = portraitMirrorBlock();
+  ['#main-row', '#main-left', '#welcome-state'].forEach((id) => {
+    assert.ok(block.includes(id), `${id} must be reset (the desktop rules make it min-height: 100dvh)`);
+  });
+  assert.ok(/min-height:\s*0\s*;/.test(block));
+  assert.ok(/min-height:\s*calc\(100dvh - var\(--go-pwa-portrait-zoom\) \* 126px\) !important/.test(block),
+    'the shell fill must be the native calc(100vh - 126px), scaled');
+  assert.ok(/#e9-world-stage-details:not\(\[hidden\]\)\s*\{\s*position:\s*static !important/.test(block),
+    'the selected-zone card must stay in normal flow');
+  assert.ok(/grid-template-columns:\s*minmax\(132px, 176px\) minmax\(0, 1fr\)/.test(block),
+    'the native two-column card layout must be mirrored');
+});
+
+test('the portrait mirror restores the stage backdrop that the desktop <main> rule paints over', () => {
+  const block = portraitMirrorBlock();
+  assert.ok(/#e9-world-stage-slot\s*\{\s*background:\s*none !important/.test(block));
+  assert.ok(/#adventure-stage\s*\{\s*background:[\s\S]*?#183f45, #24545a 50%, #183f45\) !important/.test(block),
+    'the native teal-grid backdrop must be re-applied with !important (the desktop rule is !important)');
+});
+
+test('the viewport meta and the standalone classifier are untouched by the corrective', () => {
+  assert.ok(indexSource.includes('<meta name="viewport" content="width=device-width, initial-scale=1.0">'),
+    'the viewport meta must not change');
+  assert.ok(/var isAppleTouchSurface = maxTouchPoints > 1 && \/iPad\|Macintosh\/\.test\(ua\);/.test(indexSource),
+    'the Apple-touch signature must not change');
+  assert.ok(indexSource.includes('var physicalTablet = screenShortEdge >= 768 && screenLongEdge <= 1366;'),
+    'the physical tablet envelope must not change');
 });
 
 test('the override block does not introduce a generic, unscoped rule', () => {
   // Every selector in the new block must be scoped to the override
   // attribute; it must never apply to a device where the attribute isn't
-  // set (this is a corrective override, not a redesign of the shell).
+  // set (this is a corrective override, not a redesign of the shell). The one
+  // permitted wrapper is the min-width gate around the portrait mirror, whose
+  // own rules are checked separately above.
   const marker = '/* PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001:';
   const blockStart = referenceWorldMapCss.indexOf(marker);
   assert.ok(blockStart !== -1);
@@ -253,6 +343,7 @@ test('the override block does not introduce a generic, unscoped rule', () => {
   const block = referenceWorldMapCss.slice(blockStart, nextMediaOrEnd);
   const selectorLines = block.split('\n').filter((l) => l.trim().endsWith('{'));
   selectorLines.forEach((line) => {
+    if (line.trim() === '@media (min-width: 1280px) {') return;
     assert.ok(line.includes('html[data-go-portrait-tablet-override]'), `unscoped selector: ${line.trim()}`);
   });
 });

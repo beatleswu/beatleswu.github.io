@@ -7,14 +7,20 @@
  * neither measured anything. This contract measures the rendered box model in
  * a real engine instead:
  *
- *   PORTRAIT  the shell must track its content height. It previously carried
- *             min-height:100dvh, so on the affected device's 1640x2360
- *             misreported viewport it ran the full 2360px while the HUD, map
- *             and detail flow only reached ~1070px -- the owner-reported dead
- *             brown region. The selected-zone/current-task surfaces also kept
- *             desktop side-rail geometry (a ~350-360px box taken out of flow
- *             and pinned to an edge), which is why the card sat in a narrow
- *             column with the rest of the row empty.
+ *   PORTRAIT  the installed-PWA portrait composition must match Safari's
+ *             portrait composition on the same iPad. The affected device's
+ *             layout viewport is ~2x its physical screen, so every native
+ *             portrait-tablet rule (gated on max-width: 1279px) is skipped and
+ *             the page used to render a ~46%-wide single-column task card, a
+ *             shell that stopped short of the fixed bottom bar, and a large
+ *             dead region between them (A_PWA_POST_OWNER_UAT_DIAGNOSTIC_004).
+ *             The contract therefore measures Safari portrait in the same run
+ *             and compares RATIOS -- widths and heights relative to the
+ *             viewport, the card's grid mode, the content-to-bar gap -- rather
+ *             than asserting any pixel constant. An earlier version asserted
+ *             "shell height < 92% of the viewport", which is the opposite of
+ *             Safari's behaviour (the native shell fills the viewport above
+ *             the bar) and produced the dead region; it is deliberately gone.
  *
  *   LANDSCAPE the shell must use the viewport it is given. Its width cap is
  *             an anti-upscale guard for desktop monitors, but the affected
@@ -23,9 +29,12 @@
  *             the map. Measured at exactly 1920x1080 at x=220,y=280 before the
  *             fix.
  *
- * The misreporting itself cannot be reproduced in Chromium (it is an OS/WebKit
- * disagreement), so portrait runs with the same html[data-go-portrait-tablet-
- * override] attribute the real device sets, pinned deterministically here.
+ * The OS/WebKit viewport disagreement itself cannot be reproduced in Chromium,
+ * but every input the classifier reads is a plain property. The iPad scenarios
+ * therefore define the hardware signals (Macintosh UA, touch points, standalone,
+ * physical screen size and orientation) before any page script runs, so the
+ * UNMODIFIED computeOverride() decides for itself and the whole chain
+ * (classifier -> attribute -> CSS) is exercised, including across a rotation.
  * Touch scenarios run with hasTouch so (hover: none)/(pointer: coarse) resolve
  * as they do on the device; the desktop scenarios deliberately do not, which
  * is what proves the desktop cap is still in force.
@@ -38,6 +47,7 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { installProductionBootRoutes, PRODUCTION_SHELL_QUERY, readBootIdentity, isCurrentE10, realBootstrap } from './e10_production_boot_fixture.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.E10_PLAYWRIGHT_CORE || 'playwright-core');
@@ -54,8 +64,10 @@ const chromeCandidates = [
 const chromePath = chromeCandidates.find((candidate) => fssync.existsSync(candidate));
 if (!chromePath) throw new Error('No Chrome/Edge executable found');
 
-const SHELL_QUERY = '?lang=zh&E9_DEBUG=1&e9Shell=1&e9TopHud=1&e9LeftNav=1&e9RightCards=1'
-  + '&e9BottomDock=1&e9WorldStage=1';
+// The URL a real player opens: no E9 flags. The E10 shell is enabled the way
+// Production enables it, from the /api/auth/me rollout decision (see
+// e10_production_boot_fixture.mjs for why a query override is not the same path).
+const SHELL_QUERY = PRODUCTION_SHELL_QUERY;
 
 function contentTypeFor(filePath) {
   return ({
@@ -89,23 +101,10 @@ async function startStaticServer(rootDir) {
   return { server, origin: `http://127.0.0.1:${server.address().port}` };
 }
 
-const ZONE_KEYS = ['k26_30', 'k21_25', 'k16_20', 'k11_15', 'k6_10', 'k1_5', 'd1_2', 'd3_4', 'd5_6', 'd7_plus'];
-function zoneFixture() {
-  return ZONE_KEYS.map((key, index) => ({
-    key,
-    name: `Zone ${index + 1}`,
-    name_en: `Zone ${index + 1}`,
-    status: index <= 7 ? 'unlocked' : 'locked',
-    unlocked: index <= 7,
-    can_enter: index <= 7,
-    cleared: index < 2,
-    completed: index < 2,
-    stars: index < 2 ? 1 : 0,
-    seen: index < 2 ? 30 : 419,
-    total: 2287,
-    boss: { available: index <= 7 },
-  }));
-}
+// Zones 1-2 cleared, 3-8 open, 9-10 locked -- in the REAL bootstrap shape (real names,
+// boss blocks, stages), not a hand-made subset.
+const GEOMETRY_ZONE_STATES = ['completed', 'completed', 'unlocked', 'unlocked', 'unlocked', 'unlocked', 'unlocked', 'unlocked', 'locked', 'locked'];
+const geometryBootstrap = () => realBootstrap(GEOMETRY_ZONE_STATES);
 
 // Hardware signals for a real installed iPad, injected before any page script
 // runs so the UNMODIFIED computeOverride() in index.html's <head> makes the
@@ -116,7 +115,8 @@ function zoneFixture() {
 // flipping the physical screen and its orientation, exactly what an iPad's
 // hardware does, while the layout viewport is resized separately -- which is
 // how the affected device ends up with a layout viewport that disagrees.
-const REAL_IPAD_INIT = `
+function realIpadInit(standalone) {
+  return `
 (function () {
   var state = { w: 820, h: 1180, type: 'portrait-primary' };
   window.__geoDevice = state;
@@ -124,7 +124,7 @@ const REAL_IPAD_INIT = `
     try { Object.defineProperty(target, key, { configurable: true, get: getter }); } catch (e) {}
   }
   def(navigator, 'maxTouchPoints', function () { return 5; });
-  def(navigator, 'standalone', function () { return true; });
+  def(navigator, 'standalone', function () { return ${standalone ? 'true' : 'false'}; });
   def(screen, 'width', function () { return state.w; });
   def(screen, 'height', function () { return state.h; });
   try {
@@ -132,6 +132,7 @@ const REAL_IPAD_INIT = `
   } catch (e) {}
 })();
 `;
+}
 
 async function rotateRealDevice(page, orientation) {
   await page.evaluate((next) => {
@@ -141,76 +142,26 @@ async function rotateRealDevice(page, orientation) {
   }, orientation);
 }
 
-async function openShell(browser, origin, { width, height, touch, portraitOverride, realDevice }) {
+async function openShell(browser, origin, { width, height, touch, realDevice, standalone = true, dsf = 1 }) {
   const page = await browser.newPage({
     viewport: { width, height },
-    deviceScaleFactor: 1,
+    deviceScaleFactor: dsf,
     hasTouch: !!touch || !!realDevice,
     // A Macintosh UA + touch points is the desktop-site-mode iPad signature
     // the classifier keys on.
     ...(realDevice ? { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15' } : {}),
   });
-  if (realDevice) await page.addInitScript(REAL_IPAD_INIT);
-  // Playwright matches the most recently registered route first, so the
-  // catch-all is registered before the specific responses it must not shadow.
-  await page.route('**/api/**', (route) => route.fulfill({
-    status: 200, contentType: 'application/json', body: '{}',
-  }));
-  await page.route('**/api/auth/me', (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({
-      logged_in: true, user_id: 7, username: 'geometry_fixture',
-      display_name: 'Geometry Fixture', is_admin: false, is_premium: true,
-      needs_onboarding_choice: false, tour_done: true,
-    }),
-  }));
-  await page.route('**/api/adventure/bootstrap**', (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ zones: zoneFixture(), cinematics: {} }),
-  }));
+  if (realDevice) await page.addInitScript(realIpadInit(standalone));
+  await installProductionBootRoutes(page, { bootstrap: geometryBootstrap() });
   await page.goto(`${origin}/index.html${SHELL_QUERY}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#e9-adventure-shell', { timeout: 15000 });
   await page.waitForTimeout(2200);
-  if (portraitOverride) await applyPortraitOverride(page);
+  // This contract only counts as evidence about the CURRENT E10 UI if the page
+  // really booted it: E10 presentation, no legacy map nodes, a ready runtime.
+  const boot = await readBootIdentity(page);
+  if (!isCurrentE10(boot)) bootFailures.push(`${width}x${height}: ${JSON.stringify(boot)}`);
+  bootChecked += 1;
   return page;
-}
-
-// The real device sets this from index.html's hardware check; desktop
-// Chromium never will. index.html also recomputes the attribute on resize and
-// drops it here (its predicate is correctly false for this engine), so the
-// affected path is pinned and then re-asserted, otherwise the orientation
-// transition case would silently measure the unaffected layout instead.
-async function applyPortraitOverride(page) {
-  await page.evaluate(() => {
-    const html = document.documentElement;
-    const assert = () => {
-      if (!html.hasAttribute('data-go-portrait-tablet-override')) {
-        html.setAttribute('data-go-portrait-tablet-override', '');
-      }
-    };
-    assert();
-    if (!window.__geometryOverridePin) {
-      window.__geometryOverridePin = new MutationObserver(assert);
-      window.__geometryOverridePin.observe(html, { attributes: true, attributeFilter: ['data-go-portrait-tablet-override'] });
-    }
-  });
-  await page.waitForTimeout(400);
-}
-
-// Rotating to landscape is not the misreported-portrait case, so the pin has
-// to be released as well as the attribute cleared -- otherwise the observer
-// above re-asserts it and the landscape leg measures the portrait layout.
-async function releasePortraitOverride(page) {
-  await page.evaluate(() => {
-    if (window.__geometryOverridePin) {
-      window.__geometryOverridePin.disconnect();
-      delete window.__geometryOverridePin;
-    }
-    document.documentElement.removeAttribute('data-go-portrait-tablet-override');
-  });
-  await page.waitForTimeout(400);
 }
 
 async function measure(page) {
@@ -235,50 +186,84 @@ async function measure(page) {
       mapStage: rect('#e9-map-stage'),
       rightCards: rect('#e9-right-cards-slot'),
       details: rect('#e9-world-stage-details'),
+      note: rect('.e9-stage__note'),
+      dock: rect('#e9-left-nav-slot'),
       diagnosticTrigger: rect('#go-pwa-diagnostic-trigger'),
+      docScrollHeight: (document.scrollingElement || document.documentElement).scrollHeight,
+      detailsGridColumns: (() => {
+        const el = document.querySelector('#e9-world-stage-details');
+        if (!el) return 0;
+        const cols = getComputedStyle(el).gridTemplateColumns;
+        return cols && cols !== 'none' ? cols.split(' ').length : 0;
+      })(),
     };
   });
 }
 
 const failures = [];
+let bootChecked = 0;
+const bootFailures = [];
 function check(label, condition, detail) {
   if (condition) { console.log(`  PASS  ${label}`); return; }
   failures.push(`${label} -- ${detail}`);
   console.log(`  FAIL  ${label} -- ${detail}`);
 }
 
-function assertPortraitGeometry(name, m) {
-  const { shell, mapStage, rightCards, vh, vw } = m;
-  check(`${name}: shell renders`, !!shell, 'no #e9-adventure-shell box');
-  if (!shell) return;
-  // The regression: min-height:100dvh made the shell exactly the viewport
-  // height regardless of content.
-  check(`${name}: shell height tracks content, not the viewport`,
-    shell.h < vh * 0.92,
-    `shell h=${shell.h} is >=92% of viewport h=${vh} (the 100dvh dead-space regression)`);
-  check(`${name}: map uses the tablet width`,
-    mapStage && mapStage.w >= vw * 0.9,
-    `map w=${mapStage && mapStage.w} vs viewport w=${vw}`);
-  if (rightCards && rightCards.h > 0) {
-    check(`${name}: current-task cards are in normal flow`,
-      rightCards.position === 'static' || rightCards.position === 'relative',
-      `position=${rightCards.position} (a fixed/absolute desktop rail breaks the vertical flow)`);
-    check(`${name}: current-task cards use a tablet measure, not a 360px desktop rail`,
-      rightCards.w >= 600,
-      `cards w=${rightCards.w}`);
-    check(`${name}: current-task cards follow the map`,
-      mapStage && rightCards.y >= mapStage.bottom - 4,
-      `cards y=${rightCards.y} vs map bottom=${mapStage && mapStage.bottom}`);
-    const emptyBelow = shell.bottom - rightCards.bottom;
-    check(`${name}: no giant dead region under the flow`,
-      emptyBelow < vh * 0.25,
-      `${emptyBelow}px of empty shell below the last card (viewport ${vh})`);
+// Composition ratios, all relative to the viewport, so Safari (820x1180) and the
+// installed PWA (1640x2360) are directly comparable without any pixel constant.
+function composition(m) {
+  const { vw, vh, mapStage, details, note, dock, shell } = m;
+  const contentBottom = Math.max(details ? details.bottom : 0, note ? note.bottom : 0);
+  return {
+    mapWidth: mapStage ? mapStage.w / vw : 0,
+    detailWidth: details ? details.w / vw : 0,
+    detailHeight: details ? details.h / vh : 0,
+    contentBottom: contentBottom / vh,
+    contentToDockGap: dock ? (dock.y - contentBottom) / vh : 0,
+    dockBottomGap: dock ? (vh - dock.bottom) / vh : 0,
+    scrollOverflow: Math.max(0, m.docScrollHeight - vh) / vh,
+    shellFill: shell ? shell.h / vh : 0,
+    gridColumns: m.detailsGridColumns,
+    detailsDisplay: details ? details.display : null,
+  };
+}
+
+const fmt = (n) => (typeof n === 'number' ? n.toFixed(3) : String(n));
+
+function assertPortraitParity(name, m, ref) {
+  check(`${name}: shell renders`, !!m.shell, 'no #e9-adventure-shell box');
+  if (!m.shell || !m.details || !m.dock) {
+    check(`${name}: measured surfaces exist`, false, 'missing shell/details/dock');
+    return;
   }
-  if (m.details && m.details.h > 0) {
-    check(`${name}: zone detail card uses a tablet measure`,
-      m.details.w >= 600,
-      `details w=${m.details.w}`);
-  }
+  const c = composition(m);
+  const r = composition(ref);
+  const within = (label, actual, expected, tol) => check(
+    `${name}: ${label} ~ Safari reference`,
+    Math.abs(actual - expected) <= tol,
+    `${fmt(actual)} vs Safari ${fmt(expected)} (tolerance ${tol})`);
+  within('map width ratio', c.mapWidth, r.mapWidth, 0.06);
+  within('detail card width ratio', c.detailWidth, r.detailWidth, 0.06);
+  within('detail card height ratio', c.detailHeight, r.detailHeight, 0.08);
+  within('content occupancy of the viewport', c.contentBottom, r.contentBottom, 0.08);
+  check(`${name}: detail card keeps the portrait grid layout`,
+    c.detailsDisplay === 'grid' && c.gridColumns >= 2,
+    `display=${c.detailsDisplay} columns=${c.gridColumns} (Safari: display=${r.detailsDisplay} columns=${r.gridColumns})`);
+  // No large dead region: the last content ends close to the fixed bottom bar,
+  // exactly as in Safari, instead of stopping a large fraction of the viewport
+  // short of it.
+  check(`${name}: no large dead space between the content and the bottom bar`,
+    c.contentToDockGap <= Math.max(0.06, r.contentToDockGap + 0.05),
+    `gap=${fmt(c.contentToDockGap)} of viewport height (Safari ${fmt(r.contentToDockGap)})`);
+  check(`${name}: content is not buried under the bottom bar`,
+    c.contentToDockGap >= -0.05,
+    `gap=${fmt(c.contentToDockGap)} of viewport height`);
+  check(`${name}: bottom bar sits at the viewport bottom like Safari`,
+    Math.abs(c.dockBottomGap - r.dockBottomGap) <= 0.02,
+    `${fmt(c.dockBottomGap)} vs Safari ${fmt(r.dockBottomGap)}`);
+  check(`${name}: page scroll overflow is bounded`,
+    c.scrollOverflow <= Math.max(0.04, r.scrollOverflow + 0.04),
+    `${fmt(c.scrollOverflow)} of viewport height (Safari ${fmt(r.scrollOverflow)})`);
 }
 
 function assertLandscapeGeometry(name, m, { expectFill }) {
@@ -309,10 +294,26 @@ const { server, origin } = await startStaticServer(repoRoot);
 const browser = await chromium.launch({ executablePath: chromePath });
 
 try {
-  console.log('IPAD_PORTRAIT (misreported 1640x2360, override active)');
+  // The reference every portrait assertion compares against: Safari on the same
+  // iPad (honest 820x1180 viewport, not installed, so no override attribute).
+  console.log('SAFARI_PORTRAIT_REFERENCE (820x1180 @2x, browser tab)');
+  let safariRef = null;
   {
-    const page = await openShell(browser, origin, { width: 1640, height: 2360, touch: true, portraitOverride: true });
-    assertPortraitGeometry('IPAD_PORTRAIT', await measure(page));
+    const page = await openShell(browser, origin, { width: 820, height: 1180, realDevice: true, standalone: false, dsf: 2 });
+    safariRef = await measure(page);
+    const overrideAttr = await page.evaluate(() => document.documentElement.hasAttribute('data-go-portrait-tablet-override'));
+    check('SAFARI_REFERENCE: the classifier does not fire in a browser tab', !overrideAttr,
+      'data-go-portrait-tablet-override is set for a non-installed page');
+    check('SAFARI_REFERENCE: detail card is the native two-column grid',
+      safariRef.details && safariRef.details.display === 'grid' && safariRef.detailsGridColumns >= 2,
+      `display=${safariRef.details && safariRef.details.display} columns=${safariRef.detailsGridColumns}`);
+    await page.close();
+  }
+
+  console.log('IPAD_PWA_PORTRAIT (installed, layout viewport 1640x2360 on an 820x1180 screen)');
+  {
+    const page = await openShell(browser, origin, { width: 1640, height: 2360, realDevice: true, standalone: true, dsf: 1 });
+    assertPortraitParity('IPAD_PWA_PORTRAIT', await measure(page), safariRef);
     await page.close();
   }
 
@@ -366,27 +367,6 @@ try {
     await page.close();
   }
 
-  // An orientation change must re-resolve geometry without a reload: the PWA
-  // is a single long-lived document and the owner rotates the device in place.
-  console.log('ORIENTATION_TRANSITION (portrait -> landscape -> portrait, no reload)');
-  {
-    const page = await openShell(browser, origin, { width: 1640, height: 2360, touch: true, portraitOverride: true });
-    assertPortraitGeometry('TRANSITION/portrait-1', await measure(page));
-
-    await page.setViewportSize({ width: 2360, height: 1640 });
-    // Landscape is not the misreported-portrait case, so the device would not
-    // be asserting the override here either.
-    await releasePortraitOverride(page);
-    await page.waitForTimeout(700);
-    assertLandscapeGeometry('TRANSITION/landscape', await measure(page), { expectFill: true });
-
-    await page.setViewportSize({ width: 1640, height: 2360 });
-    await applyPortraitOverride(page);
-    await page.waitForTimeout(700);
-    assertPortraitGeometry('TRANSITION/portrait-2', await measure(page));
-    await page.close();
-  }
-
   // Same rotation, but nothing is pinned: the live computeOverride() in
   // index.html decides from the injected hardware signals, so this covers the
   // whole chain (classifier -> attribute -> CSS) including its recompute on
@@ -398,7 +378,7 @@ try {
 
     check('CHAIN/portrait-1: classifier sets the override itself', await override(),
       'computeOverride() did not set data-go-portrait-tablet-override for a portrait iPad PWA');
-    assertPortraitGeometry('CHAIN/portrait-1', await measure(page));
+    assertPortraitParity('CHAIN/portrait-1', await measure(page), safariRef);
 
     await rotateRealDevice(page, 'landscape');
     await page.setViewportSize({ width: 2360, height: 1640 });
@@ -412,7 +392,7 @@ try {
     await page.waitForTimeout(900);
     check('CHAIN/portrait-2: classifier re-applies the override', await override(),
       'computeOverride() did not re-set the override after rotating back to portrait');
-    assertPortraitGeometry('CHAIN/portrait-2', await measure(page));
+    assertPortraitParity('CHAIN/portrait-2', await measure(page), safariRef);
     await page.close();
   }
 
@@ -427,7 +407,7 @@ try {
 
   console.log('DIAGNOSTIC default visibility');
   {
-    const page = await openShell(browser, origin, { width: 1640, height: 2360, touch: true, portraitOverride: true });
+    const page = await openShell(browser, origin, { width: 1640, height: 2360, realDevice: true });
     const m = await measure(page);
     check('DIAGNOSTIC: no trigger surface for a normal player',
       !m.diagnosticTrigger,
@@ -435,16 +415,7 @@ try {
     await page.close();
 
     const optIn = await browser.newPage({ viewport: { width: 1640, height: 2360 }, hasTouch: true });
-    await optIn.route('**/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
-    await optIn.route('**/api/auth/me', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        logged_in: true, user_id: 7, username: 'geometry_fixture',
-        display_name: 'Geometry Fixture', is_admin: false, is_premium: true,
-        needs_onboarding_choice: false, tour_done: true,
-      }),
-    }));
+    await installProductionBootRoutes(optIn, { bootstrap: geometryBootstrap() });
     await optIn.goto(`${origin}/index.html${SHELL_QUERY}&pwa_diag=1`, { waitUntil: 'domcontentloaded' });
     await optIn.waitForTimeout(2200);
     const hasTrigger = await optIn.evaluate(() => !!document.querySelector('#go-pwa-diagnostic-trigger'));
@@ -455,6 +426,9 @@ try {
   await browser.close();
   server.close();
 }
+
+check(`E10 boot identity: every one of the ${bootChecked} pages booted the current E10 runtime (no legacy map, no query flags, runtime ready)`,
+  bootFailures.length === 0, bootFailures.slice(0, 2).join(' | '));
 
 if (failures.length) {
   console.error(`\n${failures.length} geometry assertion(s) failed:`);
