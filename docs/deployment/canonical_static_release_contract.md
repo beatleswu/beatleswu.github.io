@@ -264,7 +264,13 @@ in `-Execute` mode, but only when the `ssh` and `scp` that the script would run
 resolve to fixtures inside `<repo>\tests` (`Assert-FixtureTransportInsideRepoTests`),
 so a fixture layout can never be combined with the real transport. The behavioural
 tests in `tests/deployment/test_static_deploy_fail_closed_hardening.py` use it
-with `tests/fixtures/fake_remote` to drive the real script end to end.
+with `tests/deployment/fixtures/fake_remote` to drive the real script end to end.
+The fixture lives under `tests/deployment/` on purpose: that prefix is on the release
+control-plane allowlist (`Test-ReleaseControlPlanePath`, mirrored by Workflow V2's
+`CONTROL_PLANE_ONLY` scope). A new test asset anywhere else would be classified as Product
+source, failing Workflow V2 `pr-ready` and, once merged, making
+`Assert-ReleaseSourceSeparation` reject (`UNAPPROVED_PRODUCT_DIFF_DETECTED`) any release whose
+Product SHA predates the merge.
 
 ```
 1. package-static-release.ps1  -- from an exact-SHA detached worktree,

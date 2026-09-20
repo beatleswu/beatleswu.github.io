@@ -14,7 +14,8 @@ layout rule the A011 incident proved necessary:
   P0     a Production -Execute run must never fall back to the example layout.
 
 These tests execute the REAL ``deploy-static-release.ps1`` end to end against a
-protocol-level fixture of the remote host (``tests/fixtures/fake_remote``) and a
+protocol-level fixture of the remote host (``tests/deployment/fixtures/fake_remote``,
+deliberately inside the release control-plane allowlist) and a
 local HTTP origin -- no real host, no network -- and assert both what happened
 and, as important, what did NOT happen (no extraction, no symlink write, no
 restart) from the fixture's own command log.
@@ -44,7 +45,7 @@ from process_runner import run_bounded
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "release" / "deploy-static-release.ps1"
 MODULE = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
-FAKE_DIR = REPO_ROOT / "tests" / "fixtures" / "fake_remote"
+FAKE_DIR = REPO_ROOT / "tests" / "deployment" / "fixtures" / "fake_remote"
 PRODUCTION_LAYOUT = "deploy\\release-layout.production.json"
 EXAMPLE_LAYOUT = "deploy\\release-layout.example.json"
 
@@ -161,6 +162,59 @@ def test_new_module_functions_are_exported():
         assert f"'{name}'" in exported
 
 
+A017_TRACKED_FILES = (
+    "scripts/release/deploy-static-release.ps1",
+    "scripts/release/ReleaseTooling.psm1",
+    "tests/deployment/test_static_deploy_fail_closed_hardening.py",
+    "docs/deployment/canonical_static_release_contract.md",
+    "docs/deployment/production_deployment_governance.md",
+)
+
+
+def _fixture_paths() -> list[str]:
+    return sorted(
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in FAKE_DIR.rglob("*")
+        if p.is_file() and "__pycache__" not in p.parts
+    )
+
+
+def test_every_a017_file_stays_inside_the_release_control_plane():
+    """Anything outside the control-plane allowlist is classified as Product source.
+
+    Workflow V2 ``pr-ready`` (CONTROL_PLANE_ONLY) rejects such a candidate, and after the merge
+    ``Assert-ReleaseSourceSeparation`` would reject every release whose Product SHA predates it
+    (UNAPPROVED_PRODUCT_DIFF_DETECTED). The fixture transport therefore lives under
+    ``tests/deployment/``, not ``tests/fixtures/``.
+    """
+    import importlib.util
+
+    fixtures = _fixture_paths()
+    assert sorted(p.rsplit("/", 1)[-1] for p in fixtures) == ["fake_remote.py", "scp.cmd", "ssh.cmd"], fixtures
+    paths = list(A017_TRACKED_FILES) + fixtures
+
+    spec = importlib.util.spec_from_file_location(
+        "e10_workflow_v2_for_a017", SCRIPT.parent / "e10_development_workflow_v2.py"
+    )
+    workflow = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(workflow)
+    # 1. the Workflow V2 pr-ready scope gate: no Product/runtime path remains
+    assert workflow._validate_scope("CONTROL_PLANE_ONLY", paths) == []
+    # ...and the historic location is what it rejects (why the fixtures live under tests/deployment/)
+    with pytest.raises(workflow.WorkflowError, match="outside Lane W"):
+        workflow._validate_scope("CONTROL_PLANE_ONLY", ["tests/fixtures/fake_remote/ssh.cmd"])
+
+    # 2. the ReleaseTooling allowlist behind Assert-ReleaseSourceSeparation
+    proc = _powershell(
+        "$paths = @(" + ",".join("'" + p + "'" for p in paths) + ")\n"
+        "$module = Get-Module ReleaseTooling\n"
+        "$bad = @($paths | Where-Object { -not (& $module { param($p) Test-ReleaseControlPlanePath -Path $p } $_) })\n"
+        "ConvertTo-Json -InputObject @($bad) -Compress\n"
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert json.loads(proc.stdout.strip().splitlines()[-1]) == []
+
+
 # ---------------------------------------------------------------------------
 # Module-level behaviour of the new guards (real PowerShell, no I/O).
 # ---------------------------------------------------------------------------
@@ -175,7 +229,7 @@ $result.example = Violations (Get-Content -Raw -LiteralPath 'deploy\release-layo
 $result.http_url = Variant { param($c) $c.homepage_url = 'http://godokoro.com/' }
 $result.ip_literal = Variant { param($c) $c.health_url = 'https://127.0.0.1/healthz'; $c.login_url = 'https://127.0.0.1/login'; $c.homepage_url = 'https://127.0.0.1/' }
 $result.localhost = Variant { param($c) $c.health_url = 'https://localhost/healthz'; $c.login_url = 'https://localhost/login'; $c.homepage_url = 'https://localhost/' }
-$result.mixed_hosts = Variant { param($c) $c.login_url = 'https://other.godokoro.net/login' }
+$result.mixed_hosts = Variant { param($c) $c.login_url = 'https://api.godokoro.com/login' }
 $result.root_slash = Variant { param($c) $c.static_release_root = '/' }
 $result.root_traversal = Variant { param($c) $c.static_release_root = '/opt/../etc' }
 $result.root_relative = Variant { param($c) $c.static_release_root = 'opt/static' }
