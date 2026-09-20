@@ -200,3 +200,61 @@ export function isCurrentE10(boot) {
     && boot.questionRuntimeState === 'ready'
     && boot.authorityUnavailable === false;
 }
+
+/*
+ * ---- A_E10_PWA_FULLSCREEN_STORY_AND_BATTLE_LAYOUT_CORRECTIVE_013 additions ----
+ *
+ * The installed iPad PWA reports a layout viewport twice its physical screen
+ * (Owner evidence: 1640x2360 portrait / 2360x1640 landscape on 820x1180 / 1180x820
+ * pt screens) while the unmodified classifier reads the physical screen.  These
+ * are the viewports the corrective is measured in; `sa` marks an installed PWA.
+ */
+export const IPAD_VIEWPORTS = Object.freeze({
+  PWA_PORTRAIT: { vp: { width: 1640, height: 2360 }, dsf: 1, sa: true, sw: 820, sh: 1180, type: 'portrait-primary' },
+  PWA_LANDSCAPE: { vp: { width: 2360, height: 1640 }, dsf: 1, sa: true, sw: 1180, sh: 820, type: 'landscape-primary' },
+  EVID_PORTRAIT: { vp: { width: 1067, height: 1536 }, dsf: 1, sa: true, sw: 820, sh: 1180, type: 'portrait-primary' },
+  EVID_LANDSCAPE: { vp: { width: 1536, height: 1067 }, dsf: 1, sa: true, sw: 1180, sh: 820, type: 'landscape-primary' },
+  PRO13_PWA_PORTRAIT: { vp: { width: 2048, height: 2732 }, dsf: 1, sa: true, sw: 1024, sh: 1366, type: 'portrait-primary' },
+  PRO13_PWA_LANDSCAPE: { vp: { width: 2732, height: 2048 }, dsf: 1, sa: true, sw: 1366, sh: 1024, type: 'landscape-primary' },
+  SAFARI_PORTRAIT: { vp: { width: 820, height: 1180 }, dsf: 2, sa: false, sw: 820, sh: 1180, type: 'portrait-primary' },
+  SAFARI_LANDSCAPE: { vp: { width: 1180, height: 820 }, dsf: 2, sa: false, sw: 1180, sh: 820, type: 'landscape-primary' },
+  DESKTOP: { vp: { width: 1920, height: 1080 }, dsf: 1, sa: false, sw: 1920, sh: 1080, type: 'landscape-primary', touch: false },
+});
+
+export const MACINTOSH_IPAD_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+
+// Drives the REAL classifier chain (navigator.standalone, maxTouchPoints, screen
+// size, screen.orientation.type) instead of pinning the override attribute.
+export function ipadInitScript({ sw, sh, type, sa }) {
+  return `(function(){var s={w:${sw},h:${sh},type:'${type}'};function d(t,k,g){try{Object.defineProperty(t,k,{configurable:true,get:g});}catch(e){}}d(navigator,'maxTouchPoints',function(){return 5;});d(navigator,'standalone',function(){return ${sa};});d(screen,'width',function(){return s.w;});d(screen,'height',function(){return s.h;});try{d(screen.orientation,'type',function(){return s.type;});}catch(e){}})();`;
+}
+
+// A real question + a real Map Battle attempt, so a battle renders the way
+// Production renders it (WGo board, Player/Monster HUD, answer controls).  The
+// bootstrap zones' `books` name the topics the Adventure runtime filters on.
+export const BATTLE_QUESTION_IDS = Array.from({ length: 20 }, (_, i) => 7001 + i);
+const BATTLE_SGF = '(;GM[1]SZ[19]PL[B]AB[sb][sc][rd][re][rf][sh][sj]AW[qb][rb][qd][qe][qf][rh][rj];B[ra])';
+
+export async function installBattleRoutes(page, { topic = '3史萊姆平原' } = {}) {
+  const json = (body) => (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  await page.route('**/api/questions*', json(BATTLE_QUESTION_IDS.map((id) => ({ id, topic, rank: '15k' }))));
+  await page.route('**/api/question/*', (route) => {
+    const id = Number(new URL(route.request().url()).pathname.split('/').pop());
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id, topic, rank: '15k', content: BATTLE_SGF, accepted_moves: [{ x: 17, y: 0 }] }) });
+  });
+  await page.route('**/api/srs/due', json({ due: BATTLE_QUESTION_IDS.slice(0, 12).map((id) => ({ question_id: id, ease: 2.5, interval: 1 })), count: 12 }));
+  let seq = 0;
+  await page.route('**/api/adventure/map-battles/v1/attempts', (route) => {
+    const body = JSON.parse(route.request().postData() || '{}');
+    seq += 1;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      runtime_service: 'map-battle-v1-runtime',
+      battle_id: `fixture-battle-${seq}`, attempt_id: `fixture-attempt-${seq}`, submission_nonce: `fixture-nonce-${seq}`,
+      question_id: Number(body.question_id || BATTLE_QUESTION_IDS[0]), question_revision: 'fixture-rev-1', player_color: 'B',
+      transform_id: 'identity', transform_version: 'v1', issued_at: '2026-09-20T00:00:00+00:00', expires_at: '2026-09-20T01:00:00+00:00',
+      zone_key: body.zone_key || 'k21_25', player_hp: 939, player_hp_max: 952, monster_hp: 544, monster_hp_max: 544, battle_revision: 0,
+      attempt_state: 'ISSUED', attempt: { state: 'ISSUED' },
+      adventure_monster: { monster_id: 'fixture_monster', name: '混沌侍從', name_en: 'Chaos Attendant', avatar: '/assets/monsters/armored_knight_chibi.png', zone_key: body.zone_key || 'k21_25', encounter_class: 'NORMAL', role: 'NORMAL', profile_id: 'fixture', profile_version: 'v1' },
+    }) });
+  });
+}

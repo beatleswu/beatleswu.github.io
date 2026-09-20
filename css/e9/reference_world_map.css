@@ -1170,6 +1170,13 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
     display: block !important;
     padding: 0 0 calc(var(--go-pwa-portrait-zoom) * 28px) !important;
   }
+  /* A013: the native pair of shell.css:86 is shell.css:101 -- an active question
+     hides #welcome-state (and with it the world map).  The mirror above copied only
+     the first half, so in the installed portrait PWA the map could never leave the
+     screen during a battle.  Same specificity + !important, later in source. */
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-adventure-shell-active="e9"] #main-row #main-left #welcome-state.hidden {
+    display: none !important;
+  }
   /* The same desktop rule paints EVERY <main> (the world stage and its slot are
      <main> elements) with the desktop brown, !important, which hid the stage's
      own backdrop -- the teal grid of immersive_rpg.css -- and turned the part of
@@ -1428,6 +1435,298 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     max-height: 2.2em;
+  }
+}
+
+/* ==========================================================================
+   A_E10_PWA_FULLSCREEN_STORY_AND_BATTLE_LAYOUT_CORRECTIVE_013
+
+   Owner real-iPad PWA evidence (installed PWA: the layout viewport is 1640x2360
+   portrait / 2360x1640 landscape CSS px on a 820x1180 / 1180x820 pt screen, so
+   every fixed-pixel cap renders at half its intended physical size and every
+   (max-width: ...) tablet rule never matches).
+
+   1. Story / cinematic: the intro-film scene was capped at min(900px, 94vw) x
+      min(560px, 86vh) (index.html .boss-cinematic.intro-film .boss-cinematic-scene),
+      i.e. 38-55% of the PWA viewport.  It is now sized from the usable viewport
+      (safe-area aware, small deliberate margin) and keeps its 16:9 frame.
+   2. Portrait battle: the portrait Adventure mirror above forced #welcome-state to
+      display:block !important but omitted the native companion rule
+      (shell.css: #welcome-state.hidden { display:none !important }), so the world
+      map could never leave the screen while a question was active and the board
+      was pushed below the fold.  The companion rule is restored and the
+      question/battle surface becomes the one dedicated surface.
+   3. Landscape battle: .practice (1600px), #main-row (1400px) and the board column
+      capped the composition at ~59% of the PWA width and ~50% of its height.
+
+   Layout is derived from the usable viewport (vw / dvh / vmin, safe-area).  The
+   only scale factor used is the existing PWA portrait zoom on the HUD column, and
+   an equivalent constant for the very wide landscape PWA; the board itself is never
+   scaled or stretched (it stays a square canvas sized by layout).
+   ========================================================================== */
+
+/* ---- 1. Story / cinematic near-fullscreen (all E10 tablet/desktop viewports) ---- */
+@media (min-width: 768px) {
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film {
+    --a013-pt: max(env(safe-area-inset-top, 0px), 1.2vmin);
+    --a013-pr: max(env(safe-area-inset-right, 0px), 1.2vmin);
+    --a013-pb: max(env(safe-area-inset-bottom, 0px), 1.2vmin);
+    --a013-pl: max(env(safe-area-inset-left, 0px), 1.2vmin);
+    --a013-sw: calc(100vw - var(--a013-pl) - var(--a013-pr));
+    padding: var(--a013-pt) var(--a013-pr) var(--a013-pb) var(--a013-pl);
+    box-sizing: border-box;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .boss-cinematic-scene {
+    box-sizing: border-box;
+    min-height: 0;
+    border-radius: clamp(10px, calc(var(--a013-sw) * .012), 28px);
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .boss-cinematic-content {
+    left: calc(var(--a013-sw) * .018);
+    right: calc(var(--a013-sw) * .018);
+    bottom: calc(var(--a013-sw) * .016);
+    padding: calc(var(--a013-sw) * .008) calc(var(--a013-sw) * .012);
+    max-height: 34%;
+    overflow: auto;
+    box-sizing: border-box;
+    border-radius: calc(var(--a013-sw) * .009);
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .boss-cinematic-line {
+    font-size: clamp(15px, calc(var(--a013-sw) * .0145), 48px);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .film-caption {
+    left: calc(var(--a013-sw) * .016);
+    top: calc(var(--a013-sw) * .014);
+    padding: calc(var(--a013-sw) * .005) calc(var(--a013-sw) * .009);
+    font-size: clamp(12px, calc(var(--a013-sw) * .0095), 32px);
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .intro-film-controls {
+    top: calc(var(--a013-sw) * .014);
+    right: calc(var(--a013-sw) * .016);
+    gap: calc(var(--a013-sw) * .006);
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .intro-skip-btn,
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .intro-replay-btn {
+    font-size: clamp(13px, calc(var(--a013-sw) * .0135), 40px);
+    padding: 0 calc(var(--a013-sw) * .013);
+    min-height: clamp(44px, calc(var(--a013-sw) * .044), 96px);
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .boss-cinematic-close-x {
+    width: clamp(44px, calc(var(--a013-sw) * .044), 96px);
+    height: clamp(44px, calc(var(--a013-sw) * .044), 96px);
+    font-size: clamp(20px, calc(var(--a013-sw) * .022), 50px);
+    top: calc(var(--a013-sw) * .014 + clamp(44px, calc(var(--a013-sw) * .044), 96px) + var(--a013-sw) * .008);
+    right: calc(var(--a013-sw) * .016);
+  }
+}
+/* Portrait: the frame fills the usable viewport (the 16:9 art stays undistorted and
+   letterboxed over its own blurred backdrop, exactly like the native portrait
+   contract) instead of a 900x560 box. */
+@media (min-width: 768px) and (orientation: portrait) {
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .boss-cinematic-scene {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .film-shot img {
+    object-fit: contain;
+    object-position: center;
+    background: transparent;
+  }
+  /* The undistorted 16:9 art is a centred band (width x 9/16) over its blurred
+     backdrop.  Keep the dialogue with the picture instead of a screen-height away
+     at the bottom edge.  The ready state (title / rules / CTA) keeps its own
+     bottom-anchored card. */
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film:not(.ready) .boss-cinematic-content {
+    top: calc(50% + var(--a013-sw) * 9 / 32 + var(--a013-sw) * .012);
+    bottom: auto;
+    max-height: calc(50% - var(--a013-sw) * 9 / 32 - var(--a013-sw) * .03);
+  }
+}
+/* Landscape: the largest 16:9 frame that fits the usable viewport. */
+@media (min-width: 768px) and (orientation: landscape) {
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film {
+    --a013-sw: min(calc(100vw - var(--a013-pl) - var(--a013-pr)), calc((100dvh - var(--a013-pt) - var(--a013-pb)) * 16 / 9));
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .boss-cinematic-scene {
+    width: 100%;
+    max-width: var(--a013-sw);
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+/* ---- 2. Portrait PWA: the question / battle is the one dedicated surface ----
+   Order (top to bottom): compact title + progress row, the board at the largest square the
+   width allows, the answer controls, then the Player / Monster HUD.  The world map is
+   already gone (rule above) and the bottom dock lives inside that hidden shell.  Everything
+   that is not the board is scaled by ONE factor (--a013-z); the board itself is never scaled
+   or stretched -- its size comes from layout, and WGo measures it at render time.
+   Compaction mirrors the native <=1366px battle contract (index.html "practice state"):
+   the difficulty/meta line is dropped, the title row is slim. */
+@media (min-width: 768px) {
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) {
+    --a013-m: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px), 1.4vmin);
+    --a013-z: 1.15;
+    --a013-chrome-p: 650px;
+  }
+}
+@media (min-width: 1280px) {
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) {
+    --a013-z: 1.5;
+    --a013-chrome-p: 940px;
+  }
+}
+@media (min-width: 768px) {
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .practice {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: max(env(safe-area-inset-top, 0px), var(--a013-m)) var(--a013-m) max(env(safe-area-inset-bottom, 0px), var(--a013-m)) !important;
+    box-sizing: border-box;
+    min-height: 0;
+    flex-flow: row wrap;
+    align-items: stretch;
+    align-content: flex-start;
+    gap: calc(var(--a013-m) * .6) var(--a013-m);
+  }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .q-header {
+    flex: 1 1 55%;
+    min-width: 0;
+    width: auto;
+    zoom: var(--a013-z);
+    padding: 6px 12px;
+  }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .q-meta { display: none; }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #srs-progress {
+    flex: 1 1 30%;
+    min-width: 0;
+    width: auto;
+    zoom: var(--a013-z);
+  }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row {
+    flex: 0 0 100%;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    padding: 0;
+    gap: calc(var(--a013-m) * .8);
+    overflow: visible;
+  }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-left {
+    width: 100%;
+    min-height: 0;
+    padding: 0 !important;
+  }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-layout,
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-col {
+    width: 100%;
+  }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .quiz-board-anchor {
+    width: 100%;
+    /* The largest square the width allows, capped so the title row, the answer controls
+       and the essential HUD rows (names + HP) stay on the first screen:
+       chrome-p = everything that is not the board, measured at the 1640x2360 layout. */
+    /* !important: the native <=1366px practice-state rule (index.html) caps this element with
+       !important; the override must win wherever the classifier flags the installed tablet. */
+    max-width: min(100%, calc(100dvh - var(--a013-chrome-p))) !important;
+  }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-col > .btn-row,
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-col > .sgf-report-widget,
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #msg-box {
+    zoom: var(--a013-z);
+  }
+  html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #side-col {
+    position: static;
+    width: min(100%, 1240px);
+    max-height: none;
+    overflow: visible;
+    margin: 0 auto;
+    padding: 0;
+    zoom: var(--a013-z);
+  }
+}
+
+/* ---- 3. Landscape PWA (installed tablet: 2x layout viewport) ----
+   Full-bleed composition: the board is the largest square the usable height allows, the HUD
+   column sits beside it, nothing is capped at the desktop 1400 / 1600px widths, and the
+   title + progress share one slim row so the vertical budget goes to the board. */
+@media (min-width: 1900px) and (orientation: landscape) and (hover: none) {
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) {
+    --a013-m: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px), 1.2vmin);
+    --a013-z: 1.5;
+    /* everything in the column except the board: title row, message pill + anchor padding,
+       controls, report row, page margins */
+    --a013-chrome-l: 452px;
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .practice {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: max(env(safe-area-inset-top, 0px), var(--a013-m)) var(--a013-m) max(env(safe-area-inset-bottom, 0px), var(--a013-m)) !important;
+    box-sizing: border-box;
+    min-height: 0;
+    flex-flow: row wrap;
+    align-items: stretch;
+    align-content: flex-start;
+    gap: calc(var(--a013-m) * .6) var(--a013-m);
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .q-header {
+    flex: 1 1 55%;
+    min-width: 0;
+    width: auto;
+    zoom: var(--a013-z);
+    padding: 6px 12px;
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .q-meta { display: none; }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #srs-progress {
+    flex: 1 1 30%;
+    min-width: 0;
+    width: auto;
+    zoom: var(--a013-z);
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row {
+    flex: 0 0 100%;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
+    grid-template-columns: auto minmax(0, 980px);
+    gap: calc(var(--a013-m) * 1.6);
+    padding: 0;
+    min-height: 0;
+    overflow: visible;
+    align-items: start;
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-left {
+    padding: 0 !important;
+    min-height: 0;
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .quiz-board-anchor {
+    width: calc(100dvh - var(--a013-chrome-l));
+    max-width: min(100%, calc(100dvh - var(--a013-chrome-l)));
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-col > .btn-row,
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-col > .sgf-report-widget,
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #msg-box {
+    zoom: var(--a013-z);
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-col > .sgf-report-widget {
+    /* Lengths inside a zoomed element are multiplied by the zoom; dividing by the same
+       factor makes the report row exactly as wide as the board panel above it. */
+    width: calc((100dvh - var(--a013-chrome-l)) / var(--a013-z));
+    max-width: 100%;
+    align-self: center;
+  }
+  html[data-go-display-mode="standalone"] body[data-e10-visual-skin="immersive-rpg"]:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #side-col {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    zoom: calc(var(--a013-z) + .2);
   }
 }
 
