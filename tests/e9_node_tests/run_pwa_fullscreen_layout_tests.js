@@ -126,10 +126,17 @@ test('the film READY card is never clipped: overflow / max-height on the subtitl
   const cardRules = allRules.filter((r) => /\.boss-cinematic-content$/.test(r.selector.split(',').pop().trim()));
   assert.ok(cardRules.length >= 2, 'card rules missing');
   for (const r of cardRules) {
-    const clips = /(^|;)\s*(overflow(-y)?|max-height)\s*:/.test(r.body);
+    const decls = r.body.split(';').map((d) => d.trim()).filter(Boolean).map((d) => [d.slice(0, d.indexOf(':')).trim(), d.slice(d.indexOf(':') + 1).trim()]);
+    // only a declaration that can actually clip counts (overflow other than visible, max-height other than none)
+    const clips = decls.some(([n, v]) => ((n === 'overflow' || n === 'overflow-y') && v !== 'visible') || (n === 'max-height' && v !== 'none'));
     if (clips) assert.ok(r.selector.includes('.intro-film:not(.ready)'), `a clip on the subtitle card must be limited to the playing film: ${r.selector.slice(0, 150)}`);
   }
   assert.ok(cardRules.some((r) => r.selector.includes('.intro-film:not(.ready)') && /overflow:\s*auto/.test(r.body)), 'the playing-film card should still scroll a very long line');
+  // ...and the ready card is reset explicitly so the native Zone 2 / Zone 4 portrait rules (max-height + overflow:auto, index.html)
+  // cannot clip the CTA on an iPad in Safari portrait.
+  const reset = cardRules.find((r) => r.selector.includes('.intro-film.ready'));
+  assert.ok(reset && /max-height:\s*none/.test(reset.body) && /overflow:\s*visible/.test(reset.body), 'the ready card must reset max-height and overflow explicitly');
+  assert.ok(/#boss-cinematic\.intro-film\[data-zone-key="k21_25"\] \.boss-cinematic-content[^}]*overflow:\s*auto/.test(indexHtml.replace(/\s+/g, ' ')), 'the native zone rule this reset outranks moved -- re-derive');
 });
 
 test('the board is never scaled: no zoom / transform / aspect-ratio rule targets the board wrapper, anchor or canvas', () => {

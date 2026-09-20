@@ -1497,6 +1497,14 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
     max-height: 34%;
     overflow: auto;
   }
+  /* ...and in every zone: the native Zone 2 / Zone 4 portrait rules (index.html, max-width:900px,
+     data-zone-key) give the card max-height + overflow:auto, which clips that same CTA on an iPad in
+     Safari portrait (pre-existing; reproduced on master).  This section owns the story layout from
+     768px up, so the ready card is reset explicitly and outranks them. */
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film.ready .boss-cinematic-content {
+    max-height: none;
+    overflow: visible;
+  }
   body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .boss-cinematic-line {
     font-size: clamp(15px, calc(var(--a013-sw) * .0145), 48px);
     line-height: 1.55;
