@@ -119,6 +119,19 @@ test('story rules are scoped to the E10 intro-film overlay on tablet/desktop wid
   assert.ok(/object-fit:\s*contain/.test(text), 'portrait art must stay undistorted (contain)');
 });
 
+test('the film READY card is never clipped: overflow / max-height on the subtitle card exist only for the playing film', () => {
+  // index.html: .boss-cinematic.intro-film .boss-cinematic-btn { position:absolute; bottom: calc(100% + 12px) } -- the primary
+  // CTA sits OUTSIDE the card box, so any overflow clip on the card hides it (an earlier revision of this section did).
+  assert.ok(/\.boss-cinematic\.intro-film \.boss-cinematic-btn\s*\{[^}]*bottom:\s*calc\(100% \+ 12px\)/.test(indexHtml), 'the contract this guard protects moved -- re-derive');
+  const cardRules = allRules.filter((r) => /\.boss-cinematic-content$/.test(r.selector.split(',').pop().trim()));
+  assert.ok(cardRules.length >= 2, 'card rules missing');
+  for (const r of cardRules) {
+    const clips = /(^|;)\s*(overflow(-y)?|max-height)\s*:/.test(r.body);
+    if (clips) assert.ok(r.selector.includes('.intro-film:not(.ready)'), `a clip on the subtitle card must be limited to the playing film: ${r.selector.slice(0, 150)}`);
+  }
+  assert.ok(cardRules.some((r) => r.selector.includes('.intro-film:not(.ready)') && /overflow:\s*auto/.test(r.body)), 'the playing-film card should still scroll a very long line');
+});
+
 test('the board is never scaled: no zoom / transform / aspect-ratio rule targets the board wrapper, anchor or canvas', () => {
   for (const r of allRules) {
     const last = r.selector.split(',').map((s) => s.trim().split(' ').pop());

@@ -1486,10 +1486,16 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
     right: calc(var(--a013-sw) * .018);
     bottom: calc(var(--a013-sw) * .016);
     padding: calc(var(--a013-sw) * .008) calc(var(--a013-sw) * .012);
-    max-height: 34%;
-    overflow: auto;
     box-sizing: border-box;
     border-radius: calc(var(--a013-sw) * .009);
+  }
+  /* Only the PLAYING film's subtitle card may scroll when a line is unusually long.  The READY
+     card is never clipped: its primary CTA is positioned OUTSIDE the card box
+     (bottom: calc(100% + 12px), index.html), so an overflow clip on the card hides it and
+     strands the player. */
+  body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film:not(.ready) .boss-cinematic-content {
+    max-height: 34%;
+    overflow: auto;
   }
   body[data-e10-visual-skin="immersive-rpg"] #boss-cinematic.intro-film .boss-cinematic-line {
     font-size: clamp(15px, calc(var(--a013-sw) * .0145), 48px);

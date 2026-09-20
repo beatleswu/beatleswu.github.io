@@ -89,6 +89,9 @@ const MODES = [
   { name: 'DESKTOP', kind: 'desktop', boardFloor: 765 },
 ];
 
+const onlyModes = process.env.A013_MODES ? new Set(process.env.A013_MODES.split(',')) : null;
+const RUN_MODES = onlyModes ? MODES.filter((mode) => onlyModes.has(mode.name)) : MODES;
+
 const rectOf = `(sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); const c = getComputedStyle(e); return { l: b.left, t: b.top, w: b.width, h: b.height, r: b.right, b: b.bottom, display: c.display }; }`;
 const inside = (inner, outer, tol = 1.5) => !!inner && !!outer && inner.l >= outer.l - tol && inner.t >= outer.t - tol && inner.r <= outer.r + tol && inner.b <= outer.b + tol;
 const pct = (a, b) => `${(100 * a / b).toFixed(1)}%`;
@@ -96,14 +99,14 @@ const bootFailures = [];
 let bootChecked = 0;
 const measurements = [];
 
-async function openGame(browser, origin, modeName) {
+async function openGame(browser, origin, modeName, { seen = true } = {}) {
   const m = IPAD_VIEWPORTS[modeName];
   const page = await browser.newPage({ viewport: m.vp, deviceScaleFactor: m.dsf, hasTouch: m.touch !== false, userAgent: m.touch === false ? undefined : MACINTOSH_IPAD_UA });
   const log = { requests: [], errors: [] };
   page.on('request', (r) => { if (/\/api\//.test(r.url())) log.requests.push({ method: r.method(), path: new URL(r.url()).pathname }); });
   page.on('pageerror', (e) => log.errors.push(String(e.message).slice(0, 160)));
   await page.addInitScript(ipadInitScript(m));
-  await installProductionBootRoutes(page, { bootstrap: realBootstrap(ZONE_STATES, { seenIntro: ZONE_KEYS }) });
+  await installProductionBootRoutes(page, { bootstrap: realBootstrap(ZONE_STATES, { seenIntro: seen ? ZONE_KEYS : [] }) });
   await installBattleRoutes(page, { topic: BATTLE_TOPIC });
   await page.goto(`${origin}/index.html${PRODUCTION_SHELL_QUERY}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#e9-adventure-shell', { timeout: 20000 });
@@ -212,6 +215,35 @@ async function runStory(browser, origin, mode) {
   return { replayWrites: writes.length };
 }
 
+// The first-entry film ends in a READY card (kicker / title / books / line / rules) with the primary CTA
+// positioned OUTSIDE the card box (bottom: calc(100% + 12px)).  A clip on the card hides that CTA and
+// strands the player, so the ready state is asserted on its own: an unseen opening is entered, the film
+// plays, and the natural end-state class is applied to the running overlay.
+async function runReadyCard(browser, origin, mode) {
+  const { page, log } = await openGame(browser, origin, mode.name, { seen: false });
+  const label = `${mode.name} story ready card`;
+  await page.evaluate(() => document.querySelector('[data-zone="k21_25"]').click());
+  await page.waitForFunction(() => !!document.querySelector('#boss-cinematic.show.intro-film'), { timeout: 15000 });
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => document.querySelector('#boss-cinematic').classList.add('ready'));
+  await page.waitForTimeout(1500);
+  const r = await page.evaluate(`(() => { const R = ${rectOf}; const btn = document.querySelector('#boss-cinematic .boss-cinematic-btn'); const c = document.querySelector('#boss-cinematic .boss-cinematic-content'); const cs = btn && getComputedStyle(btn); const cc = c && getComputedStyle(c);
+    const b = btn && btn.getBoundingClientRect(); const hit = b && b.width > 0 ? document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2) : null;
+    return { vw: innerWidth, vh: innerHeight, scene: R('#boss-cinematic .boss-cinematic-scene'), content: R('#boss-cinematic .boss-cinematic-content'), btn: R('#boss-cinematic .boss-cinematic-btn'),
+      btnOpacity: cs && cs.opacity, btnPointer: cs && cs.pointerEvents, btnDisplay: cs && cs.display, hitsBtn: !!(hit && btn && (hit === btn || btn.contains(hit))),
+      overflowY: cc && cc.overflowY, scrollH: c && c.scrollHeight, clientH: c && c.clientHeight, cls: document.querySelector('#boss-cinematic').className }; })()`);
+  check(`${label}: the film is in its ready state`, /\bready\b/.test(r.cls), r.cls);
+  const viewport = { l: 0, t: 0, r: r.vw, b: r.vh };
+  check(`${label}: the primary CTA has a box, is opaque and takes pointer events`, !!r.btn && r.btn.w > 0 && r.btn.h > 0 && r.btnDisplay !== 'none' && Number(r.btnOpacity) === 1 && r.btnPointer !== 'none', JSON.stringify({ btn: r.btn, op: r.btnOpacity, pe: r.btnPointer }));
+  check(`${label}: the primary CTA is inside the scene and the viewport`, inside(r.btn, r.scene) && inside(r.btn, viewport), JSON.stringify({ btn: r.btn, scene: r.scene }));
+  check(`${label}: the primary CTA is not clipped or covered (a hit-test at its centre returns the CTA)`, r.hitsBtn === true, `overflowY(card)=${r.overflowY} card=${JSON.stringify(r.content)}`);
+  check(`${label}: the ready card is inside the scene and not clipped (no overflow clip, or nothing overflowing)`, inside(r.content, r.scene) && (r.overflowY === 'visible' || r.scrollH <= r.clientH + 1), JSON.stringify({ content: r.content, overflowY: r.overflowY, scrollH: r.scrollH, clientH: r.clientH }));
+  const shot = captureDir ? `${mode.name}_story_ready.png` : null;
+  if (captureDir) await page.screenshot({ path: path.join(captureDir, shot) });
+  check(`${label}: no page errors`, log.errors.length === 0, log.errors.slice(0, 2).join(' | '));
+  await page.close();
+}
+
 const battleMetrics = (page) => page.evaluate(`(() => { const R = ${rectOf}; const vw = innerWidth, vh = innerHeight; const root = document.scrollingElement;
   const shown = (sel) => { const e = document.querySelector(sel); if (!e) return 0; const c = getComputedStyle(e); const r = e.getBoundingClientRect(); return (c.display !== 'none' && c.visibility !== 'hidden' && r.width > 0 && r.height > 0) ? 1 : 0; };
   const cv = R('#board-canvas-wrap'); const hit = (x, y) => { const e = document.elementFromPoint(x, y); return !!(e && e.closest('#board-canvas-wrap')); };
@@ -302,9 +334,10 @@ const browser = await chromium.launch({ executablePath: chromePath });
 let replayWrites = 0;
 let maxMapVisible = 0;
 try {
-  for (const mode of MODES) {
+  for (const mode of RUN_MODES) {
     console.log(`\n== ${mode.name} ${IPAD_VIEWPORTS[mode.name].vp.width}x${IPAD_VIEWPORTS[mode.name].vp.height}`);
     replayWrites += (await runStory(browser, origin, mode)).replayWrites;
+    await runReadyCard(browser, origin, mode);
     maxMapVisible = Math.max(maxMapVisible, (await runBattle(browser, origin, mode)).mapVisible);
   }
 } finally {
