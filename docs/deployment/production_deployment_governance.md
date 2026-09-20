@@ -18,6 +18,12 @@ This document is the operational summary. For the full audit narrative and evide
   switches the `current` symlink, and restarts the app/scheduler containers (required — a symlink
   switch alone is filesystem-correct but functionally inert on already-running containers, which
   resolve the target once at start; this was discovered live in a real production deploy).
+  `-Execute` fails closed: it requires an explicit, real Production `-LayoutFile`
+  (`deploy\release-layout.production.json`; the default example layout is refused before any remote
+  command), hashes the uploaded archive on the remote host before extracting it, and compare-and-swaps
+  the live symlink immediately before switching it. See
+  [canonical_static_release_contract.md](canonical_static_release_contract.md) ("Fail-closed gates in
+  Execute mode").
 - **Rollback**: `scripts/release/rollback-release.ps1`.
 - **Coordinated release with bounded recovery** (optional; additive, not a replacement for the
   above): `scripts/release/deploy-coordinated-release.ps1`. Sequences a full static+app promotion

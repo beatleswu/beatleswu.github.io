@@ -195,6 +195,83 @@ already a proven pattern on this exact host.
 This separation prevents a local plan from being confused with a remote
 preflight while keeping the mutation gate explicit.
 
+### Fail-closed gates in Execute mode (A017)
+
+The Execute path is a fixed sequence in which every step must pass before the
+next one may run. The three additions below close gaps observed during the
+successful A016 static-only promotion; nothing else in the flow, the package
+format, the immutable-generation model, the rollback model or the public
+acceptance verifier changed.
+
+```
+VALIDATE_LAYOUT -> VERIFY_LOCAL_ARCHIVE -> UPLOAD -> VERIFY_REMOTE_ARCHIVE_SHA
+  -> EXTRACT -> VERIFY_GENERATION -> RECHECK_LIVE_SYMLINK -> SWITCH_ONCE
+  -> VERIFY -> ACCEPT_OR_ROLLBACK
+```
+
+1. **Production layout is explicit and real (`VALIDATE_LAYOUT`).** `-Execute`
+   refuses, before any archive work and before the first remote command, unless
+   `-LayoutFile` was passed explicitly *and* the layout is a real Production
+   layout (`Get-ProductionReleaseLayoutViolations`): required fields present,
+   https URLs on one real DNS host (no IP literal, `localhost`, `.local`,
+   `.test`, `.invalid`, `example`), a safe absolute `static_release_root` with
+   `asset_source_path == <root>/current`, a plain `ssh_alias`, and no
+   placeholder marker (`example`, `.invalid`, `placeholder`, `TODO`, ...) in any
+   value. The example layout keeps the real ssh alias, so a Production run on it
+   reaches the real host and can only fail later in public verification (the A011
+   incident). Dry runs and `-VerifyOnly` may still load the example layout; a dry
+   run reports `production_layout_valid` and `production_layout_violations` so the
+   Execute verdict is visible in advance. Errors: `PRODUCTION_LAYOUT_EXPLICIT_REQUIRED`,
+   `PRODUCTION_LAYOUT_INVALID`.
+2. **The uploaded archive is hashed on the remote host before it is extracted
+   (`VERIFY_REMOTE_ARCHIVE_SHA`).** After the upload the complete staging archive
+   is hashed remotely (`sha256sum`) and must equal the local authorized archive
+   SHA-256. File count and total bytes are not a substitute. On mismatch the run
+   fails with `STATIC_RELEASE_REMOTE_ARCHIVE_SHA_MISMATCH`, reporting the expected
+   and the observed hash: nothing is extracted, no manifest is uploaded, the live
+   symlink is not written and no container is restarted. The staging archive and
+   the still-empty generation directory are left in place for manual review (the
+   tool never deletes remote data). The extracted-file batch verification (count,
+   bytes, per-file SHA-256) remains the second, independent layer.
+3. **The live symlink is compare-and-swapped (`RECHECK_LIVE_SYMLINK`, `SWITCH_ONCE`).**
+   The generation captured at `CAPTURE_CURRENT` is the rollback authority, but
+   minutes of upload and verification separate it from the switch. Immediately
+   before the switch the live target is re-read and compared (early, logged
+   `RECHECK_LIVE_SYMLINK` phase); the switch command then re-reads and compares
+   again inside the *same remote shell* as the write and only writes when the
+   target is still the captured one (exit 73 otherwise). Either layer fails closed
+   with `STATIC_RELEASE_CONCURRENT_MUTATION_DETECTED`
+   (`EXPECTED_PRE_SWITCH_GENERATION` / `ACTUAL_PRE_SWITCH_GENERATION`) before any
+   symlink write or restart; another deployment is never overwritten, and no
+   external watcher is needed. Both gate failures are deterministic decisions, so
+   they skip the timeout reconciliation polling and set `gate_failure` in the
+   failure record.
+
+Deployment record additions (all additive): `remote_archive_sha_match`,
+`remote_archive_sha256`, `expected_pre_switch_generation`,
+`actual_pre_switch_generation`, `pre_switch_compare_and_swap`,
+`public_sw_version_after_switch` and `public_sw_identity_after_switch`. The two
+service-worker fields previously printed `null` because the public acceptance
+contract kept the verified values in a function-local variable; they now carry
+the VERSION and the ASSET_IDENTITY that were actually verified (read out of the
+same `sw.js` response the VERSION check already fetches -- no extra request).
+When the manifest declares `service_worker_asset_identity`, the identity served
+must equal it (`Public sw.js ASSET_IDENTITY mismatch`); `-VerifyOnly` reports
+`public_sw_version_observed` / `public_sw_identity_observed`.
+
+`-UseFixtureTransport` is a TEST-ONLY switch. It permits a non-production layout
+in `-Execute` mode, but only when the `ssh` and `scp` that the script would run
+resolve to fixtures inside `<repo>\tests` (`Assert-FixtureTransportInsideRepoTests`),
+so a fixture layout can never be combined with the real transport. The behavioural
+tests in `tests/deployment/test_static_deploy_fail_closed_hardening.py` use it
+with `tests/deployment/fixtures/fake_remote` to drive the real script end to end.
+The fixture lives under `tests/deployment/` on purpose: that prefix is on the release
+control-plane allowlist (`Test-ReleaseControlPlanePath`, mirrored by Workflow V2's
+`CONTROL_PLANE_ONLY` scope). A new test asset anywhere else would be classified as Product
+source, failing Workflow V2 `pr-ready` and, once merged, making
+`Assert-ReleaseSourceSeparation` reject (`UNAPPROVED_PRODUCT_DIFF_DETECTED`) any release whose
+Product SHA predates the merge.
+
 ```
 1. package-static-release.ps1  -- from an exact-SHA detached worktree,
    stage the governed static files per the inventory (including the

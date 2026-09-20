@@ -52,10 +52,18 @@ param(
     [string]$ExpectedStaticVersion,
     [string]$ExpectedManifestSha256,
     [string]$ExpectedArchiveSha256,
+    # The default stays the example layout so a dry run and -VerifyOnly remain
+    # loadable with no arguments. A017: it can NEVER reach a Production
+    # -Execute run -- -Execute requires an explicit, validated Production layout.
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [switch]$Execute,
     [string]$OwnerGate,
-    [string]$GnuTarPath
+    [string]$GnuTarPath,
+    # A017, TEST-ONLY: permit a non-production layout in -Execute mode. Honoured
+    # only when the resolved ssh and scp are fixtures inside <repo>\tests
+    # (Assert-FixtureTransportInsideRepoTests), so a fixture layout can never be
+    # combined with the real transport.
+    [switch]$UseFixtureTransport
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,6 +84,27 @@ $repoRoot = Get-RepoRoot
 $layout = Get-ReleaseLayout -Path (Resolve-RepoPath $LayoutFile)
 if (-not $layout.PSObject.Properties.Name -contains 'static_release_root' -or [string]::IsNullOrWhiteSpace($layout.static_release_root)) {
     throw "Release layout is missing static_release_root -- required for static release deploy."
+}
+
+# A017 (P0, production layout fail-closed). -Execute mutates Production, so it
+# must NEVER run on a silently defaulted or example/placeholder layout: the
+# example layout keeps the real ssh alias, so it reaches the real host and can
+# only fail later, in public verification (the A011 incident). Both conditions
+# are enforced here, before any archive hashing and before the first remote
+# command: (1) -LayoutFile must be passed explicitly, and (2) its content must
+# be a real Production layout. Dry runs and -VerifyOnly are unchanged; they may
+# still load the example layout.
+$layoutExplicit = $PSBoundParameters.ContainsKey('LayoutFile')
+$productionLayoutViolations = @(Get-ProductionReleaseLayoutViolations -Layout $layout)
+if ($UseFixtureTransport) {
+    # TEST-ONLY exception: only with a fixture ssh/scp under <repo>\tests.
+    Assert-FixtureTransportInsideRepoTests -RepoRoot $repoRoot
+}
+if ($Execute -and -not $VerifyOnly -and -not $UseFixtureTransport) {
+    if (-not $layoutExplicit) {
+        throw "PRODUCTION_LAYOUT_EXPLICIT_REQUIRED: -Execute requires an explicit -LayoutFile (for Production: deploy\release-layout.production.json). The default example layout is never used for a Production run; no remote host was contacted."
+    }
+    Assert-ProductionReleaseLayout -Layout $layout -LayoutLabel "-LayoutFile '$LayoutFile'"
 }
 $ExpectedGitSha = (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $repoRoot).Trim()
 $adoptionMode = -not [string]::IsNullOrWhiteSpace($ExistingGenerationPath)
@@ -330,12 +359,19 @@ function Get-SwVersionFromUrl {
         $failure = Get-PublicVerificationFailureRecord -Exception $_.Exception -Path $Url -VerificationMode 'SERVICE_WORKER_VERSION' -Response $response
         throw "Could not fetch $Url for sw.js VERSION verification [$($failure.status)]: $($failure.error)"
     }
+    $swVersion = $null
     try {
-        return (Get-SwVersionFromText -SwText $response.Content -SourceLabel $Url)
+        $swVersion = Get-SwVersionFromText -SwText $response.Content -SourceLabel $Url
     }
     catch {
         throw "Could not parse sw.js VERSION from $Url [malformed_response]: $($_.Exception.Message)"
     }
+    # A017: the ASSET_IDENTITY is read out of this SAME response body -- the
+    # deployment record can carry the verified identity without a second request.
+    $swIdentity = $null
+    try { $swIdentity = Get-SwAssetIdentityFromText -SwText $response.Content -SourceLabel $Url } catch { $swIdentity = $null }
+    $script:publicSwObservation = [pscustomobject]@{ url = $Url; version = $swVersion; identity = $swIdentity }
+    return $swVersion
 }
 
 function Get-PublicFileSha256 {
@@ -507,6 +543,19 @@ function Invoke-PublicStaticAcceptanceContract {
     if ($publicSwVersion -ne $manifest.service_worker_version) {
         throw "Public sw.js VERSION mismatch after switch. Expected '$($manifest.service_worker_version)', observed '$publicSwVersion'."
     }
+    # A017: when the manifest declares the Service Worker cache identity, the
+    # identity actually served must be exactly that one (same class of check as
+    # the VERSION above; a manifest without the field is not judged).
+    $expectedSwIdentity = if ($manifest.PSObject.Properties.Name -contains 'service_worker_asset_identity') { [string]$manifest.service_worker_asset_identity } else { '' }
+    $observedSwIdentity = $script:publicSwObservation.identity
+    if (-not [string]::IsNullOrWhiteSpace($expectedSwIdentity) -and $observedSwIdentity -ne $expectedSwIdentity) {
+        throw "Public sw.js ASSET_IDENTITY mismatch after switch. Expected '$expectedSwIdentity', observed '$observedSwIdentity'."
+    }
+    # A017 (P1): persist the values that were actually verified. This function's
+    # own variables are invisible to the deployment record (the record used to
+    # print public_sw_version_after_switch as null), so publish them at script scope.
+    $script:publicSwVersionVerified = $publicSwVersion
+    $script:publicSwIdentityVerified = $observedSwIdentity
     Write-StaticDeployTiming 'PUBLIC SW VERSION COMPLETE'
     End-StaticDeployPhase -Phase 'PUBLIC_SW'
 
@@ -572,7 +621,10 @@ $generationId = $manifest.static_generation_id
 $remoteReleaseDir = if ($adoptionMode) { $ExistingGenerationPath } else { "$($layout.static_release_root.TrimEnd('/'))/releases/$generationId" }
 if ($adoptionMode -and $generationId -ne ($ExistingGenerationPath -split '/')[-1]) { throw 'Existing generation basename does not match manifest static_generation_id.' }
 $homepageUri = [Uri]$layout.homepage_url
-$publicBase = "$($homepageUri.Scheme)://$($homepageUri.Host)"
+# A017: keep an explicit port (scheme://host[:port]). For https://godokoro.com/
+# this is byte-identical to the previous scheme://host; a layout that names a
+# non-default port used to have it silently dropped, verifying a different origin.
+$publicBase = $homepageUri.GetLeftPart([System.UriPartial]::Authority)
 $shortSha = Get-ShortGitSha -GitSha $ExpectedGitSha
 Write-StaticDeployTiming "START generation=$generationId entries=$($manifest.files.Count)"
 Start-StaticDeployPhase -Phase 'PRECHECK'
@@ -598,6 +650,8 @@ if ($VerifyOnly) {
         public_verification = $verifyOnlyReport
         public_hash_verified = $true
         public_sw_version_verified = $true
+        public_sw_version_observed = $script:publicSwVersionVerified
+        public_sw_identity_observed = $script:publicSwIdentityVerified
         public_static_provenance_verified = $true
         result = 'PUBLIC_STATIC_ACCEPTANCE_VERIFIED'
     } | ConvertTo-Json -Depth 8 | Write-Output
@@ -620,6 +674,11 @@ if (-not $Execute) {
         remote_release_dir = $remoteReleaseDir
         files = $manifest.files
         required_owner_gate = 'GO_DEPLOY'
+        # A017: what -Execute would decide about this layout, without executing.
+        layout_file = $LayoutFile
+        layout_explicit = $layoutExplicit
+        production_layout_valid = ($productionLayoutViolations.Count -eq 0)
+        production_layout_violations = @($productionLayoutViolations)
         result = 'DRY_RUN_COMPLETE'
         plan = @(
             'verify remote release directory does not already exist',
@@ -675,6 +734,13 @@ Start-StaticDeployPhase -Phase 'CAPTURE_CURRENT'
 $previousCurrentTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
 End-StaticDeployPhase -Phase 'CAPTURE_CURRENT'
 $rollbackPerformed = $false
+# A017 evidence carried into the deployment record (all stay $null until proven).
+$remoteArchiveShaMatch = $null
+$remoteArchiveSha256 = $null
+$preSwitchTarget = $null
+$script:publicSwObservation = $null
+$script:publicSwVersionVerified = $null
+$script:publicSwIdentityVerified = $null
 
 try {
     if (-not $adoptionMode) {
@@ -698,6 +764,20 @@ try {
     $remoteArchivePath = "$($layout.static_release_root.TrimEnd('/'))/releases/.upload-$generationId.tar"
     Invoke-BoundedFileUpload -LocalPath $archivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveTimeoutSeconds
     Write-StaticDeployTiming 'ARCHIVE UPLOAD COMPLETE'
+
+    # A017 (P0) VERIFY_REMOTE_ARCHIVE_SHA: the complete staging archive is hashed
+    # ON THE REMOTE HOST and must equal the local authorized archive hash
+    # BEFORE anything is unpacked. File count and total bytes cannot detect a
+    # same-size corruption and are not a substitute; the extracted-file batch
+    # verification below stays in place as the second, independent layer. A
+    # mismatch fails here: no extraction, no manifest upload, no symlink write.
+    Start-StaticDeployPhase -Phase 'REMOTE_ARCHIVE_SHA'
+    $remoteArchiveShaOutput = Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument $remoteArchivePath)" -TimeoutSeconds (Get-BatchVerificationTimeoutSeconds -TotalBytes $actualArchiveSize) -OperationLabel 'remote staging archive SHA-256'
+    $remoteArchiveSha256 = ConvertFrom-RemoteSha256SumOutput -Output $remoteArchiveShaOutput
+    Assert-RemoteArchiveShaMatch -ExpectedSha256 $actualArchiveHash -ObservedSha256 $remoteArchiveSha256 -RemoteArchivePath $remoteArchivePath
+    $remoteArchiveShaMatch = $true
+    Write-StaticDeployPhase -Phase 'REMOTE_ARCHIVE_SHA' -Status 'END' -Detail "remote_archive_sha256=$remoteArchiveSha256"
+
     $extractResult = Invoke-RemoteText "tar -xf $(Quote-PosixShellArgument $remoteArchivePath) -C $(Quote-PosixShellArgument $remoteReleaseDir) && rm -f $(Quote-PosixShellArgument $remoteArchivePath)" -TimeoutSeconds $archiveTimeoutSeconds -OperationLabel 'extract static release archive'
     Write-StaticDeployTiming 'ARCHIVE EXTRACT COMPLETE'
 
@@ -754,10 +834,36 @@ try {
     # Step 10: atomic switch. sudo is required because /opt/go-odyssey-static itself
     # (the parent of current/previous) is more tightly permissioned than
     # releases/ -- matching deploy-static.ps1's own proven pattern.
+    #
+    # A017 (P0) compare-and-swap. The generation recorded at CAPTURE_CURRENT is
+    # the rollback authority, but minutes of upload/extract/verify separate it
+    # from this point. Two layers make the switch refuse to overwrite another
+    # deployment, with no external watcher:
+    #   layer 1 (early, logged): re-read the live target right here and compare;
+    #   layer 2 (atomic): the switch command itself re-reads and compares inside
+    #   the SAME remote shell, and writes only when the target is still the
+    #   captured one -- exit 73 with a marker otherwise.
+    # Either layer fails closed before any symlink write or container restart.
+    Start-StaticDeployPhase -Phase 'RECHECK_LIVE_SYMLINK'
+    $preSwitchTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
+    Write-StaticDeployPhase -Phase 'RECHECK_LIVE_SYMLINK' -Status 'PROGRESS' -Detail "expected_pre_switch_generation=$previousCurrentTarget actual_pre_switch_generation=$preSwitchTarget"
+    Assert-StaticCurrentTargetUnchanged -ExpectedGeneration $previousCurrentTarget -ActualGeneration $preSwitchTarget
+    End-StaticDeployPhase -Phase 'RECHECK_LIVE_SYMLINK'
+
     Start-StaticDeployPhase -Phase 'SWITCH_CURRENT'
     $quotedRoot = Quote-PosixShellArgument $layout.static_release_root
     $quotedRelease = Quote-PosixShellArgument $remoteReleaseDir
-    Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedRelease current.next && sudo mv -Tf current.next current" -OperationLabel 'atomic symlink switch' | Out-Null
+    $quotedPreviousCurrent = Quote-PosixShellArgument ([string]$previousCurrentTarget)
+    $switchCommand = "cd $quotedRoot && if [ x`$(readlink -f current 2>/dev/null) = x$quotedPreviousCurrent ]; then sudo ln -sfnT $quotedRelease current.next && sudo mv -Tf current.next current; else echo STATIC_RELEASE_CONCURRENT_MUTATION_DETECTED actual=`$(readlink -f current 2>/dev/null); exit 73; fi"
+    $switchResult = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -Command $switchCommand -TimeoutSeconds $RemoteCommandTimeoutSeconds -OperationLabel 'atomic symlink switch'
+    if ($switchResult.exit_code -eq 73 -and $switchResult.output -match 'STATIC_RELEASE_CONCURRENT_MUTATION_DETECTED') {
+        $observedAtSwitch = if ($switchResult.output -match 'actual=(\S*)') { $Matches[1] } else { '' }
+        Assert-StaticCurrentTargetUnchanged -ExpectedGeneration $previousCurrentTarget -ActualGeneration $observedAtSwitch -Where 'the atomic switch itself'
+        throw "STATIC_RELEASE_CONCURRENT_MUTATION_DETECTED: the remote compare-and-swap guard refused the switch (exit 73). EXPECTED_PRE_SWITCH_GENERATION=$previousCurrentTarget ACTUAL_PRE_SWITCH_GENERATION=$observedAtSwitch. The symlink was NOT written."
+    }
+    if ($switchResult.exit_code -ne 0) {
+        throw "Remote command failed (atomic symlink switch): $($switchResult.output)"
+    }
 
     $newCurrentTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
     if ($newCurrentTarget -ne $remoteReleaseDir) {
@@ -820,11 +926,24 @@ try {
         archive_sha256 = $ExpectedArchiveSha256
         previous_current_target = $previousCurrentTarget
         new_current_target = $newCurrentTarget
+        # A017: the archive hash the REMOTE host computed before extraction
+        # ($null in adoption mode, which uploads nothing) and the pre-switch
+        # compare-and-swap evidence.
+        remote_archive_sha_match = $remoteArchiveShaMatch
+        remote_archive_sha256 = $remoteArchiveSha256
+        expected_pre_switch_generation = $previousCurrentTarget
+        actual_pre_switch_generation = $preSwitchTarget
+        pre_switch_compare_and_swap = 'ENFORCED'
+        fixture_transport = [bool]$UseFixtureTransport
         public_content_verification = $publicVerification
         public_verification_concurrency = $PublicVerificationConcurrency
         public_verification_request_timeout_seconds = $PublicVerificationRequestTimeoutSeconds
         public_verification_deadline_seconds = $PublicVerificationDeadlineSeconds
-        public_sw_version_after_switch = $publicSwVersion
+        # A017 (P1): the values the public acceptance contract actually verified.
+        # (This used to print $publicSwVersion, a variable local to the contract
+        # function, so the record always carried null.)
+        public_sw_version_after_switch = $script:publicSwVersionVerified
+        public_sw_identity_after_switch = $script:publicSwIdentityVerified
         phase_history = @($phaseHistory)
         rollback_command = "cd $($layout.static_release_root) && sudo ln -sfnT '$previousCurrentTarget' current.next && sudo mv -Tf current.next current"
         result = 'STATIC RELEASE SWITCH SUCCEEDED'
@@ -834,6 +953,16 @@ catch {
     $failureMessage = $_.Exception.Message
     $failurePhase = $activePhase
     $reconciliation = $null
+    # A017: an archive-hash mismatch or a detected concurrent mutation is a
+    # deterministic fail-closed GATE decision made BEFORE any symlink write --
+    # not an ambiguous local timeout. There is no remote completion to wait for
+    # or to reconcile against, so the (up to a minute of) reconciliation polling
+    # is skipped for exactly these gate failures.
+    $gateFailure = $null
+    if ($failureMessage -match '^(STATIC_RELEASE_REMOTE_ARCHIVE_SHA_MISMATCH|STATIC_RELEASE_REMOTE_ARCHIVE_SHA_UNVERIFIABLE|STATIC_RELEASE_CONCURRENT_MUTATION_DETECTED)\b') {
+        $gateFailure = $Matches[1]
+        $reconciliation = [pscustomobject]@{ state = 'NOT_APPLICABLE_DEFINITIVE_GATE_FAILURE'; gate = $gateFailure }
+    }
     # A bounded local timeout is not proof of remote failure. Reconcile the
     # target generation before any rollback decision, allowing a remote
     # operation that completed after the local child was killed to be
@@ -842,7 +971,7 @@ catch {
         $expectedI18nSha = ($manifest.files | Where-Object { $_.path -eq 'i18n.js' }).sha256
         $expectedSwSha = ($manifest.files | Where-Object { $_.path -eq 'sw.js' }).sha256
         $expectedIndexSha = ($manifest.files | Where-Object { $_.path -eq 'index.html' }).sha256
-        for ($reconcileAttempt = 0; $reconcileAttempt -lt 6; $reconcileAttempt++) {
+        for ($reconcileAttempt = 0; $reconcileAttempt -lt 6 -and -not $gateFailure; $reconcileAttempt++) {
             $reconciliation = Get-StaticDeploymentReconciliation `
                 -RemoteReleaseDir $remoteReleaseDir `
                 -StaticRoot $layout.static_release_root `
@@ -923,6 +1052,9 @@ catch {
         final_current_generation = $finalCurrentGeneration
         reconciliation_state = if ($reconciliation) { $reconciliation.state } else { $null }
         reconciliation = $reconciliation
+        gate_failure = $gateFailure
+        remote_archive_sha_match = $remoteArchiveShaMatch
+        expected_pre_switch_generation = $previousCurrentTarget
         phase_history = @($phaseHistory)
     }
     try { [Console]::Error.WriteLine(('STATIC_FAILURE ' + ($failureRecord | ConvertTo-Json -Compress -Depth 8))) } catch { }

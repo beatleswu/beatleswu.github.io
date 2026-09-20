@@ -749,6 +749,204 @@ function Get-ReleaseLayout {
     return $layout
 }
 
+function Get-ProductionReleaseLayoutViolations {
+    <#
+    .SYNOPSIS
+    A017 (static-deploy fail-closed hardening): every reason a release layout is
+    NOT a real Production layout. An empty result means the layout is acceptable
+    for a Production -Execute run.
+    .DESCRIPTION
+    The example layout (deploy/release-layout.example.json) deliberately keeps
+    the real ssh alias so that dry runs and read-only verification can load it,
+    but its public URLs are https://example.invalid. A Production -Execute run
+    on it therefore reaches the real host and can only fail later, in public
+    verification (the A011 incident). This function is the single definition of
+    "clearly example/test/placeholder": any such value makes -Execute refuse
+    before the first remote command.
+
+    Deliberately NOT pinned to one hostname: it rejects placeholders and
+    structurally invalid values rather than allow-listing a domain, so a real
+    layout for another real host still works, while nothing invented does.
+    #>
+    param([Parameter(Mandatory = $true)]$Layout)
+    $violations = New-Object System.Collections.Generic.List[string]
+    $propertyNames = @($Layout.PSObject.Properties | ForEach-Object { $_.Name })
+
+    $requiredStrings = @(
+        'ssh_alias', 'remote_release_staging_directory', 'compose_project', 'compose_directory',
+        'app_service_name', 'scheduler_service_name', 'nginx_service_name', 'postgres_service_name',
+        'asset_source_path', 'asset_container_mount_destination', 'static_release_root',
+        'production_env_path', 'health_url', 'login_url', 'homepage_url'
+    )
+    foreach ($name in $requiredStrings) {
+        if ($propertyNames -notcontains $name) { $violations.Add("missing required field: $name"); continue }
+        $value = $Layout.$name
+        if (($value -isnot [string]) -or [string]::IsNullOrWhiteSpace($value)) {
+            $violations.Add("required field is empty or not a string: $name")
+        }
+    }
+
+    # Placeholder / example markers in ANY string value of the layout.
+    $placeholderPattern = '(?i)example|\.invalid\b|placeholder|change[-_ ]?me|replace[-_ ]?me|your[-_ ]|<[^>]*>|\btodo\b|\btbd\b|\bdummy\b|\bfake\b'
+    foreach ($property in $Layout.PSObject.Properties) {
+        if ($property.Name -eq '$schema') { continue }
+        if (($property.Value -is [string]) -and ($property.Value -match $placeholderPattern)) {
+            $violations.Add("placeholder/example value in $($property.Name): '$($property.Value)'")
+        }
+    }
+
+    # ssh alias must be a plain alias -- never something ssh would parse as an option.
+    if (($propertyNames -contains 'ssh_alias') -and ($Layout.ssh_alias -is [string]) -and -not [string]::IsNullOrWhiteSpace($Layout.ssh_alias)) {
+        if ($Layout.ssh_alias -notmatch '^[A-Za-z0-9][A-Za-z0-9_.@-]{0,63}$') {
+            $violations.Add("ssh_alias is not a plain host alias: '$($Layout.ssh_alias)'")
+        }
+    }
+
+    # Public URLs: absolute https URLs on one real DNS host.
+    $publicHosts = New-Object System.Collections.Generic.List[string]
+    foreach ($urlName in @('health_url', 'login_url', 'homepage_url')) {
+        if ($propertyNames -notcontains $urlName) { continue }
+        $raw = [string]$Layout.$urlName
+        if ([string]::IsNullOrWhiteSpace($raw)) { continue }
+        $uri = $null
+        if (-not [System.Uri]::TryCreate($raw, [System.UriKind]::Absolute, [ref]$uri)) {
+            $violations.Add("$urlName is not an absolute URL: '$raw'")
+            continue
+        }
+        if ($uri.Scheme -ne 'https') { $violations.Add("$urlName must use https: '$raw'") }
+        $hostName = $uri.DnsSafeHost.ToLowerInvariant()
+        $ipAddress = $null
+        if ([System.Net.IPAddress]::TryParse($hostName.Trim('[', ']'), [ref]$ipAddress)) {
+            $violations.Add("$urlName must use a DNS name, not an IP literal: '$hostName'")
+        }
+        elseif ($hostName -notmatch '\.' -or $hostName -match '(^|\.)(localhost|local|test|invalid|example|internal)$') {
+            $violations.Add("$urlName host is not a real public DNS name: '$hostName'")
+        }
+        $publicHosts.Add($hostName)
+    }
+    if (@($publicHosts | Select-Object -Unique).Count -gt 1) {
+        $violations.Add("health_url, login_url and homepage_url must share one public host: $(@($publicHosts | Select-Object -Unique) -join ', ')")
+    }
+
+    # Static root: an absolute, safe, non-trivial POSIX path -- it is the parent of the live symlink.
+    if (($propertyNames -contains 'static_release_root') -and ($Layout.static_release_root -is [string]) -and -not [string]::IsNullOrWhiteSpace($Layout.static_release_root)) {
+        $root = [string]$Layout.static_release_root
+        if ($root -notmatch '^/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)+$') {
+            $violations.Add("static_release_root is not an absolute, safe POSIX path of at least two segments: '$root'")
+        }
+        elseif ($root -match '(^|/)\.\.?(/|$)') {
+            $violations.Add("static_release_root contains a relative segment: '$root'")
+        }
+        elseif (($propertyNames -contains 'asset_source_path') -and ($Layout.asset_source_path -is [string]) -and ($Layout.asset_source_path -ne "$root/current")) {
+            # The deploy switches <root>/current; a bind mount from anywhere else would follow nothing.
+            $violations.Add("asset_source_path must be '$root/current' (the symlink the static deploy switches): '$($Layout.asset_source_path)'")
+        }
+    }
+    foreach ($pathName in @('remote_release_staging_directory', 'compose_directory', 'production_env_path', 'asset_container_mount_destination')) {
+        if (($propertyNames -contains $pathName) -and ($Layout.$pathName -is [string]) -and -not [string]::IsNullOrWhiteSpace($Layout.$pathName) -and ($Layout.$pathName -notmatch '^/')) {
+            $violations.Add("$pathName is not an absolute POSIX path: '$($Layout.$pathName)'")
+        }
+    }
+    return @($violations)
+}
+
+function Assert-ProductionReleaseLayout {
+    <#
+    .SYNOPSIS
+    Throws PRODUCTION_LAYOUT_INVALID (listing every violation) unless the layout
+    is a real Production layout. See Get-ProductionReleaseLayoutViolations.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]$Layout,
+        [string]$LayoutLabel = 'release layout'
+    )
+    $violations = @(Get-ProductionReleaseLayoutViolations -Layout $Layout)
+    if ($violations.Count -gt 0) {
+        throw ("PRODUCTION_LAYOUT_INVALID: $LayoutLabel is not a real Production layout, so a Production -Execute run is refused before any remote command. Violations: " + ($violations -join '; '))
+    }
+}
+
+function Assert-FixtureTransportInsideRepoTests {
+    <#
+    .SYNOPSIS
+    TEST-ONLY lock for deploy-static-release.ps1 -UseFixtureTransport: the
+    non-production layout exception is honoured only when the remote transport
+    (ssh and scp, resolved exactly the way Invoke-BoundedNativeCommand resolves
+    them) is a fixture that lives inside <repo>\tests -- so a fixture layout can
+    never be combined with the real ssh/scp, and never reach a real host.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [string[]]$CommandNames = @('ssh', 'scp')
+    )
+    $testsRoot = ([System.IO.Path]::GetFullPath((Join-Path $RepoRoot 'tests'))).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    foreach ($name in $CommandNames) {
+        $resolved = Get-Command -Name $name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $resolved -or [string]::IsNullOrWhiteSpace([string]$resolved.Source)) {
+            throw "FIXTURE_TRANSPORT_REQUIRED: '$name' could not be resolved; -UseFixtureTransport needs a fixture '$name' under '$testsRoot' first on PATH."
+        }
+        $full = [System.IO.Path]::GetFullPath([string]$resolved.Source)
+        if (-not $full.StartsWith($testsRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "FIXTURE_TRANSPORT_REQUIRED: -UseFixtureTransport is TEST-ONLY and requires '$name' to resolve inside '$testsRoot', but it resolved to '$full'. A non-production layout can never be combined with the real transport."
+        }
+    }
+}
+
+function Assert-RemoteArchiveShaMatch {
+    <#
+    .SYNOPSIS
+    A017 (P0): the uploaded staging archive's SHA-256, computed ON THE REMOTE
+    HOST, must equal the authorized archive SHA-256 before anything is extracted.
+    .DESCRIPTION
+    File count and total bytes are not a substitute: they cannot detect a
+    same-size corruption. Extracted-file verification stays in place as the
+    second, independent layer; this is the first.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$ExpectedSha256,
+        [AllowEmptyString()][string]$ObservedSha256 = '',
+        [Parameter(Mandatory = $true)][string]$RemoteArchivePath
+    )
+    $expected = $ExpectedSha256.Trim().ToLowerInvariant()
+    $observed = $ObservedSha256.Trim().ToLowerInvariant()
+    if ($expected -notmatch '^[0-9a-f]{64}$') {
+        throw "STATIC_RELEASE_REMOTE_ARCHIVE_SHA_UNVERIFIABLE: the authorized archive SHA-256 is not a 64-hex value ('$ExpectedSha256'); nothing was extracted and the live static symlink is unchanged."
+    }
+    if ($observed -ne $expected) {
+        throw "STATIC_RELEASE_REMOTE_ARCHIVE_SHA_MISMATCH: staging archive '$RemoteArchivePath' has remote SHA-256 '$observed' but the authorized archive SHA-256 is '$expected'. Extraction and the symlink switch were NOT attempted; the live static symlink is unchanged. The staging archive and the still-empty generation directory were left in place for manual review."
+    }
+}
+
+function ConvertFrom-RemoteSha256SumOutput {
+    <#
+    .SYNOPSIS
+    Extracts the lowercase 64-hex digest from `sha256sum <file>` output ('' when
+    the output is not a well-formed digest line).
+    #>
+    param([AllowEmptyString()][string]$Output = '')
+    $first = ($Output.Trim() -split '\s+' | Select-Object -First 1)
+    if ($first -and ($first.ToLowerInvariant() -match '^[0-9a-f]{64}$')) { return $first.ToLowerInvariant() }
+    return ''
+}
+
+function Assert-StaticCurrentTargetUnchanged {
+    <#
+    .SYNOPSIS
+    A017 (P0): compare-and-swap check for the live static symlink. The generation
+    recorded at preflight (rollback authority) must still be the live target
+    immediately before the switch; otherwise another deployment changed it and
+    this run must not overwrite it.
+    #>
+    param(
+        [AllowEmptyString()][string]$ExpectedGeneration = '',
+        [AllowEmptyString()][string]$ActualGeneration = '',
+        [string]$Where = 'the pre-switch re-read'
+    )
+    if ($ExpectedGeneration.Trim() -ne $ActualGeneration.Trim()) {
+        throw "STATIC_RELEASE_CONCURRENT_MUTATION_DETECTED: the live static symlink changed between the preflight capture and $Where. EXPECTED_PRE_SWITCH_GENERATION=$($ExpectedGeneration.Trim()) ACTUAL_PRE_SWITCH_GENERATION=$($ActualGeneration.Trim()). The symlink was NOT written and no container was restarted; another deployment is not overwritten."
+    }
+}
+
 function Assert-OwnerGate {
     param(
         [Parameter(Mandatory = $true)][string]$Provided,
@@ -3702,6 +3900,13 @@ Export-ModuleMember -Function @(
     'Get-ReleaseArtifactBaseName',
     'Get-ReleaseImageTag',
     'Get-ReleaseLayout',
+    # A017 static-deploy fail-closed hardening
+    'Get-ProductionReleaseLayoutViolations',
+    'Assert-ProductionReleaseLayout',
+    'Assert-FixtureTransportInsideRepoTests',
+    'Assert-RemoteArchiveShaMatch',
+    'ConvertFrom-RemoteSha256SumOutput',
+    'Assert-StaticCurrentTargetUnchanged',
     'Get-RepoRoot',
     'Get-ShortGitSha',
     'New-CanonicalAppHealthcheckOverrideYaml',
