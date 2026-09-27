@@ -11419,7 +11419,14 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
             return null;
         }
         const code = error && error.code;
-        if (code === 'map_battle_v1_disabled' || code === 'map_battle_mode_not_eligible') {
+        if (code === 'daily_limit') {
+            _blockAdventureProgression('daily_limit');
+            _dailyLimitMax = Number(error?.payload?.limit || _dailyLimitMax);
+            _applyDailyLimit();
+        } else if (code === 'premium_required') {
+            _blockAdventureProgression('premium_required');
+            setMsg(I18n.t('index.premium_req'), 'err');
+        } else if (code === 'map_battle_v1_disabled' || code === 'map_battle_mode_not_eligible') {
             _blockAdventureProgression(code);
         } else {
             _blockAdventureProgression('map_battle_runtime_failure');
@@ -11582,6 +11589,24 @@ async function _submitMapBattleV1IfActive(moves) {
                 setMsg('Map Battle state could not be refreshed; no fallback was used.', 'err');
                 return null;
             }
+        }
+        if (error && error.code === 'daily_limit') {
+            // Map Battle is an Adventure-originated flow. A quota refusal
+            // must stop the board and show the existing upgrade wall; it must
+            // never fall through to ordinary Practice or silently consume an
+            // answer with zero Adventure credit.
+            _blockAdventureProgression('daily_limit');
+            _dailyLimitMax = Number(error?.payload?.limit || _dailyLimitMax);
+            _applyDailyLimit();
+            return null;
+        }
+        if (error && error.code === 'premium_required') {
+            // Premium content is rejected before settlement. Keep the same
+            // Adventure fail-closed boundary and surface the existing paywall
+            // copy without introducing a Practice fallback.
+            _blockAdventureProgression('premium_required');
+            setMsg(I18n.t('index.premium_req'), 'err');
+            return null;
         }
         if (error && (error.code === 'upgrade_required' || error.code === 'client_authority_field_forbidden')) {
             _mapBattleV1Mode = 'blocked';
