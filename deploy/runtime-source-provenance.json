@@ -196,15 +196,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "9a7f01aeab9e5fd08dd0c03840ab75af9a8c0664",
-      "source_branch_or_local_ref": "claude/e10-a007-release-admission-008",
-      "source_commit_subject": "fix(e10): portrait Replay Story in the selected-zone card, presentation-only Replay availability, PWA portrait mirror (Owner-accepted A007)",
-      "source_date": "2026-09-19",
-      "content_sha256": "888b475f590b7bfaf25a9cc750c7a727c973377a3412f85075df5b7ac53eea5a",
-      "content_size_bytes": 1187496,
+      "source_commit": "9a5bf3282b632278e4c07a5804c0bbd477efe2ab",
+      "source_branch_or_local_ref": "codex/g009-c3-live-baseline-hotfix-001",
+      "source_commit_subject": "fix(c3): handle Map Battle entitlement refusals without fallback",
+      "source_date": "2026-09-27",
+      "content_sha256": "6f9be6ab94e894113f875f4e8da2c9263f7634657002c34cb5e2211abae8c136",
+      "content_size_bytes": 1188832,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes); EQ-B/EQ-C answer-screen Equipment projection and handheld integration surface; inline admin question review board marker wiring; P0 Lane B Adventure fail-closed / Practice separation surface",
-      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this integration branch that introduced the current blob (the Owner-accepted A007 frontend, re-applied on fresh master) and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+      "source_status": "candidate-branch provenance -- exact C3 index blob on the dedicated candidate branch; not canonical until Owner merge. Release payload is separately constrained by the verified live-generation overlay; this entry does not authorize deploying the master static tree. Deployment remains separately gated."
     },
     {
       "path": "terms.html",
