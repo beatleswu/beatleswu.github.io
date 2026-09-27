@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const index = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+const index = fs.readFileSync(process.argv[2] || new URL('../../index.html', import.meta.url), 'utf8');
 
 function extractFunction(name, endMarker) {
   const start = index.indexOf(`function ${name}`);
@@ -104,6 +104,8 @@ const failureCases = [
   {label: 'pending', mode: 'pending'},
   {label: 'not eligible', mode: 'blocked'},
   {label: 'runtime failure', mode: 'blocked'},
+  {label: 'daily_limit', mode: 'blocked'},
+  {label: 'premium_required', mode: 'blocked'},
 ];
 for (const {label, mode} of failureCases) {
   const failed = evaluate({adventure: true, mode, active: false});
@@ -121,7 +123,7 @@ assert.equal(ordinaryPractice.metadata.source_context, 'practice');
 
 console.log(JSON.stringify({
   status: 'PASS_P0_LANE_B_ADVENTURE_FORWARD_REPAIR_CLIENT_CONTRACT',
-  failedAdventureModes: ['disabled', 'pending', 'map_battle_mode_not_eligible', 'runtime_failure'],
+  failedAdventureModes: ['disabled', 'pending', 'map_battle_mode_not_eligible', 'runtime_failure', 'daily_limit', 'premium_required'],
   adventureFailureSourceContext: 'adventure_unavailable',
   ordinaryPracticeSourceContext: ordinaryPractice.metadata.source_context,
 }));
