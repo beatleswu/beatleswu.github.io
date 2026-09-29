@@ -22,6 +22,7 @@ import {
   createG009RuntimeEquipmentIndex,
   resolveG009RuntimeEquipmentIdentity,
 } from "/js/g009_d007_runtime_identity_resolver.mjs";
+import { isG009RetiredFormalAssetId } from "/js/g009_formal9_rights_cleared_replacement_catalog.js";
 
 export const FORMAL_3D_CONTRACT = "FORMAL_3D_CHARACTER_EQUIPMENT_V1";
 export const FORMAL_3D_CHARACTER_CAPACITY = 30;
@@ -345,7 +346,8 @@ export function validateFormal3DManifest(manifest) {
   return {
     manifest,
     equipmentIndex,
-    equipmentById: equipmentIndex.byAssetId,
+    equipmentById: new Map([...equipmentIndex.byAssetId]
+      .filter(([assetId]) => !isG009RetiredFormalAssetId(assetId))),
     equipmentByServerItemId: equipmentIndex.byServerItemId,
     equipmentByCandidateItemId,
   };

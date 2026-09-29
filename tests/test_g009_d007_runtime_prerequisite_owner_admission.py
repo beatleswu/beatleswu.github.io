@@ -4,6 +4,7 @@ from pathlib import Path
 
 from g009_d007_runtime_asset_mapping import (
     ADMITTED_ASSET_IDS,
+    RETIRED_FORMAL9_ASSET_IDS,
     load_g009_runtime_mapping,
     resolve_current_server_item_id,
     resolve_g009_runtime_asset,
@@ -46,9 +47,20 @@ def test_owner_admission_is_exactly_12_and_does_not_clear_asset_evidence():
 def test_all_12_admitted_asset_identities_resolve_to_exact_runtime_bytes():
     manifest = load_g009_runtime_mapping(SCHEMA_PATH)
     rows = manifest["equipment_catalog"]["items"]
+    assert len(RETIRED_FORMAL9_ASSET_IDS) == 4
+    assert RETIRED_FORMAL9_ASSET_IDS <= ADMITTED_ASSET_IDS
     for row in rows:
         resolved = resolve_g009_runtime_asset(row["asset_id"], manifest=manifest)
         path = ROOT / row["runtime_asset"].lstrip("/")
+        # Retired formal9 visuals keep their exact historical bytes but never
+        # resolve, by asset ID or by D007 candidate item ID.
+        assert path.is_file(), row["asset_id"]
+        assert sha256(path) == row["runtime_sha256"], row["asset_id"]
+        if row["asset_id"] in RETIRED_FORMAL9_ASSET_IDS:
+            assert resolved is None, row["asset_id"]
+            if row.get("server_item_id"):
+                assert resolve_g009_runtime_asset(row["server_item_id"], manifest=manifest) is None
+            continue
         assert resolved is not None
         assert resolved["asset_id"] == row["asset_id"]
         assert path.is_file(), row["asset_id"]

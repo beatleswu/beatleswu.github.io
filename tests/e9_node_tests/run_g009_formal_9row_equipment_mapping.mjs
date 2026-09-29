@@ -10,9 +10,13 @@ import {
   G009_OWNER_APPROVED_FORMAL_EQUIPMENT_ROWS,
   G009_OWNER_FORMAL_MAPPING_AUTHORITY,
   G009_OWNER_INTENTIONALLY_UNMAPPED_ITEM_IDS,
-  G009_UNCLEARED_FORMAL_ASSET_RIGHTS,
+  G009_RIGHTS_CLEARED_FORMAL_ASSET_RIGHTS,
   resolveG009OwnerApprovedRuntimeEquipmentIdentity,
 } from "../../js/g009_owner_approved_formal_equipment_mapping.js";
+import {
+  G009_FORMAL9_RETIRED_ASSET_IDS,
+  G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED,
+} from "../../js/g009_formal9_rights_cleared_replacement_catalog.js";
 import { projectServerEquippedHandItems } from "../../js/g009_equipment_inventory_projection.js";
 import { createHeroEquipmentAttachmentAdapter } from "../../js/hero_equipment_attachment_adapter.js";
 
@@ -36,11 +40,17 @@ assert.equal(G009_OWNER_FORMAL_MAPPING_AUTHORITY.json_sha256,
   "7a529c0d6ca15f41647e416d78949a2f8056f17dc149477cc805709a0cdd75aa");
 
 const expectedMapped = [
-  ["iron_sword", "WEAPON_A7C05D43F943", "/assets/3d_shop/formal_character_equipment_v1/weapons/21_adventure_sword.glb", "a7c05d43f9434a6cfd0304908c68ac2a97975c6bc641516c55e1380c5f81d2fc"],
-  ["fox_fang", "WEAPON_A70FD7AB666C", "/assets/3d_shop/formal_character_equipment_v1/weapons/15_hunting_knife.glb", "a70fd7ab666cd2551520146b0a8cff7fe24c67f0cebde8d685fb273d3540f8f8"],
-  ["riverstone_sabre", "WEAPON_9CD401DADF4C", "/assets/3d_shop/formal_character_equipment_v1/weapons/12_katana.glb", "9cd401dadf4cf49fc404eb30e1715a898eb6895dc32dba7c56dd8a7fd0b190c4"],
-  ["bamboo_shadow_blade", "WEAPON_2F4CB085CE4A", "/assets/3d_shop/formal_character_equipment_v1/weapons/14_army_sword.glb", "20979ea75b6bdcaade2187de81274136d56bbad31a3860ca12373ff24dde89b8"],
+  ["iron_sword", "WEAPON_C43E15596CA6", "/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb", "c43e15596ca656355553585e3ac4a398b37a0216471539e8dda6401d67b7580b"],
+  ["fox_fang", "WEAPON_6F06505A7BED", "/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb", "6f06505a7bed0ea7681216df58d2a89696b2305f9c080b5f0fa4d9fcabc72af0"],
+  ["riverstone_sabre", "WEAPON_EC86CE30E759", "/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb", "ec86ce30e7591bc89badac98a4ed0c00b6614ac8e97b8b79ea734ba7f82c2409"],
+  ["bamboo_shadow_blade", "WEAPON_C84A8635BED2", "/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb", "c84a8635bed2d2252a6937dbd8837c585872502a4253f549a7b94069e7b776c6"],
 ];
+const retiredByItem = {
+  iron_sword: "WEAPON_A7C05D43F943",
+  fox_fang: "WEAPON_A70FD7AB666C",
+  riverstone_sabre: "WEAPON_9CD401DADF4C",
+  bamboo_shadow_blade: "WEAPON_2F4CB085CE4A",
+};
 assert.equal(G009_OWNER_APPROVED_FORMAL_EQUIPMENT_ROWS.length, 4);
 assert.equal(new Set(G009_OWNER_APPROVED_FORMAL_EQUIPMENT_ROWS.map((row) => row.server_item_id)).size, 4,
   "formal owner mapping must reject duplicate server IDs");
@@ -61,9 +71,11 @@ for (const [itemId, assetId, runtimeAsset, runtimeSha256] of expectedMapped) {
   assert.equal(descriptor.authority_json_sha256, G009_OWNER_FORMAL_MAPPING_AUTHORITY.json_sha256);
   assert.equal(descriptor.slot, "MAIN_HAND");
   assert.equal(descriptor.equip_capability, false);
-  assert.equal(descriptor.release_eligibility, "NOT_CLEARED");
-  assert.deepEqual(descriptor.rights, G009_UNCLEARED_FORMAL_ASSET_RIGHTS);
-  assert.equal(descriptor.rights.RIGHTS_STATUS, "NOT_CLEARED");
+  assert.equal(descriptor.release_eligibility, G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED);
+  assert.deepEqual(descriptor.rights, G009_RIGHTS_CLEARED_FORMAL_ASSET_RIGHTS);
+  assert.equal(descriptor.rights.RIGHTS_STATUS, "RIGHTS_CLEARED");
+  assert.notEqual(descriptor.asset_id, retiredByItem[itemId], itemId + " must not keep its retired visual");
+  assert(!G009_FORMAL9_RETIRED_ASSET_IDS.includes(descriptor.asset_id));
   for (const field of ["EQUIP_ENABLED", "SHOP_ENABLED", "PURCHASE_ENABLED", "DROP_ENABLED",
     "PLAYER_SELECTABLE", "RELEASE_ENABLED", "PRODUCTION_ASSET_ADMISSION"]) {
     assert.equal(descriptor.rights[field], false, `${itemId} ${field} must remain closed`);
@@ -89,6 +101,16 @@ for (const itemId of G009_OWNER_INTENTIONALLY_UNMAPPED_ITEM_IDS) {
 assert.equal(resolveG009OwnerApprovedRuntimeEquipmentIdentity(equipmentIndex, "unknown_weapon", "MAIN_HAND"), null);
 assert.equal(resolveG009OwnerApprovedRuntimeEquipmentIdentity(equipmentIndex, "adventure_sword", "MAIN_HAND"), null,
   "D007 candidate item aliases are not formal mapping authority");
+for (const retiredId of G009_FORMAL9_RETIRED_ASSET_IDS) {
+  for (const slot of ["MAIN_HAND", "OFF_HAND"]) {
+    assert.equal(resolveG009OwnerApprovedRuntimeEquipmentIdentity(equipmentIndex, retiredId, slot), null,
+      retiredId + " is retired and must not resolve as an item or alias");
+  }
+}
+for (const candidateAlias of ["katana", "hunting_knife", "army_sword", "adventure_sword"]) {
+  assert.equal(resolveG009OwnerApprovedRuntimeEquipmentIdentity(equipmentIndex, candidateAlias, "MAIN_HAND"), null,
+    candidateAlias + " D007 candidate alias must not reach a retired visual");
+}
 
 const wooden = resolveG009OwnerApprovedRuntimeEquipmentIdentity(equipmentIndex, "wooden_sword", "MAIN_HAND");
 assert(wooden, "Wooden Sword existing exact mapping must remain resolvable");
@@ -111,21 +133,18 @@ duplicateAssetSchema.equipment_catalog.items[1].asset_id = duplicateAssetSchema.
 assert.throws(() => createG009RuntimeEquipmentIndex(duplicateAssetSchema), /duplicate equipment asset identity/,
   "duplicate asset IDs in the D007 catalog must fail closed");
 
-const missingAssetId = "WEAPON_A7C05D43F943";
-const missingAssetIndex = {
-  byAssetId: new Map([...equipmentIndex.byAssetId].filter(([assetId]) => assetId !== missingAssetId)),
+// A retired D007 row that is still present in the historical catalog must not
+// be served for its former item, and the replacement does not depend on it.
+const withoutD007Formal9 = {
+  byAssetId: new Map([...equipmentIndex.byAssetId]
+    .filter(([assetId]) => !G009_FORMAL9_RETIRED_ASSET_IDS.includes(assetId))),
 };
-assert.equal(resolveG009OwnerApprovedRuntimeEquipmentIdentity(missingAssetIndex, "iron_sword", "MAIN_HAND"), null,
-  "a missing exact D007 target must not fall back to another model");
-const expectedIron = equipmentIndex.byAssetId.get(missingAssetId);
-const wrongModelIndex = {
-  byAssetId: new Map(equipmentIndex.byAssetId).set(missingAssetId, {
-    ...expectedIron,
-    runtime_asset: "/assets/3d_shop/formal_character_equipment_v1/weapons/15_hunting_knife.glb",
-  }),
-};
-assert.equal(resolveG009OwnerApprovedRuntimeEquipmentIdentity(wrongModelIndex, "iron_sword", "MAIN_HAND"), null,
-  "no filename or nearest-model fallback is permitted");
+for (const [itemId, assetId] of expectedMapped) {
+  assert.equal(resolveG009OwnerApprovedRuntimeEquipmentIdentity(withoutD007Formal9, itemId, "MAIN_HAND")?.asset_id, assetId,
+    itemId + " replacement must not depend on retired D007 rows");
+}
+assert.throws(() => { G009_OWNER_APPROVED_FORMAL_EQUIPMENT_ROWS[0].asset_id = "WEAPON_A7C05D43F943"; }, TypeError,
+  "replacement bindings are frozen; no alias can be written at runtime");
 
 // Fixture scene/root/mesh nodes and loader are TEST ONLY. Mapping descriptors
 // above come from the exact checked-in D007 catalog plus immutable Owner IDs.
@@ -215,15 +234,15 @@ await adapter.setHand("OFF_HAND", testOnlyOffHand, appearance);
 for (const slot of ["CHARACTER", ...SLOTS]) assert(nodeFor(slot), slot + " must coexist in the shared host fixture");
 
 let before = new Map(["CHARACTER", ...SLOTS].map((slot) => [slot, nodeFor(slot)]));
-await adapter.setHand("MAIN_HAND", formalDescriptors.get("WEAPON_A70FD7AB666C"), appearance);
+await adapter.setHand("MAIN_HAND", formalDescriptors.get("WEAPON_6F06505A7BED"), appearance);
 for (const [slot, node] of before) {
   if (slot !== "MAIN_HAND") assert.equal(nodeFor(slot), node, "MAIN_HAND replacement must preserve " + slot);
 }
 assert.notEqual(nodeFor("MAIN_HAND"), before.get("MAIN_HAND"));
 
-const stalePromise = adapter.setHand("MAIN_HAND", formalDescriptors.get("WEAPON_9CD401DADF4C"), appearance);
+const stalePromise = adapter.setHand("MAIN_HAND", formalDescriptors.get("WEAPON_EC86CE30E759"), appearance);
 before = new Map(["CHARACTER", ...SLOTS].map((slot) => [slot, nodeFor(slot)]));
-await adapter.setHand("MAIN_HAND", formalDescriptors.get("WEAPON_2F4CB085CE4A"), appearance);
+await adapter.setHand("MAIN_HAND", formalDescriptors.get("WEAPON_C84A8635BED2"), appearance);
 const staleNode = new THREE.Group();
 loaderPending.get("riverstone_sabre")(staleNode);
 assert.equal((await stalePromise).status, "stale");
@@ -231,7 +250,7 @@ assert.equal(staleNode.parent, null);
 for (const [slot, node] of before) {
   if (slot !== "MAIN_HAND") assert.equal(nodeFor(slot), node, "stale MAIN_HAND load must preserve " + slot);
 }
-assert.equal(nodeFor("MAIN_HAND").name, "TEST_ONLY_LOADED_WEAPON_2F4CB085CE4A");
+assert.equal(nodeFor("MAIN_HAND").name, "TEST_ONLY_LOADED_WEAPON_C84A8635BED2");
 
 const beforeDetach = new Map(["CHARACTER", ...SLOTS].map((slot) => [slot, nodeFor(slot)]));
 adapter.detach("OFF_HAND");
@@ -250,12 +269,12 @@ for (const slot of ["CHARACTER", "HEAD", "BACK", "AURA", "COMPANION"]) {
 assert.equal(host.diagnostics().disposed, false, "equipment adapter must not dispose the F-owned shared host");
 host.destroy();
 
-console.log("FORMAL9_MAPPED=4/4 exact Owner IDs, D007 asset paths, and GLB SHA256 verified");
+console.log("FORMAL9_MAPPED=4/4 Owner-selected rights-cleared replacement IDs, paths, and GLB SHA256 verified");
 console.log("FORMAL9_INTENTIONALLY_UNMAPPED=5/5 fail-closed");
 console.log("WOODEN_SWORD_UNCHANGED=PASS");
-console.log("C4_ARMY_SWORD_IDENTITY=PASS exact WEAPON_2F4CB085CE4A path and SHA256");
+console.log("RETIRED_D007_FORMAL9_VISUALS=4/4 fail-closed (item, alias, asset ID)");
 console.log("UNKNOWN_DUPLICATE_MISSING_NO_INFERENCE_WRONG_MODEL=PASS fail-closed");
-console.log("EQUIP_CAPABILITY=false; RELEASE_ELIGIBILITY=NOT_CLEARED");
+console.log("RIGHTS_STATUS=RIGHTS_CLEARED; EQUIP_CAPABILITY=false; RELEASE_ELIGIBILITY=" + G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED);
 console.log("FORMAL_MAIN_HAND_SHARED_HOST_FIXTURE=PASS; other slot descriptors TEST ONLY");
 console.log("CROSS_SLOT_PRESERVATION=PASS");
 console.log("STALE_ASYNC_PROTECTION=PASS");

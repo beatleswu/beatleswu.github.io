@@ -43,3 +43,9 @@ tools/e10_zone1_audio/Run_*.ps1 text eol=crlf
 # G008 C005 admission binds the exact accepted CRLF bytes by SHA256.
 # Preserve those bytes in the Git blob and on every checkout.
 schemas/future30_c005_real_asset_runtime_mapping_manifest.json -text -eol
+
+# G009 formal9 rights-cleared replacement: provenance and runtime GLBs are
+# hash-bound evidence (License.txt, page snapshots, archives, manifests).
+# Never normalize line endings or diff them; bytes must match SHA256SUMS.txt.
+assets/3d_shop/formal9_rights_cleared_v1/** binary
+provenance/g009_formal9_rights_cleared_v1/** binary

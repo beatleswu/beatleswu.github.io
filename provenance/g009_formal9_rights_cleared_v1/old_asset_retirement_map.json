@@ -1,0 +1,70 @@
+{
+  "task_id": "E_G009_FORMAL9_SELECTED_WEAPON_FINALIZATION_001",
+  "retired": [
+    {
+      "old_asset_id": "WEAPON_A7C05D43F943",
+      "old_runtime_asset": "assets/3d_shop/formal_character_equipment_v1/weapons/21_adventure_sword.glb",
+      "old_runtime_sha256": "a7c05d43f9434a6cfd0304908c68ac2a97975c6bc641516c55e1380c5f81d2fc",
+      "old_rights_review_status": "CONFLICTING_EVIDENCE",
+      "former_formal9_item": "iron_sword",
+      "replaced_by_asset_id": "WEAPON_C43E15596CA6",
+      "replaced_by_sha256": "c43e15596ca656355553585e3ac4a398b37a0216471539e8dda6401d67b7580b",
+      "status": "RETIRED_HISTORICAL_ONLY",
+      "alias_to_new_bytes": false,
+      "active_mapping": false,
+      "runtime_reachable": false,
+      "release_included": false,
+      "production_admission": false,
+      "rights_review_reference": "G009_FORMAL9_RIGHTS_EVIDENCE_RECOVERY_001"
+    },
+    {
+      "old_asset_id": "WEAPON_A70FD7AB666C",
+      "old_runtime_asset": "assets/3d_shop/formal_character_equipment_v1/weapons/15_hunting_knife.glb",
+      "old_runtime_sha256": "a70fd7ab666cd2551520146b0a8cff7fe24c67f0cebde8d685fb273d3540f8f8",
+      "old_rights_review_status": "CONFLICTING_EVIDENCE",
+      "former_formal9_item": "fox_fang",
+      "replaced_by_asset_id": "WEAPON_6F06505A7BED",
+      "replaced_by_sha256": "6f06505a7bed0ea7681216df58d2a89696b2305f9c080b5f0fa4d9fcabc72af0",
+      "status": "RETIRED_HISTORICAL_ONLY",
+      "alias_to_new_bytes": false,
+      "active_mapping": false,
+      "runtime_reachable": false,
+      "release_included": false,
+      "production_admission": false,
+      "rights_review_reference": "G009_FORMAL9_RIGHTS_EVIDENCE_RECOVERY_001"
+    },
+    {
+      "old_asset_id": "WEAPON_9CD401DADF4C",
+      "old_runtime_asset": "assets/3d_shop/formal_character_equipment_v1/weapons/12_katana.glb",
+      "old_runtime_sha256": "9cd401dadf4cf49fc404eb30e1715a898eb6895dc32dba7c56dd8a7fd0b190c4",
+      "old_rights_review_status": "INSUFFICIENT_EVIDENCE",
+      "former_formal9_item": "riverstone_sabre",
+      "replaced_by_asset_id": "WEAPON_EC86CE30E759",
+      "replaced_by_sha256": "ec86ce30e7591bc89badac98a4ed0c00b6614ac8e97b8b79ea734ba7f82c2409",
+      "status": "RETIRED_HISTORICAL_ONLY",
+      "alias_to_new_bytes": false,
+      "active_mapping": false,
+      "runtime_reachable": false,
+      "release_included": false,
+      "production_admission": false,
+      "rights_review_reference": "G009_FORMAL9_RIGHTS_EVIDENCE_RECOVERY_001"
+    },
+    {
+      "old_asset_id": "WEAPON_2F4CB085CE4A",
+      "old_runtime_asset": "assets/3d_shop/formal_character_equipment_v1/weapons/14_army_sword.glb",
+      "old_runtime_sha256": "20979ea75b6bdcaade2187de81274136d56bbad31a3860ca12373ff24dde89b8",
+      "old_rights_review_status": "NOT_CLEARED",
+      "former_formal9_item": "bamboo_shadow_blade",
+      "replaced_by_asset_id": "WEAPON_C84A8635BED2",
+      "replaced_by_sha256": "c84a8635bed2d2252a6937dbd8837c585872502a4253f549a7b94069e7b776c6",
+      "status": "RETIRED_HISTORICAL_ONLY",
+      "alias_to_new_bytes": false,
+      "active_mapping": false,
+      "runtime_reachable": false,
+      "release_included": false,
+      "production_admission": false,
+      "rights_review_reference": "G009_FORMAL9_RIGHTS_EVIDENCE_RECOVERY_001"
+    }
+  ],
+  "rule": "Old IDs stay historically traceable here and in the D007 prerequisite schema; they are refused by every active resolver and never alias to the new bytes."
+}

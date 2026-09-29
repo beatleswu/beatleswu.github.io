@@ -29024,6 +29024,47 @@ def serve_g008_future30_hero_renderer():
         'g008_future30_hero_renderer.js', 'js', 'js'
     )
 
+# Formal9/D007 and Companion modules are packaged in the image. Keep browser
+# exposure on the existing narrow live-static/baked-file path; do not expose
+# arbitrary root-level js/ or schemas/ contents through these routes.
+_G009_FORMAL_RUNTIME_JS_FILES = frozenset({
+    'formal_3d_character_equipment_runtime.js',
+    'player_character_3d_runtime_bridge.js',
+    'player_appearance_3d_attachment_adapter.js',
+    'g009_d007_runtime_identity_resolver.mjs',
+    'g009_formal9_rights_cleared_replacement_catalog.js',
+    'g009_owner_approved_formal_equipment_mapping.js',
+    'g009_d_r2_shared_host_bootstrap.js',
+    'g009_equipment_inventory_projection.js',
+    'hero_equipment_attachment_adapter.js',
+    'g009_d007_shared_host_bootstrap.js',
+    'g009_d007_shared_host_adapter.js',
+    'g009_shared_hero_attachment_host.js',
+    'companion_formal_18_mapping.js',
+    'g009_companion_child.mjs',
+    'g009_companion_formal18_assets.mjs',
+    'g009_companion_formal18_bootstrap.mjs',
+})
+_G009_FORMAL_RUNTIME_SCHEMA_FILES = frozenset({
+    'g009_d007_runtime_prerequisite_v1.json',
+    'g009_formal9_rights_cleared_replacement_v1.json',
+    'future30_c005_real_asset_runtime_mapping_manifest.json',
+})
+
+
+@app.route('/js/<string:filename>')
+def serve_g009_formal_runtime_js(filename):
+    if filename not in _G009_FORMAL_RUNTIME_JS_FILES:
+        abort(404)
+    return _serve_live_static_or_baked_subpath(filename, 'js', 'js')
+
+
+@app.route('/schemas/<string:filename>')
+def serve_g009_formal_runtime_schema(filename):
+    if filename not in _G009_FORMAL_RUNTIME_SCHEMA_FILES:
+        abort(404)
+    return _serve_live_static_or_baked_subpath(filename, 'schemas', 'schemas')
+
 @app.route('/manifest.json')
 def serve_manifest():
     return _serve_live_static_or_baked('manifest.json', mimetype='application/manifest+json; charset=utf-8')

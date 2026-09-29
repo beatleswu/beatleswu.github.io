@@ -1,0 +1,52 @@
+{
+  "$schema_note": "Exact runtime GLB closure for the selected G009 Formal9 replacement visuals. Inclusion in this isolated candidate does not grant player product policy, release admission, or Production deployment.",
+  "manifest_version": "1.0.0",
+  "generated_for": "E_G009_FORMAL9_WEAPON_FINAL_VALIDATION_AND_PACKAGING_GOAL_002",
+  "source_commit": "2c0ae67fb5b1761c62e82df55a02e73dbb3879a6",
+  "prefix": "assets/3d_shop/formal9_rights_cleared_v1/weapons/",
+  "total_files": 4,
+  "total_bytes": 149832,
+  "source_authority": "provenance/g009_formal9_rights_cleared_v1/final_asset_manifest.json",
+  "owner_receipt": "provenance/g009_formal9_rights_cleared_v1/owner_selection_receipt.json",
+  "owner_receipt_sha256": "8f66b7b70dc4e06d9a2b061280c2039c0876c5b9cb726fb32c76da1fd29ddce8",
+  "product_release_admission": false,
+  "production_asset_admission": false,
+  "files": [
+    {
+      "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb",
+      "size": 17496,
+      "sha256": "c43e15596ca656355553585e3ac4a398b37a0216471539e8dda6401d67b7580b",
+      "mime": "model/gltf-binary",
+      "provenance": "owner-selected-formal9-runtime-glb",
+      "source_commit": "2c0ae67fb5b1761c62e82df55a02e73dbb3879a6",
+      "source_evidence": "iron_sword; WEAPON_C43E15596CA6; final_asset_manifest.json and owner_selection_receipt.json"
+    },
+    {
+      "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb",
+      "size": 37296,
+      "sha256": "6f06505a7bed0ea7681216df58d2a89696b2305f9c080b5f0fa4d9fcabc72af0",
+      "mime": "model/gltf-binary",
+      "provenance": "owner-selected-formal9-runtime-glb",
+      "source_commit": "2c0ae67fb5b1761c62e82df55a02e73dbb3879a6",
+      "source_evidence": "fox_fang; WEAPON_6F06505A7BED; final_asset_manifest.json and owner_selection_receipt.json"
+    },
+    {
+      "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb",
+      "size": 45124,
+      "sha256": "ec86ce30e7591bc89badac98a4ed0c00b6614ac8e97b8b79ea734ba7f82c2409",
+      "mime": "model/gltf-binary",
+      "provenance": "owner-selected-formal9-runtime-glb",
+      "source_commit": "2c0ae67fb5b1761c62e82df55a02e73dbb3879a6",
+      "source_evidence": "riverstone_sabre; WEAPON_EC86CE30E759; final_asset_manifest.json and owner_selection_receipt.json"
+    },
+    {
+      "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb",
+      "size": 49916,
+      "sha256": "c84a8635bed2d2252a6937dbd8837c585872502a4253f549a7b94069e7b776c6",
+      "mime": "model/gltf-binary",
+      "provenance": "owner-selected-formal9-runtime-glb",
+      "source_commit": "2c0ae67fb5b1761c62e82df55a02e73dbb3879a6",
+      "source_evidence": "bamboo_shadow_blade; WEAPON_C84A8635BED2; final_asset_manifest.json and owner_selection_receipt.json"
+    }
+  ]
+}

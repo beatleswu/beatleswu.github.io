@@ -1,0 +1,252 @@
+{
+  "task_id": "E_G009_FORMAL9_SELECTED_WEAPON_FINALIZATION_001",
+  "phase": "1_EVIDENCE_LOCK",
+  "status": "PASS",
+  "failures": [],
+  "locks": [
+    {
+      "GAME_ITEM_KEY": "iron_sword",
+      "TMP_CANDIDATE_ID": "TMP_IRON_SWORD_A",
+      "SOURCE_CANDIDATE_ID": "KN_MINIDUNGEON_SWORD",
+      "SOURCE_PROVIDER": "Kenney",
+      "SOURCE_CREATOR": "Kenney (www.kenney.nl)",
+      "SOURCE_PACK": "Mini Dungeon (2.0)",
+      "SOURCE_ARCHIVE": "D:\\go-website-g009-formal9-weapon-candidates-002\\sources\\kenney\\kenney_mini-dungeon.zip",
+      "SOURCE_ARCHIVE_SHA256": "19c4648680cb1d2e8836cade96cbf9781c0c1f45fbc6d2ce41cee8239a3ec4d8",
+      "SOURCE_MODEL_FILE": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kenney_mini-dungeon\\Models\\GLB format\\weapon-sword.glb",
+      "SOURCE_MODEL_SHA256": "8e69eb27977f8c84a9b7cd423cd5830eddcf0d07ac1d7fed1969931387015b28",
+      "SOURCE_MODEL_ALL_FILES": [
+        {
+          "archive_member": "Models/GLB format/weapon-sword.glb",
+          "sha256": "8e69eb27977f8c84a9b7cd423cd5830eddcf0d07ac1d7fed1969931387015b28",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kenney_mini-dungeon\\Models\\GLB format\\weapon-sword.glb",
+          "extracted_matches_archive": true
+        }
+      ],
+      "PRIMARY_LICENSE_FILE": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kenney_mini-dungeon\\License.txt",
+      "PRIMARY_LICENSE_SHA256": "f8b470068a1c043854101c9ff7161d376ba02c36239da3c1dbdfa928b08444b6",
+      "PRIMARY_LICENSE_EXTRACTED_MATCHES_ARCHIVE": true,
+      "LICENSE_TYPE": "CC0-1.0",
+      "LICENSE_TEXT_REFERENCE": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "LICENSE_REQUIRED_PHRASES_PRESENT": true,
+      "OFFICIAL_SOURCE_URL": "https://kenney.nl/assets/mini-dungeon",
+      "OFFICIAL_PAGE_SNAPSHOT": "D:\\go-website-g009-formal9-weapon-candidates-002\\evidence\\page_snapshots\\kenney_mini-dungeon.html",
+      "PAGE_SNAPSHOT_SHA256": "ba74026448df18184cb5ed7abefaf33301798e4ba774afb9812e2a3986188f7d",
+      "PAGE_SNAPSHOT_MATCHES_RECORDED": true,
+      "CONVERSION_MANIFEST": "D:\\go-website-g009-formal9-weapon-candidates-002\\evidence\\conversion_manifest.json",
+      "CONVERSION_MANIFEST_SHA256": "475e483b01de3da85d2404f8d7dfff10eabdbb04d52866940ff486e012331807",
+      "CONVERSION_SETTINGS": {
+        "import": "bpy.ops.import_scene.gltf defaults",
+        "join_meshes": true,
+        "apply_transforms": true,
+        "orientation": "longest axis -> Blender +Z (glTF +Y); blade tip up (widest cross-section = guard end = down)",
+        "origin": "grip point = guard - 0.35*(guard - pommel) on blade axis",
+        "short_axes": "centered on blade axis",
+        "scale": "uniform; sword overall length 2.25, dagger 1.58 (matches retired D007 role lengths)",
+        "export": "GLB, export_yup, apply modifiers, no cameras/lights/animations/skins/morphs, materials exported, images AUTO",
+        "artistic_changes": "NONE (no remodel, recolor, retexture, decimation)"
+      },
+      "CONVERSION_SCRIPT_SHA256": "6985ab5d410cd04e6b56b29d4aba2ea1b9d96ae7b883bbe9e44cd843cd29c7b7",
+      "INTERMEDIATE_GLB": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KN_MINIDUNGEON_SWORD.glb",
+      "INTERMEDIATE_GLB_SHA256": "c43e15596ca656355553585e3ac4a398b37a0216471539e8dda6401d67b7580b",
+      "OWNER_SELECTED": "YES",
+      "PRIMARY_LICENSE_FILE_PRESENT": "YES",
+      "PRIMARY_LICENSE_RETAINED": "YES",
+      "COMMERCIAL_USE_ALLOWED": "YES",
+      "MODIFICATION_ALLOWED": "YES",
+      "GAME_DISTRIBUTION_ALLOWED": "YES"
+    },
+    {
+      "GAME_ITEM_KEY": "fox_fang",
+      "TMP_CANDIDATE_ID": "TMP_FOX_FANG_A",
+      "SOURCE_CANDIDATE_ID": "KK_DAGGER_A",
+      "SOURCE_PROVIDER": "KayKit",
+      "SOURCE_CREATOR": "Kay Lousberg (www.kaylousberg.com)",
+      "SOURCE_PACK": "KayKit : Fantasy Weapons Bits (1.0) FREE",
+      "SOURCE_ARCHIVE": "D:\\go-website-g009-formal9-weapon-candidates-002\\sources\\kaykit\\KayKit_FantasyWeaponsBits_1.0_FREE.zip",
+      "SOURCE_ARCHIVE_SHA256": "1017144f85a994f405b731befa71ced360f5b60ed0b9c00c72e711c1633ce2d2",
+      "SOURCE_MODEL_FILE": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\dagger_A.gltf",
+      "SOURCE_MODEL_SHA256": "a1f98d2184ebd1d91c853173ce6f56c89787d3177ed54b50e036e8c33cbb800c",
+      "SOURCE_MODEL_ALL_FILES": [
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Assets/gltf/dagger_A.gltf",
+          "sha256": "a1f98d2184ebd1d91c853173ce6f56c89787d3177ed54b50e036e8c33cbb800c",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\dagger_A.gltf",
+          "extracted_matches_archive": true
+        },
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Assets/gltf/dagger_A.bin",
+          "sha256": "99bb9f33a2c859fbec0056c40889eb803da3c1f64b8ca039e35c0ae2121ce750",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\dagger_A.bin",
+          "extracted_matches_archive": true
+        },
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Textures/weapons_bits_texture.png",
+          "sha256": "c153429a49928594b00b53c07c4ab3d6352087b7f5df6c272d4aedfdb99a40be",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Textures\\weapons_bits_texture.png",
+          "extracted_matches_archive": true
+        }
+      ],
+      "PRIMARY_LICENSE_FILE": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\License.txt",
+      "PRIMARY_LICENSE_SHA256": "cef02a74a4f2f24cec8fe9c63ee98f8b095d1f7b72b3a1af417db6458dd0b278",
+      "PRIMARY_LICENSE_EXTRACTED_MATCHES_ARCHIVE": true,
+      "LICENSE_TYPE": "CC0-1.0",
+      "LICENSE_TEXT_REFERENCE": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "LICENSE_REQUIRED_PHRASES_PRESENT": true,
+      "OFFICIAL_SOURCE_URL": "https://kaylousberg.itch.io/fantasy-weapons-bits",
+      "OFFICIAL_PAGE_SNAPSHOT": "D:\\go-website-g009-formal9-weapon-candidates-002\\evidence\\page_snapshots\\kaykit_fantasy-weapons-bits.html",
+      "PAGE_SNAPSHOT_SHA256": "47fe451c2184edc90eed85816564f1c74490a347ae2a9502930fa763006db66f",
+      "PAGE_SNAPSHOT_MATCHES_RECORDED": true,
+      "CONVERSION_MANIFEST": "D:\\go-website-g009-formal9-weapon-candidates-002\\evidence\\conversion_manifest.json",
+      "CONVERSION_MANIFEST_SHA256": "475e483b01de3da85d2404f8d7dfff10eabdbb04d52866940ff486e012331807",
+      "CONVERSION_SETTINGS": {
+        "import": "bpy.ops.import_scene.gltf defaults",
+        "join_meshes": true,
+        "apply_transforms": true,
+        "orientation": "longest axis -> Blender +Z (glTF +Y); blade tip up (widest cross-section = guard end = down)",
+        "origin": "grip point = guard - 0.35*(guard - pommel) on blade axis",
+        "short_axes": "centered on blade axis",
+        "scale": "uniform; sword overall length 2.25, dagger 1.58 (matches retired D007 role lengths)",
+        "export": "GLB, export_yup, apply modifiers, no cameras/lights/animations/skins/morphs, materials exported, images AUTO",
+        "artistic_changes": "NONE (no remodel, recolor, retexture, decimation)"
+      },
+      "CONVERSION_SCRIPT_SHA256": "6985ab5d410cd04e6b56b29d4aba2ea1b9d96ae7b883bbe9e44cd843cd29c7b7",
+      "INTERMEDIATE_GLB": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_DAGGER_A.glb",
+      "INTERMEDIATE_GLB_SHA256": "6f06505a7bed0ea7681216df58d2a89696b2305f9c080b5f0fa4d9fcabc72af0",
+      "OWNER_SELECTED": "YES",
+      "PRIMARY_LICENSE_FILE_PRESENT": "YES",
+      "PRIMARY_LICENSE_RETAINED": "YES",
+      "COMMERCIAL_USE_ALLOWED": "YES",
+      "MODIFICATION_ALLOWED": "YES",
+      "GAME_DISTRIBUTION_ALLOWED": "YES"
+    },
+    {
+      "GAME_ITEM_KEY": "riverstone_sabre",
+      "TMP_CANDIDATE_ID": "TMP_RIVERSTONE_SABRE_B",
+      "SOURCE_CANDIDATE_ID": "KK_SWORD_D",
+      "SOURCE_PROVIDER": "KayKit",
+      "SOURCE_CREATOR": "Kay Lousberg (www.kaylousberg.com)",
+      "SOURCE_PACK": "KayKit : Fantasy Weapons Bits (1.0) FREE",
+      "SOURCE_ARCHIVE": "D:\\go-website-g009-formal9-weapon-candidates-002\\sources\\kaykit\\KayKit_FantasyWeaponsBits_1.0_FREE.zip",
+      "SOURCE_ARCHIVE_SHA256": "1017144f85a994f405b731befa71ced360f5b60ed0b9c00c72e711c1633ce2d2",
+      "SOURCE_MODEL_FILE": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_D.gltf",
+      "SOURCE_MODEL_SHA256": "3a475e38d3f6a52da3829b4bc78cc8a67c3945408b188f7e9092ab5c53a740ea",
+      "SOURCE_MODEL_ALL_FILES": [
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Assets/gltf/sword_D.gltf",
+          "sha256": "3a475e38d3f6a52da3829b4bc78cc8a67c3945408b188f7e9092ab5c53a740ea",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_D.gltf",
+          "extracted_matches_archive": true
+        },
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Assets/gltf/sword_D.bin",
+          "sha256": "41d025afce9fe509b1244e9e136a48af6a675ca3cb80a3450328af95c59155e4",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_D.bin",
+          "extracted_matches_archive": true
+        },
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Textures/weapons_bits_texture.png",
+          "sha256": "c153429a49928594b00b53c07c4ab3d6352087b7f5df6c272d4aedfdb99a40be",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Textures\\weapons_bits_texture.png",
+          "extracted_matches_archive": true
+        }
+      ],
+      "PRIMARY_LICENSE_FILE": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\License.txt",
+      "PRIMARY_LICENSE_SHA256": "cef02a74a4f2f24cec8fe9c63ee98f8b095d1f7b72b3a1af417db6458dd0b278",
+      "PRIMARY_LICENSE_EXTRACTED_MATCHES_ARCHIVE": true,
+      "LICENSE_TYPE": "CC0-1.0",
+      "LICENSE_TEXT_REFERENCE": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "LICENSE_REQUIRED_PHRASES_PRESENT": true,
+      "OFFICIAL_SOURCE_URL": "https://kaylousberg.itch.io/fantasy-weapons-bits",
+      "OFFICIAL_PAGE_SNAPSHOT": "D:\\go-website-g009-formal9-weapon-candidates-002\\evidence\\page_snapshots\\kaykit_fantasy-weapons-bits.html",
+      "PAGE_SNAPSHOT_SHA256": "47fe451c2184edc90eed85816564f1c74490a347ae2a9502930fa763006db66f",
+      "PAGE_SNAPSHOT_MATCHES_RECORDED": true,
+      "CONVERSION_MANIFEST": "D:\\go-website-g009-formal9-weapon-candidates-002\\evidence\\conversion_manifest.json",
+      "CONVERSION_MANIFEST_SHA256": "475e483b01de3da85d2404f8d7dfff10eabdbb04d52866940ff486e012331807",
+      "CONVERSION_SETTINGS": {
+        "import": "bpy.ops.import_scene.gltf defaults",
+        "join_meshes": true,
+        "apply_transforms": true,
+        "orientation": "longest axis -> Blender +Z (glTF +Y); blade tip up (widest cross-section = guard end = down)",
+        "origin": "grip point = guard - 0.35*(guard - pommel) on blade axis",
+        "short_axes": "centered on blade axis",
+        "scale": "uniform; sword overall length 2.25, dagger 1.58 (matches retired D007 role lengths)",
+        "export": "GLB, export_yup, apply modifiers, no cameras/lights/animations/skins/morphs, materials exported, images AUTO",
+        "artistic_changes": "NONE (no remodel, recolor, retexture, decimation)"
+      },
+      "CONVERSION_SCRIPT_SHA256": "6985ab5d410cd04e6b56b29d4aba2ea1b9d96ae7b883bbe9e44cd843cd29c7b7",
+      "INTERMEDIATE_GLB": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_SWORD_D.glb",
+      "INTERMEDIATE_GLB_SHA256": "ec86ce30e7591bc89badac98a4ed0c00b6614ac8e97b8b79ea734ba7f82c2409",
+      "OWNER_SELECTED": "YES",
+      "PRIMARY_LICENSE_FILE_PRESENT": "YES",
+      "PRIMARY_LICENSE_RETAINED": "YES",
+      "COMMERCIAL_USE_ALLOWED": "YES",
+      "MODIFICATION_ALLOWED": "YES",
+      "GAME_DISTRIBUTION_ALLOWED": "YES"
+    },
+    {
+      "GAME_ITEM_KEY": "bamboo_shadow_blade",
+      "TMP_CANDIDATE_ID": "TMP_BAMBOO_SHADOW_BLADE_A",
+      "SOURCE_CANDIDATE_ID": "KK_SWORD_E",
+      "SOURCE_PROVIDER": "KayKit",
+      "SOURCE_CREATOR": "Kay Lousberg (www.kaylousberg.com)",
+      "SOURCE_PACK": "KayKit : Fantasy Weapons Bits (1.0) FREE",
+      "SOURCE_ARCHIVE": "D:\\go-website-g009-formal9-weapon-candidates-002\\sources\\kaykit\\KayKit_FantasyWeaponsBits_1.0_FREE.zip",
+      "SOURCE_ARCHIVE_SHA256": "1017144f85a994f405b731befa71ced360f5b60ed0b9c00c72e711c1633ce2d2",
+      "SOURCE_MODEL_FILE": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_E.gltf",
+      "SOURCE_MODEL_SHA256": "94fa216bac0984dac29cb7d0a4ebea4b1981c131624d0fc9ecec142b230ee998",
+      "SOURCE_MODEL_ALL_FILES": [
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Assets/gltf/sword_E.gltf",
+          "sha256": "94fa216bac0984dac29cb7d0a4ebea4b1981c131624d0fc9ecec142b230ee998",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_E.gltf",
+          "extracted_matches_archive": true
+        },
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Assets/gltf/sword_E.bin",
+          "sha256": "01db950a538d33ae2a0bcc78ffe48a03236542b9c02c0de526eba3be1f8a590a",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_E.bin",
+          "extracted_matches_archive": true
+        },
+        {
+          "archive_member": "KayKit_FantasyWeaponsBits_1.0_FREE/Textures/weapons_bits_texture.png",
+          "sha256": "c153429a49928594b00b53c07c4ab3d6352087b7f5df6c272d4aedfdb99a40be",
+          "extracted_path": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Textures\\weapons_bits_texture.png",
+          "extracted_matches_archive": true
+        }
+      ],
+      "PRIMARY_LICENSE_FILE": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\License.txt",
+      "PRIMARY_LICENSE_SHA256": "cef02a74a4f2f24cec8fe9c63ee98f8b095d1f7b72b3a1af417db6458dd0b278",
+      "PRIMARY_LICENSE_EXTRACTED_MATCHES_ARCHIVE": true,
+      "LICENSE_TYPE": "CC0-1.0",
+      "LICENSE_TEXT_REFERENCE": "http://creativecommons.org/publicdomain/zero/1.0/",
+      "LICENSE_REQUIRED_PHRASES_PRESENT": true,
+      "OFFICIAL_SOURCE_URL": "https://kaylousberg.itch.io/fantasy-weapons-bits",
+      "OFFICIAL_PAGE_SNAPSHOT": "D:\\go-website-g009-formal9-weapon-candidates-002\\evidence\\page_snapshots\\kaykit_fantasy-weapons-bits.html",
+      "PAGE_SNAPSHOT_SHA256": "47fe451c2184edc90eed85816564f1c74490a347ae2a9502930fa763006db66f",
+      "PAGE_SNAPSHOT_MATCHES_RECORDED": true,
+      "CONVERSION_MANIFEST": "D:\\go-website-g009-formal9-weapon-candidates-002\\evidence\\conversion_manifest.json",
+      "CONVERSION_MANIFEST_SHA256": "475e483b01de3da85d2404f8d7dfff10eabdbb04d52866940ff486e012331807",
+      "CONVERSION_SETTINGS": {
+        "import": "bpy.ops.import_scene.gltf defaults",
+        "join_meshes": true,
+        "apply_transforms": true,
+        "orientation": "longest axis -> Blender +Z (glTF +Y); blade tip up (widest cross-section = guard end = down)",
+        "origin": "grip point = guard - 0.35*(guard - pommel) on blade axis",
+        "short_axes": "centered on blade axis",
+        "scale": "uniform; sword overall length 2.25, dagger 1.58 (matches retired D007 role lengths)",
+        "export": "GLB, export_yup, apply modifiers, no cameras/lights/animations/skins/morphs, materials exported, images AUTO",
+        "artistic_changes": "NONE (no remodel, recolor, retexture, decimation)"
+      },
+      "CONVERSION_SCRIPT_SHA256": "6985ab5d410cd04e6b56b29d4aba2ea1b9d96ae7b883bbe9e44cd843cd29c7b7",
+      "INTERMEDIATE_GLB": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_SWORD_E.glb",
+      "INTERMEDIATE_GLB_SHA256": "c84a8635bed2d2252a6937dbd8837c585872502a4253f549a7b94069e7b776c6",
+      "OWNER_SELECTED": "YES",
+      "PRIMARY_LICENSE_FILE_PRESENT": "YES",
+      "PRIMARY_LICENSE_RETAINED": "YES",
+      "COMMERCIAL_USE_ALLOWED": "YES",
+      "MODIFICATION_ALLOWED": "YES",
+      "GAME_DISTRIBUTION_ALLOWED": "YES"
+    }
+  ]
+}

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>G009 Formal9 real GLB grip regression</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; background: #111827; color: #fff; }
+  #stage { width: 640px; height: 720px; }
+  canvas { display: block; }
+</style>
+<div id="stage"></div>
+<script type="importmap">
+{"imports":{"three":"/assets/3d_shop/p048/vendor/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from "/assets/3d_shop/p048/vendor/three.module.js";
+import { GLTFLoader } from "/assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js";
+import { createG009SharedHeroAttachmentHost } from "/js/g009_shared_hero_attachment_host.js";
+import { G009_FORMAL9_REPLACEMENT_ROWS } from "/js/g009_formal9_rights_cleared_replacement_catalog.js";
+import { createHeroEquipmentAttachmentAdapter } from "/js/hero_equipment_attachment_adapter.js";
+
+const stage = document.querySelector("#stage");
+const rows = new Map(G009_FORMAL9_REPLACEMENT_ROWS.map((row) => [row.asset_id, row]));
+let root = null;
+let host = null;
+let adapter = null;
+let scene = null;
+let camera = null;
+let renderer = null;
+let animations = [];
+let heroBounds = null;
+let liveRenderers = 0;
+let maxRenderers = 0;
+let activeWeapon = null;
+let currentCharacter = null;
+
+function normalizedBoneName(node) {
+  return node.isBone ? node.name.toLowerCase().replace(/[^a-z0-9]/g, "") : "";
+}
+
+function handBone(side) {
+  const key = side === "R" ? "handr" : "handl";
+  const found = [];
+  root.traverse((node) => { if (normalizedBoneName(node) === key) found.push(node); });
+  if (found.length !== 1) throw new Error(`real_${side}_hand_bone_count_${found.length}`);
+  return found[0];
+}
+
+function poseBone(name) {
+  const found = [];
+  root.traverse((node) => { if (normalizedBoneName(node) === name) found.push(node); });
+  if (found.length !== 1) throw new Error(`real_pose_bone_${name}_count_${found.length}`);
+  return found[0];
+}
+
+function matrixDelta(left, right) {
+  return Math.max(...left.elements.map((value, index) => Math.abs(value - right.elements[index])));
+}
+
+async function loadGlb(path) {
+  const response = await fetch(path, { cache: "no-store" });
+  if (!response.ok) throw new Error(`glb_http_${response.status}:${path}`);
+  const bytes = await response.arrayBuffer();
+  return { bytes, gltf: await new GLTFLoader().parseAsync(bytes, new URL(path, location.href).href) };
+}
+
+function fitModel(model) {
+  model.updateMatrixWorld(true);
+  let bounds = new THREE.Box3().setFromObject(model);
+  const size = bounds.getSize(new THREE.Vector3());
+  const height = Math.max(size.x, size.y, size.z);
+  if (!Number.isFinite(height) || height <= 0) throw new Error("real_hero_bounds_invalid");
+  model.scale.multiplyScalar(4.1 / height);
+  model.updateMatrixWorld(true);
+  bounds = new THREE.Box3().setFromObject(model);
+  const center = bounds.getCenter(new THREE.Vector3());
+  model.position.x -= center.x;
+  model.position.y -= bounds.min.y;
+  model.position.z -= center.z;
+  model.updateMatrixWorld(true);
+  return new THREE.Box3().setFromObject(model);
+}
+
+function render() {
+  root.updateMatrixWorld(true);
+  renderer.render(scene, camera);
+}
+
+function closeHero() {
+  if (adapter) adapter.dispose();
+  if (host) host.destroy();
+  if (renderer) {
+    renderer.dispose();
+    renderer.domElement.remove();
+    liveRenderers -= 1;
+  }
+  root = host = adapter = scene = camera = renderer = activeWeapon = null;
+  animations = [];
+}
+
+function appearanceContext() {
+  return {
+    character_key: currentCharacter,
+    character_key_source: "player_appearance.character_key",
+    character_key_authority: "player_appearance.character_key",
+    character_entitled: true,
+    character_runtime: { character_key: currentCharacter },
+  };
+}
+
+window.startHero = async ({ characterKey, heroPath }) => {
+  closeHero();
+  currentCharacter = characterKey;
+  const loaded = await loadGlb(heroPath);
+  root = loaded.gltf.scene;
+  animations = loaded.gltf.animations || [];
+  const fitted = fitModel(root);
+  handBone("R");
+  handBone("L");
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x111827);
+  scene.add(new THREE.HemisphereLight(0xf1f7ff, 0x334155, 2.0));
+  const key = new THREE.DirectionalLight(0xffefd5, 2.8);
+  key.position.set(-3, 7, 8);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xa9d9ff, 1.1);
+  fill.position.set(4, 3, -4);
+  scene.add(fill);
+  scene.add(root);
+  const center = fitted.getCenter(new THREE.Vector3());
+  camera = new THREE.PerspectiveCamera(34, 640 / 720, 0.01, 100);
+  camera.position.set(center.x, center.y + 0.15, center.z + 8.4);
+  camera.lookAt(center.x, center.y, center.z);
+  renderer = new THREE.WebGLRenderer({ alpha: false, antialias: true, powerPreference: "high-performance" });
+  liveRenderers += 1;
+  maxRenderers = Math.max(maxRenderers, liveRenderers);
+  renderer.setPixelRatio(1);
+  renderer.setSize(640, 720, false);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  stage.replaceChildren(renderer.domElement);
+  host = createG009SharedHeroAttachmentHost(root, THREE);
+  host.registerResolver("MAIN_HAND", (assetId) => {
+    const row = rows.get(assetId);
+    return row ? { ...row, presentation_id: row.asset_id } : null;
+  });
+  host.registerResolver("OFF_HAND", (id) => id === "TEST_ONLY_OFF_HAND"
+    ? { presentation_id: id, slot: "OFF_HAND", test_only: true } : null);
+  adapter = createHeroEquipmentAttachmentAdapter({ getHeroSharedAttachmentHost: () => host }, {
+    allowTestOnlyDescriptors: true,
+    loadPresentation: async (descriptor) => {
+      if (descriptor.test_only === true) {
+        const dummy = new THREE.Group();
+        dummy.name = "TEST_ONLY_OFF_HAND_NO_RENDERED_GEOMETRY";
+        return dummy;
+      }
+      const loaded = await loadGlb(descriptor.runtime_asset);
+      const digest = await crypto.subtle.digest("SHA-256", loaded.bytes);
+      const sha = [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
+      if (sha !== descriptor.runtime_sha256) throw new Error("real_weapon_sha_mismatch:" + descriptor.asset_id);
+      const model = loaded.gltf.scene;
+      model.position.fromArray(descriptor.position);
+      model.rotation.fromArray(descriptor.rotation);
+      model.scale.fromArray(descriptor.scale);
+      model.name = "G009_EQUIPMENT_" + descriptor.asset_id;
+      activeWeapon = model;
+      return model;
+    },
+  });
+  await adapter.setHand("OFF_HAND", {
+    presentation_id: "TEST_ONLY_OFF_HAND", slot: "OFF_HAND", test_only: true,
+  }, appearanceContext());
+  heroBounds = new THREE.Box3().setFromObject(root);
+  render();
+  const gl = renderer.getContext();
+  const info = gl.getExtension("WEBGL_debug_renderer_info");
+  return {
+    characterKey,
+    heroPath,
+    heroMeshCount: root.getObjectByProperty("isMesh", true) ? 1 : 0,
+    animations: animations.map((clip) => clip.name),
+    glRenderer: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+    webgl2: renderer.capabilities.isWebGL2,
+    liveRenderers,
+    maxRenderers,
+  };
+};
+
+window.setGripPose = (pose) => {
+  if (!host || !root) throw new Error("real_hero_not_started");
+  adapter.detach("MAIN_HAND");
+  activeWeapon = null;
+  if (pose === "A1_CORRECT_MID") {
+    if (currentCharacter !== "A1") throw new Error("wrong_hero_for_correct_animation");
+    const clip = animations.find((entry) => entry.name === "Correct");
+    if (!clip) throw new Error("real_a1_correct_animation_missing");
+    const mixer = new THREE.AnimationMixer(root);
+    mixer.clipAction(clip).play();
+    mixer.setTime(clip.duration * 0.5);
+  } else if (pose === "A3_RAISED_ARM") {
+    if (currentCharacter !== "A3") throw new Error("wrong_hero_for_raised_arm");
+    const arm = poseBone("upperarmr");
+    arm.rotation.z += 0.55;
+    arm.rotation.x += 0.20;
+  } else if (pose !== "DEFAULT") {
+    throw new Error("unknown_real_grip_pose:" + pose);
+  }
+  root.updateMatrixWorld(true);
+  heroBounds = new THREE.Box3().setFromObject(root);
+  render();
+  return { pose, rightHand: handBone("R").getWorldPosition(new THREE.Vector3()).toArray(),
+    leftHand: handBone("L").getWorldPosition(new THREE.Vector3()).toArray() };
+};
+
+window.attachRealWeapon = async (assetId) => {
+  const row = rows.get(assetId);
+  if (!row || row.slot !== "MAIN_HAND" || row.socket !== "hand.R") throw new Error("unapproved_test_weapon");
+  const result = await adapter.setHand("MAIN_HAND", {
+    ...row, presentation_id: row.asset_id,
+  }, appearanceContext());
+  render();
+  const boneR = handBone("R");
+  const boneL = handBone("L");
+  const mainAnchor = root.getObjectByName("G009_SHARED_HERO_SLOT_MAIN_HAND");
+  const offAnchor = root.getObjectByName("G009_SHARED_HERO_SLOT_OFF_HAND");
+  const handPoint = boneR.getWorldPosition(new THREE.Vector3());
+  const gripPoint = activeWeapon.getWorldPosition(new THREE.Vector3());
+  const weaponBounds = new THREE.Box3().setFromObject(activeWeapon);
+  const weaponCenter = weaponBounds.getCenter(new THREE.Vector3());
+  const heroHeight = heroBounds.getSize(new THREE.Vector3()).y;
+  const size = weaponBounds.getSize(new THREE.Vector3());
+  const ndc = weaponCenter.clone().project(camera);
+  const slots = host.diagnostics().slots;
+  return {
+    characterKey: currentCharacter,
+    assetId,
+    attachStatus: result.status,
+    mainAnchorSource: mainAnchor.userData.anchor_source,
+    offAnchorSource: offAnchor.userData.anchor_source,
+    mainBoneMatrixDelta: matrixDelta(mainAnchor.matrixWorld, boneR.matrixWorld),
+    offBoneMatrixDelta: matrixDelta(offAnchor.matrixWorld, boneL.matrixWorld),
+    handOriginRatio: handPoint.distanceTo(gripPoint) / heroHeight,
+    centerHandRatio: handPoint.distanceTo(weaponCenter) / heroHeight,
+    maxWeaponDimensionRatio: Math.max(size.x, size.y, size.z) / heroHeight,
+    intersectsExpandedHero: heroBounds.clone().expandByScalar(heroHeight * 0.25).intersectsBox(weaponBounds),
+    weaponCenterNdc: ndc.toArray(),
+    bboxEmpty: weaponBounds.isEmpty(),
+    mainChildCount: slots.find((entry) => entry.slot === "MAIN_HAND").child_count,
+    offChildCount: slots.find((entry) => entry.slot === "OFF_HAND").child_count,
+    liveRenderers,
+    maxRenderers,
+  };
+};
+
+window.gripDiagnostics = () => ({ liveRenderers, maxRenderers });
+window.closeGripScene = () => { closeHero(); return { liveRenderers, maxRenderers }; };
+window.__g009RealGripReady = true;
+</script>
+</html>

@@ -5,11 +5,19 @@ import { projectServerEquippedHandItems } from "./g009_equipment_inventory_proje
 import { createHeroEquipmentAttachmentAdapter } from "./hero_equipment_attachment_adapter.js";
 import { G009_D007_AUTHORITY_READY } from "./g009_d007_shared_host_bootstrap.js";
 import {
+  G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED,
+  g009Formal9ReplacementRowForAsset,
+  isG009RetiredFormalAssetId,
+} from "./g009_formal9_rights_cleared_replacement_catalog.js";
+import {
   registerHeroPresentationResolver,
   registerHeroPresentationRehydrator,
 } from "./g008_future30_hero_renderer.js";
 
 const HAND_SLOTS = Object.freeze(["MAIN_HAND", "OFF_HAND"]);
+// Wooden Sword keeps its D007 NOT_CLEARED row; the formal9 replacements are
+// rights-cleared but not release-admitted. Anything else fails closed.
+const PRESENTABLE_RELEASE_STATES = Object.freeze(new Set(["NOT_CLEARED", G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED]));
 
 async function sha256(bytes) {
   if (!globalThis.crypto?.subtle) throw new Error("equipment_webcrypto_unavailable");
@@ -20,7 +28,8 @@ async function sha256(bytes) {
 function presentationDescriptorFor(index, itemId, requestedSlot) {
   const row = resolveG009OwnerApprovedRuntimeEquipmentIdentity(index, itemId, requestedSlot);
   if (!row || row.server_item_id !== itemId || row.slot !== requestedSlot
-    || row.equip_capability !== false || row.release_eligibility !== "NOT_CLEARED") {
+    || isG009RetiredFormalAssetId(row.asset_id)
+    || row.equip_capability !== false || !PRESENTABLE_RELEASE_STATES.has(row.release_eligibility)) {
     return null;
   }
   return Object.freeze({
@@ -55,6 +64,13 @@ async function registerEquipmentAdapter() {
 }
 
 function indexRowForPresentation(index, presentationId, slot) {
+  if (isG009RetiredFormalAssetId(presentationId)) return null;
+  const replacement = g009Formal9ReplacementRowForAsset(presentationId);
+  if (replacement) {
+    if (replacement.slot !== slot || replacement.equip_capability !== false
+      || replacement.release_eligibility !== G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED) return null;
+    return Object.freeze({ ...replacement, presentation_id: replacement.asset_id, slot: replacement.slot });
+  }
   const byAssetId = index?.byAssetId;
   if (!(byAssetId instanceof Map)) return null;
   const source = byAssetId.get(presentationId);
@@ -93,7 +109,7 @@ async function loadEquipmentPresentation(descriptor) {
     server_item_id: descriptor.server_item_id,
     asset_id: descriptor.asset_id,
     runtime_sha256: descriptor.runtime_sha256,
-    authority_route: "server:/api/player/inventory + G009_D007_CURRENT_SERVER_ID",
+    authority_route: "server:/api/player/inventory + " + (descriptor.visual_authority_route || "G009_D007_CURRENT_SERVER_ID"),
   };
   root.traverse?.((node) => {
     if (!node.isMesh) return;

@@ -30,7 +30,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # application modules otherwise retain their ordinary Git lineage. Every COPY
 # here must also stay in sync with deploy/build-manifest.json's tracked inputs.
 COPY app.py ./
-# G008 Future30 canonical catalog/service foundation.
 COPY future30_character_registry.py ./
 COPY future30_character_service.py ./
 COPY migrations/future30_character_catalog_v1.py ./migrations/future30_character_catalog_v1.py
@@ -187,6 +186,9 @@ COPY monster_taxonomy.py ./
 COPY chapter_i18n.py ./
 COPY backend_i18n.py ./
 COPY community_leaderboard_rewards.py ./
+# P0 Community leaderboard make-whole read-time projection; imported by
+# community_leaderboard_rewards.py and required in the curated app image.
+COPY community_leaderboard_make_whole.py ./
 COPY rpg_item_registry.py ./
 COPY rpg_wave1_lane_b.py ./
 COPY rpg_world_npc_registry.py ./
@@ -330,17 +332,66 @@ COPY js/game/cinematic_replay.js ./js/game/cinematic_replay.js
 # A041 Hero legacy-cache guard is a narrow browser runtime module referenced by
 # the server-owned Hero shell; keep the release copy explicit.
 COPY js/hero_legacy_cache_guard.js ./js/hero_legacy_cache_guard.js
-# G008 Future30 Hero foundation; the normal-player entitlement gate is a later
-# Phase 3A delta, while this module remains explicitly packaged.
+# G008 Future30 Hero runtime is a server-projection-only isolated presentation.
 COPY js/g008_future30_hero_renderer.js ./js/g008_future30_hero_renderer.js
 COPY schemas/future30_c005_real_asset_runtime_mapping_manifest.json ./schemas/future30_c005_real_asset_runtime_mapping_manifest.json
+# Formal9/D007 presentation runtime: keep the Hero bootstrap, resolver,
+# bridge, mapping and schema closure in the image with the selected GLBs.
+COPY g009_d007_runtime_asset_mapping.py ./
+COPY js/formal_3d_character_equipment_runtime.js \
+     js/player_character_3d_runtime_bridge.js \
+     js/player_appearance_3d_attachment_adapter.js \
+     js/g009_d007_runtime_identity_resolver.mjs \
+     js/g009_formal9_rights_cleared_replacement_catalog.js \
+     js/g009_owner_approved_formal_equipment_mapping.js \
+     js/g009_d_r2_shared_host_bootstrap.js \
+     js/g009_equipment_inventory_projection.js \
+     js/hero_equipment_attachment_adapter.js \
+     js/g009_d007_shared_host_bootstrap.js \
+     js/g009_d007_shared_host_adapter.js \
+     js/g009_shared_hero_attachment_host.js ./js/
+COPY schemas/g009_d007_runtime_prerequisite_v1.json \
+     schemas/g009_formal9_rights_cleared_replacement_v1.json ./schemas/
+COPY assets/3d_shop/p048/runtime_manifest.json ./assets/3d_shop/p048/runtime_manifest.json
 COPY assets/3d_shop/p048/vendor/three.module.js ./assets/3d_shop/p048/vendor/three.module.js
 COPY assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js ./assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js
 COPY assets/3d_shop/p048/vendor/jsm/utils/BufferGeometryUtils.js ./assets/3d_shop/p048/vendor/jsm/utils/BufferGeometryUtils.js
+# Existing D007 Head/Back candidates and the eight non-retired equipment
+# preview assets are needed by the shared Hero host. Candidate image only:
+# this does not grant release, acquisition, or equip eligibility.
+COPY assets/3d_shop/p048/back/B02_Backpack.glb ./assets/3d_shop/p048/back/B02_Backpack.glb
+COPY assets/3d_shop/p048/head/H06_Beanie.glb ./assets/3d_shop/p048/head/H06_Beanie.glb
+COPY assets/3d_shop/p048/head/H06_Frog_Hat.glb ./assets/3d_shop/p048/head/H06_Frog_Hat.glb
+COPY assets/3d_shop/p048/head/H06_Santa_Hat.glb ./assets/3d_shop/p048/head/H06_Santa_Hat.glb
+COPY assets/3d_shop/p048/head/H06_Sunglasses.glb ./assets/3d_shop/p048/head/H06_Sunglasses.glb
+COPY assets/3d_shop/p048/head/H06_Top_Hat.glb ./assets/3d_shop/p048/head/H06_Top_Hat.glb
+COPY assets/3d_shop/formal_character_equipment_v1/weapons/01_wooden_sword.glb ./assets/3d_shop/formal_character_equipment_v1/weapons/01_wooden_sword.glb
+COPY assets/3d_shop/formal_character_equipment_v1/weapons/02_elf_sword.glb ./assets/3d_shop/formal_character_equipment_v1/weapons/02_elf_sword.glb
+COPY assets/3d_shop/formal_character_equipment_v1/weapons/13_hero_sword_01.glb ./assets/3d_shop/formal_character_equipment_v1/weapons/13_hero_sword_01.glb
+COPY assets/3d_shop/formal_character_equipment_v1/weapons/16_small_stick.glb ./assets/3d_shop/formal_character_equipment_v1/weapons/16_small_stick.glb
+COPY assets/3d_shop/formal_character_equipment_v1/weapons/17_army_shield.glb ./assets/3d_shop/formal_character_equipment_v1/weapons/17_army_shield.glb
+COPY assets/3d_shop/formal_character_equipment_v1/weapons/18_army_great_shield.glb ./assets/3d_shop/formal_character_equipment_v1/weapons/18_army_great_shield.glb
+COPY assets/3d_shop/formal_character_equipment_v1/weapons/19_hero_shield_01.glb ./assets/3d_shop/formal_character_equipment_v1/weapons/19_hero_shield_01.glb
+COPY assets/3d_shop/formal_character_equipment_v1/weapons/20_hero_shield_02.glb ./assets/3d_shop/formal_character_equipment_v1/weapons/20_hero_shield_02.glb
 COPY assets/3d_shop/p048/hero/a1_basic_adventurer.glb ./assets/3d_shop/p048/hero/a1_basic_adventurer.glb
 COPY assets/3d_shop/p048/future30/c004/h2_wizard.glb ./assets/3d_shop/p048/future30/c004/h2_wizard.glb
 COPY assets/3d_shop/p048/future30/c004/v3_child.glb ./assets/3d_shop/p048/future30/c004/v3_child.glb
 COPY assets/3d_shop/p048/future30/c005/ ./assets/3d_shop/p048/future30/c005/
+# Companion is a child of the single G008 Hero renderer. Keep its four JS
+# modules, immutable mapping manifest, and all 18 stage GLBs in the same baked
+# runtime closure; this does not create a second renderer or entitlement model.
+COPY js/companion_formal_18_mapping.js \
+     js/g009_companion_child.mjs \
+     js/g009_companion_formal18_assets.mjs \
+     js/g009_companion_formal18_bootstrap.mjs ./js/
+COPY assets/3d_shop/p048/companion/formal_18/ ./assets/3d_shop/p048/companion/formal_18/
+# G009 Formal9 selected replacement GLBs are exact baked runtime fallbacks.
+# This does not change equip, acquisition, shop, drop, or release admission.
+# License archives and conversion provenance are not image payloads.
+COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb ./assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb
+COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb ./assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb
+COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb ./assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb
+COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb ./assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb
 # Zone 4 Owner-final story review is a narrow presentation runtime. Keep its
 # page dependencies explicit in the image so the authenticated route remains
 # restorable when the live-static override is unavailable.

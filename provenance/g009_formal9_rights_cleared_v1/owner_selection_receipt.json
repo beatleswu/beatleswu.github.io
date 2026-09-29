@@ -1,0 +1,35 @@
+{
+  "task_id": "E_G009_FORMAL9_SELECTED_WEAPON_FINALIZATION_001",
+  "OWNER_VISUAL_SELECTION_GATE": "CLOSED",
+  "OWNER_SELECTION_4_OF_4": "YES",
+  "selection_source": "Owner instruction in task E_G009_FORMAL9_SELECTED_WEAPON_FINALIZATION_001 (2026-09-28)",
+  "board_task": "E_G009_FORMAL9_RIGHTS_CLEARED_WEAPON_REPLACEMENT_002",
+  "board_artifact": "https://claude.ai/artifact/2Cpvw1expcUdq1f91VWT3o",
+  "board_html_sha256": "6d8505ac08de943cb9016b0936f3142e8d9d5d402987ff42e51cc31c55441508",
+  "selections": {
+    "IRON_SWORD_SELECTED": "TMP_IRON_SWORD_A",
+    "FOX_FANG_SELECTED": "TMP_FOX_FANG_A",
+    "RIVERSTONE_SABRE_SELECTED": "TMP_RIVERSTONE_SABRE_B",
+    "BAMBOO_SHADOW_BLADE_SELECTED": "TMP_BAMBOO_SHADOW_BLADE_A"
+  },
+  "resolved": {
+    "TMP_IRON_SWORD_A": {
+      "source": "KN_MINIDUNGEON_SWORD",
+      "glb_sha256": "c43e15596ca656355553585e3ac4a398b37a0216471539e8dda6401d67b7580b"
+    },
+    "TMP_FOX_FANG_A": {
+      "source": "KK_DAGGER_A",
+      "glb_sha256": "6f06505a7bed0ea7681216df58d2a89696b2305f9c080b5f0fa4d9fcabc72af0"
+    },
+    "TMP_RIVERSTONE_SABRE_B": {
+      "source": "KK_SWORD_D",
+      "glb_sha256": "ec86ce30e7591bc89badac98a4ed0c00b6614ac8e97b8b79ea734ba7f82c2409"
+    },
+    "TMP_BAMBOO_SHADOW_BLADE_A": {
+      "source": "KK_SWORD_E",
+      "glb_sha256": "c84a8635bed2d2252a6937dbd8837c585872502a4253f549a7b94069e7b776c6"
+    }
+  },
+  "substitution": "NONE",
+  "FUTURE_VISUAL_COLLISION_NOTE": "moonstar_rapier future visual should avoid near-duplicate silhouette (riverstone_sabre uses the rapier-like KayKit sword_D). Documentation only; not a blocker."
+}

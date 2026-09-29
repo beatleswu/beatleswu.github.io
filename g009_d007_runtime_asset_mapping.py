@@ -36,6 +36,17 @@ ADMITTED_ASSET_IDS = frozenset(
         "WEAPON_1B004BE1E816",
     }
 )
+# Formal9 visuals retired by E_G009_FORMAL9_SELECTED_WEAPON_FINALIZATION_001.
+# They stay in the D007 manifest for history only and never resolve here; see
+# schemas/g009_formal9_rights_cleared_replacement_v1.json#/retired_asset_ids.
+RETIRED_FORMAL9_ASSET_IDS = frozenset(
+    {
+        "WEAPON_A7C05D43F943",
+        "WEAPON_A70FD7AB666C",
+        "WEAPON_9CD401DADF4C",
+        "WEAPON_2F4CB085CE4A",
+    }
+)
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -160,6 +171,7 @@ def resolve_g009_runtime_asset(
             for row in rows
             if isinstance(row, Mapping)
             and identifier in {row.get("asset_id"), row.get("server_item_id")}
+            and row.get("asset_id") not in RETIRED_FORMAL9_ASSET_IDS
             and row.get("g009_owner_admission") == OWNER_ADMISSION
             and row.get("release_eligibility") == "NOT_CLEARED"
         ),
@@ -181,6 +193,7 @@ def resolve_current_server_item_id(
 
 __all__ = [
     "ADMITTED_ASSET_IDS",
+    "RETIRED_FORMAL9_ASSET_IDS",
     "G009RuntimeMappingError",
     "load_g009_runtime_mapping",
     "resolve_current_server_item_id",

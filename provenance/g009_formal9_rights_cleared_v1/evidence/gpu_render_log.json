@@ -1,0 +1,51 @@
+{
+  "gpu": [
+    "OPTIX",
+    [
+      "NVIDIA GeForce RTX 2060"
+    ]
+  ],
+  "blender": "5.2.0 LTS",
+  "renders": [
+    "KK_DAGGER_A_1_isolated_34.png",
+    "KK_DAGGER_A_1b_isolated_side.png",
+    "KK_DAGGER_A_2_hero_34.png",
+    "KK_DAGGER_A_3_hero_side.png",
+    "KK_DAGGER_B_1_isolated_34.png",
+    "KK_DAGGER_B_1b_isolated_side.png",
+    "KK_DAGGER_B_2_hero_34.png",
+    "KK_DAGGER_B_3_hero_side.png",
+    "KK_SWORD_A_1_isolated_34.png",
+    "KK_SWORD_A_1b_isolated_side.png",
+    "KK_SWORD_A_2_hero_34.png",
+    "KK_SWORD_A_3_hero_side.png",
+    "KK_SWORD_B_1_isolated_34.png",
+    "KK_SWORD_B_1b_isolated_side.png",
+    "KK_SWORD_B_2_hero_34.png",
+    "KK_SWORD_B_3_hero_side.png",
+    "KK_SWORD_C_1_isolated_34.png",
+    "KK_SWORD_C_1b_isolated_side.png",
+    "KK_SWORD_C_2_hero_34.png",
+    "KK_SWORD_C_3_hero_side.png",
+    "KK_SWORD_D_1_isolated_34.png",
+    "KK_SWORD_D_1b_isolated_side.png",
+    "KK_SWORD_D_2_hero_34.png",
+    "KK_SWORD_D_3_hero_side.png",
+    "KK_SWORD_E_1_isolated_34.png",
+    "KK_SWORD_E_1b_isolated_side.png",
+    "KK_SWORD_E_2_hero_34.png",
+    "KK_SWORD_E_3_hero_side.png",
+    "KN_MINIARENA_SWORD_1_isolated_34.png",
+    "KN_MINIARENA_SWORD_1b_isolated_side.png",
+    "KN_MINIARENA_SWORD_2_hero_34.png",
+    "KN_MINIARENA_SWORD_3_hero_side.png",
+    "KN_MINIDUNGEON_SWORD_1_isolated_34.png",
+    "KN_MINIDUNGEON_SWORD_1b_isolated_side.png",
+    "KN_MINIDUNGEON_SWORD_2_hero_34.png",
+    "KN_MINIDUNGEON_SWORD_3_hero_side.png",
+    "KN_PROTOTYPE_SWORD_1_isolated_34.png",
+    "KN_PROTOTYPE_SWORD_1b_isolated_side.png",
+    "KN_PROTOTYPE_SWORD_2_hero_34.png",
+    "KN_PROTOTYPE_SWORD_3_hero_side.png"
+  ]
+}

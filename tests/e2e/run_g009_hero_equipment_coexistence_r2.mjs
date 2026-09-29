@@ -6,6 +6,7 @@ import { createG009RuntimeEquipmentIndex, resolveG009RuntimeEquipmentIdentity } 
 import { resolveG009OwnerApprovedRuntimeEquipmentIdentity } from "../../js/g009_owner_approved_formal_equipment_mapping.js";
 import { projectServerEquippedHandItems } from "../../js/g009_equipment_inventory_projection.js";
 import { createHeroEquipmentAttachmentAdapter } from "../../js/hero_equipment_attachment_adapter.js";
+import { G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED } from "../../js/g009_formal9_rights_cleared_replacement_catalog.js";
 
 const g008 = JSON.parse(await readFile(
   new URL("../../schemas/future30_c005_real_asset_runtime_mapping_manifest.json", import.meta.url),
@@ -28,7 +29,8 @@ const equipmentIndex = createG009RuntimeEquipmentIndex(d007Schema);
 const resolveCurrentServerItem = (itemId, slot) => {
   const row = resolveG009OwnerApprovedRuntimeEquipmentIdentity(equipmentIndex, itemId, slot);
   if (!row || row.server_item_id !== itemId || row.slot !== slot
-    || row.equip_capability !== false || row.release_eligibility !== "NOT_CLEARED") return null;
+    || row.equip_capability !== false
+    || !["NOT_CLEARED", G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED].includes(row.release_eligibility)) return null;
   return { ...row, presentation_id: row.asset_id, slot: row.slot };
 };
 const wooden = projectServerEquippedHandItems([
@@ -40,7 +42,9 @@ const iron = projectServerEquippedHandItems([
   { item_id: "iron_sword", slot: "weapon", equipped: true },
 ], resolveCurrentServerItem);
 assert.equal(iron.slots[0].status, "resolved");
-assert.equal(iron.slots[0].descriptor.asset_id, "WEAPON_A7C05D43F943");
+assert.equal(iron.slots[0].descriptor.asset_id, "WEAPON_C43E15596CA6");
+assert.equal(iron.slots[0].descriptor.rights.RIGHTS_STATUS, "RIGHTS_CLEARED");
+assert.equal(iron.slots[0].descriptor.release_eligibility, G009_RIGHTS_CLEARED_RELEASE_NOT_ADMITTED);
 assert.equal(wooden.slots[1].status, "empty");
 assert.equal(projectServerEquippedHandItems([
   { item_id: "dragon_claw", slot: "weapon", equipped: true },

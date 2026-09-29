@@ -1,0 +1,239 @@
+{
+  "contract_version": "GO_ODYSSEY_G009_FORMAL9_RIGHTS_CLEARED_REPLACEMENT_V1",
+  "authority": {
+    "task_id": "E_G009_FORMAL9_SELECTED_WEAPON_FINALIZATION_001",
+    "owner_selection": "4_OF_4",
+    "provenance": "provenance/g009_formal9_rights_cleared_v1/final_asset_manifest.json"
+  },
+  "release_eligibility_value": "RIGHTS_CLEARED_RELEASE_NOT_ADMITTED",
+  "rights": {
+    "RIGHTS_STATUS": "RIGHTS_CLEARED",
+    "LICENSE_TYPE": "CC0-1.0",
+    "EQUIP_ENABLED": false,
+    "SHOP_ENABLED": false,
+    "PURCHASE_ENABLED": false,
+    "DROP_ENABLED": false,
+    "PLAYER_SELECTABLE": false,
+    "RELEASE_ENABLED": false,
+    "PRODUCTION_ASSET_ADMISSION": false
+  },
+  "mapping": [
+    {
+      "server_item_id": "iron_sword",
+      "asset_id": "WEAPON_C43E15596CA6"
+    },
+    {
+      "server_item_id": "fox_fang",
+      "asset_id": "WEAPON_6F06505A7BED"
+    },
+    {
+      "server_item_id": "riverstone_sabre",
+      "asset_id": "WEAPON_EC86CE30E759"
+    },
+    {
+      "server_item_id": "bamboo_shadow_blade",
+      "asset_id": "WEAPON_C84A8635BED2"
+    }
+  ],
+  "items": [
+    {
+      "server_item_id": "iron_sword",
+      "asset_id": "WEAPON_C43E15596CA6",
+      "runtime_asset": "/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb",
+      "runtime_sha256": "c43e15596ca656355553585e3ac4a398b37a0216471539e8dda6401d67b7580b",
+      "slot": "MAIN_HAND",
+      "socket": "hand.R",
+      "presentation_class": "ONE_HAND",
+      "position": [
+        0.1,
+        0.02,
+        0.04
+      ],
+      "rotation": [
+        0,
+        0,
+        -1.57079633
+      ],
+      "scale": [
+        0.234,
+        0.234,
+        0.234
+      ],
+      "equip_capability": false,
+      "release_eligibility": "RIGHTS_CLEARED_RELEASE_NOT_ADMITTED",
+      "rights": {
+        "RIGHTS_STATUS": "RIGHTS_CLEARED",
+        "LICENSE_TYPE": "CC0-1.0",
+        "EQUIP_ENABLED": false,
+        "SHOP_ENABLED": false,
+        "PURCHASE_ENABLED": false,
+        "DROP_ENABLED": false,
+        "PLAYER_SELECTABLE": false,
+        "RELEASE_ENABLED": false,
+        "PRODUCTION_ASSET_ADMISSION": false
+      }
+    },
+    {
+      "server_item_id": "fox_fang",
+      "asset_id": "WEAPON_6F06505A7BED",
+      "runtime_asset": "/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb",
+      "runtime_sha256": "6f06505a7bed0ea7681216df58d2a89696b2305f9c080b5f0fa4d9fcabc72af0",
+      "slot": "MAIN_HAND",
+      "socket": "hand.R",
+      "presentation_class": "KNIFE_SMALL",
+      "position": [
+        0.1,
+        0.02,
+        0.04
+      ],
+      "rotation": [
+        0,
+        0,
+        -1.57079633
+      ],
+      "scale": [
+        0.234,
+        0.234,
+        0.234
+      ],
+      "equip_capability": false,
+      "release_eligibility": "RIGHTS_CLEARED_RELEASE_NOT_ADMITTED",
+      "rights": {
+        "RIGHTS_STATUS": "RIGHTS_CLEARED",
+        "LICENSE_TYPE": "CC0-1.0",
+        "EQUIP_ENABLED": false,
+        "SHOP_ENABLED": false,
+        "PURCHASE_ENABLED": false,
+        "DROP_ENABLED": false,
+        "PLAYER_SELECTABLE": false,
+        "RELEASE_ENABLED": false,
+        "PRODUCTION_ASSET_ADMISSION": false
+      }
+    },
+    {
+      "server_item_id": "riverstone_sabre",
+      "asset_id": "WEAPON_EC86CE30E759",
+      "runtime_asset": "/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb",
+      "runtime_sha256": "ec86ce30e7591bc89badac98a4ed0c00b6614ac8e97b8b79ea734ba7f82c2409",
+      "slot": "MAIN_HAND",
+      "socket": "hand.R",
+      "presentation_class": "ONE_HAND",
+      "position": [
+        0.1,
+        0.02,
+        0.04
+      ],
+      "rotation": [
+        0,
+        0,
+        -1.57079633
+      ],
+      "scale": [
+        0.234,
+        0.234,
+        0.234
+      ],
+      "equip_capability": false,
+      "release_eligibility": "RIGHTS_CLEARED_RELEASE_NOT_ADMITTED",
+      "rights": {
+        "RIGHTS_STATUS": "RIGHTS_CLEARED",
+        "LICENSE_TYPE": "CC0-1.0",
+        "EQUIP_ENABLED": false,
+        "SHOP_ENABLED": false,
+        "PURCHASE_ENABLED": false,
+        "DROP_ENABLED": false,
+        "PLAYER_SELECTABLE": false,
+        "RELEASE_ENABLED": false,
+        "PRODUCTION_ASSET_ADMISSION": false
+      }
+    },
+    {
+      "server_item_id": "bamboo_shadow_blade",
+      "asset_id": "WEAPON_C84A8635BED2",
+      "runtime_asset": "/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb",
+      "runtime_sha256": "c84a8635bed2d2252a6937dbd8837c585872502a4253f549a7b94069e7b776c6",
+      "slot": "MAIN_HAND",
+      "socket": "hand.R",
+      "presentation_class": "ONE_HAND",
+      "position": [
+        0.1,
+        0.02,
+        0.04
+      ],
+      "rotation": [
+        0,
+        0,
+        -1.57079633
+      ],
+      "scale": [
+        0.234,
+        0.234,
+        0.234
+      ],
+      "equip_capability": false,
+      "release_eligibility": "RIGHTS_CLEARED_RELEASE_NOT_ADMITTED",
+      "rights": {
+        "RIGHTS_STATUS": "RIGHTS_CLEARED",
+        "LICENSE_TYPE": "CC0-1.0",
+        "EQUIP_ENABLED": false,
+        "SHOP_ENABLED": false,
+        "PURCHASE_ENABLED": false,
+        "DROP_ENABLED": false,
+        "PLAYER_SELECTABLE": false,
+        "RELEASE_ENABLED": false,
+        "PRODUCTION_ASSET_ADMISSION": false
+      }
+    }
+  ],
+  "intentionally_unmapped_item_ids": [
+    "dragon_claw",
+    "celestial_blade",
+    "moonstar_rapier",
+    "emberline_cutlass",
+    "starglass_needle"
+  ],
+  "wooden_sword": {
+    "server_item_id": "wooden_sword",
+    "asset_id": "WEAPON_628812E9B559",
+    "status": "UNCHANGED_D007_CURRENT_SERVER_ID"
+  },
+  "retired_asset_ids": [
+    "WEAPON_A7C05D43F943",
+    "WEAPON_A70FD7AB666C",
+    "WEAPON_9CD401DADF4C",
+    "WEAPON_2F4CB085CE4A"
+  ],
+  "retirement_map": [
+    {
+      "old_asset_id": "WEAPON_A7C05D43F943",
+      "former_formal9_item": "iron_sword",
+      "replaced_by_asset_id": "WEAPON_C43E15596CA6",
+      "status": "RETIRED_HISTORICAL_ONLY",
+      "alias_to_new_bytes": false
+    },
+    {
+      "old_asset_id": "WEAPON_A70FD7AB666C",
+      "former_formal9_item": "fox_fang",
+      "replaced_by_asset_id": "WEAPON_6F06505A7BED",
+      "status": "RETIRED_HISTORICAL_ONLY",
+      "alias_to_new_bytes": false
+    },
+    {
+      "old_asset_id": "WEAPON_9CD401DADF4C",
+      "former_formal9_item": "riverstone_sabre",
+      "replaced_by_asset_id": "WEAPON_EC86CE30E759",
+      "status": "RETIRED_HISTORICAL_ONLY",
+      "alias_to_new_bytes": false
+    },
+    {
+      "old_asset_id": "WEAPON_2F4CB085CE4A",
+      "former_formal9_item": "bamboo_shadow_blade",
+      "replaced_by_asset_id": "WEAPON_C84A8635BED2",
+      "status": "RETIRED_HISTORICAL_ONLY",
+      "alias_to_new_bytes": false
+    }
+  ],
+  "notes": {
+    "FUTURE_VISUAL_COLLISION_NOTE": "moonstar_rapier future visual should avoid near-duplicate silhouette (riverstone_sabre uses the rapier-like KayKit sword_D). Documentation only; not a blocker."
+  }
+}

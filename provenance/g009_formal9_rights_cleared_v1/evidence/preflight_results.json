@@ -1,0 +1,1003 @@
+{
+  "gpu": "ANGLE (Intel, Intel(R) UHD Graphics 630 (0x00009BC5) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "three_revision": "160",
+  "hero": {
+    "file": "hero/a1_basic_adventurer.glb",
+    "sha256": "ad6c0f6d96140bba2cee3033da2af45a7c583fdf5ac82990b8431acdea04d040",
+    "height_units": 5,
+    "hand_bone": "handR",
+    "pose": "bind",
+    "root_world_matrix": [
+      1.0000002410285531,
+      0,
+      0,
+      0,
+      0,
+      1.0000002410285531,
+      0,
+      0,
+      0,
+      0,
+      1.0000002410285531,
+      0,
+      7.805631985213779e-8,
+      -3.3064461579801474e-7,
+      -0.000001067250471886716,
+      1
+    ]
+  },
+  "main_hand_transform": {
+    "position": [
+      0.1,
+      0.02,
+      0.04
+    ],
+    "rotation": [
+      0,
+      0,
+      -1.57079633
+    ],
+    "scale": 0.234
+  },
+  "camera": {
+    "fov": 30,
+    "size": [
+      900,
+      900
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "KK_DAGGER_A",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "6f06505a7bed0ea7681216df58d2a89696b2305f9c080b5f0fa4d9fcabc72af0",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.002426347450764,
+      "equipped_length_to_hero_height": 0.2004852694901528,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KK_DAGGER_B",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "bf236670dd58a128ae999f00d0444f203c4babf3f652de9ecdf969dc4d7b8182",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.001117940131083,
+      "equipped_length_to_hero_height": 0.2002235880262166,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KK_SWORD_A",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "e81256b88ecb80451a4524074f2d051f04bd0e30a96bf95bfec5ed8aae272d03",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.4252532432286742,
+      "equipped_length_to_hero_height": 0.2850506486457348,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KK_SWORD_B",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "0faa686a34ae3acb7ec1656ad58c6ce35db7bb013397007434e18f37f70d23ab",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.424981914725274,
+      "equipped_length_to_hero_height": 0.2849963829450548,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KK_SWORD_C",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "db2b412bb7d0129690f4342858e421168489cdd0c1499dc1799d2c44a40a7867",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.4241525858367385,
+      "equipped_length_to_hero_height": 0.2848305171673477,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KK_SWORD_D",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "ec86ce30e7591bc89badac98a4ed0c00b6614ac8e97b8b79ea734ba7f82c2409",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.4317079843458278,
+      "equipped_length_to_hero_height": 0.28634159686916555,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KK_SWORD_E",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "c84a8635bed2d2252a6937dbd8837c585872502a4253f549a7b94069e7b776c6",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.424913413837908,
+      "equipped_length_to_hero_height": 0.2849826827675816,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KN_MINIARENA_SWORD",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "46efdf760ceb76828b2734fd22423543b66d7dfcda15cad071f7e87dd59d7591",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.428046426294113,
+      "equipped_length_to_hero_height": 0.2856092852588226,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KN_MINIDUNGEON_SWORD",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "c43e15596ca656355553585e3ac4a398b37a0216471539e8dda6401d67b7580b",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.4348383997050211,
+      "equipped_length_to_hero_height": 0.28696767994100425,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    },
+    {
+      "candidate_id": "KN_PROTOTYPE_SWORD",
+      "checks": {
+        "SHA256_MATCH": true,
+        "GLB_STRUCTURE_PASS": true,
+        "LOAD_PASS": true,
+        "MATERIAL_PASS": true,
+        "HERO_ATTACH_PASS": true,
+        "MAIN_HAND_OR_EXPECTED_SLOT_PASS": true,
+        "SIZE_REASONABLE": true,
+        "DESTROY_REMOUNT_PASS": true,
+        "SINGLE_RENDERER_PASS": true,
+        "NO_CONSOLE_FATAL_ERROR": true
+      },
+      "sha256": "1061c88d56bb35aea44694a489857dab0c793d5b5d0e61a6aa8e279642307008",
+      "structure": {
+        "magic": true,
+        "version": 2,
+        "length_ok": true,
+        "json_chunk": true,
+        "asset_version": "2.0",
+        "generator": "Khronos glTF Blender I/O v5.2.39",
+        "meshes": 1,
+        "materials": 1,
+        "images": 1,
+        "external_uris": 0,
+        "cameras": 0,
+        "skins": 0,
+        "animations": 0,
+        "extensionsRequired": [],
+        "pass": true
+      },
+      "mesh_count": 1,
+      "isolated_world_matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.4,
+        0,
+        1
+      ],
+      "equipped_world_matrix": [
+        0.6311057278188745,
+        0.002202952653611948,
+        -0.02070847637198483,
+        0,
+        -0.002951515673100977,
+        0.6310296318854524,
+        -0.022820229826526196,
+        0,
+        0.020615108214033912,
+        0.022904617612228555,
+        0.6306967296450605,
+        0,
+        -1.9610866768287016,
+        2.9016788987266695,
+        0.008480923725888975,
+        1
+      ],
+      "equipped_world_length": 1.4517293115523309,
+      "equipped_length_to_hero_height": 0.29034586231046616,
+      "origin_to_hand_distance": 0.2956058865604992,
+      "lifecycle": {
+        "base": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterDestroy": {
+          "geometries": 5,
+          "textures": 2
+        },
+        "afterSecond": {
+          "geometries": 5,
+          "textures": 2
+        }
+      },
+      "console_errors": [],
+      "fatal_errors": [],
+      "preflight_pass": true
+    }
+  ],
+  "views": {
+    "isolated_34": {
+      "pos": [
+        3.4,
+        3.2,
+        5.2
+      ],
+      "target": [
+        0,
+        2.1,
+        0
+      ]
+    },
+    "isolated_side": {
+      "pos": [
+        6.2,
+        2.4,
+        0
+      ],
+      "target": [
+        0,
+        2.1,
+        0
+      ]
+    },
+    "hero_34": {
+      "pos": [
+        3.2,
+        4,
+        7
+      ],
+      "target": [
+        -0.9,
+        2.9,
+        0
+      ]
+    },
+    "hero_side": {
+      "pos": [
+        -7.4,
+        3.4,
+        1.2
+      ],
+      "target": [
+        -1.2,
+        2.9,
+        0
+      ]
+    }
+  },
+  "renderer_count": 1,
+  "canvas_count": 1
+}

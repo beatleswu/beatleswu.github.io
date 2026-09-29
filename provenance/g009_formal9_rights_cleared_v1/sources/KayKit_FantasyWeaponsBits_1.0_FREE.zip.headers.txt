@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Date: Sun, 27 Sep 2026 23:29:29 GMT
+Content-Type: application/x-zip-compressed
+Content-Length: 3375694
+Connection: keep-alive
+Accept-Ranges: bytes
+Content-Disposition: attachment; filename="KayKit_FantasyWeaponsBits_1.0_FREE.zip"
+ETag: "ab98ed2f76115581d74c1d7f90f8816e"
+Last-Modified: Thu, 19 Feb 2026 16:22:18 GMT
+Server: cloudflare
+CF-RAY: a41e4a6c8f0e4a3a-TPE
+

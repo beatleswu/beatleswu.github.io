@@ -1,0 +1,329 @@
+{
+  "tool": "Blender 5.2.0 LTS (background, --factory-startup)",
+  "script": "D:\\go-website-g009-formal9-weapon-candidates-002\\tools\\normalize_candidates.py",
+  "script_sha256": "6985ab5d410cd04e6b56b29d4aba2ea1b9d96ae7b883bbe9e44cd843cd29c7b7",
+  "settings": {
+    "import": "bpy.ops.import_scene.gltf defaults",
+    "join_meshes": true,
+    "apply_transforms": true,
+    "orientation": "longest axis -> Blender +Z (glTF +Y); blade tip up (widest cross-section = guard end = down)",
+    "origin": "grip point = guard - 0.35*(guard - pommel) on blade axis",
+    "short_axes": "centered on blade axis",
+    "scale": "uniform; sword overall length 2.25, dagger 1.58 (matches retired D007 role lengths)",
+    "export": "GLB, export_yup, apply modifiers, no cameras/lights/animations/skins/morphs, materials exported, images AUTO",
+    "artistic_changes": "NONE (no remodel, recolor, retexture, decimation)"
+  },
+  "runtime_attachment_used_in_preflight": {
+    "position": [
+      0.1,
+      0.02,
+      0.04
+    ],
+    "rotation": [
+      0,
+      0,
+      -1.57079633
+    ],
+    "scale": 0.234
+  },
+  "items": [
+    {
+      "candidate_id": "KN_MINIDUNGEON_SWORD",
+      "provider": "Kenney",
+      "pack": "Mini Dungeon",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kenney_mini-dungeon\\Models\\GLB format\\weapon-sword.glb",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": false,
+      "uniform_scale_factor": 5.02180572653686,
+      "target_length_units": 2.25,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 150,
+      "triangles": 80,
+      "materials": 1,
+      "bbox_min": [
+        -0.5849399566650391,
+        -0.27165961265563965,
+        -0.3107812702655792
+      ],
+      "bbox_max": [
+        0.5849399566650391,
+        0.27165961265563965,
+        1.9392187595367432
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KN_MINIDUNGEON_SWORD.glb"
+    },
+    {
+      "candidate_id": "KN_MINIARENA_SWORD",
+      "provider": "Kenney",
+      "pack": "Mini Arena",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kenney_mini-arena\\Models\\GLB format\\weapon-sword.glb",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": true,
+      "uniform_scale_factor": 4.491017879117767,
+      "target_length_units": 2.25,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 150,
+      "triangles": 80,
+      "materials": 1,
+      "bbox_min": [
+        -0.4670659005641937,
+        -0.13473059237003326,
+        -0.3839062452316284
+      ],
+      "bbox_max": [
+        0.4670659005641937,
+        0.13473063707351685,
+        1.8660937547683716
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KN_MINIARENA_SWORD.glb"
+    },
+    {
+      "candidate_id": "KN_PROTOTYPE_SWORD",
+      "provider": "Kenney",
+      "pack": "Prototype Kit",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kenney_prototype-kit\\Models\\GLB format\\weapon-sword.glb",
+      "long_axis_in_source": "X",
+      "flipped_blade_up": true,
+      "uniform_scale_factor": 4.5,
+      "target_length_units": 2.25,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 92,
+      "triangles": 48,
+      "materials": 1,
+      "bbox_min": [
+        -0.2250000387430191,
+        -0.6750000715255737,
+        -0.3839062452316284
+      ],
+      "bbox_max": [
+        0.2250000536441803,
+        0.675000011920929,
+        1.8660938739776611
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KN_PROTOTYPE_SWORD.glb"
+    },
+    {
+      "candidate_id": "KK_SWORD_A",
+      "provider": "KayKit",
+      "pack": "Fantasy Weapons Bits",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_A.gltf",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": false,
+      "uniform_scale_factor": 1.268423131429619,
+      "target_length_units": 2.25,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 367,
+      "triangles": 292,
+      "materials": 1,
+      "bbox_min": [
+        -0.3854410946369171,
+        -0.08160746842622757,
+        -0.4570312201976776
+      ],
+      "bbox_max": [
+        0.3854410946369171,
+        0.08160736411809921,
+        1.79296875
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_SWORD_A.glb"
+    },
+    {
+      "candidate_id": "KK_SWORD_B",
+      "provider": "KayKit",
+      "pack": "Fantasy Weapons Bits",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_B.gltf",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": false,
+      "uniform_scale_factor": 1.2600893474988808,
+      "target_length_units": 2.25,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 546,
+      "triangles": 460,
+      "materials": 1,
+      "bbox_min": [
+        -0.3848934769630432,
+        -0.0757354348897934,
+        -0.4204687774181366
+      ],
+      "bbox_max": [
+        0.3848934769630432,
+        0.0757354348897934,
+        1.8295313119888306
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_SWORD_B.glb"
+    },
+    {
+      "candidate_id": "KK_SWORD_C",
+      "provider": "KayKit",
+      "pack": "Fantasy Weapons Bits",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_C.gltf",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": false,
+      "uniform_scale_factor": 1.0567501532374024,
+      "target_length_units": 2.25,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 465,
+      "triangles": 349,
+      "materials": 1,
+      "bbox_min": [
+        -0.14022527635097504,
+        -0.08116310089826584,
+        -0.45703125
+      ],
+      "bbox_max": [
+        0.14022527635097504,
+        0.08116310089826584,
+        1.7929688692092896
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_SWORD_C.glb"
+    },
+    {
+      "candidate_id": "KK_SWORD_D",
+      "provider": "KayKit",
+      "pack": "Fantasy Weapons Bits",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_D.gltf",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": false,
+      "uniform_scale_factor": 1.1039476853404524,
+      "target_length_units": 2.25,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 675,
+      "triangles": 730,
+      "materials": 1,
+      "bbox_min": [
+        -0.3946189284324646,
+        -0.22163115441799164,
+        -0.38390621542930603
+      ],
+      "bbox_max": [
+        0.3946189284324646,
+        0.22163112461566925,
+        1.866093635559082
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_SWORD_D.glb"
+    },
+    {
+      "candidate_id": "KK_SWORD_E",
+      "provider": "KayKit",
+      "pack": "Fantasy Weapons Bits",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\sword_E.gltf",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": false,
+      "uniform_scale_factor": 0.6919485959746233,
+      "target_length_units": 2.25,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 818,
+      "triangles": 616,
+      "materials": 1,
+      "bbox_min": [
+        -0.30427756905555725,
+        -0.0819949060678482,
+        -0.3839062452316284
+      ],
+      "bbox_max": [
+        0.30427756905555725,
+        0.0819949060678482,
+        1.8660937547683716
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_SWORD_E.glb"
+    },
+    {
+      "candidate_id": "KK_DAGGER_A",
+      "provider": "KayKit",
+      "pack": "Fantasy Weapons Bits",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\dagger_A.gltf",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": false,
+      "uniform_scale_factor": 1.2264291906048903,
+      "target_length_units": 1.58,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 476,
+      "triangles": 374,
+      "materials": 1,
+      "bbox_min": [
+        -0.2688036859035492,
+        -0.0920150876045227,
+        -0.29526251554489136
+      ],
+      "bbox_max": [
+        0.2688036859035492,
+        0.0920150876045227,
+        1.2847375869750977
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_DAGGER_A.glb"
+    },
+    {
+      "candidate_id": "KK_DAGGER_B",
+      "provider": "KayKit",
+      "pack": "Fantasy Weapons Bits",
+      "source_model_file": "D:\\go-website-g009-formal9-weapon-candidates-002\\extracted\\kaykit_fantasy_weapons_bits\\KayKit_FantasyWeaponsBits_1.0_FREE\\Assets\\gltf\\dagger_B.gltf",
+      "long_axis_in_source": "Z",
+      "flipped_blade_up": false,
+      "uniform_scale_factor": 1.1624030036723698,
+      "target_length_units": 1.58,
+      "grip_origin_rule": "origin = guard - 0.35*(guard - pommel) on blade axis; blade axis = Blender +Z = glTF +Y",
+      "vertices": 531,
+      "triangles": 502,
+      "materials": 1,
+      "bbox_min": [
+        -0.34674543142318726,
+        -0.055958252400159836,
+        -0.5006625056266785
+      ],
+      "bbox_max": [
+        0.34674543142318726,
+        0.055958252400159836,
+        1.079337477684021
+      ],
+      "output_glb": "D:\\go-website-g009-formal9-weapon-candidates-002\\candidates\\KK_DAGGER_B.glb"
+    }
+  ],
+  "gpu_renders": {
+    "tool": "Blender Cycles",
+    "devices": [
+      "OPTIX",
+      [
+        "NVIDIA GeForce RTX 2060"
+      ]
+    ],
+    "script": "D:\\go-website-g009-formal9-weapon-candidates-002\\tools\\render_board_gpu.py",
+    "script_sha256": "bd22ab1745a1f1d394c5421ffaa11a452ac1a80a5f796d1feb7bb6fc982fc807",
+    "samples": 48,
+    "resolution": [
+      900,
+      900
+    ],
+    "placement_source": "three.js preflight world matrices (identical Hero, camera, lights, background)"
+  },
+  "preflight_runtime": {
+    "page": "D:\\go-website-g009-formal9-weapon-candidates-002\\board\\preflight.html",
+    "page_sha256": "e2273fbab76926dab0976ee2c3a1cc623c1aad90111e96d0aa26cccdc89abf75",
+    "three_revision": "160",
+    "webgl_renderer": "ANGLE (Intel, Intel(R) UHD Graphics 630 (0x00009BC5) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "hero": {
+      "file": "hero/a1_basic_adventurer.glb",
+      "sha256": "ad6c0f6d96140bba2cee3033da2af45a7c583fdf5ac82990b8431acdea04d040",
+      "height_units": 5,
+      "hand_bone": "handR",
+      "pose": "bind",
+      "root_world_matrix": [
+        1.0000002410285531,
+        0,
+        0,
+        0,
+        0,
+        1.0000002410285531,
+        0,
+        0,
+        0,
+        0,
+        1.0000002410285531,
+        0,
+        7.805631985213779e-08,
+        -3.3064461579801474e-07,
+        -1.067250471886716e-06,
+        1
+      ]
+    }
+  }
+}

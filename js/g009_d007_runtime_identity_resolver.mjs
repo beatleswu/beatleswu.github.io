@@ -1,3 +1,4 @@
+import { isG009RetiredFormalAssetId } from "./g009_formal9_rights_cleared_replacement_catalog.js";
 const OWNER_ADMISSION = "APPROVED_FOR_CURRENT_G009_CANDIDATE";
 const CONTRACT = "GO_ODYSSEY_G009_D007_RUNTIME_PREREQUISITE_V1";
 const SHA256 = /^[a-f0-9]{64}$/i;
@@ -106,5 +107,8 @@ export function resolveG009RuntimeEquipmentIdentity(
   }
   const row = index.byServerItemId.get(identifier)
     || (allowAssetId ? index.byAssetId.get(identifier) : null);
-  return row ? { ...row } : null;
+  // Retired formal9 visuals stay in the D007 catalog for history only; they
+  // are never an active resolution, by item ID or by asset ID.
+  if (!row || isG009RetiredFormalAssetId(row.asset_id)) return null;
+  return { ...row };
 }
