@@ -30,6 +30,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # application modules otherwise retain their ordinary Git lineage. Every COPY
 # here must also stay in sync with deploy/build-manifest.json's tracked inputs.
 COPY app.py ./
+# G008 Future30 canonical catalog/service foundation.
+COPY future30_character_registry.py ./
+COPY future30_character_service.py ./
+COPY migrations/future30_character_catalog_v1.py ./migrations/future30_character_catalog_v1.py
+COPY scripts/g008_character_catalog_successor_migrate.py ./scripts/g008_character_catalog_successor_migrate.py
+COPY scripts/g008_character_catalog_successor_schema_check.py ./scripts/g008_character_catalog_successor_schema_check.py
 # ACT-F Activation R1 runtime dependency closure. These are explicit copies;
 # the migration candidate remains separately reviewable and is not runtime
 # imported by the application.
@@ -324,6 +330,17 @@ COPY js/game/cinematic_replay.js ./js/game/cinematic_replay.js
 # A041 Hero legacy-cache guard is a narrow browser runtime module referenced by
 # the server-owned Hero shell; keep the release copy explicit.
 COPY js/hero_legacy_cache_guard.js ./js/hero_legacy_cache_guard.js
+# G008 Future30 Hero foundation; the normal-player entitlement gate is a later
+# Phase 3A delta, while this module remains explicitly packaged.
+COPY js/g008_future30_hero_renderer.js ./js/g008_future30_hero_renderer.js
+COPY schemas/future30_c005_real_asset_runtime_mapping_manifest.json ./schemas/future30_c005_real_asset_runtime_mapping_manifest.json
+COPY assets/3d_shop/p048/vendor/three.module.js ./assets/3d_shop/p048/vendor/three.module.js
+COPY assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js ./assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js
+COPY assets/3d_shop/p048/vendor/jsm/utils/BufferGeometryUtils.js ./assets/3d_shop/p048/vendor/jsm/utils/BufferGeometryUtils.js
+COPY assets/3d_shop/p048/hero/a1_basic_adventurer.glb ./assets/3d_shop/p048/hero/a1_basic_adventurer.glb
+COPY assets/3d_shop/p048/future30/c004/h2_wizard.glb ./assets/3d_shop/p048/future30/c004/h2_wizard.glb
+COPY assets/3d_shop/p048/future30/c004/v3_child.glb ./assets/3d_shop/p048/future30/c004/v3_child.glb
+COPY assets/3d_shop/p048/future30/c005/ ./assets/3d_shop/p048/future30/c005/
 # Zone 4 Owner-final story review is a narrow presentation runtime. Keep its
 # page dependencies explicit in the image so the authenticated route remains
 # restorable when the live-static override is unavailable.

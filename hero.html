@@ -735,6 +735,17 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   position: relative;
   z-index: 2;
 }
+.g008-future30-hero-stage {
+  position: absolute; inset: 0; width: 100%; height: 100%; display: none;
+  z-index: 20; pointer-events: none; border-radius: inherit; overflow: hidden;
+}
+.g008-future30-hero-stage[data-state="loading"],
+.g008-future30-hero-stage[data-state="ready"] { display: block; }
+.g008-future30-hero-stage canvas { width: 100%; height: 100%; display: block; }
+.char-avatar[data-g008-future30-render="ready"] #char-fullbody-avatar-img,
+.char-avatar[data-g008-future30-render="ready"] .combat-gear-layer,
+.char-avatar[data-g008-future30-render="ready"] .functional-wearable-stack,
+.char-avatar[data-g008-future30-render="ready"] .rpg-wearable-stage { visibility: hidden !important; }
 .combat-gear-layer {
   position: absolute;
   display: none;
@@ -1797,6 +1808,9 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
     }
 </style>
 <script src="/pwa.js"></script>
+<script type="importmap">
+{"imports":{"three":"/assets/3d_shop/p048/vendor/three.module.js"}}
+</script>
 </head>
 <body data-hero-tab="hero" data-loadout-effective="off">
 
@@ -1847,6 +1861,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
           <div class="char-aura-ring" id="char-aura-ring"></div>
           <div class="char-avatar-ring" id="char-avatar-ring"></div>
           <div class="char-avatar" id="char-avatar" data-av-type="fullbody">
+            <div class="g008-future30-hero-stage" id="g008-future30-hero-stage" data-state="inactive" aria-hidden="true"></div>
             <div class="functional-wearable-stack back" id="char-functional-wearable-back" aria-hidden="true"></div>
             <img class="combat-gear-layer aura" id="char-aura-layer" alt="">
             <img class="combat-gear-layer cape" id="char-cape-layer" alt="">
@@ -5494,6 +5509,7 @@ function launchGoldConfetti() {
   }
 })();
 </script>
+<script type="module" src="/js/g008_future30_hero_renderer.js"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>
 </body>
 </html>

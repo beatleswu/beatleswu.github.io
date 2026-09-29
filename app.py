@@ -7,6 +7,7 @@ _startup_diagnostics.start_delayed_snapshots()
 
 from flask import (Flask, jsonify, send_from_directory, request,
                    session, redirect, Response, send_file, abort)
+import click
 from flask import g as flask_g
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -32,6 +33,25 @@ import random, string
 import hashlib
 import urllib.request
 import urllib.error
+from future30_character_registry import (
+    FUTURE30_CHARACTER_KEYS,
+    FUTURE30_CHARACTER_REGISTRY_VALID,
+    is_future30_character_key,
+)
+from future30_character_service import (
+    Future30AcquisitionRejected,
+    Future30CatalogUnavailable,
+    Future30CharacterNotEntitled,
+    Future30ServiceError,
+    Future30UnknownCharacter,
+    apply_future30_character,
+    catalog_payload as future30_catalog_payload,
+    grant_future30_character,
+    initialize_future30_catalog,
+    list_future30_entitlements,
+    project_applied_character,
+)
+from migrations.future30_character_catalog_v1 import upgrade as upgrade_future30_character_schema
 try:
     from flask_compress import Compress as _FlaskCompress
     _has_compress = True
@@ -545,6 +565,10 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=_site_url_for_cookie.startswith('https://'),
+    APP_ENV=(os.environ.get('APP_ENV') or 'production').strip().lower(),
+    FUTURE30_ACCEPTANCE_ENTITLEMENTS_ENABLED=(
+        os.environ.get('FUTURE30_ACCEPTANCE_ENTITLEMENTS_ENABLED', '').strip().lower() == 'true'
+    ),
 )
 if _has_compress:
     _FlaskCompress(app)   # 自動對所有回應做 gzip，HTML/JSON 體積減少 70-80%
@@ -6062,6 +6086,17 @@ def init_db():
             ('board_skin',     'TEXT'),
         ]:
             add_column_if_not_exists(conn, 'player_appearance', _col, _def)
+
+        # Future30 catalog and ownership are additive.  Canonical rows are
+        # inserted only when absent; drift is validated and fails closed by
+        # the service rather than being silently rewritten.
+        if FUTURE30_CHARACTER_REGISTRY_VALID:
+            initialize_future30_catalog(conn)
+        else:
+            upgrade_future30_character_schema(conn)
+            app.logger.warning(
+                'Future30 registry unavailable; legacy character service remains enabled'
+            )
 
         for _col, _def in [
             ('last_pet_at',     'TEXT'),
@@ -20305,6 +20340,11 @@ def get_appearance():
         eq_row = conn.execute(
             'SELECT * FROM player_appearance WHERE user_id=?', (uid,)
         ).fetchone()
+        appearance_cols = eq_row.keys() if eq_row else []
+        stored_character_key = (
+            eq_row['character_key'] if eq_row and 'character_key' in appearance_cols else None
+        )
+        character_projection = _project_character_for_user(uid, conn, stored_character_key)
         wardrobe_rows = conn.execute(
             'SELECT item_id, obtained_at, source FROM player_wardrobe'
             ' WHERE user_id=? ORDER BY obtained_at DESC',
@@ -20335,18 +20375,14 @@ def get_appearance():
         wardrobe.append(w)
 
     _ekeys = eq_row.keys() if eq_row else []
-    stored_character_key = (
-        eq_row['character_key'] if eq_row and 'character_key' in _ekeys else None
-    )
     return jsonify({
         'equipped': equipped,
         'wardrobe': wardrobe,
-        'character_key': _presentation_character_key(stored_character_key),
-        'character_key_source': (
-            'player_appearance.character_key'
-            if stored_character_key == _presentation_character_key(stored_character_key)
-            else 'server_default'
-        ),
+        'character_key': character_projection['character_key'],
+        'character_key_source': character_projection['character_key_source'],
+        'character_key_authority': 'player_appearance.character_key',
+        'character_entitled': character_projection['entitled'],
+        'character_runtime': character_projection.get('runtime'),
         'combat_armor':   (eq_row['combat_armor']   if eq_row and 'combat_armor'   in _ekeys else None) or '',
         'combat_cape':    (eq_row['combat_cape']    if eq_row and 'combat_cape'    in _ekeys else None) or '',
         'combat_weapon':  (eq_row['combat_weapon']  if eq_row and 'combat_weapon'  in _ekeys else None) or '',
@@ -20848,29 +20884,141 @@ def skills_profile():
     })
 
 
-VALID_CHARACTER_KEYS = {
-    # 新角色（含兩位見習生）
-    'apprentice', 'apprentice_girl', 'swordsman', 'rogue', 'ranger', 'berserker',
-    'guardian', 'paladin', 'mage', 'sage',
-    # 舊 key 相容
-    'hero_male', 'woman', 'boy_child', 'girl_child', 'elder_master', 'elder_woman',
-}
-
-ACTIVE_CHARACTER_KEYS = frozenset({
+LEGACY_ACTIVE_CHARACTER_KEYS = frozenset({
     'apprentice', 'apprentice_girl', 'swordsman', 'rogue', 'ranger', 'berserker',
     'guardian', 'paladin', 'mage', 'sage',
 })
+LEGACY_COMPATIBILITY_CHARACTER_KEYS = frozenset({
+    'hero_male', 'woman', 'boy_child', 'girl_child', 'elder_master', 'elder_woman',
+})
+
+# Future30 keys are loaded from the canonical C005 manifest. A malformed or
+# missing manifest leaves the legacy service available and admits no new key.
+VALID_CHARACTER_KEYS = set(
+    LEGACY_ACTIVE_CHARACTER_KEYS
+    | LEGACY_COMPATIBILITY_CHARACTER_KEYS
+    | FUTURE30_CHARACTER_KEYS
+)
+ACTIVE_CHARACTER_KEYS = frozenset(LEGACY_ACTIVE_CHARACTER_KEYS | FUTURE30_CHARACTER_KEYS)
+LEGACY_CHARACTER_RENDERING_POLICY = 'PRESERVE_KEY_WITH_EXISTING_2D_FALLBACK_UNTIL_FORMAL_FUTURE30_IDENTITY'
 
 
 def _presentation_character_key(value):
-    """Return only a current character presentation key.
+    """Return a legacy presentation key; no legacy key is guessed into A1...E3.
 
-    Legacy aliases remain accepted by the existing selection endpoint for
-    compatibility, but they are not allowed to become a new Hero renderer
-    authority.  Invalid or absent persisted values fail closed to the
-    server-owned default presentation without writing a migration.
+    Future30 uses the separate ownership-aware projection below.
     """
-    return value if value in ACTIVE_CHARACTER_KEYS else 'apprentice'
+    if is_future30_character_key(value):
+        return 'apprentice'
+    return value if value in (LEGACY_ACTIVE_CHARACTER_KEYS | LEGACY_COMPATIBILITY_CHARACTER_KEYS) else 'apprentice'
+
+
+def _future30_acceptance_enabled():
+    """Require an explicit non-production runtime switch for test grants."""
+    environment = str(app.config.get('APP_ENV') or 'production').strip().lower()
+    enabled = app.config.get('FUTURE30_ACCEPTANCE_ENTITLEMENTS_ENABLED') is True
+    return environment in {'acceptance', 'test', 'local'} and enabled
+
+
+def _project_character_for_user(uid, conn, stored_key):
+    """Project Future30 only when durable ownership authorizes the key."""
+    if is_future30_character_key(stored_key):
+        try:
+            return project_applied_character(
+                conn,
+                uid,
+                stored_key,
+                allow_acceptance_test=_future30_acceptance_enabled(),
+            )
+        except Future30ServiceError:
+            return {
+                'character_key': 'apprentice',
+                'character_key_source': 'server_default',
+                'runtime': None,
+                'entitled': False,
+            }
+    key = _presentation_character_key(stored_key)
+    return {
+        'character_key': key,
+        'character_key_source': (
+            'player_appearance.character_key' if stored_key == key else 'server_default'
+        ),
+        'runtime': None,
+        'entitled': True,
+    }
+
+
+@app.cli.command('grant-future30-acceptance-character')
+@click.option('--user-id', required=True, type=click.IntRange(min=1))
+@click.option('--character-key', required=True, type=str)
+def grant_future30_acceptance_character(user_id, character_key):
+    """Grant one key to an isolated test account; never exposed over HTTP."""
+    if not _future30_acceptance_enabled():
+        raise click.ClickException('isolated Future30 acceptance grants are disabled')
+    try:
+        with get_db() as conn:
+            if not conn.execute('SELECT id FROM users WHERE id=?', (user_id,)).fetchone():
+                raise Future30AcquisitionRejected('isolated test account does not exist')
+            result = grant_future30_character(
+                conn,
+                user_id,
+                character_key,
+                'ACCEPTANCE_TEST',
+                environment=app.config.get('APP_ENV'),
+                allow_acceptance_test=True,
+                source_reference='isolated-future30-acceptance-cli',
+            )
+    except Future30ServiceError as exc:
+        raise click.ClickException(exc.code) from exc
+    click.echo(json.dumps({
+        'ok': True,
+        'character_key': result['character_key'],
+        'created': result['created'],
+        'permanent': result['permanent'],
+    }, sort_keys=True))
+
+
+@app.route('/api/player/character-catalog')
+@login_required
+def get_player_character_catalog():
+    """Return the canonical catalog separately from this player's ownership."""
+    uid = session['user_id']
+    allow_acceptance_test = _future30_acceptance_enabled()
+    try:
+        with get_db() as conn:
+            payload = future30_catalog_payload(conn)
+            entitlements = list_future30_entitlements(
+                conn, uid, allow_acceptance_test=allow_acceptance_test
+            )
+            applied_row = conn.execute(
+                'SELECT character_key FROM player_appearance WHERE user_id=?', (uid,)
+            ).fetchone()
+            applied = _project_character_for_user(
+                uid,
+                conn,
+                applied_row['character_key'] if applied_row else None,
+            )
+    except Future30ServiceError as exc:
+        return jsonify({'error': exc.code}), exc.status_code
+
+    owned = {row['character_key']: row for row in entitlements}
+    entries = []
+    for entry in payload['entries']:
+        entitlement = owned.get(entry['character_key'])
+        entries.append({
+            **entry,
+            'owned': entitlement is not None,
+            'acquisition_source': entitlement['acquisition_source'] if entitlement else None,
+            'permanent': bool(entitlement),
+            'is_applied': entry['character_key'] == applied['character_key'],
+        })
+    return jsonify({
+        **payload,
+        'entries': entries,
+        'ownership_authority': 'player_character_entitlements(user_id,character_key)',
+        'applied_authority': 'player_appearance.character_key',
+        'applied_character_key': applied['character_key'],
+    })
 
 @app.route('/api/skills/character', methods=['POST'])
 @login_required
@@ -20894,6 +21042,23 @@ def skills_character():
     rejected_legacy_fields = [
         col for col in LEGACY_COMBAT_COMPATIBILITY_FIELDS if col in data
     ]
+
+    if is_future30_character_key(ckey):
+        try:
+            with get_db() as conn:
+                apply_future30_character(
+                    conn,
+                    uid,
+                    ckey,
+                    allow_acceptance_test=_future30_acceptance_enabled(),
+                )
+        except Future30CharacterNotEntitled as exc:
+            return jsonify({'error': exc.code, 'rejected': ['character']}), exc.status_code
+        except Future30UnknownCharacter as exc:
+            return jsonify({'error': exc.code}), exc.status_code
+        except Future30ServiceError as exc:
+            return jsonify({'error': exc.code}), exc.status_code
+        return jsonify({'ok': True, 'rejected': rejected_legacy_fields})
 
     is_prem = is_premium(uid)
     now = datetime.datetime.now().isoformat()
@@ -28852,6 +29017,12 @@ def serve_community_reward_rules_js():
 
 @app.route('/pwa.js')
 def serve_pwa_js(): return _serve_live_static_or_baked('pwa.js')
+
+@app.route('/js/g008_future30_hero_renderer.js')
+def serve_g008_future30_hero_renderer():
+    return _serve_live_static_or_baked_subpath(
+        'g008_future30_hero_renderer.js', 'js', 'js'
+    )
 
 @app.route('/manifest.json')
 def serve_manifest():

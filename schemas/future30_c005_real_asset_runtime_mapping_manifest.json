@@ -1,0 +1,3728 @@
+{
+  "contract_version": "FUTURE30_CHARACTER_RUNTIME_MANIFEST_V1",
+  "manifest_id": "future30.real-asset-runtime-mapping.c005",
+  "authority": {
+    "owner": "OWNER",
+    "authority_status": "FINAL_V1_PRODUCT",
+    "source_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001",
+    "v1_admission_status": "ENABLED",
+    "owner_admission_authority": true
+  },
+  "counts": {
+    "logical_character_count": 30,
+    "visual_model_count": 33,
+    "variant_model_counts": {
+      "RED": 30,
+      "BLUE": 3
+    }
+  },
+  "variant_policy": {
+    "allowed_variants": [
+      "RED",
+      "BLUE"
+    ],
+    "default_variant": "RED",
+    "blue_variant_optional": true,
+    "blue_default_for_v1": false
+  },
+  "v1_admission_summary": {
+    "v1_admitted": 30,
+    "v1_blocked": 0,
+    "v1_disabled": 0,
+    "explicitly_prohibited": 0
+  },
+  "roster": [
+    {
+      "character_id": "A1",
+      "display_name": "A1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_A1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "A3",
+      "display_name": "A3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_A3_RED"
+        }
+      }
+    },
+    {
+      "character_id": "V1",
+      "display_name": "V1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_V1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "V2",
+      "display_name": "V2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_V2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "V3",
+      "display_name": "V3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_V3_RED"
+        }
+      }
+    },
+    {
+      "character_id": "R1",
+      "display_name": "R1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_R1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "R2",
+      "display_name": "R2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_R2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "R3",
+      "display_name": "R3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_R3_RED"
+        }
+      }
+    },
+    {
+      "character_id": "H1",
+      "display_name": "H1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_H1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "H2",
+      "display_name": "H2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_H2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "H3",
+      "display_name": "H3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_H3_RED"
+        }
+      }
+    },
+    {
+      "character_id": "K1",
+      "display_name": "K1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_K1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "K2",
+      "display_name": "K2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_K2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "K3",
+      "display_name": "K3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_K3_RED"
+        }
+      }
+    },
+    {
+      "character_id": "W1",
+      "display_name": "W1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_W1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "W2",
+      "display_name": "W2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_W2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "W3",
+      "display_name": "W3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_W3_RED"
+        }
+      }
+    },
+    {
+      "character_id": "M1",
+      "display_name": "M1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_M1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "M2",
+      "display_name": "M2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_M2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "S1",
+      "display_name": "S1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_S1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "S2",
+      "display_name": "S2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_S2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "F1",
+      "display_name": "F1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_F1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "F2",
+      "display_name": "F2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_F2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "F3",
+      "display_name": "F3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_F3_RED"
+        }
+      }
+    },
+    {
+      "character_id": "AR1",
+      "display_name": "AR1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_AR1_RED"
+        },
+        "BLUE": {
+          "visual_model_id": "FUTURE30_MODEL_AR1_BLUE"
+        }
+      }
+    },
+    {
+      "character_id": "AR2",
+      "display_name": "AR2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_AR2_RED"
+        },
+        "BLUE": {
+          "visual_model_id": "FUTURE30_MODEL_AR2_BLUE"
+        }
+      }
+    },
+    {
+      "character_id": "AR3",
+      "display_name": "AR3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_AR3_RED"
+        },
+        "BLUE": {
+          "visual_model_id": "FUTURE30_MODEL_AR3_BLUE"
+        }
+      }
+    },
+    {
+      "character_id": "E1",
+      "display_name": "E1",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_E1_RED"
+        }
+      }
+    },
+    {
+      "character_id": "E2",
+      "display_name": "E2",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_E2_RED"
+        }
+      }
+    },
+    {
+      "character_id": "E3",
+      "display_name": "E3",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "default_variant": "RED",
+      "variants": {
+        "RED": {
+          "visual_model_id": "FUTURE30_MODEL_E3_RED"
+        }
+      }
+    }
+  ],
+  "visual_models": [
+    {
+      "visual_model_id": "FUTURE30_MODEL_A1_RED",
+      "character_id": "A1",
+      "character_asset_id": "FUTURE30_ASSET_A1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/hero/a1_basic_adventurer.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/A_adventure/Adventure_Free/FBX/Characters/Adventurer.fbx",
+      "source_sha256": "67500b747fb55e30b16c672fee0247f8d1226dff0bd0cf7821b2afaa4ce47b3f",
+      "visual_identity": "A1:BASE",
+      "runtime_preparation_status": "PREEXISTING_RUNTIME_READY",
+      "runtime_format": "GLB",
+      "runtime_sha256": "ad6c0f6d96140bba2cee3033da2af45a7c583fdf5ac82990b8431acdea04d040",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_A3_RED",
+      "character_id": "A3",
+      "character_asset_id": "FUTURE30_ASSET_A3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/a3_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/A_adventure/Adventure_Free/FBX/Characters/Monk.fbx",
+      "source_sha256": "7231145231c87de50bddfd554e63bc133239c6c5c7b221adb01f7f8c630b06c9",
+      "visual_identity": "A3:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 3,
+        "mesh_count": 2,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 2,
+        "vertex_count": 929,
+        "polygon_count": 1840,
+        "uv_layer_count": 2,
+        "vertex_color_layer_count": 1,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted_existing\\A_adventure\\Adventure_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9385326504707336,
+          -0.2957555055618286,
+          0.0014130768831819296
+        ],
+        "bounds_max": [
+          0.9385326504707336,
+          0.27357956767082214,
+          1.877115249633789
+        ],
+        "bounds_dimensions": [
+          1.8770653009414673,
+          0.5693351030349731,
+          1.875702142715454
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/A_adventure/Adventure_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/A_adventure/Adventure_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/A_adventure/Adventure_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "ee0c43539208af45255a1790ea24da36356ba7218ad417dd33c9a375f056698d",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_V1_RED",
+      "character_id": "V1",
+      "character_asset_id": "FUTURE30_ASSET_V1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/v1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free/FBX/Characters/Blacksmith.fbx",
+      "source_sha256": "7252676a85bebd2b7531b5c153e6359337eb0e34e6edf6c7c694954bd2be1709",
+      "visual_identity": "V1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 2,
+        "mesh_count": 1,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 1,
+        "vertex_count": 916,
+        "polygon_count": 1828,
+        "uv_layer_count": 1,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Villagers_Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted_existing\\V_villager\\Villager NPC Free\\Texture\\Villagers_Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.7517145872116089,
+          -0.2779037058353424,
+          -0.0020189215429127216
+        ],
+        "bounds_max": [
+          0.7517145872116089,
+          0.23157407343387604,
+          1.7930070161819458
+        ],
+        "bounds_dimensions": [
+          1.5034291744232178,
+          0.5094777941703796,
+          1.7950259447097778
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free/Texture/Villagers_Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "897b8d16049624699e4cc1aaecb8b455736d68a2af3efcb689b182d3790cf476",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_V2_RED",
+      "character_id": "V2",
+      "character_asset_id": "FUTURE30_ASSET_V2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/v2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free/FBX/Characters/Hunter.fbx",
+      "source_sha256": "ec1cb000346923ee5b7c5b6a818fe00e0b6ffe3d00c9d232d4d414893aaa439a",
+      "visual_identity": "V2:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 3,
+        "mesh_count": 2,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 2,
+        "vertex_count": 1012,
+        "polygon_count": 2016,
+        "uv_layer_count": 2,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Villagers_Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted_existing\\V_villager\\Villager NPC Free\\Texture\\Villagers_Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.797359049320221,
+          -0.33493614196777344,
+          -0.0020188551861792803
+        ],
+        "bounds_max": [
+          0.797359049320221,
+          0.2702154517173767,
+          1.8263144493103027
+        ],
+        "bounds_dimensions": [
+          1.594718098640442,
+          0.6051515936851501,
+          1.8283332586288452
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free/Texture/Villagers_Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "3dfc58f701fd2ffd57b3f96bc0ab458c57021fdeeb5075ef2868241d39ed5858",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_V3_RED",
+      "character_id": "V3",
+      "character_asset_id": "FUTURE30_ASSET_V3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c004/v3_child.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/V_villager/Villager NPC Free/FBX/Characters/Child.fbx",
+      "source_sha256": "2499768438a59bc247ba956a95833e636823b089cce3d2ab795d8f5225d3a392",
+      "visual_identity": "V3:BASE",
+      "runtime_preparation_status": "PREEXISTING_RUNTIME_READY",
+      "runtime_format": "GLB",
+      "runtime_sha256": "724f38dd481794385517585f0211b0fd79c393deef603923ca4caccddf0483c7",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_R1_RED",
+      "character_id": "R1",
+      "character_asset_id": "FUTURE30_ASSET_R1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/r1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/FBX/Characters/King.fbx",
+      "source_sha256": "feef2a6211446a8b440e23ebeb7c78a8d3aff7e894b933ba309bd329a81794bc",
+      "visual_identity": "R1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 4,
+        "mesh_count": 3,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 3,
+        "vertex_count": 1744,
+        "polygon_count": 3464,
+        "uv_layer_count": 3,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted_existing\\R_royals\\Royal_Family_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.7919577956199646,
+          -0.37312620878219604,
+          -0.003737827530130744
+        ],
+        "bounds_max": [
+          0.7919577956199646,
+          0.3525620400905609,
+          1.6410351991653442
+        ],
+        "bounds_dimensions": [
+          1.5839155912399292,
+          0.7256882190704346,
+          1.644773006439209
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "fc80b18374c6271f20e229893a6966d15a1aa00d612417af86e43c3db4523238",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_R2_RED",
+      "character_id": "R2",
+      "character_asset_id": "FUTURE30_ASSET_R2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/r2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/FBX/Characters/Queen.fbx",
+      "source_sha256": "1bb32c4d69df1ce6cccaf0c48e13968b1b170b6ab2b582c7ae8f320e1d1a2a78",
+      "visual_identity": "R2:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 6,
+        "mesh_count": 5,
+        "armature_count": 1,
+        "bone_count": 29,
+        "skinned_mesh_count": 5,
+        "vertex_count": 1562,
+        "polygon_count": 3100,
+        "uv_layer_count": 5,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted_existing\\R_royals\\Royal_Family_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.6217585206031799,
+          -0.3082035183906555,
+          -0.0066392612643539906
+        ],
+        "bounds_max": [
+          0.6217585206031799,
+          0.42802467942237854,
+          1.8915607929229736
+        ],
+        "bounds_dimensions": [
+          1.2435170412063599,
+          0.7362282276153564,
+          1.8982000350952148
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "b5aec263f0f60bd46807829f00802ce20146f3ee9b522fa5a94cb74b0e6b6c8e",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_R3_RED",
+      "character_id": "R3",
+      "character_asset_id": "FUTURE30_ASSET_R3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/r3_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/FBX/Characters/Prince.fbx",
+      "source_sha256": "2b371401e242e394531f34a6842a1b68347b77ceec9755c927f67547275cf752",
+      "visual_identity": "R3:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 5,
+        "mesh_count": 4,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 4,
+        "vertex_count": 1320,
+        "polygon_count": 2620,
+        "uv_layer_count": 4,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted_existing\\R_royals\\Royal_Family_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.6217586398124695,
+          -0.2858451008796692,
+          -0.0007441072375513613
+        ],
+        "bounds_max": [
+          0.6217586398124695,
+          0.31249216198921204,
+          1.5450000762939453
+        ],
+        "bounds_dimensions": [
+          1.243517279624939,
+          0.5983372926712036,
+          1.5457441806793213
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/R_royals/Royal_Family_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "77f81f70d19db4b4a2e9732c18228be40ce6462fb525b80bee81f7fbdebd0493",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_H1_RED",
+      "character_id": "H1",
+      "character_asset_id": "FUTURE30_ASSET_H1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/h1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free/FBX/Characters/Knight.fbx",
+      "source_sha256": "687a60fd115157fc5b0859485bbef3ffe9b776e3131a302f035de2f742586c6e",
+      "visual_identity": "H1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 7,
+        "mesh_count": 6,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 6,
+        "vertex_count": 1306,
+        "polygon_count": 2610,
+        "uv_layer_count": 6,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted_existing\\H_heroes\\Fantasy_Heroes_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172655940055847,
+          -0.31543511152267456,
+          -0.003424901282414794
+        ],
+        "bounds_max": [
+          0.917265772819519,
+          0.23403300344944,
+          1.9604573249816895
+        ],
+        "bounds_dimensions": [
+          1.834531307220459,
+          0.5494681000709534,
+          1.9638822078704834
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "fba25bc5e4402975173049cf2b10881f2fec70091277412b9b3fa23930774abc",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_H2_RED",
+      "character_id": "H2",
+      "character_asset_id": "FUTURE30_ASSET_H2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c004/h2_wizard.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free/FBX/Characters/Wizard.fbx",
+      "source_sha256": "0172590d8448e5ff7d1400ce72d29c20ec5c3bc062e224f0513eb12f1c4471d8",
+      "visual_identity": "H2:BASE",
+      "runtime_preparation_status": "PREEXISTING_RUNTIME_READY",
+      "runtime_format": "GLB",
+      "runtime_sha256": "5d0cbfe0a5a36ca558f0d7072f9f31a7137f1e027f1fc995fcfc510545bda021",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_H3_RED",
+      "character_id": "H3",
+      "character_asset_id": "FUTURE30_ASSET_H3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/h3_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free/FBX/Characters/Hero.fbx",
+      "source_sha256": "c53b0536acf66308f40328d804b2e4e8a83bacb49fe3225238027b8cd5f35a56",
+      "visual_identity": "H3:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 2,
+        "mesh_count": 1,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 1,
+        "vertex_count": 688,
+        "polygon_count": 1372,
+        "uv_layer_count": 1,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted_existing\\H_heroes\\Fantasy_Heroes_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.8867642879486084,
+          -0.25275424122810364,
+          -0.008603719994425774
+        ],
+        "bounds_max": [
+          0.8867642283439636,
+          0.25925636291503906,
+          1.9311976432800293
+        ],
+        "bounds_dimensions": [
+          1.7735285758972168,
+          0.5120105743408203,
+          1.9398013353347778
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted_existing/H_heroes/Fantasy_Heroes_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "bad3705d24a3803788cbb94fc10608c5448e5821da84188f0fc38f23c51795fa",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_K1_RED",
+      "character_id": "K1",
+      "character_asset_id": "FUTURE30_ASSET_K1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/k1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/FBX/Characters/Knight_01.fbx",
+      "source_sha256": "607b566b989fa1f8912f65318e1d9155d20c56c798e93e2a74e09f0dc0b63cc3",
+      "visual_identity": "K1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 8,
+        "mesh_count": 7,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 7,
+        "vertex_count": 1448,
+        "polygon_count": 2876,
+        "uv_layer_count": 7,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Knight_Free\\Knight_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172656536102295,
+          -0.31543490290641785,
+          -0.0034248956944793463
+        ],
+        "bounds_max": [
+          0.9172658920288086,
+          0.4189835786819458,
+          2.1030807495117188
+        ],
+        "bounds_dimensions": [
+          1.834531545639038,
+          0.734418511390686,
+          2.1065056324005127
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "1bf124f9ccefe4186dd0e4047003bad6eb39d21ec5d204822fdc3f82f06b84b7",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_K2_RED",
+      "character_id": "K2",
+      "character_asset_id": "FUTURE30_ASSET_K2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/k2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/FBX/Characters/Knight_02.fbx",
+      "source_sha256": "f90102087a639ed7b8940e1a84c0d08f093364906af55bcfde9e63376150a074",
+      "visual_identity": "K2:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 7,
+        "mesh_count": 6,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 6,
+        "vertex_count": 1294,
+        "polygon_count": 2568,
+        "uv_layer_count": 6,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Knight_Free\\Knight_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172657132148743,
+          -0.23252461850643158,
+          -0.00722684059292078
+        ],
+        "bounds_max": [
+          0.9172658920288086,
+          0.23403291404247284,
+          1.745391845703125
+        ],
+        "bounds_dimensions": [
+          1.834531545639038,
+          0.4665575325489044,
+          1.752618670463562
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "8a931dea5e8ff2b76337dc9c99a837190813cc72ee0251d398bc067a8e51ffc9",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_K3_RED",
+      "character_id": "K3",
+      "character_asset_id": "FUTURE30_ASSET_K3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/k3_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/FBX/Characters/Knight_03.fbx",
+      "source_sha256": "ccc712fced4b58f6e1097e9d8be7f59c4b498cfd08a70d4cdf8d51c5f779bbea",
+      "visual_identity": "K3:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 6,
+        "mesh_count": 5,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 5,
+        "vertex_count": 1394,
+        "polygon_count": 2764,
+        "uv_layer_count": 5,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Knight_Free\\Knight_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9337084889411926,
+          -0.22007182240486145,
+          -0.007226841524243355
+        ],
+        "bounds_max": [
+          0.9337087273597717,
+          0.23403291404247284,
+          1.6809885501861572
+        ],
+        "bounds_dimensions": [
+          1.8674172163009644,
+          0.4541047215461731,
+          1.6882153749465942
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Knight_Free/Knight_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "9f74a6d5c35189c3fc239345b18971a8fc495f70b7536d4583f7f729e6c6eca3",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_W1_RED",
+      "character_id": "W1",
+      "character_asset_id": "FUTURE30_ASSET_W1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/w1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/FBX/Characters/Wizard.fbx",
+      "source_sha256": "20df755f2a5acadbfc63d37e1c3b61b5a60bc8a0872e166e05acb6b20dfd2387",
+      "visual_identity": "W1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 6,
+        "mesh_count": 5,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 5,
+        "vertex_count": 1622,
+        "polygon_count": 3228,
+        "uv_layer_count": 5,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Wizard_Free\\Wizard_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.8495378494262695,
+          -0.3954574465751648,
+          0.005303257144987583
+        ],
+        "bounds_max": [
+          0.8495378494262695,
+          0.27958765625953674,
+          2.074575424194336
+        ],
+        "bounds_dimensions": [
+          1.699075698852539,
+          0.6750451326370239,
+          2.06927227973938
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "9a3dd27364c1eab34a2a46caad0b29f73049e9199efb5a0ec5a56095051bea2e",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_W2_RED",
+      "character_id": "W2",
+      "character_asset_id": "FUTURE30_ASSET_W2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/w2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/FBX/Characters/Fire_Wizard.fbx",
+      "source_sha256": "0e57665de79358203423b22207c3c100daffaa99770a0fd5047ca017411570ff",
+      "visual_identity": "W2:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 5,
+        "mesh_count": 4,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 4,
+        "vertex_count": 1410,
+        "polygon_count": 2812,
+        "uv_layer_count": 4,
+        "vertex_color_layer_count": 1,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Wizard_Free\\Wizard_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.8495374321937561,
+          -0.25397035479545593,
+          0.005303257144987583
+        ],
+        "bounds_max": [
+          0.8495374321937561,
+          0.22595569491386414,
+          1.854903221130371
+        ],
+        "bounds_dimensions": [
+          1.6990748643875122,
+          0.47992604970932007,
+          1.8495999574661255
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "e8cf5d0d464fb61ae2ca4b653a24158db475cf63091449fcb7e614b8927e89d2",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_W3_RED",
+      "character_id": "W3",
+      "character_asset_id": "FUTURE30_ASSET_W3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/w3_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/FBX/Characters/Air_Wizard.fbx",
+      "source_sha256": "ccdd658ace0881a3e09de64ed94d58186fb0f5139c422a2a3cd78bdee0cee3e9",
+      "visual_identity": "W3:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 7,
+        "mesh_count": 6,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 6,
+        "vertex_count": 1758,
+        "polygon_count": 3492,
+        "uv_layer_count": 6,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Wizard_Free\\Wizard_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.8495378494262695,
+          -0.346044659614563,
+          0.005303197540342808
+        ],
+        "bounds_max": [
+          0.8495378494262695,
+          0.32900047302246094,
+          2.118459701538086
+        ],
+        "bounds_dimensions": [
+          1.699075698852539,
+          0.6750451326370239,
+          2.11315655708313
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Wizard_Free/Wizard_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "45262912b04c75a0d83b191cbf701ebc7dbcbc96149bd5648d62e3c7c1147ed8",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_M1_RED",
+      "character_id": "M1",
+      "character_asset_id": "FUTURE30_ASSET_M1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/m1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Skeletons_Free/Skeletons_Free/FBX/Characters/Skeleton.fbx",
+      "source_sha256": "7bd64fb84498f957b94e7d070719b8d4f3caffbd91785ea39269f631c1ca134e",
+      "visual_identity": "M1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 5,
+        "mesh_count": 4,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 4,
+        "vertex_count": 3410,
+        "polygon_count": 6768,
+        "uv_layer_count": 4,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Skeletons_Free\\Skeletons_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.987221360206604,
+          -0.1970287263393402,
+          0.005181594751775265
+        ],
+        "bounds_max": [
+          0.9872211813926697,
+          0.18793220818042755,
+          1.7893470525741577
+        ],
+        "bounds_dimensions": [
+          1.974442481994629,
+          0.38496094942092896,
+          1.7841655015945435
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Skeletons_Free/Skeletons_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Skeletons_Free/Skeletons_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Skeletons_Free/Skeletons_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "e5c7a1ec76e47902c9894c5404632d9271872b770311d9cf851875b311e44108",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_M2_RED",
+      "character_id": "M2",
+      "character_asset_id": "FUTURE30_ASSET_M2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/m2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Skeletons_Free/Skeletons_Free/FBX/Characters/Skeleton_Archer.fbx",
+      "source_sha256": "103c947a63eaf82e1f16581f566b52bfd4c40151d9f4d4063390715d1dcd25fd",
+      "visual_identity": "M2:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 6,
+        "mesh_count": 5,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 5,
+        "vertex_count": 2260,
+        "polygon_count": 4492,
+        "uv_layer_count": 5,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Skeletons_Free\\Skeletons_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9872211217880249,
+          -0.1970287263393402,
+          -0.005138940643519163
+        ],
+        "bounds_max": [
+          0.9872212409973145,
+          0.3048185110092163,
+          1.7893470525741577
+        ],
+        "bounds_dimensions": [
+          1.9744423627853394,
+          0.5018472671508789,
+          1.7944860458374023
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Skeletons_Free/Skeletons_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Skeletons_Free/Skeletons_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Skeletons_Free/Skeletons_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "36ee5fa53fa60fea2dab35b19922139bc591191880caaf12b85d51514147e3d9",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_S1_RED",
+      "character_id": "S1",
+      "character_asset_id": "FUTURE30_ASSET_S1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/s1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Samurai_Free/Samurai_Free/FBX/Characters/Samurai.fbx",
+      "source_sha256": "710e120f477b4c6a948d45f72b25d3e7e869dd70142493f6873f5de44c67b145",
+      "visual_identity": "S1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 3,
+        "mesh_count": 2,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 2,
+        "vertex_count": 1120,
+        "polygon_count": 2232,
+        "uv_layer_count": 2,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Samurai_Free\\Samurai_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.891423225402832,
+          -0.22357439994812012,
+          -0.0006825683522038162
+        ],
+        "bounds_max": [
+          0.8914235830307007,
+          0.21837618947029114,
+          2.137418031692505
+        ],
+        "bounds_dimensions": [
+          1.7828468084335327,
+          0.44195058941841125,
+          2.1381006240844727
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Samurai_Free/Samurai_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Samurai_Free/Samurai_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Samurai_Free/Samurai_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "e871a950fb2ba6f8b740490b13ad8986c083c5f2e7a1cc2d6ec4d1a9f8d855df",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_S2_RED",
+      "character_id": "S2",
+      "character_asset_id": "FUTURE30_ASSET_S2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/s2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Samurai_Free/Samurai_Free/FBX/Characters/Female_Samurai.fbx",
+      "source_sha256": "853008de665284cf77bc118ea4ea37199d7eadc28095eb9f56d6a7fbe43ab7e5",
+      "visual_identity": "S2:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 3,
+        "mesh_count": 2,
+        "armature_count": 1,
+        "bone_count": 29,
+        "skinned_mesh_count": 2,
+        "vertex_count": 1336,
+        "polygon_count": 2664,
+        "uv_layer_count": 2,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Samurai_Free\\Samurai_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.8914234638214111,
+          -0.22465376555919647,
+          -0.0006825681775808334
+        ],
+        "bounds_max": [
+          0.8914233446121216,
+          0.6979598999023438,
+          2.2622251510620117
+        ],
+        "bounds_dimensions": [
+          1.7828468084335327,
+          0.9226136803627014,
+          2.2629077434539795
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Samurai_Free/Samurai_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Samurai_Free/Samurai_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Samurai_Free/Samurai_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "3d94372b51f746666b5b7ccd056d2710ac446b4ba73f0a9d0414842937d052c2",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_F1_RED",
+      "character_id": "F1",
+      "character_asset_id": "FUTURE30_ASSET_F1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/f1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/FBX/Characters/Female_01.fbx",
+      "source_sha256": "cbca37b101f937653f3037f51311b87a58fc4406928a073767e1d6b7f0492619",
+      "visual_identity": "F1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 6,
+        "mesh_count": 5,
+        "armature_count": 1,
+        "bone_count": 29,
+        "skinned_mesh_count": 5,
+        "vertex_count": 1330,
+        "polygon_count": 2652,
+        "uv_layer_count": 5,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Female_Starter\\Female_Starter\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.7469061613082886,
+          -0.2122923731803894,
+          -0.0020700974855571985
+        ],
+        "bounds_max": [
+          0.7469061613082886,
+          0.14592337608337402,
+          1.854515552520752
+        ],
+        "bounds_dimensions": [
+          1.4938123226165771,
+          0.3582157492637634,
+          1.8565856218338013
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "183ea1c242c1739114b4d17b78e38a2dc7e72ac84351599d8f0d18a1f5e0ebf2",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_F2_RED",
+      "character_id": "F2",
+      "character_asset_id": "FUTURE30_ASSET_F2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/f2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/FBX/Characters/Female_02.fbx",
+      "source_sha256": "81dbef7388548e42b057985d82af4f5077404444e003d84b9c1bc1d227ebbcf7",
+      "visual_identity": "F2:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 6,
+        "mesh_count": 5,
+        "armature_count": 1,
+        "bone_count": 29,
+        "skinned_mesh_count": 5,
+        "vertex_count": 1420,
+        "polygon_count": 2832,
+        "uv_layer_count": 5,
+        "vertex_color_layer_count": 1,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Female_Starter\\Female_Starter\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.7469064593315125,
+          -0.2082393765449524,
+          -0.0020701547618955374
+        ],
+        "bounds_max": [
+          0.7469063401222229,
+          0.1459234058856964,
+          1.8474386930465698
+        ],
+        "bounds_dimensions": [
+          1.4938127994537354,
+          0.3541627824306488,
+          1.8495088815689087
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "ac8bc306c634191c933d9b5e3be1bd58ba46f1bb10df2d95d4c69246499fddc6",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_F3_RED",
+      "character_id": "F3",
+      "character_asset_id": "FUTURE30_ASSET_F3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/f3_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/FBX/Characters/Female_03.fbx",
+      "source_sha256": "bef7b03d16015b60364786fb72358d70923d137367acdedf949cb2e93c965052",
+      "visual_identity": "F3:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 6,
+        "mesh_count": 5,
+        "armature_count": 1,
+        "bone_count": 29,
+        "skinned_mesh_count": 5,
+        "vertex_count": 1410,
+        "polygon_count": 2808,
+        "uv_layer_count": 5,
+        "vertex_color_layer_count": 1,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Female_Starter\\Female_Starter\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.7469062209129333,
+          -0.2156812995672226,
+          -0.0020700974855571985
+        ],
+        "bounds_max": [
+          0.7469062209129333,
+          0.1459234058856964,
+          1.8507983684539795
+        ],
+        "bounds_dimensions": [
+          1.4938124418258667,
+          0.3616046905517578,
+          1.8528684377670288
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Female_Starter/Female_Starter/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "dd26594e8870d9fb11e4e1a1ed9eb87cdd66a6a2d83bef7ff4528f873e851a00",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_AR1_RED",
+      "character_id": "AR1",
+      "character_asset_id": "FUTURE30_ASSET_AR1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/ar1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/FBX/Characters/Army_Captain_Red.fbx",
+      "source_sha256": "4863be2eac13586a031a239d4be55f77e1496297dd6c1f05661bc198a6e7b4f2",
+      "visual_identity": "AR1:RED",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 7,
+        "mesh_count": 6,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 6,
+        "vertex_count": 1022,
+        "polygon_count": 2026,
+        "uv_layer_count": 6,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Army_Free\\Army_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172656536102295,
+          -0.21893002092838287,
+          -0.0034248968586325645
+        ],
+        "bounds_max": [
+          0.917265772819519,
+          0.23403291404247284,
+          1.7965947389602661
+        ],
+        "bounds_dimensions": [
+          1.8345314264297485,
+          0.4529629349708557,
+          1.80001962184906
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "d0d52ea6e34c2ce970550ac4d6ca177068f796cd85ed89914663b95a42ad19b7",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_AR2_RED",
+      "character_id": "AR2",
+      "character_asset_id": "FUTURE30_ASSET_AR2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/ar2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/FBX/Characters/Army_Footman_Red.fbx",
+      "source_sha256": "7bab59b9e10834643e8cf3534bf3d77b09d3575d6b3a2937af797379fe731741",
+      "visual_identity": "AR2:RED",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 8,
+        "mesh_count": 7,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 7,
+        "vertex_count": 1038,
+        "polygon_count": 2066,
+        "uv_layer_count": 7,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Army_Free\\Army_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172655940055847,
+          -0.21166770160198212,
+          -0.0034248968586325645
+        ],
+        "bounds_max": [
+          0.9172658920288086,
+          0.23403291404247284,
+          1.801344633102417
+        ],
+        "bounds_dimensions": [
+          1.834531545639038,
+          0.44570061564445496,
+          1.804769515991211
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "f8addaca916b4cf45474345d537fb535b654e5032e106cf0ffe44da7c5fc94f6",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_AR3_RED",
+      "character_id": "AR3",
+      "character_asset_id": "FUTURE30_ASSET_AR3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/ar3_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/FBX/Characters/Army_Knight_Red.fbx",
+      "source_sha256": "a950fadd39a599195f6fd062f53b227380b0107d8b5bc94da88f21c5ceb20e75",
+      "visual_identity": "AR3:RED",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 7,
+        "mesh_count": 6,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 6,
+        "vertex_count": 948,
+        "polygon_count": 1886,
+        "uv_layer_count": 6,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Army_Free\\Army_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172655940055847,
+          -0.21166770160198212,
+          -0.0034248968586325645
+        ],
+        "bounds_max": [
+          0.9172658920288086,
+          0.23403291404247284,
+          1.801344633102417
+        ],
+        "bounds_dimensions": [
+          1.834531545639038,
+          0.44570061564445496,
+          1.804769515991211
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "5ff104f48989929f66d823a2a8a28bed56c7fa7db8a7711715fd42ce57f27028",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_E1_RED",
+      "character_id": "E1",
+      "character_asset_id": "FUTURE30_ASSET_E1_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/e1_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/FBX/Characters/Elf.fbx",
+      "source_sha256": "c27afed2cbec9de5be8ba0b85255cb274ff923c1edd642676e46b08bc9b9ef60",
+      "visual_identity": "E1:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 4,
+        "mesh_count": 3,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 3,
+        "vertex_count": 722,
+        "polygon_count": 1428,
+        "uv_layer_count": 3,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Elf_Free\\Elf_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9993632435798645,
+          -0.29447224736213684,
+          -0.005560611840337515
+        ],
+        "bounds_max": [
+          0.9993633031845093,
+          0.5301024913787842,
+          2.089813232421875
+        ],
+        "bounds_dimensions": [
+          1.9987266063690186,
+          0.8245747089385986,
+          2.0953738689422607
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "bf249356e149a9ad0c77823f435c9287796a84b3d5ed8c02c440828c3955ff73",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_E2_RED",
+      "character_id": "E2",
+      "character_asset_id": "FUTURE30_ASSET_E2_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/e2_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/FBX/Characters/Fire_Elf.fbx",
+      "source_sha256": "3557fe8fc9f1f170bff78913efe0e4e7984ec0e20bfd289d0edf17ccee41e9fe",
+      "visual_identity": "E2:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 6,
+        "mesh_count": 5,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 5,
+        "vertex_count": 2012,
+        "polygon_count": 3700,
+        "uv_layer_count": 5,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Elf_Free\\Elf_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9993633031845093,
+          -0.2939058840274811,
+          -0.005560463760048151
+        ],
+        "bounds_max": [
+          0.9993632435798645,
+          0.3345611095428467,
+          2.1035995483398438
+        ],
+        "bounds_dimensions": [
+          1.9987266063690186,
+          0.6284669637680054,
+          2.1091599464416504
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "e57ea02ae1cc44e9981b5bcfcebdcaa5976d51f39041948616a632906c7383ad",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_E3_RED",
+      "character_id": "E3",
+      "character_asset_id": "FUTURE30_ASSET_E3_RED",
+      "variant": "RED",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/e3_red_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/FBX/Characters/Ice_Elf.fbx",
+      "source_sha256": "7e982a581cc49053c5926d07760ab849b392bb86265c53f4739934051a84f2d4",
+      "visual_identity": "E3:BASE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 7,
+        "mesh_count": 6,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 6,
+        "vertex_count": 2062,
+        "polygon_count": 3862,
+        "uv_layer_count": 6,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Elf_Free\\Elf_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.989582359790802,
+          -0.29447227716445923,
+          0.0013934613671153784
+        ],
+        "bounds_max": [
+          0.989582359790802,
+          0.2885700762271881,
+          2.133376121520996
+        ],
+        "bounds_dimensions": [
+          1.979164719581604,
+          0.5830423831939697,
+          2.1319825649261475
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Elf_Free/Elf_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "d385c3be121ad8df1ad855c239bf10571d4e452466cef807a9ed11497a420300",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_AR1_BLUE",
+      "character_id": "AR1",
+      "character_asset_id": "FUTURE30_ASSET_AR1_BLUE",
+      "variant": "BLUE",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/ar1_blue_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/FBX/Characters/Army_Captain_Blue.fbx",
+      "source_sha256": "042b78323ac407ed783da3fa57b4f34838f9c510f898752ff641d5a25728d1d7",
+      "visual_identity": "AR1:BLUE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 7,
+        "mesh_count": 6,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 6,
+        "vertex_count": 1022,
+        "polygon_count": 2026,
+        "uv_layer_count": 6,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Army_Free\\Army_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172656536102295,
+          -0.21893005073070526,
+          -0.0034248968586325645
+        ],
+        "bounds_max": [
+          0.9172658920288086,
+          0.23403291404247284,
+          1.7965946197509766
+        ],
+        "bounds_dimensions": [
+          1.834531545639038,
+          0.4529629647731781,
+          1.8000195026397705
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "0e82558f4282d5ce4c783123b532b409b085a777a87f93f8d43eedb6e3cf5549",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_AR2_BLUE",
+      "character_id": "AR2",
+      "character_asset_id": "FUTURE30_ASSET_AR2_BLUE",
+      "variant": "BLUE",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/ar2_blue_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/FBX/Characters/Army_Footman_Blue.fbx",
+      "source_sha256": "78d31d7712f59aa18af1122622eed0f2ebd8d62da9f2589d6a004cf08d451012",
+      "visual_identity": "AR2:BLUE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 8,
+        "mesh_count": 7,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 7,
+        "vertex_count": 1038,
+        "polygon_count": 2066,
+        "uv_layer_count": 7,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Army_Free\\Army_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172655940055847,
+          -0.21166770160198212,
+          -0.0034248968586325645
+        ],
+        "bounds_max": [
+          0.9172658920288086,
+          0.23403291404247284,
+          1.801344633102417
+        ],
+        "bounds_dimensions": [
+          1.834531545639038,
+          0.44570061564445496,
+          1.804769515991211
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "d34a61351ee91e54ee31b4a2117803f8258ef9710bcce20d0baae1e7741d55c1",
+      "placeholder_mapping": false
+    },
+    {
+      "visual_model_id": "FUTURE30_MODEL_AR3_BLUE",
+      "character_id": "AR3",
+      "character_asset_id": "FUTURE30_ASSET_AR3_BLUE",
+      "variant": "BLUE",
+      "admission_state": "ENABLED",
+      "legal_provenance": {
+        "license_status": "ADMITTED",
+        "provenance_status": "VERIFIED",
+        "authority_ref": "owner:C003_FUTURE30_FINAL_V1_AUTHORITY_INJECTION_001"
+      },
+      "asset_status": "PRESENT",
+      "runtime_glb": "assets/3d_shop/p048/future30/c005/ar3_blue_c005.glb",
+      "source_path": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/FBX/Characters/Army_Knight_Blue.fbx",
+      "source_sha256": "fa7d6486b5cc6084ce610de8131578813f381214ba6b1d3c5405728c89ab27b5",
+      "visual_identity": "AR3:BLUE",
+      "runtime_preparation_status": "C005_FBX_TO_GLB_PASS",
+      "conversion_tool": "Blender 5.2.2",
+      "conversion_settings": {
+        "import_operator": "bpy.ops.import_scene.fbx",
+        "import_use_anim": true,
+        "import_use_custom_normals": true,
+        "import_automatic_bone_orientation": false,
+        "import_global_scale": 1.0,
+        "import_axis_forward": "-Z",
+        "import_axis_up": "Y",
+        "import_use_image_search": true,
+        "export_operator": "bpy.ops.export_scene.gltf",
+        "export_format": "GLB",
+        "export_use_selection": true,
+        "export_yup": true,
+        "export_apply": false,
+        "export_skins": true,
+        "export_all_influences": true,
+        "export_animations": true,
+        "export_morph": true,
+        "export_materials": "EXPORT",
+        "export_all_vertex_colors": true,
+        "export_vertex_color": "ACTIVE",
+        "export_active_vertex_color_when_no_material": true,
+        "export_attributes": true,
+        "export_lights": false,
+        "export_cameras": false,
+        "normalization": "FBX importer axis conversion to Blender Y-up and GLB export Y-up only; source transforms and mesh data are not rescaled, applied, decimated, or edited."
+      },
+      "source_scene": {
+        "object_count": 7,
+        "mesh_count": 6,
+        "armature_count": 1,
+        "bone_count": 27,
+        "skinned_mesh_count": 6,
+        "vertex_count": 948,
+        "polygon_count": 1886,
+        "uv_layer_count": 6,
+        "vertex_color_layer_count": 0,
+        "material_count": 1,
+        "material_names": [
+          "Material"
+        ],
+        "image_count": 1,
+        "image_names": [
+          "Texture.png.001"
+        ],
+        "image_filepaths": [
+          "D:\\go-website-3d-lowpo-31-owner-selection-023\\extracted\\Army_Free\\Army_Free\\Texture\\Texture.png"
+        ],
+        "missing_image_count": 0,
+        "action_count": 0,
+        "action_names": [],
+        "bounds_min": [
+          -0.9172657132148743,
+          -0.21166770160198212,
+          -0.0034248968586325645
+        ],
+        "bounds_max": [
+          0.9172658920288086,
+          0.23403291404247284,
+          1.801344633102417
+        ],
+        "bounds_dimensions": [
+          1.834531545639038,
+          0.44570061564445496,
+          1.804769515991211
+        ],
+        "object_types": [
+          "ARMATURE",
+          "MESH"
+        ],
+        "texture_resolution": {
+          "pack_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free",
+          "texture_root": "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture",
+          "candidate_count": 1,
+          "resolved_image_count": 1,
+          "resolved_image_paths": [
+            "D:/go-website-3d-lowpo-31-owner-selection-023/extracted/Army_Free/Army_Free/Texture/Texture.png"
+          ],
+          "unresolved_image_names": [],
+          "method": "same recovered pack Texture directory plus basename match; no texture replacement"
+        }
+      },
+      "runtime_format": "GLB",
+      "runtime_sha256": "030066b733be6632ff6ca2a0a87ec3595a3fd5bdcee3019b47aebc10bf01f061",
+      "placeholder_mapping": false
+    }
+  ],
+  "legacy_fallback": {
+    "source": "LEGACY_FALLBACK",
+    "runtime_glb": "assets/3d_shop/p048/hero/a1_basic_adventurer.glb"
+  },
+  "task_id": "C005_FUTURE30_FBX_TO_GLB_RUNTIME_PREPARATION_001",
+  "runtime_preparation": {
+    "source_authority": "schemas/future30_c004_real_asset_runtime_mapping_manifest.json",
+    "conversion_report": "reports/c005_fbx_conversion_manifest.json",
+    "runtime_asset_root": "assets/3d_shop/p048/future30/c005",
+    "converted_visual_count": 30,
+    "blocked_visual_count": 0,
+    "preexisting_runtime_ready_visual_count": 3,
+    "runtime_ready_visual_count": 33,
+    "placeholder_mapping_count": 0,
+    "conversion_tool": "Blender 5.2.2",
+    "gpu_used": false,
+    "gpu_backend": "CPU"
+  }
+}

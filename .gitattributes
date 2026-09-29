@@ -23,6 +23,7 @@
 *.svg binary
 
 sgf_engine/VENDORED_FROM.txt text eol=lf
+schemas/future30_c005_real_asset_runtime_mapping_manifest.json -text -eol
 
 # Windows-native launcher exception to the repo-wide eol=lf policy above.
 # cmd.exe's batch parser is byte-oriented and codepage-dependent; a
