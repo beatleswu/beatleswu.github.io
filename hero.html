@@ -2232,7 +2232,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
           </div>
           <div class="combat-subtitle" data-i18n="hero.sub.wardrobeDesc">商城、扭蛋、任務取得的 Common / Uncommon 外觀會集中在這裡；點擊已擁有外觀即可裝備。</div>
 
-          <div class="wardrobe-slot-block">
+          <div class="wardrobe-slot-block" hidden style="display:none" aria-hidden="true" data-retired-outfit-v1>
             <div class="wardrobe-slot-head">
               <span data-i18n="hero.sub.outfit">服裝外觀</span>
               <span class="section-count" id="cnt-outfit">0</span>
@@ -3527,7 +3527,7 @@ function equippedChipHTML(item) {
 function renderEquippedChipsFromWardrobe(items = _wardrobeItems) {
   const eqList = document.getElementById('char-equipped-list');
   if (!eqList) return;
-  const equipped = (items || []).filter(i => i && i.owned === true && i.equipped === true);
+  const equipped = activeHeroWardrobeItems(items).filter(i => i && i.owned === true && i.equipped === true);
   eqList.innerHTML = equipped.length
     ? equipped.map(equippedChipHTML).join('')
     : `<span class="equipped-empty">${I18n.t('hero.noEquip')}</span>`;
@@ -4151,7 +4151,7 @@ function renderAuthoritativeFunctionalEffects(items = _functionalEquipmentItems)
 }
 
 function renderCosmeticProjection() {
-  const items = (_wardrobeItems || []).filter(item => (
+  const items = activeHeroWardrobeItems(_wardrobeItems).filter(item => (
     item && item.owned === true && item.equipped === true && !wardrobeHasGameplayEffect(item)
   ));
   const targets = [
@@ -4398,7 +4398,18 @@ function saveLoadoutToServer() {
 
 
 let _wardrobeItems = [];
-const WARDROBE_SLOT_TYPES = ['outfit', 'hat', 'back', 'accessory', 'pet', 'aura', 'title'];
+// Keep the server snapshot intact; Outfit V1 is retired from presentation only.
+function isOutfitV1WardrobeItem(item) {
+  return [item?.type, item?.slot].some(value =>
+    String(value || '').trim().toLowerCase() === 'outfit'
+  );
+}
+
+function activeHeroWardrobeItems(items) {
+  return (Array.isArray(items) ? items : []).filter(item => item && !isOutfitV1WardrobeItem(item));
+}
+
+const WARDROBE_SLOT_TYPES = ['hat', 'back', 'accessory', 'pet', 'aura', 'title'];
 
 function wardrobeSourceItemId(item) {
   return String(item?.source_item_id || `wardrobe:${item?.id || 'unknown'}`);
@@ -4423,8 +4434,9 @@ function wardrobeEffectLabel(item) {
 
 // ── 裝備視覺 & 加成效果 ─────────────────────────────────────────────────────────
 function applyEquippedVisuals(wardrobeItems) {
-  const equipped = (wardrobeItems || []).filter(i => i && i.owned === true && i.equipped === true);
-  syncFullBodyAvatar(wardrobeItems);
+  const activeItems = activeHeroWardrobeItems(wardrobeItems);
+  const equipped = activeItems.filter(i => i && i.owned === true && i.equipped === true);
+  syncFullBodyAvatar(activeItems);
 
   // 帽子
   const hat = equipped.find(i => i.type === 'hat');
@@ -4577,18 +4589,19 @@ function _wardrobeEquipmentItemHTML(item) {
 function renderWardrobeEquipmentProjections() {
   const grid = document.getElementById('wardrobe-effect-equipment-grid');
   if (!grid) return;
-  const items = _wardrobeItems.filter(wardrobeHasGameplayEffect);
+  const items = activeHeroWardrobeItems(_wardrobeItems).filter(wardrobeHasGameplayEffect);
   grid.innerHTML = items.length
     ? items.map(_wardrobeEquipmentItemHTML).join('')
     : `<div class="inv-empty"><span class="inv-empty-icon">🛡️</span>${isEn() ? 'No effect-bearing wardrobe equipment.' : '目前沒有帶數值效果的衣櫃裝備。'}</div>`;
 }
 
 function renderInvSlot(slotType, filter) {
+  if (slotType === 'outfit') return;
   filter = filter || 'all';
   const isTitle = slotType === 'title';
   const gridEl = document.getElementById(`slot-${slotType}`);
   if (!gridEl) return;
-  const sourceItems = _wardrobeItems.filter(i => i.type === slotType);
+  const sourceItems = activeHeroWardrobeItems(_wardrobeItems).filter(i => i.type === slotType);
   let items = sourceItems.filter(i => slotType === 'pet' || slotType === 'title' || !wardrobeHasGameplayEffect(i));
   if (slotType === 'pet' || slotType === 'title') items = items.filter(i => !wardrobeHasGameplayEffect(i));
   if (!sourceItems.length) items = PLACEHOLDERS[slotType] || [];
@@ -4624,8 +4637,10 @@ function renderWardrobeSlots(defaultFilter = 'all') {
 }
 
 function handleInvClick(slotType, itemId) {
+  if (slotType === 'outfit') return;
   const item = _wardrobeItems.find(i => i.id === itemId);
   if (!item) { showToast(t('sk_toast_not_enough_xp')); return; }
+  if (isOutfitV1WardrobeItem(item)) return;
   if (!item.owned) { showToast('🔒 ' + (dispHint(item) || I18n.t('hero.toast.notUnlocked'))); return; }
   const _renderSlot = () => {
     const at = document.querySelector(`.filter-tabs[data-slot="${slotType}"] .filter-tab.active`);
@@ -5309,7 +5324,8 @@ function openPreview() {
       <span class="pv-stat-v">${r.value}</span>
     </div>`).join('');
 
-  const equipped = (_wardrobeItems).filter(i => i && i.owned === true && i.equipped === true);
+  const activeItems = activeHeroWardrobeItems(_wardrobeItems);
+  const equipped = activeItems.filter(i => i && i.owned === true && i.equipped === true);
   const hat   = equipped.find(i => i.type === 'hat');
   const title = equipped.find(i => i.type === 'title');
 
@@ -5322,7 +5338,7 @@ function openPreview() {
   if (!avatarBase.querySelector('#pv-fullbody-avatar-img')) {
     avatarBase.innerHTML = `<img class="fullbody-generated-avatar" id="pv-fullbody-avatar-img" src="${CUSTOM_FULLBODY_AVATAR_SRC}" alt="${I18n.t('common.hero.full_alt')}"><div class="rpg-wearable-stage" id="pv-functional-wearable-stage" hidden aria-hidden="true"></div>`;
   }
-  syncFullBodyAvatar(_wardrobeItems);
+  syncFullBodyAvatar(activeItems);
   applyCombatGearVisuals();
   renderFunctionalEquipmentProjection();
   renderCosmeticProjection();
@@ -5354,12 +5370,6 @@ async function loadNavAvatar() {
     if (el) el.textContent = meRes.display_name || meRes.nickname || meRes.username || 'Player';
     const eq   = appearRes.equipped || {};
     const byId = Object.fromEntries((appearRes.wardrobe || []).map(a => [a.id, a]));
-    const outfitItem = eq.outfit_id ? byId[eq.outfit_id] : null;
-    const base = document.getElementById('nav-avatar-base');
-    if (base && outfitItem) {
-      base.style.background  = outfitItem.color + '33';
-      base.style.borderColor = outfitItem.color + '88';
-    }
     const hatItem = eq.hat_id ? byId[eq.hat_id] : null;
     const hatEl   = document.getElementById('nav-avatar-hat');
     if (hatEl && hatItem) { hatEl.innerHTML = heroItemArtHTML(hatItem); hatEl.style.opacity = '1'; }
@@ -5510,6 +5520,8 @@ function launchGoldConfetti() {
 })();
 </script>
 <script type="module" src="/js/g008_future30_hero_renderer.js"></script>
+<script type="module" src="/js/g009_d007_shared_host_bootstrap.js"></script>
+<script type="module" src="/js/g009_d_r2_shared_host_bootstrap.js"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>
 </body>
 </html>

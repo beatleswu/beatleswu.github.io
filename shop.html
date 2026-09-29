@@ -1445,6 +1445,26 @@ function cosmeticCategoryLabel(record) {
   }[category] || category;
   return key ? uiText(key, fallback, fallback) : fallback;
 }
+function isOutfitV1Cosmetic(product) {
+  return [product?.category, product?.slot, product?.type].some(value =>
+    String(value || '').trim().toLowerCase() === 'outfit'
+  ) || [product?.product_id, product?.item_id, product?.cosmetic_id].some(value =>
+    String(value || '').trim().toLowerCase().startsWith('cosmetic.outfit.')
+  );
+}
+function isOutfitV1ProductId(productId) {
+  const id = String(productId || '').trim().toLowerCase();
+  if (!id) return false;
+  if (id.startsWith('cosmetic.outfit.')) return true;
+  const candidates = [
+    ...(cosmeticCatalog?.products || []),
+    ...(cosmeticCatalog?.presentation_candidates || []),
+    ...(premiumV1Offer?.cosmetic_pool || []),
+  ];
+  return candidates.some(product => isOutfitV1Cosmetic(product) &&
+    [product?.product_id, product?.item_id, product?.cosmetic_id]
+      .some(value => String(value || '').trim().toLowerCase() === id));
+}
 function cosmeticRarityLabel(record) {
   const rarity = String(record?.rarity || 'common').toLowerCase();
   const key = COSMETIC_RARITY_COPY_KEYS[rarity];
@@ -2114,6 +2134,7 @@ function bindCanonicalCosmeticArt(root) {
   });
 }
 function renderVisualReviewCandidate(candidate) {
+  if (isOutfitV1Cosmetic(candidate) || isOutfitV1ProductId(candidate?.cosmetic_id)) return '';
   const asset = candidate.preview_asset || {};
   const id = cosmeticEsc(candidate.cosmetic_id || '');
   const displayName = cosmeticDisplayName(candidate);
@@ -2140,6 +2161,7 @@ function renderVisualReviewCandidate(candidate) {
   </article>`;
 }
 function showCosmeticPreview(product) {
+  if (isOutfitV1Cosmetic(product) || isOutfitV1ProductId(cosmeticRecordId(product))) return;
   const asset = product.preview_asset || {};
   const art = document.getElementById('cosmetic-preview-art');
   art.innerHTML = cosmeticPresentationArtHTML(asset, 'cosmetic-modal-art-frame');
@@ -2199,7 +2221,8 @@ function renderCosmeticCommerce(data) {
   // Option B admits only server-described Coin cosmetics.  Premium products
   // and read-only visual candidates remain available to their own authorities
   // but are not public Shop offers.
-  const products = c053CoinCosmeticProducts(data);
+  const products = c053CoinCosmeticProducts(data).filter(product =>
+    !isOutfitV1Cosmetic(product) && !isOutfitV1ProductId(product.product_id));
   if (!products.length) {
     grid.innerHTML = `<div class="load-state" role="status"><strong>${uiText('shop.cosmetic.emptyTitle', 'No cosmetics available', '目前沒有可顯示的外觀')}</strong><span>${uiText('shop.cosmetic.emptyCopy', 'Check back after the next release.', '請於下一次內容發布後再回來查看。')}</span></div>`;
     return;
@@ -2298,7 +2321,9 @@ async function loadCosmeticCommerce() {
 function updatePremiumV1Selection(data) {
   const status = document.getElementById('premium-v1-selection-status');
   const claim = document.getElementById('premium-v1-claim-selected');
-  const selected = (data?.cosmetic_pool || []).find(reward => reward.item_id === premiumV1SelectedCosmeticId);
+  const selected = (data?.cosmetic_pool || []).find(reward =>
+    reward.item_id === premiumV1SelectedCosmeticId &&
+    !isOutfitV1Cosmetic(reward) && !isOutfitV1ProductId(reward.item_id));
   const canClaim = !!(data?.premium_entitled && selected && !selected.owned);
   if (claim) {
     claim.disabled = !canClaim;
@@ -2355,11 +2380,16 @@ function renderPremiumV1(data) {
     {days: graceDays},
   );
   const pool = document.getElementById('premium-v1-pool');
-  const rewards = Array.isArray(data.cosmetic_pool) ? data.cosmetic_pool : [];
+  const rewards = Array.isArray(data.cosmetic_pool)
+    ? data.cosmetic_pool.filter(reward => !isOutfitV1Cosmetic(reward) && !isOutfitV1ProductId(reward.item_id))
+    : [];
   const available = rewards.filter(reward => !reward.owned);
   if (!available.length) {
     premiumV1SelectedCosmeticId = null;
-    pool.innerHTML = `<div class="load-state" role="status"><strong>${uiText('shop.premium.emptyTitle', 'All five cosmetics are owned', '五件外觀皆已擁有')}</strong><span>${uiText('shop.premium.emptyCopy', 'The monthly credit is not converted into another reward.', '本月額度不會轉換成其他獎勵。')}</span></div>`;
+    const emptyTitle = rewards.length
+      ? (isEn() ? 'All eligible cosmetics are owned' : '所有可選外觀皆已擁有')
+      : (isEn() ? 'No eligible cosmetics are available' : '目前沒有符合資格的外觀');
+    pool.innerHTML = `<div class="load-state" role="status"><strong>${emptyTitle}</strong><span>${uiText('shop.premium.emptyCopy', 'The monthly credit is not converted into another reward.', '本月額度不會轉換成其他獎勵。')}</span></div>`;
     updatePremiumV1Selection(data);
     return;
   }
@@ -2427,6 +2457,8 @@ async function loadPremiumV1Offer() {
 }
 async function claimPremiumV1(cosmeticId) {
   if (!cosmeticId) return;
+  const selectedReward = (premiumV1Offer?.cosmetic_pool || []).find(reward => reward.item_id === cosmeticId);
+  if (isOutfitV1Cosmetic(selectedReward) || isOutfitV1ProductId(cosmeticId)) return;
   const operationId = (window.crypto && typeof window.crypto.randomUUID === 'function')
     ? window.crypto.randomUUID()
     : `c013-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -2447,6 +2479,7 @@ document.getElementById('premium-v1-claim-selected')?.addEventListener('click', 
   claimPremiumV1(premiumV1SelectedCosmeticId);
 });
 async function previewCosmetic(productId) {
+  if (isOutfitV1ProductId(productId)) return;
   const res = await api(`/api/cosmetic-commerce/preview/${encodeURIComponent(productId)}`);
   if (res.error) { showToast(errorMessage(res.error)); return; }
   showCosmeticPreview(res.product || {});
@@ -2458,6 +2491,7 @@ function previewVisualCandidate(cosmeticId) {
   showCosmeticPreview(product);
 }
 async function purchaseCosmetic(productId) {
+  if (isOutfitV1ProductId(productId)) return;
   if (!shopPurchaseEnabled()) {
     showShopPurchaseClosed();
     return;
@@ -2498,6 +2532,7 @@ async function purchaseCosmetic(productId) {
   }
 }
 async function equipCosmetic(productId) {
+  if (isOutfitV1ProductId(productId)) return;
   const res = await api('/api/cosmetic-commerce/equip', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ product_id: productId })

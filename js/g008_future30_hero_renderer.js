@@ -1,10 +1,241 @@
 import * as THREE from "/assets/3d_shop/p048/vendor/three.module.js";
 import { GLTFLoader } from "/assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js";
+import {
+  createG009SharedHeroAttachmentHost,
+  G009_HERO_PRESENTATION_SLOTS,
+} from "./g009_shared_hero_attachment_host.js";
 
 const EXPECTED_C005_MANIFEST_SHA256 =
   "35746c1168152cbd3fd166fd0ba5a319f3bf1ba8916fed3a8669f487a2a83c1d";
-const stage = document.getElementById("g008-future30-hero-stage");
-const avatar = document.getElementById("char-avatar");
+export const HERO_PRESENTATION_SLOTS = G009_HERO_PRESENTATION_SLOTS;
+let stage = null;
+let avatar = null;
+
+// This module alone owns the G008 Hero canvas. P048 remains a Shop preview.
+let generation = 0;
+let pending = null;
+let controller = null;
+let ownedRoot = null;
+let ownedRenderer = null;
+let sharedAttachmentHost = null;
+let sharedAttachmentFacade = null;
+let serverAppearance = null;
+const slotResolvers = new Map();
+const presentationRehydrators = new Map();
+const rehydratedGenerationByKey = new Map();
+let cancelFrameWait = null;
+
+function assertPresentationSlot(slot) {
+  if (!HERO_PRESENTATION_SLOTS.includes(slot)) {
+    throw new Error("unknown_hero_presentation_slot:" + String(slot));
+  }
+}
+
+function createAttachmentFacade(host) {
+  return Object.freeze({
+    slots: HERO_PRESENTATION_SLOTS,
+    attach(slot, presentationId, loadNode) {
+      if (sharedAttachmentHost !== host) throw new Error("stale_hero_attachment_host_handle");
+      return host.attach(slot, presentationId, loadNode);
+    },
+    detach(slot) {
+      if (sharedAttachmentHost !== host) {
+        assertPresentationSlot(slot);
+        return { status: "stale_host", slot };
+      }
+      return host.detach(slot);
+    },
+    diagnostics() {
+      return host.diagnostics();
+    },
+    getSlotLayout(slot) {
+      if (sharedAttachmentHost !== host) throw new Error("stale_hero_attachment_host_handle");
+      return host.getSlotLayout(slot);
+    },
+  });
+}
+
+function runPresentationRehydrator(key, callback, token, appearance, force = false) {
+  if (!sharedAttachmentHost || token !== generation || !appearance) {
+    return Promise.resolve({ key, status: "not_ready" });
+  }
+  if (!force && rehydratedGenerationByKey.get(key) === token) {
+    return Promise.resolve({ key, status: "already_rehydrated" });
+  }
+  rehydratedGenerationByKey.set(key, token);
+  const host = createAttachmentFacade(sharedAttachmentHost);
+  const context = Object.freeze({
+    character_key: appearance.character_key,
+    appearance,
+    host,
+    generation: token,
+  });
+  return Promise.resolve().then(() => callback(context)).then(
+    (result) => token === generation
+      ? { key, status: "rehydrated", result: result ?? null }
+      : { key, status: "stale" },
+    (error) => {
+      if (rehydratedGenerationByKey.get(key) === token) rehydratedGenerationByKey.delete(key);
+      return {
+        key,
+        status: token === generation ? "failed_closed" : "stale",
+        reason: error instanceof Error ? error.message : String(error),
+      };
+    },
+  );
+}
+
+export function getHeroSharedAttachmentHost() {
+  return sharedAttachmentFacade;
+}
+
+export function registerHeroPresentationResolver(slot, resolver) {
+  assertPresentationSlot(slot);
+  if (typeof resolver !== "function") throw new Error("hero_slot_resolver_required");
+  const existing = slotResolvers.get(slot);
+  if (existing && existing.resolver !== resolver) {
+    throw new Error("hero_slot_resolver_already_registered:" + slot);
+  }
+  if (existing) {
+    existing.references += 1;
+  } else {
+    slotResolvers.set(slot, { resolver, references: 1 });
+    sharedAttachmentHost?.registerResolver(slot, resolver);
+  }
+  let active = true;
+  return () => {
+    if (!active) return false;
+    active = false;
+    const entry = slotResolvers.get(slot);
+    if (!entry || entry.resolver !== resolver) return false;
+    entry.references -= 1;
+    if (entry.references <= 0) {
+      slotResolvers.delete(slot);
+      sharedAttachmentHost?.unregisterResolver?.(slot, resolver);
+    }
+    return true;
+  };
+}
+
+export function attachHeroChildPresentation(slot, presentationId, loadNode) {
+  assertPresentationSlot(slot);
+  if (!sharedAttachmentHost) throw new Error("hero_attachment_host_unavailable");
+  return sharedAttachmentHost.attach(slot, presentationId, loadNode);
+}
+
+export function detachHeroChildPresentation(slot) {
+  assertPresentationSlot(slot);
+  if (!sharedAttachmentHost) return { status: "not_ready", slot };
+  return sharedAttachmentHost.detach(slot);
+}
+
+export function registerHeroPresentationRehydrator(key, callback) {
+  if (typeof key !== "string" || !key.trim() || typeof callback !== "function") {
+    throw new Error("hero_presentation_rehydrator_invalid");
+  }
+  const existing = presentationRehydrators.get(key);
+  if (existing && existing !== callback) throw new Error("hero_presentation_rehydrator_already_registered:" + key);
+  presentationRehydrators.set(key, callback);
+  if (sharedAttachmentHost && serverAppearance) {
+    void runPresentationRehydrator(key, callback, generation, serverAppearance, true);
+  }
+  return () => {
+    if (presentationRehydrators.get(key) !== callback) return false;
+    presentationRehydrators.delete(key);
+    rehydratedGenerationByKey.delete(key);
+    return true;
+  };
+}
+
+export async function rehydrateHeroPresentations() {
+  if (!sharedAttachmentHost || !serverAppearance) return { status: "not_ready", results: [] };
+  const token = generation;
+  const results = await Promise.all([...presentationRehydrators].map(([key, callback]) =>
+    runPresentationRehydrator(key, callback, token, serverAppearance, true)));
+  return {
+    status: token === generation ? "complete" : "stale",
+    character_key: serverAppearance?.character_key || null,
+    results,
+  };
+}
+
+function isCurrent(token) {
+  if (token !== generation) return false;
+  if (!stage?.isConnected || stage !== document.getElementById("g008-future30-hero-stage")) {
+    destroyHeroAppearance();
+    return false;
+  }
+  return true;
+}
+
+function disposeModel(root) {
+  const resources = new Set();
+  root?.removeFromParent();
+  root?.traverse((node) => {
+    if (node.geometry) resources.add(node.geometry);
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    for (const material of materials.filter(Boolean)) {
+      resources.add(material);
+      for (const value of Object.values(material)) {
+        if (value?.isTexture) resources.add(value);
+      }
+    }
+  });
+  resources.forEach((resource) => resource.dispose());
+}
+
+function releaseOwnedResources() {
+  cancelFrameWait?.();
+  cancelFrameWait = null;
+  sharedAttachmentHost?.destroy();
+  sharedAttachmentHost = null;
+  sharedAttachmentFacade = null;
+  serverAppearance = null;
+  if (ownedRenderer) {
+    ownedRenderer.setAnimationLoop(null);
+    ownedRenderer.renderLists?.dispose();
+    ownedRenderer.dispose();
+    ownedRenderer.domElement.remove();
+    ownedRenderer = null;
+  }
+  disposeModel(ownedRoot);
+  ownedRoot = null;
+}
+
+export function destroyHeroAppearance() {
+  generation += 1;
+  controller?.abort();
+  controller = null;
+  pending = null;
+  window.removeEventListener("pagehide", destroyHeroAppearance);
+  releaseOwnedResources();
+  publish({ state: "inactive" });
+}
+
+export function mountHeroAppearance() {
+  if (stage && !isCurrent(generation)) pending = null;
+  stage = document.getElementById("g008-future30-hero-stage");
+  avatar = document.getElementById("char-avatar");
+  if (pending) return pending;
+  if (ownedRenderer) return Promise.resolve(window.__G008_HERO_RENDER_STATE__);
+  const token = ++generation;
+  controller = new AbortController();
+  window.addEventListener("pagehide", destroyHeroAppearance);
+  pending = activate(token, controller.signal).catch((error) => {
+    if (token !== generation) return;
+    releaseOwnedResources();
+    fail(error instanceof Error ? error.message : "runtime_failed");
+  }).finally(() => {
+    if (token === generation) pending = null;
+  });
+  return pending;
+}
+
+// Refresh always reads the same server APIs; callers cannot supply an identity.
+export function refreshHeroAppearance() {
+  destroyHeroAppearance();
+  return mountHeroAppearance();
+}
 
 function publish(state) {
   window.__G008_HERO_RENDER_STATE__ = Object.freeze(state);
@@ -47,7 +278,7 @@ function fitModel(root) {
   return new THREE.Box3().setFromObject(root);
 }
 
-function renderModel(root, bounds) {
+function renderModel(root, bounds, token) {
   if (!stage) throw new Error("hero_stage_missing");
   const width = Math.max(1, Math.round(stage.clientWidth));
   const height = Math.max(1, Math.round(stage.clientHeight));
@@ -67,6 +298,7 @@ function renderModel(root, bounds) {
   camera.lookAt(center.x, center.y, center.z);
 
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
+  ownedRenderer = renderer;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(width, height, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -76,6 +308,7 @@ function renderModel(root, bounds) {
 
   let renderFrames = 0;
   renderer.setAnimationLoop(() => {
+    if (!isCurrent(token)) return;
     const currentWidth = Math.max(1, Math.round(stage.clientWidth));
     const currentHeight = Math.max(1, Math.round(stage.clientHeight));
     if (renderer.domElement.width !== Math.round(currentWidth * renderer.getPixelRatio())
@@ -90,19 +323,20 @@ function renderModel(root, bounds) {
   return { renderer, renderFrames: () => renderFrames };
 }
 
-async function activate() {
-  if (!stage || !avatar) throw new Error("hero_mount_missing");
+async function activate(token, signal) {
+  if (!stage?.isConnected || !avatar) throw new Error("hero_mount_missing");
   publish({ state: "loading" });
 
   const [catalogResponse, appearanceResponse] = await Promise.all([
-    fetch("/api/player/character-catalog", { credentials: "include", cache: "no-store" }),
-    fetch("/api/player/appearance", { credentials: "include", cache: "no-store" }),
+    fetch("/api/player/character-catalog", { credentials: "include", cache: "no-store", signal }),
+    fetch("/api/player/appearance", { credentials: "include", cache: "no-store", signal }),
   ]);
   if (!catalogResponse.ok) throw new Error(`catalog_http_${catalogResponse.status}`);
   if (!appearanceResponse.ok) throw new Error(`appearance_http_${appearanceResponse.status}`);
   const [catalog, appearance] = await Promise.all([
     catalogResponse.json(), appearanceResponse.json(),
   ]);
+  if (!isCurrent(token)) return;
 
   if (catalog.c005_manifest_sha256 !== EXPECTED_C005_MANIFEST_SHA256
     || catalog.logical_count !== 30 || catalog.visual_count !== 33
@@ -123,6 +357,7 @@ async function activate() {
     || entry.acquisition_source !== "ACCEPTANCE_TEST"
     || !runtime || runtime.character_key !== key
     || runtime.default_variant !== "RED"
+    || runtime.visual_model_id !== entry.visual_model_id
     || runtime.c005_manifest_sha256 !== EXPECTED_C005_MANIFEST_SHA256
     || runtime.runtime_glb !== entry.runtime_glb
     || runtime.runtime_sha256 !== entry.runtime_sha256) {
@@ -139,19 +374,26 @@ async function activate() {
     || !/^[a-f0-9]{64}$/.test(runtime.runtime_sha256)) {
     throw new Error("runtime_asset_path_rejected");
   }
+  serverAppearance = appearance;
 
   stage.dataset.state = "loading";
   const assetPath = `/${runtime.runtime_glb}`;
-  const response = await fetch(assetPath, { credentials: "same-origin", cache: "no-store" });
+  const response = await fetch(assetPath, { credentials: "same-origin", cache: "no-store", signal });
   if (!response.ok) throw new Error(`asset_http_${response.status}`);
   const bytes = await response.arrayBuffer();
   const actualSha256 = await sha256(bytes);
+  if (!isCurrent(token)) return;
   if (actualSha256 !== runtime.runtime_sha256) throw new Error("runtime_asset_sha256_mismatch");
 
   const loader = new GLTFLoader();
   const gltf = await loader.parseAsync(bytes, new URL(assetPath, location.href).href);
   const root = gltf.scene || gltf.scenes?.[0];
+  if (!isCurrent(token)) {
+    disposeModel(root);
+    return;
+  }
   if (!root) throw new Error("gltf_scene_missing");
+  ownedRoot = root;
   let meshCount = 0;
   root.traverse((node) => {
     if (!node.isMesh) return;
@@ -166,16 +408,27 @@ async function activate() {
   });
   if (meshCount < 1) throw new Error("gltf_mesh_missing");
   const bounds = fitModel(root);
-  const viewport = renderModel(root, bounds);
+  sharedAttachmentHost = createG009SharedHeroAttachmentHost(root, THREE);
+  for (const [slot, entry] of slotResolvers) {
+    sharedAttachmentHost.registerResolver(slot, entry.resolver);
+  }
+  sharedAttachmentFacade = createAttachmentFacade(sharedAttachmentHost);
+  const viewport = renderModel(root, bounds, token);
   await new Promise((resolve, reject) => {
     const started = performance.now();
+    let frame = 0;
+    cancelFrameWait = () => { cancelAnimationFrame(frame); resolve(); };
     const check = () => {
       if (viewport.renderFrames() >= 2) return resolve();
       if (performance.now() - started > 5000) return reject(new Error("renderer_frame_timeout"));
-      requestAnimationFrame(check);
+      frame = requestAnimationFrame(check);
     };
     check();
   });
+  if (!isCurrent(token)) return;
+  cancelFrameWait = null;
+  const childRehydration = await rehydrateHeroPresentations();
+  if (!isCurrent(token)) return;
 
   publish({
     state: "ready",
@@ -200,12 +453,9 @@ async function activate() {
     visual_count: catalog.visual_count,
     blue_optional_keys: catalog.blue_optional,
     c005_manifest_sha256: catalog.c005_manifest_sha256,
+    child_rehydration: childRehydration.status,
   });
 
-  window.addEventListener("pagehide", () => {
-    viewport.renderer.setAnimationLoop(null);
-    viewport.renderer.dispose();
-  }, { once: true });
 }
 
-activate().catch((error) => fail(error instanceof Error ? error.message : "runtime_failed"));
+mountHeroAppearance();

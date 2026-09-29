@@ -231,7 +231,10 @@ export class ThreeShopPresentationRuntime {
     this.resizeObserver = null;
     this.view = "three-quarter";
     this.headSwitchCount = 0;
+    this.headGeneration = 0;
     this.backSwitchCount = 0;
+    this.backGeneration = 0;
+    this.disposed = false;
     this.companionSwitchCount = 0;
     this.v01TriggerCount = 0;
     this.v01RetriggerCount = 0;
@@ -388,13 +391,16 @@ export class ThreeShopPresentationRuntime {
   }
 
   clearHead() {
+    this.headGeneration += 1;
     if (this.currentHead) this.currentHead.removeFromParent();
     this.currentHead = null;
     this.currentHeadId = "NONE";
   }
 
   async setHead(presentationId = "NONE") {
+    if (this.disposed) return;
     this.clearHead();
+    const generation = this.headGeneration;
     if (presentationId === "NONE") {
       this.headSwitchCount += 1;
       this.onStateChange(this.getDiagnostics());
@@ -403,6 +409,7 @@ export class ThreeShopPresentationRuntime {
     const entry = this.resolveEntry(presentationId);
     assert(entry.authority_domain === "HEAD_PRESENTATION", "requested presentation is not a HEAD entry");
     const loaded = await this.loadGLTF(entry.runtime_asset, presentationId);
+    if (this.disposed || generation !== this.headGeneration) return;
     const root = prepareRenderable(loaded.scene);
     root.removeFromParent();
     this.heroGroup.add(root);
@@ -431,13 +438,16 @@ export class ThreeShopPresentationRuntime {
   }
 
   clearBack() {
+    this.backGeneration += 1;
     if (this.currentBack) this.currentBack.removeFromParent();
     this.currentBack = null;
     this.backVisible = false;
   }
 
   async setBack(visible) {
+    if (this.disposed) return;
     this.clearBack();
+    const generation = this.backGeneration;
     this.backSwitchCount += 1;
     if (!visible) {
       this.onStateChange(this.getDiagnostics());
@@ -445,6 +455,7 @@ export class ThreeShopPresentationRuntime {
     }
     const entry = this.resolveEntry("P045_B02_BACKPACK");
     const loaded = await this.loadGLTF(entry.runtime_asset, entry.presentation_id);
+    if (this.disposed || generation !== this.backGeneration) return;
     const root = prepareRenderable(loaded.scene);
     root.removeFromParent();
     this.heroGroup.add(root);
@@ -736,6 +747,7 @@ export class ThreeShopPresentationRuntime {
   }
 
   dispose() {
+    this.disposed = true;
     cancelAnimationFrame(this.raf);
     this.resizeObserver?.disconnect();
     if (this.bound.resize) window.removeEventListener("resize", this.bound.resize);
