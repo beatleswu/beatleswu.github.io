@@ -46,6 +46,7 @@ from future30_character_service import (
     Future30UnknownCharacter,
     apply_future30_character,
     catalog_payload as future30_catalog_payload,
+    ensure_future30_starter_bootstrap,
     grant_future30_character,
     initialize_future30_catalog,
     list_future30_entitlements,
@@ -20337,6 +20338,11 @@ def get_appearance():
     uid = session['user_id']
     with get_db() as conn:
         ensure_premium_rewards(uid, conn, equip_default=False)
+        ensure_future30_starter_bootstrap(
+            user_id=uid,
+            conn=conn,
+            allow_acceptance_test=_future30_acceptance_enabled(),
+        )
         eq_row = conn.execute(
             'SELECT * FROM player_appearance WHERE user_id=?', (uid,)
         ).fetchone()
@@ -20986,6 +20992,11 @@ def get_player_character_catalog():
     allow_acceptance_test = _future30_acceptance_enabled()
     try:
         with get_db() as conn:
+            ensure_future30_starter_bootstrap(
+                user_id=uid,
+                conn=conn,
+                allow_acceptance_test=allow_acceptance_test,
+            )
             payload = future30_catalog_payload(conn)
             entitlements = list_future30_entitlements(
                 conn, uid, allow_acceptance_test=allow_acceptance_test

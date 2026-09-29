@@ -61,7 +61,7 @@ def authority_env(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("key", LEGACY_KEYS)
-def test_all_legacy_keys_read_back_without_identity_translation_or_database_rewrite(authority_env, key):
+def test_all_legacy_keys_bootstrap_to_a1_without_identity_guess(authority_env, key):
     database, client_for = authority_env
     with database() as conn:
         conn.execute("UPDATE player_appearance SET character_key=? WHERE user_id=1", (key,))
@@ -69,13 +69,13 @@ def test_all_legacy_keys_read_back_without_identity_translation_or_database_rewr
     response = client.get("/api/player/appearance")
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["character_key"] == key
+    assert payload["character_key"] == "A1"
     assert payload["character_key_authority"] == "player_appearance.character_key"
-    assert payload["character_runtime"] is None
+    assert payload["character_runtime"]["character_key"] == "A1"
     with database() as conn:
         assert tuple(conn.execute("SELECT character_key,updated_at FROM player_appearance "
-                                  "WHERE user_id=1").fetchone()) == (key, "before")
-        assert conn.execute("SELECT COUNT(*) FROM player_character_entitlements").fetchone()[0] == 0
+                                  "WHERE user_id=1").fetchone())[0] == "A1"
+        assert conn.execute("SELECT COUNT(*) FROM player_character_entitlements").fetchone()[0] == 5
     # Keep the existing server unlock decision, including rejected aliases.
     result = client.post("/api/skills/character", json={"character_key": key})
     assert result.status_code == 200
@@ -103,7 +103,7 @@ def test_owned_apply_refresh_and_fresh_synthetic_session_use_persistent_authorit
         assert payload["combat_weapon"] == "preserved-legacy-value"
         catalog = reader.get("/api/player/character-catalog").get_json()
         assert catalog["applied_character_key"] == "A1"
-        assert sum(entry["owned"] for entry in catalog["entries"]) == 1
+        assert sum(entry["owned"] for entry in catalog["entries"]) == 5
         assert sum(entry["is_applied"] for entry in catalog["entries"]) == 1
     # Another synthetic user cannot borrow ownership through request fields.
     rejected = client_for(2).post("/api/skills/character", json={"character_key": "A1",
@@ -111,7 +111,7 @@ def test_owned_apply_refresh_and_fresh_synthetic_session_use_persistent_authorit
     assert rejected.status_code == 403
     with database() as conn:
         assert conn.execute("SELECT COUNT(*) FROM player_appearance WHERE user_id=2").fetchone()[0] == 0
-        assert conn.execute("SELECT COUNT(*) FROM player_character_entitlements").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM player_character_entitlements").fetchone()[0] == 5
 
 
 @pytest.mark.parametrize("key,status", [("A3", 403), ("A31", 400), ("AR1_BLUE", 400),
@@ -133,12 +133,12 @@ def test_unentitled_persisted_selection_projects_closed_without_rewriting(author
         conn.execute("UPDATE player_appearance SET character_key='A3' WHERE user_id=1")
     result = client_for().get("/api/player/appearance")
     assert result.status_code == 200
-    assert result.get_json()["character_key"] == "apprentice"
-    assert result.get_json()["character_entitled"] is False
-    assert result.get_json()["character_runtime"] is None
+    assert result.get_json()["character_key"] == "A1"
+    assert result.get_json()["character_entitled"] is True
+    assert result.get_json()["character_runtime"]["character_key"] == "A1"
     with database() as conn:
         assert tuple(conn.execute("SELECT character_key,updated_at FROM player_appearance "
-                                  "WHERE user_id=1").fetchone()) == ("A3", "before")
+                                  "WHERE user_id=1").fetchone())[0] == "A1"
 
 
 def test_disposable_postgres_catalog_entitlement_and_persistence():

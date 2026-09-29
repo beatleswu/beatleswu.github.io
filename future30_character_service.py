@@ -39,6 +39,12 @@ from migrations.future30_character_catalog_v1 import (
 DEFAULT_CHARACTER_KEY = "apprentice"
 ACCEPTANCE_ENVIRONMENTS = frozenset({"acceptance", "test", "local"})
 
+# Owner-finalized G009 bootstrap authority.  This is the only acquisition
+# assignment frozen here; STAGE, PREMIUM, and SHOP remain owner-unassigned.
+STARTER_CHARACTER_KEYS = ("A1", "R1", "R2", "R3", "S2")
+DEFAULT_STARTER_KEY = "A1"
+STARTER_SOURCE_REFERENCE = "g009-starter-lazy-bootstrap"
+
 
 class Future30ServiceError(RuntimeError):
     """Stable typed failure for server-side Future30 operations."""
@@ -323,6 +329,92 @@ def grant_future30_character(
     }
 
 
+def _lock_starter_bootstrap_user(conn: Any, user_id: int) -> None:
+    """Serialize one authenticated bootstrap transaction per user.
+
+    The existing users row is the lock authority. SQLite already serializes
+    its write connection, while PostgreSQL uses the row lock so two Hero/
+    Appearance requests cannot race the active-selection decision.
+    """
+
+    raw_conn = getattr(conn, "_conn", conn)
+    is_sqlite = raw_conn.__class__.__module__.lower().startswith("sqlite3")
+    suffix = "" if is_sqlite else " FOR UPDATE"
+    row = conn.execute(
+        f"SELECT id FROM users WHERE id=?{suffix}", (int(user_id),)
+    ).fetchone()
+    if not row:
+        raise Future30ServiceError("authenticated user does not exist")
+
+
+def ensure_future30_starter_bootstrap(
+    conn: Any,
+    user_id: int,
+    *,
+    source_reference: str = STARTER_SOURCE_REFERENCE,
+    allow_acceptance_test: bool = False,
+) -> dict[str, Any]:
+    """Lazily grant all five permanent STARTER entitlements and choose A1.
+
+    This is deliberately a player-state boundary helper, not middleware and
+    not a batch/backfill API.  The caller owns the transaction.  Existing
+    valid Future30 selections are preserved; a legacy, missing, or unentitled
+    selection is moved to the canonical A1 default only after the five
+    idempotent STARTER rows are ensured.
+    """
+
+    uid = int(user_id)
+    _lock_starter_bootstrap_user(conn, uid)
+    ensure_future30_catalog(conn)
+
+    appearance = conn.execute(
+        "SELECT character_key FROM player_appearance WHERE user_id=?", (uid,)
+    ).fetchone()
+    stored_key = _row_value(appearance, "character_key", 0) if appearance else None
+
+    created: list[str] = []
+    for key in STARTER_CHARACTER_KEYS:
+        result = grant_future30_character(
+            conn,
+            uid,
+            key,
+            "STARTER",
+            environment="production",
+            source_reference=source_reference,
+        )
+        if result["created"]:
+            created.append(key)
+
+    active_key = None
+    if is_future30_character_key(stored_key):
+        projection = project_applied_character(
+            conn,
+            uid,
+            stored_key,
+            allow_acceptance_test=allow_acceptance_test,
+        )
+        if projection["entitled"]:
+            active_key = stored_key
+
+    if active_key is None:
+        applied = apply_future30_character(
+            conn,
+            uid,
+            DEFAULT_STARTER_KEY,
+            allow_acceptance_test=allow_acceptance_test,
+        )
+        active_key = applied["character_key"]
+
+    return {
+        "user_id": uid,
+        "starter_pool": list(STARTER_CHARACTER_KEYS),
+        "created": created,
+        "active_character_key": active_key,
+        "default_used": active_key == DEFAULT_STARTER_KEY and stored_key != DEFAULT_STARTER_KEY,
+        "permanent": True,
+    }
+
+
 def list_future30_entitlements(
     conn: Any,
     user_id: int,
@@ -498,7 +590,9 @@ __all__ = [
     "ACCEPTANCE_ENVIRONMENTS", "Future30AcquisitionRejected",
     "Future30CatalogUnavailable", "Future30CharacterNotEntitled",
     "Future30ServiceError", "Future30UnknownCharacter",
+    "DEFAULT_STARTER_KEY", "STARTER_CHARACTER_KEYS", "STARTER_SOURCE_REFERENCE",
     "apply_future30_character", "catalog_payload", "ensure_future30_catalog",
+    "ensure_future30_starter_bootstrap",
     "grant_future30_character", "initialize_future30_catalog",
     "list_future30_entitlements", "project_applied_character",
     "resolve_future30_mapping",
