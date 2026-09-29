@@ -1,0 +1,47 @@
+{
+  "task_id": "A_G009_COMPANION_FORMAL_18_MAPPING_CLOSURE_001",
+  "owner_approved_18_18": true,
+  "owner_approval_event": "A_G009_COMPANION_FINAL_9_OWNER_APPROVAL_001",
+  "owner_approval_sha256": "7F763F86718A5CD15193053B0C12A1D790F78801362DABCCB0ED283A78CF5AA7",
+  "mapping_markdown_sha256": "11A013FF35481119E2724A36BBEDB60AB5C885F44BBD81F13ABEC60A6120CC7A",
+  "mapping_json_sha256": "ABF2DCEB43139B022A0156F4EE8A5B15D61409E4A5949B56480BB66E86D5A24D",
+  "handoff_sha256": "F99769E48D4910B43B9D307A91D0FB16EFE74BC9DB0B85A94D61AA8E9812ACA0",
+  "canonical_pet_keys": [
+    "ink_drop_kelpie",
+    "whispering_void_kit",
+    "star_shell_hatchling",
+    "starpath_antlerling",
+    "fatty",
+    "obsidian_bastion"
+  ],
+  "pet_key_authority": "Owner canonical pet_key roster; filenames and asset hashes are not identity authority.",
+  "stage_authority": {
+    "source": "Persistent server pet level only.",
+    "rules": {
+      "I": "persistent_server_pet_level < 10",
+      "II": "persistent_server_pet_level >= 10 AND <= 24",
+      "III": "persistent_server_pet_level >= 25"
+    }
+  },
+  "mapping_count": 18,
+  "mappings": [
+    {"pet_key":"ink_drop_kelpie","stage":"I","level_rule":"persistent_server_pet_level < 10","runtime_glb":"assets/3d_shop/p048/companion/formal_18/ink_drop_kelpie/stage_i.glb","asset_sha256":"FCAC2521F47767210C5DF41C396AD4FF4B38D5E136719654D3B2AC08577463BC","asset_bytes":15363508},
+    {"pet_key":"ink_drop_kelpie","stage":"II","level_rule":"persistent_server_pet_level >= 10 AND <= 24","runtime_glb":"assets/3d_shop/p048/companion/formal_18/ink_drop_kelpie/stage_ii.glb","asset_sha256":"39E76DBC72099B3F4D66A52F5D975F30F2F352BE2928703BC0CD8F4889C9845E","asset_bytes":18409172},
+    {"pet_key":"ink_drop_kelpie","stage":"III","level_rule":"persistent_server_pet_level >= 25","runtime_glb":"assets/3d_shop/p048/companion/formal_18/ink_drop_kelpie/stage_iii.glb","asset_sha256":"5CB54C513CBECF169AA5C386D8A4B2FC760A42492B25D97B6AE9193A8F5B7982","asset_bytes":14367192},
+    {"pet_key":"whispering_void_kit","stage":"I","level_rule":"persistent_server_pet_level < 10","runtime_glb":"assets/3d_shop/p048/companion/formal_18/whispering_void_kit/stage_i.glb","asset_sha256":"8A5E5C2A974782F6403BA6BA91400DCE88918044682FD69E7552C71AC1A92AB1","asset_bytes":11755420},
+    {"pet_key":"whispering_void_kit","stage":"II","level_rule":"persistent_server_pet_level >= 10 AND <= 24","runtime_glb":"assets/3d_shop/p048/companion/formal_18/whispering_void_kit/stage_ii.glb","asset_sha256":"6CDCDA1AB90E7BC9B6F1D525E73E7B2732305B365EA114C04E2BCA83F259F3CC","asset_bytes":14541844},
+    {"pet_key":"whispering_void_kit","stage":"III","level_rule":"persistent_server_pet_level >= 25","runtime_glb":"assets/3d_shop/p048/companion/formal_18/whispering_void_kit/stage_iii.glb","asset_sha256":"12CF3A386CC44D8C5E0A684FEB44DA6563C3DC7874C622280109B97F3D949AD0","asset_bytes":18168724},
+    {"pet_key":"star_shell_hatchling","stage":"I","level_rule":"persistent_server_pet_level < 10","runtime_glb":"assets/3d_shop/p048/companion/formal_18/star_shell_hatchling/stage_i.glb","asset_sha256":"DB2C5B62ED223A568DD4F78905610F54DD39772BD7A55CDD9009F75779A5F86B","asset_bytes":8767356},
+    {"pet_key":"star_shell_hatchling","stage":"II","level_rule":"persistent_server_pet_level >= 10 AND <= 24","runtime_glb":"assets/3d_shop/p048/companion/formal_18/star_shell_hatchling/stage_ii.glb","asset_sha256":"77A3A4D8E785437E2B06FCEC42F1C99CDF699F0BCA600AE445DAE9B017C3F66A","asset_bytes":8571584},
+    {"pet_key":"star_shell_hatchling","stage":"III","level_rule":"persistent_server_pet_level >= 25","runtime_glb":"assets/3d_shop/p048/companion/formal_18/star_shell_hatchling/stage_iii.glb","asset_sha256":"B21957CA799164C1782D3BC5D7CEDB1B2DFB52F358627EBA7AB0444162AF7AF2","asset_bytes":9160904},
+    {"pet_key":"starpath_antlerling","stage":"I","level_rule":"persistent_server_pet_level < 10","runtime_glb":"assets/3d_shop/p048/companion/formal_18/starpath_antlerling/stage_i.glb","asset_sha256":"0AB3DD577DC2F5C42010C72F99B3E14D8344712FD30D324080E0B4B4A1F3FC69","asset_bytes":980084},
+    {"pet_key":"starpath_antlerling","stage":"II","level_rule":"persistent_server_pet_level >= 10 AND <= 24","runtime_glb":"assets/3d_shop/p048/companion/formal_18/starpath_antlerling/stage_ii.glb","asset_sha256":"3FA2EDAC2F3995DDA9F40E815B65AEF0A506799E4B02DD577C1927489D94A22C","asset_bytes":11529044},
+    {"pet_key":"starpath_antlerling","stage":"III","level_rule":"persistent_server_pet_level >= 25","runtime_glb":"assets/3d_shop/p048/companion/formal_18/starpath_antlerling/stage_iii.glb","asset_sha256":"A9E98A34150D6BBCC6D5209C2BB00DC2EBEB5524D1AD83A18A78F59BCAC10390","asset_bytes":12764468},
+    {"pet_key":"fatty","stage":"I","level_rule":"persistent_server_pet_level < 10","runtime_glb":"assets/3d_shop/p048/companion/formal_18/fatty/stage_i.glb","asset_sha256":"0167B9E182CA4A800BE00B5206669D0EBA5CB34795145943419616DCA1B468EF","asset_bytes":11696144},
+    {"pet_key":"fatty","stage":"II","level_rule":"persistent_server_pet_level >= 10 AND <= 24","runtime_glb":"assets/3d_shop/p048/companion/formal_18/fatty/stage_ii.glb","asset_sha256":"8099DEF0B7874FD6182D3B2F75F6C046B13C0F12910BBB76F53D9B8D5C30C790","asset_bytes":11691428},
+    {"pet_key":"fatty","stage":"III","level_rule":"persistent_server_pet_level >= 25","runtime_glb":"assets/3d_shop/p048/companion/formal_18/fatty/stage_iii.glb","asset_sha256":"1F62B29118703C40B7500D27B9B2B123CE9AD132E32B580D51E39B7A53C88385","asset_bytes":14366308},
+    {"pet_key":"obsidian_bastion","stage":"I","level_rule":"persistent_server_pet_level < 10","runtime_glb":"assets/3d_shop/p048/companion/formal_18/obsidian_bastion/stage_i.glb","asset_sha256":"8A5E2DBD34D1BDFC9A9F7EC5BBF44E7A6824D22E912F64F3ED2A40FAD730AF59","asset_bytes":13196616},
+    {"pet_key":"obsidian_bastion","stage":"II","level_rule":"persistent_server_pet_level >= 10 AND <= 24","runtime_glb":"assets/3d_shop/p048/companion/formal_18/obsidian_bastion/stage_ii.glb","asset_sha256":"03AFA8DD69BE736592CD60DB9C290837A9B03A372A65F978A34CC8AC1BC6F458","asset_bytes":12897312},
+    {"pet_key":"obsidian_bastion","stage":"III","level_rule":"persistent_server_pet_level >= 25","runtime_glb":"assets/3d_shop/p048/companion/formal_18/obsidian_bastion/stage_iii.glb","asset_sha256":"2828A376273717BDBEE1010AF074556EB1E4BD0091A45EBEDD9D2CA0CD8D2BE3","asset_bytes":15338256}
+  ]
+}

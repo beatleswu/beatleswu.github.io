@@ -22,6 +22,7 @@ let sharedAttachmentFacade = null;
 let serverAppearance = null;
 const slotResolvers = new Map();
 const presentationRehydrators = new Map();
+const presentationTeardowns = new Map();
 const rehydratedGenerationByKey = new Map();
 let cancelFrameWait = null;
 
@@ -87,6 +88,21 @@ function runPresentationRehydrator(key, callback, token, appearance, force = fal
 
 export function getHeroSharedAttachmentHost() {
   return sharedAttachmentFacade;
+}
+
+// Children register cleanup inside the single Hero owner lifecycle.
+export function registerHeroPresentationTeardown(key, callback) {
+  if (typeof key !== "string" || !key.trim() || typeof callback !== "function") {
+    throw new Error("hero_presentation_teardown_invalid");
+  }
+  if (presentationTeardowns.has(key) && presentationTeardowns.get(key) !== callback) {
+    throw new Error("hero_presentation_teardown_already_registered:" + key);
+  }
+  presentationTeardowns.set(key, callback);
+  return () => {
+    if (presentationTeardowns.get(key) !== callback) return false;
+    return presentationTeardowns.delete(key);
+  };
 }
 
 export function registerHeroPresentationResolver(slot, resolver) {
@@ -185,6 +201,9 @@ function disposeModel(root) {
 }
 
 function releaseOwnedResources() {
+  for (const callback of presentationTeardowns.values()) {
+    try { callback(); } catch (error) { console.warn("Hero child teardown failed", error); }
+  }
   cancelFrameWait?.();
   cancelFrameWait = null;
   sharedAttachmentHost?.destroy();

@@ -2861,15 +2861,24 @@ async function playPetAction(img, petKey, action) {
 }
 
 let _petState = null;
+let _petStatusRequestGeneration = 0;
 async function loadPetStatus() {
+  const requestGeneration = ++_petStatusRequestGeneration;
   const root = document.getElementById('pet-companion-root');
   if (!root) return;
   root.innerHTML = `<div class="pet-empty">${isEn() ? 'Loading companion data...' : '載入寵物資料中…'}</div>`;
   try {
-    _petState = await fetch('/api/pet/status', { credentials:'include', cache:'no-store' }).then(r => r.json());
+    const response = await fetch('/api/pet/status', { credentials:'include', cache:'no-store' });
+    if (!response.ok) throw new Error('pet_status_unavailable');
+    const snapshot = await response.json();
+    if (requestGeneration !== _petStatusRequestGeneration) return;
+    _petState = snapshot;
+    window.dispatchEvent(new Event('g009:companion-status'));
     renderPetCompanion();
     renderHeroOverview();
   } catch (e) {
+    if (requestGeneration !== _petStatusRequestGeneration) return;
+    window.dispatchEvent(new Event('g009:companion-status'));
     root.innerHTML = `<div class="pet-empty">${isEn() ? 'Failed to load companion data.' : '寵物資料載入失敗。'}</div>`;
   }
 }
@@ -5522,6 +5531,7 @@ function launchGoldConfetti() {
 <script type="module" src="/js/g008_future30_hero_renderer.js"></script>
 <script type="module" src="/js/g009_d007_shared_host_bootstrap.js"></script>
 <script type="module" src="/js/g009_d_r2_shared_host_bootstrap.js"></script>
+<script type="module" src="/js/g009_companion_formal18_bootstrap.mjs"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>
 </body>
 </html>
