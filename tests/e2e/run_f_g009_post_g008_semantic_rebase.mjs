@@ -85,7 +85,7 @@ function projection() {
     const visuals = manifest.visual_models.filter(model => model.character_id === row.character_id);
     const red = visuals.find(model => model.variant === 'RED');
     return { ...red, character_key: row.character_id, owned: true, is_applied: row.character_id === selectedKey,
-      acquisition_source: 'ACCEPTANCE_TEST', visual_models: visuals };
+      acquisition_source: 'STARTER', visual_models: visuals };
   });
   const entry = entries.find(row => row.character_key === selectedKey) || entries[0];
   const catalog = { entries, logical_count: 30, visual_count: 33, c005_manifest_sha256: manifestHash, blue_optional: ['AR1', 'AR2', 'AR3'] };

@@ -49,7 +49,8 @@ def test_no_parallel_hero_host_or_server_authority_is_introduced():
     assert renderer.count('new THREE.WebGLRenderer(') == 1
     assert 'player_appearance.character_key' in renderer
     assert 'entry.owned !== true' in renderer
-    assert 'entry.acquisition_source !== "ACCEPTANCE_TEST"' in renderer
+    assert 'ACCEPTED_FUTURE30_ACQUISITION_SOURCES' in renderer
+    assert '"STARTER"' in renderer
     assert 'mountP048Preview' not in renderer
     assert 'filename' not in renderer
     assert 'export function destroyHeroAppearance()' in renderer

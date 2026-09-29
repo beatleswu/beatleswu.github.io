@@ -136,6 +136,37 @@ def test_authenticated_appearance_boundary_grants_and_projects_real_player_state
     assert owned == sorted(STARTER_CHARACTER_KEYS)
 
 
+def test_normal_authenticated_switch_persists_across_fresh_session(isolated_state, monkeypatch):
+    import app as application
+
+    @contextlib.contextmanager
+    def database():
+        yield isolated_state
+
+    monkeypatch.setattr(application, "get_db", database)
+    monkeypatch.setattr(application, "ensure_premium_rewards", lambda *args, **kwargs: None)
+    monkeypatch.setitem(application.app.config, "APP_ENV", "production")
+    monkeypatch.setitem(application.app.config, "FUTURE30_ACCEPTANCE_ENTITLEMENTS_ENABLED", False)
+    client = application.app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = 5
+        session["username"] = "starter-5"
+
+    assert client.get("/api/player/appearance").get_json()["character_key"] == "A1"
+    switched = client.post("/api/skills/character", json={"character_key": "R2"})
+    assert switched.status_code == 200
+    assert client.get("/api/player/appearance").get_json()["character_key"] == "R2"
+    catalog = client.get("/api/player/character-catalog").get_json()
+    assert catalog["applied_character_key"] == "R2"
+    assert sum(entry["owned"] for entry in catalog["entries"]) == 5
+
+    fresh = application.app.test_client()
+    with fresh.session_transaction() as session:
+        session["user_id"] = 5
+        session["username"] = "starter-5"
+    assert fresh.get("/api/player/appearance").get_json()["character_key"] == "R2"
+
+
 def test_two_concurrent_bootstrap_requests_converge_without_duplicates(tmp_path):
     db_path = str(tmp_path / "starter-concurrency.sqlite")
     setup = _create_state_database(db_path)

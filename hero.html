@@ -2194,11 +2194,13 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon purple">🧙</div>
-            <span class="section-title" data-i18n="hero.appearance.character">角色造型</span>
+            <span class="section-title">Future30 角色 / Future30 Characters</span>
             <div class="section-header-line"></div>
           </div>
-          <p class="hero-domain-note" data-i18n="hero.appearance.body">純視覺替換集中於此，不顯示裝備數值或建立第二份 ownership。</p>
-          <div class="combat-grid" id="combat-character-grid"></div>
+          <p class="hero-domain-note">顯示伺服器確認擁有的角色；選擇會寫入 player_appearance.character_key，僅影響角色身份與 3D 呈現。</p>
+          <div class="hero-functional-projection-status" id="future30-character-status" aria-live="polite">載入 Future30 角色…</div>
+          <div class="combat-grid" id="future30-character-grid" data-future30-character-grid></div>
+          <div class="combat-grid" id="combat-character-grid" hidden aria-hidden="true"></div>
         </div>
 
         <!-- 棋子皮膚 -->
@@ -3736,6 +3738,8 @@ const HERO_LEGACY_LOADOUT_EFFECTIVE = false;
 // retained only as a legacy style-control cache, never as character authority.
 let _characterAuthorityState = 'pending';
 let _characterAuthorityKey = null;
+let _future30CharacterCatalog = null;
+let _future30CharacterCatalogState = 'pending';
 let _functionalEquipmentState = 'pending';
 let _functionalEquipmentItems = [];
 // 段位 → 解鎖階（LV1=30k–25k … LV10=7d+）
@@ -4255,6 +4259,114 @@ function renderCombatGearControls() {
   });
   renderStoneSkins();
   renderBoardSkins();
+  renderFuture30CharacterCatalog();
+}
+
+function future30CatalogEntryLabel(entry) {
+  const displayName = entry?.display_name;
+  return String(displayName || entry?.character_key || 'Future30 character');
+}
+
+function renderFuture30CharacterCatalog(payload = _future30CharacterCatalog) {
+  const grid = document.getElementById('future30-character-grid');
+  const status = document.getElementById('future30-character-status');
+  if (!grid || !status) return;
+  if (_future30CharacterCatalogState === 'pending') {
+    status.textContent = isEn() ? 'Loading Future30 characters…' : '載入 Future30 角色…';
+    grid.replaceChildren();
+    return;
+  }
+  if (_future30CharacterCatalogState !== 'ready' || !payload) {
+    status.textContent = isEn()
+      ? 'Future30 character selection is unavailable.'
+      : 'Future30 角色選擇暫不可用。';
+    grid.replaceChildren();
+    return;
+  }
+  const owned = (Array.isArray(payload.entries) ? payload.entries : [])
+    .filter(entry => entry && entry.owned === true);
+  status.textContent = isEn()
+    ? `${owned.length} owned Future30 character${owned.length === 1 ? '' : 's'}`
+    : `已擁有 ${owned.length} 隻 Future30 角色`;
+  grid.innerHTML = owned.map(entry => {
+    const key = String(entry.character_key || '');
+    const active = entry.is_applied === true || key === payload.applied_character_key;
+    const label = escapeHTML(future30CatalogEntryLabel(entry));
+    const safeKey = escapeHTML(key);
+    return `<button type="button" class="combat-item future30-character-item${active ? ' active' : ''}"
+      data-future30-character-key="${safeKey}" aria-pressed="${active}">
+      <span>${label}</span><small class="combat-item-effect">${escapeHTML(key)} · ${isEn() ? 'owned' : '已擁有'}</small>
+    </button>`;
+  }).join('');
+  grid.querySelectorAll('[data-future30-character-key]').forEach(button => {
+    button.addEventListener('click', () => selectFuture30Character(button.dataset.future30CharacterKey));
+  });
+}
+
+async function loadFuture30CharacterCatalog() {
+  const status = document.getElementById('future30-character-status');
+  _future30CharacterCatalogState = 'pending';
+  renderFuture30CharacterCatalog();
+  try {
+    const response = await fetch('/api/player/character-catalog', {
+      credentials: 'include', cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(`character catalog HTTP ${response.status}`);
+    const payload = await response.json();
+    if (payload.logical_count !== 30 || payload.visual_count !== 33
+      || !Array.isArray(payload.entries) || payload.entries.length !== 30
+      || new Set(payload.entries.map(entry => entry?.character_key)).size !== 30) {
+      throw new Error('future30_catalog_authority_mismatch');
+    }
+    _future30CharacterCatalog = payload;
+    _future30CharacterCatalogState = 'ready';
+    renderFuture30CharacterCatalog(payload);
+    return payload;
+  } catch (error) {
+    _future30CharacterCatalog = null;
+    _future30CharacterCatalogState = 'unavailable';
+    renderFuture30CharacterCatalog();
+    if (status) status.dataset.error = error instanceof Error ? error.message : String(error);
+    console.warn('Future30 character catalog unavailable', error);
+    return null;
+  }
+}
+
+async function selectFuture30Character(characterKey) {
+  const key = String(characterKey || '');
+  const entry = _future30CharacterCatalog?.entries?.find(item =>
+    item?.character_key === key && item.owned === true
+  );
+  if (!entry) {
+    showToast(isEn() ? 'This Future30 character is not owned.' : '這隻 Future30 角色尚未擁有。');
+    return;
+  }
+  const buttons = [...document.querySelectorAll('[data-future30-character-key]')];
+  buttons.forEach(button => { button.disabled = true; });
+  try {
+    const response = await fetch('/api/skills/character', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ character_key: key }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.error || result.rejected?.includes('character')) {
+      throw new Error(result.error || 'future30_character_selection_rejected');
+    }
+    showToast(isEn() ? 'Future30 character applied.' : 'Future30 角色已套用。');
+    await refreshAuthoritativeHeroPresentation();
+    const refresh = window.__G008_FUTURE30_REFRESH__;
+    if (typeof refresh === 'function') {
+      await refresh();
+      await loadFuture30CharacterCatalog();
+    } else {
+      window.location.reload();
+    }
+  } catch (error) {
+    buttons.forEach(button => { button.disabled = false; });
+    showToast(error instanceof Error ? error.message : (isEn() ? 'Selection failed.' : '角色切換失敗。'));
+    await loadFuture30CharacterCatalog();
+  }
 }
 
 // ── 棋子皮膚 ──────────────────────────────────────────────
@@ -5089,6 +5201,19 @@ function renderHeroOverview() {
     : `${overviewXp.toLocaleString()} XP`);
   set('hero-overview-bonus', bonusLabels.length ? bonusLabels.join(' · ') : (isEn() ? 'No active bonus' : '目前沒有加成'));
 }
+
+function isFuture30AppearanceSnapshot(appearance) {
+  const key = appearance?.character_key;
+  const runtime = appearance?.character_runtime;
+  return appearance?.character_key_source === 'player_appearance.character_key'
+    && appearance?.character_key_authority === 'player_appearance.character_key'
+    && appearance?.character_entitled === true
+    && typeof key === 'string' && key.length > 0
+    && runtime?.character_key === key
+    && typeof runtime?.runtime_glb === 'string'
+    && typeof runtime?.runtime_sha256 === 'string';
+}
+
 async function hydrateAuthoritativeHeroPresentation() {
   _characterAuthorityState = 'pending';
   _characterAuthorityKey = null;
@@ -5104,7 +5229,8 @@ async function hydrateAuthoritativeHeroPresentation() {
     if (!appearanceResponse.ok) throw new Error(`appearance HTTP ${appearanceResponse.status}`);
     const appearance = await appearanceResponse.json();
     const serverCharacter = appearance && appearance.character_key;
-    if (!CHARACTER_KEYS.includes(serverCharacter)) {
+    const future30Appearance = isFuture30AppearanceSnapshot(appearance);
+    if (!future30Appearance && !CHARACTER_KEYS.includes(serverCharacter)) {
       throw new Error('server character presentation key is unavailable');
     }
     _characterAuthorityKey = serverCharacter;
@@ -5136,6 +5262,7 @@ async function hydrateAuthoritativeHeroPresentation() {
   renderFunctionalWearableProjection();
   renderFunctionalEquipmentProjection();
   renderCombatGearControls();
+  await loadFuture30CharacterCatalog();
 }
 
 let _authoritativeHeroRefreshPromise = null;

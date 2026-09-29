@@ -100,11 +100,12 @@ def test_appearance_read_model_declares_existing_wardrobe_ownership():
 
 
 def test_real_character_route_requires_persistent_ownership_and_rejects_unknown(tmp_path, monkeypatch):
-    # Exercise real routes against a throwaway SQLite fixture only.  Catalog
-    # admission does not itself grant ownership or mutate appearance.
+    # Exercise real routes against a throwaway SQLite fixture only.  The
+    # authenticated character-catalog boundary is the owner-authorized lazy
+    # STARTER bootstrap point.
     os.environ.setdefault("SECRET_KEY", "d007-future30-route-test-secret")
     import app as app_module
-    from future30_character_service import grant_future30_character, initialize_future30_catalog
+    from future30_character_service import initialize_future30_catalog
 
     db_path = tmp_path / "future30-admission.sqlite"
     with sqlite3.connect(db_path) as connection:
@@ -168,41 +169,25 @@ def test_real_character_route_requires_persistent_ownership_and_rejects_unknown(
         "H3", "K1", "K2", "K3", "W1", "W2", "W3", "M1", "M2", "S1",
         "S2", "F1", "F2", "F3", "AR1", "AR2", "AR3", "E1", "E2", "E3",
     ]
-    assert all(not entry["owned"] for entry in catalog_json["entries"])
+    starter_keys = {"A1", "R1", "R2", "R3", "S2"}
+    assert {entry["character_key"] for entry in catalog_json["entries"] if entry["owned"]} == starter_keys
     assert all(entry["acquisition_group_status"] == "UNASSIGNED" for entry in catalog_json["entries"])
-
-    with DbContext() as connection:
-        granted = grant_future30_character(
-            connection,
-            7,
-            "A1",
-            "ACCEPTANCE_TEST",
-            environment="acceptance",
-            allow_acceptance_test=True,
-            source_reference="isolated-test",
-        )
-        assert granted["created"] is True
-        connection.commit()
-
-    # ACCEPTANCE_TEST ownership is hidden/ineffective until the isolated-only
-    # switch is explicitly enabled; the same frozen route then applies it.
-    still_unavailable = client.post("/api/skills/character", json={"character_key": "A1"})
-    assert still_unavailable.status_code == 403
-    monkeypatch.setitem(app_module.app.config, "FUTURE30_ACCEPTANCE_ENTITLEMENTS_ENABLED", True)
-    accepted = client.post("/api/skills/character", json={"character_key": "A1"})
+    accepted = client.post("/api/skills/character", json={"character_key": "R2"})
     assert accepted.status_code == 200
     assert accepted.get_json()["rejected"] == []
     with sqlite3.connect(db_path) as connection:
         assert connection.execute(
             "SELECT character_key FROM player_appearance WHERE user_id=7"
-        ).fetchone()[0] == "A1"
+        ).fetchone()[0] == "R2"
 
     appearance = client.get("/api/player/character-catalog").get_json()
     owned_a1 = next(entry for entry in appearance["entries"] if entry["character_key"] == "A1")
     assert owned_a1["owned"] is True
-    assert owned_a1["acquisition_source"] == "ACCEPTANCE_TEST"
+    assert owned_a1["acquisition_source"] == "STARTER"
     assert owned_a1["permanent"] is True
-    assert owned_a1["is_applied"] is True
+    assert owned_a1["is_applied"] is False
+    owned_r2 = next(entry for entry in appearance["entries"] if entry["character_key"] == "R2")
+    assert owned_r2["is_applied"] is True
 
     legacy_alias = client.post("/api/skills/character", json={"character_key": "hero_male"})
     assert legacy_alias.status_code == 200
@@ -210,4 +195,4 @@ def test_real_character_route_requires_persistent_ownership_and_rejects_unknown(
     with sqlite3.connect(db_path) as connection:
         assert connection.execute(
             "SELECT character_key FROM player_appearance WHERE user_id=7"
-        ).fetchone()[0] == "A1"
+        ).fetchone()[0] == "R2"
