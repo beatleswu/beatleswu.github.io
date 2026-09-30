@@ -93,6 +93,15 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-p
   pointer-events: none !important;
 }
 
+/* Keep every hidden World Map surface out of layout and hit testing.  Some
+   responsive presentation rules intentionally use display:grid/flex, so the
+   semantic hidden attribute must win at the shell boundary. */
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell [hidden] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* Mobile map labels and completed stars are interaction-revealed. Current,
    selected and locked cards retain their canonical always-visible details. */
 @media (max-width: 767px) {

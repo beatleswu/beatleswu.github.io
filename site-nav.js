@@ -732,6 +732,9 @@
       @media (max-width: 520px) {
         :root { --cg-nav-h: 52px; }
         .cg-brand-mark { width: 28px; height: 28px; }
+        /* Keep the non-interactive presence chip from shrinking the global
+           nav scroller enough to clip the Backpack target on narrow phones. */
+        .cg-nav-presence { display: none; }
         .cg-nav-link { width: 44px; min-width: 44px; height: 44px; min-height: 44px; border-radius: 11px; }
         .cg-nav-player { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; }
         .cg-nav-player-chevron { display: none; }

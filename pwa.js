@@ -97,6 +97,13 @@ const BANNER_CSS = `
   transition: color .15s;
 }
 #pwa-banner .pb-close:hover { color:rgba(255,255,255,.8); }
+@media (max-width: 768px) {
+  /* Keep the install prompt above the fixed mobile navigation so it cannot
+     occlude the navigation targets or shrink their effective hit regions. */
+  #pwa-banner {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
 `;
 
 function showBanner() {
