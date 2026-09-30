@@ -51,6 +51,15 @@
     return activeShell === 'e9';
   }
 
+  function ownsE10MapNavigation() {
+    const marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
+    if (marker?.getAttribute('content') !== E10_VS1F_STATIC_CONTRACT) return false;
+    const owner = window.__GO_ADVENTURE_SHELL_OWNER__
+      || document.body?.getAttribute('data-adventure-shell-owner')
+      || document.documentElement?.getAttribute('data-adventure-shell-owner');
+    return owner === E10_MAP_SHELL_OWNER;
+  }
+
   function normalize(path) {
     return (path || '/').replace(/\/+$/, '') || '/';
   }
@@ -79,9 +88,12 @@
 
   function buildNav() {
     // 只接管「導覽列 header」；行銷頁的 <header class="hero"> 不可被吃掉
+    const isPremiumSurface = document.body?.dataset.g009Surface === 'premium'
+      || normalize(location.pathname) === '/upgrade';
     const old = document.querySelector('header.cg-nav') || document.querySelector('header:not(.hero)');
-    if (!old) return;
-    const langSwitcher = old.querySelector('[id^="lang-switcher-"]');
+    if (!old && !isPremiumSurface) return;
+    const langSwitcher = old?.querySelector('[id^="lang-switcher-"]')
+      || (isPremiumSurface ? document.querySelector('[id^="lang-switcher-"]') : null);
     const header = document.createElement('header');
     header.className = 'cg-nav';
     header.dataset.cgNav = '1';
@@ -145,13 +157,20 @@
     if (ownsE10Navigation()) {
       header.dataset.e10SessionStrip = '1';
       header.querySelector('.cg-nav-links')?.remove();
-      header.querySelector('[data-g009-global-drawer]')?.remove();
+      if (!ownsE10MapNavigation()) header.querySelector('[data-g009-global-drawer]')?.remove();
     }
-    old.replaceWith(header);
+    if (old) old.replaceWith(header);
+    else if (document.body) document.body.insertBefore(header, document.body.firstChild);
     // 語言切換鈕：搬移既有的；若該頁沒有，就現場生成一個（涵蓋所有用共用 nav 的頁面）
     const langSlot = header.querySelector('.cg-nav-lang');
     if (langSlot) {
       if (langSwitcher) {
+        if (isPremiumSurface) {
+          langSwitcher.style.position = 'static';
+          langSwitcher.style.top = '';
+          langSwitcher.style.right = '';
+          langSwitcher.style.zIndex = '';
+        }
         langSlot.appendChild(langSwitcher);
       } else if (typeof I18n !== 'undefined' && typeof I18n.renderSwitcher === 'function') {
         const box = document.createElement('span');
@@ -210,7 +229,7 @@
     };
     const toggleDrawer = () => {
       const e10Owned = ownsE10Navigation();
-      if (e10Owned) {
+      if (e10Owned && !ownsE10MapNavigation()) {
         const next = hamburger?.getAttribute('aria-expanded') !== 'true';
         hamburger?.setAttribute('aria-expanded', String(next));
         document.dispatchEvent(new CustomEvent('g009:global-nav-toggle', { detail: { open: next } }));
@@ -271,7 +290,11 @@
     if (ownsE10Navigation()) {
       header.dataset.e10SessionStrip = '1';
       header.querySelector('.cg-nav-links')?.remove();
-      header.querySelector('[data-g009-global-drawer]')?.remove();
+      if (ownsE10MapNavigation()) {
+        if (!header.querySelector('[data-g009-global-drawer]')) buildNav();
+      } else {
+        header.querySelector('[data-g009-global-drawer]')?.remove();
+      }
       return;
     }
     if (header.dataset.e10SessionStrip === '1' && !header.querySelector('.cg-nav-links')) {
@@ -620,7 +643,7 @@
       }
       .cg-nav-drawer__header, .cg-nav-settings__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
       .cg-nav-drawer__header h2, .cg-nav-settings__header h2 { margin: 0; font-size: 20px; }
-      .cg-nav-drawer__header button, .cg-nav-settings__header button { width: 40px; height: 40px; border: 1px solid rgba(47,36,18,.2); border-radius: 9px; background: #fff; color: #2f2412; font-size: 22px; cursor: pointer; }
+      .cg-nav-drawer__header button, .cg-nav-settings__header button { width: 44px; min-width: 44px; height: 44px; min-height: 44px; border: 1px solid rgba(47,36,18,.2); border-radius: 9px; background: #fff; color: #2f2412; font-size: 22px; cursor: pointer; }
       .cg-nav-drawer__links { display: grid; gap: 8px; }
       .cg-nav-drawer__links .cg-nav-link { justify-content: flex-start; min-height: 48px; color: #2f2412; border-color: rgba(47,36,18,.12); background: rgba(255,255,255,.76); }
       .cg-nav-drawer__links .cg-nav-link span { display: inline-flex; }

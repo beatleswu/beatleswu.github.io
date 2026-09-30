@@ -18,7 +18,7 @@ body[data-e10-visual-skin="immersive-rpg"] {
 }
 
 /* Owner postdeploy acceptance corrective (W1-OWNER-POSTDEPLOY-ACCEPTANCE-001,
-   Issue C): the E10 session strip is REMOVED from the map surface entirely.
+   Issue C): the E10 session strip is removed from the desktop map surface.
 
    It previously carried a duplicate language control -- the `.cg-brand-mark`
    goban glyph (a 30px board with a black and a white stone, site-nav.js) plus
@@ -27,11 +27,9 @@ body[data-e10-visual-skin="immersive-rpg"] {
    language switching mechanism and the Owner has removed it as a product
    decision.
 
-   `display: none` is deliberate, and is NOT a visual overlay over a live
-   control: the strip contributes no glyph, no toggle, no hit target, no focus
-   stop and no reserved layout space on the map. The earlier `clip-path`
-   sr-only treatment is intentionally NOT retained, because a clipped element
-   is still focusable and still an active hit target.
+   Desktop keeps the strip absent. Touch map surfaces use the same strip as a
+   compact, keyboard-operable drawer trigger; the media rule below supplies
+   that explicit small-screen contract without restoring desktop navigation.
 
    Language switching on the map remains available through the E10 settings
    dialog (components/adventure/top_hud.html #e10-settings-language, populated
@@ -39,6 +37,70 @@ body[data-e10-visual-skin="immersive-rpg"] {
    every non-map surface. */
 body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
   display: none;
+}
+
+@media (max-width: 1024px) {
+  body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
+    display: block;
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top, 0px));
+    right: auto;
+    bottom: auto;
+    left: 8px;
+    z-index: 1400;
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-inner {
+    display: block;
+    width: auto;
+    height: auto;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-brand,
+  body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-page-label,
+  body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-links,
+  body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-actions {
+    display: none !important;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .cg-nav-hamburger {
+    display: inline-flex !important;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 1px solid rgba(255, 232, 160, .72);
+    border-radius: 12px;
+    color: #fff8d5;
+    background: rgba(36, 22, 13, .88);
+    box-shadow: 0 5px 16px rgba(0, 0, 0, .42);
+  }
+  body[data-e10-visual-skin="immersive-rpg"].g009-nav-drawer-open { overflow: hidden; }
+}
+
+/* A hidden attribute must remain a true render/layout/pointer boundary even
+   when the immersive visual skin supplies a flex display declaration. */
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details-cta[hidden],
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details-secondary-cta[hidden],
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-primary-cta[hidden] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Mobile map labels and completed stars are interaction-revealed. Current,
+   selected and locked cards retain their canonical always-visible details. */
+@media (max-width: 767px) {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-zone:not(.e9-zone--locked):not(.is-current):not(.is-selected):not(:focus) .e9-zone__name,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-zone:not(.e9-zone--locked):not(.is-current):not(.is-selected):not(:focus) .e9-zone__status-text,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-zone:not(.e9-zone--locked):not(.is-current):not(.is-selected):not(:focus) .e9-zone__stars {
+    display: none !important;
+  }
 }
 
 /* A_PWA_REAL_IPAD_SHELL_GEOMETRY_CLOSURE_003 -- the World Stage's width cap.

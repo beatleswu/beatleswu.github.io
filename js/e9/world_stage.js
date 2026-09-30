@@ -1251,6 +1251,8 @@
     button.disabled = true;
     button.setAttribute('aria-disabled', 'true');
     button.removeAttribute('data-challenge-target-zone');
+    button.replaceChildren();
+    button.removeAttribute('aria-label');
   }
 
   function configureSecondaryAdventureButton(button, zone, contract) {
@@ -1293,6 +1295,10 @@
     // action identity must be that selected zone. Same-zone resume is decided
     // by ctaContract and then revalidated by the server at gameplay bootstrap.
     var targetZone = zone;
+    if (!primary || !targetZone || targetZone.locked || targetZone.canEnter === false) {
+      suppressAdventureButton(primary);
+      return;
+    }
     var contract = targetZone && ctaContract(targetZone, state);
     var label = contract ? contract.label : '';
     configureAdventureButton(primary, targetZone, contract);
