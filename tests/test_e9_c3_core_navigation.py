@@ -1,3 +1,5 @@
+import hashlib
+import json
 from pathlib import Path
 
 
@@ -99,3 +101,19 @@ def test_r3_world_map_locked_state_and_responsive_semantics_are_explicit():
         assert viewport_class in WORLD
     assert "(max-width: 767px)" not in WORLD
     assert "data-g009-zone-progress" in MARKUP
+
+
+def test_r3_zone_preview_manifest_and_runtime_assets_are_exact():
+    preview_dir = ROOT / "assets/maps/e10-vs1f-zone-previews"
+    manifest_path = preview_dir / "WORLD_MAP_ZONE_PREVIEW_MANIFEST.json"
+    assert hashlib.sha256(manifest_path.read_bytes()).hexdigest() == (
+        "77baa251392029fbcb88ca7ff3144f4afc3f76e60d0008eb2a28131878a01126"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["output_size"] == [640, 360]
+    assert len(manifest["zones"]) == 10
+    for zone in manifest["zones"]:
+        asset = preview_dir / zone["output_file"]
+        assert asset.is_file(), zone["output_file"]
+        assert hashlib.sha256(asset.read_bytes()).hexdigest() == zone["output_sha256"]
+        assert f"/assets/maps/e10-vs1f-zone-previews/{zone['output_file']}" in WORLD

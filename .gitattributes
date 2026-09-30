@@ -44,6 +44,10 @@ tools/e10_zone1_audio/Run_*.ps1 text eol=crlf
 # Preserve those bytes in the Git blob and on every checkout.
 schemas/future30_c005_real_asset_runtime_mapping_manifest.json -text -eol
 
+# G009 R3 World Map zone-preview manifest is copied byte-identically from the
+# locked control-plane source; preserve its SHA-256 provenance bytes.
+assets/maps/e10-vs1f-zone-previews/WORLD_MAP_ZONE_PREVIEW_MANIFEST.json -text -eol
+
 # G009 formal9 rights-cleared replacement: provenance and runtime GLBs are
 # hash-bound evidence (License.txt, page snapshots, archives, manifests).
 # Never normalize line endings or diff them; bytes must match SHA256SUMS.txt.

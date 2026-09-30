@@ -1,0 +1,448 @@
+{
+  "task_id": "G009_WORLD_MAP_ZONE_PREVIEW_DERIVATION_001",
+  "output_size": [
+    640,
+    360
+  ],
+  "derivation": "deterministic_crop_resize",
+  "resize_filter": "LANCZOS (PIL Image.LANCZOS), uniform scale, downscale only",
+  "ai_regeneration": false,
+  "generative_fill": false,
+  "nonuniform_scale": false,
+  "i18n_neutral": true,
+  "source_authority": [
+    {
+      "file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "dimensions": [
+        1640,
+        2360
+      ],
+      "authority": "Owner-LOCKED iPad portrait World Map master (IPAD_PORTRAIT_WORLD_MAP_OWNER_LOCK_RECEIPT.md, 2026-09-30); clean art, no UI overlay"
+    }
+  ],
+  "canonical_filename_rule": "NN_zone_NN_preview_v1.png (aliases/zone_NN_preview_v1.png are byte-identical copies)",
+  "owner_status": "READY_FOR_OWNER_ZONE_PREVIEW_REVIEW",
+  "zones": [
+    {
+      "zone_id": 1,
+      "canonical_key": "zone_01",
+      "zh_tw": "圍棋新手村",
+      "en": "New Player Village",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 0,
+        "top": 1424,
+        "right": 656,
+        "bottom": 1793,
+        "width": 656,
+        "height": 369
+      },
+      "scale_factor": 0.97561,
+      "resize_filter": "LANCZOS",
+      "output_file": "01_zone_01_preview_v1.png",
+      "canonical_filename": "01_zone_01_preview_v1.png",
+      "alias_file": "aliases/zone_01_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "1fc63abee81fb50df3ce19806d5e0684dbc1c1052ee670b47fa8618b5325f12f",
+      "landmark_kept": "red-roof village with bell tower, fields, winding road",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 2,
+      "canonical_key": "zone_02",
+      "zh_tw": "史萊姆平原",
+      "en": "Slime Plains",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 380,
+        "top": 1660,
+        "right": 1020,
+        "bottom": 2020,
+        "width": 640,
+        "height": 360
+      },
+      "scale_factor": 1.0,
+      "resize_filter": "LANCZOS",
+      "output_file": "02_zone_02_preview_v1.png",
+      "canonical_filename": "02_zone_02_preview_v1.png",
+      "alias_file": "aliases/zone_02_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "b6154584c215370e8f8f0d048a171f8030c6f0ddde63ab9f86f6af36956d0b47",
+      "landmark_kept": "slime pond with blue/green/orange slimes on open grassland; village edge as support only",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 3,
+      "canonical_key": "zone_03",
+      "zh_tw": "哥布林洞穴",
+      "en": "Goblin Cave",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 32,
+        "top": 470,
+        "right": 752,
+        "bottom": 875,
+        "width": 720,
+        "height": 405
+      },
+      "scale_factor": 0.888889,
+      "resize_filter": "LANCZOS",
+      "output_file": "03_zone_03_preview_v1.png",
+      "canonical_filename": "03_zone_03_preview_v1.png",
+      "alias_file": "aliases/zone_03_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "a6bcd49827c8e3e13cd4adce78179eb5ee365237f29528306a1618d70bdfa936",
+      "landmark_kept": "blue-glowing cave mouth, goblin wooden camp, rock spires",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 4,
+      "canonical_key": "zone_04",
+      "zh_tw": "迷霧森林",
+      "en": "Misty Forest",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 0,
+        "top": 880,
+        "right": 720,
+        "bottom": 1285,
+        "width": 720,
+        "height": 405
+      },
+      "scale_factor": 0.888889,
+      "resize_filter": "LANCZOS",
+      "output_file": "04_zone_04_preview_v1.png",
+      "canonical_filename": "04_zone_04_preview_v1.png",
+      "alias_file": "aliases/zone_04_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "cc17fc4686b5cc2ddba0c56c9000224b24eedca241abe219f19206e6eef3981a",
+      "landmark_kept": "giant glowing-root trees, blue-green mist pool, waterfalls",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 5,
+      "canonical_key": "zone_05",
+      "zh_tw": "獸人部落",
+      "en": "Orc Stronghold",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 490,
+        "top": 1020,
+        "right": 1210,
+        "bottom": 1425,
+        "width": 720,
+        "height": 405
+      },
+      "scale_factor": 0.888889,
+      "resize_filter": "LANCZOS",
+      "output_file": "05_zone_05_preview_v1.png",
+      "canonical_filename": "05_zone_05_preview_v1.png",
+      "alias_file": "aliases/zone_05_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "bfe7978ab3fe65035c0b1129d9ab9153c391d0313ad097fb943ce29501fae12a",
+      "landmark_kept": "central red-timber war camp with bonfire and palisade",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 6,
+      "canonical_key": "zone_06",
+      "zh_tw": "龍之谷",
+      "en": "Dragon Valley",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 920,
+        "top": 340,
+        "right": 1640,
+        "bottom": 745,
+        "width": 720,
+        "height": 405
+      },
+      "scale_factor": 0.888889,
+      "resize_filter": "LANCZOS",
+      "output_file": "06_zone_06_preview_v1.png",
+      "canonical_filename": "06_zone_06_preview_v1.png",
+      "alias_file": "aliases/zone_06_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "30e7be33cc1708bd25ae855935f95feb507cf416f894a9a216d94c1ed0980cee",
+      "landmark_kept": "red dragon (fully in frame) over lava valley and dark peaks",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 7,
+      "canonical_key": "zone_07",
+      "zh_tw": "賢者之塔",
+      "en": "Sage Tower",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 952,
+        "top": 1046,
+        "right": 1640,
+        "bottom": 1433,
+        "width": 688,
+        "height": 387
+      },
+      "scale_factor": 0.930233,
+      "resize_filter": "LANCZOS",
+      "output_file": "07_zone_07_preview_v1.png",
+      "canonical_filename": "07_zone_07_preview_v1.png",
+      "alias_file": "aliases/zone_07_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "3835e25782f67f125d77a522e339d1d5b03dfb3863de5d3660ad381c08227422",
+      "landmark_kept": "white-blue ringed sage tower on floating cliff",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 8,
+      "canonical_key": "zone_08",
+      "zh_tw": "魔王城前線",
+      "en": "Demon Castle Front",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 856,
+        "top": 1590,
+        "right": 1640,
+        "bottom": 2031,
+        "width": 784,
+        "height": 441
+      },
+      "scale_factor": 0.816327,
+      "resize_filter": "LANCZOS",
+      "output_file": "08_zone_08_preview_v1.png",
+      "canonical_filename": "08_zone_08_preview_v1.png",
+      "alias_file": "aliases/zone_08_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "e497055354b1d887295de25719e40b4bbdb505d99429b4319a45eb80e4cade22",
+      "landmark_kept": "black-red demon fortress, lava fields, frontline bridge",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 9,
+      "canonical_key": "zone_09",
+      "zh_tw": "諸神黃昏",
+      "en": "Twilight of the Gods",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 720,
+        "top": 700,
+        "right": 1440,
+        "bottom": 1105,
+        "width": 720,
+        "height": 405
+      },
+      "scale_factor": 0.888889,
+      "resize_filter": "LANCZOS",
+      "output_file": "09_zone_09_preview_v1.png",
+      "canonical_filename": "09_zone_09_preview_v1.png",
+      "alias_file": "aliases/zone_09_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "29ad8ca720898f0aca427b52c7d970ff9317dbd8d2c4ac767354317e12eef1f4",
+      "landmark_kept": "fallen stone-god face, colossal broken arches, ancient white ruins",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    },
+    {
+      "zone_id": 10,
+      "canonical_key": "zone_10",
+      "zh_tw": "上古終焉神殿",
+      "en": "Eternal Sanctum",
+      "source_file": "assets-candidate/world-map-portrait-ui-claude-003/world_map_home_portrait_ipad_master_v1.png",
+      "source_sha256": "4d79773a756f3755ef24c2686487590d3c866e2ae3b61642adb8db2c6116a3a2",
+      "source_dimensions": [
+        1640,
+        2360
+      ],
+      "crop_rect": {
+        "left": 420,
+        "top": 40,
+        "right": 1220,
+        "bottom": 490,
+        "width": 800,
+        "height": 450
+      },
+      "scale_factor": 0.8,
+      "resize_filter": "LANCZOS",
+      "output_file": "10_zone_10_preview_v1.png",
+      "canonical_filename": "10_zone_10_preview_v1.png",
+      "alias_file": "aliases/zone_10_preview_v1.png",
+      "output_dimensions": [
+        640,
+        360
+      ],
+      "output_sha256": "b83e5d3d5cdc87d16be74f42b7010d7cb1de9783ba20ea22b0ae59c3c04eacfa",
+      "landmark_kept": "topmost floating white-gold sanctum with halo ring and light pillar",
+      "quality": {
+        "dimensions_640x360": true,
+        "aspect_16_9": true,
+        "uniform_scale": true,
+        "upscaled": false,
+        "ui_contamination": false,
+        "text_baked_in": false,
+        "ai_regeneration": false,
+        "generative_fill": false
+      },
+      "quality_status": "PASS_TECHNICAL__PENDING_OWNER_REVIEW"
+    }
+  ]
+}

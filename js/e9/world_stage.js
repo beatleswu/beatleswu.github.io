@@ -100,6 +100,21 @@
     d5_6: '/assets/maps/e10-vs1f-landmarks/zone-09-eternal-night-shrine.webp',
     d7_plus: '/assets/maps/e10-vs1f-landmarks/zone-10-ancient-doom-temple.webp'
   };
+  // R3-locked deterministic 640x360 zone previews. The key mapping follows
+  // the server's canonical zone order; the preview files are presentation
+  // only and never supply progression, eligibility, or identity.
+  var ZONE_PREVIEWS = {
+    k26_30: '/assets/maps/e10-vs1f-zone-previews/01_zone_01_preview_v1.png',
+    k21_25: '/assets/maps/e10-vs1f-zone-previews/02_zone_02_preview_v1.png',
+    k16_20: '/assets/maps/e10-vs1f-zone-previews/03_zone_03_preview_v1.png',
+    k11_15: '/assets/maps/e10-vs1f-zone-previews/04_zone_04_preview_v1.png',
+    k6_10: '/assets/maps/e10-vs1f-zone-previews/05_zone_05_preview_v1.png',
+    k1_5: '/assets/maps/e10-vs1f-zone-previews/06_zone_06_preview_v1.png',
+    d1_2: '/assets/maps/e10-vs1f-zone-previews/07_zone_07_preview_v1.png',
+    d3_4: '/assets/maps/e10-vs1f-zone-previews/08_zone_08_preview_v1.png',
+    d5_6: '/assets/maps/e10-vs1f-zone-previews/09_zone_09_preview_v1.png',
+    d7_plus: '/assets/maps/e10-vs1f-zone-previews/10_zone_10_preview_v1.png'
+  };
 
   function applyAnchor(el, anchor) {
     if (!el || !anchor) return;
@@ -1335,13 +1350,16 @@
     }
     var portraitSurface = resolveViewportClass() === 'IPAD_PORTRAIT_820';
     if (landmark) {
-      if (portraitSurface && ZONE_LANDMARKS[zone.key]) {
-        if (landmark.getAttribute('src') !== ZONE_LANDMARKS[zone.key]) {
-          landmark.setAttribute('src', ZONE_LANDMARKS[zone.key]);
+      var previewAsset = ZONE_PREVIEWS[zone.key] || ZONE_LANDMARKS[zone.key];
+      if (portraitSurface && previewAsset) {
+        landmark.setAttribute('data-g009-zone-preview', ZONE_PREVIEWS[zone.key] || 'fallback-landmark');
+        if (landmark.getAttribute('src') !== previewAsset) {
+          landmark.setAttribute('src', previewAsset);
         }
         landmark.hidden = false;
       } else {
         landmark.hidden = true;
+        landmark.removeAttribute('data-g009-zone-preview');
         landmark.removeAttribute('src');
       }
     }
@@ -1385,7 +1403,7 @@
       statusText: zoneStateText(zone),
       summary: zoneSummaryText(zone),
       progress: zoneProgressText(zone),
-      landmarkSrc: ZONE_LANDMARKS[zone.key] || '',
+      landmarkSrc: ZONE_PREVIEWS[zone.key] || ZONE_LANDMARKS[zone.key] || '',
       zoneNumber: zone.__e10Index || 0,
       stars: zone.stars || 0,
       seen: zone.seen || 0,
@@ -1702,7 +1720,8 @@
       if (VS1E_STATIC_CONTRACT_ACTIVE && usesLandmarkCards()) {
         var landmark = document.createElement('img');
         landmark.className = 'e10-zone-landmark';
-        landmark.src = ZONE_LANDMARKS[zone.key];
+        landmark.src = ZONE_PREVIEWS[zone.key] || ZONE_LANDMARKS[zone.key];
+        landmark.setAttribute('data-g009-zone-preview', ZONE_PREVIEWS[zone.key] || 'fallback-landmark');
         landmark.alt = '';
         landmark.width = 320;
         landmark.height = 320;
