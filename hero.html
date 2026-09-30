@@ -1811,8 +1811,9 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 <script type="importmap">
 {"imports":{"three":"/assets/3d_shop/p048/vendor/three.module.js"}}
 </script>
+<link rel="stylesheet" href="/css/g009_hero_hub_batch_a.css">
 </head>
-<body data-hero-tab="hero" data-loadout-effective="off" data-g009-surface="hero-hub" data-g009-hero-sections="5">
+<body data-hero-tab="hero" data-loadout-effective="off" data-g009-surface="hero-hub" data-g009-hero-sections="5" data-g009-hero-hub="batch-a">
 
 <!-- ── HEADER ── -->
 <header>
@@ -2315,6 +2316,197 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
     </aside>
   </div><!-- /content-layout -->
 </div><!-- /wrap -->
+
+<!--
+  G009 Hero Hub Batch A presentation surface.
+  Owner authority: CLAUDE_G009_HERO_HUB_BATCH_A_VISUAL_AUTHORITY=LOCKED.
+  This shell consumes server-owned runtime state from the existing Hero page;
+  it does not replace the Future30 renderer, shared attachment host, pet
+  ownership model, or badge/title APIs. Candidate 84 identity renders are not
+  referenced here and remain pending Owner review.
+-->
+<main id="g009-hero-hub" class="g009-hero-hub" data-g009-hero-hub="batch-a">
+  <div class="g009-hub-grid">
+    <nav id="g009-hero-subnav" class="g009-hero-subnav" role="tablist"
+         aria-label="Hero Hub sections" data-i18n-aria-label="g009.hero.tabs.aria">
+      <div class="g009-subnav-head">
+        <span class="g009-subnav-crest" aria-hidden="true">✦</span>
+        <span data-i18n="g009.hero.hub">英雄殿</span>
+      </div>
+      <button type="button" class="g009-subtab is-active" role="tab"
+              aria-selected="true" aria-controls="g009-panel-character"
+              data-g009-hub-tab="hero" data-route-tab="hero">
+        <span class="g009-subtab-icon" aria-hidden="true">♙</span>
+        <span data-i18n="g009.hero.tab.character">角色總覽</span>
+      </button>
+      <button type="button" class="g009-subtab" role="tab"
+              aria-selected="false" aria-controls="g009-panel-equipment"
+              tabindex="-1" data-g009-hub-tab="equipment" data-route-tab="equipment">
+        <span class="g009-subtab-icon" aria-hidden="true">◇</span>
+        <span data-i18n="g009.hero.tab.equipment">裝備</span>
+      </button>
+      <button type="button" class="g009-subtab" role="tab"
+              aria-selected="false" aria-controls="g009-panel-appearance"
+              tabindex="-1" data-g009-hub-tab="appearance" data-route-tab="appearance">
+        <span class="g009-subtab-icon" aria-hidden="true">✧</span>
+        <span data-i18n="g009.hero.tab.appearance">外觀</span>
+      </button>
+      <button type="button" class="g009-subtab" role="tab"
+              aria-selected="false" aria-controls="g009-panel-companion"
+              tabindex="-1" data-g009-hub-tab="pet" data-route-tab="pet">
+        <span class="g009-subtab-icon" aria-hidden="true">♧</span>
+        <span data-i18n="g009.hero.tab.companion">夥伴</span>
+      </button>
+      <button type="button" class="g009-subtab" role="tab"
+              aria-selected="false" aria-controls="g009-panel-honors"
+              tabindex="-1" data-g009-hub-tab="honors" data-route-tab="honors">
+        <span class="g009-subtab-icon" aria-hidden="true">✪</span>
+        <span data-i18n="g009.hero.tab.honors">榮譽</span>
+      </button>
+    </nav>
+
+    <section class="g009-stage-column" aria-label="Future30 Hero presentation">
+      <div id="g009-stage-host" class="g009-stage-host">
+        <div class="g009-stage-aura" aria-hidden="true"></div>
+        <div class="g009-stage-light" aria-hidden="true"></div>
+        <div class="g009-stage-pedestal" aria-hidden="true"></div>
+      </div>
+      <div class="g009-stage-identity">
+        <span id="g009-player-display-name" class="g009-player-display-name">—</span>
+        <strong id="g009-character-display-name" class="g009-character-display-name">—</strong>
+        <span id="g009-character-runtime-status" class="g009-runtime-status"
+              data-i18n="g009.hero.character.serverState">伺服器權威的目前角色選擇</span>
+      </div>
+    </section>
+
+    <section class="g009-content-column" aria-live="polite">
+      <header class="g009-page-head">
+        <div>
+          <span class="g009-kicker" data-i18n="g009.hero.hub">英雄殿</span>
+          <h1 id="g009-panel-title" data-i18n="g009.hero.tab.character">角色總覽</h1>
+          <p id="g009-panel-subtitle" data-i18n="g009.hero.character.profileNote">目前 Future30 角色由共用 Hero runtime 呈現。</p>
+        </div>
+      </header>
+
+      <section id="g009-panel-character" class="g009-panel" role="tabpanel"
+               aria-labelledby="g009-hero-subnav" data-g009-panel="hero">
+        <div class="g009-panel-heading">
+          <span class="g009-panel-icon" aria-hidden="true">♙</span>
+          <h2 data-i18n="g009.hero.character.title">Future30 角色身份</h2>
+          <span class="g009-panel-rule"></span>
+        </div>
+        <div class="g009-character-profile">
+          <div class="g009-character-avatar-mark" aria-hidden="true">✦</div>
+          <div class="g009-character-profile-copy">
+            <span class="g009-label" data-i18n="g009.hero.character.kicker">角色總覽</span>
+            <strong id="g009-character-card-name">—</strong>
+            <span id="g009-character-card-state" class="g009-muted"
+                  data-i18n="g009.hero.character.serverState">伺服器權威的目前角色選擇</span>
+          </div>
+        </div>
+        <div class="g009-card-grid">
+          <article class="g009-mini-card">
+            <span class="g009-mini-icon" aria-hidden="true">♧</span>
+            <div>
+              <span class="g009-label" data-i18n="g009.hero.character.companionCard">夥伴</span>
+              <strong id="g009-character-companion-summary">—</strong>
+            </div>
+            <button type="button" class="g009-inline-action" data-g009-go-tab="pet"
+                    data-i18n="g009.hero.character.open">前往</button>
+          </article>
+          <article class="g009-mini-card">
+            <span class="g009-mini-icon" aria-hidden="true">◇</span>
+            <div>
+              <span class="g009-label" data-i18n="g009.hero.character.equipmentCard">裝備</span>
+              <strong id="g009-character-equipment-summary">—</strong>
+            </div>
+            <button type="button" class="g009-inline-action" data-g009-go-tab="equipment"
+                    data-i18n="g009.hero.character.open">前往</button>
+          </article>
+        </div>
+        <div class="g009-actions">
+          <button type="button" class="g009-action-button" data-g009-go-tab="appearance"
+                  data-i18n="g009.hero.tab.appearance">外觀</button>
+          <a class="g009-action-button g009-action-secondary" href="/inventory"
+             data-i18n="g009.hero.character.backpack">開啟背包</a>
+        </div>
+      </section>
+
+      <section id="g009-panel-equipment" class="g009-panel" role="tabpanel" hidden
+               aria-labelledby="g009-hero-subnav" data-g009-panel="equipment">
+        <div class="g009-panel-heading">
+          <span class="g009-panel-icon" aria-hidden="true">◇</span>
+          <h2 data-i18n="g009.hero.equipment.title">唯讀裝備呈現</h2>
+          <span class="g009-panel-rule"></span>
+        </div>
+        <p class="g009-panel-note" data-i18n="g009.hero.equipment.note">背包仍是裝備管理入口。</p>
+        <div id="g009-equipment-list" class="g009-slot-list">
+          <div class="g009-loading" data-i18n="g009.hero.equipment.unavailable">裝備呈現暫時不可用。</div>
+        </div>
+        <div class="g009-actions">
+          <a class="g009-action-button" href="/inventory" data-i18n="g009.hero.equipment.backpack">到背包管理</a>
+        </div>
+      </section>
+
+      <section id="g009-panel-appearance" class="g009-panel" role="tabpanel" hidden
+               aria-labelledby="g009-hero-subnav" data-g009-panel="appearance">
+        <div class="g009-panel-heading">
+          <span class="g009-panel-icon" aria-hidden="true">✧</span>
+          <h2 data-i18n="g009.hero.appearance.title">角色切換與光環</h2>
+          <span class="g009-panel-rule"></span>
+        </div>
+        <div class="g009-aura-card">
+          <div class="g009-aura-preview" aria-hidden="true"><span></span></div>
+          <div>
+            <span class="g009-label" data-i18n="g009.hero.aura.title">光環</span>
+            <strong data-i18n="g009.hero.aura.teal_pulse_ring">青漾脈環</strong>
+            <p data-i18n="g009.hero.aura.note">僅供視覺呈現；此光環不改變 XP、數值或戰鬥。</p>
+          </div>
+        </div>
+        <div class="g009-section-label" data-i18n="g009.hero.appearance.characters">已擁有的 Future30 角色</div>
+        <div id="g009-character-switch-grid" class="g009-character-switch-grid">
+          <div class="g009-loading" data-i18n="g009.hero.appearance.unavailable">Future30 角色選擇暫時不可用。</div>
+        </div>
+      </section>
+
+      <section id="g009-panel-companion" class="g009-panel" role="tabpanel" hidden
+               aria-labelledby="g009-hero-subnav" data-g009-panel="pet">
+        <div class="g009-panel-heading">
+          <span class="g009-panel-icon" aria-hidden="true">♧</span>
+          <h2 data-i18n="g009.hero.companion.title">既有夥伴系統</h2>
+          <span class="g009-panel-rule"></span>
+        </div>
+        <div id="g009-companion-active" class="g009-companion-active">
+          <div class="g009-loading" data-i18n="g009.hero.companion.loading">載入夥伴資料…</div>
+        </div>
+        <div class="g009-section-label" data-i18n="g009.hero.companion.catalog">正式夥伴</div>
+        <div id="g009-companion-roster" class="g009-companion-roster"></div>
+      </section>
+
+      <section id="g009-panel-honors" class="g009-panel" role="tabpanel" hidden
+               aria-labelledby="g009-hero-subnav" data-g009-panel="honors">
+        <div class="g009-panel-heading">
+          <span class="g009-panel-icon" aria-hidden="true">✪</span>
+          <h2 data-i18n="g009.hero.honors.title">已取得的徽章與稱號</h2>
+          <span class="g009-panel-rule"></span>
+        </div>
+        <div class="g009-honors-heading">
+          <span data-i18n="g009.hero.honors.badges">成就獎章</span>
+          <span id="g009-honors-count-slot" class="g009-honors-count">…</span>
+        </div>
+        <div id="g009-honors-filter-slot" class="g009-honors-filter-slot"></div>
+        <div id="g009-honors-grid-slot" class="g009-honors-grid-slot">
+          <div class="g009-loading" data-i18n="g009.hero.honors.loading">載入榮譽…</div>
+        </div>
+        <div class="g009-honors-heading g009-title-heading">
+          <span data-i18n="g009.hero.honors.titles">稱號</span>
+        </div>
+        <div id="g009-title-filter-slot" class="g009-title-filter-slot"></div>
+        <div id="g009-title-grid-slot" class="g009-title-grid-slot"></div>
+      </section>
+    </section>
+  </div>
+</main>
 
 <!-- ── PREVIEW MODAL ── -->
 <div id="preview-modal">
@@ -5612,6 +5804,7 @@ function launchGoldConfetti() {
   }
 }
 </script>
+<script src="/js/g009_hero_hub_batch_a.js"></script>
 <script src="/sound.js?v=2"></script>
 <script src="/mobile-nav.js?v=20260621hero1"></script>
 <!-- Premium Welcome Modal -->
