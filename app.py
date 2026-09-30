@@ -805,8 +805,11 @@ _E9_REASON_CODES = {
     'not_allowed', 'unauthenticated', 'invalid_config',
 }
 
-def _e9_truthy_env(name):
-    return os.environ.get(name, '').strip().lower() in {'1', 'true', 'yes', 'on'}
+def _e9_truthy_env(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    return raw.strip().lower() in {'1', 'true', 'yes', 'on'}
 
 # E9_ROLLOUT_ALLOWLIST holds canonical user IDs (users.id, a Postgres SERIAL
 # positive-integer primary key) -- decimal positive integers only, no leading
@@ -819,8 +822,14 @@ def _e9_truthy_env(name):
 _E9_CANONICAL_USER_ID_PATTERN = re.compile(r'[1-9][0-9]*')
 
 def _e9_rollout_config():
-    """Load server-only E9 targeting config; malformed config fails closed."""
-    raw_scope = os.environ.get('E9_ROLLOUT_SCOPE', 'admin_only').strip().casefold()
+    """Load server-only E9 targeting config; malformed config fails closed.
+
+    G009 Phase 3B makes the reviewed E10 World Map shell the normal
+    authenticated-player surface. Explicit environment values remain the
+    deployment kill switch/override; only an absent value uses this accepted
+    default. Anonymous requests still receive no effective flags.
+    """
+    raw_scope = os.environ.get('E9_ROLLOUT_SCOPE', 'authenticated').strip().casefold()
     if raw_scope not in {'admin_only', 'named_allowlist', 'authenticated'}:
         return None
     raw_allowlist = os.environ.get('E9_ROLLOUT_ALLOWLIST', '')
@@ -837,7 +846,7 @@ def _e9_rollout_config():
         return None
     config = {
         'scope': raw_scope,
-        'global_enabled': _e9_truthy_env('E9_ROLLOUT_GLOBAL_ENABLED'),
+        'global_enabled': _e9_truthy_env('E9_ROLLOUT_GLOBAL_ENABLED', default=True),
         'admin_enabled': _e9_truthy_env('E9_ROLLOUT_ADMIN_ENABLED'),
         'allowlist': tuple(sorted(set(entries))),
         'flags': tuple(flags),

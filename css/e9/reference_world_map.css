@@ -1747,3 +1747,25 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
 @media (prefers-reduced-motion: reduce) {
   body[data-e10-visual-skin="immersive-rpg"] * { scroll-behavior: auto; animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* G009 R3 responsive semantics. The runtime owns the class because iPad
+   portrait cannot be inferred from a <=767 breakpoint. These rules are
+   deliberately structural: they prevent horizontal scroll and preserve the
+   44px interaction contract without introducing a new visual skin. */
+#e9-adventure-shell #adventure-stage[data-g009-viewport-class] {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+#e9-adventure-shell #adventure-stage[data-g009-viewport-class="DESKTOP"],
+#e9-adventure-shell #adventure-stage[data-g009-viewport-class="IPAD_LANDSCAPE"],
+#e9-adventure-shell #adventure-stage[data-g009-viewport-class="IPAD_PORTRAIT_820"],
+#e9-adventure-shell #adventure-stage[data-g009-viewport-class="MOBILE_480"] {
+  --g009-responsive-class: 1;
+}
+#e9-adventure-shell #adventure-stage [data-g009-view-details] {
+  min-height: 44px;
+}
+#e9-adventure-shell #adventure-stage [data-g009-zone-locked="true"] .e9-zone__number,
+#e9-adventure-shell #adventure-stage [data-g009-zone-state="locked"] .e9-zone__number {
+  display: none;
+}

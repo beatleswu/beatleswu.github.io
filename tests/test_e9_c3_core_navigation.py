@@ -84,3 +84,18 @@ def test_map_primary_cta_preserves_selected_zone_identity_through_gameplay_hando
     assert "var targetZone = zone;" in primary
     assert "configureAdventureButton(primary, targetZone, contract);" in primary
     assert "var primaryAction = resolvePrimaryCta" not in primary
+
+
+def test_r3_world_map_locked_state_and_responsive_semantics_are_explicit():
+    assert "data-g009-world-map=\"locked-authority\"" in MARKUP
+    assert "g009.world.lord_trial" in WORLD
+    assert "g009.world.view_details" in WORLD
+    assert "if (!zone.locked)" in WORLD
+    assert "if (!zone.locked && (zone.cleared || zone.stars > 0))" in WORLD
+    assert "if (!zone.locked && zone.bossAvailable)" in WORLD
+    assert "configureViewDetailsButton(viewDetails, root, zone)" in WORLD
+    assert "data-g009-viewport-class" in WORLD
+    for viewport_class in ("DESKTOP", "IPAD_LANDSCAPE", "IPAD_PORTRAIT_820", "MOBILE_480"):
+        assert viewport_class in WORLD
+    assert "(max-width: 767px)" not in WORLD
+    assert "data-g009-zone-progress" in MARKUP

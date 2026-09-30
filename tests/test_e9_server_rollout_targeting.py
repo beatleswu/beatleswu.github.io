@@ -41,11 +41,12 @@ def test_allowlist_matches_canonical_user_id_not_username_with_no_fallback():
     assert " or " not in re.search(r"elif config\['scope'\] == 'named_allowlist'.*", decision_fn).group()
 
 
-def test_admin_only_scope_is_default_and_allowlist_cannot_expand_it():
-    assert "os.environ.get('E9_ROLLOUT_SCOPE', 'admin_only')" in APP
+def test_authenticated_scope_is_default_and_allowlist_cannot_expand_it():
+    assert "os.environ.get('E9_ROLLOUT_SCOPE', 'authenticated')" in APP
     assert "raw_scope not in {'admin_only', 'named_allowlist', 'authenticated'}" in APP
     assert "if raw_scope != 'named_allowlist' and entries" in APP
     assert "config['scope'] == 'named_allowlist'" in APP
+    assert "_e9_truthy_env('E9_ROLLOUT_GLOBAL_ENABLED', default=True)" in APP
 
 
 def test_authenticated_scope_is_server_owned_and_legacy_recovery_remains_present():

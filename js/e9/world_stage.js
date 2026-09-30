@@ -174,9 +174,9 @@
   function actionLabel(action, state) {
     if (!action) return '';
     if (action.kind === 'resume_encounter') return t('e10.world_stage.resume_encounter', 'Resume Encounter');
-    if (action.kind === 'challenge_lord') return t('e10.world_stage.challenge_lord', 'Challenge Lord');
+    if (action.kind === 'challenge_lord') return t('g009.world.lord_trial', 'Lord Trial');
     if (action.kind === 'replenish_stars') return t('e10.world_stage.replenish_stars', 'Replenish Stars');
-    if (action.kind === 'replay_completed') return t('index.adv.quest_rechallenge_boss', 'Challenge Lord again');
+    if (action.kind === 'replay_completed') return t('g009.world.lord_trial', 'Lord Trial');
     return action.zoneKey === state.currentPlayerZoneKey
       ? t('e10.world_stage.continue_adventure', 'Continue Adventure')
       : t('index.adv.start_challenge', 'Start Challenge');
@@ -347,35 +347,42 @@
     return null;
   }
 
+  function resolveViewportClass() {
+    var width = typeof window.innerWidth === 'number' ? window.innerWidth : 0;
+    var height = typeof window.innerHeight === 'number' ? window.innerHeight : 0;
+    var portraitOverride = window.E9 && window.E9.isPortraitTabletOverride
+      && window.E9.isPortraitTabletOverride();
+    var portrait = (width > 0 && height > 0 && height > width)
+      || !!(window.matchMedia && window.matchMedia('(orientation: portrait)').matches);
+    if (width > 0 && width <= 520) return 'MOBILE_480';
+    if (portraitOverride || (width >= 768 && width <= 1024 && portrait)) return 'IPAD_PORTRAIT_820';
+    if (width >= 768 && width < 1280 && !portrait) return 'IPAD_LANDSCAPE';
+    if (width > 0) return 'DESKTOP';
+    // Headless/unit-test environments may expose only matchMedia. Preserve
+    // the semantic contract without using <=767 as an iPad classifier.
+    if (window.matchMedia && window.matchMedia('(max-width: 520px)').matches) return 'MOBILE_480';
+    if (window.matchMedia && window.matchMedia('(min-width: 768px) and (max-width: 1024px) and (orientation: portrait)').matches) return 'IPAD_PORTRAIT_820';
+    if (window.matchMedia && window.matchMedia('(min-width: 768px) and (max-width: 1279px) and (orientation: landscape)').matches) return 'IPAD_LANDSCAPE';
+    return 'DESKTOP';
+  }
+
+  function setViewportClass(root) {
+    var viewportClass = resolveViewportClass();
+    if (root) root.setAttribute('data-g009-viewport-class', viewportClass);
+    if (document.documentElement) document.documentElement.setAttribute('data-g009-viewport-class', viewportClass);
+    return viewportClass;
+  }
+
   function usesLandmarkCards() {
-    return !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
+    var viewportClass = resolveViewportClass();
+    return viewportClass === 'MOBILE_480' || viewportClass === 'IPAD_PORTRAIT_820';
   }
 
   function usesInlinePlayerMarkerSurface() {
-    if (!window.matchMedia) return false;
-    var mobile = window.matchMedia('(max-width: 767px)').matches;
-    var tablet = window.matchMedia(
-      '(min-width: 768px) and (max-width: 1279px)'
-    ).matches;
-    var tabletPortrait = window.matchMedia(
-      '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-    ).matches;
-    var touchSurface = window.matchMedia('(pointer: coarse)').matches
-      || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
-    var appleTouchSurface = typeof navigator !== 'undefined'
-      && touchSurface
-      && navigator.maxTouchPoints > 0
-      && /iPad|Macintosh/.test(navigator.userAgent || '');
-    var tabletPortraitViewport = tabletPortrait
-      && typeof window.innerHeight === 'number'
-      && window.innerHeight >= 960;
-    // PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: the `tablet` gate
-    // above requires width 768-1279, which misses an affected device whose
-    // layout viewport is misreported as desktop-class (>=1280). See
-    // js/e9/feature_flags.js.
-    var portraitOverride = window.E9 && window.E9.isPortraitTabletOverride
-      && window.E9.isPortraitTabletOverride();
-    return mobile || (tablet && (tabletPortraitViewport || appleTouchSurface)) || portraitOverride;
+    var viewportClass = resolveViewportClass();
+    var mobile = viewportClass === 'MOBILE_480';
+    var tabletPortrait = viewportClass === 'IPAD_PORTRAIT_820';
+    return mobile || tabletPortrait;
   }
 
   function updateRouteProgress(root, zones) {
@@ -406,15 +413,16 @@
       var progress = document.createElement('section');
       progress.className = 'e10-adventure-progress';
       progress.setAttribute('data-e10-adventure-progress', '');
-      progress.setAttribute('aria-label', t('e10.world_stage.adventure_progress', 'Adventure progress'));
+      progress.setAttribute('aria-label', t('g009.world.adventure_progress', 'Adventure Progress'));
       var registry = window.E9 && window.E9.NavigationRegistry;
       progress.innerHTML = (registry ? registry.icon('compass', 'e10-adventure-progress__icon') : '')
-        + '<span class="e10-adventure-progress__copy"><strong data-i18n="e10.world_stage.adventure_progress"></strong>'
+        + '<span class="e10-adventure-progress__copy"><strong data-g009-world-map-meter-label="adventure" data-i18n="g009.world.adventure_progress"></strong>'
         + '<span data-e10-adventure-progress-value>0 / 10</span></span>'
         + '<span class="e10-adventure-progress__track" aria-hidden="true"><span data-e10-adventure-progress-bar></span></span>';
       mapStage.appendChild(progress);
       if (window.I18n && window.I18n.apply) window.I18n.apply(progress);
     }
+    updateWorldMapMeterLabels(root);
     if (window.E9 && typeof window.E9.registerCleanup === 'function') {
       window.E9.registerCleanup(function () {
         shell.removeAttribute('data-e10-visual-skin');
@@ -516,7 +524,7 @@
 
   function syncPlayerMarkerPresentation(root, presentation) {
     if (!VS1E_STATIC_CONTRACT_ACTIVE) return;
-    var mobileCards = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+    var mobileCards = resolveViewportClass() === 'MOBILE_480';
     // Keep this selector split as a compatibility hook for the two existing
     // responsive surfaces, while the runtime now moves one marker host
     // between them instead of creating desktop/mobile duplicates.
@@ -714,17 +722,17 @@
   }
 
   function zoneStateText(zone) {
-    if (zone.locked) return t('e10.world_stage.state_locked', 'Locked');
+    if (zone.locked) return t('g009.world.state_locked', 'Locked');
     if (zone.cleared || zone.status === 'completed') {
-      return t('e10.world_stage.state_completed', 'Completed');
+      return t('g009.world.state_completed', 'Completed');
     }
     if (zone.status === 'skipped_by_placement') {
       return t('index.adv.status_skipped_by_placement', 'Star training available');
     }
     if (zone.__e10PlayerLocation) {
-      return t('e10.world_stage.state_current', 'Current location');
+      return t('g009.world.state_current', 'Current');
     }
-    return t('e10.world_stage.state_available', 'Available');
+    return t('g009.world.state_available', 'Available');
   }
 
   function zoneSummaryText(zone) {
@@ -1135,7 +1143,7 @@
     if (!button || !zone) return;
     // Pass the authoritative record this surface already holds so the shared
     // predicate never has to re-resolve it.
-    var enabled = zoneStoryReplayAvailable(zone.key, zone);
+    var enabled = !zone.locked && zoneStoryReplayAvailable(zone.key, zone);
     button.hidden = !enabled;
     button.disabled = !enabled;
     button.setAttribute('aria-hidden', enabled ? 'false' : 'true');
@@ -1162,9 +1170,38 @@
     }
   }
 
+  function configureViewDetailsButton(button, root, zone) {
+    if (!button || !root || !zone) return;
+    button.hidden = false;
+    button.disabled = false;
+    button.setAttribute('aria-hidden', 'false');
+    button.setAttribute('data-g009-view-details', zone.locked ? 'locked' : 'selected');
+    button.textContent = t('g009.world.view_details', 'View Details');
+    button.removeAttribute('data-i18n');
+    if (button.__g009ViewDetailsHandler) {
+      button.removeEventListener('click', button.__g009ViewDetailsHandler);
+    }
+    button.__g009ViewDetailsHandler = function (event) {
+      if (event) event.stopPropagation();
+      var details = root.querySelector('#e9-world-stage-details');
+      if (!details) return;
+      details.hidden = false;
+      try { details.focus({ preventScroll: true }); } catch (err) { details.focus(); }
+    };
+    if (window.E9 && typeof window.E9.on === 'function') {
+      window.E9.on(button, 'click', button.__g009ViewDetailsHandler);
+    } else {
+      button.addEventListener('click', button.__g009ViewDetailsHandler);
+    }
+  }
+
   function configureAdventureButton(button, zone, contract) {
     if (!button || !zone || !contract) {
       if (button) button.hidden = true;
+      return;
+    }
+    if (zone.locked) {
+      suppressAdventureButton(button);
       return;
     }
     var state = worldStageState();
@@ -1203,7 +1240,7 @@
 
   function configureSecondaryAdventureButton(button, zone, contract) {
     if (!button) return;
-    if (!zone || !contract || !contract.enabled) {
+    if (!zone || zone.locked || !contract || !contract.enabled) {
       button.hidden = true;
       button.disabled = true;
       button.removeAttribute('data-challenge-target-zone');
@@ -1263,8 +1300,20 @@
     var progress = root.querySelector('#e9-world-stage-details-progress');
     var regionProgress = root.querySelector('#e9-world-stage-details-region-progress');
     var bossProgress = root.querySelector('#e9-world-stage-details-boss-progress');
+    var progressPanel = root.querySelector('[data-g009-zone-progress]');
+    var viewDetails = root.querySelector('#e9-world-stage-details-view');
+    var locked = !!zone.locked;
+    setViewportClass(root);
+    updateWorldMapMeterLabels(root);
+    root.setAttribute('data-g009-zone-key', zone.key);
+    root.setAttribute('data-g009-zone-state', locked ? 'locked' : (zone.cleared ? 'completed' : 'available'));
+    if (progressPanel) progressPanel.hidden = locked;
+    if (viewDetails) viewDetails.setAttribute('data-g009-view-details', locked ? 'locked' : 'selected');
     if (number) number.textContent = 'Zone ' + (zone.__e10Index || 0);
-    if (stars) stars.textContent = '\u2605 ' + String(zone.stars || 0);
+    if (stars) {
+      stars.textContent = locked ? '' : '\u2605 ' + String(zone.stars || 0);
+      stars.hidden = locked;
+    }
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
     if (stateText) {
       stateText.hidden = !VS1E_STATIC_CONTRACT_ACTIVE;
@@ -1272,14 +1321,19 @@
     }
     if (summary) summary.textContent = zoneSummaryText(zone);
     if (progress) {
-      progress.hidden = !VS1E_STATIC_CONTRACT_ACTIVE;
-      if (VS1E_STATIC_CONTRACT_ACTIVE) progress.textContent = (zone.seen || 0) + ' / ' + (zone.total || 0);
+      progress.hidden = !VS1E_STATIC_CONTRACT_ACTIVE || locked;
+      progress.textContent = !locked && VS1E_STATIC_CONTRACT_ACTIVE
+        ? (zone.seen || 0) + ' / ' + (zone.total || 0) : '';
     }
-    if (regionProgress) regionProgress.textContent = (zone.__e10Index || 0) + ' / 10';
-    if (bossProgress) bossProgress.textContent = zoneBossProgressText(zone);
-    var portraitSurface = (window.matchMedia && window.matchMedia(
-      '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-    ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
+    if (regionProgress) {
+      regionProgress.textContent = locked ? '' : (zone.__e10Index || 0) + ' / 10';
+      if (regionProgress.parentElement) regionProgress.parentElement.hidden = locked;
+    }
+    if (bossProgress) {
+      bossProgress.textContent = locked ? '' : zoneBossProgressText(zone);
+      if (bossProgress.parentElement) bossProgress.parentElement.hidden = locked;
+    }
+    var portraitSurface = resolveViewportClass() === 'IPAD_PORTRAIT_820';
     if (landmark) {
       if (portraitSurface && ZONE_LANDMARKS[zone.key]) {
         if (landmark.getAttribute('src') !== ZONE_LANDMARKS[zone.key]) {
@@ -1291,6 +1345,20 @@
         landmark.removeAttribute('src');
       }
     }
+  }
+
+  function updateWorldMapMeterLabels(root) {
+    if (!root) return;
+    var mobile = resolveViewportClass() === 'MOBILE_480';
+    var labels = root.querySelectorAll('[data-g009-world-map-meter-label]');
+    labels.forEach(function (label) {
+      var kind = label.getAttribute('data-g009-world-map-meter-label');
+      var key = kind === 'region'
+        ? (mobile ? 'g009.world.mobile_region' : 'g009.world.region_progress')
+        : (mobile ? 'g009.world.mobile_adventure' : 'g009.world.adventure_progress');
+      label.textContent = t(key, kind === 'region' ? (mobile ? 'Region' : 'Region Progress') : (mobile ? 'Adventure' : 'Adventure Progress'));
+      label.removeAttribute('data-i18n');
+    });
   }
 
   function zoneSelectionDetail(zone, state) {
@@ -1386,6 +1454,7 @@
     var cta = root.querySelector('#e9-world-stage-details-cta');
     var secondaryCta = root.querySelector('#e9-world-stage-details-secondary-cta');
     var replay = root.querySelector('#e9-world-stage-details-replay');
+    var viewDetails = root.querySelector('#e9-world-stage-details-view');
     var newbie = root.querySelector('#e9-newbie-mainline');
     if (!zone) {
       if (cta) cta.hidden = true;
@@ -1401,21 +1470,19 @@
     setSelectedTileState(root, zone.key, !!zone.locked);
     // if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);
     // Selection-only renders must not move the authoritative player marker.
-    var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+    var viewportClass = setViewportClass(root);
+    var isMobile = viewportClass === 'MOBILE_480';
     // PWA_STANDALONE_ADVENTURE_LAYOUT_RECOVERY_CLAUDE_001: this is the Zone
     // Card visibility gate. See js/e9/feature_flags.js for why the raw
     // matchMedia orientation check cannot be trusted alone on an affected
     // device -- without this OR, the Zone Card is deliberately hidden.
-    var isPortraitTablet = (window.matchMedia && window.matchMedia(
-      '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-    ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
+    var isPortraitTablet = viewportClass === 'IPAD_PORTRAIT_820';
     if (details) details.hidden = VS1E_STATIC_CONTRACT_ACTIVE ? !isPortraitTablet : isMobile;
     updateSelectedZoneCopy(root, zone);
     configureStoryReplayButton(replay, zone);
+    configureViewDetailsButton(viewDetails, root, zone);
     scheduleStoryProviderRefresh(zone.key);
-    if (summary) summary.textContent = zone.bossAvailable
-      ? bossReadyText(zone)
-      : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
+    if (summary) summary.textContent = zoneSummaryText(zone);
     configurePrimaryCta(root, zone, state);
 
     if (cta) {
@@ -1441,7 +1508,21 @@
         var inlineSummary = document.createElement('p');
         inlineSummary.textContent = summary ? summary.textContent : '';
         inline.appendChild(inlineSummary);
-        if (VS1E_STATIC_CONTRACT_ACTIVE || !inlineIsNewbie) {
+        var inlineView = document.createElement('button');
+        inlineView.type = 'button';
+        inlineView.className = 'e9-zone__inline-cta e9-zone__inline-cta--details e9-adventure-cta';
+        inlineView.textContent = t('g009.world.view_details', 'View Details');
+        inlineView.setAttribute('data-g009-view-details', zone.locked ? 'locked' : 'selected');
+        inlineView.setAttribute('aria-disabled', 'false');
+        inlineView.addEventListener('click', function (evt) {
+          evt.stopPropagation();
+          if (details) {
+            details.hidden = false;
+            try { details.focus({ preventScroll: true }); } catch (err) { details.focus(); }
+          }
+        });
+        inline.appendChild(inlineView);
+        if (!zone.locked && (VS1E_STATIC_CONTRACT_ACTIVE || !inlineIsNewbie)) {
           var inlineCta = document.createElement('button');
           inlineCta.type = 'button';
           inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
@@ -1474,7 +1555,7 @@
         // authoritative replay action inline instead of relying on the
         // hidden side drawer.  The predicate and dispatcher are shared with
         // desktop/iPad landscape; this adds no progression or reward path.
-        if (zoneStoryReplayAvailable(zone.key, zone)) {
+        if (!zone.locked && zoneStoryReplayAvailable(zone.key, zone)) {
           var inlineReplay = document.createElement('button');
           inlineReplay.type = 'button';
           inlineReplay.className = 'e9-zone__inline-cta e9-zone__inline-cta--secondary e9-adventure-cta';
@@ -1530,6 +1611,7 @@
 
   function renderZones(root, zones, authority) {
     authority = authority || {};
+    setViewportClass(root);
     var statusEl = root.querySelector('#e9-world-stage-status');
     var zonesEl = root.querySelector('#e9-world-stage-zones');
     var mapStage = root.querySelector('#e9-map-stage');
@@ -1609,6 +1691,11 @@
       tile.type = 'button';
       tile.className = 'e9-zone e9-zone--' + (zone.status || 'locked');
       tile.setAttribute('data-zone', zone.key);
+      tile.setAttribute('data-g009-zone-state', zone.locked ? 'locked' : (
+        playerLocation && zone.key === playerLocation.key ? 'current' : (
+          zone.cleared || zone.status === 'completed' ? 'completed' : 'available'
+        )
+      ));
       if (VS1E_STATIC_CONTRACT_ACTIVE) {
         tile.setAttribute('data-plaque-side', ZONE_PLAQUE_SIDES[zone.key] || 'right');
       }
@@ -1637,11 +1724,13 @@
         tile.classList.add('is-current');
       }
 
-      var number = document.createElement('span');
-      number.className = 'e9-zone__number';
-      number.textContent = String(index + 1);
-      number.setAttribute('aria-hidden', 'true');
-      tile.appendChild(number);
+      if (!zone.locked) {
+        var number = document.createElement('span');
+        number.className = 'e9-zone__number';
+        number.textContent = String(index + 1);
+        number.setAttribute('aria-hidden', 'true');
+        tile.appendChild(number);
+      }
 
       var stateBadge = document.createElement('span');
       stateBadge.className = 'e9-zone__state';
@@ -1687,7 +1776,7 @@
         tile.appendChild(label);
       }
 
-      if (zone.cleared || zone.stars > 0) {
+      if (!zone.locked && (zone.cleared || zone.stars > 0)) {
         var starsEl = document.createElement('span');
         starsEl.className = 'e9-zone__stars';
         starsEl.setAttribute('aria-label', t('index.adv.stars_label', 'Stars') + ': ' + zone.stars + ' / 3');
@@ -1700,7 +1789,7 @@
         tile.appendChild(starsEl);
       }
 
-      if (zone.bossAvailable) {
+      if (!zone.locked && zone.bossAvailable) {
         var bossEl = document.createElement('span');
         bossEl.className = 'e9-zone__boss-ready';
         bossEl.textContent = bossReadyBadgeText();
@@ -1782,9 +1871,7 @@
         configurePrimaryCta(root, recommended, state);
         dispatchZoneSelection(root, recommended, state);
         var portraitDetails = root.querySelector('#e9-world-stage-details');
-        var portraitTablet = (window.matchMedia && window.matchMedia(
-          '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
-        ).matches) || (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride());
+        var portraitTablet = resolveViewportClass() === 'IPAD_PORTRAIT_820';
         if (portraitDetails) portraitDetails.hidden = !portraitTablet;
       }
     }
@@ -1958,6 +2045,7 @@
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
+    setViewportClass(root);
     configureBaseMap(root);
     prepareVs1dDom(root);
     root.__e9WorldStageState = {
@@ -2041,6 +2129,13 @@
         load(root, false, generation);
       }
     };
+    var onViewportResize = function () {
+      var state = root.__e9WorldStageState;
+      setViewportClass(root);
+      updateWorldMapMeterLabels(root);
+      if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation))
+          && state && state.zones && state.zones.length) rerender();
+    };
     if (window.E9 && typeof window.E9.on === 'function') {
       window.E9.on(document, 'e9:i18n-changed', onChanged, null, generation);
       window.E9.on(document, 'e9:i18n-ready', onReady, null, generation);
@@ -2048,6 +2143,7 @@
       window.E9.on(document, 'adventure:question-runtime-ready', onQuestionRuntimeReady, null, generation);
       window.E9.on(document, 'adventure:question-runtime-error', onQuestionRuntimeError, null, generation);
       window.E9.on(document, 'e10:adventure-state-updated', onAdventureStateUpdated, null, generation);
+      window.E9.on(window, 'resize', onViewportResize, null, generation);
     } else {
       document.addEventListener('e9:i18n-changed', onChanged);
       document.addEventListener('e9:i18n-ready', onReady);
@@ -2055,6 +2151,7 @@
       document.addEventListener('adventure:question-runtime-ready', onQuestionRuntimeReady);
       document.addEventListener('adventure:question-runtime-error', onQuestionRuntimeError);
       document.addEventListener('e10:adventure-state-updated', onAdventureStateUpdated);
+      window.addEventListener('resize', onViewportResize);
     }
     loadAvatarPresentation(root, generation);
     load(root, false, generation);

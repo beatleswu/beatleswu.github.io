@@ -172,6 +172,22 @@ def test_authenticated_scope_allows_every_resolved_user_and_keeps_anonymous_out(
     assert all(not value for value in anonymous["effective_flags"].values())
 
 
+def test_phase3b_default_rollout_enables_normal_authenticated_players(monkeypatch):
+    app = _load_rollout_module()
+    for name in ("E9_ROLLOUT_GLOBAL_ENABLED", "E9_ROLLOUT_ADMIN_ENABLED", "E9_ROLLOUT_SCOPE", "E9_ROLLOUT_ALLOWLIST", "E9_ROLLOUT_FLAGS"):
+        monkeypatch.delenv(name, raising=False)
+
+    normal_user = app._e9_rollout_decision(user_id=202, username="normal-user", is_admin=False)
+    anonymous = app._e9_rollout_decision()
+
+    assert normal_user["reason"] == "authenticated"
+    assert normal_user["eligible"] is True
+    assert all(normal_user["effective_flags"].values())
+    assert anonymous["reason"] == "unauthenticated"
+    assert anonymous["eligible"] is False
+    assert all(not value for value in anonymous["effective_flags"].values())
+
+
 def test_authenticated_scope_with_stale_allowlist_fails_closed(monkeypatch):
     app = _load_rollout_module()
     monkeypatch.setenv("E9_ROLLOUT_GLOBAL_ENABLED", "true")

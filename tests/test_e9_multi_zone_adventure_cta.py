@@ -124,7 +124,7 @@ def test_boss_ready_text_substitutes_seen_and_total():
 
 def test_renderselectedzone_uses_bossreadytext_helper_not_raw_t_call():
     body = _render_selected_zone_body()
-    assert "bossReadyText(zone)" in body
+    assert "zoneSummaryText(zone)" in body
     # The raw, unsubstituted call this bug consisted of must not reappear.
     assert "t('index.adv.boss_ready', 'Boss challenge ready')" not in body
 
@@ -166,7 +166,7 @@ def test_cleared_text_helper_substitutes_actual_stars_value():
 
 def test_renderselectedzone_uses_clearedtext_helper_not_raw_t_call():
     body = _render_selected_zone_body()
-    assert "clearedText(zone)" in body
+    assert "zoneSummaryText(zone)" in body
     # The raw, unsubstituted call this bug consisted of must not reappear.
     assert "t('index.adv.boss_cleared', 'Area cleared')" not in body
     assert re.search(r"t\(\s*'index\.adv\.boss_cleared'", body) is None, (
@@ -386,7 +386,7 @@ def test_html_has_training_cta_and_secondary_story_replay_hidden_by_default():
     details_section_start = WORLD_STAGE_HTML.index('id="e9-world-stage-details"')
     details_section_end = WORLD_STAGE_HTML.index("</section>", details_section_start)
     details_section = WORLD_STAGE_HTML[details_section_start:details_section_end]
-    assert details_section.count("<button") == 3
+    assert details_section.count("<button") == 4
     button_tag = re.search(r'<button[^>]*id="e9-world-stage-details-cta"[^>]*>', details_section).group(0)
     assert 'id="e9-world-stage-details-cta"' in button_tag
     assert 'type="button"' in button_tag
@@ -398,6 +398,10 @@ def test_html_has_training_cta_and_secondary_story_replay_hidden_by_default():
     assert 'type="button"' in replay_tag
     assert 'data-i18n="e10.world_stage.replay_story"' in replay_tag
     assert 'hidden' in replay_tag
+    view_tag = re.search(r'<button[^>]*id="e9-world-stage-details-view"[^>]*>', details_section).group(0)
+    assert 'type="button"' in view_tag
+    assert 'data-i18n="g009.world.view_details"' in view_tag
+    assert 'hidden' in view_tag
 
 
 def test_beginner_and_generic_ctas_share_one_adventure_button_class():
@@ -485,14 +489,13 @@ def test_start_challenge_key_exists_in_both_languages_and_is_reused():
 
 
 def test_no_new_i18n_key_introduced_for_this_fix():
-    # Every index.adv.* key referenced by world_stage.js must already have
-    # existed for a documented, pre-existing reason (per world_stage.html's
-    # own header comment) -- this fix adds zero new keys.
+    # Every index.adv.* key referenced by world_stage.js remains backed by the
+    # shared i18n registry; G009 copy overrides use g009.world.* keys.
     referenced = set(re.findall(r"t\('(index\.adv\.[a-z_]+)'", WORLD_STAGE))
     expected = {
         'index.adv.boss_ready', 'index.adv.boss_cleared', 'index.adv.panel_ready',
         'index.adv.summary', 'index.adv.zone_locked', 'index.adv.start_challenge',
-        'index.adv.status_skipped_by_placement', 'index.adv.quest_rechallenge_boss',
+        'index.adv.status_skipped_by_placement',
         'index.adv.skipped_replay', 'index.adv.skipped_help', 'index.adv.stars_label',
         'index.adv.boss_intro_progress',
     }

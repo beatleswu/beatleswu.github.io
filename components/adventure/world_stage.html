@@ -16,7 +16,7 @@
   component does not own appearance, equipment, unlock, or asset registry
   state. Monster/Boss art and Fog of War remain outside this component.
 -->
-<main id="adventure-stage" class="e9-stage" data-e9-component="world_stage" data-i18n-aria-label="e9.world_stage.aria_label">
+<main id="adventure-stage" class="e9-stage" data-e9-component="world_stage" data-g009-surface="home" data-g009-world-map="locked-authority" data-i18n-aria-label="e9.world_stage.aria_label">
   <!-- Base L0-L3 is the governed, static V1 asset. L4 route and L5 nodes
        remain independent DOM/SVG overlays in this map-stage-local frame. -->
   <section class="e9-map-stage" id="e9-map-stage" data-i18n-aria-label="e10.world_stage.map_aria_label" hidden>
@@ -30,7 +30,7 @@
       <path class="e9-route__ascension" d="M504 376 C560 310 685 135 763 117"/>
     </svg>
     <div class="e9-map-stage__boss-anchors" id="e9-world-stage-boss-anchors" aria-hidden="true"></div>
-    <div class="e9-map-stage__nodes" id="e9-world-stage-zones" data-i18n-aria-label="e10.world_stage.zones_aria_label"></div>
+    <div class="e9-map-stage__nodes" id="e9-world-stage-zones" data-g009-zone-collection="10" data-i18n-aria-label="e10.world_stage.zones_aria_label"></div>
     <div class="e9-map-stage__player" id="e9-world-stage-player" aria-hidden="true" hidden></div>
     <div class="e9-stage__status" id="e9-world-stage-status" data-i18n="e9.world_stage.loading" aria-live="polite">Loading adventure map…</div>
     <button class="e10-map-primary-cta e9-adventure-cta" id="e9-world-stage-primary-cta" type="button" hidden></button>
@@ -39,6 +39,7 @@
   <section class="e9-zone-details" id="e9-world-stage-details" tabindex="-1" aria-live="polite" hidden>
     <p class="e9-zone-details__kicker" data-i18n="e10.world_stage.selected_quest">Selected quest</p>
     <button type="button" class="e9-zone-details__story-replay" id="e9-world-stage-details-replay" data-i18n="e10.world_stage.replay_story" hidden></button>
+    <button type="button" class="e9-zone-details__view-details" id="e9-world-stage-details-view" data-i18n="g009.world.view_details" hidden></button>
     <img class="e9-zone-details__landmark" id="e9-world-stage-details-landmark" alt="" width="320" height="320" aria-hidden="true" hidden>
     <div class="e9-zone-details__identity">
       <span id="e9-world-stage-details-number"></span>
@@ -47,10 +48,10 @@
     <p class="e9-zone-details__label" id="e9-world-stage-details-label"></p>
     <p class="e9-zone-details__state" id="e9-world-stage-details-state"></p>
     <p class="e9-zone-details__summary" id="e9-world-stage-details-summary"></p>
-    <div class="e9-zone-details__progress">
-      <p><span data-i18n="e10.world_stage.task_progress">Task progress</span><strong id="e9-world-stage-details-progress"></strong></p>
-      <p><span data-i18n="e10.world_stage.region_progress">Region progress</span><strong id="e9-world-stage-details-region-progress"></strong></p>
-      <p><span data-i18n="e9.right_cards.boss_progress_title">Boss Progress</span><strong id="e9-world-stage-details-boss-progress"></strong></p>
+    <div class="e9-zone-details__progress" data-g009-zone-progress>
+      <p id="e9-world-stage-details-adventure-meter" data-g009-zone-meter="adventure"><span data-g009-world-map-meter-label="adventure" data-i18n="g009.world.adventure_progress">Adventure Progress</span><strong id="e9-world-stage-details-progress"></strong></p>
+      <p id="e9-world-stage-details-region-meter" data-g009-zone-meter="region"><span data-g009-world-map-meter-label="region" data-i18n="g009.world.region_progress">Region Progress</span><strong id="e9-world-stage-details-region-progress"></strong></p>
+      <p id="e9-world-stage-details-boss-meter" data-g009-zone-meter="lord"><span data-i18n="e9.right_cards.boss_progress_title">Boss Progress</span><strong id="e9-world-stage-details-boss-progress"></strong></p>
     </div>
     <button class="e9-zone-details__cta e9-adventure-cta" id="e9-world-stage-details-cta" type="button" hidden></button>
     <button class="e9-zone-details__cta e9-zone-details__cta--secondary e9-adventure-cta" id="e9-world-stage-details-secondary-cta" type="button" hidden></button>

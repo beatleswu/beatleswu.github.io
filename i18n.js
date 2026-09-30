@@ -3303,6 +3303,18 @@ const I18n = (() => {
         'e10.world_stage.select_zone':          { en: 'Select an adventure zone', zh: '選擇冒險區域' },
         'e10.world_stage.select_zone_hint':     { en: 'Choose a map plaque to review its mission.', zh: '選擇地圖銘牌以查看區域任務。' },
         'e10.world_stage.zone_progress':        { en: 'Quest progress {seen}/{total}', zh: '任務進度 {seen}/{total}' },
+        // G009 R3 World Map copy overrides older E10 wording without changing
+        // the server-owned progression fields or the legacy gameplay routes.
+        'g009.world.lord_trial':                 { en: 'Lord Trial', zh: '領主挑戰' },
+        'g009.world.view_details':               { en: 'View Details', zh: '查看詳情' },
+        'g009.world.adventure_progress':         { en: 'Adventure Progress', zh: '冒險進度' },
+        'g009.world.region_progress':            { en: 'Region Progress', zh: '區域進度' },
+        'g009.world.mobile_adventure':           { en: 'Adventure', zh: '冒險進度' },
+        'g009.world.mobile_region':              { en: 'Region', zh: '區域進度' },
+        'g009.world.state_locked':               { en: 'Locked', zh: '尚未解鎖' },
+        'g009.world.state_completed':            { en: 'Completed', zh: '已完成' },
+        'g009.world.state_current':              { en: 'Current', zh: '目前位置' },
+        'g009.world.state_available':            { en: 'Available', zh: '可挑戰' },
         'e9.right_cards.loading':       { en: 'Loading…', zh: '載入中…' },
         'e9.right_cards.empty':         { en: 'No data yet', zh: '尚無資料' },
         'e9.right_cards.error':         { en: 'Unavailable', zh: '暫時無法取得' },

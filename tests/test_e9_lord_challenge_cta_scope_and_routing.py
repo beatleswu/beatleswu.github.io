@@ -493,7 +493,7 @@ async function main() {
       const contract = sandbox.ctaContract(replayZone, replayState);
       assert.strictEqual(contract.enabled, true);
       assert.strictEqual(contract.kind, 'replay_completed');
-      assert.match(contract.label, /Challenge Lord again/);
+      assert.match(contract.label, /Lord Trial/);
     });
     check(`cleared ${stars}-star zone exposes intended secondary training contract`, () => {
       const secondary = sandbox.secondaryCtaContract(replayZone, replayState);
