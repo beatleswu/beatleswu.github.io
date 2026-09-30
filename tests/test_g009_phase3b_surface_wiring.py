@@ -51,9 +51,8 @@ def test_release_surface_roots_and_learning_secondary_reachability_are_stable() 
     for name, marker in expected.items():
         assert marker in read(name), name
     curriculum = read("curriculum.html")
-    assert 'data-g009-secondary-surfaces="mistakes learning-progress rating"' in curriculum
-    assert 'data-g009-secondary-surface="mistakes"' in curriculum
-    assert 'data-g009-secondary-surface="learning-progress"' in curriculum
+    assert 'data-g009-secondary-surfaces="curriculum-map learning-progress daily-bounty mistakes rating-appraisal"' in curriculum
+    assert 'data-g009-visual-authority="locked-12-surfaces"' in curriculum
     assert 'data-g009-surface="home"' in read("index.html")
     assert 'data-g009-global-nav-active-count="0"' in read("index.html")
 

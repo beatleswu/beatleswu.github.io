@@ -32,6 +32,20 @@
     rating: '<circle cx="16" cy="16" r="10"/><circle cx="16" cy="16" r="4"/><path d="M16 6v3M16 23v3M6 16h3M23 16h3M9.1 9.1l2.1 2.1M20.8 20.8l2.1 2.1M9.1 22.9l2.1-2.1M20.8 11.2l2.1-2.1"/>',
   };
 
+  // Learning Hub owns these five secondary destinations.  They stay out of
+  // the global seven-item shell while retaining one shared, responsive
+  // presentation across the learning pages.
+  const LEARNING_SECONDARY_ITEMS = [
+    { href: '/curriculum', key: 'curriculum_map', label: '課程地圖', i18n: 'g009.learning.curriculum_map' },
+    { href: '/stats', key: 'learning_progress', label: '學習進度', i18n: 'g009.learning.progress' },
+    { href: '/daily-challenge', key: 'daily_bounty', label: '每日懸賞令', i18n: 'g009.learning.daily_bounty' },
+    { href: '/mistakes', key: 'mistakes', label: '錯題本', i18n: 'g009.learning.mistakes' },
+    { href: '/rating_test', key: 'rating_appraisal', label: '棋力鑑定', i18n: 'g009.learning.rating' },
+  ];
+  const LEARNING_SURFACES = new Set([
+    'learning-hub', 'learning-progress', 'learning-daily', 'learning-mistakes', 'learning-rating',
+  ]);
+
   const E10_VS1F_STATIC_CONTRACT = 'e10-vs1f-integrated-world-map';
   const E10_MAP_SHELL_OWNER = 'e10-map';
   const E10_BATTLE_SHELL_OWNER = 'e10-battle';
@@ -67,6 +81,7 @@
   function isActive(href) {
     const cur = normalize(location.pathname);
     const target = normalize(new URL(href, location.origin).pathname);
+    if (target === '/curriculum' && LEARNING_SURFACES.has(document.body?.dataset.g009Surface)) return true;
     if (target === '/') return cur === '/';
     return cur === target;
   }
@@ -86,6 +101,31 @@
     return `<svg class="cg-nav-icon" viewBox="0 0 32 32" aria-hidden="true">${ICONS[name] || ICONS.book}</svg>`;
   }
 
+  function isLearningSurface() {
+    const surface = document.body?.dataset.g009Surface;
+    return LEARNING_SURFACES.has(surface)
+      || ['/curriculum', '/stats', '/daily-challenge', '/mistakes', '/rating_test'].includes(normalize(location.pathname));
+  }
+
+  function buildLearningSecondaryNav() {
+    if (!isLearningSurface() || document.querySelector('[data-g009-learning-secondary]')) return;
+    const nav = document.createElement('nav');
+    nav.className = 'g009-learning-secondary';
+    nav.dataset.g009LearningSecondary = '5';
+    nav.dataset.g009VisualAuthority = 'locked-12-surfaces';
+    nav.setAttribute('aria-label', 'Learning Hub secondary navigation');
+    nav.setAttribute('data-i18n-aria-label', 'g009.learning.aria');
+    const currentPath = normalize(location.pathname);
+    nav.innerHTML = LEARNING_SECONDARY_ITEMS.map(item => {
+      const active = normalize(item.href) === currentPath;
+      return `<a class="g009-learning-secondary__item${active ? ' is-active' : ''}" href="${item.href}" data-g009-learning-secondary-key="${item.key}" data-i18n="${item.i18n}"${active ? ' aria-current="page"' : ''}>${item.label}</a>`;
+    }).join('');
+    const header = document.querySelector('header.cg-nav');
+    if (header?.parentElement) header.insertAdjacentElement('afterend', nav);
+    else if (document.body) document.body.insertBefore(nav, document.body.firstChild);
+    if (typeof I18n !== 'undefined' && typeof I18n.apply === 'function') I18n.apply();
+  }
+
   function buildNav() {
     // 只接管「導覽列 header」；行銷頁的 <header class="hero"> 不可被吃掉
     const isPremiumSurface = document.body?.dataset.g009Surface === 'premium'
@@ -99,6 +139,7 @@
     header.dataset.cgNav = '1';
     header.dataset.g009Surface = 'global-navigation';
     header.dataset.g009GlobalNav = '7';
+    header.dataset.g009VisualAuthority = 'locked-12-surfaces';
     const activeItem = currentPageItem();
     header.innerHTML = `
       <div class="cg-nav-inner">
@@ -182,6 +223,7 @@
     // 套用翻譯到新建的 shared shell.
     if (typeof I18n !== 'undefined' && typeof I18n.apply === 'function') I18n.apply();
     bindShellControls(header);
+    buildLearningSecondaryNav();
     window.dispatchEvent(new CustomEvent('cg-nav:ready', { detail: { version: window.__COLORFUL_GO_NAV_VERSION__ } }));
     buildVerifyBanner(header);
   }
@@ -539,7 +581,7 @@
         align-items: center; gap: 14px;
       }
       .cg-nav-hamburger {
-        width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; flex-direction: column;
+        width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: none; flex-direction: column;
         align-items: center; justify-content: center; gap: 4px; padding: 0;
         border: 1px solid rgba(251,191,36,.22); border-radius: 10px;
         color: #f8e7bd; background: rgba(255,255,255,.06); cursor: pointer;
@@ -653,6 +695,78 @@
       .cg-nav-settings__panel > label { display: block; margin: 14px 0 6px; font-weight: 750; }
       .cg-nav-settings__sound { display: flex !important; align-items: center; justify-content: space-between; }
       .cg-nav-settings__panel [data-g009-settings-sound-state] { display: block; margin-top: 5px; color: #6b5740; font-size: 12px; }
+      .g009-learning-secondary {
+        position: relative; z-index: 20; width: min(1480px, calc(100% - 36px)); margin: 14px auto 0;
+        display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+        padding: 7px; border: 1px solid rgba(236, 201, 120, .24); border-radius: 18px;
+        background: linear-gradient(180deg, rgba(16, 26, 56, .96), rgba(8, 14, 34, .96));
+        box-shadow: 0 12px 28px rgba(0, 0, 0, .24);
+      }
+      .g009-learning-secondary__item {
+        min-width: 0; min-height: 48px; display: inline-flex; align-items: center; justify-content: center;
+        padding: 0 10px; border: 1px solid transparent; border-radius: 12px;
+        color: rgba(255, 246, 224, .76); text-decoration: none; text-align: center;
+        font-size: 13px; font-weight: 800; line-height: 1.25; white-space: nowrap;
+        transition: background .16s, border-color .16s, color .16s, box-shadow .16s;
+      }
+      .g009-learning-secondary__item:hover,
+      .g009-learning-secondary__item:focus-visible {
+        color: #fff3d1; background: rgba(251, 191, 36, .08); border-color: rgba(251, 191, 36, .2);
+      }
+      .g009-learning-secondary__item.is-active {
+        color: #111827; border-color: transparent;
+        background: linear-gradient(180deg, #fff1bd, #f4d58a 55%, #c7953e);
+        box-shadow: 0 5px 14px rgba(244, 213, 138, .22);
+      }
+      .g009-learning-secondary__item:focus-visible { outline: 2px solid #8ff0ff; outline-offset: 2px; }
+      .g009-surface-heading {
+        display: grid; gap: 6px; max-width: 560px; margin: 0 0 12px;
+        color: #fff6dc; text-shadow: 0 2px 10px rgba(0,0,0,.34);
+      }
+      .g009-surface-heading__kicker {
+        color: #f4d58a; font: 800 11px/1.2 'DM Mono', monospace; letter-spacing: .18em;
+      }
+      .g009-surface-heading h1 { margin: 0; color: #fff6dc; font-size: clamp(24px, 4vw, 42px); }
+      .g009-surface-heading p { margin: 0; color: rgba(255,246,224,.78); line-height: 1.6; }
+      body[data-g009-surface="tavern"] .hero {
+        background: linear-gradient(135deg, #17213f 0%, #26385e 48%, #101832 100%) !important;
+      }
+      body[data-g009-surface="learning-progress"] .stats-col-weak,
+      body[data-g009-surface="learning-progress"] .stats-col-c,
+      body[data-g009-surface="learning-progress"] .stat-delta { display: none !important; }
+      body[data-g009-surface="learning-progress"] .stats-grid3 { grid-template-columns: minmax(0, 1fr) !important; }
+      body[data-g009-surface="learning-progress"] [data-g009-surface-root]::before {
+        content: 'PLAYER JOURNAL'; display: block; margin: 0 0 8px; color: #b9985a;
+        font: 800 11px/1.2 'DM Mono', monospace; letter-spacing: .16em;
+      }
+      body[data-g009-surface="backpack"] {
+        --cream: #070d24; --cream2: #101a38; --cream3: #1d2b50; --ink: #fff6dc;
+        --ink2: #e8e2d2; --ink3: #b4bfd0; --ink4: #8290aa; --white: #101a38;
+        --surface2: #0d1734; --border: rgba(236, 201, 120, .2); --border2: rgba(236, 201, 120, .35);
+        --teal: #8ff0ff; --teal-bg: rgba(79, 220, 255, .1); --teal-mid: rgba(143, 240, 255, .42);
+        background: radial-gradient(1100px 520px at 50% -8%, rgba(244, 213, 138, .14), transparent 62%), linear-gradient(180deg, #121f48 0%, #0a1330 52%, #070d24 100%);
+      }
+      body[data-g009-surface="backpack"] .stats-strip,
+      body[data-g009-surface="backpack"] .backpack-card,
+      body[data-g009-surface="backpack"] .functional-equipment-card,
+      body[data-g009-surface="backpack"] .functional-equipment-detail {
+        background: linear-gradient(180deg, rgba(22, 34, 68, .94), rgba(9, 16, 38, .96));
+        border-color: rgba(236, 201, 120, .2); color: var(--ink2);
+      }
+      body[data-g009-surface="backpack"] .backpack-heading h1,
+      body[data-g009-surface="backpack"] .functional-equipment-kicker,
+      body[data-g009-surface="backpack"] .backpack-kicker { color: #f4d58a !important; }
+      body[data-g009-surface="backpack"] .backpack-heading p,
+      body[data-g009-surface="backpack"] .functional-equipment-note,
+      body[data-g009-surface="backpack"] .strip-stat .s-lbl { color: #b4bfd0; }
+      body[data-g009-surface="backpack"] .backpack-filter,
+      body[data-g009-surface="backpack"] .functional-equipment-filter,
+      body[data-g009-surface="backpack"] .functional-equipment-link {
+        color: #e8e2d2; background: rgba(255, 236, 190, .06); border-color: rgba(236, 201, 120, .28);
+      }
+      body[data-g009-surface="backpack"] .backpack-use,
+      body[data-g009-surface="backpack"] #functional-detail-action { display: none !important; }
+      body[data-g009-surface="backpack"] .functional-detail-actions { justify-content: flex-end; }
       .cg-nav-presence {
         display: inline-flex; align-items: center; gap: 6px;
         padding: 0 10px; height: 28px; border-radius: 999px;
@@ -729,6 +843,13 @@
         .cg-nav-link span { display: none; }
         .cg-nav-icon { width: 20px; height: 20px; }
       }
+      @media (max-width: 1100px) and (orientation: portrait), (max-width: 520px) {
+        .cg-nav-hamburger { display: inline-flex; }
+        .cg-nav-links { display: none; }
+        .cg-nav-inner { grid-template-columns: auto auto minmax(0, 1fr) auto; }
+        .g009-learning-secondary { width: min(calc(100% - 20px), 820px); margin-top: 10px; gap: 4px; padding: 5px; }
+        .g009-learning-secondary__item { min-height: 52px; padding: 0 5px; font-size: 12px; }
+      }
       @media (max-width: 520px) {
         :root { --cg-nav-h: 52px; }
         .cg-brand-mark { width: 28px; height: 28px; }
@@ -738,6 +859,11 @@
         .cg-nav-link { width: 44px; min-width: 44px; height: 44px; min-height: 44px; border-radius: 11px; }
         .cg-nav-player { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; }
         .cg-nav-player-chevron { display: none; }
+        .g009-learning-secondary { width: calc(100% - 16px); border-radius: 15px; }
+        .g009-learning-secondary__item { min-height: 56px; font-size: 10.5px; letter-spacing: -.1px; }
+      }
+      @media (max-width: 700px) {
+        body[data-g009-surface="learning-progress"] .stats-grid3 { grid-template-columns: minmax(0, 1fr); }
       }
     `;
   }

@@ -443,7 +443,7 @@ main {
 </style>
 <link rel="stylesheet" href="/css/e10/backpack.css?v=20260826e10backpackfilter1">
 </head>
-<body data-g009-surface="backpack">
+<body data-g009-surface="backpack" data-g009-visual-authority="locked-12-surfaces">
 
 <header id="inventory-page-header">
   <a href="/" class="logo" data-legacy-backpack-header>
@@ -477,6 +477,7 @@ main {
   <div class="strip-stat"><div class="s-val teal" id="backpack-item-kinds">—</div><div class="s-lbl" data-i18n="backpack.itemKinds">物品種類</div></div>
   <div class="strip-stat"><div class="s-val gold" id="backpack-manual-count">—</div><div class="s-lbl" data-i18n="backpack.manualKinds">可手動使用</div></div>
   <div class="strip-stat"><div class="s-val teal" id="backpack-auto-count">—</div><div class="s-lbl" data-i18n="backpack.autoKinds">自動／條件使用</div></div>
+  <div class="strip-stat" data-g009-backpack-coin-balance="authoritative"><div class="s-val amber" id="backpack-coin-balance">—</div><div class="s-lbl" data-i18n="inv.coins">🪙 金幣</div></div>
 </div>
 
 <main data-g009-surface-root="backpack">
@@ -484,11 +485,11 @@ main {
   <section class="section-wrap functional-equipment-shell" data-functional-equipment-backpack aria-labelledby="functional-equipment-title">
     <div class="backpack-heading">
       <div>
-        <p class="functional-equipment-kicker">FUNCTIONAL EQUIPMENT</p>
-        <h1 id="functional-equipment-title">戰鬥裝備 / Functional Equipment</h1>
-        <p class="functional-equipment-note">效果與數值來自 server-defined equipment；這裡的裝備會影響已支援的遊戲效果。外觀裝備請到 Hero Style Gear 管理。<br>Server-defined effects only; cosmetic gear never grants combat power.</p>
+        <p class="functional-equipment-kicker">EQUIPMENT · READ ONLY</p>
+        <h1 id="functional-equipment-title">持有裝備 / Equipment</h1>
+        <p class="functional-equipment-note">這裡只呈現 server-owned equipment projection；目前僅供查看。<br>Server-owned equipment projection; this surface is view only.</p>
       </div>
-      <a class="functional-equipment-link" href="/hero?tab=equipment">外觀裝備 / Hero Style Gear</a>
+      <a class="functional-equipment-link" href="/hero?tab=equipment">返回英雄殿 / Back to Hero Hub</a>
     </div>
     <div id="functional-equipment-status" class="functional-equipment-status" role="status" aria-live="polite" data-state="loading">正在載入戰鬥裝備…</div>
     <div class="functional-equipment-filters" id="functional-equipment-filters" role="tablist" aria-label="戰鬥裝備分類">
@@ -502,7 +503,7 @@ main {
     <div class="functional-equipment-layout">
       <div class="functional-equipment-grid" id="functional-equipment-grid" data-functional-equipment-grid aria-live="polite"></div>
       <aside class="functional-equipment-detail" id="functional-equipment-detail" data-empty="true" aria-live="polite">
-        <div id="functional-equipment-detail-empty">選取一件戰鬥裝備以查看效果、來源與同槽比較。<br>Select an item to compare and equip.</div>
+        <div id="functional-equipment-detail-empty">選取一件裝備以查看 server-owned 狀態與來源。<br>Select an item to review its server-owned state and source.</div>
         <div id="functional-equipment-detail-content" hidden>
           <div class="functional-detail-identity">
             <div class="functional-detail-icon"><img id="functional-detail-icon" alt=""></div>
@@ -527,7 +528,7 @@ main {
             <h3>效果 / Effects</h3>
             <div class="functional-detail-list" id="functional-detail-effects"></div>
           </div>
-          <div class="functional-detail-section">
+          <div class="functional-detail-section" data-g009-equipment-forbidden="comparison" hidden>
             <h3>比較 / Compare</h3>
             <div class="functional-detail-list" id="functional-detail-comparison"></div>
           </div>
@@ -536,7 +537,7 @@ main {
             <div class="functional-detail-source" id="functional-detail-source"></div>
           </div>
           <div class="functional-detail-actions">
-            <button type="button" class="functional-detail-action" id="functional-detail-action"></button>
+            <button type="button" class="functional-detail-action" id="functional-detail-action" data-g009-equipment-write="false" hidden></button>
             <button type="button" class="functional-detail-action secondary" id="functional-detail-refresh">重新整理 / Refresh</button>
           </div>
         </div>
@@ -774,7 +775,7 @@ function functionalEquipmentCardHTML(item) {
   return `<button type="button" class="functional-equipment-card" data-functional-inv-id="${functionalEquipmentEscape(item.inv_id)}" data-rarity="${functionalEquipmentEscape(item.rarity || 'common')}" data-selected="${selected}" data-equipped="${!!item.equipped}" aria-pressed="${selected}">
     <div class="functional-equipment-card-head">
       <div class="functional-equipment-icon"><img src="${functionalEquipmentEscape(item.icon)}" alt="${functionalEquipmentEscape(item.icon_alt || functionalEquipmentName(item))}" loading="lazy" decoding="async"></div>
-      <div><div class="functional-equipment-card-name">${functionalEquipmentEscape(functionalEquipmentName(item))}</div><div class="functional-equipment-card-meta">${functionalEquipmentEscape(functionalEquipmentRarity(item))} · ${functionalEquipmentEscape(functionalEquipmentSlot(item))}</div></div>
+      <div><div class="functional-equipment-card-name">${functionalEquipmentEscape(functionalEquipmentName(item))}</div><div class="functional-equipment-card-meta">${functionalEquipmentEscape(functionalEquipmentSlot(item))}</div></div>
     </div>
     <span class="functional-equipment-badge">${inventoryOnly ? (functionalEquipmentIsEn() ? 'Collection / Trophy' : '收藏品 / Trophy') : '戰鬥裝備 / Functional'}</span>
     <div class="functional-equipment-card-effects">${effects}</div>
@@ -845,7 +846,7 @@ function renderFunctionalEquipmentDetail(item) {
   if (detailBadge) detailBadge.textContent = functionalItemIsTrophy(item)
     ? (functionalEquipmentIsEn() ? 'Collection / Trophy' : '收藏品 / Trophy')
     : '戰鬥裝備 / Functional Equipment';
-  document.getElementById('functional-detail-meta').textContent = `${functionalEquipmentRarity(item)} · ${functionalEquipmentSlot(item)}`;
+  document.getElementById('functional-detail-meta').textContent = functionalEquipmentSlot(item);
   const ownership = document.getElementById('functional-detail-ownership');
   ownership.innerHTML = `
     <div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'Owned quantity' : '持有數量'}</span><strong>×${Number(item.owned_quantity || 1)}</strong></div>
@@ -875,6 +876,16 @@ function renderFunctionalEquipmentDetail(item) {
   comparison.innerHTML = comparisonHTML || `<div class="functional-detail-row muted"><span>—</span><strong>—</strong></div>`;
   document.getElementById('functional-detail-source').textContent = `${functionalEquipmentIsEn() ? (item.where_to_obtain_en || 'Monster drop') : (item.where_to_obtain || '怪物掉落')} · ${functionalEquipmentIsEn() ? 'Source' : '來源'}: ${item.source || 'drop'}`;
   const action = document.getElementById('functional-detail-action');
+  if (!action) return;
+  if (G009_BACKPACK_READ_ONLY && !E10_BACKPACK_MODE) {
+    action.hidden = true;
+    action.disabled = true;
+    action.onclick = null;
+    action.textContent = '';
+    action.removeAttribute('data-block-reason');
+    return;
+  }
+  action.hidden = false;
   const actionType = item.equipped ? 'unequip' : 'equip';
   // An item the canonical server will never equip must not offer an equip
   // action at all; ownership stays visible, the control just stops lying.
@@ -990,6 +1001,9 @@ let backpackToastTimer = null;
 let e10BackpackDialogTrigger = null;
 
 const E10_BACKPACK_MODE = window.__GO_E10_BACKPACK_MODE__ === true;
+// G009 Backpack is a read-only presentation surface. E10's isolated
+// adventure dialog remains governed by its existing runtime contract.
+const G009_BACKPACK_READ_ONLY = true;
 
 function backpackIsEn() { return typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en'; }
 function backpackText(zh, en) { return backpackIsEn() ? en : zh; }
@@ -1199,7 +1213,7 @@ function renderBackpackGrid() {
       <p class="backpack-card-desc">${backpackDescription(item)}</p>
       <div class="backpack-card-foot"><span class="backpack-action-state"${E10_BACKPACK_MODE ? ` data-e10-backpack-status="${capability.kind}"` : ''}>${capability.label}</span>
       ${E10_BACKPACK_MODE ? `<button type="button" class="e10-backpack-details" data-item-details="${item.key}">${backpackText('查看詳情','Details')}</button>` : ''}
-      ${capability.kind === 'manual' ? `<button type="button" class="backpack-use" data-use-item="${item.key}">${backpackText('使用','Use')}</button>` : ''}</div>`;
+      ${E10_BACKPACK_MODE && capability.kind === 'manual' ? `<button type="button" class="backpack-use" data-use-item="${item.key}">${backpackText('使用','Use')}</button>` : ''}</div>`;
     const useButton = card.querySelector('[data-use-item]');
     if (useButton) useButton.addEventListener('click', () => useBackpackItem(item.key, useButton));
     const detailsButton = card.querySelector('[data-item-details]');
@@ -1269,6 +1283,12 @@ async function loadBackpack() {
     document.getElementById('backpack-item-kinds').textContent = backpackItems.length.toLocaleString();
     document.getElementById('backpack-manual-count').textContent = backpackItems.filter(item => backpackCapability(item).kind === 'manual').length.toLocaleString();
     document.getElementById('backpack-auto-count').textContent = backpackItems.filter(item => backpackCapability(item).kind === 'automatic').length.toLocaleString();
+    const coinBalance = document.getElementById('backpack-coin-balance');
+    if (coinBalance) {
+      const coins = Number(catalog?.coins);
+      coinBalance.textContent = Number.isFinite(coins) && coins >= 0 ? coins.toLocaleString() : '—';
+      coinBalance.dataset.g009BalanceState = Number.isFinite(coins) && coins >= 0 ? 'authoritative' : 'unavailable';
+    }
     setBackpackStatus('ready', backpackText('背包已載入。','Backpack loaded.'));
     renderBackpackFilters();
     renderBackpackGrid();

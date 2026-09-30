@@ -487,13 +487,18 @@ body {
 }
 </style>
 </head>
-<body data-sgf-report-surface="friend_challenge_client_then_server_trust" data-g009-surface="tavern">
+<body data-sgf-report-surface="friend_challenge_client_then_server_trust" data-g009-surface="tavern" data-g009-visual-authority="locked-12-surfaces">
 <header></header>
 <main class="shell" data-g009-surface-root="tavern">
   <section class="hero">
     <div class="hero-main">
       <!-- 酒館老闆 NPC 對話（底圖老闆說話，泡泡在他右側、尾巴指向他）-->
       <div class="npc-bar">
+        <div class="g009-surface-heading" data-g009-tavern-heading>
+          <span class="g009-surface-heading__kicker">TAVERN</span>
+          <h1 data-i18n="g009.page.tavern">酒館</h1>
+          <p data-i18n="community.sub">排行榜、棋友挑戰、複盤分享、老師批改</p>
+        </div>
         <div class="npc-bubble">
           <p class="npc-line"><span class="npc-ico">💬</span><span id="npc-greeting" data-i18n="cm.npc.default_line">「喲！這不是我們的大英雄嗎？今天也來喝杯麥酒、看看佈告欄吧！」</span></p>
         </div>
@@ -528,11 +533,11 @@ body {
         <div class="lb-head-wrap">
           <div class="kicker">Bounty Board</div>
           <div class="panel-title" data-i18n="cm.lb.title">佈告欄：本週賞金榜</div>
-          <div class="lb-board-meta" aria-hidden="true">
+          <div class="lb-board-meta" aria-hidden="true" data-g009-tavern-forbidden-surface="unbacked-notice" hidden>
             <span>Guild Notice</span>
             <span>Weekly Hunt</span>
           </div>
-          <button type="button" id="reward-rules-btn" class="crr-rules-btn" data-i18n="communityRewards.rules.button">🎁 Reward Rules</button>
+          <button type="button" id="reward-rules-btn" class="crr-rules-btn" data-i18n="communityRewards.rules.button" hidden>🎁 Reward Rules</button>
         </div>
       </div>
       <div class="panel-body">
@@ -607,7 +612,7 @@ body {
           <div class="item-title"><span data-i18n="cm.fr.pending">待處理邀請</span> <span id="pending-count" class="muted small"></span></div>
           <div id="pending-list"></div>
         </div>
-        <div class="item-card" style="margin:12px 0">
+        <div class="item-card" data-g009-tavern-forbidden-surface="social-feed" hidden>
           <div class="item-title" data-i18n="cm.fr.feed">好友動態</div>
           <div id="friend-feed" style="margin-top:8px"><div class="empty" data-i18n="cm.fr.feedLoading">載入好友動態中...</div></div>
         </div>
@@ -1012,7 +1017,6 @@ function renderFriends() {
           <div class="small muted">${rankBadge(f.rank_level)} ${I18n.t('cm.fr.statLine').replace('{xp}', fmt(f.xp)).replace('{c}', fmt(f.total_correct)).replace('{combo}', fmt(f.combo_streak))}</div>
         </div>
         <div class="actions">
-          <a class="btn" href="/messages?u=${encodeURIComponent(f.username)}">${I18n.t('cm.fr.message')}</a>
           <button class="btn btn-primary" data-create-challenge="${esc(f.username)}">${I18n.t('cm.fr.challengeBtn')}</button>
           <button class="btn btn-danger" data-remove-friend="${f.friendship_id}">${I18n.t('cm.fr.remove')}</button>
         </div>

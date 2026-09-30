@@ -767,7 +767,7 @@ button:focus-visible {
 }
 </style>
 </head>
-<body data-g009-surface="shop" data-g009-shop-mode="browse-preview">
+<body data-g009-surface="shop" data-g009-shop-mode="browse-preview" data-g009-visual-authority="locked-12-surfaces">
 <header>
   <a href="/" class="logo">Go Odyssey</a>
   <nav class="header-links" aria-label="Shop navigation" data-i18n-aria-label="shop.nav.label">
@@ -793,7 +793,7 @@ button:focus-visible {
           <div class="tile-value"><span id="earned-today">0</span>/<span id="daily-cap">500</span></div>
           <div class="tile-sub" data-i18n="shop.today.sub">每日上限金幣</div>
         </div>
-        <div class="status-tile">
+        <div class="status-tile" data-g009-shop-forbidden="collection-progress" hidden>
           <div class="tile-label" data-i18n="shop.collect.label">收藏圖鑑</div>
           <div class="tile-value"><span id="collection-now">0</span>/<span id="collection-max">0</span></div>
           <div class="tile-sub" id="collection-sub" data-i18n="shop.collect.sub">扭蛋外觀收集進度</div>
@@ -809,7 +809,7 @@ button:focus-visible {
       <img class="shop-sign" src="/assets/shop/shop_sign.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
       <div class="speech">
         <strong data-i18n="shop.merchant.name">阿狸老闆</strong>
-        <span id="merchant-line">功能裝備進入背包；外觀裝扮進入衣櫃。</span>
+        <span id="merchant-line">瀏覽伺服器目錄；購買功能已停用。</span>
       </div>
       <img class="merchant" id="merchant-img" src="/assets/shop/npc_merchant_idle.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
     </div>
@@ -875,12 +875,12 @@ button:focus-visible {
     <div class="panel-pad">
       <div class="section-head">
         <div>
-          <div class="section-kicker" data-i18n="shop.r1.consumables.kicker">CONSUMABLES · BUY THEN USE</div>
+          <div class="section-kicker" data-i18n="shop.r1.consumables.kicker">CONSUMABLES · PREVIEW</div>
           <div class="section-title" id="shop-r1-consumables-title" data-i18n="shop.r1.consumables.title">Consumables</div>
         </div>
-        <div class="section-sub" data-i18n="shop.r1.consumables.sub">Server catalog · repeatable inventory items</div>
+        <div class="section-sub" data-i18n="shop.r1.consumables.sub">Server catalog · content preview</div>
       </div>
-      <p class="cosmetic-note" data-i18n="shop.r1.consumables.note">Buy adds the item to your Backpack. Use or activate it later from the Backpack; buying does not activate an effect.</p>
+      <p class="cosmetic-note" data-i18n="shop.r1.consumables.note">Browse the server catalog and review item contents. Purchase actions are not available in this Shop surface.</p>
       <div class="grid" id="shop-r1-consumables-grid" data-shop-r1-catalog-list="consumables" aria-live="polite">
         <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       </div>
@@ -1503,8 +1503,20 @@ function nameOf(o) {
 function descOf(o) {
   if (!o) return "";
   const key = o.key || o.item_key || o.id;
-  if (!isEn() && ZH_ITEM[key]) return ZH_ITEM[key].desc;
-  return isEn() ? (o.desc_en || EN_ITEM[key]?.desc || "") : (o.desc || ZH_ITEM[key]?.desc || "");
+  if (!isEn() && ZH_ITEM[key]) return browseOnlyDescription(ZH_ITEM[key].desc);
+  return browseOnlyDescription(isEn() ? (o.desc_en || EN_ITEM[key]?.desc || "") : (o.desc || ZH_ITEM[key]?.desc || ""));
+}
+function browseOnlyDescription(value) {
+  if (!G009_SHOP_BROWSE_PREVIEW_ONLY) return value || "";
+  return String(value || "")
+    .replaceAll("購買即獲得", "內含")
+    .replaceAll("立即獲得", "內含")
+    .replaceAll("Buy adds", "Catalog contains")
+    .replaceAll("Purchase adds", "Catalog contains")
+    .replaceAll("buy adds", "catalog contains")
+    .replaceAll("purchase adds", "catalog contains")
+    .replace(/\bGrants\b/g, "Contains")
+    .replace(/\bgrants\b/g, "contains");
 }
 function categoryOf(o) {
   const key = o?.key || o?.item_key || o?.id;
@@ -1523,6 +1535,11 @@ function showToast(message) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
 }
 function merchantLine(group) {
+  if (G009_SHOP_BROWSE_PREVIEW_ONLY) {
+    return isEn()
+      ? "Browse the server catalog; purchases are disabled."
+      : "瀏覽伺服器目錄；購買功能已停用。";
+  }
   const locale = isEn() ? MERCHANT_LINES.en : MERCHANT_LINES.zh;
   const lines = locale[group] || locale.idle;
   return lines[Math.floor(Math.random() * lines.length)] || "";
@@ -3302,7 +3319,7 @@ function containsCopy(item) {
   const parts = (registry.grants || []).map(grant =>
     `${names[grant.item_id] || grant.item_id} ×${Number(grant.quantity || 0)}`
   );
-  return `<div class="item-contains"><strong>${isEn() ? 'Contains' : '立即獲得'}</strong><span>${parts.join(isEn() ? ' · ' : '、')}</span></div>`;
+  return `<div class="item-contains"><strong>${isEn() ? 'Contains' : '內含'}</strong><span>${parts.join(isEn() ? ' · ' : '、')}</span></div>`;
 }
 
 const SHOP_EFFECT_ITEM_KEYS = Object.freeze(new Set([
@@ -3342,6 +3359,7 @@ function itemCard(item, saleOrOptions = false) {
     : purchaseClosed
       ? shopPurchaseClosedActionLabel()
       : uiText('shop.cosmetic.buy', 'Buy', '購買');
+  const browseOnly = G009_SHOP_BROWSE_PREVIEW_ONLY;
   card.innerHTML = `
     ${badge ? `<span class="tag">${badge}</span>` : ""}
     <div class="item-top">
@@ -3351,16 +3369,19 @@ function itemCard(item, saleOrOptions = false) {
         <div class="item-meta">${categoryOf({ ...item, key })} · ${owned ? (isEn() ? `Owned: ${owned}` : `已擁有 ${owned}`) : (isEn() ? "Not owned" : "未擁有")}</div>
       </div>
     </div>
-    <div class="item-desc">${descOf({ ...item, key }) || (isEn() ? "A purchasable tool from the shop." : "這是一個可在商店購買的道具。")}</div>
+    <div class="item-desc">${descOf({ ...item, key }) || (isEn() ? "Catalog content preview." : "商品內容預覽。")}</div>
     ${containsCopy({ ...item, key })}
-    ${shopItemPurchaseUseCopy({ ...item, key })}
+    ${browseOnly ? '' : shopItemPurchaseUseCopy({ ...item, key })}
     <div class="card-foot">
-      <div class="price">${sale && item.orig_price ? `<small>${money(item.orig_price)}</small>` : ""}${money(item.price)} ${isEn() ? "coins" : "金幣"}</div>
-      <button class="btn" type="button" data-shop-purchase-control="true" data-shop-purchase-route="/api/shop/buy" data-shop-purchase-selector="${cosmeticEsc(key)}" data-sfx="purchase" aria-label="${cosmeticEsc(uiFormat('shop.purchase.buyFor', 'Buy {name}', '購買{name}', {name: displayName}))}"${purchaseClosed || purchasePending ? ' disabled aria-disabled="true"' : ''}${purchaseClosed ? ' data-shop-purchase-disabled="true" data-shop-purchase-disabled-reason="purchases-closed"' : ''}${purchasePending ? ' aria-busy="true" data-shop-purchase-pending="true"' : ''}>${purchaseLabel}</button>
+      ${browseOnly
+        ? `<span class="shop-preview-status" data-g009-shop-preview-status="coming-soon">${uiText('g009.shop.coming_soon', 'Coming Soon', '即將開放')}</span>`
+        : `<div class="price">${sale && item.orig_price ? `<small>${money(item.orig_price)}</small>` : ""}${money(item.price)} ${isEn() ? "coins" : "金幣"}</div>
+      <button class="btn" type="button" data-shop-purchase-control="true" data-shop-purchase-route="/api/shop/buy" data-shop-purchase-selector="${cosmeticEsc(key)}" data-sfx="purchase" aria-label="${cosmeticEsc(uiFormat('shop.purchase.buyFor', 'Buy {name}', '購買{name}', {name: displayName}))}"${purchaseClosed || purchasePending ? ' disabled aria-disabled="true"' : ''}${purchaseClosed ? ' data-shop-purchase-disabled="true" data-shop-purchase-disabled-reason="purchases-closed"' : ''}${purchasePending ? ' aria-busy="true" data-shop-purchase-pending="true"' : ''}>${purchaseLabel}</button>`}
     </div>`;
+  if (browseOnly) card.dataset.g009ShopBrowsePreview = 'true';
   card.dataset.shopPurchaseDisabled = purchaseClosed ? 'true' : 'false';
   card.dataset.shopPurchasePending = purchasePending ? 'true' : 'false';
-  card.querySelector("button").addEventListener("click", () => buyItem(key));
+  card.querySelector("button")?.addEventListener("click", () => buyItem(key));
   return card;
 }
 
