@@ -39,9 +39,10 @@ $artifactBaseName = Get-ReleaseArtifactBaseName -GitSha $ExpectedGitSha
 $composeFilePath = Resolve-RepoPath 'docker-compose.release.yml'
 $equipmentEnableOverridePath = Resolve-RepoPath 'docker-compose.release.equipment-enable.override.yml'
 $healthcheckOverridePath = Join-Path ([System.IO.Path]::GetTempPath()) ("docker-compose.release.healthcheck.{0}.yml" -f $artifactBaseName)
-# The canonical release compose file retains the fail-closed Equipment
-# default. Production app recreation must explicitly layer the tracked,
-# app-only enable override so the authorized live state survives replacement.
+# The canonical release compose file is fail-closed for both G009 Shop
+# purchase and Equipment writes. The separately owner-gated Equipment
+# compatibility override remains available to its own control surface, but
+# G009 release/canary recreation never layers it.
 # The scheduler remains on the base release compose because it is not an
 # Equipment semantic consumer.
 $nginxConfigPath = Resolve-RepoPath 'nginx\default.conf'
@@ -423,11 +424,12 @@ for env in config.get("Env") or []:
     if key and key != "HOSTNAME":
         env_map[key] = value
 
-# The canary is an app-only candidate, so it must exercise the same governed
-# product flags as the eventual app recreation rather than inheriting hidden
-# state from the source container. Direct Apply remains explicitly disabled.
-env_map["CANONICAL_COIN_SHOP_PURCHASE_ENABLED"] = "true"
-env_map["EQUIPMENT_CANONICAL_LOADOUT_ENABLED"] = "true"
+# The canary is an app-only candidate, so it must exercise the same
+# fail-closed G009 product flags as the eventual app recreation rather than
+# inheriting hidden state from the source container. Direct Apply remains
+# explicitly disabled.
+env_map["CANONICAL_COIN_SHOP_PURCHASE_ENABLED"] = "false"
+env_map["EQUIPMENT_CANONICAL_LOADOUT_ENABLED"] = "false"
 env_map["GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED"] = "false"
 
 volume_lines = []
@@ -1638,7 +1640,7 @@ try {
     }
 
     $rollbackRequired = $true
-    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteEquipmentEnableOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
+    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
 
     $appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {

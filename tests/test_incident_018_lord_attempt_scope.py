@@ -356,7 +356,7 @@ def test_expired_attempt_is_not_rendered_as_a_write_failure():
 
     i18n = (REPO_ROOT / 'i18n.js').read_text(encoding='utf-8')
     assert "'index.srs.boss_attempt_expired'" in i18n
-    assert '領主試煉已逾時' in i18n
+    assert '領主挑戰已逾時' in i18n
 
 
 # ---------------------------------------------------------------------------

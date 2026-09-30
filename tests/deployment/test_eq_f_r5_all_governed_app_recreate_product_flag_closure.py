@@ -183,23 +183,23 @@ def test_canonical_release_stack_is_explicit_and_equipment_override_isolated():
     config = _compose_config([])
     app = config["services"]["app"]["environment"]
     scheduler = config["services"]["scheduler"]["environment"]
-    assert app[SHOP_KEY] == "true"
+    assert app[SHOP_KEY] == "false"
     assert app[EQUIPMENT_KEY] == "false"
-    assert scheduler[SHOP_KEY] == "true"
+    assert scheduler[SHOP_KEY] == "false"
     assert scheduler[EQUIPMENT_KEY] == "false"
 
     enabled = _compose_config([EQUIPMENT_OVERRIDE])
     enabled_app = enabled["services"]["app"]["environment"]
     enabled_scheduler = enabled["services"]["scheduler"]["environment"]
-    assert enabled_app[SHOP_KEY] == "true"
+    assert enabled_app[SHOP_KEY] == "false"
     assert enabled_app[EQUIPMENT_KEY] == "true"
-    assert enabled_scheduler[SHOP_KEY] == "true"
+    assert enabled_scheduler[SHOP_KEY] == "false"
     assert enabled_scheduler[EQUIPMENT_KEY] == "false"
 
     # Disable and release rollback both omit the Equipment-only override and
     # therefore resolve to the same safe baseline.
     rollback = _compose_config([])["services"]["app"]["environment"]
-    assert rollback[SHOP_KEY] == "true"
+    assert rollback[SHOP_KEY] == "false"
     assert rollback[EQUIPMENT_KEY] == "false"
 
     override = EQUIPMENT_OVERRIDE.read_text(encoding="utf-8")

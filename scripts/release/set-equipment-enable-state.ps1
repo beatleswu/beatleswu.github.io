@@ -58,7 +58,7 @@ $layout = Get-ReleaseLayout -Path (Resolve-RepoPath $LayoutFile)
 
 $requiredOwnerGate = if ($State -eq 'Enable') { 'GO_EQUIPMENT_ENABLE' } else { 'GO_ROLLBACK' }
 $flagName = 'EQUIPMENT_CANONICAL_LOADOUT_ENABLED'
-$expectedShopValue = 'true'
+$expectedShopValue = 'false'
 $expectedEquipmentValue = if ($State -eq 'Enable') { 'true' } else { 'false' }
 
 # The canonical release compose file and the Equipment-only override are the
@@ -112,7 +112,7 @@ if (-not $Execute) {
     }
     $planSteps = @(
         'validate Owner gate',
-        'upload the canonical release compose file (idempotent; explicit Shop=true/Equipment=false safety baseline)',
+        'upload the canonical release compose file (idempotent; explicit Shop=false/Equipment=false safety baseline)',
         $secondPlanStep,
         'force-recreate the app service only (scheduler is not a consumer of either flag)',
         'read back only CANONICAL_COIN_SHOP_PURCHASE_ENABLED and EQUIPMENT_CANONICAL_LOADOUT_ENABLED from the app container',

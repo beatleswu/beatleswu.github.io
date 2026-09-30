@@ -5,12 +5,12 @@ config resolution (not string-only assertions where a real resolution is
 practical), that:
 
   A. the canonical release compose stack resolves CANONICAL_COIN_SHOP_PURCHASE_
-     ENABLED=true and EQUIPMENT_CANONICAL_LOADOUT_ENABLED=false for `app`;
+     ENABLED=false and EQUIPMENT_CANONICAL_LOADOUT_ENABLED=false for `app`;
   B. layering the isolated, Owner-gated equipment-enable override resolves
-     EQUIPMENT_CANONICAL_LOADOUT_ENABLED=true while Shop stays true, and
+     EQUIPMENT_CANONICAL_LOADOUT_ENABLED=true while Shop stays false, and
      leaves `scheduler` untouched (scheduler is not a consumer);
   C. omitting that override (the Disable/rollback path) resolves back to the
-     baseline (Shop=true, Equipment=false);
+     baseline (Shop=false, Equipment=false);
   D. scripts/release/deploy-release-image.ps1 uses the canonical release
      compose file directly for every governed config/recreate invocation;
   E. scripts/release/set-equipment-enable-state.ps1 fails closed on a
@@ -104,23 +104,23 @@ def _compose_config(extra_files: list[pathlib.Path]) -> dict:
 # A/B/C: real Compose config resolution
 # ---------------------------------------------------------------------------
 
-def test_a_normal_governed_deploy_resolves_shop_true_equipment_false():
+def test_a_normal_governed_deploy_resolves_shop_false_equipment_false():
     config = _compose_config([])
     app_env = config["services"]["app"]["environment"]
-    assert app_env.get(SHOP_KEY) == "true"
+    assert app_env.get(SHOP_KEY) == "false"
     assert app_env.get(EQUIPMENT_KEY) == "false"
 
 
 def test_b_equipment_enabled_resolution_flips_only_equipment_for_app():
     config = _compose_config([EQUIPMENT_ENABLE_OVERRIDE])
     app_env = config["services"]["app"]["environment"]
-    assert app_env.get(SHOP_KEY) == "true"
+    assert app_env.get(SHOP_KEY) == "false"
     assert app_env.get(EQUIPMENT_KEY) == "true"
     # scheduler is not a consumer and the enable override never targets it --
     # its Equipment value must stay at the baseline "false".
     scheduler_env = config["services"]["scheduler"]["environment"]
     assert scheduler_env.get(EQUIPMENT_KEY) == "false"
-    assert scheduler_env.get(SHOP_KEY) == "true"
+    assert scheduler_env.get(SHOP_KEY) == "false"
 
 
 def test_c_equipment_disable_rollback_resolution_restores_baseline():
@@ -128,7 +128,7 @@ def test_c_equipment_disable_rollback_resolution_restores_baseline():
     # without it reproduces exactly the Test A baseline, not some other state.
     config = _compose_config([])
     app_env = config["services"]["app"]["environment"]
-    assert app_env.get(SHOP_KEY) == "true"
+    assert app_env.get(SHOP_KEY) == "false"
     assert app_env.get(EQUIPMENT_KEY) == "false"
 
 
@@ -137,7 +137,7 @@ def test_shop_flag_appears_exactly_once_per_service_no_duplicate_authority():
     # values must be explicit for both services, while the Equipment override
     # remains the only layer that changes Equipment for app.
     content = COMPOSE_RELEASE.read_text(encoding="utf-8")
-    assert content.count(f"{SHOP_KEY}: \"true\"") == 2
+    assert content.count(f"{SHOP_KEY}: \"false\"") == 2
     assert content.count(f"{EQUIPMENT_KEY}: \"false\"") == 2
     assert COMPOSE_RELEASE.is_file()
 
@@ -240,7 +240,7 @@ def test_e_dry_run_never_executes_and_reports_correct_gate(state: str):
     assert payload["dry_run"] is True
     assert payload["execute_requested"] is False
     assert payload["target_service"] == "go-odyssey-app"
-    assert payload["expected_shop_value_after"] == "true"
+    assert payload["expected_shop_value_after"] == "false"
     if state == "Enable":
         assert payload["required_owner_gate"] == "GO_EQUIPMENT_ENABLE"
         assert payload["expected_equipment_value_after"] == "true"

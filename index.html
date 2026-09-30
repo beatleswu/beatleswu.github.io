@@ -20571,18 +20571,18 @@ function _zone4LordCopy(isEn) {
         replayFailureLine: 'The clear state remains unchanged. You can challenge again.',
         goTrain: 'Go Train',
     } : {
-        kicker: '領主試煉',
+        kicker: '領主挑戰',
         title: '迷霧森林・幻影兔王',
         eligibility: pct => `迷霧森林修行進度 ${pct}% ✓`,
         reward: '擊敗幻影兔王，取得本區星星。',
         prompt: '迷霧藏著真正的形。準備好接受挑戰了嗎？',
         continueTraining: '繼續修行',
         startChallenge: '開始挑戰',
-        success: '領主試煉通關',
+        success: '領主挑戰通關',
         firstStar: '取得本區首顆星',
         replaySuccess: '再次挑戰完成',
         replayLine: '本次挑戰不會改變清關狀態或再次取得獎勵。',
-        failure: '領主試煉失敗',
+        failure: '領主挑戰失敗',
         replayFailure: '再次挑戰未通過',
         replayFailureLine: '清關狀態維持不變；你之後仍可再次挑戰。',
         goTrain: '前往修行',
@@ -20712,7 +20712,7 @@ function startZone4LordRitual(zone) {
     }
     if (btn) btn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
-    if (title) title.textContent = getCurrentUiLang() === 'en' ? 'Misty Forest Lord Trial' : '迷霧森林領主試煉';
+    if (title) title.textContent = getCurrentUiLang() === 'en' ? 'Misty Forest Lord Trial' : '迷霧森林領主挑戰';
     if (line) line.textContent = getCurrentUiLang() === 'en' ? 'The mist parts. Read the true form.' : '迷霧散開，看清真正的形。';
     _spawnLordRitualStones();
     _spawnLordRitualParticles();
@@ -20771,7 +20771,7 @@ function _zone1LordCopy(isEn) {
         continueTraining: 'Continue Training',
         startChallenge: 'Start Challenge',
     } : {
-        kicker: '領主試煉 · Lord Trial',
+        kicker: '領主挑戰 · Lord Trial',
         title: '新手村領主・村長',
         eligibility: (pct) => `新手村修行進度 ${pct}% ✓`,
         reward: '★ 勝利可取得第 1 顆星',
@@ -21011,7 +21011,7 @@ function startZone1LordRitual(zone) {
     if (ritualArt) ritualArt.src = '/assets/e10/art/zone1/lord_trial/zone1_lord_ritual_key_art.webp';
     if (btn) btn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
-    if (title) title.textContent = isEn ? 'Lord Trial' : '領主試煉';
+    if (title) title.textContent = isEn ? 'Lord Trial' : '領主挑戰';
     if (line) line.textContent = '';
     // Confirm stinger lands the moment the player commits; the ritual-energy
     // bed then plays underneath at a restrained volume (well below spoken
@@ -21873,7 +21873,7 @@ function showZone1LordResultCard(result, zone) {
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone?.key || 'k26_30';
     if (result.passed) {
-        if (kicker) kicker.textContent = isEn ? 'Lord Trial Success' : '領主試煉成功';
+        if (kicker) kicker.textContent = isEn ? 'Lord Trial Success' : '領主挑戰成功';
         title.textContent = isEn ? 'First Star Earned' : '取得第 1 顆星';
         if (books) books.textContent = '';
         if (result.replay) {
@@ -21915,7 +21915,7 @@ function showZone1LordResultCard(result, zone) {
         }
         if (kicker) kicker.textContent = isEn ? 'Trial Failed' : '挑戰失敗';
         title.textContent = isEn ? 'Trial Failed' : '挑戰失敗';
-        if (books) books.textContent = isEn ? 'Beginner Village Lord Trial' : '新手村領主試煉';
+        if (books) books.textContent = isEn ? 'Beginner Village Lord Trial' : '新手村領主挑戰';
         if (line) line.textContent = isEn
             ? 'You need more training before you can challenge the Village Elder again.'
             : '你還需要再修行，才能再次挑戰村長。';

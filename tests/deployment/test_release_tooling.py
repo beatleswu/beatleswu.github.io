@@ -945,14 +945,14 @@ def test_deploy_script_orders_release_mutations_safely():
         "$candidateHealthcheckTest = @($candidateCanary.healthcheck_test | ConvertFrom-Json)",
         "$candidateReadinessReport = Get-AppReadinessGateReport -ContainerName $candidateContainerName -UseContainerHttp",
         "if ($candidateReadinessReport.healthz_status -ne '200'",
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) -f $(Quote-PosixShellArgument $remoteEquipmentEnableOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
         'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
         "Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path",
     )
     app_recreate = content.split("--force-recreate $appComposeService", 1)[0].splitlines()[-1]
     scheduler_recreate = content.split("--force-recreate $schedulerComposeService", 1)[0].splitlines()[-1]
-    assert "remoteEquipmentEnableOverridePath" in app_recreate
+    assert "remoteEquipmentEnableOverridePath" not in app_recreate
     assert "remoteEquipmentEnableOverridePath" not in scheduler_recreate
 
 
@@ -962,8 +962,8 @@ def test_deploy_and_rollback_preserve_app_product_flags():
     for content in (deploy, rollback):
         assert "docker-compose.release.equipment-enable.override.yml" in content
     assert "CANONICAL_COIN_PURCHASE_ENABLED" not in deploy
-    assert 'env_map["CANONICAL_COIN_SHOP_PURCHASE_ENABLED"] = "true"' in deploy
-    assert 'env_map["EQUIPMENT_CANONICAL_LOADOUT_ENABLED"] = "true"' in deploy
+    assert 'env_map["CANONICAL_COIN_SHOP_PURCHASE_ENABLED"] = "false"' in deploy
+    assert 'env_map["EQUIPMENT_CANONICAL_LOADOUT_ENABLED"] = "false"' in deploy
     assert 'env_map["GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED"] = "false"' in deploy
     assert "-f $(Quote-PosixShellArgument $equipmentEnableOverrideFile)" in rollback
     rollback_app = rollback.split("$rollbackSchedulerCommand = ", 1)[0]

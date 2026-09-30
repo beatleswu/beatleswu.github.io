@@ -26,7 +26,7 @@ FAILURE_BACKPLATE = (
 )
 
 EXPECTED_FAILURE_COPY = {
-    "kicker": "領主試煉",
+    "kicker": "領主挑戰",
     "title": "領主挑戰失敗",
     "body": "領主尚未被擊敗。再答對 30 題後即可再次挑戰。",
     "info": "目前進度已保留；返回修行不會重複通關或獎勵。",

@@ -24,9 +24,9 @@ services:
     environment:
       PORT: "8080"
       PRODUCTION: "1"
-      # Canonical release-stack safety authority. Every governed compose
-      # recreate uses this file; keep these values explicit.
-      CANONICAL_COIN_SHOP_PURCHASE_ENABLED: "true"
+      # Canonical G009 release safety authority: Shop is browse/preview-only
+      # and equipment writes remain disabled.
+      CANONICAL_COIN_SHOP_PURCHASE_ENABLED: "false"
       EQUIPMENT_CANONICAL_LOADOUT_ENABLED: "false"
       DATABASE_URL: postgresql://${POSTGRES_USER:-go}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-go_odyssey}
       GNUGO_MAX_LEVEL_9: "8"
@@ -97,7 +97,7 @@ services:
       PORT: "8080"
       PRODUCTION: "1"
       # Scheduler parity only; scheduler.py is not a semantic consumer.
-      CANONICAL_COIN_SHOP_PURCHASE_ENABLED: "true"
+      CANONICAL_COIN_SHOP_PURCHASE_ENABLED: "false"
       EQUIPMENT_CANONICAL_LOADOUT_ENABLED: "false"
       DATABASE_URL: postgresql://${POSTGRES_USER:-go}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-go_odyssey}
       GNUGO_MAX_LEVEL_9: "8"

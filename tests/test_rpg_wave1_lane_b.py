@@ -56,7 +56,9 @@ def test_level_hp_definition_progresses_through_wave_one_levels():
         and any(isinstance(target, ast.Name) and target.id == "LV_HP" for target in node.targets)
     )
     hp_values = ast.literal_eval(hp_assignment.value)
-    assert len(hp_values) == 50
+    assert len(hp_values) == 100
+    assert hp_values[49] == 1242
+    assert hp_values[99] == 1750
     assert hp_values[0] > 0
     assert all(current < following for current, following in zip(hp_values, hp_values[1:]))
 
@@ -152,7 +154,9 @@ def test_monster_hp_progression_and_reward_drop_paths_remain_server_side():
     assert "equipment_defs=EQUIPMENT_DEFS" in settlement
     assert "inserted_rows[-1].row_id" in settlement
     assert "INSERT INTO monster_kill_history" in APP_SOURCE
-    assert "UPDATE user_stats SET xp=xp+?, rank_xp=rank_xp+?" in APP_SOURCE
+    quest_xp_writer = _function_source("_grant_quest_xp")
+    assert "UPDATE user_stats SET xp=COALESCE(xp,0)+? WHERE user_id=?" in quest_xp_writer
+    assert "_refresh_player_rank_cache(conn, uid)" in quest_xp_writer
 
 
 def test_boss_and_reward_regressions_are_bounded_by_existing_daily_cap():

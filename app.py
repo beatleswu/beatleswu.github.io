@@ -1087,9 +1087,9 @@ DAILY_CHALLENGE_XP_REWARD = 50
 # 連擊門檻由大到小；第一個符合的即生效
 COMBO_MULTIPLIERS = [(30, 3.0), (10, 2.0), (3, 1.5)]
 
-# ── 練習 LV 系統（LV1–50）───────────────────────────────────────
+# ── 練習 LV 系統（LV1–100）──────────────────────────────────────
 # LV_THRESHOLDS[i] = 到達 LV(i+1) 所需的累計總 XP
-# 分三段：LV1-10 簡單，LV11-30 中等，LV31-50 困難
+# LV1–50 沿用既有曲線；LV51–100 為 Owner 核准的新 progression segment。
 LV_THRESHOLDS = [
     0,       120,     280,     480,     720,    # LV1–5
     1000,    1320,    1680,    2080,    2520,   # LV6–10
@@ -1101,8 +1101,18 @@ LV_THRESHOLDS = [
     59000,   65000,   71500,   78500,   86000,  # LV36–40
     94000,   102500,  111500,  121000,  131000, # LV41–45
     141500,  152500,  164000,  176000,  188500, # LV46–50
+    193015,  197600,  202255,  206980,  211775, # LV51–55
+    216640,  221575,  226580,  231655,  236800, # LV56–60
+    242015,  247300,  252655,  258080,  263575, # LV61–65
+    269140,  274775,  280480,  286255,  292100, # LV66–70
+    298015,  304000,  310055,  316180,  322375, # LV71–75
+    328640,  334975,  341380,  347855,  354400, # LV76–80
+    361015,  367700,  374455,  381280,  388175, # LV81–85
+    395140,  402175,  409280,  416455,  423700, # LV86–90
+    431015,  438400,  445855,  453380,  460975, # LV91–95
+    468640,  476375,  484180,  492055,  500000, # LV96–100
 ]
-MAX_LV = 50
+MAX_LV = 100
 
 # LV_HP[i] = LV(i+1) 的最大血量（索引 0 = LV1）
 LV_HP = [
@@ -1111,20 +1121,27 @@ LV_HP = [
     238, 253, 268, 284, 300, 317, 335, 354, 374, 395,   # LV21–30
     418, 443, 470, 499, 530, 563, 598, 635, 674, 715,   # LV31–40
     758, 803, 850, 900, 952,1006,1062,1120,1180,1242,   # LV41–50
+    1252,1262,1272,1282,1292,1303,1313,1323,1333,1343,  # LV51–60
+    1353,1364,1374,1384,1394,1404,1414,1425,1435,1445,  # LV61–70
+    1455,1465,1475,1486,1496,1506,1516,1526,1536,1547,  # LV71–80
+    1557,1567,1577,1587,1597,1608,1618,1628,1638,1648,  # LV81–90
+    1658,1669,1679,1689,1699,1709,1719,1730,1740,1750,  # LV91–100
 ]
 
-# 每個 LV 升級所需 XP（LV1→LV2, LV2→LV3, ...）；LV50 填 0
+# 每個 LV 升級所需 XP（LV1→LV2, LV2→LV3, ...）；LV100 填 0
 RANK_XP_THRESHOLDS = {
     f'LV{lv}': (LV_THRESHOLDS[lv] - LV_THRESHOLDS[lv - 1] if lv < MAX_LV else 0)
     for lv in range(1, MAX_LV + 1)
 }
 
 def xp_to_lv(total_xp):
-    """累計 XP → 練習 LV（1–50）"""
-    return min(bisect.bisect_right(LV_THRESHOLDS, total_xp), MAX_LV)
+    """累計 XP → 練習 LV（1–100）；低於 Lv1 門檻時安全回到 Lv1。"""
+    total_xp = max(0, int(total_xp or 0))
+    return max(1, min(bisect.bisect_right(LV_THRESHOLDS, total_xp), MAX_LV))
 
 def lv_progress(total_xp):
-    """回傳 (lv, xp_in_lv, xp_needed_for_lv)；LV50 時 xp_needed=0"""
+    """回傳 (lv, xp_in_lv, xp_needed_for_lv)；Lv100 封頂時 xp_needed=0。"""
+    total_xp = max(0, int(total_xp or 0))
     lv = xp_to_lv(total_xp)
     start = LV_THRESHOLDS[lv - 1]
     if lv < MAX_LV:
@@ -1132,7 +1149,28 @@ def lv_progress(total_xp):
     return lv, total_xp - start, 0
 
 def _lv_max_hp(lv):
-    return LV_HP[min(lv - 1, MAX_LV - 1)]
+    try:
+        lv = int(lv)
+    except (TypeError, ValueError, OverflowError):
+        lv = 1
+    return LV_HP[max(1, min(lv, MAX_LV)) - 1]
+
+
+def _refresh_player_rank_cache(conn, uid):
+    """Recompute rank_level/rank_xp from the persisted canonical XP value."""
+    row = conn.execute(
+        'SELECT xp FROM user_stats WHERE user_id=?', (int(uid),)
+    ).fetchone()
+    if not row:
+        return None
+    total_xp = max(0, int(row['xp'] or 0))
+    level = xp_to_lv(total_xp)
+    _, rank_xp, _ = lv_progress(total_xp)
+    conn.execute(
+        'UPDATE user_stats SET rank_level=?, rank_xp=? WHERE user_id=?',
+        (f'LV{level}', rank_xp, int(uid)),
+    )
+    return level, rank_xp
 
 # 舊段位格式 → 練習 LV 對照（DB 遷移 / 獎章向後相容用）
 _OLD_RANK_TO_LV = {
@@ -1142,7 +1180,7 @@ _OLD_RANK_TO_LV = {
     '2k':29,'1k':30,'1d':33,'2d':36,'3d':39,'4d':42,'5d':44,'6d':46,'7d':47,'8d':48,'9d':50,
 }
 def _rank_to_lv(rank: str) -> int:
-    """將任意格式的段位字串轉換為 LV 數字（1–50）。
+    """將任意格式的段位字串轉換為 LV 數字（1–100）。
     支援新格式 'LV12' 與舊格式 '17k'/'1d' 兩種。"""
     if isinstance(rank, str) and rank.startswith('LV'):
         try:
@@ -8922,9 +8960,10 @@ def _grant_quest_xp(conn, uid, base_amount, reason):
     bonus = _safe_active_equipment_effect(conn, int(uid), 'quest_xp_bonus')
     granted = int(int(base_amount) * (1 + bonus))
     conn.execute(
-        'UPDATE user_stats SET xp=xp+?, rank_xp=rank_xp+? WHERE user_id=?',
-        (granted, granted, int(uid)),
+        'UPDATE user_stats SET xp=COALESCE(xp,0)+? WHERE user_id=?',
+        (granted, int(uid)),
     )
+    _refresh_player_rank_cache(conn, uid)
     return granted
 
 
@@ -18533,6 +18572,7 @@ def rewards_sync():
                 conn.execute(
                     'UPDATE user_stats SET xp=COALESCE(xp,0)+?, updated_at=? WHERE user_id=?',
                     (tot_x, now.isoformat(), uid))
+                _refresh_player_rank_cache(conn, uid)
                 # 已完成領賞的委託自動從接取清單移除（僅限本次實際搶到的 key）
                 for k in won_keys:
                     conn.execute('DELETE FROM quest_accepted WHERE user_id=? AND quest_key=?', (uid, k))

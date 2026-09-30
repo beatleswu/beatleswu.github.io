@@ -133,6 +133,8 @@ def sqlite_conn():
         user_id    INTEGER PRIMARY KEY,
         coins      INTEGER NOT NULL DEFAULT 0,
         xp         INTEGER NOT NULL DEFAULT 0,
+        rank_level TEXT NOT NULL DEFAULT 'LV1',
+        rank_xp    INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT
     )''')
     conn.execute('''CREATE TABLE reward_claimed (
@@ -504,6 +506,8 @@ def _create_pg_reward_schema(database_url):
         user_id    INTEGER PRIMARY KEY,
         coins      INTEGER NOT NULL DEFAULT 0,
         xp         INTEGER NOT NULL DEFAULT 0,
+        rank_level TEXT NOT NULL DEFAULT 'LV1',
+        rank_xp    INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT
     )''')
     cur.execute('''CREATE TABLE reward_claimed (
@@ -600,10 +604,15 @@ class TestConcurrentSyncHasExactlyOneWinner:
                 (uid, 'demo::LV1::1-2'),
             )
             assert verify_cur.fetchone()[0] == 1
-            verify_cur.execute('SELECT coins, xp FROM user_stats WHERE user_id=%s', (uid,))
-            coins, xp = verify_cur.fetchone()
+            verify_cur.execute(
+                'SELECT coins, xp, rank_level, rank_xp FROM user_stats WHERE user_id=%s',
+                (uid,),
+            )
+            coins, xp, rank_level, rank_xp = verify_cur.fetchone()
             # Granted exactly once, from whichever side won -- never doubled.
             assert coins == 50
             assert xp == 20
+            assert rank_level == 'LV1'
+            assert rank_xp == 20
             verify_cur.close()
             verify_conn.close()

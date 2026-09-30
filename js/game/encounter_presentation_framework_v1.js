@@ -54,7 +54,7 @@
         }),
         lord_trial: Object.freeze({
             label: 'Lord Trial',
-            labelZh: '領主試煉',
+            labelZh: '領主挑戰',
             symbol: '♜',
             frame: 'lord-separate',
             entranceMsMax: 0,

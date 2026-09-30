@@ -435,7 +435,7 @@ async function runDoubleFailureFailClosed(browser, origin) {
     // double-advance from the failed transition attempts).
     const canvasGone = after.canvasCount === 0;
     const pass = after.failedClosed && canvasGone
-      && after.failNoticeText === '下一題棋盤載入失敗，請重新進入領主試煉繼續。'
+      && after.failNoticeText === '下一題棋盤載入失敗，請重新進入領主挑戰繼續。'
       && returnMapVisible && !returnMapState.disabled && returnMapState.ariaDisabled !== 'true'
       && api.reviews.length === 1 && after.bossIndex === 1 && after.bossCorrect === 1
       && api.finishCalls() === 0;

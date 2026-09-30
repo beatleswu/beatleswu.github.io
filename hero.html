@@ -1927,14 +1927,6 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
       <div class="char-body">
 
         <div class="char-shortcuts" aria-label="玩家功能" data-i18n-aria-label="common.player.tools">
-          <a class="char-shortcut" href="/messages">
-            <span class="char-shortcut-icon" aria-hidden="true">✉️</span>
-            <span class="char-shortcut-copy">
-              <span class="char-shortcut-title" data-i18n="hero.shortcut.messages">密語驛站</span>
-              <span class="char-shortcut-sub" data-i18n="hero.shortcut.messagesSub">與同行好友傳話</span>
-            </span>
-            <span class="char-shortcut-badge" id="hero-dm-badge" aria-label="未讀私訊"></span>
-          </a>
           <a class="char-shortcut" href="/games">
             <span class="char-shortcut-icon" aria-hidden="true">📋</span>
             <span class="char-shortcut-copy">
@@ -5568,10 +5560,17 @@ async function initPage() {
     document.getElementById('badge-go').textContent = (res.go_rank ?? '—') + I18n.t('hero.rank.suffix');
 
     // XP bar
-    const xp     = res.xp ?? res.lv_xp ?? 0;
-    const xpNext = res.xp_next ?? res.lv_xp_next ?? 1;
-    const xpPct  = xpNext > 0 ? Math.round(xp / xpNext * 100) : 0;
-    document.getElementById('char-xp').textContent      = `${xp.toLocaleString()} / ${xpNext.toLocaleString()}`;
+    const xp     = Number(res.xp ?? res.lv_xp ?? 0);
+    const xpNext = Number(res.xp_next ?? res.lv_xp_next ?? 1);
+    const xpPct  = xpNext > 0
+      ? Math.max(0, Math.min(100, Math.round(xp / xpNext * 100)))
+      : 100;
+    const maxXpText = I18n.getLang() === 'en'
+      ? `${Number(totalXp || 0).toLocaleString()} XP · Max level reached`
+      : `${Number(totalXp || 0).toLocaleString()} XP，已達目前最高等級`;
+    document.getElementById('char-xp').textContent = xpNext > 0
+      ? `${xp.toLocaleString()} / ${xpNext.toLocaleString()}`
+      : maxXpText;
     document.getElementById('char-xp-bar').style.width  = xpPct + '%';
     document.getElementById('char-xp-pct').textContent  = xpPct + '%';
 
