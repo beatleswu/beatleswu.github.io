@@ -21,57 +21,48 @@ APP = (ROOT / "app.py").read_text(encoding="utf-8")
 
 def test_registry_is_the_single_route_source_and_has_required_targets():
     expected = {
-        "hero": "/hero?tab=hero",
-        "equipment": "/hero?tab=equipment",
-        "backpack": "/inventory",
-        "go_spirit": "/hero?tab=pet",
-        "shop": "/shop",
-        "soul_records": "/mistakes",
-        "battle_log": "/stats",
-        "tavern": "/community",
-        "heroes_hall": "/hero",
-        "star_chart": "/rating_test",
+        "learning_hub": "/curriculum",
         "arena": "/play",
-        "pass": "/upgrade",
-        "messages": "/messages",
-        "daily_challenge": "/daily-challenge",
-        "badges": "/badges",
-        "game_records": "/games",
+        "tavern": "/community",
+        "hero_hub": "/hero?tab=hero",
+        "backpack": "/inventory?e10=1",
+        "shop": "/shop",
+        "premium": "/upgrade",
     }
     for key, target in expected.items():
         assert re.search(rf"key: '{key}'.*?target: '{re.escape(target)}'", REGISTRY)
-    assert "/daily_challenge" not in REGISTRY
-    assert not re.search(r"key: 'backpack'.*?disabled: true", REGISTRY)
+    assert REGISTRY.count("category: 'global'") == 7
+    for key in ("go_spirit", "soul_records", "battle_log", "heroes_hall", "star_chart", "pass"):
+        assert not re.search(rf"key: '{key}'", REGISTRY)
     assert "desktop-primary" in REGISTRY and "mobile-primary" in REGISTRY
     assert "registry.itemsFor" in NAV_JS
 
 
 def test_navigation_order_and_long_label_contract_are_explicit():
-    assert "'desktop-primary': 3, 'mobile-primary': 5" in REGISTRY
-    assert "'desktop-primary': 4, 'mobile-primary': 4" in REGISTRY
+    assert "order: { global: 1, 'desktop-primary': 1, 'mobile-primary': 1 }" in REGISTRY
+    assert "order: { global: 7, 'desktop-primary': 7, 'mobile-primary': 7 }" in REGISTRY
+    assert "setAttribute('data-g009-global-nav-count', '7')" in NAV_JS
     assert "white-space: normal" in CSS
-    assert "grid-template-columns: repeat(6, minmax(0, 1fr))" in CSS
-    assert "env(safe-area-inset-bottom, 0px)" in CSS
     assert "min-height: 44px" in CSS
 
 
 def test_i18n_navigation_keys_are_complete_in_both_languages():
     for key, en, zh in (
-        ("e10.nav.go_spirit", "Go Spirit Companion", "棋靈夥伴"),
-        ("e10.nav.all_features", "All Features", "全部功能"),
-        ("e10.nav.close", "Close", "關閉"),
-        ("e10.nav.language", "Language", "語言"),
-        ("e10.nav.sound", "Sound", "音效"),
+        ("g009.nav.learning_hub", "Learning Hub", "學習公會"),
+        ("g009.nav.hero_hub", "Hero Hub", "英雄殿"),
+        ("g009.nav.close", "Close", "關閉"),
+        ("g009.settings.language", "Language", "語言"),
+        ("g009.settings.sound", "Sound", "音效"),
     ):
         assert f"'{key}'" in I18N
         assert f"en: '{en}'" in I18N
         assert f"zh: '{zh}'" in I18N
-    assert "inv.comingSoon" in NAV_JS
+    assert "g009.nav.aria" in SITE_NAV
 
 
 def test_overlays_have_dialog_focus_and_escape_contracts():
-    assert TOP.count('role="dialog"') == 2
-    assert TOP.count('aria-modal="true"') == 2
+    assert TOP.count('role="dialog"') == 1
+    assert TOP.count('aria-modal="true"') == 1
     assert "focusables(overlay)" in TOP_JS
     assert "event.key === 'Escape'" in TOP_JS
     assert "event.key !== 'Tab'" in TOP_JS
@@ -82,7 +73,7 @@ def test_overlays_have_dialog_focus_and_escape_contracts():
 
 
 def test_accessible_names_and_disabled_semantics_are_not_tooltip_only():
-    assert 'data-i18n-aria-label="e10.nav.player_profile"' in TOP
+    assert 'data-i18n-aria-label="g009.account.open"' in TOP
     assert "control.disabled = true" in NAV_JS
     assert "aria-disabled" in NAV_JS
     assert "data-i18n-aria-label" in SITE_NAV

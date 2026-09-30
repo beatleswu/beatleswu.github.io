@@ -10,6 +10,15 @@
   box-shadow: var(--e9-shell-panel-shadow);
 }
 
+.e9-nav[data-g009-global-nav="7"] {
+  position: relative;
+  z-index: 4;
+}
+
+.e9-nav[data-g009-global-nav="7"] .e9-nav__list {
+  min-width: 0;
+}
+
 .e9-nav__list {
   list-style: none;
   margin: 0;
@@ -125,4 +134,23 @@
 
 @media (max-width: 600px) {
   .e10-more-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The shared shell hamburger owns the compact navigation disclosure on
+   mobile and iPad portrait. The desktop left rail stays visible. */
+@media (max-width: 1024px) {
+  .e9-nav[data-g009-global-nav="7"] {
+    display: none;
+  }
+  .e9-nav[data-g009-global-nav="7"].is-open {
+    display: block;
+  }
+  .e9-nav[data-g009-global-nav="7"] .e9-nav__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .e9-nav[data-g009-global-nav="7"] .e9-nav__item {
+    flex: 1 1 calc(50% - 8px);
+    min-height: 48px;
+  }
 }

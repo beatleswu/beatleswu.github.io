@@ -50,9 +50,9 @@ def test_locale_changes_rerender_existing_world_stage_without_new_dictionary():
 
 
 def test_hero_and_equipment_have_distinct_canonical_tabs_and_history_contract():
-    assert "key: 'hero', target: '/hero?tab=hero'" in NAV_REGISTRY
-    assert "key: 'equipment', target: '/hero?tab=equipment'" in NAV_REGISTRY
-    assert "key: 'backpack', target: '/inventory'" in NAV_REGISTRY
+    assert "key: 'hero_hub', target: '/hero?tab=hero'" in NAV_REGISTRY
+    assert "labelKey: 'g009.nav.hero_hub'" in NAV_REGISTRY
+    assert "key: 'backpack', target: '/inventory?e10=1'" in NAV_REGISTRY
     assert "data-e10-navigation-list" in LEFT_NAV
     assert "const ALL_TABS = ['hero','equipment','appearance','pet','honors'];" in HERO
     assert "const LEGACY_TAB_ALIASES = { gear:'equipment', class:'hero', badges:'honors' };" in HERO

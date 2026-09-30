@@ -11,7 +11,7 @@
   here would be fabricated data. See docs/planning/e9_1a2_legacy_shell_integration.md.
 -->
 <section id="top-hud" class="e9-hud" data-e9-component="top_hud" role="region" data-i18n-aria-label="e9.top_hud.aria_label">
-  <a class="e9-hud__player" href="/hero?tab=hero" data-i18n-aria-label="e10.nav.player_profile">
+  <a class="e9-hud__player" href="/hero?tab=hero" data-g009-player-card data-i18n-aria-label="g009.account.open">
     <span class="e9-hud__avatar" id="top-hud-avatar" aria-hidden="true">GO</span>
     <span class="e9-hud__name" id="top-hud-name" data-i18n="e9.top_hud.loading" aria-live="polite">Loading player status…</span>
     <span class="e9-hud__level" id="top-hud-level" hidden>
@@ -23,20 +23,14 @@
     <div class="e9-hud__resources">
       <span class="e9-hud__coins" id="top-hud-coins" hidden>--</span>
     </div>
-    <div class="e10-hud__utilities" data-e10-utility-list></div>
-  </div>
-  <div class="e10-nav-overlay" id="e10-all-features-overlay" hidden data-e10-vs1f-nav="all-features-overlay">
-    <section class="e10-nav-dialog" role="dialog" aria-modal="true" aria-labelledby="e10-all-features-title">
-      <header><h2 id="e10-all-features-title" data-i18n="e10.nav.all_features">All Features</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close"></button></header>
-      <nav class="e10-more-grid" data-e10-more-list data-i18n-aria-label="e10.nav.all_features"></nav>
-    </section>
+    <div class="e10-hud__utilities" data-e10-utility-list data-g009-utility-list="none"></div>
   </div>
   <div class="e10-nav-overlay" id="e10-settings-overlay" hidden data-e10-vs1f-nav="settings-overlay">
     <section class="e10-nav-dialog e10-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="e10-settings-title">
-      <header><h2 id="e10-settings-title" data-i18n="e9.bottom_dock.settings">Settings</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close"></button></header>
-      <fieldset><legend data-i18n="e10.nav.language">Language</legend><div id="e10-settings-language"></div></fieldset>
+      <header><h2 id="e10-settings-title" data-i18n="g009.settings.title">Settings</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="g009.nav.close"></button></header>
+      <fieldset><legend data-i18n="g009.settings.language">Language</legend><div id="e10-settings-language"></div></fieldset>
       <label class="e10-settings-toggle">
-        <span data-i18n="e10.nav.sound">Sound</span>
+        <span data-i18n="g009.settings.sound">Sound</span>
         <span class="e10-settings-switch">
           <input id="e10-settings-sound" type="checkbox">
           <span class="e10-settings-switch__track" aria-hidden="true"><span class="e10-settings-switch__thumb"></span></span>

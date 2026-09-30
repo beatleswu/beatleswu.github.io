@@ -1,10 +1,10 @@
 <!--
   Component: Left Navigation (non-critical slot)
   Stable root id: left-nav  (Rule #6)
-  Every href is an existing real route -- no new pages invented.
-  Adventure stays the active/current item (E9 world_stage IS the adventure
-  view); it is not a navigation target, so it has no href action.
+  G009 Phase 3B owns exactly seven global destinations here. Home is the
+  active surface but is intentionally not a global destination; the current
+  page therefore has zero active global items on World Map/Home.
 -->
-<nav id="left-nav" class="e9-nav" data-e9-component="left_nav" data-i18n-aria-label="e9.left_nav.aria_label">
+<nav id="left-nav" class="e9-nav" data-e9-component="left_nav" data-g009-global-nav="7" data-i18n-aria-label="g009.nav.aria">
   <ul class="e9-nav__list" data-e10-navigation-list></ul>
 </nav>

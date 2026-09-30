@@ -3,37 +3,17 @@
   'use strict';
 
   var CONTRACT = 'e10-vs1f-integrated-world-map';
+  // G009 Phase 3B locked global navigation.  This registry deliberately has
+  // exactly seven global destinations. Learning Hub keeps Mistakes, Stats
+  // and Rating reachable as secondary content; Home is not item #8.
   var ITEMS = [
-    { key: 'adventure', command: 'adventure', labelKey: 'e9.left_nav.adventure', icon: 'compass', category: 'primary', placement: ['mobile-primary'], order: { 'mobile-primary': 1 } },
-    // UI-NAV-063: on the Adventure page itself, nav slot 1 ("冒險") is a no-op
-    // for the player, so that one slot is swapped for the Guild entry.
-    // /curriculum is the EXISTING canonical Guild page (HERO STATUS /
-    // 公會委託榜 / 公會聲望; it self-labels as 冒險者公會 at
-    // curriculum.html:2188). No new route was created. 'adventure-context' is
-    // a marker placement only -- no surface renders it directly, left_nav.js
-    // resolves it by key. Icon: guild.webp is the Owner-supplied Guild emblem,
-    // normalised to the same 256x256 transparent square the rest of this icon
-    // set uses (white plate removed, cropped to content, centred).
-    { key: 'guild', target: '/curriculum', labelKey: 'e10.nav.guild', icon: 'guild', category: 'primary', placement: ['adventure-context'] },
-    { key: 'hero', target: '/hero?tab=hero', labelKey: 'e9.left_nav.hero', icon: 'hero', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 1, 'mobile-primary': 2 } },
-    { key: 'equipment', target: '/hero?tab=equipment', labelKey: 'e9.left_nav.equipment', icon: 'equipment', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 2, 'mobile-primary': 3 } },
-    // E10 owns a presentation-only route marker; the generic /inventory
-    // route remains the Legacy destination used by shared navigation.
-    { key: 'backpack', target: '/inventory' + '?e10=1', labelKey: 'e9.left_nav.backpack', icon: 'backpack', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 3, 'mobile-primary': 5 } },
-    { key: 'go_spirit', target: '/hero?tab=pet', labelKey: 'e10.nav.go_spirit', icon: 'spirit', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 4, 'mobile-primary': 4 } },
-    { key: 'shop', target: '/shop', labelKey: 'nav.rpg.shop', icon: 'shop', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 5, 'mobile-primary': 6 } },
-    { key: 'soul_records', target: '/mistakes', labelKey: 'nav.rpg.mistakes', icon: 'records', category: 'legacy', placement: ['desktop-legacy', 'more'] },
-    { key: 'battle_log', target: '/stats', labelKey: 'nav.rpg.stats', icon: 'battle_log', category: 'legacy', placement: ['desktop-legacy', 'more'] },
-    { key: 'tavern', target: '/community', labelKey: 'nav.rpg.tavern', icon: 'tavern', category: 'legacy', placement: ['desktop-legacy', 'more'] },
-    { key: 'heroes_hall', target: '/hero', labelKey: 'nav.rpg.hero', icon: 'hall', category: 'legacy-more', placement: ['more'] },
-    { key: 'star_chart', target: '/rating_test', labelKey: 'nav.rpg.rating', icon: 'star_chart', category: 'legacy', placement: ['desktop-legacy', 'more'] },
-    { key: 'arena', target: '/play', labelKey: 'nav.rpg.arena', icon: 'arena', category: 'legacy', placement: ['desktop-legacy', 'more'] },
-    { key: 'pass', target: '/upgrade', labelKey: 'nav.rpg.pass', icon: 'pass', category: 'utility', placement: ['utility', 'more'] },
-    { key: 'messages', target: '/messages', labelKey: 'nav.rpg.messages', icon: 'messages', category: 'utility', placement: ['utility', 'more'] },
-    { key: 'settings', command: 'settings', labelKey: 'e9.bottom_dock.settings', icon: 'settings', category: 'utility', placement: ['utility', 'more'] },
-    { key: 'daily_challenge', target: '/daily-challenge', labelKey: 'e9.right_cards.daily_challenge_title', icon: 'daily', category: 'more', placement: ['more'] },
-    { key: 'badges', target: '/badges', labelKey: 'nav.label.badges', icon: 'badge', category: 'more', placement: ['more'] },
-    { key: 'game_records', target: '/games', labelKey: 'e9.bottom_dock.records', icon: 'game_records', category: 'more', placement: ['more'] }
+    { key: 'learning_hub', target: '/curriculum', labelKey: 'g009.nav.learning_hub', icon: 'book', category: 'global', placement: ['global', 'desktop-primary', 'mobile-primary'], order: { global: 1, 'desktop-primary': 1, 'mobile-primary': 1 } },
+    { key: 'arena', target: '/play', labelKey: 'g009.nav.arena', icon: 'arena', category: 'global', placement: ['global', 'desktop-primary', 'mobile-primary'], order: { global: 2, 'desktop-primary': 2, 'mobile-primary': 2 } },
+    { key: 'tavern', target: '/community', labelKey: 'g009.nav.tavern', icon: 'tavern', category: 'global', placement: ['global', 'desktop-primary', 'mobile-primary'], order: { global: 3, 'desktop-primary': 3, 'mobile-primary': 3 } },
+    { key: 'hero_hub', target: '/hero?tab=hero', labelKey: 'g009.nav.hero_hub', icon: 'hero', category: 'global', placement: ['global', 'desktop-primary', 'mobile-primary'], order: { global: 4, 'desktop-primary': 4, 'mobile-primary': 4 } },
+    { key: 'backpack', target: '/inventory?e10=1', labelKey: 'g009.nav.backpack', icon: 'backpack', category: 'global', placement: ['global', 'desktop-primary', 'mobile-primary'], order: { global: 5, 'desktop-primary': 5, 'mobile-primary': 5 } },
+    { key: 'shop', target: '/shop', labelKey: 'g009.nav.shop', icon: 'shop', category: 'global', placement: ['global', 'desktop-primary', 'mobile-primary'], order: { global: 6, 'desktop-primary': 6, 'mobile-primary': 6 } },
+    { key: 'premium', target: '/upgrade', labelKey: 'g009.nav.premium', icon: 'pass', category: 'global', placement: ['global', 'desktop-primary', 'mobile-primary'], order: { global: 7, 'desktop-primary': 7, 'mobile-primary': 7 } }
   ];
 
   var ICONS = {

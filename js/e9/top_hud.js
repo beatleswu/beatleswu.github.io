@@ -76,7 +76,7 @@
       root.querySelectorAll('[data-e10-vs1f-nav]').forEach(function (node) { node.remove(); });
       return;
     }
-    root.setAttribute('data-e10-vs1f-nav', 'utility');
+    root.setAttribute('data-e10-vs1f-nav', 'player-shell');
     var utilities = root.querySelector('[data-e10-utility-list]');
     var moreOverlay = root.querySelector('#e10-all-features-overlay');
     var settingsOverlay = root.querySelector('#e10-settings-overlay');
@@ -90,8 +90,9 @@
     playerMenu.hidden = true;
     playerMenu.setAttribute('data-e10-vs1f-nav', 'player-menu');
     playerMenu.setAttribute('role', 'menu');
-    playerMenu.innerHTML = '<a role="menuitem" href="/hero?tab=hero" data-i18n="e10.nav.player_profile"></a>'
-      + '<button role="menuitem" type="button" data-e10-player-logout data-i18n="nav.logout"></button>';
+    playerMenu.innerHTML = '<a role="menuitem" href="/hero?tab=hero" data-i18n="g009.account.profile">Profile</a>'
+      + '<button role="menuitem" type="button" data-e10-player-settings data-i18n="g009.account.settings">Settings</button>'
+      + '<button role="menuitem" type="button" data-e10-player-logout data-i18n="g009.account.logout">Logout</button>';
     root.appendChild(playerMenu);
     if (playerTrigger) {
       playerTrigger.setAttribute('aria-haspopup', 'menu');
@@ -122,8 +123,8 @@
     }
 
     function closeAll(restoreFocus) {
-      moreOverlay.hidden = true;
-      settingsOverlay.hidden = true;
+      if (moreOverlay) moreOverlay.hidden = true;
+      if (settingsOverlay) settingsOverlay.hidden = true;
       playerMenu.hidden = true;
       if (playerTrigger) playerTrigger.setAttribute('aria-expanded', 'false');
       if (moreTrigger) moreTrigger.setAttribute('aria-expanded', 'false');
@@ -136,6 +137,7 @@
       closeAll(false);
       lastTrigger = returnTrigger || trigger;
       previousBodyOverflow = document.body.style.overflow;
+      if (!overlay) return;
       overlay.hidden = false;
       if (trigger && trigger.getAttribute('aria-expanded') !== null) trigger.setAttribute('aria-expanded', 'true');
       document.body.style.overflow = 'hidden';
@@ -144,7 +146,7 @@
     }
 
     function onDialogKey(event) {
-      var overlay = !moreOverlay.hidden ? moreOverlay : (!settingsOverlay.hidden ? settingsOverlay : null);
+      var overlay = moreOverlay && !moreOverlay.hidden ? moreOverlay : (settingsOverlay && !settingsOverlay.hidden ? settingsOverlay : null);
       if (!overlay && !playerMenu.hidden && event.key === 'Escape') {
         event.preventDefault();
         closeAll(false);
@@ -167,29 +169,33 @@
     }
 
     registry.itemsFor('utility').forEach(function (item) {
+      if (!utilities) return;
       var control = makeControl(item);
       utilities.appendChild(control);
       if (item.command === 'settings') window.E9.on(control, 'click', function () { openOverlay(settingsOverlay, control); }, null, generation);
     });
-    moreTrigger = document.createElement('button');
-    moreTrigger.type = 'button';
-    moreTrigger.className = 'e10-utility-control e10-more-trigger';
-    moreTrigger.setAttribute('data-e10-vs1f-nav', 'more');
-    moreTrigger.setAttribute('data-e10-state', 'default');
-    moreTrigger.setAttribute('aria-controls', 'e10-all-features-overlay');
-    moreTrigger.setAttribute('aria-expanded', 'false');
-    moreTrigger.innerHTML = registry.icon('all_features', 'e10-utility-icon') + '<span data-i18n="e10.nav.all_features"></span>';
-    utilities.appendChild(moreTrigger);
-
-    registry.itemsFor('more').forEach(function (item) {
-      var control = makeControl(item, 'e10-more-item');
-      root.querySelector('[data-e10-more-list]').appendChild(control);
-      if (item.command === 'settings') window.E9.on(control, 'click', function () { openOverlay(settingsOverlay, control, moreTrigger); }, null, generation);
-    });
-    window.E9.on(moreTrigger, 'click', function () {
-      openOverlay(moreOverlay, moreTrigger);
-      moreTrigger.setAttribute('aria-expanded', 'true');
-    }, null, generation);
+    if (moreOverlay && utilities) {
+      moreTrigger = document.createElement('button');
+      moreTrigger.type = 'button';
+      moreTrigger.className = 'e10-utility-control e10-more-trigger';
+      moreTrigger.setAttribute('data-e10-vs1f-nav', 'more');
+      moreTrigger.setAttribute('data-e10-state', 'default');
+      moreTrigger.setAttribute('aria-controls', 'e10-all-features-overlay');
+      moreTrigger.setAttribute('aria-expanded', 'false');
+      moreTrigger.innerHTML = registry.icon('all_features', 'e10-utility-icon') + '<span data-i18n="e10.nav.all_features"></span>';
+      utilities.appendChild(moreTrigger);
+      registry.itemsFor('more').forEach(function (item) {
+        var moreList = root.querySelector('[data-e10-more-list]');
+        if (!moreList) return;
+        var control = makeControl(item, 'e10-more-item');
+        moreList.appendChild(control);
+        if (item.command === 'settings') window.E9.on(control, 'click', function () { openOverlay(settingsOverlay, control, moreTrigger); }, null, generation);
+      });
+      window.E9.on(moreTrigger, 'click', function () {
+        openOverlay(moreOverlay, moreTrigger);
+        moreTrigger.setAttribute('aria-expanded', 'true');
+      }, null, generation);
+    }
     if (playerTrigger) {
       window.E9.on(playerTrigger, 'click', function (event) {
         event.preventDefault();
@@ -211,6 +217,12 @@
           .then(function () { window.location.href = '/login?from=logout'; });
       }, null, generation);
     }
+    var playerSettings = playerMenu.querySelector('[data-e10-player-settings]');
+    if (playerSettings) {
+      window.E9.on(playerSettings, 'click', function () {
+        openOverlay(settingsOverlay, playerSettings, playerTrigger);
+      }, null, generation);
+    }
     root.querySelectorAll('[data-e10-dialog-close]').forEach(function (button) {
       button.innerHTML = registry.icon('close', 'e10-dialog-close-icon');
       window.E9.on(button, 'click', function () { closeAll(true); }, null, generation);
@@ -225,12 +237,12 @@
     var soundState = root.querySelector('#e10-settings-sound-state');
     var syncSoundState = function () {
       if (!sound || !soundState) return;
-      var key = sound.checked ? 'e10.nav.sound_on' : 'e10.nav.sound_off';
+      var key = sound.checked ? 'g009.settings.sound_on' : 'g009.settings.sound_off';
       var localizedState = window.I18n && typeof window.I18n.t === 'function'
         ? window.I18n.t(key)
         : (sound.checked ? 'On' : 'Off');
       var localizedSound = window.I18n && typeof window.I18n.t === 'function'
-        ? window.I18n.t('e10.nav.sound')
+        ? window.I18n.t('g009.settings.sound')
         : 'Sound';
       soundState.setAttribute('data-i18n', key);
       soundState.textContent = localizedState;

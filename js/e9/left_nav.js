@@ -1,4 +1,4 @@
-/* Responsive primary navigation, generated from NavigationRegistry. */
+/* G009 locked seven-item global navigation, generated from the registry. */
 (function (document) {
   'use strict';
 
@@ -7,6 +7,7 @@
     li.setAttribute('data-e10-vs1f-nav', item.key);
     var control = document.createElement(item.disabled || item.command ? 'button' : 'a');
     control.className = 'e9-nav__item e10-nav-item--' + item.key;
+    control.setAttribute('data-g009-global-nav-item', item.key);
     control.setAttribute('data-e10-nav-key', item.key);
     control.setAttribute('data-e10-state', 'default');
     if (item.target) control.setAttribute('href', item.target);
@@ -22,10 +23,14 @@
       + '<span data-i18n="' + item.labelKey + '"></span>'
       + (item.disabled ? registry.icon('lock', 'e10-nav-status-lock')
         + '<small class="e9-visually-hidden" id="e10-nav-status-' + item.key + '" data-i18n="inv.comingSoon"></small>' : '');
-    if (item.command === 'adventure') {
-      control.classList.add('is-active');
-      control.setAttribute('data-e10-state', 'active');
-      control.setAttribute('aria-current', 'page');
+    if (item.target) {
+      var targetPath = new URL(item.target, window.location.origin).pathname;
+      var currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+      if (targetPath === currentPath && currentPath !== '/') {
+        control.classList.add('is-active');
+        control.setAttribute('data-e10-state', 'active');
+        control.setAttribute('aria-current', 'page');
+      }
     }
     li.appendChild(control);
     return li;
@@ -36,29 +41,22 @@
     root.setAttribute('data-e9-inited', '1');
     var registry = window.E9 && window.E9.NavigationRegistry;
     if (!registry || !registry.exactContract()) return;
-    root.setAttribute('data-e10-vs1f-nav', 'primary');
+    root.setAttribute('data-e10-vs1f-nav', 'global');
+    root.setAttribute('data-g009-global-nav-count', '7');
+    root.setAttribute('data-g009-nav-open', 'false');
     var list = root.querySelector('[data-e10-navigation-list]');
-    registry.itemsFor('desktop-primary').forEach(function (item) { list.appendChild(renderItem(item, registry)); });
-    registry.itemsFor('mobile-primary').forEach(function (item) {
-      // UI-NAV-063: this navigation only mounts inside the Adventure shell
-      // (#e9-left-nav-slot exists solely on the Adventure surface), where a
-      // slot that navigates back to Adventure does nothing for the player.
-      // That single slot is swapped for the existing Guild entry; every other
-      // item, its order and its target are untouched. The Guild item carries a
-      // target rather than a command, so it renders as a normal link and does
-      // NOT pick up the adventure-only active state in renderItem -- the
-      // player is still on Adventure until they actually tap it.
-      var rendered = item;
-      if (item.key === 'adventure') {
-        var guild = registry.get('guild');
-        if (guild) rendered = guild;
-      }
-      if (!list.querySelector('[data-e10-nav-key="' + rendered.key + '"]')) list.appendChild(renderItem(rendered, registry));
-    });
-    var adventure = list.querySelector('[data-e10-command="adventure"]');
-    if (adventure) {
-      var run = function () { if (window.E9 && window.E9.runAdventureCommand) window.E9.runAdventureCommand(); };
-      window.E9.on(adventure, 'click', run, null, generation);
+    registry.itemsFor('global').forEach(function (item) { list.appendChild(renderItem(item, registry)); });
+    var setOpen = function (open) {
+      var next = !!open;
+      root.classList.toggle('is-open', next);
+      root.setAttribute('data-g009-nav-open', next ? 'true' : 'false');
+      root.setAttribute('aria-expanded', next ? 'true' : 'false');
+    };
+    if (window.E9 && window.E9.on) {
+      window.E9.on(document, 'g009:global-nav-toggle', function (event) {
+        setOpen(event.detail && event.detail.open);
+      }, null, generation);
+      window.E9.on(document, 'g009:global-nav-closed', function () { setOpen(false); }, null, generation);
     }
     if (window.I18n && window.I18n.apply) window.I18n.apply();
   }

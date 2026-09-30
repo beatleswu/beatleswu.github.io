@@ -1,4 +1,4 @@
-/* Desktop legacy dock, generated from NavigationRegistry. */
+/* G009 Phase 3B: no second global navigation surface. */
 (function (document) {
   'use strict';
 
@@ -7,18 +7,10 @@
     root.setAttribute('data-e9-inited', '1');
     var registry = window.E9 && window.E9.NavigationRegistry;
     if (!registry || !registry.exactContract()) return;
-    root.setAttribute('data-e10-vs1f-nav', 'legacy-dock');
+    root.setAttribute('data-e10-vs1f-nav', 'secondary-empty');
+    root.setAttribute('data-g009-secondary-nav', 'none');
     var list = root.querySelector('[data-e10-navigation-list]');
-    registry.itemsFor('desktop-legacy').forEach(function (item) {
-      var link = document.createElement('a');
-      link.className = 'e9-dock__item';
-      link.href = item.target;
-      link.setAttribute('data-e10-nav-key', item.key);
-      link.setAttribute('data-e10-vs1f-nav', item.key);
-      link.setAttribute('data-e10-state', 'default');
-      link.innerHTML = registry.icon(item.icon, 'e9-dock__icon') + '<span data-i18n="' + item.labelKey + '"></span>';
-      list.appendChild(link);
-    });
+    if (list) list.replaceChildren();
     if (window.I18n && window.I18n.apply) window.I18n.apply();
   }
 

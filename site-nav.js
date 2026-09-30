@@ -1,18 +1,18 @@
 (() => {
-  window.__COLORFUL_GO_NAV_VERSION__ = '20260625-arena-presence-stable';
+  window.__COLORFUL_GO_NAV_VERSION__ = '20260930-g009-phase3b-shell';
   const SOCKET_IO_CLIENT_SRC = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
 
+  // G009 Phase 3B locked global navigation.  Mistakes, Stats and Rating
+  // remain reachable as secondary Learning Hub content; they are not global
+  // destinations. Home is intentionally not a global item (#8).
   const NAV_ITEMS = [
-    { href: '/curriculum',  key: 'map',       icon: 'map',    label: '冒險公會', i18n: 'nav.rpg.guild' },
-    { href: '/mistakes',    key: 'mistake',   icon: 'note',   label: '淨魂卷宗', i18n: 'nav.rpg.mistakes' },
-    { href: '/stats',       key: 'stats',     icon: 'chart',  label: '戰績檔案', i18n: 'nav.rpg.stats' },
-    { href: '/community',   key: 'community', icon: 'team',   label: '酒館',     i18n: 'nav.rpg.tavern' },
-    { href: '/hero',        key: 'hero',      icon: 'hero',   label: '英雄殿',   i18n: 'nav.rpg.hero' },
-    { href: '/inventory',   key: 'backpack',  icon: 'backpack', label: '背包',   i18n: 'e9.left_nav.backpack' },
-    { href: '/rating_test', key: 'rating',    icon: 'rating', label: '星盤鑑定', i18n: 'nav.rpg.rating' },
-    { href: '/play',        key: 'play',      icon: 'board',  label: '競技場',   i18n: 'nav.rpg.arena' },
-    { href: '/shop',        key: 'shop',      icon: 'coin',   label: '商店',     i18n: 'nav.rpg.shop' },
-    { href: '/upgrade',     key: 'upgrade',   icon: 'gem',    label: '通行證',   i18n: 'nav.rpg.pass' },
+    { href: '/curriculum', key: 'learning_hub', icon: 'book', label: '學習公會', i18n: 'g009.nav.learning_hub', pageI18n: 'g009.page.learning_hub' },
+    { href: '/play',       key: 'arena',       icon: 'board', label: '競技場',   i18n: 'g009.nav.arena',       pageI18n: 'g009.page.arena' },
+    { href: '/community',  key: 'tavern',      icon: 'team',  label: '酒館',     i18n: 'g009.nav.tavern',      pageI18n: 'g009.page.tavern' },
+    { href: '/hero',       key: 'hero_hub',     icon: 'hero',  label: '英雄殿',   i18n: 'g009.nav.hero_hub',    pageI18n: 'g009.page.hero_hub' },
+    { href: '/inventory',  key: 'backpack',     icon: 'backpack', label: '背包', i18n: 'g009.nav.backpack', pageI18n: 'g009.page.backpack' },
+    { href: '/shop',       key: 'shop',         icon: 'coin', label: '商店',     i18n: 'g009.nav.shop',        pageI18n: 'g009.page.shop' },
+    { href: '/upgrade',    key: 'premium',      icon: 'gem',  label: '通行證',   i18n: 'g009.nav.premium',     pageI18n: 'g009.page.premium' },
   ];
 
   const ICONS = {
@@ -62,6 +62,17 @@
     return cur === target;
   }
 
+  function currentPageItem() {
+    return NAV_ITEMS.find(item => isActive(item.href)) || null;
+  }
+
+  function currentPageLabel() {
+    const item = currentPageItem();
+    const key = item?.pageI18n || 'g009.page.home';
+    return typeof I18n !== 'undefined' && typeof I18n.t === 'function'
+      ? I18n.t(key) : (item?.label || '首頁');
+  }
+
   function icon(name) {
     return `<svg class="cg-nav-icon" viewBox="0 0 32 32" aria-hidden="true">${ICONS[name] || ICONS.book}</svg>`;
   }
@@ -74,34 +85,65 @@
     const header = document.createElement('header');
     header.className = 'cg-nav';
     header.dataset.cgNav = '1';
+    const activeItem = currentPageItem();
     header.innerHTML = `
       <div class="cg-nav-inner">
+        <button class="cg-nav-hamburger" type="button" data-g009-hamburger aria-expanded="false" aria-controls="g009-global-drawer" data-i18n-aria-label="g009.nav.hamburger">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </button>
         <a class="cg-brand" href="/" aria-label="弈境奇兵 (Go Odyssey) 公會大廳" data-i18n-aria-label="common.brand.home">
           <span class="cg-brand-mark" aria-hidden="true"><span></span></span>
           <span class="cg-brand-text" data-i18n="common.brand">弈境奇兵 (Go Odyssey)</span>
         </a>
-        <nav class="cg-nav-links" aria-label="主要導覽" data-i18n-aria-label="common.nav.aria">
+        <span class="cg-nav-page-label" data-g009-current-page-label data-i18n="${activeItem?.pageI18n || 'g009.page.home'}">${activeItem?.label || '首頁'}</span>
+        <nav class="cg-nav-links" aria-label="Global navigation" data-i18n-aria-label="g009.nav.aria">
           ${NAV_ITEMS.map(item => `
             <a class="cg-nav-link ${isActive(item.href) ? 'active' : ''}" href="${item.href}" data-nav-key="${item.key}" data-i18n-aria-label="${item.i18n}" ${isActive(item.href) ? 'aria-current="page"' : ''}>
               ${icon(item.icon)}
               <span data-i18n="${item.i18n}">${item.label}</span>
-              ${item.key === 'mistake' ? '<span id="mistake-badge" class="cg-nav-badge" style="display:none;"></span>' : ''}
             </a>`).join('')}
         </nav>
         <div class="cg-nav-actions">
-          <span class="cg-nav-user" id="username-display"></span>
+          <button class="cg-nav-player" type="button" data-g009-player-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="g009-player-menu" data-i18n-aria-label="g009.account.open">
+            <span class="cg-nav-player-avatar" aria-hidden="true">GO</span>
+            <span class="cg-nav-user" id="username-display">Player</span>
+            <span class="cg-nav-player-chevron" aria-hidden="true">⌄</span>
+          </button>
           <span class="cg-nav-presence" id="cg-presence-chip" hidden>
             <span class="cg-nav-presence-dot"></span>
             <span class="cg-nav-presence-text" id="cg-presence-text" data-i18n="nav.presence.offline">離線</span>
             <span class="cg-nav-presence-count" id="cg-presence-count" hidden></span>
           </span>
           <span class="cg-nav-lang"></span>
-          <button class="cg-nav-logout" type="button" data-i18n="nav.logout">登出</button>
         </div>
+      </div>
+      <div class="cg-nav-menu" id="g009-player-menu" role="menu" hidden>
+        <a role="menuitem" href="/hero?tab=hero" data-g009-account="profile" data-i18n="g009.account.profile">Profile</a>
+        <button role="menuitem" type="button" data-g009-account="settings" data-i18n="g009.account.settings">Settings</button>
+        <button role="menuitem" type="button" data-g009-account="logout" data-i18n="g009.account.logout">Logout</button>
+      </div>
+      <div class="cg-nav-drawer" id="g009-global-drawer" data-g009-global-drawer hidden>
+        <div class="cg-nav-drawer__backdrop" data-g009-drawer-close></div>
+        <nav class="cg-nav-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="g009-global-drawer-title">
+          <div class="cg-nav-drawer__header"><h2 id="g009-global-drawer-title" data-i18n="g009.nav.aria">Global navigation</h2><button type="button" data-g009-drawer-close data-i18n-aria-label="g009.nav.close">×</button></div>
+          <div class="cg-nav-drawer__links">
+            ${NAV_ITEMS.map(item => `<a class="cg-nav-link" href="${item.href}" data-nav-key="${item.key}" data-g009-drawer-link><span>${icon(item.icon)}</span><span data-i18n="${item.i18n}">${item.label}</span></a>`).join('')}
+          </div>
+        </nav>
+      </div>
+      <div class="cg-nav-settings" data-g009-settings-dialog hidden>
+        <div class="cg-nav-settings__backdrop" data-g009-settings-close></div>
+        <section class="cg-nav-settings__panel" role="dialog" aria-modal="true" aria-labelledby="g009-settings-title">
+          <div class="cg-nav-settings__header"><h2 id="g009-settings-title" data-i18n="g009.settings.title">Settings</h2><button type="button" data-g009-settings-close data-i18n-aria-label="g009.nav.close">×</button></div>
+          <label data-i18n="g009.settings.language">Language</label><div data-g009-settings-language></div>
+          <label class="cg-nav-settings__sound"><span data-i18n="g009.settings.sound">Sound</span><input type="checkbox" data-g009-settings-sound></label>
+          <span data-g009-settings-sound-state aria-live="polite"></span>
+        </section>
       </div>`;
     if (ownsE10Navigation()) {
       header.dataset.e10SessionStrip = '1';
       header.querySelector('.cg-nav-links')?.remove();
+      header.querySelector('[data-g009-global-drawer]')?.remove();
     }
     old.replaceWith(header);
     // 語言切換鈕：搬移既有的；若該頁沒有，就現場生成一個（涵蓋所有用共用 nav 的頁面）
@@ -116,15 +158,109 @@
         I18n.renderSwitcher(box);
       }
     }
-    // 套用翻譯到新建的 nav（RPG 標籤 + 登出鈕）
+    // 套用翻譯到新建的 shared shell.
     if (typeof I18n !== 'undefined' && typeof I18n.apply === 'function') I18n.apply();
-    header.querySelector('.cg-nav-logout')?.addEventListener('click', async () => {
+    bindShellControls(header);
+    window.dispatchEvent(new CustomEvent('cg-nav:ready', { detail: { version: window.__COLORFUL_GO_NAV_VERSION__ } }));
+    buildVerifyBanner(header);
+  }
+
+  function bindShellControls(header) {
+    if (!header || header.dataset.g009ShellBound === '1') return;
+    header.dataset.g009ShellBound = '1';
+    const hamburger = header.querySelector('[data-g009-hamburger]');
+    const drawer = header.querySelector('[data-g009-global-drawer]');
+    const playerTrigger = header.querySelector('[data-g009-player-trigger]');
+    const playerMenu = header.querySelector('#g009-player-menu');
+    const settingsDialog = header.querySelector('[data-g009-settings-dialog]');
+    const pageLabel = header.querySelector('[data-g009-current-page-label]');
+    const closePlayer = () => {
+      if (!playerMenu) return;
+      playerMenu.hidden = true;
+      playerTrigger?.setAttribute('aria-expanded', 'false');
+    };
+    const closeDrawer = () => {
+      if (drawer) drawer.hidden = true;
+      hamburger?.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('g009-nav-drawer-open');
+      document.dispatchEvent(new CustomEvent('g009:global-nav-closed'));
+    };
+    const openSettings = () => {
+      closePlayer();
+      if (!settingsDialog) return;
+      settingsDialog.hidden = false;
+      document.body.classList.add('g009-settings-open');
+      const language = settingsDialog.querySelector('[data-g009-settings-language]');
+      if (language && typeof I18n !== 'undefined' && typeof I18n.renderSwitcher === 'function') I18n.renderSwitcher(language);
+      const sound = settingsDialog.querySelector('[data-g009-settings-sound]');
+      const state = settingsDialog.querySelector('[data-g009-settings-sound-state]');
+      if (sound) sound.checked = !(window.SFX && window.SFX.muted);
+      if (state) {
+        const key = sound?.checked ? 'g009.settings.sound_on' : 'g009.settings.sound_off';
+        state.dataset.i18n = key;
+        state.textContent = t(key, sound?.checked ? 'On' : 'Off');
+      }
+      settingsDialog.querySelector('[data-g009-settings-close]')?.focus();
+    };
+    const closeSettings = () => {
+      if (settingsDialog) settingsDialog.hidden = true;
+      document.body.classList.remove('g009-settings-open');
+    };
+    const toggleDrawer = () => {
+      const e10Owned = ownsE10Navigation();
+      if (e10Owned) {
+        const next = hamburger?.getAttribute('aria-expanded') !== 'true';
+        hamburger?.setAttribute('aria-expanded', String(next));
+        document.dispatchEvent(new CustomEvent('g009:global-nav-toggle', { detail: { open: next } }));
+        return;
+      }
+      if (!drawer) return;
+      const next = drawer.hidden;
+      drawer.hidden = !next;
+      hamburger?.setAttribute('aria-expanded', String(next));
+      document.body.classList.toggle('g009-nav-drawer-open', next);
+      if (next) drawer.querySelector('[data-g009-drawer-link]')?.focus();
+      else closeDrawer();
+    };
+    hamburger?.addEventListener('click', toggleDrawer);
+    drawer?.querySelectorAll('[data-g009-drawer-close]').forEach((el) => el.addEventListener('click', closeDrawer));
+    drawer?.querySelectorAll('[data-g009-drawer-link]').forEach((el) => el.addEventListener('click', closeDrawer));
+    playerTrigger?.addEventListener('click', (event) => {
+      event.preventDefault();
+      const next = playerMenu?.hidden !== false;
+      closeDrawer();
+      if (playerMenu) playerMenu.hidden = !next;
+      playerTrigger.setAttribute('aria-expanded', String(next));
+      if (next) playerMenu?.querySelector('[role="menuitem"]')?.focus();
+    });
+    header.querySelector('[data-g009-account="settings"]')?.addEventListener('click', openSettings);
+    header.querySelector('[data-g009-account="logout"]')?.addEventListener('click', async () => {
       try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
       try { if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect(); } catch {}
       location.href = '/login?from=logout';
     });
-    window.dispatchEvent(new CustomEvent('cg-nav:ready', { detail: { version: window.__COLORFUL_GO_NAV_VERSION__ } }));
-    buildVerifyBanner(header);
+    if (header.querySelectorAll) {
+      header.querySelectorAll('[data-g009-settings-close]').forEach((el) => el.addEventListener('click', closeSettings));
+    }
+    header.querySelector('[data-g009-settings-sound]')?.addEventListener('change', (event) => {
+      if (window.SFX) window.SFX.muted = !event.currentTarget.checked;
+      const state = settingsDialog?.querySelector('[data-g009-settings-sound-state]');
+      if (state) {
+        const key = event.currentTarget.checked ? 'g009.settings.sound_on' : 'g009.settings.sound_off';
+        state.dataset.i18n = key;
+        state.textContent = t(key, event.currentTarget.checked ? 'On' : 'Off');
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      closePlayer();
+      closeDrawer();
+      closeSettings();
+    });
+    if (pageLabel) {
+      pageLabel.textContent = currentPageLabel();
+      pageLabel.dataset.i18n = currentPageItem()?.pageI18n || 'g009.page.home';
+    }
   }
 
   function reconcileNavigation() {
@@ -133,6 +269,7 @@
     if (ownsE10Navigation()) {
       header.dataset.e10SessionStrip = '1';
       header.querySelector('.cg-nav-links')?.remove();
+      header.querySelector('[data-g009-global-drawer]')?.remove();
       return;
     }
     if (header.dataset.e10SessionStrip === '1' && !header.querySelector('.cg-nav-links')) {
@@ -372,10 +509,18 @@
         box-shadow: 0 12px 34px rgba(0,0,0,.34);
       }
       .cg-nav-inner {
-        max-width: 1360px; height: 100%; margin: 0 auto;
-        display: grid; grid-template-columns: auto minmax(0,1fr) auto;
+        max-width: 1480px; height: 100%; margin: 0 auto;
+        display: grid; grid-template-columns: auto auto auto minmax(0,1fr) auto;
         align-items: center; gap: 14px;
       }
+      .cg-nav-hamburger {
+        width: 38px; height: 38px; display: inline-flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 4px; padding: 0;
+        border: 1px solid rgba(251,191,36,.22); border-radius: 10px;
+        color: #f8e7bd; background: rgba(255,255,255,.06); cursor: pointer;
+      }
+      .cg-nav-hamburger span { width: 17px; height: 2px; border-radius: 99px; background: currentColor; }
+      .cg-nav-hamburger:focus-visible { outline: 2px solid #ffe18a; outline-offset: 2px; }
       .cg-brand {
         display: inline-flex; align-items: center; gap: 9px;
         color: #f8e7bd; text-decoration: none; min-width: 0;
@@ -402,9 +547,13 @@
       }
       .cg-brand-mark span::after { top: 8px; left: 19px; background: #f8fafc; border: 1px solid #111827; }
       .cg-nav-links {
-        justify-self: center; min-width: 0; max-width: 100%;
+        justify-self: stretch; min-width: 0; max-width: 100%;
         display: flex; align-items: center; justify-content: center; gap: 3px;
         overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none;
+      }
+      .cg-nav-page-label {
+        min-width: 72px; color: #fbbf24; font-size: 12px; font-weight: 800;
+        white-space: nowrap;
       }
       .cg-brand-en { display: inline; }
       @media (max-width: 1360px) { .cg-brand-en { display: none; } }
@@ -435,10 +584,48 @@
         fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
       }
       .cg-nav-actions { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; }
+      .cg-nav-player {
+        display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+        border: 1px solid rgba(251,191,36,.22); border-radius: 12px;
+        padding: 4px 8px 4px 5px; color: #f8e7bd; background: rgba(255,255,255,.06);
+        cursor: pointer;
+      }
+      .cg-nav-player:focus-visible { outline: 2px solid #ffe18a; outline-offset: 2px; }
+      .cg-nav-player-avatar { width: 27px; height: 27px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; background: linear-gradient(135deg,#f7e8bd,#c99f4f); color: #2f2412; font-size: 10px; font-weight: 900; }
       .cg-nav-user {
-        max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         color: rgba(255,246,224,.78); font-size: 12px; font-weight: 700;
       }
+      .cg-nav-player-chevron { color: rgba(255,246,224,.65); font-size: 15px; line-height: 1; }
+      .cg-nav-menu {
+        position: absolute; top: calc(var(--cg-nav-h) - 2px); right: 18px; z-index: 1100;
+        min-width: 172px; padding: 6px; border: 1px solid rgba(251,191,36,.28);
+        border-radius: 12px; background: rgba(18,24,24,.98); box-shadow: 0 18px 36px rgba(0,0,0,.38);
+      }
+      .cg-nav-menu[hidden], .cg-nav-drawer[hidden], .cg-nav-settings[hidden] { display: none !important; }
+      .cg-nav-menu a, .cg-nav-menu button {
+        width: 100%; min-height: 40px; display: flex; align-items: center;
+        padding: 0 12px; border: 0; border-radius: 8px; color: #f8e7bd;
+        background: transparent; text-decoration: none; text-align: left; cursor: pointer; font: inherit;
+      }
+      .cg-nav-menu a:hover, .cg-nav-menu button:hover { background: rgba(251,191,36,.12); }
+      .cg-nav-drawer, .cg-nav-settings { position: fixed; inset: 0; z-index: 1300; }
+      .cg-nav-drawer__backdrop, .cg-nav-settings__backdrop { position: absolute; inset: 0; background: rgba(5,10,12,.64); }
+      .cg-nav-drawer__panel, .cg-nav-settings__panel {
+        position: absolute; top: 0; left: 0; bottom: 0; width: min(360px, 88vw);
+        padding: 18px; overflow-y: auto; background: #fff8e7; color: #2f2412;
+        box-shadow: 18px 0 42px rgba(0,0,0,.32);
+      }
+      .cg-nav-drawer__header, .cg-nav-settings__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+      .cg-nav-drawer__header h2, .cg-nav-settings__header h2 { margin: 0; font-size: 20px; }
+      .cg-nav-drawer__header button, .cg-nav-settings__header button { width: 40px; height: 40px; border: 1px solid rgba(47,36,18,.2); border-radius: 9px; background: #fff; color: #2f2412; font-size: 22px; cursor: pointer; }
+      .cg-nav-drawer__links { display: grid; gap: 8px; }
+      .cg-nav-drawer__links .cg-nav-link { justify-content: flex-start; min-height: 48px; color: #2f2412; border-color: rgba(47,36,18,.12); background: rgba(255,255,255,.76); }
+      .cg-nav-drawer__links .cg-nav-link span { display: inline-flex; }
+      .cg-nav-settings__panel { left: 50%; top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(420px, calc(100vw - 32px)); border-radius: 16px; }
+      .cg-nav-settings__panel > label { display: block; margin: 14px 0 6px; font-weight: 750; }
+      .cg-nav-settings__sound { display: flex !important; align-items: center; justify-content: space-between; }
+      .cg-nav-settings__panel [data-g009-settings-sound-state] { display: block; margin-top: 5px; color: #6b5740; font-size: 12px; }
       .cg-nav-presence {
         display: inline-flex; align-items: center; gap: 6px;
         padding: 0 10px; height: 28px; border-radius: 999px;
@@ -503,27 +690,23 @@
       .cg-verify-close:hover { color: #fff; background: rgba(255,255,255,.12); }
       @media (max-width: 1200px) {
         .cg-nav { padding: 0 10px; }
-        .cg-nav-inner { grid-template-columns: auto minmax(0,1fr) auto; gap: 8px; }
+        .cg-nav-inner { grid-template-columns: auto auto minmax(0,1fr) auto; gap: 8px; }
+        .cg-nav-page-label { display: none; }
         .cg-nav-user { display: none; }
-        .cg-nav-logout {
-          display: inline-flex; align-items: center; justify-content: center;
-          width: 38px; height: 38px; padding: 0; font-size: 0; flex: 0 0 auto;
-        }
-        .cg-nav-logout::before { content: '🚪'; font-size: 17px; line-height: 1; }
         .cg-nav-actions { gap: 4px; }
         .cg-nav-lang { display: none; }
         .cg-brand-text { display: none; }
         .cg-nav-links { justify-content: flex-start; }
         .cg-nav-link { width: 44px; min-height: 44px; padding: 0; justify-content: center; }
         .cg-nav-link span { display: none; }
-        .cg-nav-link .cg-nav-badge { display: none !important; }
         .cg-nav-icon { width: 20px; height: 20px; }
       }
       @media (max-width: 520px) {
         :root { --cg-nav-h: 52px; }
         .cg-brand-mark { width: 28px; height: 28px; }
         .cg-nav-link { width: 44px; height: 44px; border-radius: 11px; }
-        .cg-nav-logout { width: 36px; height: 36px; border-radius: 11px; }
+        .cg-nav-player { width: 38px; height: 38px; padding: 0; justify-content: center; }
+        .cg-nav-player-chevron { display: none; }
       }
     `;
   }
