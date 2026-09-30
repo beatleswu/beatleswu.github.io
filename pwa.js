@@ -49,6 +49,18 @@ if ('serviceWorker' in navigator) {
 // ── 3. 安裝提示 Banner ─────────────────────────────────────────
 let _deferredPrompt = null;
 
+function pwaText(key, fallback) {
+  if (typeof I18n !== 'undefined' && I18n.t) {
+    const value = I18n.t(key);
+    if (value && value !== key) return value;
+  }
+  return fallback;
+}
+
+function pwaIsEnglish() {
+  return typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en';
+}
+
 const BANNER_CSS = `
 #pwa-banner {
   position: fixed; bottom: 20px; left: 50%;
@@ -72,14 +84,14 @@ const BANNER_CSS = `
 #pwa-banner .pb-title { font-weight:700; font-size:13px; }
 #pwa-banner .pb-sub   { font-size:11px; opacity:.55; margin-top:1px; }
 #pwa-banner .pb-install {
-  flex-shrink:0;
+  flex-shrink:0; min-height:44px;
   background:#0d9488; color:#fff; border:none; border-radius:9px;
   padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer;
   transition: background .15s;
 }
 #pwa-banner .pb-install:hover { background:#0f766e; }
 #pwa-banner .pb-close {
-  flex-shrink:0;
+  flex-shrink:0; width:44px; min-width:44px; height:44px; min-height:44px;
   background:none; border:none; color:rgba(255,255,255,.35);
   font-size:17px; cursor:pointer; padding:2px 0 2px 4px; line-height:1;
   transition: color .15s;
@@ -100,13 +112,14 @@ function showBanner() {
   el.innerHTML = `
     <div class="pb-icon">⚫</div>
     <div class="pb-text">
-      <div class="pb-title">安裝 弈境奇兵 (Go Odyssey)</div>
-      <div class="pb-sub">加到主畫面，隨時練棋</div>
+      <div class="pb-title" data-pwa-text="title"></div>
+      <div class="pb-sub" data-pwa-text="sub"></div>
     </div>
-    <button class="pb-install" id="pwa-install-btn">安裝</button>
-    <button class="pb-close"   id="pwa-close-btn" title="關閉">✕</button>
+    <button class="pb-install" id="pwa-install-btn" data-pwa-text="install"></button>
+    <button class="pb-close" id="pwa-close-btn" title="Close" aria-label="Close">✕</button>
   `;
   document.body.appendChild(el);
+  updateBannerLocale();
 
   document.getElementById('pwa-install-btn').onclick = async () => {
     if (!_deferredPrompt) return;
@@ -121,6 +134,26 @@ function showBanner() {
     sessionStorage.setItem('pwa-banner-dismissed', '1');
   };
 }
+
+function updateBannerLocale() {
+  const banner = document.getElementById('pwa-banner');
+  if (!banner) return;
+  const english = pwaIsEnglish();
+  const title = banner.querySelector('[data-pwa-text="title"]');
+  const sub = banner.querySelector('[data-pwa-text="sub"]');
+  const install = banner.querySelector('[data-pwa-text="install"]');
+  if (title) title.textContent = pwaText('index.pwa_title', english ? 'Add to Home Screen' : '📱 加到主畫面');
+  if (sub) sub.textContent = pwaText('index.pwa_sub', english ? 'Use like an app, works offline' : '像 App 一樣使用，離線也能開啟');
+  if (install) install.textContent = pwaText('index.pwa_install', english ? 'Install' : '安裝');
+  const close = banner.querySelector('#pwa-close-btn');
+  if (close) {
+    const label = english ? 'Close' : '關閉';
+    close.title = label;
+    close.setAttribute('aria-label', label);
+  }
+}
+
+document.addEventListener('e9:i18n-changed', updateBannerLocale);
 
 function hideBanner() {
   const el = document.getElementById('pwa-banner');
@@ -232,7 +265,7 @@ const IOS_CSS = `
   margin-bottom: 20px;
 }
 #ios-guide-sheet .ig-close {
-  width: 100%; padding: 13px;
+  width: 100%; min-height: 44px; padding: 10px 13px;
   background: #f3ede3; border: none; border-radius: 12px;
   font-size: 14px; font-weight: 600; color: #6b5740;
   cursor: pointer;
@@ -248,38 +281,44 @@ function showIOSGuide(isSafari) {
 
   const overlay = document.createElement('div');
   overlay.id = 'ios-guide-overlay';
+  const english = pwaIsEnglish();
+  const title = pwaText('index.ios.title', english ? 'Add to iPad Home Screen' : '安裝到 iPad 主畫面');
+  const body = pwaText('index.ios.body', english
+    ? "Tap the Share button in Safari, then choose 'Add to Home Screen'."
+    : '請點 Safari 上方或下方的分享按鈕，選「加入主畫面」。');
+  const closeLabel = english ? 'Got it' : '我知道了';
 
   if (isSafari) {
     // Safari：直接教操作步驟
     overlay.innerHTML = `
       <div id="ios-guide-sheet">
         <div class="ig-handle"></div>
-        <div class="ig-title">⚫ 安裝 弈境奇兵 (Go Odyssey)</div>
-        <div class="ig-sub">加到主畫面，像 APP 一樣使用</div>
+        <div class="ig-title">⚫ ${title}</div>
+        <div class="ig-sub">${body}</div>
         <div class="ig-steps">
           <div class="ig-step">
             <div class="ig-step-num">1</div>
             <div class="ig-step-text">
-              點下方工具列的
+              ${english ? 'Tap the toolbar' : '點下方工具列的'}
               <span class="ig-share-icon">⬆</span>
-              <strong>分享</strong>按鈕
+              <strong>${english ? 'Share' : '分享'}</strong>${english ? ' button' : '按鈕'}
             </div>
           </div>
           <div class="ig-step">
             <div class="ig-step-num">2</div>
             <div class="ig-step-text">
-              往下滑，點選
-              <strong>「加入主畫面」</strong>
+              ${english ? 'Scroll down and choose' : '往下滑，點選'}
+              <strong>${english ? '"Add to Home Screen"' : '「加入主畫面」'}</strong>
             </div>
           </div>
           <div class="ig-step">
             <div class="ig-step-num">3</div>
             <div class="ig-step-text">
-              點右上角<strong>「新增」</strong>即完成安裝
+              ${english ? 'Tap' : '點右上角'}<strong>${english ? '"Add"' : '「新增」'}</strong>${english ? ' to finish installing' : '即完成安裝'}
             </div>
           </div>
         </div>
-        <button class="ig-close" id="ios-guide-close">我知道了</button>
+        <button class="ig-close" id="ios-guide-close">${closeLabel}</button>
       </div>
     `;
   } else {
@@ -287,27 +326,26 @@ function showIOSGuide(isSafari) {
     overlay.innerHTML = `
       <div id="ios-guide-sheet">
         <div class="ig-handle"></div>
-        <div class="ig-title">⚫ 安裝 弈境奇兵 (Go Odyssey)</div>
-        <div class="ig-sub">iOS 只支援透過 Safari 安裝到主畫面</div>
+        <div class="ig-title">⚫ ${title}</div>
+        <div class="ig-sub">${english ? 'iOS installation requires Safari.' : 'iOS 只支援透過 Safari 安裝到主畫面'}</div>
         <div class="ig-warn">
-          ⚠️ 你目前使用的不是 Safari。<br>
-          請複製網址，改用 <strong>Safari</strong> 開啟，再依步驟安裝。
+          ${english ? '⚠️ You are not using Safari.<br>Copy this URL, open it in <strong>Safari</strong>, and follow the steps.' : '⚠️ 你目前使用的不是 Safari。<br>請複製網址，改用 <strong>Safari</strong> 開啟，再依步驟安裝。'}
         </div>
         <div class="ig-steps">
           <div class="ig-step">
             <div class="ig-step-num">1</div>
-            <div class="ig-step-text">用 Safari 開啟 <strong>${location.hostname}</strong></div>
+            <div class="ig-step-text">${english ? 'Open' : '用 Safari 開啟'} <strong>${location.hostname}</strong>${english ? ' in Safari' : ''}</div>
           </div>
           <div class="ig-step">
             <div class="ig-step-num">2</div>
             <div class="ig-step-text">
-              點工具列的
+              ${english ? 'Tap the toolbar' : '點工具列的'}
               <span class="ig-share-icon">⬆</span>
-              <strong>分享</strong>→<strong>「加入主畫面」</strong>
+              <strong>${english ? 'Share' : '分享'}</strong>→<strong>${english ? '"Add to Home Screen"' : '「加入主畫面」'}</strong>
             </div>
           </div>
         </div>
-        <button class="ig-close" id="ios-guide-close">知道了</button>
+        <button class="ig-close" id="ios-guide-close">${closeLabel}</button>
       </div>
     `;
   }

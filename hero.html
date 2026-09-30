@@ -3650,6 +3650,19 @@ document.querySelectorAll('[data-hero-target-tab]').forEach(control => {
 const BADGE_RARITY_LK = { bronze:'hero.badgeTier.bronze', silver:'hero.badgeTier.silver', gold:'hero.badgeTier.gold', legendary:'hero.badgeTier.legend' };
 const BADGE_RARITY_LABEL = { bronze:'銅', silver:'銀', gold:'金', legendary:'傳奇' };
 const BADGE_RARITY_COLOR = { bronze:'#b45309', silver:'#6b7280', gold:'#d97706', legendary:'#7c3aed' };
+let _badgeDefinitions = [];
+let _badgeEarnedSet = new Set();
+let _badgeFilter = 'all';
+let _renderBadgesLocale = null;
+
+function badgeLocalizedText(badge, field) {
+  const english = typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en';
+  const key = english ? `${field}_en` : field;
+  const value = badge?.[key];
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  // Never leak the canonical zh-TW source field into a settled EN panel.
+  return english ? '' : (typeof badge?.[field] === 'string' ? badge[field] : '');
+}
 
 async function loadBadgesTab() {
   _badgesLoaded = true;
@@ -3660,23 +3673,24 @@ async function loadBadgesTab() {
       fetch('/api/badges/definitions', { credentials:'include' }).then(r => r.json()),
       fetch('/api/badges/earned',      { credentials:'include' }).then(r => r.json()),
     ]);
-    const earnedSet = new Set((earnedArr || []).map(b => b.badge_id || b.id));
-    const earnedCount = earnedSet.size;
-    if (cntEl) cntEl.textContent = `${earnedCount} / ${(defs||[]).length}`;
+    _badgeDefinitions = Array.isArray(defs) ? defs : [];
+    _badgeEarnedSet = new Set((earnedArr || []).map(b => b.badge_id || b.id));
+    if (cntEl) cntEl.textContent = `${_badgeEarnedSet.size} / ${_badgeDefinitions.length}`;
 
-    let _filter = 'all';
     function renderGrid() {
-      const list = (defs || []).filter(b => {
-        if (_filter === 'earned') return earnedSet.has(b.id);
-        if (_filter === 'locked') return !earnedSet.has(b.id);
+      const list = _badgeDefinitions.filter(b => {
+        if (_badgeFilter === 'earned') return _badgeEarnedSet.has(b.id);
+        if (_badgeFilter === 'locked') return !_badgeEarnedSet.has(b.id);
         return true;
       });
       if (!list.length) { grid.innerHTML = `<div style="color:var(--ink4);font-size:13px;padding:24px 0;">${I18n.t('hero.badgeEmpty')}</div>`; return; }
       const rar = b => b.rarity || 'bronze';
       grid.innerHTML = list.map(b => {
-        const earned = earnedSet.has(b.id);
+        const earned = _badgeEarnedSet.has(b.id);
         const color  = BADGE_RARITY_COLOR[rar(b)] || '#b45309';
         const label  = (BADGE_RARITY_LK[rar(b)] && typeof I18n!=='undefined') ? I18n.t(BADGE_RARITY_LK[rar(b)]) : (BADGE_RARITY_LABEL[rar(b)] || rar(b));
+        const name = badgeLocalizedText(b, 'name');
+        const description = badgeLocalizedText(b, 'desc');
         const badgeArt = b.prototype_asset
           ? `<img src="${b.prototype_asset}" alt="" loading="lazy" decoding="async" style="width:42px;height:42px;object-fit:contain;">`
           : (b.icon || '🏅');
@@ -3687,8 +3701,8 @@ async function loadBadgesTab() {
           opacity:${earned ? 1 : 0.55}; transition:.2s;
         ">
           <div style="font-size:36px;line-height:1.2;margin-bottom:6px;">${badgeArt}</div>
-          <div style="font-size:12px;font-weight:700;color:${earned ? color : 'var(--ink3)'};margin-bottom:3px;">${I18n.localized(b,'name') || ''}</div>
-          <div style="font-size:10px;color:var(--ink4);line-height:1.4;">${I18n.localized(b,'desc') || b.description || ''}</div>
+          <div style="font-size:12px;font-weight:700;color:${earned ? color : 'var(--ink3)'};margin-bottom:3px;">${name}</div>
+          <div style="font-size:10px;color:var(--ink4);line-height:1.4;">${description}</div>
           ${earned ? `<div style="margin-top:6px;font-size:10px;font-weight:600;color:${color};">✓ ${label}</div>` : ''}
         </div>`;
       }).join('');
@@ -3698,15 +3712,20 @@ async function loadBadgesTab() {
       btn.addEventListener('click', () => {
         document.querySelectorAll('#hero-badge-filters .filter-tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        _filter = btn.dataset.bf;
+        _badgeFilter = btn.dataset.bf;
         renderGrid();
       });
     });
+    _renderBadgesLocale = renderGrid;
     renderGrid();
   } catch(e) {
     if (grid) grid.innerHTML = `<div style="color:var(--ink4);font-size:13px;padding:24px 0;">${I18n.t('hero.loadFail')}</div>`;
   }
 }
+
+document.addEventListener('e9:i18n-changed', () => {
+  if (typeof _renderBadgesLocale === 'function') _renderBadgesLocale();
+});
 
 // ── Wardrobe ──────────────────────────────────────────────────────────────────
 const HERO_ITEM_ROOT = '/assets/hero/items/';

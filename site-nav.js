@@ -539,7 +539,7 @@
         align-items: center; gap: 14px;
       }
       .cg-nav-hamburger {
-        width: 38px; height: 38px; display: inline-flex; flex-direction: column;
+        width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; flex-direction: column;
         align-items: center; justify-content: center; gap: 4px; padding: 0;
         border: 1px solid rgba(251,191,36,.22); border-radius: 10px;
         color: #f8e7bd; background: rgba(255,255,255,.06); cursor: pointer;
@@ -548,7 +548,8 @@
       .cg-nav-hamburger:focus-visible { outline: 2px solid #ffe18a; outline-offset: 2px; }
       .cg-brand {
         display: inline-flex; align-items: center; gap: 9px;
-        color: #f8e7bd; text-decoration: none; min-width: 0;
+        color: #f8e7bd; text-decoration: none; min-width: 44px; min-height: 44px;
+        box-sizing: border-box;
         font-family: 'Cormorant Garamond', Georgia, serif;
         font-size: 18px; font-weight: 700; white-space: nowrap;
       }
@@ -584,7 +585,8 @@
       @media (max-width: 1360px) { .cg-brand-en { display: none; } }
       .cg-nav-links::-webkit-scrollbar { display: none; }
       .cg-nav-link {
-        height: 38px; display: inline-flex; align-items: center; gap: 6px;
+        height: 44px; min-height: 44px; min-width: 44px; box-sizing: border-box; flex: 0 0 auto;
+        display: inline-flex; align-items: center; gap: 6px;
         padding: 0 8px; border-radius: 12px;
         color: rgba(255,246,224,.78); text-decoration: none; font-size: 13px; font-weight: 650;
         white-space: nowrap; border: 1px solid transparent;
@@ -610,7 +612,7 @@
       }
       .cg-nav-actions { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; }
       .cg-nav-player {
-        display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+        display: inline-flex; align-items: center; gap: 6px; min-width: 0; min-height: 44px; flex: 0 0 auto;
         border: 1px solid rgba(251,191,36,.22); border-radius: 12px;
         padding: 4px 8px 4px 5px; color: #f8e7bd; background: rgba(255,255,255,.06);
         cursor: pointer;
@@ -629,7 +631,7 @@
       }
       .cg-nav-menu[hidden], .cg-nav-drawer[hidden], .cg-nav-settings[hidden] { display: none !important; }
       .cg-nav-menu a, .cg-nav-menu button {
-        width: 100%; min-height: 40px; display: flex; align-items: center;
+        width: 100%; min-height: 44px; display: flex; align-items: center;
         padding: 0 12px; border: 0; border-radius: 8px; color: #f8e7bd;
         background: transparent; text-decoration: none; text-align: left; cursor: pointer; font: inherit;
       }
@@ -676,8 +678,9 @@
         background: #dc2626; color: #fff; font-size: 10px; font-weight: 800;
       }
       .cg-nav-lang { display: inline-flex; align-items: center; }
+      .cg-nav-lang .i18n-switcher-btn { min-width: 44px; min-height: 44px; }
       .cg-nav-logout {
-        height: 34px; padding: 0 12px; border-radius: 11px; cursor: pointer;
+        height: 44px; min-height: 44px; padding: 0 12px; border-radius: 11px; cursor: pointer;
         border: 1px solid rgba(251,191,36,.22); background: rgba(255,255,255,.06);
         color: #f8e7bd; font-size: 12px; font-weight: 700;
       }
@@ -722,15 +725,15 @@
         .cg-nav-lang { display: none; }
         .cg-brand-text { display: none; }
         .cg-nav-links { justify-content: flex-start; }
-        .cg-nav-link { width: 44px; min-height: 44px; padding: 0; justify-content: center; }
+        .cg-nav-link { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; }
         .cg-nav-link span { display: none; }
         .cg-nav-icon { width: 20px; height: 20px; }
       }
       @media (max-width: 520px) {
         :root { --cg-nav-h: 52px; }
         .cg-brand-mark { width: 28px; height: 28px; }
-        .cg-nav-link { width: 44px; height: 44px; border-radius: 11px; }
-        .cg-nav-player { width: 38px; height: 38px; padding: 0; justify-content: center; }
+        .cg-nav-link { width: 44px; min-width: 44px; height: 44px; min-height: 44px; border-radius: 11px; }
+        .cg-nav-player { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; }
         .cg-nav-player-chevron { display: none; }
       }
     `;

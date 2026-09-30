@@ -483,10 +483,17 @@
       const catalogState = lexicalValue('_future30CharacterCatalogState');
       const inventoryFromLegacy = lexicalValue('_functionalEquipmentItems');
       const petFromLegacy = lexicalValue('_petState');
+      const inventoryJob = state.inventory
+        ? Promise.resolve(state.inventory)
+        : readJSON('/api/player/inventory').catch(() => (
+          Array.isArray(inventoryFromLegacy) && inventoryFromLegacy.length
+            ? inventoryFromLegacy
+            : null
+        ));
       const jobs = [
         state.appearance ? Promise.resolve(state.appearance) : readJSON('/api/player/appearance').catch(() => null),
         state.catalog || (catalogState === 'ready' ? Promise.resolve(catalogFromLegacy) : readJSON('/api/player/character-catalog').catch(() => null)),
-        state.inventory || (Array.isArray(inventoryFromLegacy) ? Promise.resolve(inventoryFromLegacy) : readJSON('/api/player/inventory').catch(() => null)),
+        inventoryJob,
         state.pet || (petFromLegacy ? Promise.resolve(petFromLegacy) : readJSON('/api/pet/status').catch(() => null)),
       ];
       const [appearance, catalog, inventory, pet] = await Promise.all(jobs);

@@ -113,7 +113,8 @@ def test_batch_a_responsive_contract_has_all_required_viewports_and_touch_target
     assert "max-width: 700px" in CSS
     assert "min-height: 44px" in CSS
     assert "overflow-x: hidden" in CSS
-    assert "overflow-x: auto" in CSS
+    assert CSS.count("overflow: visible") >= 2
+    assert "overflow-x: auto" not in CSS
 
 
 def test_pending_derived_84_assets_and_unaccepted_batches_are_not_consumed():
