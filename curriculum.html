@@ -2179,7 +2179,7 @@ header:not(.cg-nav) .btn-logout {
 </style>
 <script src="/pwa.js"></script>
 </head>
-<body>
+<body data-g009-surface="learning-hub" data-g009-secondary-surfaces="mistakes learning-progress rating">
 
 <header>
   <a href="/" class="logo"><div class="logo-mark" style="background:transparent;border-radius:0;width:28px;height:28px;padding:0;color:transparent;font-size:0"><svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="4" fill="#e8d4a8" stroke="#b9985a" stroke-width="1.5"/><g stroke="#3a2e1d" stroke-width="1" fill="none"><line x1="6" y1="6" x2="34" y2="6"/><line x1="6" y1="13" x2="34" y2="13"/><line x1="6" y1="20" x2="34" y2="20"/><line x1="6" y1="27" x2="34" y2="27"/><line x1="6" y1="34" x2="34" y2="34"/><line x1="6" y1="6" x2="6" y2="34"/><line x1="13" y1="6" x2="13" y2="34"/><line x1="20" y1="6" x2="20" y2="34"/><line x1="27" y1="6" x2="27" y2="34"/><line x1="34" y1="6" x2="34" y2="34"/></g><circle cx="13" cy="27" r="4.2" fill="#0d0d0d"/><circle cx="27" cy="13" r="4.2" fill="#fefcf6" stroke="#1a1a1a" stroke-width="0.9"/></svg></div>弈境奇兵 (Go Odyssey)</a>
@@ -2187,9 +2187,9 @@ header:not(.cg-nav) .btn-logout {
     <a href="/" data-icon="📖" class="nav-link" data-i18n="nav.practice">📖 練習</a>
     <a href="/curriculum" data-icon="📜" class="nav-link active" data-i18n="cur.nav.curriculum">📜 冒險者公會</a>
     <a href="/daily-challenge" data-icon="🎯" class="nav-link" data-i18n="nav.daily">🎯 每日懸賞令</a>
-    <a href="/mistakes" data-icon="📕" class="nav-link" data-i18n="nav.mistakes">📕 錯題本</a>
+    <a href="/mistakes" data-icon="📕" class="nav-link" data-g009-secondary-surface="mistakes" data-i18n="nav.mistakes">📕 錯題本</a>
     <a href="/badges" data-icon="🏅" class="nav-link" data-i18n="nav.badges">🏅 獎章</a>
-    <a href="/stats" data-icon="📊" class="nav-link" data-i18n="nav.stats">📊 儀表板</a>
+    <a href="/stats" data-icon="📊" class="nav-link" data-g009-secondary-surface="learning-progress" data-i18n="nav.stats">📊 儀表板</a>
     <a href="/community" data-icon="👥" class="nav-link" data-i18n="nav.community">👥 社群</a>
     <a href="/hero" data-icon="🧙" class="nav-link" data-i18n="nav.skills">🧙 英雄</a>
     <div class="nav-sep"></div>
@@ -2217,7 +2217,7 @@ header:not(.cg-nav) .btn-logout {
     <span class="guild-candle-flame small"></span>
   </div>
 </aside>
-<main class="guild-main">
+<main class="guild-main" data-g009-surface-root="learning-hub">
 
   <!-- Hero -->
   <div class="hero">

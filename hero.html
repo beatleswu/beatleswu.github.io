@@ -1812,7 +1812,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 {"imports":{"three":"/assets/3d_shop/p048/vendor/three.module.js"}}
 </script>
 </head>
-<body data-hero-tab="hero" data-loadout-effective="off">
+<body data-hero-tab="hero" data-loadout-effective="off" data-g009-surface="hero-hub" data-g009-hero-sections="5">
 
 <!-- ── HEADER ── -->
 <header>
@@ -1998,17 +1998,17 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 
     <!-- ── CENTER COL：分頁列 + 內容面板（合併）── -->
     <div class="center-col">
-    <div class="main-tabs" role="tablist" aria-label="Hero domains" data-i18n-aria-label="hero.tabs.aria">
-      <button id="hero-tab-hero" class="main-tab active" type="button" role="tab" aria-selected="true" aria-controls="tab-hero" data-tab="hero" data-sfx="ui_tab" data-i18n="hero.tab.character">🧙 角色</button>
-      <button id="hero-tab-equipment" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-equipment" tabindex="-1" data-tab="equipment" data-sfx="ui_tab" data-i18n="hero.tab.equipment">🛡️ 裝備</button>
-      <button id="hero-tab-appearance" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-appearance" tabindex="-1" data-tab="appearance" data-sfx="ui_tab" data-i18n="hero.tab.appearance">🎨 外觀</button>
-      <button id="hero-tab-pet" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-pet" tabindex="-1" data-tab="pet" data-sfx="ui_tab" data-i18n="hero.tab.spirit">🐾 棋靈</button>
-      <button id="hero-tab-honors" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-honors" tabindex="-1" data-tab="honors" data-sfx="ui_tab" data-i18n="hero.tab.honors">🏅 榮譽</button>
+    <div class="main-tabs" role="tablist" aria-label="Hero domains" data-g009-hero-nav="5" data-i18n-aria-label="hero.tabs.aria">
+      <button id="hero-tab-hero" class="main-tab active" type="button" role="tab" aria-selected="true" aria-controls="tab-hero" data-tab="hero" data-g009-hero-section="character" data-sfx="ui_tab" data-i18n="hero.tab.character">🧙 角色</button>
+      <button id="hero-tab-equipment" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-equipment" tabindex="-1" data-tab="equipment" data-g009-hero-section="equipment" data-sfx="ui_tab" data-i18n="hero.tab.equipment">🛡️ 裝備</button>
+      <button id="hero-tab-appearance" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-appearance" tabindex="-1" data-tab="appearance" data-g009-hero-section="appearance" data-sfx="ui_tab" data-i18n="hero.tab.appearance">🎨 外觀</button>
+      <button id="hero-tab-pet" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-pet" tabindex="-1" data-tab="pet" data-g009-hero-section="companion" data-sfx="ui_tab" data-i18n="hero.tab.spirit">🐾 棋靈</button>
+      <button id="hero-tab-honors" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-honors" tabindex="-1" data-tab="honors" data-g009-hero-section="honors" data-sfx="ui_tab" data-i18n="hero.tab.honors">🏅 榮譽</button>
     </div>
     <div class="right-panel" id="right-panel">
 
       <!-- ══ HERO OVERVIEW TAB ══ -->
-      <div id="tab-hero" role="tabpanel" aria-labelledby="hero-tab-hero" data-hero-domain="character">
+      <div id="tab-hero" role="tabpanel" aria-labelledby="hero-tab-hero" data-hero-domain="character" data-g009-hero-section="character">
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon teal">🧙</div>
@@ -2057,7 +2057,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
       </div>
 
       <!-- ══ PET TAB ══ -->
-      <div id="tab-pet" role="tabpanel" aria-labelledby="hero-tab-pet" hidden data-hero-domain="spirit">
+      <div id="tab-pet" role="tabpanel" aria-labelledby="hero-tab-pet" hidden data-hero-domain="spirit" data-g009-hero-section="companion">
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon purple">🐾</div>
@@ -2091,7 +2091,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
       </div>
 
       <!-- ══ HONORS TAB ══ -->
-      <div id="tab-honors" role="tabpanel" aria-labelledby="hero-tab-honors" hidden data-hero-domain="honors">
+      <div id="tab-honors" role="tabpanel" aria-labelledby="hero-tab-honors" hidden data-hero-domain="honors" data-g009-hero-section="honors">
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon amber">🏅</div>
@@ -2126,7 +2126,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
       </div>
 
       <!-- ══ EQUIPMENT TAB ══ -->
-      <div id="tab-equipment" role="tabpanel" aria-labelledby="hero-tab-equipment" hidden data-hero-domain="equipment">
+      <div id="tab-equipment" role="tabpanel" aria-labelledby="hero-tab-equipment" hidden data-hero-domain="equipment" data-g009-hero-section="equipment">
         <div class="inv-section" id="hero-equipment-authority-panel" data-authoritative-equipment-surface="true">
           <div class="section-header">
             <div class="section-icon teal">🧭</div>
@@ -2190,7 +2190,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
       </div><!-- /tab-equipment -->
 
       <!-- ══ APPEARANCE TAB ══ -->
-      <div id="tab-appearance" role="tabpanel" aria-labelledby="hero-tab-appearance" hidden data-hero-domain="appearance">
+      <div id="tab-appearance" role="tabpanel" aria-labelledby="hero-tab-appearance" hidden data-hero-domain="appearance" data-g009-hero-section="appearance">
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon purple">🧙</div>

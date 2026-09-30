@@ -85,6 +85,8 @@
     const header = document.createElement('header');
     header.className = 'cg-nav';
     header.dataset.cgNav = '1';
+    header.dataset.g009Surface = 'global-navigation';
+    header.dataset.g009GlobalNav = '7';
     const activeItem = currentPageItem();
     header.innerHTML = `
       <div class="cg-nav-inner">
@@ -96,9 +98,9 @@
           <span class="cg-brand-text" data-i18n="common.brand">弈境奇兵 (Go Odyssey)</span>
         </a>
         <span class="cg-nav-page-label" data-g009-current-page-label data-i18n="${activeItem?.pageI18n || 'g009.page.home'}">${activeItem?.label || '首頁'}</span>
-        <nav class="cg-nav-links" aria-label="Global navigation" data-i18n-aria-label="g009.nav.aria">
+        <nav class="cg-nav-links" aria-label="Global navigation" data-g009-global-nav="7" data-i18n-aria-label="g009.nav.aria">
           ${NAV_ITEMS.map(item => `
-            <a class="cg-nav-link ${isActive(item.href) ? 'active' : ''}" href="${item.href}" data-nav-key="${item.key}" data-i18n-aria-label="${item.i18n}" ${isActive(item.href) ? 'aria-current="page"' : ''}>
+            <a class="cg-nav-link ${isActive(item.href) ? 'active' : ''}" href="${item.href}" data-nav-key="${item.key}" data-g009-nav-key="${item.key}" data-i18n-aria-label="${item.i18n}" ${isActive(item.href) ? 'aria-current="page"' : ''}>
               ${icon(item.icon)}
               <span data-i18n="${item.i18n}">${item.label}</span>
             </a>`).join('')}
@@ -127,7 +129,7 @@
         <nav class="cg-nav-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="g009-global-drawer-title">
           <div class="cg-nav-drawer__header"><h2 id="g009-global-drawer-title" data-i18n="g009.nav.aria">Global navigation</h2><button type="button" data-g009-drawer-close data-i18n-aria-label="g009.nav.close">×</button></div>
           <div class="cg-nav-drawer__links">
-            ${NAV_ITEMS.map(item => `<a class="cg-nav-link" href="${item.href}" data-nav-key="${item.key}" data-g009-drawer-link><span>${icon(item.icon)}</span><span data-i18n="${item.i18n}">${item.label}</span></a>`).join('')}
+          ${NAV_ITEMS.map(item => `<a class="cg-nav-link" href="${item.href}" data-nav-key="${item.key}" data-g009-nav-key="${item.key}" data-g009-drawer-link><span>${icon(item.icon)}</span><span data-i18n="${item.i18n}">${item.label}</span></a>`).join('')}
           </div>
         </nav>
       </div>

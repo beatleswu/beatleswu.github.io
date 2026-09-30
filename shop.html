@@ -164,6 +164,13 @@ h1 {
 .shop-purchase-state[data-purchase-enabled="true"] strong { color: var(--green); }
 .item-card[data-shop-purchase-disabled="true"] .price,
 .cosmetic-card[data-shop-purchase-disabled="true"] .price { opacity: .72; }
+/* G009 Shop V1 is browse-preview only: catalog prices never become
+   product-visible, even when an older server response contains them. */
+body[data-g009-shop-mode="browse-preview"] .price,
+body[data-g009-shop-mode="browse-preview"] .equipment-detail-price,
+body[data-g009-shop-mode="browse-preview"] [data-c044-detail-price] {
+  display: none !important;
+}
 .shop-purchase-use-copy {
   position: relative;
   display: grid;
@@ -760,7 +767,7 @@ button:focus-visible {
 }
 </style>
 </head>
-<body>
+<body data-g009-surface="shop" data-g009-shop-mode="browse-preview">
 <header>
   <a href="/" class="logo">Go Odyssey</a>
   <nav class="header-links" aria-label="Shop navigation" data-i18n-aria-label="shop.nav.label">
@@ -769,12 +776,12 @@ button:focus-visible {
   </nav>
 </header>
 
-<main class="page" data-c044-catalog="shop-catalog">
+<main class="page" data-c044-catalog="shop-catalog" data-g009-surface-root="shop" data-g009-shop-mode="browse-preview">
   <section class="hero" aria-labelledby="shop-title">
     <div class="hero-copy">
       <div class="eyebrow" data-i18n="shop.eyebrow">棋魂廣場</div>
       <h1 id="shop-title" data-i18n="shop.h1">Coins Shop</h1>
-      <p class="lead" data-i18n="shop.lead">使用 Coins 購買功能裝備或純外觀裝扮；外觀不提供戰鬥能力。Premium 與付款不在此頁。</p>
+      <p class="lead" data-i18n="g009.shop.browse_only">目前僅供瀏覽預覽；購買功能已停用。</p>
       <div class="wallet-row">
         <div class="wallet-tile">
           <div class="tile-label" data-i18n="shop.coin.label">持有金幣</div>
@@ -793,8 +800,8 @@ button:focus-visible {
         </div>
       </div>
       <section class="shop-purchase-state" id="shop-purchase-state" data-shop-purchase-state="closed" data-purchase-enabled="false" data-purchase-enabled-source="missing" role="status" aria-live="polite" aria-atomic="true" aria-labelledby="shop-purchase-state-title">
-        <strong id="shop-purchase-state-title">購買功能暫時關閉</strong>
-        <span id="shop-purchase-state-copy">目前可以瀏覽商品；購買按鈕已停用，待 server 開放後才可購買。</span>
+        <strong id="shop-purchase-state-title" data-i18n="g009.shop.coming_soon">即將開放</strong>
+        <span id="shop-purchase-state-copy" data-i18n="g009.shop.browse_only">目前僅供瀏覽預覽；購買功能已停用。</span>
       </section>
     </div>
 
@@ -944,7 +951,7 @@ button:focus-visible {
           <div class="pity-bar" aria-hidden="true"><span id="pity-bar"></span></div>
           <div class="tile-sub" id="pity-note">距保底還有 30 抽</div>
           <div style="margin-top:12px">
-            <button class="btn" id="btn-gacha" type="button" data-sfx="purchase" data-i18n="shop.gacha.btn">開箱（150 金幣）</button>
+            <button class="btn" id="btn-gacha" type="button" data-sfx="purchase" data-g009-shop-purchase-disabled="browse-preview" disabled data-i18n="g009.shop.coming_soon">即將開放</button>
           </div>
           <div class="result" id="gacha-result">
             <div class="result-art" id="gr-art"></div>
@@ -1040,23 +1047,26 @@ let toastTimer = null;
 // presentation latch only; it never creates products, prices, or ownership.
 let c053OptionBVisible = false;
 
-// SHOP-C purchase availability is a server presentation fact.  It is strict
-// by design: only the literal boolean true can enable a purchase control.
+// G009 Shop V1 is a locked browse-preview surface.  Keep the older server
+// catalog/purchase contract readable for compatibility, but never let a
+// server response enable a purchase control on this surface.
+const G009_SHOP_BROWSE_PREVIEW_ONLY = true;
 function shopPurchaseEnabled(data = catalog) {
+  if (G009_SHOP_BROWSE_PREVIEW_ONLY) return false;
   return data?.purchase_enabled === true;
 }
 
 function shopPurchaseClosedCopy() {
   return {
     title: uiText(
-      'shop.purchase.closedTitle',
-      'Purchases temporarily closed',
-      '購買功能暫時關閉',
+      'g009.shop.coming_soon',
+      'Coming Soon',
+      '即將開放',
     ),
     copy: uiText(
-      'shop.purchase.closedCopy',
-      'You can browse the catalog. Buy controls are disabled until the server reopens purchases.',
-      '目前可以瀏覽商品；購買按鈕已停用，待 server 開放後才可購買。',
+      'g009.shop.browse_only',
+      'You can browse the catalog; purchases are disabled.',
+      '目前可以瀏覽商品；目前僅供瀏覽預覽，購買功能已停用。',
     ),
   };
 }
@@ -1072,7 +1082,9 @@ function updateShopPurchaseState(data = catalog) {
   state.hidden = enabled;
   state.dataset.shopPurchaseState = enabled ? 'open' : 'closed';
   state.dataset.purchaseEnabled = enabled ? 'true' : 'false';
-  state.dataset.purchaseEnabledSource = hasAuthoritativeBoolean ? 'server' : 'missing';
+  state.dataset.purchaseEnabledSource = G009_SHOP_BROWSE_PREVIEW_ONLY
+    ? 'g009-browse-preview-locked'
+    : hasAuthoritativeBoolean ? 'server' : 'missing';
   title.textContent = enabled
     ? uiText('shop.purchase.openTitle', 'Purchases available', '購買功能已開放')
     : closed.title;
@@ -2035,7 +2047,7 @@ async function requestShopPurchase(route, selector, payload) {
 // E030-R1-SHOP-PURCHASE-INTENT-END
 
 function shopPurchaseClosedActionLabel() {
-  return uiText('shop.purchase.closedAction', 'Temporarily closed', '暫時關閉');
+  return uiText('g009.shop.coming_soon', 'Coming Soon', '即將開放');
 }
 
 function shopPurchaseUiKey(route, selector) {

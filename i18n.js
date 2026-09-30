@@ -232,6 +232,8 @@ const I18n = (() => {
         'g009.settings.sound':   { en: 'Sound',        zh: '音效' },
         'g009.settings.sound_on': { en: 'On',          zh: '開啟' },
         'g009.settings.sound_off': { en: 'Off',        zh: '關閉' },
+        'g009.shop.coming_soon': { en: 'Coming Soon', zh: '即將開放' },
+        'g009.shop.browse_only': { en: 'Browse preview only; purchases are disabled.', zh: '目前僅供瀏覽預覽；購買功能已停用。' },
         'hero.shortcut.messages':    { en: 'Whisper Post',      zh: '密語驛站' },
         'hero.shortcut.messagesSub': { en: 'Message allies',    zh: '與同行好友傳話' },
         'hero.shortcut.weekly':      { en: 'Star Chronicle',    zh: '星辰戰報' },
