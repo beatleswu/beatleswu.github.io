@@ -271,8 +271,10 @@ def _assert_provenance_contract(governed_paths, presentation_present, expected_c
 # EQ-F adds the app-imported first-clear/portfolio/loadout/ownership/Shop
 # admission authorities and the Dockerfile-packaged answer renderer. P0 Lane
 # C adds the recovery read/apply runtime module and its explicit startup
-# migration dependency to the governed image.
-POST_B1_PROVENANCE_ADDITIONS = 30
+# migration dependency to the governed image. G009 D006 governs the C1
+# Community leaderboard make-whole read-time module, which the image and the
+# build-manifest count already included but which had no provenance record.
+POST_B1_PROVENANCE_ADDITIONS = 31
 CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 

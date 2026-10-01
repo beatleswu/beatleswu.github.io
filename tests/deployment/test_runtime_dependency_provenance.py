@@ -167,12 +167,25 @@ P0_LANE_C_GOVERNED_RUNTIME_PATHS = frozenset(
     }
 )
 
+# The C1 Community leaderboard make-whole read-time projection is a
+# module-level import of community_leaderboard_rewards.py.  It has been an
+# explicit image dependency (Dockerfile COPY and build-manifest entries) since
+# it was admitted, and the build manifest counted it as governed, but it had no
+# provenance record.  It is governed here so the recorded count and the exact
+# governed set agree by content rather than by number.
+G009_COMMUNITY_MAKE_WHOLE_GOVERNED_RUNTIME_PATHS = frozenset(
+    {
+        "community_leaderboard_make_whole.py",
+    }
+)
+
 CURRENT_EXPECTED_COUNT = (
     B1_PRESENT_EXPECTED_COUNT
     + len(POST_B1_GOVERNED_RUNTIME_PATHS)
     + len(EQ_F_GOVERNED_RUNTIME_PATHS)
     + len(INCIDENT_003G_GOVERNED_RUNTIME_PATHS)
     + len(P0_LANE_C_GOVERNED_RUNTIME_PATHS)
+    + len(G009_COMMUNITY_MAKE_WHOLE_GOVERNED_RUNTIME_PATHS)
 )
 
 
@@ -183,6 +196,7 @@ def _current_expected_governed_runtime_paths(presentation_present):
         | EQ_F_GOVERNED_RUNTIME_PATHS
         | INCIDENT_003G_GOVERNED_RUNTIME_PATHS
         | P0_LANE_C_GOVERNED_RUNTIME_PATHS
+        | G009_COMMUNITY_MAKE_WHOLE_GOVERNED_RUNTIME_PATHS
     )
 
 
@@ -236,6 +250,22 @@ def test_p0_lane_c_expected_set_is_exact():
     assert P0_LANE_C_GOVERNED_RUNTIME_PATHS.isdisjoint(POST_B1_GOVERNED_RUNTIME_PATHS)
     assert P0_LANE_C_GOVERNED_RUNTIME_PATHS.isdisjoint(EQ_F_GOVERNED_RUNTIME_PATHS)
     assert P0_LANE_C_GOVERNED_RUNTIME_PATHS.isdisjoint(INCIDENT_003G_GOVERNED_RUNTIME_PATHS)
+
+
+def test_g009_community_make_whole_expected_set_is_exact():
+    assert G009_COMMUNITY_MAKE_WHOLE_GOVERNED_RUNTIME_PATHS == frozenset(
+        {
+            "community_leaderboard_make_whole.py",
+        }
+    )
+    for earlier in (
+        _expected_governed_runtime_paths(True),
+        POST_B1_GOVERNED_RUNTIME_PATHS,
+        EQ_F_GOVERNED_RUNTIME_PATHS,
+        INCIDENT_003G_GOVERNED_RUNTIME_PATHS,
+        P0_LANE_C_GOVERNED_RUNTIME_PATHS,
+    ):
+        assert G009_COMMUNITY_MAKE_WHOLE_GOVERNED_RUNTIME_PATHS.isdisjoint(earlier)
 
 
 def _assert_runtime_manifest_contract(paths, count, presentation_present):

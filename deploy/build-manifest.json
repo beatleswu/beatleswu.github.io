@@ -917,8 +917,8 @@
   "runtime_dependency_provenance": {
     "manifest_path": "deploy/runtime-source-provenance.json",
       "files_covered": 111,
-      "source_status": "Canonical G009 Fresh E candidate provenance: accepted source commits and exact uncommitted overlays are recorded in deploy/runtime-source-provenance.json; candidate is not released or deployable.",
-      "status": "111 governed runtime dependencies outside sgf_engine, including the C1 Community leaderboard make-whole read-time module. Fresh E app/index/community overlays are explicitly base- and candidate-hash attested; the candidate remains uncommitted and no build, merge, or deployment is authorized.",
-      "note": "deploy/runtime-source-provenance.json binds byte-identical source blobs or the explicitly uncommitted Fresh E candidate overlay to its exact base HEAD/TREE, current file SHA-256, and accepted C1/C2/C3/Friend lineage. This record is not image-build, release, merge, or Production evidence."
+      "source_status": "G009 candidate integration provenance: every governed runtime file is bound to a committed source commit whose blob is byte-identical to the current file in deploy/runtime-source-provenance.json; the candidate is not released or deployable.",
+      "status": "111 governed runtime dependencies outside sgf_engine, each with exactly one provenance record, including the C1 Community leaderboard make-whole read-time module. Candidate-line source commits are not ancestors of origin/master until Owner admission; no build, merge, or deployment is authorized.",
+      "note": "deploy/runtime-source-provenance.json binds each governed path to a byte-identical committed source blob, its current file SHA-256, and its source commit subject and date. This record is not image-build, release, merge, or Production evidence."
   }
 }
