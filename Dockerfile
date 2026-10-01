@@ -335,6 +335,10 @@ COPY js/hero_legacy_cache_guard.js ./js/hero_legacy_cache_guard.js
 # G008 Future30 Hero runtime is a server-projection-only isolated presentation.
 COPY js/g008_future30_hero_renderer.js ./js/g008_future30_hero_renderer.js
 COPY schemas/future30_c005_real_asset_runtime_mapping_manifest.json ./schemas/future30_c005_real_asset_runtime_mapping_manifest.json
+# G009 Derived84: app.py imports this registry at process startup. It reads
+# only the standard library; its module-local manifest and accepted assets
+# are packaged with the dual-delivery asset closure below.
+COPY derived84_asset_registry.py ./
 # Formal9/D007 presentation runtime: keep the Hero bootstrap, resolver,
 # bridge, mapping and schema closure in the image with the selected GLBs.
 COPY g009_d007_runtime_asset_mapping.py ./
