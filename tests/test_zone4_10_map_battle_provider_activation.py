@@ -145,6 +145,8 @@ def api_env(app_module, monkeypatch):
         """CREATE TABLE users (
              id INTEGER PRIMARY KEY,
              is_admin INTEGER NOT NULL DEFAULT 0,
+             plan TEXT NOT NULL DEFAULT 'free',
+             premium_until TEXT,
              elo_rating REAL
         )"""
     )

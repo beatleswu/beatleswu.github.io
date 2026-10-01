@@ -97,7 +97,9 @@ def make_conn():
             user_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             grade INTEGER NOT NULL,
-            reviewed_at TEXT NOT NULL
+            reviewed_at TEXT NOT NULL,
+            source_context TEXT,
+            source TEXT
         )
         """
     )
@@ -165,9 +167,11 @@ def add_user(conn, user_id, username, nickname, *, is_admin=0, plan="free"):
 
 
 def add_review(conn, user_id, question_id, reviewed_at, grade=3):
+    # Normal score fixture uses an admitted server-judged practice envelope,
+    # not a bare public grade; make-whole policy does not authorize rewards.
     conn.execute(
-        "INSERT INTO review_log(user_id, question_id, grade, reviewed_at) VALUES(?,?,?,?)",
-        (user_id, question_id, grade, reviewed_at),
+        "INSERT INTO review_log(user_id, question_id, grade, reviewed_at, source_context) VALUES(?,?,?,?,?)",
+        (user_id, question_id, grade, reviewed_at, 'practice:v1:test'),
     )
 
 

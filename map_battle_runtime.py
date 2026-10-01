@@ -737,6 +737,30 @@ class RequestRejected(MapBattleRuntimeError):
     code = "invalid_map_battle_request"
 
 
+class MapBattleEntitlementRejected(MapBattleRuntimeError):
+    """A server-owned entitlement decision made before settlement.
+
+    Map Battle is a user-initiated gameplay path even though its later review
+    handoff is marked ``internal`` for progression authority.  The caller
+    supplies this error only from a server-side admission callback, never from
+    request data.  Keeping the stable error code/details here lets the HTTP
+    adapter expose the same daily-limit/premium contract as ordinary review
+    without moving commerce or plan authority into this runtime module.
+    """
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        status: int,
+        details: Mapping[str, Any] | None = None,
+    ):
+        super().__init__(message, status=status)
+        self.code = code
+        self.details = dict(details or {})
+
+
 class ForbiddenClientAuthority(RequestRejected):
     code = "client_authority_field_forbidden"
 
@@ -1771,6 +1795,7 @@ def settle_answer(
     monster_profile_resolver: Callable[[Any, int, str], MonsterCombatProfile | None] | None = None,
     runtime_provider: AdventureMonsterRuntimeProvider | Any | None = None,
     spirit_projection_resolver: Callable[[Any, int], Mapping[str, Any]] | None = None,
+    entitlement_admitter: Callable[[Any, int, Mapping[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Handle one answer inside the caller's transaction."""
 
@@ -1892,6 +1917,13 @@ def settle_answer(
     expected_revision = question_revision_for(question)
     if expected_revision != str(attempt["question_revision"]):
         raise RequestRejected("question revision is stale", status=409)
+    # Entitlement admission is intentionally after the duplicate/replay path
+    # and nonce reservation, but before the judge/settlement writes.  The
+    # caller-owned HTTP transaction rolls back that pending reservation when
+    # admission rejects it, so no rejected answer reaches review/progression;
+    # a committed retry still replays safely without rechecking entitlement.
+    if entitlement_admitter is not None:
+        entitlement_admitter(conn, user_id, question)
     outcome = (judge or judge_map_battle_answer_v1)(question, attempt, canonical)
     if outcome.judge_version != MAP_BATTLE_JUDGE_VERSION:
         raise JudgeUnavailable("judge adapter version mismatch")
@@ -2071,6 +2103,7 @@ __all__ = [
     "MAP_BATTLE_TRUSTED_CORRECT_REASON_CODES",
     "MAP_BATTLE_TRUSTED_INCORRECT_REASON_CODES",
     "MapBattleRuntimeError",
+    "MapBattleEntitlementRejected",
     "ModeNotEligible",
     "MapBattleProviderBoundary",
     "MapBattleProviderResolution",

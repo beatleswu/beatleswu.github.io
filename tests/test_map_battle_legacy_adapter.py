@@ -166,6 +166,8 @@ def api_env(app_module, monkeypatch):
         """CREATE TABLE users (
              id INTEGER PRIMARY KEY,
              is_admin INTEGER NOT NULL DEFAULT 0,
+             plan TEXT NOT NULL DEFAULT 'free',
+             premium_until TEXT,
              elo_rating REAL NOT NULL DEFAULT 1400
         )"""
     )
@@ -190,6 +192,19 @@ def api_env(app_module, monkeypatch):
         )"""
     )
     conn.execute("INSERT INTO user_stats(user_id, player_hp, player_max_hp) VALUES (101, 30, 30)")
+    conn.execute(
+        """CREATE TABLE active_effects (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             user_id INTEGER NOT NULL,
+             effect_key TEXT NOT NULL,
+             value REAL NOT NULL DEFAULT 1,
+             expires_at TEXT,
+             effect_date TEXT,
+             created_at TEXT NOT NULL DEFAULT '',
+             operation_id TEXT,
+             source_item_key TEXT
+        )"""
+    )
     conn.execute(
         """CREATE TABLE rating_test_sessions (
              user_id INTEGER NOT NULL,
@@ -1220,6 +1235,8 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
         seed.execute(
             """CREATE TABLE users (
                  id INTEGER PRIMARY KEY,
+                 plan TEXT NOT NULL DEFAULT 'free',
+                 premium_until TEXT,
                  elo_rating DOUBLE PRECISION NOT NULL DEFAULT 1400
             )"""
         )
@@ -1624,3 +1641,78 @@ def test_normal_srs_route_remains_present_and_service_worker_identity_is_unchang
     assert "?v=20260803e10s2b" in html
     identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
     assert identity.sw_version
+
+
+def test_integrated_map_battle_entitlement_http_matrix(api_env, app_module, monkeypatch):
+    """Exercise the accepted Map Battle HTTP path at the free-plan boundary.
+
+    Provider admission, answer entitlement, and premium-content admission are
+    intentionally asserted together here.  The fixture uses the existing
+    legacy-shaped battle route so this test remains independent of a second
+    provider fixture while still traversing the production Map Battle answer
+    endpoint and its server-owned quota handoff.
+    """
+    client, conn = api_env
+
+    # Free account: twenty user-initiated answers are accepted, including
+    # incorrect answers, while the twenty-first is rejected before settlement.
+    accepted = []
+    for index in range(20):
+        state = _prepare(client, f"legacy::quota-matrix-{index}")
+        response = client.post(
+            ANSWER_ENDPOINT,
+            json=_answer_payload(state, [{"x": 0, "y": 0}]),
+            headers=PROTOCOL,
+        )
+        assert response.status_code == 200, response.get_json()
+        assert response.get_json()["result"] == "INCORRECT"
+        accepted.append(response.get_json()["submission_id"])
+
+    assert len(set(accepted)) == 20
+    before_reviews = conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0]
+    before_correct = conn.execute(
+        "SELECT total_correct FROM user_stats WHERE user_id=101"
+    ).fetchone()[0]
+    boundary_state = _prepare(client, "legacy::quota-matrix-20")
+    rejected = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(boundary_state, [{"x": 0, "y": 0}]),
+        headers=PROTOCOL,
+    )
+    assert rejected.status_code == 429, rejected.get_json()
+    rejected_payload = rejected.get_json()
+    assert rejected_payload["code"] == "daily_limit"
+    assert rejected_payload["today_count"] == 20
+    assert rejected_payload["limit"] == 20
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == before_reviews
+    assert conn.execute(
+        "SELECT total_correct FROM user_stats WHERE user_id=101"
+    ).fetchone()[0] == before_correct
+    # The same content is premium-gated for free users but remains available
+    # to a server-entitled premium account; the client cannot author either
+    # entitlement result.
+    premium_question = {**QUESTION, "rank": "1d"}
+    monkeypatch.setattr(app_module, "_load_questions", lambda: [premium_question])
+    denied = client.post(
+        ATTEMPT_ENDPOINT,
+        json={"zone_key": "legacy::premium-denied", "question_id": QUESTION["id"]},
+        headers=PROTOCOL,
+    )
+    assert denied.status_code == 403, denied.get_json()
+    assert denied.get_json()["code"] == "premium_required"
+
+    conn.execute("INSERT INTO user_stats(user_id, player_hp, player_max_hp) VALUES (202, 30, 30)")
+    conn.execute("UPDATE users SET plan='premium' WHERE id=202")
+    conn.commit()
+    with client.session_transaction() as session:
+        session["user_id"] = 202
+    premium_state = client.post(
+        ATTEMPT_ENDPOINT,
+        json={"zone_key": "legacy::premium-accepted", "question_id": QUESTION["id"]},
+        headers=PROTOCOL,
+    )
+    assert premium_state.status_code == 200, premium_state.get_json()

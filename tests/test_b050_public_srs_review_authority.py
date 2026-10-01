@@ -180,6 +180,15 @@ def api_env(app_module, monkeypatch):
         )"""
     )
     conn.execute(
+        """CREATE TABLE active_effects (
+             user_id INTEGER NOT NULL,
+             effect_key TEXT NOT NULL,
+             effect_date TEXT NOT NULL,
+             value INTEGER NOT NULL DEFAULT 0,
+             PRIMARY KEY (user_id, effect_key, effect_date)
+        )"""
+    )
+    conn.execute(
         """CREATE TABLE user_pets (
              user_id INTEGER PRIMARY KEY,
              pet_key TEXT NOT NULL,
@@ -232,6 +241,65 @@ def _post(client, *, grade, submission_id, **extra):
             **extra,
         },
     )
+
+
+def test_free_practice_20th_is_accepted_21st_is_rejected_and_wrong_repeats_count(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(app_module, "is_premium", lambda *args, **kwargs: False)
+
+    responses = [
+        _post(client, grade=0, submission_id=f"p0-quota-{index}")
+        for index in range(1, 21)
+    ]
+    assert all(response.status_code == 200 for response in responses)
+    rejected = _post(client, grade=0, submission_id="p0-quota-21")
+    assert rejected.status_code == 429
+    assert rejected.get_json() == {
+        "error": "daily_limit",
+        "code": "daily_limit",
+        "today_count": 20,
+        "limit": 20,
+        "upgrade_url": "/upgrade",
+    }
+    assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 20
+
+
+def test_free_map_battle_admission_shares_quota_and_honors_extra_allowance(
+    api_env, app_module, monkeypatch
+):
+    _client, conn = api_env
+    monkeypatch.setattr(app_module, "is_premium", lambda *args, **kwargs: False)
+
+    today = datetime.date.today().isoformat()
+    conn.execute(
+        "INSERT INTO active_effects(user_id,effect_key,effect_date,value) VALUES(?,?,?,?)",
+        (101, "extra_questions", today, 5),
+    )
+    for index in range(1, 21):
+        conn.execute(
+            "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
+            "VALUES(?,?,?,?,?)",
+            (101, QUESTION["id"], 0, f"{today}T00:00:{index:02d}", "practice"),
+        )
+    conn.commit()
+
+    for index in range(21, 26):
+        app_module._admit_map_battle_answer_entitlement(conn, 101, QUESTION)
+        conn.execute(
+            "INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) "
+            "VALUES(?,?,?,?,?)",
+            (101, QUESTION["id"], 0, f"{today}T00:01:{index:02d}", "mbv1:test"),
+        )
+    conn.commit()
+
+    with pytest.raises(app_module.MapBattleEntitlementRejected) as error:
+        app_module._admit_map_battle_answer_entitlement(conn, 101, QUESTION)
+    assert error.value.code == "daily_limit"
+    assert error.value.details["today_count"] == 25
+    assert error.value.details["limit"] == 25
+    assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 25
 
 
 def _set_boss_exam(client, *, attempt_id="b050boss01"):

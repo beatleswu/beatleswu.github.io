@@ -676,9 +676,10 @@ def _add_user(conn, user_id, username, nickname, *, is_admin=0, plan="free"):
 
 
 def _add_review(conn, user_id, question_id, reviewed_at, grade=3):
+    # Mirror the accepted server-judged practice evidence fixture authority.
     conn.execute(
-        "INSERT INTO review_log(user_id, question_id, grade, reviewed_at) VALUES(?,?,?,?)",
-        (user_id, question_id, grade, reviewed_at),
+        "INSERT INTO review_log(user_id, question_id, grade, reviewed_at, source_context) VALUES(?,?,?,?,?)",
+        (user_id, question_id, grade, reviewed_at, 'practice:v1:test'),
     )
 
 
@@ -722,7 +723,9 @@ def _make_sqlite_reward_conn():
             user_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             grade INTEGER NOT NULL,
-            reviewed_at TEXT NOT NULL
+            reviewed_at TEXT NOT NULL,
+            source_context TEXT,
+            source TEXT
         )
         """
     )

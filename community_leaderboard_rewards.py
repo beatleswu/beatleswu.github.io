@@ -24,6 +24,7 @@ from migrations.historical_leaderboard_evidence_v1 import (
     SOURCE_PREFIX as HISTORICAL_LEADERBOARD_SOURCE_PREFIX,
     TABLE_NAME as HISTORICAL_LEADERBOARD_TABLE,
 )
+from community_leaderboard_make_whole import fetch_p0_make_whole_period_rows
 
 WEEKLY_REWARD_MIN_SCORE = 30
 MONTHLY_REWARD_MIN_SCORE = 150
@@ -541,7 +542,14 @@ def _fetch_admitted_guild_quest_evidence(conn, period_start_iso, period_end_iso=
     ]
 
 
-def fetch_leaderboard_participant_rows(conn, period_start_iso, period_end_iso=None, *, limit=None):
+def _build_qualifying_identity_query(conn, period_start_iso, period_end_iso=None):
+    """Build the single normal Community evidence query.
+
+    The returned identity rows are intentionally shared by the normal score
+    path and the P0 make-whole dedupe path.  This keeps the Owner policy as an
+    additive read-time projection instead of creating a second leaderboard
+    authority.
+    """
     historical_cte = ""
     historical_params = []
     evidence_sources = [
@@ -626,43 +634,14 @@ WITH trusted_evidence AS (
             rl.source LIKE ?)
      GROUP BY rl.user_id, rl.question_id
 ){historical_cte}{lord_cte}{guild_cte}{qualifying_cte}
-, scored AS (
-    SELECT q.user_id,
-           COUNT(*) AS score,
-           MAX(q.first_counted_at) AS final_counted_at
-      FROM qualifying_distinct q
-     GROUP BY q.user_id
-)
-SELECT u.id,
-       u.username,
-       COALESCE(u.nickname,u.username) AS display_name,
-       scored.score AS score,
-       scored.final_counted_at AS final_counted_at,
-       COALESCE(MAX(us.rank_level),'LV1') AS rank_level,
-       COALESCE(MAX(pa.character_key),'') AS character_key,
-       COALESCE(MAX(pa.combat_armor),'') AS combat_armor,
-       COALESCE(MAX(pa.combat_weapon),'') AS combat_weapon,
-       COALESCE(MAX(pa.combat_cape),'') AS combat_cape,
-       COALESCE(MAX(pa.combat_offhand),'') AS combat_offhand,
-       COALESCE(MAX(pa.combat_hat),'') AS combat_hat,
-       COALESCE(MAX(pa.combat_pet),'') AS combat_pet,
-       COALESCE(MAX(pa.combat_aura),'') AS combat_aura,
-       CASE WHEN u.plan='premium' THEN 1 ELSE 0 END AS is_premium,
-       CASE WHEN COALESCE(u.is_admin, 0) <> 0 THEN 1 ELSE 0 END AS is_admin
-  FROM scored
-  JOIN users u ON u.id = scored.user_id
-  LEFT JOIN user_stats us ON us.user_id = u.id
-  LEFT JOIN player_appearance pa ON pa.user_id = u.id
- GROUP BY u.id, u.username, u.nickname, u.plan, u.is_admin, scored.score, scored.final_counted_at
- ORDER BY scored.score DESC, scored.final_counted_at ASC, u.id ASC
-{limit_clause}
+SELECT user_id, question_id, first_counted_at
+  FROM qualifying_distinct
     """.format(
         historical_cte=historical_cte,
         lord_cte=lord_cte,
         guild_cte=guild_cte,
         qualifying_cte=qualifying_cte,
         period_end_clause="AND rl.reviewed_at < ?" if period_end_iso else "",
-        limit_clause=(" LIMIT ?" if limit is not None else ""),
     )
     params = [period_start_iso]
     if period_end_iso:
@@ -682,9 +661,120 @@ SELECT u.id,
     params.extend(historical_params)
     params.extend(lord_params)
     params.extend(guild_params)
-    if limit is not None:
-        params.append(limit)
-    return conn.execute(sql, tuple(params)).fetchall()
+    return sql, tuple(params)
+
+
+def _fetch_normal_leaderboard_identity_rows(conn, period_start_iso, period_end_iso=None):
+    sql, params = _build_qualifying_identity_query(
+        conn, period_start_iso, period_end_iso)
+    return conn.execute(sql, params).fetchall()
+
+
+def _fetch_participant_rows_for_identity_rows(conn, identity_rows, *, limit=None):
+    """Project identity rows through the existing user/profile authority."""
+    by_user = {}
+    seen = set()
+    for raw in identity_rows:
+        user_id = int(raw["user_id"])
+        question_id = int(raw["question_id"])
+        key = (user_id, question_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        value = str(raw["first_counted_at"] or "")
+        aggregate = by_user.setdefault(
+            user_id,
+            {"score": 0, "final_counted_at": value},
+        )
+        aggregate["score"] += 1
+        if value > str(aggregate["final_counted_at"] or ""):
+            aggregate["final_counted_at"] = value
+
+    if not by_user:
+        return []
+
+    user_ids = sorted(by_user)
+    placeholders = ", ".join("?" for _ in user_ids)
+    metadata_rows = conn.execute(
+        f"""SELECT u.id,
+                   u.username,
+                   COALESCE(u.nickname,u.username) AS display_name,
+                   COALESCE(MAX(us.rank_level),'LV1') AS rank_level,
+                   COALESCE(MAX(pa.character_key),'') AS character_key,
+                   COALESCE(MAX(pa.combat_armor),'') AS combat_armor,
+                   COALESCE(MAX(pa.combat_weapon),'') AS combat_weapon,
+                   COALESCE(MAX(pa.combat_cape),'') AS combat_cape,
+                   COALESCE(MAX(pa.combat_offhand),'') AS combat_offhand,
+                   COALESCE(MAX(pa.combat_hat),'') AS combat_hat,
+                   COALESCE(MAX(pa.combat_pet),'') AS combat_pet,
+                   COALESCE(MAX(pa.combat_aura),'') AS combat_aura,
+                   CASE WHEN u.plan='premium' THEN 1 ELSE 0 END AS is_premium,
+                   CASE WHEN COALESCE(u.is_admin, 0) <> 0 THEN 1 ELSE 0 END AS is_admin
+              FROM users u
+              LEFT JOIN user_stats us ON us.user_id = u.id
+              LEFT JOIN player_appearance pa ON pa.user_id = u.id
+             WHERE u.id IN ({placeholders})
+          GROUP BY u.id, u.username, u.nickname, u.plan, u.is_admin""",
+        tuple(user_ids),
+    ).fetchall()
+    projected = []
+    for raw in metadata_rows:
+        row = dict(raw)
+        user_id = int(row["id"])
+        row.update(by_user[user_id])
+        projected.append(row)
+    projected.sort(
+        key=lambda row: (
+            -int(row["score"]),
+            str(row.get("final_counted_at") or ""),
+            int(row["id"]),
+        )
+    )
+    return projected[:limit] if limit is not None else projected
+
+
+def fetch_leaderboard_participant_rows(
+    conn,
+    period_start_iso,
+    period_end_iso=None,
+    *,
+    limit=None,
+    include_p0_make_whole=False,
+):
+    """Return normal or effective Community participants for one period.
+
+    The public Community endpoint passes ``include_p0_make_whole=True``.
+    The default remains the normal trusted view so reward/grant tooling cannot
+    silently grant or revoke anything merely because the read-time policy
+    projection exists.
+    """
+    normal_identity_rows = _fetch_normal_leaderboard_identity_rows(
+        conn, period_start_iso, period_end_iso)
+    if not include_p0_make_whole:
+        return _fetch_participant_rows_for_identity_rows(
+            conn, normal_identity_rows, limit=limit)
+
+    normal_keys = {
+        (int(row["user_id"]), int(row["question_id"]))
+        for row in normal_identity_rows
+    }
+    projection = fetch_p0_make_whole_period_rows(
+        conn,
+        period_start_iso,
+        period_end_iso,
+        normal_identity_keys=normal_keys,
+    )
+    effective_identity_rows = list(normal_identity_rows)
+    effective_identity_rows.extend(
+        {
+            "user_id": candidate.user_id,
+            "question_id": candidate.question_id,
+            "first_counted_at": candidate.original_activity_timestamp,
+        }
+        for candidate in projection["candidate_rows"]
+    )
+    return _fetch_participant_rows_for_identity_rows(
+        conn, effective_identity_rows, limit=limit)
 
 
 def rank_leaderboard_participants(rows):

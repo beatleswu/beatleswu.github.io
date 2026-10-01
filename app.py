@@ -160,6 +160,7 @@ from map_battle_runtime import (
     ModeNotEligible,
     OLD_CLIENT_ERROR,
     OLD_CLIENT_HTTP_STATUS,
+    MapBattleEntitlementRejected,
     MapBattleRuntimeError,
     MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
     RUNTIME_SERVICE_ID,
@@ -7703,17 +7704,129 @@ def question_is_free(q):
     rank 無法解析（_go_strength 回 0，等同 30k）→ 視為入門，開放。"""
     return _go_strength(q.get('rank')) <= _go_strength(FREE_RANK_MAX)
 
+
+def _is_sqlite_connection(conn):
+    raw_conn = getattr(conn, '_conn', conn)
+    return raw_conn.__class__.__module__.startswith('sqlite3')
+
+
+def _lock_user_for_daily_quota(conn, uid):
+    """Serialize every quota-consuming answer for one authenticated user.
+
+    PostgreSQL row locking is the authoritative concurrency guard.  SQLite
+    transactions already serialize the write connection, so the dialect
+    suffix is omitted there.  The lock is deliberately on the existing users
+    row: no quota or entitlement state is created by this helper.
+    """
+    suffix = '' if _is_sqlite_connection(conn) else ' FOR UPDATE'
+    row = conn.execute(
+        f'SELECT id FROM users WHERE id=?{suffix}', (int(uid),)
+    ).fetchone()
+    if row is None:
+        raise LookupError(f'quota user does not exist: {uid}')
+
+
+def _today_free_count_in_transaction(conn, uid):
+    """Count accepted quota-consuming events visible in ``conn``.
+
+    ``review_log`` remains the existing durable count.  A settled Map Battle
+    answer can be between its settlement commit and the later progression
+    handoff, so that short-lived row is counted once here until its matching
+    ``mbv1:<submission_id>`` review row exists.  This closes the cross-mode
+    and post-settlement race without a new table or a second quota authority.
+    """
+    today = datetime.date.today().isoformat()
+    review_row = conn.execute(
+        "SELECT COUNT(*) AS cnt FROM review_log "
+        "WHERE user_id=? AND DATE(reviewed_at)=? "
+        "AND (source_context IS NULL OR source_context NOT LIKE ?)",
+        (int(uid), today, DAILY_D5B_SOURCE_PREFIX + '%'),
+    ).fetchone()
+    pending_row = conn.execute(
+        "SELECT COUNT(*) AS cnt FROM map_battle_submissions s "
+        "WHERE s.user_id=? AND s.settlement_state='SETTLED' "
+        "AND DATE(COALESCE(s.settled_at, s.received_at, s.created_at))=? "
+        "AND NOT EXISTS ("
+        "  SELECT 1 FROM review_log r "
+        "  WHERE r.user_id=s.user_id "
+        "    AND r.source_context=('mbv1:' || s.id)"
+        ")",
+        (int(uid), today),
+    ).fetchone()
+    return int((review_row['cnt'] if review_row else 0) or 0) + int(
+        (pending_row['cnt'] if pending_row else 0) or 0
+    )
+
+
+def _daily_quota_snapshot_in_transaction(conn, uid):
+    """Return the server-owned daily quota snapshot under the caller lock."""
+    today_count = _today_free_count_in_transaction(conn, uid)
+    extra = _extra_questions_today(conn, int(uid))
+    return {
+        'today_count': today_count,
+        'extra': extra,
+        'limit': FREE_DAILY_LIMIT + extra,
+    }
+
+
+def _daily_quota_rejection(snapshot):
+    if snapshot['today_count'] < snapshot['limit']:
+        return None
+    return {
+        'error': 'daily_limit',
+        'code': 'daily_limit',
+        'today_count': snapshot['today_count'],
+        'limit': snapshot['limit'],
+        'upgrade_url': '/upgrade',
+    }
+
+
+def _admit_map_battle_answer_entitlement(conn, uid, question):
+    """Admit one new user-initiated Map Battle answer before settlement.
+
+    The later ReviewCommand is intentionally ``internal=True`` because the
+    judge/progression evidence is server-authoritative.  That internal flag
+    must not exempt the user from the existing free plan entitlement.  This
+    callback is invoked only after the runtime has recognized a new nonce and
+    before it judges/settles the answer.  The pending nonce reservation is
+    part of the caller-owned transaction and rolls back on rejection.
+    """
+    if is_premium(uid):
+        return
+    if not question_is_free(question):
+        raise MapBattleEntitlementRejected(
+            'premium_required',
+            '此題目需要 Premium 方案才能進行冒險',
+            status=403,
+            details={'upgrade_url': '/upgrade'},
+        )
+    _lock_user_for_daily_quota(conn, uid)
+    snapshot = _daily_quota_snapshot_in_transaction(conn, uid)
+    rejection = _daily_quota_rejection(snapshot)
+    if rejection:
+        raise MapBattleEntitlementRejected(
+            'daily_limit',
+            f"免費版每日上限 {snapshot['limit']} 題，今日已完成 {snapshot['today_count']} 題",
+            status=429,
+            details=rejection,
+        )
+
+
+def _admit_map_battle_question_entitlement(uid, question):
+    """Reject a free player before a premium-only Adventure attempt is issued."""
+    if not is_premium(uid) and not question_is_free(question):
+        raise MapBattleEntitlementRejected(
+            'premium_required',
+            '此題目需要 Premium 方案才能進行冒險',
+            status=403,
+            details={'upgrade_url': '/upgrade'},
+        )
+
+
 def get_today_free_count(uid):
     """回傳免費用戶今天已提交的 review 次數。"""
-    today = datetime.date.today().isoformat()
     with get_db() as conn:
-        row = conn.execute(
-            "SELECT COUNT(*) as cnt FROM review_log "
-            "WHERE user_id=? AND DATE(reviewed_at)=? "
-            "AND (source_context IS NULL OR source_context NOT LIKE ?)",
-            (uid, today, DAILY_D5B_SOURCE_PREFIX + '%')
-        ).fetchone()
-    return row['cnt'] if row else 0
+        return _today_free_count_in_transaction(conn, uid)
 
 # ── 獎章 ───────────────────────────────────────────────────────
 def check_and_award(conn, user_id, stats, unit_name=None):
@@ -11765,6 +11878,7 @@ def training_daily():
     import random as _rng_mod
 
     uid   = session['user_id']
+    premium = is_premium(uid)
     today = datetime.date.today().isoformat()
     force_next_round = request.args.get('next') in ('1', 'true', 'yes')
     TOTAL = 10
@@ -11774,7 +11888,14 @@ def training_daily():
 
     # ── 載入題庫 ────────────────────────────────────────────────
     all_qs  = _load_questions()
-    enabled = {q['id']: q for q in all_qs if q.get('enabled', True)}
+    # Daily Training is a normal user-initiated training surface.  Build its
+    # server-owned queue from the same free-content authority as answer
+    # admission; otherwise a free player could be issued a premium question
+    # even though the later answer writer correctly rejects it.
+    enabled = {
+        q['id']: q for q in all_qs
+        if q.get('enabled', True) and (premium or question_is_free(q))
+    }
 
     with get_db() as conn:
         # ── 先查是否已有今天的持久化隊列 ──────────────────────────
@@ -14772,9 +14893,8 @@ def curriculum_summary():
 @login_required
 def get_question(qid):
     """
-    回傳單一題目的完整資料（含 SGF content）。
-    付費鎖定的題目仍回傳 SGF，讓前端可顯示棋盤預覽，
-    但前端會阻止實際落子（locked 旗標）。
+    回傳單一題目的資料；Premium 題對 free player 只回傳鎖定的目錄資訊。
+    完整 SGF/解答欄位只在 server-side entitlement 通過時返回。
     """
     qs  = _load_questions()
     matches = [(index, record) for index, record in enumerate(qs) if record.get('id') == qid]
@@ -14784,6 +14904,14 @@ def get_question(qid):
         return jsonify({'error': '找不到題目'}), 404
     premium = is_premium()
     locked  = (not premium) and (not question_is_free(q))
+    # A free player may see locked catalogue metadata, but the full SGF and
+    # solution payload is paid content. Keep the response shape stable for the
+    # board shell while fail-closing every answer-bearing field.
+    content = q.get('content', '') if (premium or not locked) else ''
+    comment = q.get('comment', '') if (premium or not locked) else ''
+    accepted_moves = _question_accepted_moves(q) if (premium or not locked) else []
+    katago_best_move = q.get('katago_best_move', '') if (premium or not locked) else ''
+    score_gap = q.get('score_gap') if (premium or not locked) else None
     return jsonify({
         'id':           q['id'],
         # A duplicate legacy id is deliberately not attachable to inline
@@ -14822,13 +14950,13 @@ def get_question(qid):
         'boss_title':   q.get('boss_title', ''),
         'monster_name': q.get('monster_name', ''),
         'sort_order':   q.get('sort_order'),
-        'content':          q.get('content', ''),
+        'content':          content,
         'content_sha256':   _question_content_sha256(q),
-        'comment':          q.get('comment', ''),
+        'comment':          comment,
         'rating':           q.get('rating'),
-        'katago_best_move': q.get('katago_best_move', ''),
-        'score_gap':        q.get('score_gap'),
-        'accepted_moves':   _question_accepted_moves(q),
+        'katago_best_move': katago_best_move,
+        'score_gap':        score_gap,
+        'accepted_moves':   accepted_moves,
         'solution_state':   q.get('solution_state', 'open' if q.get('enabled', True) else 'disabled'),
         # Used only as revision evidence for an ephemeral current-session
         # exclusion; it never becomes the record identity.
@@ -15867,6 +15995,9 @@ def _map_battle_error_response(error, *, question=None):
         'message': str(error),
         'retryable': bool(error.retryable),
     }
+    details = getattr(error, 'details', None)
+    if isinstance(details, dict):
+        body.update(details)
     failure_class = getattr(error, 'failure_class', None)
     reason_code = getattr(error, 'reason_code', None)
     if isinstance(failure_class, str) and failure_class:
@@ -15934,6 +16065,7 @@ def map_battle_v1_prepare_attempt():
         user_id = int(session['user_id'])
         with _activation_transaction() as conn:
             eligibility = _map_battle_require_enabled(user_id, conn)
+            _admit_map_battle_question_entitlement(user_id, question)
             battle = _map_battle_open_for_zone(conn, user_id, zone_key)
             if zone_key == ADVENTURE_ZONE3_KEY and legacy_zone3_battle_is_retirable(battle):
                 # A pre-E055 OPEN Zone 3 battle carries no Monster binding, and
@@ -16125,6 +16257,7 @@ def map_battle_v1_resume_validation(attempt_id):
         _map_battle_question_context(question)
         with _activation_transaction() as conn:
             _map_battle_require_enabled(int(session['user_id']), conn)
+            _admit_map_battle_question_entitlement(int(session['user_id']), question)
             validated = validate_resumable_attempt(
                 conn,
                 user_id=int(session['user_id']),
@@ -16248,17 +16381,10 @@ def map_battle_v1_answers():
                 monster_profile_resolver=_map_battle_monster_profile_resolver,
                 runtime_provider=MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
                 spirit_projection_resolver=build_b022_active_spirit_projection,
+                entitlement_admitter=_admit_map_battle_answer_entitlement,
             )
     except MapBattleRuntimeError as error:
-        body = {
-            'error': error.code,
-            'code': error.code,
-            'message': str(error),
-            'retryable': bool(error.retryable),
-        }
-        if error.code == 'map_battle_v1_disabled':
-            body['message'] = 'Map Battle v1 暫未開放'
-        return jsonify(body), error.status
+        return _map_battle_error_response(error)
     # The validated request already carries the owner-scoped battle identity;
     # use it only to attach the read-only presentation projection after the
     # authoritative answer settlement.  It never supplies combat identity.
@@ -16525,12 +16651,19 @@ def srs_practice_attempt():
         return jsonify({'error': 'invalid_question_id', 'code': 'invalid_question_id'}), 400
     try:
         question = _practice_question_by_id(question_id)
+        uid = int(session['user_id'])
+        if not is_premium(uid) and not question_is_free(question):
+            return jsonify({
+                'error': 'premium_required',
+                'code': 'premium_required',
+                'upgrade_url': '/upgrade',
+            }), 403
         question_context = _map_battle_question_context(question)
         with get_db() as conn:
             source_record_uuid = _practice_identity_for_write(conn, question_id)
         token = issue_practice_attempt(
             app.secret_key,
-            user_id=int(session['user_id']),
+            user_id=uid,
             question=question,
             source_record_uuid=source_record_uuid,
             question_context=question_context,
@@ -16638,27 +16771,24 @@ def srs_practice_answer():
             return _review_submission_conflict_response(submission_id)
         return jsonify(_practice_duplicate_payload(existing))
 
-    if not is_premium(uid):
+    premium_entitled = is_premium(uid)
+    if not premium_entitled:
         if not question_is_free(question):
             return jsonify({
                 'error': 'premium_required',
                 'code': 'premium_required',
                 'upgrade_url': '/upgrade',
             }), 403
-        with get_db() as quota_conn:
-            extra = _extra_questions_today(quota_conn, uid)
-        effective_limit = FREE_DAILY_LIMIT + extra
-        if get_today_free_count(uid) >= effective_limit:
-            return jsonify({
-                'error': 'daily_limit',
-                'code': 'daily_limit',
-                'today_count': get_today_free_count(uid),
-                'limit': effective_limit,
-            }), 429
 
     now = datetime.datetime.now().isoformat()
     ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
     with get_db() as conn:
+        if not premium_entitled:
+            _lock_user_for_daily_quota(conn, uid)
+            snapshot = _daily_quota_snapshot_in_transaction(conn, uid)
+            rejection = _daily_quota_rejection(snapshot)
+            if rejection:
+                return jsonify(rejection), 429
         # Re-check identity inside the write transaction.  This is a read-only
         # identity gate; no alias or UUID row is created here.
         if _practice_identity_for_write(conn, question_id) != source_record_uuid:
@@ -17141,6 +17271,9 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
     # A committed retry must be recognized before Premium/daily-limit checks;
     # otherwise a response-loss retry could be misreported as a new rejection.
+    active_boss_question = (not internal and _adventure_boss_question_is_active(qid))
+    premium_entitled = is_premium(uid)
+    now = datetime.datetime.now().isoformat()
     if not internal:
         with get_db() as identity_conn:
             existing_submission = identity_conn.execute(
@@ -17164,44 +17297,18 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 return _review_submission_conflict_response(submission_id)
             return _review_submission_duplicate_response(existing_submission)
 
-    # ── 訂閱牆：免費用戶檢查 ────────────────────────────────
-    # INCIDENT_018: a Lord review that got this far has already been proven in
-    # scope above, so this stays True for it and the cap below can never
-    # reject an answer the judge has already settled.  An out-of-scope Lord
-    # answer never reaches here; it is refused as `boss_attempt_expired` /
-    # `invalid_boss_attempt_question` instead of as a quota failure.
-    active_boss_question = (not internal and _adventure_boss_question_is_active(qid))
-    if not internal and not is_premium():
-        qs_map_check = {q['id']: q for q in _load_questions()}
-        q_check = qs_map_check.get(qid, {})
-
-        # 1. 是否為付費題目
-        if not question_is_free(q_check):
+        # Lord Trial scope has already been validated above.  Keep this flag for
+        # the in-transaction quota admission so only an active, server-owned Boss
+        # question retains the existing explicit exception.  Premium entitlement
+        # is resolved from the authoritative server-side user record; the later
+        # internal Map Battle handoff does not use it as a quota exemption.
+        if not internal and not premium_entitled and not question_is_free(q_info):
             return jsonify({
-                'error':       'premium_required',
-                'message':     '此題目需要 Premium 方案才能練習',
-                'upgrade_url': '/upgrade'
+                'error': 'premium_required',
+                'code': 'premium_required',
+                'message': '此題目需要 Premium 方案才能練習',
+                'upgrade_url': '/upgrade',
             }), 403
-
-        # 2. 是否超過今日上限（含商城「加題券」當日加成）
-        today_count = get_today_free_count(uid)
-        _extra = 0
-        try:
-            with get_db() as _c:
-                _extra = _extra_questions_today(_c, uid)
-        except Exception:
-            pass
-        _eff_limit = FREE_DAILY_LIMIT + _extra
-        if today_count >= _eff_limit and not active_boss_question:
-            return jsonify({
-                'error':       'daily_limit',
-                'message':     f'免費版每日上限 {_eff_limit} 題，今日已完成 {today_count} 題',
-                'today_count': today_count,
-                'limit':       _eff_limit,
-                'upgrade_url': '/upgrade'
-            }), 429
-
-    now = datetime.datetime.now().isoformat()
     review_shadow_input = None
     quest_shadow_inputs = []
     authoritative_map_battle_monster_defeated = False
@@ -17295,6 +17402,20 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             ).fetchone()
             if not training_item:
                 return jsonify({'error': 'invalid_training_item'}), 403
+
+        # This is the user-initiated public review path.  Keep the existing
+        # Lord Trial exception, but perform the normal free quota admission
+        # inside the same write transaction as review_log so two modes cannot
+        # both pass a stale COUNT at the boundary.  Map Battle is intentionally
+        # absent here: its user-initiated quota admission runs before battle
+        # settlement in _admit_map_battle_answer_entitlement; the later
+        # internal handoff is only the trusted progression projection.
+        if not internal and not premium_entitled and not active_boss_question:
+            _lock_user_for_daily_quota(conn, uid)
+            snapshot = _daily_quota_snapshot_in_transaction(conn, uid)
+            rejection = _daily_quota_rejection(snapshot)
+            if rejection:
+                return jsonify(rejection), 429
 
         # Insert the durable review identity before any SRS/progression write.
         # The canonical ``INSERT INTO review_log`` is delegated to the
@@ -19659,6 +19780,7 @@ def stats_dashboard():
 @login_required
 def get_mistakes():
     uid = session['user_id']
+    premium = is_premium(uid)
     with get_db() as conn:
         rows = conn.execute(
             'SELECT * FROM mistake_log WHERE user_id=? ORDER BY wrong_count DESC, last_wrong_at DESC',
@@ -19674,6 +19796,7 @@ def get_mistakes():
         matches = qs_map.get(m['question_id']) or []
         if matches:
             record_index, q = matches[0]
+            locked = (not premium) and (not question_is_free(q))
             result.append({**m, 'record_index': record_index if len(matches) == 1 else None,
                            'content_sha256': _question_content_sha256(q),
                            'topic':q.get('topic',''), 'level':q.get('level',''),
@@ -19684,7 +19807,7 @@ def get_mistakes():
                            'display_name':_question_display_name(q),
                            'display_name_en':_question_display_name_en(q),
                            'source':q.get('source',''),
-                           'content':q.get('content','')})
+                           'content': '' if locked else q.get('content','')})
     return jsonify(result)
 
 @app.route('/api/mistakes/stats')
@@ -21450,7 +21573,8 @@ def _fetch_community_leaderboard_score_rows(conn, period_start_iso, period_end_i
         rank_leaderboard_participants,
     )
     participants = fetch_leaderboard_participant_rows(
-        conn, period_start_iso, period_end_iso, limit=None)
+        conn, period_start_iso, period_end_iso, limit=None,
+        include_p0_make_whole=True)
     ranked = rank_leaderboard_participants(participants)
     return ranked[:50]
 

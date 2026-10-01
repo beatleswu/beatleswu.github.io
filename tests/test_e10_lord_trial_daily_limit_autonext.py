@@ -73,12 +73,22 @@ def test_shared_next_is_not_a_boss_authority_and_is_not_misleading():
 
 
 def test_server_daily_limit_is_blocked_only_for_non_boss_questions():
-    guard_start = APP.index(
-        "active_boss_question = (not internal and _adventure_boss_question_is_active(qid))"
+    # The old expectation looked for the quota check in the pre-transaction
+    # review wrapper.  That shape characterized the Map Battle bypass because
+    # its user-initiated handoff used ``internal=True``.  Quota admission now
+    # lives inside the caller-owned write transaction and is shared by public
+    # review/practice plus the Map Battle settlement callback; the active Boss
+    # exception remains explicit in the public review path.
+    guard_start = APP.index("active_boss_question = (not internal and _adventure_boss_question_is_active(qid))")
+    quota_start = APP.index(
+        "if not internal and not premium_entitled and not active_boss_question:",
+        guard_start,
     )
-    guard = APP[guard_start:guard_start + 1500]
-    assert "if today_count >= _eff_limit and not active_boss_question:" in guard
-    assert "if today_count >= _eff_limit:" not in guard
+    guard = APP[quota_start:quota_start + 1200]
+    assert "if not internal and not premium_entitled and not active_boss_question:" in guard
+    assert "_daily_quota_snapshot_in_transaction" in guard
+    assert "_lock_user_for_daily_quota" in guard
+    assert "if today_count >= _eff_limit and not active_boss_question:" not in guard
     assert "_validate_adventure_boss_review_context" in APP
 
 

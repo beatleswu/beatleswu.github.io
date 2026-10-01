@@ -15,6 +15,7 @@ from map_battle_runtime import (
     FEATURE_DISABLED_HTTP_STATUS,
     ForbiddenClientAuthority,
     JudgeOutcome,
+    MapBattleEntitlementRejected,
     RequestRejected,
     SubmissionNonceAlreadyIssued,
     SubmissionNonceInvalid,
@@ -335,6 +336,61 @@ def test_settled_duplicate_with_stale_client_revision_replays_without_mutation_o
     assert duplicate["player_hp_after"] == first["player_hp_after"]
     assert after_retry == before_retry == (15, 20, 1)
     assert len(judge_calls) == 1
+
+
+def test_entitlement_rejection_precedes_settlement_and_duplicate_replays_without_rechecking(
+    battle_db,
+):
+    payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
+    calls = []
+
+    def reject_new_answer(conn, user_id, question):
+        calls.append((user_id, question["id"]))
+        raise MapBattleEntitlementRejected(
+            "daily_limit",
+            "free daily limit reached",
+            status=429,
+            details={"today_count": 20, "limit": 20, "upgrade_url": "/upgrade"},
+        )
+
+    with pytest.raises(MapBattleEntitlementRejected) as error:
+        settle_answer(
+            battle_db,
+            user_id=101,
+            payload=payload,
+            question_loader=lambda question_id: QUESTION,
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+            now="2026-08-02T00:01:00+00:00",
+            entitlement_admitter=reject_new_answer,
+        )
+    # The HTTP adapter owns the outer transaction and rolls it back when the
+    # admission error escapes the runtime.  Mirror that boundary here before
+    # asserting that no rejected request was persisted.
+    battle_db.rollback()
+    assert error.value.code == "daily_limit"
+    assert calls == [(101, QUESTION["id"])]
+    assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 0
+    assert tuple(
+        battle_db.execute(
+            "SELECT monster_hp, player_hp, battle_revision FROM map_battles WHERE id=?",
+            (payload["battle_id"],),
+        ).fetchone()
+    ) == (20, 20, 0)
+
+    first = _settle(battle_db, payload)
+    battle_db.commit()
+    duplicate = settle_answer(
+        battle_db,
+        user_id=101,
+        payload=payload,
+        question_loader=lambda question_id: QUESTION,
+        mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+        now="2026-08-02T00:02:00+00:00",
+        entitlement_admitter=reject_new_answer,
+    )
+    assert duplicate["duplicate"] is True
+    assert duplicate["submission_id"] == first["submission_id"]
+    assert calls == [(101, QUESTION["id"])]
 
 
 def test_client_correctness_aliases_fail_closed_without_reservation(battle_db):
