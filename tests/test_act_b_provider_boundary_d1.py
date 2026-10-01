@@ -124,13 +124,73 @@ def test_zone3_creation_and_restore_preserve_existing_e055_authority():
     assert restored.binding.profile_id == binding.profile_id
 
 
-def test_zone4_to_zone10_slots_are_not_admitted_for_new_map_battles():
-    with pytest.raises(AdventureMonsterRuntimeContractError):
-        resolve_map_battle_provider_for_new(
-            zone_key="k11_15",
+def test_zone4_to_zone10_creation_and_restore_use_the_canonical_c2a_e1a_provider():
+    """GO_ODYSSEY_ZONE4_10_CANONICAL_MAP_BATTLE_PROVIDER_ACTIVATION_001.
+
+    Owner-authorized admission: the real Zone4-10 provider (79 Owner-approved
+    C2A identities / E1A reward policy) now serves every app zone key it maps
+    to, exactly as Zone1-2 and Zone3 already do.  Provider *availability* is
+    orthogonal to a player's own zone-unlock eligibility, which this suite
+    does not cover -- that is a server-side app.py concern
+    (``_map_battle_zone_unlocked``), not a provider-registry concern.
+    """
+    for app_zone_key, expected_canonical in (
+        ("k11_15", "Z4"),
+        ("k6_10", "Z5"),
+        ("k1_5", "Z6"),
+        ("d1_2", "Z7"),
+        ("d3_4", "Z8"),
+        ("d5_6", "Z9"),
+        ("d7_plus", "Z10"),
+    ):
+        assert (
+            MAP_BATTLE_CANONICAL_PROVIDER_ZONE_BY_APP_ZONE[app_zone_key]
+            == expected_canonical
+        )
+        binding = resolve_map_battle_provider_for_new(
+            zone_key=app_zone_key,
             question_binding=QUESTION_BINDING,
             user_id=101,
         )
+        assert binding is not None
+        assert binding.zone_key == expected_canonical
+        assert binding.max_hp > 0
+        assert binding.monster_id
+
+        restored = resolve_map_battle_provider_for_restore(
+            battle=_battle_for_binding(binding, zone_key=app_zone_key),
+            question_binding=QUESTION_BINDING,
+            user_id=101,
+        )
+        assert restored.mode == RESTORE_EXISTING_PROVIDER_BOUND_BATTLE
+        assert restored.binding is not None
+        assert restored.binding.monster_id == binding.monster_id
+        assert restored.binding.profile_id == binding.profile_id
+
+        assert (
+            resolve_map_battle_provider_for_new_resolution(
+                zone_key=app_zone_key,
+                question_binding=QUESTION_BINDING,
+                user_id=101,
+            ).mode
+            == "NEW_BATTLE_BINDING"
+        )
+
+
+def test_zone1_to_zone3_admission_is_unchanged_by_zone4_10_activation():
+    """Zone4-10 activation must not perturb the already-admitted providers."""
+    for app_zone_key, expected_canonical in (
+        ("k26_30", "Z1"),
+        ("k21_25", "Z2"),
+        (ZONE3_KEY, ZONE3_KEY),
+    ):
+        binding = resolve_map_battle_provider_for_new(
+            zone_key=app_zone_key,
+            question_binding=QUESTION_BINDING,
+            user_id=101,
+        )
+        assert binding is not None
+        assert binding.zone_key == expected_canonical
 
 
 def test_provider_bound_creation_rejects_client_monster_authority_claims():

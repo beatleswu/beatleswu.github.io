@@ -164,6 +164,7 @@ from map_battle_runtime import (
     MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
     RUNTIME_SERVICE_ID,
     RequestRejected,
+    ZoneNotUnlocked,
     ensure_submission_lifecycle_schema,
     issue_attempt_with_submission_nonce,
     issue_submission_nonce_for_attempt,
@@ -15520,6 +15521,37 @@ def _map_battle_require_enabled(user_id, conn):
     return eligibility
 
 
+def _map_battle_zone_unlocked(conn, user_id, zone_key):
+    """Server-authoritative check: has this player's own progression
+
+    unlocked ``zone_key``?  Reuses the exact unlock/effective-start-zone
+    authority the Adventure progress screen already reads (an explicit
+    ``adventure_zone_unlocks`` row, or the zone sitting at/below the
+    player's rank-derived effective start zone) rather than introducing a
+    second unlock system.  Whether a zone's Monster/question provider is
+    admitted is a separate concern (``_map_battle_provider_for_new``); a
+    zone with an admitted provider must still deny a locked player here.
+    """
+    zone = _zone_by_key(zone_key)
+    if zone is None:
+        # Legacy/non-canonical zone identifiers predate the canonical
+        # Adventure zone list and carry no zone-progression concept at all.
+        # Mirror `_map_battle_require_question_in_zone`'s exact treatment of
+        # the same condition rather than inventing a second policy for what
+        # "not a canonical zone" means.
+        return True
+    unlock_rows = conn.execute(
+        'SELECT * FROM adventure_zone_unlocks WHERE user_id=?', (int(user_id),)
+    ).fetchall()
+    if any(row['zone_key'] == zone_key for row in unlock_rows):
+        return True
+    start_zone_key = _resolve_adventure_effective_start_zone(
+        conn, int(user_id), unlock_rows=[dict(row) for row in unlock_rows]
+    )
+    start_idx = _adventure_zone_index(start_zone_key) if start_zone_key else 0
+    return _adventure_zone_index(zone_key) <= start_idx
+
+
 def _map_battle_int(value, fallback, *, minimum=0):
     try:
         value = int(value)
@@ -15857,6 +15889,8 @@ def _map_battle_error_response(error, *, question=None):
         body['quarantine_scope'] = 'session_question_revision'
     if error.code == 'map_battle_v1_disabled':
         body['message'] = 'Map Battle v1 暫未開放'
+    elif error.code == 'map_battle_zone_not_unlocked':
+        body['message'] = '此關卡尚未解鎖'
     return jsonify(body), error.status
 
 
@@ -15929,6 +15963,14 @@ def map_battle_v1_prepare_attempt():
                     user_id=user_id,
                 )
             if battle is None:
+                # Provider admission (whether a zone's Monster/question
+                # binding exists at all) is never a substitute for this
+                # player's own unlock state.  A brand-new battle may only be
+                # created in a zone this account has actually unlocked; an
+                # existing OPEN battle above (the `battle is not None`
+                # branch) is unaffected and continues to resume normally.
+                if not _map_battle_zone_unlocked(conn, user_id, zone_key):
+                    raise ZoneNotUnlocked('this zone is not unlocked for this account')
                 player_hp, player_hp_max = _map_battle_player_hp(conn, user_id)
                 provider_binding = _map_battle_provider_for_new(
                     question,

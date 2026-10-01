@@ -6,9 +6,10 @@ persisted monster stays authoritative for the whole battle; a later
 question's new-battle selection must not invalidate or replace it.
 
 Production admits the Zone4-10 provider through the shared Map Battle
-boundary.  This candidate still registers Zone4-10 as a disabled admission
-slot, so these tests use a test-only boundary that admits the real provider
-exactly as Production does.  The provider under test is the real module.
+boundary, and this candidate now preserves that admission.  The isolated
+``ADMITTED`` boundary remains useful for provider-only lifecycle assertions;
+the real application seam is covered by
+``test_zone4_10_map_battle_provider_activation.py``.
 """
 
 from __future__ import annotations
@@ -226,12 +227,13 @@ def test_d_invalid_persisted_provider_state_still_fails_closed():
             )
 
 
-def test_d_candidate_boundary_still_fails_closed_for_unadmitted_zone4_10():
+def test_d_candidate_boundary_admits_zone4_10_and_preserves_persisted_identity():
     battle = _db_battle_row(_new_binding())
-    with pytest.raises(AdventureMonsterRuntimeContractError):
-        MAP_BATTLE_PROVIDER_BOUNDARY.restore_binding(
-            battle=battle, question_binding=_binding(QID_B), user_id=USER_ID
-        )
+    restored = MAP_BATTLE_PROVIDER_BOUNDARY.restore_binding(
+        battle=battle, question_binding=_binding(QID_B), user_id=USER_ID
+    )
+    assert restored.monster_id == "M047"
+    assert restored.provider_id == ZONE4_10_PROVIDER_ID
 
 
 def test_f_zone1_2_restore_unchanged():

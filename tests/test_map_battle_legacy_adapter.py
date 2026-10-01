@@ -184,11 +184,38 @@ def api_env(app_module, monkeypatch):
              rank_level TEXT NOT NULL DEFAULT 'LV1',
              rank_xp INTEGER NOT NULL DEFAULT 0,
              elo_rating REAL NOT NULL DEFAULT 1400,
+             go_rank TEXT,
              player_hp INTEGER NOT NULL DEFAULT 30,
              player_max_hp INTEGER NOT NULL DEFAULT 30
         )"""
     )
     conn.execute("INSERT INTO user_stats(user_id, player_hp, player_max_hp) VALUES (101, 30, 30)")
+    conn.execute(
+        """CREATE TABLE rating_test_sessions (
+             user_id INTEGER NOT NULL,
+             status TEXT NOT NULL,
+             cur_rating REAL,
+             finished_at TEXT,
+             started_at TEXT
+        )"""
+    )
+    # GO_ODYSSEY_ZONE4_10_CANONICAL_MAP_BATTLE_PROVIDER_ACTIVATION_001: every
+    # `users(id) VALUES (?)` insert below defaults `elo_rating` to 1400,
+    # whose rank-derived effective start zone is k6_10 (index 4) -- at/above
+    # every zone_key this shared fixture's tests already exercise (k26_30,
+    # ZONE3_KEY=k16_20). No explicit unlock row is required for the existing
+    # tests to keep passing; only the table needs to exist, matching the
+    # real production schema (`app.py`'s own `adventure_zone_unlocks` DDL).
+    conn.execute(
+        """CREATE TABLE adventure_zone_unlocks (
+             user_id        INTEGER NOT NULL,
+             zone_key       TEXT    NOT NULL,
+             source         TEXT    NOT NULL DEFAULT 'placement',
+             start_zone_key TEXT,
+             unlocked_at    TEXT    NOT NULL,
+             PRIMARY KEY (user_id, zone_key)
+        )"""
+    )
     conn.execute(
         """CREATE TABLE srs_cards (
              user_id INTEGER NOT NULL,

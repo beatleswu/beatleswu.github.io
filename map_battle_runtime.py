@@ -25,11 +25,9 @@ from adventure_monster_runtime_contract import (
     AdventureMonsterRuntimeProviderRegistry,
     AdventureMonsterRuntimeProvider,
     AdventureQuestionBinding,
-    CanonicalAdventureProviderSlot,
     CLIENT_AUTHORITY_CLAIM_FIELDS,
     E055Zone3ProviderAdapter,
     E055_ZONE3_PROVIDER_ID,
-    CANONICAL_PROVIDER_SLOT_ID,
     MissingBindingError,
     ProviderDispatchError,
     StaleQuestionBindingError,
@@ -55,6 +53,8 @@ from adventure_zone3_monster_authority import (
 )
 from adventure_zone4_10_monster_runtime_provider import (
     ZONE4_10_BINDING_SOURCE,
+    ZONE4_10_MONSTER_RUNTIME_PROVIDER,
+    ZONE4_10_PROVIDER_ID,
 )
 from map_battle_persistence import (
     MAP_BATTLE_JUDGE_VERSION,
@@ -209,9 +209,12 @@ class MapBattleProviderBoundary(AdventureMonsterRuntimeProviderRegistry):
         {
             ZONE1_2_BINDING_SOURCE: ZONE1_2_PROVIDER_ID,
             ZONE3_BINDING_SOURCE: E055_ZONE3_PROVIDER_ID,
-            # Zone4-10 is registered as a disabled admission slot.  A row
-            # bearing this source is therefore recognized, then fails closed.
-            ZONE4_10_BINDING_SOURCE: CANONICAL_PROVIDER_SLOT_ID,
+            # Owner-authorized admission (GO_ODYSSEY_ZONE4_10_CANONICAL_MAP_
+            # BATTLE_PROVIDER_ACTIVATION_001): the real Zone4-10 provider is
+            # now registered.  Persisted rows created before this admission
+            # never carried this binding source, so no historical row needs
+            # migration.
+            ZONE4_10_BINDING_SOURCE: ZONE4_10_PROVIDER_ID,
         }
     )
 
@@ -223,9 +226,7 @@ class MapBattleProviderBoundary(AdventureMonsterRuntimeProviderRegistry):
                     zone_keys=(ZONE3_KEY,),
                     binding_resolver=_map_battle_e055_binding,
                 ),
-                CanonicalAdventureProviderSlot(
-                    zone_keys=("Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10"),
-                ),
+                ZONE4_10_MONSTER_RUNTIME_PROVIDER,
             )
         )
 
@@ -747,6 +748,19 @@ class FeatureDisabled(MapBattleRuntimeError):
 
 class ModeNotEligible(MapBattleRuntimeError):
     code = "map_battle_mode_not_eligible"
+    status = 403
+
+
+class ZoneNotUnlocked(MapBattleRuntimeError):
+    """The player's own progression has not unlocked this zone yet.
+
+    Provider availability (whether a zone's Monster/question binding is
+    admitted at all) is a separate concern from per-player eligibility.  This
+    error exists so admitting a new provider can never itself substitute for
+    the canonical per-player zone-unlock check.
+    """
+
+    code = "map_battle_zone_not_unlocked"
     status = 403
 
 
@@ -2070,6 +2084,7 @@ __all__ = [
     "SubmissionNonceInvalid",
     "SubmissionNonceNotIssued",
     "SubmissionRequestHashMismatch",
+    "ZoneNotUnlocked",
     "canonicalize_answer",
     "calculate_damage",
     "calculate_combat_effects",
