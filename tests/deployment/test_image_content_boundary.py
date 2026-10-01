@@ -132,10 +132,104 @@ def test_dockerfile_has_no_dangerous_wildcards():
     assert not dangerous, f"Dockerfile must not contain broad root/asset wildcards: {dangerous}"
 
 
-def test_assets_not_required_at_build_time():
-    content = dockerfile_text()
-    assert "COPY assets" not in content
+# Asset-class image policy (Owner disposition: the historical blanket
+# "no asset COPY" rule is narrowed by class, not removed).
+#
+#   G009 dual-delivery classes  -> image COPY required AND static generation required
+#   image-only runtime support  -> the four pre-existing 3D runtime support files
+#   every other assets/ class   -> external-only; never baked
+G009_DUAL_DELIVERY_COPY_PREFIXES = (
+    "assets/world-map-identity/",
+    "assets/maps/e10-vs1f-zone-previews/",
+    "assets/3d_shop/",
+)
+G009_DUAL_DELIVERY_STATIC_MANIFESTS = frozenset({
+    "deploy/g009-derived84-static-pack-manifest.json",
+    "deploy/g009-world-map-zone-preview-static-pack-manifest.json",
+    "deploy/g009-hero-model-static-pack-manifest.json",
+    "deploy/g009-companion-formal18-static-pack-manifest.json",
+    "deploy/g009-formal9-replacement-static-pack-manifest.json",
+})
+IMAGE_ONLY_RUNTIME_SUPPORT_ASSETS = frozenset({
+    "assets/3d_shop/p048/runtime_manifest.json",
+    "assets/3d_shop/p048/vendor/three.module.js",
+    "assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js",
+    "assets/3d_shop/p048/vendor/jsm/utils/BufferGeometryUtils.js",
+})
+
+
+def _asset_copy_sources():
+    sources = []
+    for line in dockerfile_text().replace("\\\n", " ").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("COPY "):
+            tokens = [token for token in stripped.split()[1:] if not token.startswith("--")]
+            sources.extend(token for token in tokens[:-1] if token.lstrip("./").startswith("assets"))
+    return sources
+
+
+def _baked_asset_files():
+    tracked = tracked_files()
+    baked = set()
+    for source in _asset_copy_sources():
+        if source.endswith("/") or (REPO_ROOT / source).is_dir():
+            prefix = source.rstrip("/") + "/"
+            baked |= {path for path in tracked if path.startswith(prefix)}
+        else:
+            baked.add(source)
+    return baked
+
+
+def _static_manifest_files(only_external):
+    inventory = json.loads(
+        (REPO_ROOT / "deploy" / "live-static-asset-inventory.json").read_text(encoding="utf-8")
+    )
+    files = set()
+    for entry in inventory["required_subtrees"]["entries"]:
+        is_dual = entry["manifest"] in G009_DUAL_DELIVERY_STATIC_MANIFESTS
+        if is_dual == only_external:
+            continue
+        manifest = json.loads((REPO_ROOT / entry["manifest"]).read_text(encoding="utf-8"))
+        files |= {row["path"] for row in manifest["files"]}
+    return files
+
+
+def test_assets_tree_is_never_copied_wholesale():
+    sources = _asset_copy_sources()
+    assert sources, "the G009 dual-delivery classes require explicit asset copies"
+    for source in sources:
+        normalized = source.lstrip("./")
+        assert normalized.rstrip("/") != "assets", f"broad assets COPY is forbidden: {source}"
+        assert "*" not in normalized, f"wildcard asset COPY is forbidden: {source}"
+        assert normalized.startswith(G009_DUAL_DELIVERY_COPY_PREFIXES), (
+            f"{source} is not in an Owner-authorized image asset class"
+        )
     assert not (REPO_ROOT / "assets").exists() or True  # absence is fine either way; build must not require it
+
+
+def test_baked_assets_are_dual_delivery_or_image_only_runtime_support():
+    baked = _baked_asset_files()
+    dual_static = _static_manifest_files(only_external=False)
+    unexplained = sorted(baked - dual_static - IMAGE_ONLY_RUNTIME_SUPPORT_ASSETS)
+    assert unexplained == [], (
+        f"baked assets without a governed static-generation copy: {unexplained[:5]}"
+    )
+    assert IMAGE_ONLY_RUNTIME_SUPPORT_ASSETS <= baked
+    # Dual delivery is two-sided: every file a G009 dual-delivery manifest
+    # stages must also have the baked fallback.
+    missing_baked = sorted(dual_static - baked)
+    assert missing_baked == [], f"dual-delivery assets without a baked copy: {missing_baked[:5]}"
+
+
+def test_external_only_asset_classes_are_never_baked():
+    baked = _baked_asset_files()
+    external_only = _static_manifest_files(only_external=True)
+    assert len(external_only) > 1000  # the historical image, audio and E10 packs
+    leaked = sorted(baked & external_only)
+    assert leaked == [], f"external-only assets were baked into the image: {leaked[:5]}"
+    for prefix in ("assets/hero/", "assets/pets/", "assets/e10/", "assets/storyboards/",
+                   "assets/tiers/", "assets/boards/", "assets/monsters/"):
+        assert not [path for path in baked if path.startswith(prefix)], prefix
 
 
 def test_shorts_not_required_at_build_time():

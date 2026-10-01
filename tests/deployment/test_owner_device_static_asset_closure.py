@@ -241,4 +241,23 @@ def test_equipment_registry_paths_are_external_static_content():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     assert "VERSIONED STATIC ARTIFACT" in dockerfile
     assert "GO_ODYSSEY_LIVE_STATIC_ROOT" in dockerfile
-    assert not re.search(r"(?m)^\s*COPY\s+assets(?:/|\s)", dockerfile)
+    # Equipment registry/presentation content stays external-only. The G009
+    # dual-delivery classes (Derived84, World Map previews, Hero models) are
+    # the only assets the image may bake; a broad assets COPY or any copy of
+    # the Equipment tree is still forbidden.
+    assert not re.search(r"(?m)^\s*COPY\s+(?:\./)?assets/?\s", dockerfile)
+    assert not re.search(r"(?m)^\s*COPY\s+(?:\./)?assets/hero(?:/|\s)", dockerfile)
+    equipment_paths = {
+        entry["path"]
+        for entry in _load_json(EQUIPMENT_MANIFEST)["files"]
+    }
+    assert len(equipment_paths) == 51
+    copy_sources = set()
+    for line in dockerfile.replace("\\\n", " ").splitlines():
+        if line.strip().startswith("COPY "):
+            copy_sources.update(line.split()[1:-1])
+    assert not equipment_paths & copy_sources
+    assert not [
+        source for source in copy_sources
+        if any(path.startswith(source.rstrip("/") + "/") for path in equipment_paths)
+    ]
