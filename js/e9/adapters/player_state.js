@@ -28,6 +28,104 @@
     mage: { id: 'mage', asset: CHARACTER_ROOT + 'chibi_mage_normalized.webp' },
     sage: { id: 'sage', asset: CHARACTER_ROOT + 'chibi_sage_normalized.webp' },
   };
+  var DERIVED84_RUNTIME_MANIFEST_URL = '/assets/world-map-identity/runtime_manifest.json';
+  var derived84ManifestPromise = null;
+
+  function isFuture30Appearance(raw) {
+    return !!(raw && raw.character_runtime
+      && typeof raw.character_runtime.visual_model_id === 'string'
+      && raw.character_runtime.visual_model_id.trim());
+  }
+
+  function safeDerived84Path(value) {
+    if (typeof value !== 'string' || !value.startsWith('assets/world-map-identity/')
+      || value.includes('..') || value.includes('\\')) return '';
+    return '/' + value;
+  }
+
+  function validateDerived84Manifest(manifest) {
+    if (!manifest || typeof manifest !== 'object'
+      || manifest.manifest_version !== 'G009_DERIVED84_RUNTIME_MANIFEST_V1'
+      || manifest.derived_84_asset_visual_authority !== 'LOCKED'
+      || manifest.owner_acceptance_complete !== true
+      || manifest.runtime_consumed !== true
+      || manifest.derived_84_total !== 84
+      || manifest.owner_accepted_authority_rows !== 84
+      || !Array.isArray(manifest.entries) || manifest.entries.length !== 84) {
+      throw new Error('derived84_manifest_authority_mismatch');
+    }
+    var counts = { AVATAR: 0, STANDING: 0, COMPANION: 0 };
+    var avatarByVisual = Object.create(null);
+    var standingByVisual = Object.create(null);
+    manifest.entries.forEach(function (entry) {
+      if (!entry || entry.owner_decision !== 'PASS'
+        || !Object.prototype.hasOwnProperty.call(counts, entry.asset_role)
+        || typeof entry.expected_runtime_sha256 !== 'string'
+        || !/^[a-f0-9]{64}$/i.test(entry.expected_runtime_sha256)) {
+        throw new Error('derived84_manifest_entry_invalid');
+      }
+      var path = safeDerived84Path(entry.target_runtime_path);
+      if (!path) throw new Error('derived84_manifest_path_invalid');
+      counts[entry.asset_role] += 1;
+      if (entry.asset_role === 'AVATAR' || entry.asset_role === 'STANDING') {
+        if (typeof entry.visual_model_id !== 'string' || !entry.visual_model_id.trim()) {
+          throw new Error('derived84_visual_identity_missing');
+        }
+        var byVisual = entry.asset_role === 'AVATAR' ? avatarByVisual : standingByVisual;
+        if (byVisual[entry.visual_model_id]) throw new Error('derived84_visual_identity_duplicate');
+        byVisual[entry.visual_model_id] = { path: path, sha256: entry.expected_runtime_sha256 };
+      }
+    });
+    if (counts.AVATAR !== 33 || counts.STANDING !== 33 || counts.COMPANION !== 18) {
+      throw new Error('derived84_manifest_role_count_mismatch');
+    }
+    return { avatarByVisual: avatarByVisual, standingByVisual: standingByVisual };
+  }
+
+  function loadDerived84Manifest(doFetch) {
+    if (derived84ManifestPromise) return derived84ManifestPromise;
+    derived84ManifestPromise = doFetch(DERIVED84_RUNTIME_MANIFEST_URL, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    }).then(function (response) {
+      if (!response.ok) throw new Error('derived84_manifest_http_' + response.status);
+      return response.json();
+    }).then(validateDerived84Manifest).catch(function (error) {
+      derived84ManifestPromise = null;
+      throw error;
+    });
+    return derived84ManifestPromise;
+  }
+
+  function resolveFuture30AvatarPresentation(raw, manifestIndex) {
+    var runtime = raw.character_runtime;
+    var visualModelId = runtime.visual_model_id;
+    var avatar = manifestIndex.avatarByVisual[visualModelId];
+    var standing = manifestIndex.standingByVisual[visualModelId];
+    if (!avatar || !standing) throw new Error('derived84_visual_identity_unmapped');
+    return {
+      id: raw.character_key || visualModelId,
+      asset: avatar.path,
+      avatarAsset: avatar.path,
+      standingAsset: standing.path,
+      fallbackAsset: '',
+      presentationType: 'future30-derived84',
+      characterKey: raw.character_key || null,
+      visualModelId: visualModelId,
+    };
+  }
+
+  function resolveAppearanceAsync(raw, doFetch) {
+    if (!isFuture30Appearance(raw)) return Promise.resolve(normalizeAppearance(raw));
+    return loadDerived84Manifest(doFetch).then(function (manifestIndex) {
+      var presentation = resolveFuture30AvatarPresentation(raw, manifestIndex);
+      return {
+        avatarSrc: presentation.avatarAsset,
+        avatarFallbackSrc: '',
+        avatarPresentation: presentation,
+      };
+    });
+  }
 
   /*
    * Narrow boundary for consumers that need the player's map presentation.
@@ -48,6 +146,20 @@
   }
 
   function normalizeAppearance(raw) {
+    if (isFuture30Appearance(raw)) {
+      return {
+        avatarSrc: '',
+        avatarFallbackSrc: '',
+        avatarPresentation: {
+          id: raw.character_key || raw.character_runtime.visual_model_id,
+          asset: '',
+          avatarAsset: '',
+          standingAsset: '',
+          fallbackAsset: '',
+          presentationType: 'future30-derived84-unresolved',
+        },
+      };
+    }
     var presentation = resolveCurrentPlayerAvatarPresentation(raw);
     return {
       avatarSrc: presentation.asset,
@@ -127,12 +239,19 @@
     return doFetch('/api/player/appearance', { credentials: 'same-origin' }).then(function (response) {
       if (!response.ok) return defaultAvatarPresentationResult(classifyHttpError(response.status), response.status);
       return response.json().then(function (raw) {
-        return { ok: true, data: resolveCurrentPlayerAvatarPresentation(raw), fallback: false };
+        if (!isFuture30Appearance(raw)) {
+          return { ok: true, data: resolveCurrentPlayerAvatarPresentation(raw), fallback: false };
+        }
+        return loadDerived84Manifest(doFetch).then(function (manifestIndex) {
+          return { ok: true, data: resolveFuture30AvatarPresentation(raw, manifestIndex), fallback: false };
+        });
       }, function () {
         return defaultAvatarPresentationResult('error', response.status);
       });
     }, function () {
       return defaultAvatarPresentationResult('network', null);
+    }).catch(function () {
+      return { ok: false, kind: 'error', status: null };
     });
   }
 
@@ -152,7 +271,9 @@
       doFetch('/api/user/coins', { credentials: 'same-origin' }),
       doFetch('/api/player/appearance', { credentials: 'same-origin' }).then(function (response) {
         if (!response.ok) return normalizeAppearance(null);
-        return response.json().then(normalizeAppearance, function () { return normalizeAppearance(null); });
+        return response.json().then(function (raw) {
+          return resolveAppearanceAsync(raw, doFetch);
+        }, function () { return normalizeAppearance(null); });
       }, function () { return normalizeAppearance(null); }),
     ]).then(function (responses) {
       var profileRes = responses[0];

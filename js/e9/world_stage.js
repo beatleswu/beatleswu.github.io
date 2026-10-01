@@ -546,7 +546,9 @@
     var markerSelector = mobileCards ? '.e10-current-hero' : '#e9-world-stage-player';
     var hosts = Array.prototype.slice.call(root.querySelectorAll(markerSelector));
     var marker = root.querySelector('#e9-world-stage-player') || hosts[0] || null;
-    if (!marker || !presentation || typeof presentation.asset !== 'string' || !presentation.asset) {
+    var markerAsset = presentation && typeof presentation.standingAsset === 'string'
+      && presentation.standingAsset ? presentation.standingAsset : (presentation && presentation.asset);
+    if (!marker || !presentation || typeof markerAsset !== 'string' || !markerAsset) {
       if (marker) marker.querySelectorAll('.e10-player-marker-avatar').forEach(function (avatar) { avatar.remove(); });
       return;
     }
@@ -581,7 +583,7 @@
     };
     avatar.hidden = false;
     avatar.removeAttribute('data-e10-avatar-fallback');
-    if (avatar.getAttribute('src') !== presentation.asset) avatar.setAttribute('src', presentation.asset);
+    if (avatar.getAttribute('src') !== markerAsset) avatar.setAttribute('src', markerAsset);
     marker.setAttribute('data-player-avatar-id', presentation.id || '');
     marker.setAttribute('data-player-avatar-presentation', presentation.presentationType || 'resolved-avatar');
   }

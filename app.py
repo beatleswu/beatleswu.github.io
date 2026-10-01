@@ -53,6 +53,10 @@ from future30_character_service import (
     project_applied_character,
 )
 from migrations.future30_character_catalog_v1 import upgrade as upgrade_future30_character_schema
+from derived84_asset_registry import (
+    DERIVED84_RUNTIME_AVAILABLE,
+    derived84_companion_asset,
+)
 try:
     from flask_compress import Compress as _FlaskCompress
     _has_compress = True
@@ -4286,9 +4290,9 @@ def _pet_next_evolution(level):
     return None
 
 def _pet_image_for_level(pet_key, level):
-    catalog = PET_CATALOG.get(pet_key, {})
-    images = catalog.get('images') or {}
-    return images.get(_pet_stage(level)) or catalog.get('image') or ''
+    if not DERIVED84_RUNTIME_AVAILABLE:
+        return ''
+    return derived84_companion_asset(pet_key, _pet_stage(level))
 
 def _pet_animation_set_for_level(pet_key, level):
     stage = _pet_stage(level)
@@ -4326,6 +4330,11 @@ def _normalize_pet_row(row):
     d['stage'] = stage
     d['stage_label'] = (catalog.get('stage_labels') or {}).get(stage, '')
     d['image'] = _pet_image_for_level(d['pet_key'], level)
+    if DERIVED84_RUNTIME_AVAILABLE:
+        d['images'] = {
+            stage_number: derived84_companion_asset(d['pet_key'], stage_number)
+            for stage_number in (1, 2, 3)
+        }
     d['animation_set'] = _pet_animation_set_for_level(d['pet_key'], level)
     next_evo = _pet_next_evolution(level)
     if next_evo:
@@ -4456,7 +4465,18 @@ def _add_pet_xp_with_evolution(conn, uid, amount, operation_id, spirit_id, sourc
 PET_UNLOCK_THRESHOLDS = list(SPIRIT_UNLOCK_LEVELS)   # server-owned catalog level gates
 
 def _pet_catalog_values():
-    return [PET_CATALOG[k] for k in PET_UNLOCK_ORDER if k in PET_CATALOG]
+    values = []
+    for key in PET_UNLOCK_ORDER:
+        if key not in PET_CATALOG:
+            continue
+        item = dict(PET_CATALOG[key])
+        item['image'] = derived84_companion_asset(key, 1) if DERIVED84_RUNTIME_AVAILABLE else ''
+        item['images'] = {
+            stage: derived84_companion_asset(key, stage) if DERIVED84_RUNTIME_AVAILABLE else ''
+            for stage in (1, 2, 3)
+        }
+        values.append(item)
+    return values
 
 def _next_pet_unlock_key(owned_keys):
     owned = set(owned_keys or [])
@@ -4542,7 +4562,7 @@ def _pet_collection_state(conn, uid, active_key):
         locked.append({
             'key': key, 'name': cat.get('name'), 'name_en': cat.get('name_en'),
             'role': cat.get('role'), 'role_en': cat.get('role_en'),
-            'image': cat.get('image'), 'accent': cat.get('accent'),
+            'image': _pet_image_for_level(key, 1), 'accent': cat.get('accent'),
             'claimable': (key == next_key and owned_count < allowed),
             'unlock_level': need_level,
         })

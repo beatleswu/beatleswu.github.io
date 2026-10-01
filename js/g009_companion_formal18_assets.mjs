@@ -1,5 +1,5 @@
 import {validateCompanionFormal18Manifest, resolveCompanionPresentation} from "./companion_formal_18_mapping.js";
-export const MANIFEST_SHA256 = "124af40c1f62a39642f4345d3efa23fef8971f240a9a79d5450fcd5d516fe3af";
+export const MANIFEST_SHA256 = "4f1433b6cdd2161f116268929f42bea435e1e79138b37ddfc0c1df85d8f60c57";
 export async function digest(bytes) {
   return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
     byte => byte.toString(16).padStart(2,"0")).join("");

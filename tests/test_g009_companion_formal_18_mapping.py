@@ -73,7 +73,7 @@ def test_all_approved_runtime_derivatives_are_copied_byte_exact_and_valid_glb():
         assert gltf["asset"]["version"] == "2.0"
         assert gltf.get("meshes")
         assert gltf.get("nodes")
-    assert total_bytes == 223_565_364
+    assert total_bytes == 253_705_012
 
 
 def test_shared_host_child_behavior_replaces_obsolete_adapter_structure():
