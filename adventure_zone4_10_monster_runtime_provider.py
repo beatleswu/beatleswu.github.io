@@ -510,14 +510,10 @@ class AdventureZone4_10MonsterRuntimeProvider:
                 raise StaleQuestionBindingError(
                     "persisted question binding is stale"
                 )
-        # Validate the persisted M-ID against the same server-side selector
-        # used for new battles.  The selected value is only a consistency
-        # check; the persisted profile remains the immutable identity returned.
-        expected_profile = _select_profile_for_question(zone_key, question_binding)
-        if expected_profile.monster_id != profile.monster_id:
-            raise StaleQuestionBindingError(
-                "persisted Monster identity does not match the question binding"
-            )
+        # One battle fights one Monster across many questions (Owner design,
+        # 2026-10-01).  The persisted M-ID selected at creation stays
+        # authoritative; a later question's new-battle selection must not
+        # invalidate or replace it, so it is deliberately not re-derived here.
         binding = _binding_for_profile(profile, question_binding)
         if battle.get("profile_id") not in (None, "", binding.profile_id):
             raise ProfileBindingMismatchError("persisted profile_id does not match")
