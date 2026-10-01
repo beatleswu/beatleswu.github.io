@@ -396,6 +396,28 @@ COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb ./
 COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb ./assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb
 COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb ./assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb
 COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb ./assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb
+# G009 dual delivery (Owner authority: live-static first, baked fallback).
+# The governed static generation ships the same bytes; these baked copies
+# are the fallback the existing live-static resolver serves when the
+# external generation or a single file in it is unavailable.
+COPY css/g009_hero_hub_batch_a.css ./css/g009_hero_hub_batch_a.css
+COPY js/g009_hero_hub_batch_a.js ./js/g009_hero_hub_batch_a.js
+# Derived84: the 84 Owner-accepted identity assets and their runtime
+# manifest. They are also derived84_asset_registry.py's module-local
+# validation inputs, so they must exist in the image at these exact paths.
+COPY assets/world-map-identity/ ./assets/world-map-identity/
+# The ten Owner-locked World Map zone previews, listed explicitly so the
+# derivation manifest and alias copies beside them are not image payloads.
+COPY assets/maps/e10-vs1f-zone-previews/01_zone_01_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/01_zone_01_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/02_zone_02_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/02_zone_02_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/03_zone_03_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/03_zone_03_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/04_zone_04_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/04_zone_04_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/05_zone_05_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/05_zone_05_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/06_zone_06_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/06_zone_06_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/07_zone_07_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/07_zone_07_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/08_zone_08_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/08_zone_08_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/09_zone_09_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/09_zone_09_preview_v1.png
+COPY assets/maps/e10-vs1f-zone-previews/10_zone_10_preview_v1.png ./assets/maps/e10-vs1f-zone-previews/10_zone_10_preview_v1.png
 # Zone 4 Owner-final story review is a narrow presentation runtime. Keep its
 # page dependencies explicit in the image so the authenticated route remains
 # restorable when the live-static override is unavailable.
@@ -459,6 +481,11 @@ RUN chmod +x entrypoint.sh
 #                     _serve_live_static_or_baked_subpath); with no baked
 #                     copy and no mount, individual files 404, the app
 #                     process stays up.
+#                     Exception, by asset class: the explicitly listed
+#                     G009 dual-delivery assets above (Derived84, World
+#                     Map zone previews, Hero models) are ALSO baked as
+#                     the fallback. Everything else under assets/ stays
+#                     external-only; never add a broad assets COPY.
 #   shorts/       -- optional marketing media, same mount pattern via
 #                     GO_ODYSSEY_LIVE_STATIC_ROOT/shorts. Absence is a
 #                     404 per file, not a startup failure.

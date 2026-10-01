@@ -1,0 +1,22 @@
+{
+  "$schema_note": "Exact public closure for the ten Owner-locked World Map zone preview images. Owner delivery authority: DUAL_DELIVERY_LIVE_STATIC_FIRST_WITH_BAKED_FALLBACK. The same bytes are baked into the application image as the fallback. The preview derivation manifest and alias copies are not public assets and are not staged.",
+  "manifest_version": "1.0.0",
+  "generated_for": "G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001",
+  "prefix": "assets/maps/e10-vs1f-zone-previews/",
+  "total_files": 10,
+  "total_bytes": 4738207,
+  "source_manifest": "assets/maps/e10-vs1f-zone-previews/WORLD_MAP_ZONE_PREVIEW_MANIFEST.json",
+  "source_manifest_sha256": "77baa251392029fbcb88ca7ff3144f4afc3f76e60d0008eb2a28131878a01126",
+  "files": [
+    {"path":"assets/maps/e10-vs1f-zone-previews/01_zone_01_preview_v1.png","size":467036,"sha256":"1fc63abee81fb50df3ce19806d5e0684dbc1c1052ee670b47fa8618b5325f12f","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/02_zone_02_preview_v1.png","size":485965,"sha256":"b6154584c215370e8f8f0d048a171f8030c6f0ddde63ab9f86f6af36956d0b47","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/03_zone_03_preview_v1.png","size":494763,"sha256":"a6bcd49827c8e3e13cd4adce78179eb5ee365237f29528306a1618d70bdfa936","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/04_zone_04_preview_v1.png","size":498716,"sha256":"cc17fc4686b5cc2ddba0c56c9000224b24eedca241abe219f19206e6eef3981a","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/05_zone_05_preview_v1.png","size":504562,"sha256":"bfe7978ab3fe65035c0b1129d9ab9153c391d0313ad097fb943ce29501fae12a","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/06_zone_06_preview_v1.png","size":460305,"sha256":"30e7be33cc1708bd25ae855935f95feb507cf416f894a9a216d94c1ed0980cee","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/07_zone_07_preview_v1.png","size":450175,"sha256":"3835e25782f67f125d77a522e339d1d5b03dfb3863de5d3660ad381c08227422","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/08_zone_08_preview_v1.png","size":489176,"sha256":"e497055354b1d887295de25719e40b4bbdb505d99429b4319a45eb80e4cade22","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/09_zone_09_preview_v1.png","size":484609,"sha256":"29ad8ca720898f0aca427b52c7d970ff9317dbd8d2c4ac767354317e12eef1f4","mime":"image/png"},
+    {"path":"assets/maps/e10-vs1f-zone-previews/10_zone_10_preview_v1.png","size":402900,"sha256":"b83e5d3d5cdc87d16be74f42b7010d7cb1de9783ba20ea22b0ae59c3c04eacfa","mime":"image/png"}
+  ]
+}

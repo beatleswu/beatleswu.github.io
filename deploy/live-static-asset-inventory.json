@@ -41,6 +41,7 @@
       "css/e9/world_stage.css", "css/e9/adventure_spirit_unlock.css",
       "css/e9/journey_onboarding.css", "css/e9/zone3_presentation_fx.css", "css/e9/zone3_vertical_slice.css",
       "css/e10/zone4_owner_story_runtime.css",
+      "css/g009_hero_hub_batch_a.css", "js/g009_hero_hub_batch_a.js",
       "components/adventure/bottom_dock.html",
       "components/adventure/journey_onboarding.html",
       "components/adventure/left_nav.html",
@@ -62,7 +63,7 @@
   },
   "required_in_generation": {
     "description": "The subset of eligible_files this Sprint's static release tooling (scripts/release/package-static-release.ps1 / deploy-static-release.ps1) actually stages, ships, and verifies in every generation. The current index.html first-party script graph is a release-closed contract: every one of its 50 script references is either a direct required entry or a file inside the declared E10 runtime dependency closure. No first-party script may rely on an implicit app-runtime fallback. i18n.js and sw.js remain governed because they were observed stale in live-static. index.html is governed because an older live-static entrypoint can mask the exact app image's shell wiring. srs.js is required because index.html calls SRS.findNextAvailableQuestion() unguarded; when srs.js fell back to the baked image while index.html shipped from a newer generation, that method was absent and Adventure/Lord/Guild question traversal threw before requesting a question. The runtime_dependency_closure below derives the E10 JS/CSS/component closure from index.html and the shell's component references. Other eligible pages remain intentionally baked-image fallback content and are outside this focused contract.",
-    "entries": ["i18n.js", "sw.js", "index.html", "manifest.json", "site-nav.js", "srs.js", "inventory.html", "item_journal.html", "js/e9/shell.js", "wgo/wgo.min.js", "wgo/stone_skin.js", "community_reward_notifications.js", "monster_trash.js", "sound.js", "sgf_report_widget.js", "js/map_battle_v1_adapter.js", "js/rpg_wave2_wearable_renderer.js", "js/game/lord_trial_controller.js", "js/game/encounter_presentation_framework_v1.js", "js/game/battlefield_boss_reward_consumer.js", "js/game/presentation_dispatcher.js", "js/game/presentation_effects_b2.js", "js/game/review_transport.js", "js/game/game_session.js", "js/game/question_loader.js", "js/game/board_renderer.js", "js/game/mode_context.js", "js/game/game_bootstrap.js", "js/game/cinematic_replay.js", "js/hero_legacy_cache_guard.js", "zone4_owner_story_runtime.html", "ZONE4_004_LORD_STATE_BINDING_MATRIX.json", "ZONE4_004_RUNTIME_MANIFEST.json", "ZONE4_RUNTIME_MANIFEST.json", "css/e10/zone4_owner_story_runtime.css"]
+    "entries": ["i18n.js", "sw.js", "index.html", "manifest.json", "site-nav.js", "srs.js", "inventory.html", "item_journal.html", "js/e9/shell.js", "wgo/wgo.min.js", "wgo/stone_skin.js", "community_reward_notifications.js", "monster_trash.js", "sound.js", "sgf_report_widget.js", "js/map_battle_v1_adapter.js", "js/rpg_wave2_wearable_renderer.js", "js/game/lord_trial_controller.js", "js/game/encounter_presentation_framework_v1.js", "js/game/battlefield_boss_reward_consumer.js", "js/game/presentation_dispatcher.js", "js/game/presentation_effects_b2.js", "js/game/review_transport.js", "js/game/game_session.js", "js/game/question_loader.js", "js/game/board_renderer.js", "js/game/mode_context.js", "js/game/game_bootstrap.js", "js/game/cinematic_replay.js", "js/hero_legacy_cache_guard.js", "zone4_owner_story_runtime.html", "ZONE4_004_LORD_STATE_BINDING_MATRIX.json", "ZONE4_004_RUNTIME_MANIFEST.json", "ZONE4_RUNTIME_MANIFEST.json", "css/e10/zone4_owner_story_runtime.css", "css/g009_hero_hub_batch_a.css", "js/g009_hero_hub_batch_a.js"]
   },
   "runtime_dependency_closure": {
     "description": "The E10 client closure is derived from the index.html entrypoint and recursively resolved local references. Declared subtrees are the live-static-routed E9 runtime boundary; every referenced file must exist in the exact source checkout and is staged with its SHA-256 and size.",
@@ -96,6 +97,21 @@
         "prefix": "assets/3d_shop/p048/companion/formal_18/",
         "manifest": "deploy/g009-companion-formal18-static-pack-manifest.json",
         "staging_rule": "Stage exactly the four Companion runtime modules and the 18 stage GLBs declared by the immutable formal_18 mapping manifest; resolve pet_key and stage from server-owned Companion state and never add a second renderer or entitlement authority."
+      },
+      {
+        "prefix": "assets/world-map-identity/",
+        "manifest": "deploy/g009-derived84-static-pack-manifest.json",
+        "staging_rule": "Stage exactly the 84 Owner-accepted Derived84 identity assets and their runtime manifest declared by path, size and SHA-256. Dual delivery: the application image bakes the same bytes as the fallback and as the registry's module-local validation inputs. Never stage review sheets, candidates or superseded renders."
+      },
+      {
+        "prefix": "assets/maps/e10-vs1f-zone-previews/",
+        "manifest": "deploy/g009-world-map-zone-preview-static-pack-manifest.json",
+        "staging_rule": "Stage exactly the ten Owner-locked World Map zone preview PNGs declared by path, size and SHA-256. Dual delivery: the application image bakes the same bytes as the fallback. The derivation manifest and alias copies are not staged."
+      },
+      {
+        "prefix": "assets/3d_shop/",
+        "manifest": "deploy/g009-hero-model-static-pack-manifest.json",
+        "staging_rule": "Stage exactly the 47 release-required G009 Hero model GLBs declared by path, size and SHA-256 (33 Future30 visual models, six D007 Head/Back, eight non-retired formal equipment). Dual delivery: the application image bakes the same bytes as the fallback. File membership is disjoint from the Companion formal_18 and Formal9 replacement manifests; retired GLBs are never staged."
       },
       {
         "prefix": "assets/storyboards/",

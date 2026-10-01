@@ -29290,6 +29290,8 @@ _G009_FORMAL_RUNTIME_JS_FILES = frozenset({
     'g009_companion_child.mjs',
     'g009_companion_formal18_assets.mjs',
     'g009_companion_formal18_bootstrap.mjs',
+    # G009 Hero Hub bundle: dual delivery (live-static first, baked fallback).
+    'g009_hero_hub_batch_a.js',
 })
 _G009_FORMAL_RUNTIME_SCHEMA_FILES = frozenset({
     'g009_d007_runtime_prerequisite_v1.json',
@@ -29303,6 +29305,15 @@ def serve_g009_formal_runtime_js(filename):
     if filename not in _G009_FORMAL_RUNTIME_JS_FILES:
         abort(404)
     return _serve_live_static_or_baked_subpath(filename, 'js', 'js')
+
+
+@app.route('/css/g009_hero_hub_batch_a.css')
+def serve_g009_hero_hub_batch_a_css():
+    # Same dual-delivery contract as the Hero Hub script above: the governed
+    # static generation is preferred and the baked image copy is the fallback.
+    return _serve_live_static_or_baked_subpath(
+        'g009_hero_hub_batch_a.css', 'css', 'css'
+    )
 
 
 @app.route('/schemas/<string:filename>')

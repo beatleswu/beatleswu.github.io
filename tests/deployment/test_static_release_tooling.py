@@ -140,10 +140,19 @@ ZONE4_REQUIRED_IN_GENERATION = frozenset(
         "css/e10/zone4_owner_story_runtime.css",
     }
 )
+# G009 Hero Hub bundle: Owner dual-delivery authority (live-static first,
+# baked image fallback). Additive to the earlier sets, like Zone4 above.
+G009_HERO_REQUIRED_IN_GENERATION = frozenset(
+    {
+        "css/g009_hero_hub_batch_a.css",
+        "js/g009_hero_hub_batch_a.js",
+    }
+)
 STATIC_CURRENT_REQUIRED_COUNT = (
     STATIC_B1_REQUIRED_COUNT
     + len(POST_B1_REQUIRED_IN_GENERATION)
     + len(ZONE4_REQUIRED_IN_GENERATION)
+    + len(G009_HERO_REQUIRED_IN_GENERATION)
 )
 
 
@@ -152,6 +161,7 @@ def _current_expected_required_in_generation(presentation_present):
         _expected_required_in_generation(presentation_present)
         | POST_B1_REQUIRED_IN_GENERATION
         | ZONE4_REQUIRED_IN_GENERATION
+        | G009_HERO_REQUIRED_IN_GENERATION
     )
 
 
