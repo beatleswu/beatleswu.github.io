@@ -319,7 +319,10 @@ def test_celestial_blade_combo_bonus_is_server_defined():
 def test_fox_mask_daily_quest_xp_uses_server_equipment_effect(monkeypatch):
     conn = _inventory_conn("fox_mask")
     conn.execute(
-        "CREATE TABLE user_stats(user_id INTEGER PRIMARY KEY, xp INTEGER NOT NULL DEFAULT 0, rank_xp INTEGER NOT NULL DEFAULT 0)"
+        # app.init_db's canonical user_stats rank cache definition. Full
+        # init_db is unsuitable for this deliberately narrow SQLite fixture.
+        "CREATE TABLE user_stats(user_id INTEGER PRIMARY KEY, xp INTEGER NOT NULL DEFAULT 0, "
+        "rank_level TEXT NOT NULL DEFAULT 'LV1', rank_xp INTEGER NOT NULL DEFAULT 0)"
     )
     conn.execute(
         """CREATE TABLE daily_quests(

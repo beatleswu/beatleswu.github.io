@@ -146,6 +146,13 @@ def sqlite_conn():
         user_id INTEGER PRIMARY KEY,
         coins INTEGER NOT NULL DEFAULT 0
     )''')
+    # The current transactional quota snapshot also counts settled Map Battle
+    # submissions awaiting their review handoff. Reuse the canonical schema;
+    # do not replace that dependency with a mocked counter.
+    from map_battle_persistence import ensure_map_battle_tables
+    from map_battle_runtime import ensure_submission_lifecycle_schema
+    ensure_map_battle_tables(conn)
+    ensure_submission_lifecycle_schema(conn)
     conn.execute('INSERT INTO users(id) VALUES (?)', (UID,))
     conn.execute('INSERT INTO user_stats(user_id) VALUES (?)', (UID,))
     conn.commit()

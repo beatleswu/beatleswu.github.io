@@ -334,8 +334,24 @@ def test_legacy_coin_gacha_appearance_surface_fails_closed_without_mutation(cosm
     assert _scalar(path, "SELECT COUNT(*) FROM gacha_log WHERE user_id=1") == 0
 
 
-def test_appearance_equipment_routes_are_owned_only_and_fail_closed(cosmetic_app):
+@pytest.fixture()
+def future30_cosmetic_app(cosmetic_app):
     app, path = cosmetic_app
+    # Appearance reload now validates the canonical Future30 catalog. Limit
+    # this additive setup to the protected reload test and seed real governed
+    # catalog rows through the same initializer used by application init_db.
+    from future30_character_service import initialize_future30_catalog
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        # app.init_db declares character_key TEXT; its additive-column helper
+        # queries PostgreSQL information_schema and cannot run on SQLite.
+        conn.execute('ALTER TABLE player_appearance ADD COLUMN character_key TEXT')
+        initialize_future30_catalog(conn)
+    return app, path
+
+
+def test_appearance_equipment_routes_are_owned_only_and_fail_closed(future30_cosmetic_app):
+    app, path = future30_cosmetic_app
     client = _client_for(app, 1)
 
     malformed = client.post(
