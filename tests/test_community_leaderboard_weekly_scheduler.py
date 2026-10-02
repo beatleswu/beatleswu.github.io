@@ -659,10 +659,32 @@ class SqliteConnWrapper:
 
 
 def _add_user(conn, user_id, username, nickname, *, is_admin=0, plan="free"):
-    conn.execute(
-        "INSERT INTO users(id, username, nickname, is_admin, plan) VALUES(?,?,?,?,?)",
-        (user_id, username, nickname, int(bool(is_admin)), plan),
-    )
+    if isinstance(conn, SqliteConnWrapper):
+        conn.execute(
+            "INSERT INTO users(id, username, nickname, is_admin, plan) VALUES(?,?,?,?,?)",
+            (user_id, username, nickname, int(bool(is_admin)), plan),
+        )
+    else:
+        # The PostgreSQL fixture now uses the application's canonical
+        # bootstrap, whose users contract requires the same fields as the
+        # real runtime.  Keep this synthetic credential/data local to the
+        # disposable test account; no production authentication path is used.
+        conn.execute(
+            """
+            INSERT INTO users(
+                id, username, password_hash, nickname, is_admin, plan, created_at
+            ) VALUES(?,?,?,?,?,?,?)
+            """,
+            (
+                user_id,
+                username,
+                "fixture-password-hash",
+                nickname,
+                int(bool(is_admin)),
+                plan,
+                "2026-07-06T00:00:00",
+            ),
+        )
     conn.execute("INSERT INTO user_stats(user_id, rank_level, xp) VALUES(?,?,?)", (user_id, "LV10", 100))
     conn.execute(
         """
@@ -925,68 +947,88 @@ def _pg_connect(database_url):
     return PostgresConnectionWrapper(conn, pooled=False)
 
 
+class _NonClosingPostgresContext:
+    """Expose one fixture connection through app.init_db() without closing it."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def __enter__(self):
+        return self._conn
+
+    def __exit__(self, exc_type, exc, traceback):
+        if exc_type:
+            self._conn.rollback()
+        else:
+            self._conn.commit()
+        return False
+
+
+def _canonical_postgres_bootstrap(conn):
+    """Run the repository's reviewed migration and application bootstrap.
+
+    The disposable PostgreSQL fixture must use the same schema authority as
+    the application.  This intentionally does not copy production DDL into
+    the test: the reviewed SGF migration is applied first, then app.init_db()
+    owns all application table creation and additive upgrades.
+    """
+    os.environ.setdefault("SECRET_KEY", "g009-w1-g02-fixture-secret")
+    os.environ.setdefault("QUESTIONS_JSON_PATH", str(REPO_ROOT / "questions.json"))
+
+    from migrations.sgf_admin_workbench_v1 import upgrade as upgrade_sgf_workbench
+
+    migration_receipt = upgrade_sgf_workbench(conn)
+    conn.commit()
+
+    import app as app_module
+
+    # pytest replaces and later closes captured stderr between test cases.
+    # app.py's process-lifetime startup diagnostics object otherwise keeps a
+    # closed capture stream when this canonical bootstrap is reused by the
+    # next disposable database.  Route these value-free diagnostics to the
+    # process stderr for the duration of this test-only bootstrap path.
+    if getattr(app_module, "_startup_diagnostics", None) is not None:
+        app_module._startup_diagnostics._stream = sys.__stderr__
+
+    original_get_db = app_module.get_db
+    original_init_db = app_module.init_db
+    init_db_calls = []
+
+    def tracked_init_db():
+        init_db_calls.append(True)
+        return original_init_db()
+
+    app_module.get_db = lambda: _NonClosingPostgresContext(conn)
+    app_module.init_db = tracked_init_db
+    try:
+        app_module.init_db()
+    finally:
+        app_module.get_db = original_get_db
+        app_module.init_db = original_init_db
+
+    columns = {
+        str(row["column_name"])
+        for row in conn.execute(
+            """
+            SELECT column_name
+              FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'review_log'
+            """
+        ).fetchall()
+    }
+    assert init_db_calls == [True], "fixture must execute exactly one canonical app.init_db()"
+    assert "source_context" in columns, "canonical bootstrap must provide review_log.source_context"
+    return {
+        "migration_schema_version": migration_receipt["schema_version"],
+        "app_init_db_calls": len(init_db_calls),
+        "review_log_columns": sorted(columns),
+    }
+
+
 def _create_pg_schema(conn):
-    conn.execute(
-        """
-        CREATE TABLE users (
-            id INTEGER PRIMARY KEY,
-            username TEXT NOT NULL,
-            nickname TEXT,
-            is_admin INTEGER NOT NULL DEFAULT 0,
-            plan TEXT NOT NULL DEFAULT 'free',
-            coin_balance INTEGER NOT NULL DEFAULT 0
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE review_log (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            question_id INTEGER NOT NULL,
-            grade INTEGER NOT NULL,
-            reviewed_at TEXT NOT NULL
-        )
-        """
-    )
-    conn.execute("CREATE TABLE user_stats (user_id INTEGER PRIMARY KEY, rank_level TEXT, xp INTEGER DEFAULT 0)")
-    conn.execute(
-        """
-        CREATE TABLE player_appearance (
-            user_id INTEGER PRIMARY KEY,
-            character_key TEXT,
-            combat_armor TEXT,
-            combat_weapon TEXT,
-            combat_cape TEXT,
-            combat_offhand TEXT,
-            combat_hat TEXT,
-            combat_pet TEXT,
-            combat_aura TEXT
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE shop_inventory (
-            user_id INTEGER NOT NULL,
-            item_key TEXT NOT NULL,
-            qty INTEGER NOT NULL DEFAULT 0,
-            UNIQUE(user_id, item_key)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE badges_earned (
-            user_id INTEGER NOT NULL,
-            badge_id TEXT NOT NULL,
-            earned_at TEXT NOT NULL,
-            seen INTEGER NOT NULL DEFAULT 0,
-            PRIMARY KEY(user_id, badge_id)
-        )
-        """
-    )
-    lbr.ensure_leaderboard_reward_tables(conn)
+    bootstrap_receipt = _canonical_postgres_bootstrap(conn)
+    assert bootstrap_receipt["app_init_db_calls"] == 1
+    assert "source_context" in bootstrap_receipt["review_log_columns"]
     _seed_commit_fixture(conn)
     conn.commit()
 
@@ -999,7 +1041,7 @@ class _PgFakeRewardApp:
 
     @staticmethod
     def _grant_coins(conn, user_id, amount, reason, bypass_daily_cap=False):
-        conn.execute("UPDATE users SET coin_balance = coin_balance + %s WHERE id = %s", (amount, user_id))
+        conn.execute("UPDATE user_stats SET coins = coins + %s WHERE user_id = %s", (amount, user_id))
         return amount
 
     @staticmethod
@@ -1487,7 +1529,7 @@ def test_disposable_postgres_cli_grant_commit_races_scheduler_cycle(monkeypatch,
                 "WHERE board_type = %s AND period_key = %s AND status = 'granted'",
                 ("weekly", "2026-W28"),
             ).fetchone()[0]
-            balances = verify_conn.execute("SELECT COALESCE(SUM(coin_balance), 0) FROM users").fetchone()[0]
+            balances = verify_conn.execute("SELECT COALESCE(SUM(coins), 0) FROM user_stats").fetchone()[0]
             # Every eligible claim's coins were granted exactly once -- a
             # duplicate grant would double this.
             assert balances == total_coins
@@ -1561,7 +1603,7 @@ def test_disposable_postgres_connection_drop_before_commit_leaves_zero_writes(mo
             assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
             assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
             assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
-            assert verify_conn.execute("SELECT COALESCE(SUM(coin_balance), 0) FROM users").fetchone()[0] == 0
+            assert verify_conn.execute("SELECT COALESCE(SUM(coins), 0) FROM user_stats").fetchone()[0] == 0
             assert scheduler.try_acquire_period_lock(verify_conn, "weekly", "2026-W28") is True
             scheduler.release_period_lock(verify_conn, "weekly", "2026-W28")
         finally:

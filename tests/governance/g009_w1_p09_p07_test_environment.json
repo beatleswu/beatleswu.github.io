@@ -1,0 +1,12 @@
+{
+  "task_id": "G009_W1_P09_P07_COVERAGE_001",
+  "compose_project": "g009_w1_p09_p07_coverage_001",
+  "container_names": [],
+  "db_required": "NO",
+  "db_name": "NOT_APPLICABLE",
+  "db_port": "NOT_APPLICABLE",
+  "db_initialization_method": "NONE; the P09 successor reads exported navigation/i18n/route contracts without application bootstrap, and P01-P04 use per-test in-memory SQLite with a monkeypatched connection.",
+  "writable_test_state": "PROCESS_LOCAL_ONLY; no shared persistent database, volume, host port, or external runtime state.",
+  "production_access": "FORBIDDEN_AND_NOT_PERFORMED",
+  "isolation_note": "No PostgreSQL container was started because no test in this lane requires PostgreSQL; the dedicated compose project identity is reserved to prevent accidental reuse of another lane's project."
+}

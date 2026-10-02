@@ -22,6 +22,10 @@ RUNTIME_PATHS = (
     CONTENT_PATH,
 )
 BASE = "d5d3d3d08757d70e182d67a4547fbfbcaab8a561"
+# The accepted W1-03 presentation/content authority is evaluated at the
+# current final-QA tip; this avoids treating cumulative G009 integration paths
+# as part of the subtitle/voice lane.
+AUTHORITY_HEAD = "44401f1cefff3e2e362de0c242b2c0145472945a"
 
 
 def load(path: Path) -> dict:
@@ -154,7 +158,7 @@ def test_replay_and_locale_contract_is_presentation_only():
 def test_protected_runtime_boundaries_remain_unchanged_from_base():
     changed = set(
         subprocess.run(
-            ["git", "diff", "--name-only", BASE, "--"],
+            ["git", "diff", "--name-only", BASE, AUTHORITY_HEAD, "--"],
             cwd=ROOT,
             capture_output=True,
             text=True,

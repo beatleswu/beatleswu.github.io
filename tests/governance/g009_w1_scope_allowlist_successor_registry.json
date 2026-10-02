@@ -1,0 +1,75 @@
+{
+  "schema": "g009-w1-scope-allowlist-successor-registry-v1",
+  "scope": "test-governance-only",
+  "registration_date": "2026-10-02",
+  "resulting_commit": "POST_COMMIT_OUTPUT_HEAD",
+  "resulting_commit_binding": "Resolved by the exact post-commit receipt for this task; this registry and its validator are committed atomically.",
+  "entries": [
+    {
+      "protected_id": "B01",
+      "old_protected_node_identity": "tests/deployment/test_eq_f_r3_release_flag_propagation.py::test_a_normal_governed_deploy_resolves_shop_true_equipment_false",
+      "status": "RENAMED",
+      "successor_node_ids": [
+        "tests/deployment/test_eq_f_r3_release_flag_propagation.py::test_a_normal_governed_deploy_resolves_shop_false_equipment_false"
+      ],
+      "successor_current_status": {
+        "tests/deployment/test_eq_f_r3_release_flag_propagation.py::test_a_normal_governed_deploy_resolves_shop_false_equipment_false": "PASS"
+      },
+      "old_node_presence": "ABSENT",
+      "retirement_or_supersession_reason": "The release-flag contract was renamed when the accepted G009 prebuild authority changed the governed normal deployment expectation from shop=true to shop=false while retaining the equipment=false assertion.",
+      "authority_source": "Accepted commit 0164150fce6da59e4425102689bae813c23adbfb (fix: enforce G009 prebuild authority gates).",
+      "successor_pass_required_before_retirement": true
+    },
+    {
+      "protected_id": "B02",
+      "old_protected_node_identity": "tests/deployment/test_image_content_boundary.py::test_assets_not_required_at_build_time",
+      "status": "SUPERSEDED",
+      "successor_node_ids": [
+        "tests/deployment/test_image_content_boundary.py::test_assets_tree_is_never_copied_wholesale",
+        "tests/deployment/test_image_content_boundary.py::test_baked_assets_are_dual_delivery_or_image_only_runtime_support",
+        "tests/deployment/test_image_content_boundary.py::test_external_only_asset_classes_are_never_baked"
+      ],
+      "successor_current_status": {
+        "tests/deployment/test_image_content_boundary.py::test_assets_tree_is_never_copied_wholesale": "PASS",
+        "tests/deployment/test_image_content_boundary.py::test_baked_assets_are_dual_delivery_or_image_only_runtime_support": "PASS",
+        "tests/deployment/test_image_content_boundary.py::test_external_only_asset_classes_are_never_baked": "PASS"
+      },
+      "old_node_presence": "ABSENT",
+      "retirement_or_supersession_reason": "The historical blanket no-asset-copy assertion was explicitly narrowed by asset class: governed dual-delivery classes and four image-only runtime support files remain allowed, while all other asset classes remain external-only.",
+      "authority_source": "Accepted commit 08196c532962ef6717e05970340b4689e6f6f8f3 (test(g009): narrow the image asset policy by asset class), with the stated Owner disposition in its commit body.",
+      "successor_pass_required_before_retirement": true
+    },
+    {
+      "protected_id": "B03",
+      "old_protected_node_identity": "tests/test_act_b_provider_boundary_d1.py::test_zone4_to_zone10_slots_are_not_admitted_for_new_map_battles",
+      "status": "SUPERSEDED",
+      "successor_node_ids": [
+        "tests/test_act_b_provider_boundary_d1.py::test_zone4_to_zone10_creation_and_restore_use_the_canonical_c2a_e1a_provider",
+        "tests/test_act_b_provider_boundary_d1.py::test_zone1_to_zone3_admission_is_unchanged_by_zone4_10_activation"
+      ],
+      "successor_current_status": {
+        "tests/test_act_b_provider_boundary_d1.py::test_zone4_to_zone10_creation_and_restore_use_the_canonical_c2a_e1a_provider": "PASS",
+        "tests/test_act_b_provider_boundary_d1.py::test_zone1_to_zone3_admission_is_unchanged_by_zone4_10_activation": "PASS"
+      },
+      "old_node_presence": "ABSENT",
+      "retirement_or_supersession_reason": "The old blanket rejection contract was superseded by the accepted Zone4-10 provider admission contract, while the Zone1-3 admission boundary remains explicitly protected.",
+      "authority_source": "Accepted commit 2cfb77ce4a8afd9888c2e122e1155d3b65712984 (fix(g009): recover Zone4-10 provider admission).",
+      "successor_pass_required_before_retirement": true
+    },
+    {
+      "protected_id": "B04",
+      "old_protected_node_identity": "tests/test_e9_server_rollout_targeting.py::test_admin_only_scope_is_default_and_allowlist_cannot_expand_it",
+      "status": "RENAMED",
+      "successor_node_ids": [
+        "tests/test_e9_server_rollout_targeting.py::test_authenticated_scope_is_default_and_allowlist_cannot_expand_it"
+      ],
+      "successor_current_status": {
+        "tests/test_e9_server_rollout_targeting.py::test_authenticated_scope_is_default_and_allowlist_cannot_expand_it": "PASS"
+      },
+      "old_node_presence": "ABSENT",
+      "retirement_or_supersession_reason": "The rollout targeting contract was renamed when the accepted authenticated-player G009 authority replaced the historical admin-only default, while preserving the no-allowlist-expansion boundary.",
+      "authority_source": "Accepted commit bd43ff7b9977da8289e65632b537542ebb848d20 (feat(g009): enable locked world map for authenticated players).",
+      "successor_pass_required_before_retirement": true
+    }
+  ]
+}

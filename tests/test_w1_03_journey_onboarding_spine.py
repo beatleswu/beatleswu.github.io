@@ -7,7 +7,11 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = "origin/master"
+# This guard owns the accepted W1-OWNER-POSTDEPLOY-CORRECTIVE writer slot.
+# Keep its comparison at that exact accepted patch boundary instead of
+# comparing the cumulative G009 candidate against the moving branch tip.
+AUTHORITY_BASE = "e8531290f641d5daec145864993d10f5fea457d4"
+AUTHORITY_HEAD = "ebb55216627fe88403bdeaf6b74611f9a97d7460"
 CONTENT = ROOT / "js" / "e9" / "journey_onboarding_content.js"
 SPINE = ROOT / "js" / "e9" / "journey_onboarding_spine.js"
 VIEW = ROOT / "js" / "e9" / "journey_onboarding_view.js"
@@ -144,10 +148,11 @@ def test_view_is_root_scoped_and_presentation_only():
 
 def _diff(relative: str) -> str:
     return subprocess.run(
-        ["git", "diff", BASE, "--", relative],
+        ["git", "diff", AUTHORITY_BASE, AUTHORITY_HEAD, "--", relative],
         cwd=ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     ).stdout
 

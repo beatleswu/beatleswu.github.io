@@ -400,6 +400,143 @@
     return mobile || tabletPortrait;
   }
 
+  // WM-Q1 presentation boundary.  The map art keeps its governed 2048:1152
+  // aspect ratio while the stage owns the legal horizontal pan surface.  The
+  // surface is never widened with a spacer: when the available height already
+  // fits the viewport, the content width is exactly the viewport width and the
+  // resulting scroll range is zero.
+  function ensureMapPanSurface(root) {
+    if (!VS1E_STATIC_CONTRACT_ACTIVE || !root) return null;
+    var mapStage = root.querySelector('#e9-map-stage');
+    if (!mapStage) return null;
+    var panContent = mapStage.querySelector('[data-g009-map-pan-content]');
+    if (!panContent) {
+      panContent = document.createElement('div');
+      panContent.className = 'e9-map-stage__pan-content';
+      panContent.setAttribute('data-g009-map-pan-content', '');
+      mapStage.insertBefore(panContent, mapStage.firstChild);
+    }
+    [
+      '.e9-map-stage__base',
+      '.e9-map-stage__route',
+      '#e9-world-stage-boss-anchors',
+      '#e9-world-stage-zones',
+    ].forEach(function (selector) {
+      var element = mapStage.querySelector(selector);
+      if (element && element.parentNode !== panContent) panContent.appendChild(element);
+    });
+    mapStage.setAttribute('data-g009-horizontal-scroll-surface', 'true');
+    return panContent;
+  }
+
+  function syncDesktopMarkerToPanSurface(root, zone, panContent, mapStage) {
+    if (!root || !zone || !panContent || !mapStage || usesInlinePlayerMarkerSurface()) return;
+    var marker = root.querySelector('#e9-world-stage-player');
+    var anchor = VS1E_STATIC_CONTRACT_ACTIVE ? VS1F_ZONE_ANCHORS[zone.key] : null;
+    if (!marker || !anchor || !mapStage.clientWidth) return;
+    var contentWidth = panContent.scrollWidth || mapStage.clientWidth;
+    // The marker remains a direct child of the scroll frame for the desktop
+    // ownership contract.  Its left coordinate is therefore expressed in
+    // the frame's scroll-content coordinate space; the browser applies
+    // scrollLeft exactly once when painting it.
+    var contentX = anchor.x / 100 * contentWidth;
+    marker.style.setProperty('--anchor-x', (contentX / mapStage.clientWidth * 100) + '%');
+    marker.style.setProperty('--anchor-y', anchor.y + '%');
+  }
+
+  function syncMapPanSurface(root) {
+    var mapStage = root && root.querySelector('#e9-map-stage');
+    var panContent = ensureMapPanSurface(root);
+    if (!mapStage || !panContent) return null;
+    var viewportWidth = mapStage.clientWidth;
+    var viewportHeight = mapStage.clientHeight;
+    if (!viewportWidth || !viewportHeight) return panContent;
+    var viewportClass = resolveViewportClass();
+    var inlineSurface = viewportClass === 'MOBILE_480' || viewportClass === 'IPAD_PORTRAIT_820';
+    var mobileCards = viewportClass === 'MOBILE_480';
+    var base = mapStage.querySelector('.e9-map-stage__base');
+    var intrinsicWidth = Number(base && (base.naturalWidth || base.width)) || 2048;
+    var intrinsicHeight = Number(base && (base.naturalHeight || base.height)) || 1152;
+    var mapAspectRatio = intrinsicWidth > 0 && intrinsicHeight > 0
+      ? intrinsicWidth / intrinsicHeight
+      : 2048 / 1152;
+    // Portrait cards intentionally keep their existing vertical journey.  The
+    // map frame still participates in the same measurement contract, but its
+    // content remains one viewport wide and cannot invent horizontal space.
+    var contentWidth = inlineSurface
+      ? viewportWidth
+      : Math.max(viewportWidth, viewportHeight * mapAspectRatio);
+    panContent.style.width = contentWidth + 'px';
+    panContent.style.height = mobileCards ? 'auto' : viewportHeight + 'px';
+    panContent.style.minHeight = mobileCards ? '0' : '100%';
+    panContent.setAttribute('data-g009-content-width', String(contentWidth));
+    panContent.setAttribute('data-g009-content-height', String(viewportHeight));
+    return panContent;
+  }
+
+  function focusCurrentZone(root, zone) {
+    var mapStage = root && root.querySelector('#e9-map-stage');
+    var panContent = syncMapPanSurface(root);
+    if (!mapStage || !panContent || !zone || !mapStage.clientWidth || !mapStage.clientHeight) return null;
+    var currentNode = root.querySelector('[data-player-location="true"]');
+    if (!currentNode) return null;
+    var surfaceRect = mapStage.getBoundingClientRect();
+    var nodeRect = currentNode.getBoundingClientRect();
+    var viewport_width = mapStage.clientWidth;
+    var current_zone_center_x = nodeRect.left - surfaceRect.left
+      + mapStage.scrollLeft + nodeRect.width / 2;
+    var viewport_center_x = viewport_width / 2;
+    var max_scroll_left = Math.max(0, mapStage.scrollWidth - viewport_width);
+    // WM-Q1 mandatory formula:
+    // desired_scroll_left = current_zone_center_x - viewport_width / 2
+    var desired_scroll_left = current_zone_center_x - viewport_center_x;
+    var target_scroll_left = Math.min(
+      max_scroll_left,
+      Math.max(0, desired_scroll_left)
+    );
+    var clamped = max_scroll_left === 0 || target_scroll_left !== desired_scroll_left;
+    mapStage.scrollLeft = target_scroll_left;
+    var actual_scroll_left = mapStage.scrollLeft;
+    syncDesktopMarkerToPanSurface(root, zone, panContent, mapStage);
+    var afterRect = currentNode.getBoundingClientRect();
+    var after_center_x = afterRect.left + afterRect.width / 2;
+    var after_center_y = afterRect.top + afterRect.height / 2;
+    var center_delta_x = after_center_x - (surfaceRect.left + viewport_width / 2);
+    var center_delta_y = after_center_y - (surfaceRect.top + mapStage.clientHeight / 2);
+    var measurement = {
+      currentZoneId: zone.key,
+      scrollSurfaceBounds: {
+        left: surfaceRect.left,
+        top: surfaceRect.top,
+        width: surfaceRect.width,
+        height: surfaceRect.height,
+      },
+      contentWidth: panContent.scrollWidth,
+      viewportWidth: viewport_width,
+      maxScrollLeft: max_scroll_left,
+      currentZoneCenterX: current_zone_center_x,
+      viewportCenterX: viewport_center_x,
+      desiredScrollLeft: desired_scroll_left,
+      actualScrollLeft: actual_scroll_left,
+      clamped: clamped,
+      centerDeltaX: center_delta_x,
+      centerDeltaY: center_delta_y,
+      horizontalOverflow: max_scroll_left > 0,
+      verticalOverflow: mapStage.scrollHeight > mapStage.clientHeight,
+    };
+    mapStage.setAttribute('data-wm-q1-current-zone-id', zone.key);
+    mapStage.setAttribute('data-wm-q1-desired-scroll-left', String(desired_scroll_left));
+    mapStage.setAttribute('data-wm-q1-actual-scroll-left', String(actual_scroll_left));
+    mapStage.setAttribute('data-wm-q1-max-scroll-left', String(max_scroll_left));
+    mapStage.setAttribute('data-wm-q1-clamped', clamped ? 'YES' : 'NO');
+    mapStage.setAttribute('data-wm-q1-center-delta-x', String(center_delta_x));
+    mapStage.setAttribute('data-wm-q1-center-delta-y', String(center_delta_y));
+    mapStage.setAttribute('data-wm-q1-horizontal-overflow', max_scroll_left > 0 ? 'YES' : 'NO');
+    mapStage.setAttribute('data-wm-q1-vertical-overflow', mapStage.scrollHeight > mapStage.clientHeight ? 'YES' : 'NO');
+    root.__g009WorldMapFocusMeasurement = measurement;
+    return measurement;
+  }
+
   function updateRouteProgress(root, zones) {
     if (!VS1E_STATIC_CONTRACT_ACTIVE || !zones.length) return;
     var completed = zones.filter(function (zone) {
@@ -593,7 +730,12 @@
     var marker = root.querySelector('#e9-world-stage-player');
     if (!marker) return;
     marker.classList.remove('e10-current-hero');
-    if (marker.parentNode !== mapStage) mapStage.appendChild(marker);
+    var panContent = ensureMapPanSurface(root);
+    if (usesInlinePlayerMarkerSurface() && panContent && marker.parentNode !== panContent) {
+      panContent.appendChild(marker);
+    } else if (!usesInlinePlayerMarkerSurface() && marker.parentNode !== mapStage) {
+      mapStage.appendChild(marker);
+    }
   }
 
   function reconcilePlayerNodeMarker(root, zone, generation) {
@@ -1643,6 +1785,7 @@
     var mapStage = root.querySelector('#e9-map-stage');
     var bossAnchorsEl = root.querySelector('#e9-world-stage-boss-anchors');
     if (!zonesEl || !mapStage || !bossAnchorsEl) return;
+    ensureMapPanSurface(root);
 
     var state = root.__e9WorldStageState || (root.__e9WorldStageState = {
       zones: zones,
@@ -1869,10 +2012,13 @@
 
     mapStage.hidden = false;
     zonesEl.hidden = false;
+    syncMapPanSurface(root);
     // Existing lifecycle contract name retained in this note while the one
     // idempotent implementation is reconcilePlayerNodeMarker().
     // updatePlayerMarker(root, playerLocation)
-    if (VS1E_STATIC_CONTRACT_ACTIVE) reconcilePlayerNodeMarker(root, playerLocation, state.generation);
+    if (VS1E_STATIC_CONTRACT_ACTIVE) {
+      reconcilePlayerNodeMarker(root, playerLocation, state.generation);
+    }
     if (statusEl) {
       var clearedCount = zones.filter(function (z) { return z.cleared; }).length;
       statusEl.textContent = t('index.adv.summary', '{n} / {t} areas cleared')
@@ -1902,6 +2048,11 @@
         if (portraitDetails) portraitDetails.hidden = !portraitTablet;
       }
     }
+    // Run after the selected surface has finished its responsive render.  On
+    // MOBILE_480 the inline detail card can change the current tile's height;
+    // the WM-Q1 receipt must describe that final layout, while the focus
+    // operation itself remains horizontal-only.
+    if (VS1E_STATIC_CONTRACT_ACTIVE) focusCurrentZone(root, playerLocation);
   }
 
   function recoverToLegacy(reason) {

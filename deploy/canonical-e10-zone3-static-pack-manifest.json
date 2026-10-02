@@ -2,11 +2,11 @@
   "$schema_note": "Canonical governed Zone 3 runtime static closure for QA blocker repair 011. The five first-entry cinematic WebP resources were present in the source checkout but absent from the failed image package; this closure also stages the complete Zone 3 runtime media/data set. Source JPEG/PNG masters are never staged.",
   "manifest_version": "1.0.0",
   "generated_for": "W1_03_JOURNEY_ZONE3_FINAL_QA_BLOCKER_REPAIR_011",
-  "source_head": "33e06fa027fbbac2545e5ab4a26e01435b00be34",
-  "source_tree": "1600f0e122800c2a350e4aa5653876d5203dbceb",
+  "source_head": "65dd8c00f217fc04942456d5b1dd02f52fc8f265",
+  "source_tree": "e227201cd0e12eeb0c82a15f5d46d45bf66397e9",
   "prefix": "assets/e10/",
   "total_files": 235,
-  "total_bytes": 28204698,
+  "total_bytes": 28204646,
   "curated_missing_resources": [
     {
       "resource_path": "assets/e10/art/zone3/cinematic/zone3_shot01.webp",

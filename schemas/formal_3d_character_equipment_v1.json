@@ -1,0 +1,170 @@
+{
+  "schema": "formal-3d-character-equipment-v1",
+  "contract_version": "FORMAL_3D_CHARACTER_EQUIPMENT_V1",
+  "version": 1,
+  "authority": {
+    "server_character_identity": {
+      "owner": "server",
+      "endpoint": "/api/player/appearance",
+      "source": "player_appearance.character_key",
+      "runtime_handoff": "character_runtime.character_key",
+      "client_identity_authority": false,
+      "projection_guard": "character_key_authority=player_appearance.character_key"
+    },
+    "player_appearance": {
+      "owner": "server",
+      "selection_source": "player_appearance.character_key",
+      "ownership_source": "player_wardrobe",
+      "adapter": "js/player_appearance_3d_attachment_adapter.js",
+      "contract": "PLAYER_APPEARANCE_3D_ATTACHMENT_V1"
+    },
+    "future30": {
+      "registry": "schemas/future30_c005_real_asset_runtime_mapping_manifest.json",
+      "registry_adapter": "future30_character_registry.py",
+      "contract_version": "FUTURE30_CHARACTER_RUNTIME_MANIFEST_V1",
+      "logical_character_count": 30,
+      "visual_model_count": 33,
+      "logical_to_visual": "visual_models[].character_id -> roster[].character_id",
+      "default_variant": "RED",
+      "blue_variants_are_logical_characters": false
+    },
+    "equipment": {
+      "mapping_source": "/schemas/g009_d007_runtime_prerequisite_v1.json#/equipment_catalog/items",
+      "server_item_id_authority": "server_snapshot_only",
+      "asset_id_role": "presentation_resolution_only",
+      "ownership_source": "server:player_inventory",
+      "capability_source": "server:EQUIPMENT_CANONICAL_LOADOUT_ENABLED",
+      "release_eligibility": "NOT_CLEARED"
+    },
+    "formal9": {
+      "replacement_schema": "schemas/g009_formal9_rights_cleared_replacement_v1.json",
+      "runtime_catalog": "js/g009_formal9_rights_cleared_replacement_catalog.js",
+      "retirement_map": "provenance/g009_formal9_rights_cleared_v1/old_asset_retirement_map.json",
+      "rights_status": "RIGHTS_CLEARED",
+      "release_eligibility": "RIGHTS_CLEARED_RELEASE_NOT_ADMITTED",
+      "retired_asset_runtime_reachable": false
+    }
+  },
+  "manifest_identity": {
+    "future30_c005": {
+      "path": "schemas/future30_c005_real_asset_runtime_mapping_manifest.json",
+      "sha256": "35746c1168152cbd3fd166fd0ba5a319f3bf1ba8916fed3a8669f487a2a83c1d"
+    },
+    "g009_d007": {
+      "path": "schemas/g009_d007_runtime_prerequisite_v1.json",
+      "sha256": "2fe861f7866ee63bd36f71ba2df251a9ad58c916337a8809f45b065a41e3d3c8"
+    },
+    "formal9_replacement": {
+      "path": "schemas/g009_formal9_rights_cleared_replacement_v1.json",
+      "sha256": "85072a01fa9741f6467050e97d2d8c189d2899b0116427638356acb9977e8f01"
+    }
+  },
+  "runtime_host": {
+    "module": "js/formal_3d_character_equipment_runtime.js",
+    "contract": "FORMAL_3D_ATTACHMENT_HOST_V1",
+    "preview_contract": "FORMAL_3D_SHARED_PREVIEW_V1",
+    "mount_api": "mountShared3DPreview(container, payload)",
+    "character_runtime_bridge": "js/player_character_3d_runtime_bridge.js",
+    "appearance_host_adapter": "js/player_appearance_3d_attachment_adapter.js",
+    "server_identity_required": true,
+    "parallel_character_authority": false
+  },
+  "slots": {
+    "character_root": "CHARACTER_ROOT",
+    "equipment": ["MAIN_HAND", "OFF_HAND"],
+    "appearance": ["HEAD", "BACK", "AURA"],
+    "excluded": {
+      "PET_COMPANION": "EXCLUDED_UNRESOLVED_NODE_VALIDATION"
+    }
+  },
+  "socket_mount": {
+    "MAIN_HAND": "hand.R",
+    "OFF_HAND": "hand.L",
+    "HEAD": "head",
+    "BACK": "back",
+    "AURA": "aura",
+    "identity_fields": [
+      "server_item_id",
+      "asset_id",
+      "runtime_asset",
+      "runtime_sha256",
+      "slot",
+      "socket",
+      "position",
+      "rotation",
+      "scale"
+    ]
+  },
+  "weapon_handling": {
+    "main_hand_classes": ["ONE_HAND", "KNIFE_SMALL"],
+    "off_hand_classes": ["SHIELD"],
+    "two_handed": "UNSUPPORTED",
+    "polearm": "UNSUPPORTED",
+    "production_off_hand_flag": false
+  },
+  "shared_preview_contract": {
+    "contract_version": "FORMAL_3D_SHARED_PREVIEW_V1",
+    "asset_identity": "asset_id",
+    "mapping_source": "/schemas/g009_d007_runtime_prerequisite_v1.json#/equipment_catalog/items",
+    "mount_api": "mountShared3DPreview(container, payload)",
+    "lifecycle": ["mount", "replace", "unmount", "cleanup", "character_swap"],
+    "supported_slots": ["MAIN_HAND", "OFF_HAND", "HEAD", "BACK", "AURA"],
+    "supported_weapon_classes": ["ONE_HAND", "KNIFE_SMALL"],
+    "supported_off_hand_classes": ["SHIELD"],
+    "authority": "server-owned identity/ownership; preview renderer is presentation-only"
+  },
+  "asset_contract": {
+    "hash_algorithm": "SHA-256",
+    "asset_identity_field": "asset_id",
+    "runtime_hash_field": "runtime_sha256",
+    "runtime_asset_field": "runtime_asset",
+    "server_item_identity_field": "server_item_id",
+    "manifest_identity_fields": [
+      "future30_c005_manifest_sha256",
+      "product_manifest_sha256",
+      "runtime_sha256"
+    ]
+  },
+  "preview_semantics": {
+    "preview_only": true,
+    "mutates_ownership": false,
+    "mutates_equipment": false,
+    "mutates_player_state": false,
+    "mutates_combat": false,
+    "transaction_authority": false,
+    "source_model_authority_is_production_release": false,
+    "final_runtime_acceptance_is_source_completeness": false
+  },
+  "release_admission": {
+    "fail_closed": true,
+    "runtime_candidate_only": true,
+    "release_eligibility": "NOT_CLEARED",
+    "release_enabled": false,
+    "shop_enabled": false,
+    "player_selectable": false,
+    "equip_enabled": false,
+    "production_asset_admission": false,
+    "required_identity_fields": [
+      "asset_id",
+      "server_item_id",
+      "runtime_asset",
+      "runtime_sha256",
+      "manifest_identity_fields"
+    ]
+  },
+  "authority_scope": {
+    "owns": [
+      "formal_3d_contract_shape",
+      "server_identity_handoff_shape",
+      "slot_socket_boundary",
+      "preview_mutation_boundary",
+      "release_fail_closed_defaults"
+    ],
+    "does_not_decide": [
+      "character_assignment",
+      "acquisition_assignment",
+      "product_enablement",
+      "production_admission"
+    ]
+  }
+}

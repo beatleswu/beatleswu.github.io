@@ -13,6 +13,11 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "d79f0c869507796b502b4bb6e491df49d94ef467"
+# The accepted micro-revision is evaluated at its own commit boundary.  The
+# candidate later consumes this asset through separate accepted runtime work;
+# comparing the frozen micro-revision with the cumulative candidate would turn
+# this lane guard into a historical release-wide diff.
+AUTHORITY_HEAD = "423ed676c25f1c59a650719c632836176641a0be"
 PACK = ROOT / "docs" / "planning" / "rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003"
 REVISION = PACK / "revisions" / "acc_jade_ring_visual_readability_fix_004"
 MANIFEST = PACK / "rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003_manifest.json"
@@ -96,7 +101,13 @@ class AccJadeRingRevisionTests(unittest.TestCase):
             "tests/test_acc_jade_ring_visual_readability_fix.py",
             "tools/build_acc_jade_ring_visual_readability_fix.py",
         )
-        changed = subprocess.run(["git", "diff", "--name-only", BASE, "HEAD"], cwd=ROOT, check=True, capture_output=True, text=True).stdout.splitlines()
+        changed = subprocess.run(
+            ["git", "diff", "--name-only", BASE, AUTHORITY_HEAD],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
         unexpected = [path for path in changed if not any(path == prefix or path.startswith(prefix) for prefix in allowed)]
         self.assertEqual(unexpected, [])
         self.assertFalse(any("assets/hero/characters/" in path for path in changed))

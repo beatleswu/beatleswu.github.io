@@ -436,7 +436,28 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage .e9-map-stage__base {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center center;
+  object-position: var(--focus-x, 50%) 50%;
+}
+
+/* WM-Q1: the map frame is the only horizontal pan surface.  Its child
+   content width is set from the governed map aspect ratio and available
+   height by world_stage.js; when the frame already fits, the width collapses
+   to the viewport and the legal range is exactly zero.  No vertical pan or
+   synthetic spacer is introduced. */
+body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage .e9-map-stage__pan-content {
+  position: relative;
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100%;
+  flex: none;
 }
 
 body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-details,
@@ -1146,7 +1167,8 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
 html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage {
   aspect-ratio: 16 / 9 !important;
   border: 3px solid var(--e10-ref-gold);
-  overflow: hidden !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
 }
 html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage .e9-map-stage__base { position: absolute; inset: 0; }
 html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] .e10-adventure-progress { display: none; }
@@ -1438,6 +1460,11 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
     overflow: visible !important;
     aspect-ratio: auto !important;
     padding: 0 !important;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage .e9-map-stage__pan-content {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
   body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage .e9-map-stage__base {
     position: relative !important;

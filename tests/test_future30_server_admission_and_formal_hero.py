@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import sqlite3
 from pathlib import Path
 
@@ -80,23 +81,39 @@ def test_formal_host_and_f009_contract_are_explicit_and_bounded():
 
 def test_authenticated_hero_passes_server_snapshot_to_formal_runtime():
     hero = source("hero.html")
-    assert 'fetch("/api/player/appearance"' in hero
-    assert "...appearance" in hero
-    assert "character_key: appearance?.character_key || null" in hero
-    assert "mountFormal3DFromHero" in hero
-    assert "player_appearance.character_key" in hero or "server-provided character_key" in hero
-    assert "formal_3d_authority" in hero
-    assert ".fullbody-generated-avatar[hidden]" in hero
+    renderer = source("js/g008_future30_hero_renderer.js")
+    host = source("js/g009_d007_shared_host_adapter.js")
+    assert re.search(r"fetch\(\s*['\"]/api/player/appearance['\"]", hero)
+    assert "const serverCharacter = appearance && appearance.character_key" in hero
+    assert "_characterAuthorityKey = serverCharacter" in hero
+    assert "_combatGear.character = serverCharacter" in hero
+    assert "player_appearance.character_key" in hero
+    assert '<script type="module" src="/js/g008_future30_hero_renderer.js"></script>' in hero
+    assert "const key = appearance.character_key" in renderer
+    assert "appearance.character_key_source !== \"player_appearance.character_key\"" in renderer
+    assert "appearance.character_key_authority !== \"player_appearance.character_key\"" in renderer
+    assert "runtime.character_key !== key" in renderer
+    assert "server_character_projection_mismatch" in renderer
+    assert "renderServerSnapshot(snapshot)" in host
+    assert 'snapshot?.character_key_source === "player_appearance.character_key"' in host
+    assert 'snapshot?.character_key_authority === "player_appearance.character_key"' in host
+    assert 'authority: "player_appearance.character_key"' in host
+    assert 'formal_item_mapping_created: false' in host
 
 
 def test_appearance_read_model_declares_existing_wardrobe_ownership():
     app = source("app.py")
-    appearance_start = app.index("def get_appearance():")
-    appearance_end = app.index("@app.route('/api/player/appearance/equip'")
-    projection = app[appearance_start:appearance_end]
-    assert "'owned':          True" in projection
-    assert "player_wardrobe" in projection
-    assert "player_appearance.character_key" in projection
+    catalog_start = app.index("@app.route('/api/player/character-catalog')")
+    catalog_end = app.index("@app.route('/api/skills/character'", catalog_start)
+    projection = app[catalog_start:catalog_end]
+    assert "'owned': entitlement is not None" in projection
+    assert "'acquisition_source': entitlement['acquisition_source'] if entitlement else None" in projection
+    assert "'permanent': bool(entitlement)" in projection
+    assert "'is_applied': entry['character_key'] == applied['character_key']" in projection
+    assert "'ownership_authority': 'player_character_entitlements(user_id,character_key)'" in projection
+    assert "'applied_authority': 'player_appearance.character_key'" in projection
+    assert "player_character_entitlements" in projection
+    assert "'owned':          True" not in projection
 
 
 def test_real_character_route_requires_persistent_ownership_and_rejects_unknown(tmp_path, monkeypatch):

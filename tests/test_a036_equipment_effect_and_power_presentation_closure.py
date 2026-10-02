@@ -12,6 +12,7 @@ import app as app_module  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 HERO = (ROOT / "hero.html").read_text(encoding="utf-8")
 INVENTORY = (ROOT / "inventory.html").read_text(encoding="utf-8")
+APP = (ROOT / "app.py").read_text(encoding="utf-8")
 
 FUNCTIONAL_EFFECT_MATRIX = {
     "wooden_sword": ("weapon", {"dmg_bonus": 0.05}, {"dmg_bonus"}),
@@ -123,14 +124,21 @@ def test_frontend_uses_server_effect_details_without_a_duplicate_stat_table():
 
 
 def test_go_stone_and_loadout_gate_are_closed_in_backpack_ui():
-    assert "const FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED = false;" in INVENTORY
-    assert "const FUNCTIONAL_INVENTORY_ONLY_IDS = new Set(['go_stone_black']);" in INVENTORY
+    assert "let functionalEquipmentLoadoutCapability = false;" in INVENTORY
+    assert "!!(me && me.equipment_loadout_enabled === true)" in INVENTORY
+    assert "applyFunctionalEquipmentLoadoutCapability(me)" in INVENTORY
+    assert "FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED" not in INVENTORY
     assert "No combat power" in INVENTORY
     assert "不提供戰鬥能力" in INVENTORY
-    assert "action === 'equip' && !FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED" in INVENTORY
-    assert "action.disabled = blockedNewEquip;" in INVENTORY
-    assert "Equip unavailable" in INVENTORY
-    assert "尚未開放裝備" in INVENTORY
+    assert "action === 'equip' && !functionalEquipmentLoadoutEnabled()" in INVENTORY
+    assert "action.disabled = blocked;" in INVENTORY
+    assert "Equip is not available yet." in INVENTORY
+    assert "裝備功能尚未開放。" in INVENTORY
+    assert "loadout_enabled = _equipment_canonical_loadout_enabled()" in APP
+    assert "if not loadout_enabled:" in APP
+    assert "return jsonify({'error': 'LOADOUT_DISABLED'}), 409" in APP
+    assert "EQUIPMENT_CANONICAL_LOADOUT_ENABLED" in APP
+    assert "CANONICAL_COIN_SHOP_PURCHASE_ENABLED" in APP
 
 
 def test_hero_summary_does_not_repeat_item_effects_as_another_stat_line():

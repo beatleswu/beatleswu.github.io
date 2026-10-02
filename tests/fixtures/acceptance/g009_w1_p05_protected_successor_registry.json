@@ -1,0 +1,47 @@
+{
+  "schema": "g009_w1_p05_protected_successor_registry_v1",
+  "task_id": "G009_W1_P05_PROTECTED_NODE_RECONCILIATION_002",
+  "requirement": "P05",
+  "contract": "ONE_LOGICAL_SUBMISSION = ONE_AUTHORITATIVE_EFFECT",
+  "mapping": {
+    "P05": "tests/test_g009_w1_p05_semantic_successor.py::test_p05_one_logical_submission_has_one_authoritative_effect"
+  },
+  "successor": {
+    "node_id": "tests/test_g009_w1_p05_semantic_successor.py::test_p05_one_logical_submission_has_one_authoritative_effect",
+    "status": "CURRENT",
+    "coverage": [
+      "first_valid_submission",
+      "exact_duplicate_retry",
+      "duplicate_persisted_authoritative_delta_none",
+      "true_concurrent_duplicate",
+      "independent_http_client_contexts",
+      "real_postgresql_transaction",
+      "formal_application_schema_bootstrap",
+      "persisted_submission_progression_battle_state"
+    ]
+  },
+  "old_node": {
+    "node_id": "tests/test_map_battle_legacy_adapter.py::test_postgres_concurrent_map_battle_progression_is_exactly_once",
+    "status": "SUPERSEDED",
+    "classification": "STALE_IMPLEMENTATION_DETAIL",
+    "reason": "The historical node directly called a private helper with app_context only; the semantic contract is now protected at the real HTTP/PostgreSQL boundary."
+  },
+  "retirement_gate": {
+    "order": [
+      "successor_added",
+      "successor_passed",
+      "p05_mapping_registered",
+      "protected_coverage_validator_passed",
+      "old_node_marked_superseded"
+    ],
+    "old_node_retained_in_repository": true,
+    "old_node_not_deleted": true,
+    "old_node_not_skipped": true,
+    "old_node_not_disabled": true,
+    "old_node_not_deselected": true
+  },
+  "traceability": {
+    "external_harness_path": "C:/Users/beatl/go-odyssey-g009-control/g009_w1_p05_001/p05_harness.py",
+    "external_harness_sha256": "734EED33F928CA934BB64B5CA9B2AC6C4F3264FDBC347475A37F0BA7E295A780"
+  }
+}

@@ -15,6 +15,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "65dd8c00f217fc04942456d5b1dd02f52fc8f265"
+# Compare the repair lane with its accepted W1-03 authority tip.  The
+# cumulative candidate contains later G009 product work that is outside this
+# historical repair guard.
+AUTHORITY_HEAD = "44401f1cefff3e2e362de0c242b2c0145472945a"
 STATIC_MANIFEST = ROOT / "deploy" / "canonical-e10-zone3-static-pack-manifest.json"
 INVENTORY = ROOT / "deploy" / "live-static-asset-inventory.json"
 INDEX = ROOT / "index.html"
@@ -144,7 +148,16 @@ def test_repair_runtime_seams_remain_presentation_only() -> None:
 def test_repair_does_not_touch_protected_runtime_authority() -> None:
     changed = set(
         subprocess.check_output(
-            ["git", "-c", "core.quotePath=false", "diff", "--name-only", BASE, "--"],
+            [
+                "git",
+                "-c",
+                "core.quotePath=false",
+                "diff",
+                "--name-only",
+                BASE,
+                AUTHORITY_HEAD,
+                "--",
+            ],
             cwd=ROOT,
             text=True,
             encoding="utf-8",

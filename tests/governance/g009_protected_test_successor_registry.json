@@ -1,0 +1,35 @@
+{
+  "schema": "g009-protected-test-successor-registry-v1",
+  "scope": "test-governance-only",
+  "registration_date": "2026-10-02",
+  "resulting_commit": "POST_COMMIT_OUTPUT_HEAD",
+  "resulting_commit_binding": "Resolved by the exact post-commit receipt for this task; the registry is committed atomically with the successor and validator.",
+  "entries": [
+    {
+      "protected_id": "P09",
+      "old_protected_node_identity": "tests/test_e10_adventure_hero_shop_backpack_information_architecture.py::test_backpack_is_an_enabled_independent_destination_with_exclusive_navigation",
+      "successor_node_ids": [
+        "tests/test_g009_p09_p07_coverage.py::test_p09_semantic_successor_covers_seven_destinations_and_backpack_identity",
+        "tests/test_g009_p09_p07_coverage.py::test_p09_semantic_successor_keeps_site_navigation_identity_aligned"
+      ],
+      "status": "SUPERSEDED_BY_SEMANTIC_SUCCESSOR",
+      "retirement_or_supersession_reason": "The old node asserted stale source literals, including a legacy Backpack target/category representation, instead of the Owner-approved seven-destination semantic contract.",
+      "semantic_coverage_explanation": "The successor reads the exported navigation registry, proves exactly seven global destinations, validates all seven semantic identities and route paths, checks current i18n key availability without making English copy the identity contract, and proves Backpack is enabled, independently global, and routed to /inventory rather than nested under Hero Hub or Shop. Site navigation identity is checked separately.",
+      "successor_pass_required_before_retirement": true
+    },
+    {
+      "protected_id": "P07",
+      "old_protected_node_identity": "tests/test_e10_zone1_lord_trial_progress_completion.py::test_srs_review_limit_guard_exempts_only_active_boss_questions",
+      "successor_node_ids": [
+        "tests/test_incident_018_lord_attempt_scope.py::test_in_scope_lord_answer_is_not_rejected_by_daily_limit[A-at-cap-0-20]",
+        "tests/test_incident_018_lord_attempt_scope.py::test_in_scope_lord_answer_is_not_rejected_by_daily_limit[B-candidate-A-4-16]",
+        "tests/test_incident_018_lord_attempt_scope.py::test_in_scope_lord_answer_is_not_rejected_by_daily_limit[C-candidate-B-11-9]",
+        "tests/test_incident_018_lord_attempt_scope.py::test_ordinary_free_practice_at_cap_is_still_rejected_by_daily_limit"
+      ],
+      "status": "SUPERSEDED_BY_P01_P04_SEMANTIC_COVERAGE",
+      "retirement_or_supersession_reason": "P07 was classified as a stale implementation-detail test; its protected semantic contract is now formally covered by the existing P01-P04 Lord-attempt and ordinary-practice behavior nodes.",
+      "semantic_coverage_explanation": "P01-P03 cover in-scope Lord answers at the relevant quota boundaries and P04 preserves the ordinary free-practice daily-limit rejection. Together they cover the allowed-versus-ordinary semantic boundary without preserving P07's stale source window assertion.",
+      "successor_pass_required_before_retirement": true
+    }
+  ]
+}

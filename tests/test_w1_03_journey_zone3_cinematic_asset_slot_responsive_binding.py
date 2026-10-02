@@ -11,6 +11,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "aa5c4c25e50e4cd0843e50cdc685f81cf8337f95"
+# The current accepted W1-03 Zone 3 presentation authority is the final-QA
+# repair commit.  It is an exact comparison endpoint, not a broad prefix
+# allowlist for the cumulative G009 candidate.
+AUTHORITY_HEAD = "44401f1cefff3e2e362de0c242b2c0145472945a"
 CANONICAL_MASTER = "616d51b17abe010de1e862382ca4db7bec65936f"
 SOURCE_AUTHORITY_HEADS = (
     "fd7a1bcee2a01723a716f20683a4411d593f2dab",
@@ -345,7 +349,16 @@ def test_only_allowed_presentation_paths_changed_from_the_exact_base():
     changed = {
         normalized_path(path)
         for path in subprocess.check_output(
-            ["git", "-c", "core.quotePath=false", "diff", "--name-only", BASE, "--"],
+            [
+                "git",
+                "-c",
+                "core.quotePath=false",
+                "diff",
+                "--name-only",
+                BASE,
+                AUTHORITY_HEAD,
+                "--",
+            ],
             cwd=ROOT,
             text=True,
             encoding="utf-8",

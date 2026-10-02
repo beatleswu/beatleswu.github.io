@@ -1,6 +1,8 @@
 """D001/D002 disposable contracts; never Production or corpus acceptance."""
 import datetime
+import json
 import os
+from pathlib import Path
 import sqlite3
 import threading
 import uuid
@@ -131,8 +133,17 @@ def test_postgres_concurrent_quota_20th_only_and_rollback(application, monkeypat
     if not dsn:
         pytest.skip('explicit disposable PostgreSQL DSN required')
     parsed=urlsplit(dsn)
-    assert parsed.hostname == '127.0.0.1' and parsed.port == 55439
-    assert parsed.path == '/postgres' and parsed.username == 'g009test'
+    receipt_path = os.environ.get('G009_DISPOSABLE_QUOTA_TEST_ALLOCATION_RECEIPT')
+    assert receipt_path, 'task-owned disposable PostgreSQL allocation receipt required'
+    allocation = json.loads(Path(receipt_path).read_text(encoding='utf-8'))
+    assert allocation['task_id'] == 'G009_W1_QUOTA_TEST_DSN_ISOLATION_RECONCILIATION_001'
+    assert allocation['fresh_disposable'] is True
+    assert allocation['compose_project']
+    assert allocation['container_name']
+    assert allocation['host'] == parsed.hostname == '127.0.0.1'
+    assert allocation['host_port'] == parsed.port
+    assert allocation['database'] == parsed.path.lstrip('/') == 'postgres'
+    assert allocation['user'] == parsed.username == 'g009test'
     import psycopg2
     from psycopg2.extras import DictCursor
     from db import PostgresConnectionWrapper

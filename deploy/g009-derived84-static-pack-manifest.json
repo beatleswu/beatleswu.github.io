@@ -4,99 +4,524 @@
   "generated_for": "G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001",
   "prefix": "assets/world-map-identity/",
   "total_files": 85,
-  "total_bytes": 4183031,
+  "total_bytes": 4181491,
   "source_manifest": "assets/world-map-identity/runtime_manifest.json",
-  "source_manifest_sha256": "0453edecef4a69c29994607bbe8c30e808a6221477b9d2fa009a4bcecfc9fc0e",
+  "source_manifest_sha256": "98d116fb10dcc2abec774113ee743bae6af11cc1b4f097bc9b61a13f7880f25c",
   "accepted_asset_counts": {
     "AVATAR": 33,
     "STANDING": 33,
     "COMPANION": 18
   },
   "files": [
-    {"path":"assets/world-map-identity/runtime_manifest.json","size":83858,"sha256":"0453edecef4a69c29994607bbe8c30e808a6221477b9d2fa009a4bcecfc9fc0e","mime":"application/json"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_A1_RED.png","size":46333,"sha256":"554f20487eedd5fcfad42166fd266c588861a9c6d8e57f122f8ddd5cd0b28274","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_A3_RED.png","size":35288,"sha256":"70a0d22aca3e18e2edf071d4ab79c966998864718a8c32e776682c26c2345632","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR1_BLUE.png","size":35287,"sha256":"086189cc75d4b906057d0aa417436d5bb9bc5bc619d0ee7c5179331f669e21cb","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR1_RED.png","size":35121,"sha256":"edbc80aa66d859c341725b80df6668cd060e6797fcb966a6c3094374a5722b01","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR2_BLUE.png","size":32131,"sha256":"f429e708247af9b4b30d3bdd847c8441491a09f5b902ec7cb96173336a254da4","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR2_RED.png","size":32774,"sha256":"0c65c1b57cac9cb0a2f66355f5d6de53b9921f86851b9d4be7accd664de53a8f","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR3_BLUE.png","size":29187,"sha256":"4db6c7bc9484fc284a1e0717ba34fcdfe82f9da91db9afdd941521f883e55c72","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR3_RED.png","size":29431,"sha256":"92de16e260ff2ba4764e8d03029d46d4c438473306e5128573d3be2718ae7fcd","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_E1_RED.png","size":41388,"sha256":"a5abad8385a84cb27d7e831447d858aa221ce0af67b0512f0dc10d223a631d89","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_E2_RED.png","size":44896,"sha256":"a2c4caaa44432e555f7192bb80588c5e8faa09d0edfef836f08a951e5bc1be4c","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_E3_RED.png","size":47087,"sha256":"5f1081d69730d57d412ff0c68aedbdd424b7568d952e268af9bea9a8aee4e4c9","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_F1_RED.png","size":34387,"sha256":"809c1faadd49150ab99ede03e781d944c36654e42a0579e4599b32b963fe94a3","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_F2_RED.png","size":35522,"sha256":"b593d08f4797a72f312a21c3c6b39030b2ff8621e1c96592c4de3483c272443b","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_F3_RED.png","size":33521,"sha256":"28d3c80adbeb468d5cfe684b292e29f050d395fab554bd628cb38af042109aa1","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_H1_RED.png","size":31774,"sha256":"5777a85156699d94c01816156474427ad61a8f60d65ded732024d33fd7e61b7b","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_H2_RED.png","size":29381,"sha256":"bee23a98c77d906708039b3b7eb34c34560b5f3f014dbd3c5f1bbc776806e2e9","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_H3_RED.png","size":26654,"sha256":"4464c0d45756a71fb478b6bd5650929945e83b5cc0d5325bd5e5a5af9bca6512","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_K1_RED.png","size":39537,"sha256":"5fc5f1423b2f3142d92af3ff3425d35930c21623a806c06579342268f37b68ed","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_K2_RED.png","size":39393,"sha256":"a1e1ef94f18d61453c62e0ca279f176a279f24eedbe9c5066b39e3b2adfaeda1","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_K3_RED.png","size":35579,"sha256":"f9b970eb2d45d6bc570dafe82a1c5b8ea913cce59df08a9c77fa1fedcf620ec1","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_M1_RED.png","size":58998,"sha256":"f2c8bfd01c57bccc9819d3a45493d679c5158e6527ad62797ab711db74144aa1","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_M2_RED.png","size":54174,"sha256":"cb0bfe49e65f0d502c01ee404aa9c4ec1b2fbc60ab9664f3b0f983568a44afd4","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_R1_RED.png","size":51848,"sha256":"438a488890c8e88459569600a0617060731c1900a2b8a368c727b44127c94357","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_R2_RED.png","size":57965,"sha256":"a9a2ab37d96414fa3b0674ad7ceec924a81802465e1e878129f3360293f564ef","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_R3_RED.png","size":55367,"sha256":"a37d4a373c3174aa6c2a62e6fa542418f600b31a940a0468f3a56f55d7872640","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_S1_RED.png","size":35482,"sha256":"258aff1b34642ba2a4246cba8ca9959e8a0d0604e862902782d7740c090c5ceb","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_S2_RED.png","size":41483,"sha256":"95d351babb65f06b1e8aa5acd8ad22369bc5cc01446c1ef034127b055bd5579b","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_V1_RED.png","size":49845,"sha256":"e5d309dc3de038939b8433a24bb09846f121678c6b11485df035956f62958179","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_V2_RED.png","size":56111,"sha256":"322610545d4b54c9ce781eb21597befe688f76f19d4cafec50309f282be4ddde","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_V3_RED.png","size":66204,"sha256":"867790169ca6a9e1ba9883d1ee968d48588d645104fb28fba9d54eb5a7ae645c","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_W1_RED.png","size":35142,"sha256":"15171720e1da8438d000bc462c13cf27568307d47b288ecae1f520aa9e53de52","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_W2_RED.png","size":36818,"sha256":"a377f6d672bbbdb7d7add43207ee9753f1c8f6e3b1f86e6edc816c6866c3b6da","mime":"image/png"},
-    {"path":"assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_W3_RED.png","size":31401,"sha256":"52076441757b2e3ee3e7efa773020edc90de4efecd24fb21642efd08ec19f499","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_fatty_stage1.png","size":82760,"sha256":"ea3c22dce12e643f9f7ba8892fef4559bf63a3a449138f78c0bb87e123f7d280","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_fatty_stage2.png","size":100696,"sha256":"077e2ff7dc921722d23331cb5691c20211ad7e77d423ff0e8ec3461fdb490aa4","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_fatty_stage3.png","size":83067,"sha256":"c5fc2ac61859b459ec0217ef1ee9a566000aeaf7618a28386c73476ad6a3efaa","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_ink_drop_kelpie_stage1.png","size":98538,"sha256":"0d40946bd97b426bcece5c120364adca20ff905297c41616666ab23427988c6f","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_ink_drop_kelpie_stage2.png","size":116671,"sha256":"3638115a557610343db4c2ebeeb24bc32e16d3902843f7f7078f1b4d1764a2c3","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_ink_drop_kelpie_stage3.png","size":139037,"sha256":"72b8340c76d798fea3b7254dc26c4a5f784ca12d380a8d4419ee21797370c088","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_obsidian_bastion_stage1.png","size":93474,"sha256":"9a447154c5a1017ebc4dbd8ffd046774ccd91fc5ed25b54ded43047db8c73025","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_obsidian_bastion_stage2.png","size":114927,"sha256":"617113ce849722b240461aa6805711cea12cce8bf7ac847ac4fca10476950ca2","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_obsidian_bastion_stage3.png","size":141049,"sha256":"f75b6a5b986cccbed841c1eb65080474c692dd164fb08e6ba6fd94b51d56d78e","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_star_shell_hatchling_stage1.png","size":107058,"sha256":"3e64b1558a8ea416115afa5ef1fda419c310c21eb6071f546a08147cd0965e80","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_star_shell_hatchling_stage2.png","size":100081,"sha256":"586bff0474e82d9a6b9168508d94f966169fc4b797f8739afa8a8bd9c9ff654e","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_star_shell_hatchling_stage3.png","size":114896,"sha256":"089bb39b6c0bc414ea511b305883d3fd587d8707693fa222c921bfeebe69dd33","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_starpath_antlerling_stage1.png","size":105676,"sha256":"3486da5f2a25c7c83cbda4bd31cac2adfd71bd780603ce1e9768304de40e85e4","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_starpath_antlerling_stage2.png","size":52540,"sha256":"8f88bcbf74f234ded5f67e5011989f9ab4a83cef257581478da0a8ed85be7ac9","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_starpath_antlerling_stage3.png","size":61137,"sha256":"b18e4786300a51651be8c7fb6a60f226cf5dccc4504c878289c3896daa4e224d","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_whispering_void_kit_stage1.png","size":107371,"sha256":"978946dda7c160336323ebdb05223ab803c86395287e88f394591092a9509162","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_whispering_void_kit_stage2.png","size":123696,"sha256":"a4f8fb091cbd0326516aeaefd9bde28b47dc0905f34410e79fc65626190f461f","mime":"image/png"},
-    {"path":"assets/world-map-identity/companion/pet_whispering_void_kit_stage3.png","size":93070,"sha256":"68163fd7b3f1ff7528d9aef3f488bd01e068fe73afdb43f4379b22fd806f2988","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_A1_RED.png","size":30654,"sha256":"fd0a65af02beefb543dc3c1437a7a1e8ce4fbf0c8106fb990f896e6a93c70575","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_A3_RED.png","size":27407,"sha256":"e37b1da7e5223f2a193d3ba61e520c02c822204df39fe7c4511f74d10abc14bb","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR1_BLUE.png","size":25559,"sha256":"3c50ef540b48b08baffeff195e947d9902af8e673116f51036083072ebb8df9d","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR1_RED.png","size":25729,"sha256":"ec9ee69c21fd3756cc9f21b71645eee5523b2eeb496daa5eebb553b284cd7e2f","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR2_BLUE.png","size":23878,"sha256":"651b0d887d3d568f5b248cb3d9d9578d76f6cec75891169aeec4c3b0fee0f40d","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR2_RED.png","size":24147,"sha256":"fc54532f936a8aa80bf4e4bc37318f82df88a148943922fc4e1fe62e74a1c863","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR3_BLUE.png","size":22879,"sha256":"905f647b12b5b3c82206344fd2f8b1cd42ee59f01f3d2171e51e3dbc2fba694c","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR3_RED.png","size":23097,"sha256":"889c83ef81014e2f31073f21593123f31a17a8679c29131d4eea2b1f6f12b638","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_E1_RED.png","size":27701,"sha256":"25715290ece7799180b8900c29dfb985ea696295570173d08120c4d8b56675dd","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_E2_RED.png","size":30928,"sha256":"206b992a458ae52ea63b64a04fa6074af5f2b9bebb7a3314ff9a1d5ae8e41191","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_E3_RED.png","size":31771,"sha256":"48f76f37dd4321a7c9746d874d3237b896f0aa7e8055addd621ff178dba50a63","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_F1_RED.png","size":21042,"sha256":"812eef93e58e34a54dfdf328e797a0e82e9425de8bd336503633ee784b98c55f","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_F2_RED.png","size":23820,"sha256":"b086f81dd91989218c714410185c38141048b12dff1a499a30828b0193e1dcb8","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_F3_RED.png","size":22252,"sha256":"d4a78ae225ce730dc5202859e9e2dedcc99232f68dab4dbfab8fa342f86a4fa4","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_H1_RED.png","size":23856,"sha256":"565a5f69469c31986faa5d8ddd70aede3d53cf1e4cd0be661a2cb9f69e11c597","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_H2_RED.png","size":24689,"sha256":"590a3f0c9eca7d54b85713705f6f32ed148a1204dcca3216acfa5ca36ae6f6c0","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_H3_RED.png","size":18158,"sha256":"02c6ba3b3da4edda4a08333d23204cbad86d6be7934d98b8bcd679a2d6faa33b","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_K1_RED.png","size":28689,"sha256":"2d6a52002b88c4514bb741178b4f6fed47e9fde768939996f1f0eef9ebef35be","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_K2_RED.png","size":25875,"sha256":"018d3a70134363ef80e51b0125b49ec8432949d91e8d19688123181f214c275c","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_K3_RED.png","size":25944,"sha256":"a9ea6d57e0eb0da28fd209caeac5b147a0daf802df979f0f1b3b2d0b7ef4f150","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_M1_RED.png","size":29128,"sha256":"8cd2bc7344d5a14febe75336ad4fa6ad0fde98ed125da4394d242a62af4183bb","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_M2_RED.png","size":27180,"sha256":"324c0a92d7faa8e920ce2ed837bfffa925a9984c3d4c5ecb57737e28caa10b5a","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_R1_RED.png","size":39720,"sha256":"7d54186b7a2faebaa05a4af84de61ed24f00fbeb37983e60d3f0f7f5521469b8","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_R2_RED.png","size":39823,"sha256":"36b016173c87d23d4ba2b3cd47cd9df179b42693f215818d507d4066130676d1","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_R3_RED.png","size":37448,"sha256":"7d64163940e52a357956bb08078f146baabdc124c3ced07bb58d3f85f817d269","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_S1_RED.png","size":24901,"sha256":"16335eb8fe062e73e796f590490f0eb5867ec7ea5b74bb2d6eb4445a2b429cdf","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_S2_RED.png","size":28855,"sha256":"f01c23506c058159c6f50a24078855e022fe48300d1633dbb5dfc7bb9b92b0ac","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_V1_RED.png","size":29586,"sha256":"802a010cabc371a7ee749816118b8657ab282b9ff919708630f6deed5a11aa2a","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_V2_RED.png","size":37280,"sha256":"b6484357e456d11bc061bfcb89dbd6351597e66a835c521ff560d2ed5b041616","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_V3_RED.png","size":43856,"sha256":"946bdd14900900b21c78c9d9b0168ffcffad5260fe75ff937e200d00fc65c10d","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_W1_RED.png","size":24003,"sha256":"a972ef5a0cef10062ec915065a3a342baab5bb6ea56d99e489b99ed867ce6083","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_W2_RED.png","size":24696,"sha256":"7e2d50d574ce969102105761345cd9fd2fa073d02bd18283359efc77542b9b28","mime":"image/png"},
-    {"path":"assets/world-map-identity/standing/stand_FUTURE30_MODEL_W3_RED.png","size":23369,"sha256":"93ddf6744b226e4d0152fbb41097f2381f9b97a51c7ac6cd3f7665038916fb47","mime":"image/png"}
+    {
+      "path": "assets/world-map-identity/runtime_manifest.json",
+      "size": 82318,
+      "sha256": "98d116fb10dcc2abec774113ee743bae6af11cc1b4f097bc9b61a13f7880f25c",
+      "mime": "application/json"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_A1_RED.png",
+      "size": 46333,
+      "sha256": "554f20487eedd5fcfad42166fd266c588861a9c6d8e57f122f8ddd5cd0b28274",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_A3_RED.png",
+      "size": 35288,
+      "sha256": "70a0d22aca3e18e2edf071d4ab79c966998864718a8c32e776682c26c2345632",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR1_BLUE.png",
+      "size": 35287,
+      "sha256": "086189cc75d4b906057d0aa417436d5bb9bc5bc619d0ee7c5179331f669e21cb",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR1_RED.png",
+      "size": 35121,
+      "sha256": "edbc80aa66d859c341725b80df6668cd060e6797fcb966a6c3094374a5722b01",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR2_BLUE.png",
+      "size": 32131,
+      "sha256": "f429e708247af9b4b30d3bdd847c8441491a09f5b902ec7cb96173336a254da4",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR2_RED.png",
+      "size": 32774,
+      "sha256": "0c65c1b57cac9cb0a2f66355f5d6de53b9921f86851b9d4be7accd664de53a8f",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR3_BLUE.png",
+      "size": 29187,
+      "sha256": "4db6c7bc9484fc284a1e0717ba34fcdfe82f9da91db9afdd941521f883e55c72",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_AR3_RED.png",
+      "size": 29431,
+      "sha256": "92de16e260ff2ba4764e8d03029d46d4c438473306e5128573d3be2718ae7fcd",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_E1_RED.png",
+      "size": 41388,
+      "sha256": "a5abad8385a84cb27d7e831447d858aa221ce0af67b0512f0dc10d223a631d89",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_E2_RED.png",
+      "size": 44896,
+      "sha256": "a2c4caaa44432e555f7192bb80588c5e8faa09d0edfef836f08a951e5bc1be4c",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_E3_RED.png",
+      "size": 47087,
+      "sha256": "5f1081d69730d57d412ff0c68aedbdd424b7568d952e268af9bea9a8aee4e4c9",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_F1_RED.png",
+      "size": 34387,
+      "sha256": "809c1faadd49150ab99ede03e781d944c36654e42a0579e4599b32b963fe94a3",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_F2_RED.png",
+      "size": 35522,
+      "sha256": "b593d08f4797a72f312a21c3c6b39030b2ff8621e1c96592c4de3483c272443b",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_F3_RED.png",
+      "size": 33521,
+      "sha256": "28d3c80adbeb468d5cfe684b292e29f050d395fab554bd628cb38af042109aa1",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_H1_RED.png",
+      "size": 31774,
+      "sha256": "5777a85156699d94c01816156474427ad61a8f60d65ded732024d33fd7e61b7b",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_H2_RED.png",
+      "size": 29381,
+      "sha256": "bee23a98c77d906708039b3b7eb34c34560b5f3f014dbd3c5f1bbc776806e2e9",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_H3_RED.png",
+      "size": 26654,
+      "sha256": "4464c0d45756a71fb478b6bd5650929945e83b5cc0d5325bd5e5a5af9bca6512",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_K1_RED.png",
+      "size": 39537,
+      "sha256": "5fc5f1423b2f3142d92af3ff3425d35930c21623a806c06579342268f37b68ed",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_K2_RED.png",
+      "size": 39393,
+      "sha256": "a1e1ef94f18d61453c62e0ca279f176a279f24eedbe9c5066b39e3b2adfaeda1",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_K3_RED.png",
+      "size": 35579,
+      "sha256": "f9b970eb2d45d6bc570dafe82a1c5b8ea913cce59df08a9c77fa1fedcf620ec1",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_M1_RED.png",
+      "size": 58998,
+      "sha256": "f2c8bfd01c57bccc9819d3a45493d679c5158e6527ad62797ab711db74144aa1",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_M2_RED.png",
+      "size": 54174,
+      "sha256": "cb0bfe49e65f0d502c01ee404aa9c4ec1b2fbc60ab9664f3b0f983568a44afd4",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_R1_RED.png",
+      "size": 51848,
+      "sha256": "438a488890c8e88459569600a0617060731c1900a2b8a368c727b44127c94357",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_R2_RED.png",
+      "size": 57965,
+      "sha256": "a9a2ab37d96414fa3b0674ad7ceec924a81802465e1e878129f3360293f564ef",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_R3_RED.png",
+      "size": 55367,
+      "sha256": "a37d4a373c3174aa6c2a62e6fa542418f600b31a940a0468f3a56f55d7872640",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_S1_RED.png",
+      "size": 35482,
+      "sha256": "258aff1b34642ba2a4246cba8ca9959e8a0d0604e862902782d7740c090c5ceb",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_S2_RED.png",
+      "size": 41483,
+      "sha256": "95d351babb65f06b1e8aa5acd8ad22369bc5cc01446c1ef034127b055bd5579b",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_V1_RED.png",
+      "size": 49845,
+      "sha256": "e5d309dc3de038939b8433a24bb09846f121678c6b11485df035956f62958179",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_V2_RED.png",
+      "size": 56111,
+      "sha256": "322610545d4b54c9ce781eb21597befe688f76f19d4cafec50309f282be4ddde",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_V3_RED.png",
+      "size": 66204,
+      "sha256": "867790169ca6a9e1ba9883d1ee968d48588d645104fb28fba9d54eb5a7ae645c",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_W1_RED.png",
+      "size": 35142,
+      "sha256": "15171720e1da8438d000bc462c13cf27568307d47b288ecae1f520aa9e53de52",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_W2_RED.png",
+      "size": 36818,
+      "sha256": "a377f6d672bbbdb7d7add43207ee9753f1c8f6e3b1f86e6edc816c6866c3b6da",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/avatars/avatar_FUTURE30_MODEL_W3_RED.png",
+      "size": 31401,
+      "sha256": "52076441757b2e3ee3e7efa773020edc90de4efecd24fb21642efd08ec19f499",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_fatty_stage1.png",
+      "size": 82760,
+      "sha256": "ea3c22dce12e643f9f7ba8892fef4559bf63a3a449138f78c0bb87e123f7d280",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_fatty_stage2.png",
+      "size": 100696,
+      "sha256": "077e2ff7dc921722d23331cb5691c20211ad7e77d423ff0e8ec3461fdb490aa4",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_fatty_stage3.png",
+      "size": 83067,
+      "sha256": "c5fc2ac61859b459ec0217ef1ee9a566000aeaf7618a28386c73476ad6a3efaa",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_ink_drop_kelpie_stage1.png",
+      "size": 98538,
+      "sha256": "0d40946bd97b426bcece5c120364adca20ff905297c41616666ab23427988c6f",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_ink_drop_kelpie_stage2.png",
+      "size": 116671,
+      "sha256": "3638115a557610343db4c2ebeeb24bc32e16d3902843f7f7078f1b4d1764a2c3",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_ink_drop_kelpie_stage3.png",
+      "size": 139037,
+      "sha256": "72b8340c76d798fea3b7254dc26c4a5f784ca12d380a8d4419ee21797370c088",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_obsidian_bastion_stage1.png",
+      "size": 93474,
+      "sha256": "9a447154c5a1017ebc4dbd8ffd046774ccd91fc5ed25b54ded43047db8c73025",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_obsidian_bastion_stage2.png",
+      "size": 114927,
+      "sha256": "617113ce849722b240461aa6805711cea12cce8bf7ac847ac4fca10476950ca2",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_obsidian_bastion_stage3.png",
+      "size": 141049,
+      "sha256": "f75b6a5b986cccbed841c1eb65080474c692dd164fb08e6ba6fd94b51d56d78e",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_star_shell_hatchling_stage1.png",
+      "size": 107058,
+      "sha256": "3e64b1558a8ea416115afa5ef1fda419c310c21eb6071f546a08147cd0965e80",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_star_shell_hatchling_stage2.png",
+      "size": 100081,
+      "sha256": "586bff0474e82d9a6b9168508d94f966169fc4b797f8739afa8a8bd9c9ff654e",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_star_shell_hatchling_stage3.png",
+      "size": 114896,
+      "sha256": "089bb39b6c0bc414ea511b305883d3fd587d8707693fa222c921bfeebe69dd33",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_starpath_antlerling_stage1.png",
+      "size": 105676,
+      "sha256": "3486da5f2a25c7c83cbda4bd31cac2adfd71bd780603ce1e9768304de40e85e4",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_starpath_antlerling_stage2.png",
+      "size": 52540,
+      "sha256": "8f88bcbf74f234ded5f67e5011989f9ab4a83cef257581478da0a8ed85be7ac9",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_starpath_antlerling_stage3.png",
+      "size": 61137,
+      "sha256": "b18e4786300a51651be8c7fb6a60f226cf5dccc4504c878289c3896daa4e224d",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_whispering_void_kit_stage1.png",
+      "size": 107371,
+      "sha256": "978946dda7c160336323ebdb05223ab803c86395287e88f394591092a9509162",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_whispering_void_kit_stage2.png",
+      "size": 123696,
+      "sha256": "a4f8fb091cbd0326516aeaefd9bde28b47dc0905f34410e79fc65626190f461f",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/companion/pet_whispering_void_kit_stage3.png",
+      "size": 93070,
+      "sha256": "68163fd7b3f1ff7528d9aef3f488bd01e068fe73afdb43f4379b22fd806f2988",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_A1_RED.png",
+      "size": 30654,
+      "sha256": "fd0a65af02beefb543dc3c1437a7a1e8ce4fbf0c8106fb990f896e6a93c70575",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_A3_RED.png",
+      "size": 27407,
+      "sha256": "e37b1da7e5223f2a193d3ba61e520c02c822204df39fe7c4511f74d10abc14bb",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR1_BLUE.png",
+      "size": 25559,
+      "sha256": "3c50ef540b48b08baffeff195e947d9902af8e673116f51036083072ebb8df9d",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR1_RED.png",
+      "size": 25729,
+      "sha256": "ec9ee69c21fd3756cc9f21b71645eee5523b2eeb496daa5eebb553b284cd7e2f",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR2_BLUE.png",
+      "size": 23878,
+      "sha256": "651b0d887d3d568f5b248cb3d9d9578d76f6cec75891169aeec4c3b0fee0f40d",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR2_RED.png",
+      "size": 24147,
+      "sha256": "fc54532f936a8aa80bf4e4bc37318f82df88a148943922fc4e1fe62e74a1c863",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR3_BLUE.png",
+      "size": 22879,
+      "sha256": "905f647b12b5b3c82206344fd2f8b1cd42ee59f01f3d2171e51e3dbc2fba694c",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_AR3_RED.png",
+      "size": 23097,
+      "sha256": "889c83ef81014e2f31073f21593123f31a17a8679c29131d4eea2b1f6f12b638",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_E1_RED.png",
+      "size": 27701,
+      "sha256": "25715290ece7799180b8900c29dfb985ea696295570173d08120c4d8b56675dd",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_E2_RED.png",
+      "size": 30928,
+      "sha256": "206b992a458ae52ea63b64a04fa6074af5f2b9bebb7a3314ff9a1d5ae8e41191",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_E3_RED.png",
+      "size": 31771,
+      "sha256": "48f76f37dd4321a7c9746d874d3237b896f0aa7e8055addd621ff178dba50a63",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_F1_RED.png",
+      "size": 21042,
+      "sha256": "812eef93e58e34a54dfdf328e797a0e82e9425de8bd336503633ee784b98c55f",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_F2_RED.png",
+      "size": 23820,
+      "sha256": "b086f81dd91989218c714410185c38141048b12dff1a499a30828b0193e1dcb8",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_F3_RED.png",
+      "size": 22252,
+      "sha256": "d4a78ae225ce730dc5202859e9e2dedcc99232f68dab4dbfab8fa342f86a4fa4",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_H1_RED.png",
+      "size": 23856,
+      "sha256": "565a5f69469c31986faa5d8ddd70aede3d53cf1e4cd0be661a2cb9f69e11c597",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_H2_RED.png",
+      "size": 24689,
+      "sha256": "590a3f0c9eca7d54b85713705f6f32ed148a1204dcca3216acfa5ca36ae6f6c0",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_H3_RED.png",
+      "size": 18158,
+      "sha256": "02c6ba3b3da4edda4a08333d23204cbad86d6be7934d98b8bcd679a2d6faa33b",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_K1_RED.png",
+      "size": 28689,
+      "sha256": "2d6a52002b88c4514bb741178b4f6fed47e9fde768939996f1f0eef9ebef35be",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_K2_RED.png",
+      "size": 25875,
+      "sha256": "018d3a70134363ef80e51b0125b49ec8432949d91e8d19688123181f214c275c",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_K3_RED.png",
+      "size": 25944,
+      "sha256": "a9ea6d57e0eb0da28fd209caeac5b147a0daf802df979f0f1b3b2d0b7ef4f150",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_M1_RED.png",
+      "size": 29128,
+      "sha256": "8cd2bc7344d5a14febe75336ad4fa6ad0fde98ed125da4394d242a62af4183bb",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_M2_RED.png",
+      "size": 27180,
+      "sha256": "324c0a92d7faa8e920ce2ed837bfffa925a9984c3d4c5ecb57737e28caa10b5a",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_R1_RED.png",
+      "size": 39720,
+      "sha256": "7d54186b7a2faebaa05a4af84de61ed24f00fbeb37983e60d3f0f7f5521469b8",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_R2_RED.png",
+      "size": 39823,
+      "sha256": "36b016173c87d23d4ba2b3cd47cd9df179b42693f215818d507d4066130676d1",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_R3_RED.png",
+      "size": 37448,
+      "sha256": "7d64163940e52a357956bb08078f146baabdc124c3ced07bb58d3f85f817d269",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_S1_RED.png",
+      "size": 24901,
+      "sha256": "16335eb8fe062e73e796f590490f0eb5867ec7ea5b74bb2d6eb4445a2b429cdf",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_S2_RED.png",
+      "size": 28855,
+      "sha256": "f01c23506c058159c6f50a24078855e022fe48300d1633dbb5dfc7bb9b92b0ac",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_V1_RED.png",
+      "size": 29586,
+      "sha256": "802a010cabc371a7ee749816118b8657ab282b9ff919708630f6deed5a11aa2a",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_V2_RED.png",
+      "size": 37280,
+      "sha256": "b6484357e456d11bc061bfcb89dbd6351597e66a835c521ff560d2ed5b041616",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_V3_RED.png",
+      "size": 43856,
+      "sha256": "946bdd14900900b21c78c9d9b0168ffcffad5260fe75ff937e200d00fc65c10d",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_W1_RED.png",
+      "size": 24003,
+      "sha256": "a972ef5a0cef10062ec915065a3a342baab5bb6ea56d99e489b99ed867ce6083",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_W2_RED.png",
+      "size": 24696,
+      "sha256": "7e2d50d574ce969102105761345cd9fd2fa073d02bd18283359efc77542b9b28",
+      "mime": "image/png"
+    },
+    {
+      "path": "assets/world-map-identity/standing/stand_FUTURE30_MODEL_W3_RED.png",
+      "size": 23369,
+      "sha256": "93ddf6744b226e4d0152fbb41097f2381f9b97a51c7ac6cd3f7665038916fb47",
+      "mime": "image/png"
+    }
   ]
 }
