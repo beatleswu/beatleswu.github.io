@@ -18,6 +18,23 @@ ROOT = Path(__file__).resolve().parents[2]
 GENERATOR = ROOT / "scripts/release/generate_g009_derived84_static_pack_manifest.py"
 RUNTIME_MANIFEST = ROOT / "assets/world-map-identity/runtime_manifest.json"
 RUNTIME_LABEL = "assets/world-map-identity/runtime_manifest.json"
+PACK_MANIFEST = ROOT / "deploy/g009-derived84-static-pack-manifest.json"
+
+
+def _head_blob_bytes(relative_path: str) -> bytes:
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    return subprocess.run(
+        ["git", "cat-file", "blob", f"{head}:{relative_path}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
 
 
 def _run_generator(source_manifest: Path, output: Path) -> subprocess.CompletedProcess[str]:
@@ -67,7 +84,9 @@ def _run_generator_for_root(
 def test_cli_execution_path_uses_canonical_bytes_for_crlf_materialized_source(
     tmp_path: Path,
 ):
-    canonical = RUNTIME_MANIFEST.read_bytes()
+    canonical = canonical_source_bytes(RUNTIME_MANIFEST)
+    git_blob = _head_blob_bytes(RUNTIME_LABEL)
+    assert canonical == git_blob
     assert b"\r\n" not in canonical
     materialized = canonical.replace(b"\n", b"\r\n")
     crlf_source = tmp_path / "runtime_manifest.json"
@@ -80,8 +99,10 @@ def test_cli_execution_path_uses_canonical_bytes_for_crlf_materialized_source(
     payload = json.loads(output.read_bytes().decode("utf-8"))
     source_row = payload["files"][0]
     assert source_row["path"] == RUNTIME_LABEL
-    assert source_row["size"] == len(canonical)
-    assert source_row["sha256"] == hashlib.sha256(canonical).hexdigest()
+    assert source_row["size"] == len(git_blob)
+    assert source_row["sha256"] == hashlib.sha256(git_blob).hexdigest()
+    expected = json.loads(PACK_MANIFEST.read_bytes().decode("utf-8"))
+    assert payload["files"][1:] == expected["files"][1:]
     assert output.read_bytes().count(b"\r\n") == 0
     assert payload["total_bytes"] == sum(row["size"] for row in payload["files"])
 
@@ -107,12 +128,15 @@ def test_actual_default_packaging_entrypoint_is_deterministic(tmp_path: Path):
     assert result.returncode == 0, result.stderr
     payload = json.loads(output.read_bytes().decode("utf-8"))
     assert payload["source_manifest"] == RUNTIME_LABEL
-    runtime = json.loads(RUNTIME_MANIFEST.read_bytes().decode("utf-8"))
+    canonical = canonical_source_bytes(RUNTIME_MANIFEST)
+    git_blob = _head_blob_bytes(RUNTIME_LABEL)
+    assert canonical == git_blob
+    runtime = json.loads(canonical.decode("utf-8"))
     assert payload["total_files"] == 1 + len(runtime["entries"])
     assert payload["total_bytes"] == sum(row["size"] for row in payload["files"])
-    assert payload["source_manifest_sha256"] == hashlib.sha256(
-        RUNTIME_MANIFEST.read_bytes()
-    ).hexdigest()
+    assert payload["source_manifest_sha256"] == hashlib.sha256(git_blob).hexdigest()
+    expected = json.loads(PACK_MANIFEST.read_bytes().decode("utf-8"))
+    assert payload["files"] == expected["files"]
 
 
 def test_cli_execution_path_does_not_require_git_repository(tmp_path: Path):
