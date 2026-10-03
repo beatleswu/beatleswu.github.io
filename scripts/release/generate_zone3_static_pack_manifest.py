@@ -117,10 +117,11 @@ def main(repo_root: Path) -> None:
         "files": entries,
     }
     output = repo_root / OUTPUT
-    output.write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    # Canonical manifests are committed as LF on every platform.  Use an
+    # explicit newline policy so Windows text-mode translation cannot turn a
+    # byte-for-byte generator parity check into CRLF output.
+    with output.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps({"path": OUTPUT.as_posix(), "files": len(entries), "bytes": manifest["total_bytes"]}))
 
 
