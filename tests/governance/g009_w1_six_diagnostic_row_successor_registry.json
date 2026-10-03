@@ -1,0 +1,262 @@
+{
+  "schema": "g009-w1-six-diagnostic-row-successor-registry-v1",
+  "scope": "test-governance-only",
+  "task_id": "G009_W1_SIX_DIAGNOSTIC_ROWS_RELEASE_GATE_CLOSURE_001",
+  "parent_head": "8e0b0b518654aa2fc1623db921d11ef568bd1df7",
+  "parent_tree": "57b2a07079f354389dffaa389f73c5399337e577",
+  "entries": [
+    {
+      "row_id": 1,
+      "diagnostic_id": "G01_D005_D006_DIFFERENTIAL",
+      "old_node_ids": [
+        "tests/test_e10_b6_b7_product_v1b.py::test_b6_b7_packaging_closure_is_explicit",
+        "tests/test_e10_zone1_deployment_asset_closure.py::test_actual_governed_static_bundle_contains_closure_and_no_broad_assets"
+      ],
+      "old_contract": "H048 exact diagnostic node set retained for historical comparison",
+      "current_failure_signature": "577fd9cec35f0dc9ae08a4a763540c8209cd7c7fd9a45493e9cd75cb53ee4901",
+      "classification": "STALE_FIXTURE_OR_HARNESS",
+      "status": "SUPERSEDED_BY_SEMANTIC_SUCCESSOR",
+      "retirement_or_supersession_reason": "The historical diagnostic asserted the superseded 17-file/partial closure shape. Current release authority is the explicit required_subtrees union; current A3/A4, Equipment, Zone4 and generic inventory tests cover it.",
+      "current_authority_sources": [
+        "deploy/live-static-asset-inventory.json",
+        "deploy/canonical-image-pack-manifest.json",
+        "deploy/canonical-equipment-runtime-asset-manifest.json",
+        "deploy/canonical-e10-zone4-static-pack-manifest.json"
+      ],
+      "successor_node_ids": [
+        "tests/test_release_fix_a3_canonical_image_pack.py::test_every_manifest_file_exists_with_matching_hash_and_size",
+        "tests/test_release_fix_a3_canonical_image_pack.py::test_inventory_required_subtree_points_at_image_pack_manifest",
+        "tests/test_release_fix_a4_canonical_audio_pack.py::test_every_manifest_file_exists_with_matching_hash_and_size",
+        "tests/test_release_fix_a4_canonical_audio_pack.py::test_inventory_governs_storyboards_via_second_required_subtree",
+        "tests/deployment/test_static_release_tooling.py::test_inventory_governs_assets_via_required_subtrees",
+        "tests/deployment/test_owner_device_static_asset_closure.py::test_runtime_registry_closure_is_complete",
+        "tests/deployment/test_zone4_static_packaging.py::test_zone4_runtime_resources_are_in_the_static_contract"
+      ],
+      "successor_evidence": [
+        "row1 current A3/A4/Equipment/Zone4/inventory successor receipt"
+      ],
+      "successor_pass_required_before_retirement": true,
+      "existing_governance_reference": null
+    },
+    {
+      "row_id": 4,
+      "diagnostic_id": "G03_NAVIGATION_DIAGNOSTIC",
+      "old_node_ids": [
+        "tests/test_e10_adventure_hero_shop_backpack_information_architecture.py::test_backpack_is_an_enabled_independent_destination_with_exclusive_navigation",
+        "tests/test_e10_backpack_context_handoff_link_closure.py::test_all_e10_backpack_producers_share_the_existing_handoff_helper",
+        "tests/test_e10_backpack_context_handoff_link_closure.py::test_generic_and_legacy_navigation_remain_unmarked",
+        "tests/test_e10_backpack_rpg_presentation.py::test_e10_route_marker_is_narrow_and_owned_by_the_existing_shell_contract",
+        "tests/test_e10_legacy_navi_static_ownership_recovery.py::test_legacy_navigation_surface_preserves_keyboard_and_accessibility_contract",
+        "tests/test_e10_legacy_navi_static_ownership_recovery.py::test_navigation_contract_has_one_accessible_legacy_surface_and_e9_strip",
+        "tests/test_e10_rpg_navigation_visual_polish.py::test_every_navigation_surface_uses_registry_icons_and_i18n_names",
+        "tests/test_e10_ui_nav_guild_and_single_map_return.py::test_b1_guild_entry_exists_and_targets_the_existing_guild_page",
+        "tests/test_e10_ui_nav_guild_and_single_map_return.py::test_b2_adventure_slot_is_swapped_for_guild_on_the_adventure_surface",
+        "tests/test_e10_ui_nav_guild_and_single_map_return.py::test_b3_no_new_route_was_invented",
+        "tests/test_e10_ui_nav_guild_and_single_map_return.py::test_b5_guild_is_not_marked_active_while_the_player_is_on_adventure",
+        "tests/test_e10_ui_nav_guild_and_single_map_return.py::test_b6_the_adventure_entry_itself_is_preserved_in_the_registry",
+        "tests/test_e10_ui_nav_guild_and_single_map_return.py::test_b7_every_other_nav_item_is_untouched",
+        "tests/test_e10_ui_nav_guild_and_single_map_return.py::test_b8_one_tap_cannot_double_navigate",
+        "tests/test_e10_ui_nav_guild_and_single_map_return.py::test_b9_guild_uses_the_owner_supplied_icon_asset",
+        "tests/test_e10_vs1e_immersive_rpg_shell.py::test_navigation_keeps_vs1d_markup_base_safe_and_builds_vs1f_icons_after_marker"
+      ],
+      "old_contract": "H048 exact diagnostic node set retained for historical comparison",
+      "current_failure_signature": "c295dcfe5379fa218f2c9905ae37f623859023bd1943dad31bb2a6fe431c1cba",
+      "classification": "SEMANTIC_SUCCESSOR_ALREADY_PROVES_BEHAVIOR",
+      "status": "SUPERSEDED_BY_SEMANTIC_SUCCESSOR",
+      "retirement_or_supersession_reason": "The historical diagnostics asserted legacy literal targets and markup. P09 reads the exported registry and proves seven semantic destinations with independent Backpack identity.",
+      "current_authority_sources": [
+        "js/e9/navigation_registry.js",
+        "tests/governance/g009_protected_test_successor_registry.json"
+      ],
+      "successor_node_ids": [
+        "tests/test_g009_p09_p07_coverage.py::test_p09_semantic_successor_covers_seven_destinations_and_backpack_identity",
+        "tests/test_g009_p09_p07_coverage.py::test_p09_semantic_successor_keeps_site_navigation_identity_aligned"
+      ],
+      "successor_evidence": [
+        "05-P09_NAVIGATION_SUCCESSOR-receipt.json"
+      ],
+      "successor_pass_required_before_retirement": true,
+      "existing_governance_reference": "P09"
+    },
+    {
+      "row_id": 6,
+      "diagnostic_id": "G04_SHOP_EQUIPMENT_DIAGNOSTIC",
+      "old_node_ids": [
+        "tests/test_a036_equipment_effect_and_power_presentation_closure.py::test_frontend_uses_server_effect_details_without_a_duplicate_stat_table",
+        "tests/test_c053_option_b_shop_ui_containment.py::test_option_b_copy_separates_functional_equipment_and_cosmetics_in_both_locales",
+        "tests/test_c053_option_b_shop_ui_containment.py::test_option_b_hides_every_non_admitted_public_shop_surface_by_default",
+        "tests/test_e10_backpack_rpg_presentation.py::test_use_eligibility_and_non_manual_protection_remain_controller_owned",
+        "tests/test_rpg_wave2_gate2_equipment_backpack.py::test_backpack_and_loot_frontend_contracts_keep_functional_and_style_separate"
+      ],
+      "old_contract": "H048 exact diagnostic node set retained for historical comparison",
+      "current_failure_signature": "dcff9772af1c5d6ef8ef801e45c5ceb268b364b816a8e57e334c51f96ebaab00",
+      "classification": "SEMANTIC_SUCCESSOR_ALREADY_PROVES_BEHAVIOR",
+      "status": "SUPERSEDED_BY_SEMANTIC_SUCCESSOR",
+      "retirement_or_supersession_reason": "The historical diagnostics asserted retired copy/source literals. Current shop browse-only and Backpack read-only/loadout-off successors prove the Owner contract.",
+      "current_authority_sources": [
+        "shop.html",
+        "inventory.html",
+        "js/g009_equipment_inventory_projection.js",
+        "tests/test_g009_12_surface_visual_authority_consume.py"
+      ],
+      "successor_node_ids": [
+        "tests/test_a035_hero_equipment_presentation_and_appearance_effect_closure.py::test_legacy_visual_and_effect_consumption_are_hardened",
+        "tests/test_a051_wooden_sword_equip_to_hero_projection_vertical_slice.py::test_inventory_enabled_path_is_server_gated_and_reuses_authoritative_endpoint",
+        "tests/test_g009_12_surface_visual_authority_consume.py::test_shop_is_visible_catalog_preview_only",
+        "tests/test_g009_12_surface_visual_authority_consume.py::test_locked_surface_markers_and_copy_authority_are_connected",
+        "tests/test_g009_12_surface_visual_authority_consume.py::test_backpack_keeps_coin_projection_but_hides_write_and_use_actions",
+        "tests/test_e10_adventure_hero_shop_backpack_information_architecture.py::test_backpack_uses_real_catalog_inventory_and_truthful_capabilities",
+        "tests/test_e10_adventure_hero_shop_backpack_information_architecture.py::test_equipment_appearance_spirit_and_honors_have_disjoint_surface_ownership",
+        "tests/test_e10_adventure_hero_shop_backpack_information_architecture.py::test_item_projection_contract_preserves_source_identity_without_inventory_duplication",
+        "tests/test_rpg_wave2_gate2_cross_lane_integration.py::test_inventory_information_architecture_keeps_authorities_separate",
+        "tests/test_canonical_loadout_capability_surface.py::test_client_no_longer_hardcodes_a_second_gate",
+        "tests/test_canonical_loadout_capability_surface.py::test_client_reads_only_the_server_capability",
+        "tests/test_canonical_loadout_capability_surface.py::test_capability_is_presentation_only_and_not_the_write_authority"
+      ],
+      "successor_evidence": [
+        "07-SHOP_BROWSE_ONLY_SUCCESSORS-receipt.json",
+        "08-BACKPACK_READ_ONLY_LOADOUT_OFF-receipt.json"
+      ],
+      "successor_pass_required_before_retirement": true,
+      "existing_governance_reference": null
+    },
+    {
+      "row_id": 11,
+      "diagnostic_id": "G06_P07_DIAGNOSTIC",
+      "old_node_ids": [
+        "tests/test_e10_zone1_lord_trial_progress_completion.py::test_srs_review_limit_guard_exempts_only_active_boss_questions"
+      ],
+      "old_contract": "H048 exact diagnostic node set retained for historical comparison",
+      "current_failure_signature": "a2fe042b6501f11a09d6d0f8a01f69683ac130ecacf047fb9eb9bf6c8ac540dc",
+      "classification": "SEMANTIC_SUCCESSOR_ALREADY_PROVES_BEHAVIOR",
+      "status": "SUPERSEDED_BY_SEMANTIC_SUCCESSOR",
+      "retirement_or_supersession_reason": "The historical diagnostic asserted a source-window quota expression. P07 semantic successors prove in-scope Lord admission and ordinary-practice rejection at quota boundaries.",
+      "current_authority_sources": [
+        "app.py",
+        "tests/governance/g009_protected_test_successor_registry.json"
+      ],
+      "successor_node_ids": [
+        "tests/test_incident_018_lord_attempt_scope.py::test_in_scope_lord_answer_is_not_rejected_by_daily_limit[A-at-cap-0-20]",
+        "tests/test_incident_018_lord_attempt_scope.py::test_in_scope_lord_answer_is_not_rejected_by_daily_limit[B-candidate-A-4-16]",
+        "tests/test_incident_018_lord_attempt_scope.py::test_in_scope_lord_answer_is_not_rejected_by_daily_limit[C-candidate-B-11-9]",
+        "tests/test_incident_018_lord_attempt_scope.py::test_ordinary_free_practice_at_cap_is_still_rejected_by_daily_limit"
+      ],
+      "successor_evidence": [
+        "12-P07_PROTECTED_REGISTRY-receipt.json",
+        "row11 P07 successor execution"
+      ],
+      "successor_pass_required_before_retirement": true,
+      "existing_governance_reference": "P07"
+    },
+    {
+      "row_id": 13,
+      "diagnostic_id": "G07_WORLD_MAP_DIAGNOSTIC",
+      "old_node_ids": [
+        "tests/test_e10_battle_reentry_i18n_ipad_cta_closure.py::test_action_label_calls_the_now_defined_keys_with_matching_fallback",
+        "tests/test_e10_ipad_adventure_interaction_recovery.py::test_portrait_detail_uses_authoritative_boss_progress_and_replay_surface",
+        "tests/test_e10_ipad_portrait_zone_card_cta_hotfix.py::test_completed_zone_semantics_are_not_orientation_derived",
+        "tests/test_e10_reference_faithful_world_map.py::test_reference_css_is_exact_skin_scoped",
+        "tests/test_e10_world_map_player_avatar_marker.py::test_exactly_one_marker_host_moves_between_responsive_surfaces",
+        "tests/test_pwa_initial_world_stage_layout_reopen.py::test_desktop_legacy_navigation_category_is_the_proven_evidence_trail",
+        "tests/test_pwa_initial_world_stage_layout_reopen.py::test_portrait_tablet_override_algorithm_and_wiring",
+        "tests/test_w1_owner_map_duplicate_language_control_removed.py::test_map_session_strip_is_removed_not_merely_clipped",
+        "tests/test_w1_owner_map_duplicate_language_control_removed.py::test_no_reserved_space_or_inner_layout_for_the_removed_strip"
+      ],
+      "old_contract": "H048 exact diagnostic node set retained for historical comparison",
+      "current_failure_signature": "86d8405c9138bb90657d9c84755b4d529b7cfd13b4eca4f27d5630953a11c5df",
+      "classification": "SEMANTIC_SUCCESSOR_ALREADY_PROVES_BEHAVIOR",
+      "status": "SUPERSEDED_BY_SEMANTIC_SUCCESSOR",
+      "retirement_or_supersession_reason": "The historical diagnostics assert retired literal CSS/i18n/DOM shapes. Current map authority, responsive world-stage, navigation-shell and G07 corrective suites cover behavior; mobile session-strip drawer rules are Owner-approved current behavior.",
+      "current_authority_sources": [
+        "js/e9/world_stage.js",
+        "css/e9/reference_world_map.css",
+        "tests/test_g009_w1_g07_world_map_center_corrective.py",
+        "tests/test_e10_map_authority_and_marker.py"
+      ],
+      "successor_node_ids": [
+        "tests/test_g009_w1_g07_world_map_center_corrective.py::test_current_zone_focus_uses_the_locked_horizontal_clamp_formula",
+        "tests/test_g009_w1_g07_world_map_center_corrective.py::test_pan_surface_derives_width_from_governed_map_aspect_ratio_without_fake_space",
+        "tests/test_g009_w1_g07_world_map_center_corrective.py::test_focus_runs_from_server_current_zone_and_preserves_existing_boundaries",
+        "tests/test_g009_w1_g07_world_map_center_corrective.py::test_no_vertical_centering_or_intrinsic_spacing_hack_is_introduced",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_exact_v218_static_runtime_version_coupling",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_original_landmarks_and_canonical_zone3_landmark_are_runtime_referenced_and_governed",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_landmarks_are_decorative_and_only_created_for_mobile_cards",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_route_topology_is_base_safe_and_material_layers_are_exact_marker_only",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_unified_frame_original_icons_and_four_state_landmark_treatments",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_mobile_keeps_single_row_safe_area_navigation_and_inline_landmarks",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_player_location_is_progression_owned_and_selection_independent",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_vs1d_fallback_restores_base_safe_dom_before_runtime_render",
+        "tests/test_e10_vs1f_integrated_world_map.py::test_base_map_identity_is_unchanged",
+        "tests/test_e10_map_authority_and_marker.py::test_current_zone_new_player_uses_effective_start",
+        "tests/test_e10_map_authority_and_marker.py::test_current_zone_uses_first_canonical_unlocked_incomplete_node",
+        "tests/test_e10_map_authority_and_marker.py::test_current_zone_uses_last_completed_playable_node_when_all_available_complete",
+        "tests/test_e10_map_authority_and_marker.py::test_current_zone_fails_closed_for_unavailable_or_invalid_authority",
+        "tests/test_e10_map_authority_and_marker.py::test_selected_and_recommended_display_state_cannot_move_authority",
+        "tests/test_e10_map_authority_and_marker.py::test_eligible_lord_wins_over_replenish_stars",
+        "tests/test_e10_map_authority_and_marker.py::test_completed_lord_never_emits_incorrect_challenge_action",
+        "tests/test_e10_map_authority_and_marker.py::test_cleared_zone_always_exposes_lord_replay_primary_action",
+        "tests/test_e10_map_authority_and_marker.py::test_marker_reconciliation_is_single_authoritative_pipeline",
+        "tests/test_e10_map_authority_and_marker.py::test_current_zone_null_fails_closed_and_reconciliation_removes_stale_markers",
+        "tests/test_e10_map_authority_and_marker.py::test_battle_return_path_force_refreshes_shared_adventure_bootstrap",
+        "tests/test_e10_map_authority_and_marker.py::test_fresh_bootstrap_authority_is_passed_to_the_map_render_boundary",
+        "tests/test_e10_map_authority_and_marker.py::test_authoritative_primary_action_precedes_legacy_skipped_presentation",
+        "tests/test_e10_map_authority_and_marker.py::test_marker_hosts_remain_non_clickable_and_current_key_is_not_selection_derived",
+        "tests/test_e10_world_stage_vertical_slice.py::test_governed_base_map_and_independent_route_are_present",
+        "tests/test_e10_world_stage_vertical_slice.py::test_all_ten_canonical_keys_have_normalized_node_and_reserved_boss_anchors",
+        "tests/test_e10_world_stage_vertical_slice.py::test_nodes_are_real_buttons_and_locked_nodes_only_allow_detail_selection",
+        "tests/test_e10_world_stage_vertical_slice.py::test_mobile_uses_ordered_dom_journey_instead_of_shrinking_the_map",
+        "tests/test_e10_world_stage_vertical_slice.py::test_right_drawer_is_closed_by_default_and_uses_existing_payload_summary",
+        "tests/test_e10_world_stage_vertical_slice.py::test_progress_initial_copy_and_map_aria_labels_use_runtime_i18n_contracts",
+        "tests/test_e10_world_stage_vertical_slice.py::test_right_drawer_escape_and_lifecycle_listener_contract",
+        "tests/test_e10_world_stage_vertical_slice.py::test_nodes_have_dom_number_and_state_markers_and_hidden_details_do_not_render",
+        "tests/test_e10_world_stage_vertical_slice.py::test_tablet_drawer_is_an_overlay_and_hidden_detail_panel_has_no_layout_box",
+        "tests/test_e10_rpg_navigation_shell.py::test_registry_is_the_single_route_source_and_has_required_targets",
+        "tests/test_e10_rpg_navigation_shell.py::test_navigation_order_and_long_label_contract_are_explicit",
+        "tests/test_e10_rpg_navigation_shell.py::test_i18n_navigation_keys_are_complete_in_both_languages",
+        "tests/test_e10_rpg_navigation_shell.py::test_overlays_have_dialog_focus_and_escape_contracts",
+        "tests/test_e10_rpg_navigation_shell.py::test_accessible_names_and_disabled_semantics_are_not_tooltip_only",
+        "tests/test_e10_rpg_navigation_shell.py::test_new_navigation_is_exact_marker_gated_and_fallback_removes_overlay_dom",
+        "tests/test_e10_rpg_navigation_shell.py::test_formal_ten_zone_names_are_runtime_and_fixture_contract",
+        "tests/test_e10_rpg_navigation_shell.py::test_adventure_command_executes_without_mutating_progress_or_starting_challenge"
+      ],
+      "successor_evidence": [
+        "14-G07_WM_Q1_CORRECTIVE-receipt.json",
+        "row13 current world-map semantic successor execution"
+      ],
+      "successor_pass_required_before_retirement": true,
+      "existing_governance_reference": null
+    },
+    {
+      "row_id": 15,
+      "diagnostic_id": "G08_FUTURE30_DIAGNOSTIC",
+      "old_node_ids": [
+        "tests/test_rpg_wave2_gate2_character_art_p1.py::test_current_character_ids_and_authority_paths_are_unchanged",
+        "tests/test_rpg_wave2_gate2_p3_wearable_production_runtime.py::test_equipment_and_character_selection_authority_are_unchanged",
+        "tests/test_rpg_wave2_master_lane_b_runtime_closure.py::test_character_presentation_fails_closed_to_server_default"
+      ],
+      "old_contract": "H048 exact diagnostic node set retained for historical comparison",
+      "current_failure_signature": "868936afc62641e7537f546a60a647174bd4187f3b6d3c5c7b84eabe7fa18c28",
+      "classification": "SEMANTIC_SUCCESSOR_ALREADY_PROVES_BEHAVIOR",
+      "status": "SUPERSEDED_BY_SEMANTIC_SUCCESSOR",
+      "retirement_or_supersession_reason": "The historical diagnostics assert a retired VALID_CHARACTER_KEYS literal and apprentice fallback for legacy keys. Current Future30 server admission/appearance ownership successors prove bounded behavior and preserve legacy compatibility.",
+      "current_authority_sources": [
+        "future30_character_registry.py",
+        "future30_character_service.py",
+        "tests/test_future30_server_admission_and_formal_hero.py"
+      ],
+      "successor_node_ids": [
+        "tests/test_future30_server_admission_and_formal_hero.py::test_canonical_future30_registry_is_exactly_30_logical_and_33_visual",
+        "tests/test_future30_server_admission_and_formal_hero.py::test_server_admission_uses_manifest_and_preserves_legacy_fallback",
+        "tests/test_future30_server_admission_and_formal_hero.py::test_formal_host_and_f009_contract_are_explicit_and_bounded",
+        "tests/test_future30_server_admission_and_formal_hero.py::test_authenticated_hero_passes_server_snapshot_to_formal_runtime",
+        "tests/test_future30_server_admission_and_formal_hero.py::test_appearance_read_model_declares_existing_wardrobe_ownership",
+        "tests/test_future30_server_admission_and_formal_hero.py::test_real_character_route_requires_persistent_ownership_and_rejects_unknown"
+      ],
+      "successor_evidence": [
+        "16-FUTURE30_STARTER_APPEARANCE-receipt.json"
+      ],
+      "successor_pass_required_before_retirement": true,
+      "existing_governance_reference": null
+    }
+  ]
+}
