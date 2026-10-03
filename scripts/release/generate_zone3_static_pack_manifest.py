@@ -13,6 +13,8 @@ import json
 import sys
 from pathlib import Path
 
+from generate_g009_derived84_static_pack_manifest import canonical_source_bytes
+
 
 ZONE3_ROOTS = (
     Path("assets/e10/art/zone3"),
@@ -54,7 +56,7 @@ def runtime_paths(repo_root: Path) -> list[Path]:
 
 
 def file_entry(path: Path, repo_root: Path) -> dict[str, object]:
-    raw = path.read_bytes()
+    raw = canonical_source_bytes(path)
     relative = path.relative_to(repo_root).as_posix()
     return {
         "path": relative,
