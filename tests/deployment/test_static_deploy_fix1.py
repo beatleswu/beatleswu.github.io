@@ -119,30 +119,17 @@ def _build_deterministic_manifest():
 
 
 @pytest.fixture
-def real_static_manifest_fixture():
-    """Materializes REAL_STATIC_MANIFEST hermetically for the duration of a
-    test. static_deploy_fix1_ps_harness.ps1's RealManifestSingleMkdirOperation
-    scenario hardcodes a read of this exact path and is out of this repair's
-    authorized scope, so the path itself cannot change -- instead this makes
-    the *dependency* hermetic by generating the file the harness expects
-    rather than relying on a pre-existing local, gitignored artifact left
-    over from earlier sprints. Backs up and restores any real file so this
-    never destroys local data, and leaves no trace in a clean worktree."""
-    manifest_dir = REAL_STATIC_MANIFEST.parent
-    dir_preexisted = manifest_dir.exists()
-    file_preexisted = REAL_STATIC_MANIFEST.exists()
-    backup = REAL_STATIC_MANIFEST.read_bytes() if file_preexisted else None
-    manifest_dir.mkdir(parents=True, exist_ok=True)
-    REAL_STATIC_MANIFEST.write_text(json.dumps(_build_deterministic_manifest()), encoding="utf-8")
-    try:
-        yield REAL_STATIC_MANIFEST
-    finally:
-        if file_preexisted:
-            REAL_STATIC_MANIFEST.write_bytes(backup)
-        else:
-            REAL_STATIC_MANIFEST.unlink()
-            if not dir_preexisted and not any(manifest_dir.iterdir()):
-                manifest_dir.rmdir()
+def real_static_manifest_fixture(tmp_path, monkeypatch):
+    """Inject a task-owned temporary manifest without writing repository artifacts."""
+    import sys
+    original = REAL_STATIC_MANIFEST
+    before = original.read_bytes() if original.exists() else None
+    manifest = tmp_path / "static-fixture.json"
+    manifest.write_text(json.dumps(_build_deterministic_manifest()), encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "REAL_STATIC_MANIFEST", manifest)
+    monkeypatch.setenv("GO_ODYSSEY_TEST_STATIC_MANIFEST", str(manifest))
+    yield manifest
+    assert (original.read_bytes() if original.exists() else None) == before
 
 
 # ---------------------------------------------------------------------------

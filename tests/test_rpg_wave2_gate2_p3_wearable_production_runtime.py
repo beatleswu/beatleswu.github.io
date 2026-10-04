@@ -171,18 +171,37 @@ def test_hero_profile_and_backpack_share_the_safe_renderer():
     assert "renderFunctionalWearablePreview();" in inventory
 
 
-def test_equipment_and_character_selection_authority_are_unchanged():
-    app = APP.read_text(encoding="utf-8")
-    assert "FUNCTIONAL_EQUIPMENT_ART" in app
-    assert "def equip_item()" in app
-    assert "UPDATE player_inventory SET equipped=0" in app
-    assert "UPDATE player_inventory SET equipped=1" in app
-    assert "def skills_character()" in app
-    # P1 candidate characters remain presentation-supported but not added to
-    # the server selection authority in this task.
-    selection_block = app.split("VALID_CHARACTER_KEYS = {", 1)[1].split("}\n\n@app.route('/api/skills/character'", 1)[0]
-    for candidate in ("trail_apprentice", "night_runner", "constellation_apprentice"):
-        assert candidate not in selection_block
+def test_equipment_and_character_selection_authority_are_unchanged(monkeypatch):
+    import app as application
+    from tests.test_g009_starter_lazy_grant import _create_state_database
+    from future30_character_service import ensure_future30_starter_bootstrap, STARTER_CHARACTER_KEYS
+    from contextlib import contextmanager
+    conn=_create_state_database()
+    conn.execute("INSERT INTO users VALUES(101,'goal2-character')")
+    ensure_future30_starter_bootstrap(conn,101)
+    conn.commit()
+    @contextmanager
+    def database():
+        try:yield conn
+        except Exception:conn.rollback();raise
+        else:conn.commit()
+    monkeypatch.setattr(application,'get_db',database)
+    client=application.app.test_client()
+    with client.session_transaction() as session:session['user_id']=101
+    try:
+        before=list(conn.execute('SELECT * FROM player_character_entitlements ORDER BY character_key'))
+        for key in STARTER_CHARACTER_KEYS:
+            response=client.post('/api/skills/character',json={'character_key':key})
+            assert response.status_code==200,(key,response.get_json())
+            assert conn.execute('SELECT character_key FROM player_appearance WHERE user_id=101').fetchone()[0]==key
+        assert list(conn.execute('SELECT * FROM player_character_entitlements ORDER BY character_key'))==before
+        persisted=conn.execute('SELECT character_key FROM player_appearance WHERE user_id=101').fetchone()[0]
+        assert client.post('/api/skills/character',json={'character_key':'A3'}).status_code==403
+        assert client.post('/api/skills/character',json={'character_key':'Z99'}).status_code==400
+        assert conn.execute('SELECT character_key FROM player_appearance WHERE user_id=101').fetchone()[0]==persisted
+        assert list(conn.execute('SELECT * FROM player_character_entitlements ORDER BY character_key'))==before
+    finally:conn.close()
+    assert 'EQUIPMENT_CANONICAL_LOADOUT_ENABLED' in APP.read_text(encoding='utf-8')
 
 
 def test_p2_artitecture_is_reused_without_bespoke_item_character_redraws():

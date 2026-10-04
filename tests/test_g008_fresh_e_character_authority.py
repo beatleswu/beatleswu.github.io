@@ -76,11 +76,16 @@ def test_all_legacy_keys_bootstrap_to_a1_without_identity_guess(authority_env, k
         assert tuple(conn.execute("SELECT character_key,updated_at FROM player_appearance "
                                   "WHERE user_id=1").fetchone())[0] == "A1"
         assert conn.execute("SELECT COUNT(*) FROM player_character_entitlements").fetchone()[0] == 5
-    # Keep the existing server unlock decision, including rejected aliases.
+    # Presentation/bootstrap and legacy selection are distinct contracts.
+    with database() as conn:
+        before = tuple(conn.execute("SELECT * FROM player_appearance WHERE user_id=1").fetchone())
+        entitlements_before = conn.execute("SELECT COUNT(*) FROM player_character_entitlements").fetchone()[0]
     result = client.post("/api/skills/character", json={"character_key": key})
-    assert result.status_code == 200
-    expected = application._cosmetic_unlocked("character", key, {}, False)
-    assert ("character" not in result.get_json()["rejected"]) == expected
+    assert result.status_code == 400
+    assert result.get_json() == {"error": "invalid character_key"}
+    with database() as conn:
+        assert tuple(conn.execute("SELECT * FROM player_appearance WHERE user_id=1").fetchone()) == before
+        assert conn.execute("SELECT COUNT(*) FROM player_character_entitlements").fetchone()[0] == entitlements_before
 
 
 def test_owned_apply_refresh_and_fresh_synthetic_session_use_persistent_authority(authority_env):

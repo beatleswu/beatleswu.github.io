@@ -22,13 +22,13 @@ def test_portrait_detail_cta_is_always_refreshed_from_selected_zone_contract():
 
 
 def test_completed_zone_semantics_are_not_orientation_derived():
-    start = WORLD.index("function ctaContract(zone, state)")
-    end = WORLD.index("\n  function usesLandmarkCards(", start)
-    contract = WORLD[start:end]
-    assert "zone.status === 'completed'" in contract
-    assert "kind: 'replay_completed'" in contract
-    assert "targetZoneKey: target" in contract
-    assert "matchMedia" not in contract
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _world_contract
+    expr="c.ctaContract({key:'k26_30',locked:false,canEnter:true,cleared:true,stars:1},{currentPlayerZoneKey:'k21_25',zones:[]})"
+    for width,height in [(480,900),(820,1180),(1180,820),(1440,900)]:
+        result=_world_contract(expr,width,height)
+        assert result['enabled'] is True
+        assert result['kind']=='replay_completed'
+        assert result['targetZoneKey']=='k26_30'
 
 
 def test_cleared_zone_has_replay_primary_and_star_training_secondary_surface():

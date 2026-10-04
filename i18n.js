@@ -211,7 +211,7 @@ const I18n = (() => {
         'g009.nav.hero_hub':     { en: 'Hero Hub',     zh: '英雄殿' },
         'g009.nav.backpack':     { en: 'Backpack',     zh: '背包' },
         'g009.nav.shop':         { en: 'Shop',         zh: '商店' },
-        'g009.nav.premium':      { en: 'Premium',      zh: '通行證' },
+        'g009.nav.premium':      { en: 'Pass',         zh: '通行證' },
         'g009.nav.aria':         { en: 'Global navigation', zh: '全域導覽' },
         'g009.nav.hamburger':    { en: 'Open navigation', zh: '開啟導覽' },
         'g009.nav.close':        { en: 'Close navigation', zh: '關閉導覽' },

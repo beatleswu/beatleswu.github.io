@@ -124,12 +124,13 @@ def test_portrait_detail_exposes_complete_selected_zone_identity():
 
 
 def test_portrait_detail_uses_authoritative_boss_progress_and_replay_surface():
-    assert "function zoneBossProgressText(zone)" in WORLD
-    assert "if (zone.bossAvailable) return bossReadyText(zone);" in WORLD
-    assert "if (zone.cleared) return clearedText(zone);" in WORLD
-    assert "index.adv.boss_intro_progress" in WORLD
-    assert "var bossProgress = root.querySelector('#e9-world-stage-details-boss-progress');" in WORLD
-    assert "bossProgress.textContent = zoneBossProgressText(zone);" in WORLD
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _world_contract
+    state="{currentPlayerZoneKey:'k26_30',zones:[]}"
+    locked=_world_contract("c.ctaContract({key:'k26_30',locked:true},"+state+")")
+    assert locked['enabled'] is False and locked['targetZoneKey'] is None
+    boss=_world_contract("c.ctaContract({key:'k26_30',locked:false,canEnter:true,bossAvailable:true},"+state+")")
+    assert boss['kind']=='challenge_lord' and boss['targetZoneKey']=='k26_30'
+    assert "bossProgress.textContent = locked ? '' : zoneBossProgressText(zone);" in WORLD
     assert "configureStoryReplayButton(replay, zone);" in WORLD
 
 

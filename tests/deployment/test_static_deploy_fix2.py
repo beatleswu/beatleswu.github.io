@@ -175,27 +175,17 @@ def _build_deterministic_manifest():
 
 
 @pytest.fixture
-def real_static_manifest_fixture():
-    """Materializes REAL_STATIC_MANIFEST hermetically for the duration of a
-    test, replacing the dependency on a pre-existing local, gitignored
-    artifact left over from earlier sprints. Backs up and restores any real
-    file so this never destroys local data, and leaves no trace in a clean
-    worktree."""
-    manifest_dir = REAL_STATIC_MANIFEST.parent
-    dir_preexisted = manifest_dir.exists()
-    file_preexisted = REAL_STATIC_MANIFEST.exists()
-    backup = REAL_STATIC_MANIFEST.read_bytes() if file_preexisted else None
-    manifest_dir.mkdir(parents=True, exist_ok=True)
-    REAL_STATIC_MANIFEST.write_text(json.dumps(_build_deterministic_manifest()), encoding="utf-8")
-    try:
-        yield REAL_STATIC_MANIFEST
-    finally:
-        if file_preexisted:
-            REAL_STATIC_MANIFEST.write_bytes(backup)
-        else:
-            REAL_STATIC_MANIFEST.unlink()
-            if not dir_preexisted and not any(manifest_dir.iterdir()):
-                manifest_dir.rmdir()
+def real_static_manifest_fixture(tmp_path, monkeypatch):
+    """Inject a task-owned temporary manifest without writing repository artifacts."""
+    import sys
+    original = REAL_STATIC_MANIFEST
+    before = original.read_bytes() if original.exists() else None
+    manifest = tmp_path / "static-fixture.json"
+    manifest.write_text(json.dumps(_build_deterministic_manifest()), encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "REAL_STATIC_MANIFEST", manifest)
+    monkeypatch.setenv("GO_ODYSSEY_TEST_STATIC_MANIFEST", str(manifest))
+    yield manifest
+    assert (original.read_bytes() if original.exists() else None) == before
 
 
 # ---------------------------------------------------------------------------
@@ -457,12 +447,13 @@ def test_fix1_directory_batching_still_intact():
 
 
 def test_existing_fix1_and_release_suites_still_pass():
-    result = subprocess.run(
-        ["python", "-m", "pytest",
+    # Goal2 H-10 measured119-node child=238s; bounded480s, kill descendants on timeout.
+    result = run_bounded(
+        [sys.executable, "-m", "pytest",
          "tests/deployment/test_static_deploy_fix1.py",
          "tests/deployment/test_static_release_tooling.py",
-         "-q"],
-        cwd=REPO_ROOT, capture_output=True, text=True, timeout=180,
+         "-q", "-p", "no:cacheprovider"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=480,
     )
     assert result.returncode == 0, result.stdout + result.stderr
 

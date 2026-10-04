@@ -332,16 +332,19 @@ class TestDisposableRuntime:
         assert types['stats'] == 'dict'
 
     def test_every_pre_authority_presentation_gate_can_execute(self, selfcheck_report):
-        """Phase 6: field-gated client behaviour is now reachable.
-
-        This asserts capability only.  Which field (if any) is implicated in
-        the auto-next failure is deliberately not claimed here.
-        """
-        absent = selfcheck_report['evidence']['submitsrs_gated_fields_absent']
-        assert absent == [], f'still unreachable under this runtime: {absent}'
-        present = set(selfcheck_report['evidence']['submitsrs_gated_fields_present'])
-        for field in SUBMITSRS_PRE_AUTHORITY_FIELDS:
-            assert field in present, field
+        """Current signed Lord review cannot enter the retired public combat tail."""
+        evidence=selfcheck_report['evidence']
+        absent=set(evidence['submitsrs_gated_fields_absent'])
+        assert absent == {'appearance_loot','loot','monster','player','quest_updates','sp'}
+        present=set(evidence['submitsrs_gated_fields_present'])
+        assert present == (set(SUBMITSRS_PRE_AUTHORITY_FIELDS)-absent) | {'stats','combo_mult','new_badges','pet_xp_added'}
+        checks=selfcheck_report['checks']
+        assert checks['BOSS_ATTEMPT_REAL'] is True
+        assert checks['BOSS_ATTEMPT_SIGNED'] is True
+        assert checks['BOSS_ATTEMPT_CONTEXT_ENFORCED'] is True
+        assert checks['REVIEW_COMMITS_SERVER_SIDE'] is True
+        assert checks['REVIEW_RESPONSE_IS_ONLY_OK_TRUE'] is False
+        assert evidence['boss_resume_body']['answered_count']==1
 
     def test_review_is_a_durable_server_commit(self, selfcheck_report):
         assert selfcheck_report['checks']['REVIEW_COMMITS_SERVER_SIDE'] is True

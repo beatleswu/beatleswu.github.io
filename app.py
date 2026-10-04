@@ -21132,25 +21132,19 @@ LEGACY_COMPATIBILITY_CHARACTER_KEYS = frozenset({
     'hero_male', 'woman', 'boy_child', 'girl_child', 'elder_master', 'elder_woman',
 })
 
-# Future30 keys are loaded from the canonical C005 manifest. A malformed or
-# missing manifest leaves the legacy service available and admits no new key.
-VALID_CHARACTER_KEYS = set(
-    LEGACY_ACTIVE_CHARACTER_KEYS
-    | LEGACY_COMPATIBILITY_CHARACTER_KEYS
-    | FUTURE30_CHARACTER_KEYS
-)
-ACTIVE_CHARACTER_KEYS = frozenset(LEGACY_ACTIVE_CHARACTER_KEYS | FUTURE30_CHARACTER_KEYS)
-LEGACY_CHARACTER_RENDERING_POLICY = 'PRESERVE_KEY_WITH_EXISTING_2D_FALLBACK_UNTIL_FORMAL_FUTURE30_IDENTITY'
+# Selection admits only the canonical Future30 registry. Historical identities
+# remain readable through the A1 presentation fallback, never as new selections.
+VALID_CHARACTER_KEYS = set(FUTURE30_CHARACTER_KEYS)
+ACTIVE_CHARACTER_KEYS = frozenset(FUTURE30_CHARACTER_KEYS)
+LEGACY_CHARACTER_RENDERING_POLICY = 'PRESENT_LEGACY_AS_A1_REJECT_LEGACY_SELECTION'
 
 
 def _presentation_character_key(value):
-    """Return a legacy presentation key; no legacy key is guessed into A1...E3.
+    """Read legacy/invalid identities as A1 without rewriting persisted data.
 
-    Future30 uses the separate ownership-aware projection below.
+    Ownership-aware Future30 consumers use the projection below.
     """
-    if is_future30_character_key(value):
-        return 'apprentice'
-    return value if value in (LEGACY_ACTIVE_CHARACTER_KEYS | LEGACY_COMPATIBILITY_CHARACTER_KEYS) else 'apprentice'
+    return value if is_future30_character_key(value) else 'A1'
 
 
 def _future30_acceptance_enabled():
@@ -21172,7 +21166,7 @@ def _project_character_for_user(uid, conn, stored_key):
             )
         except Future30ServiceError:
             return {
-                'character_key': 'apprentice',
+                'character_key': 'A1',
                 'character_key_source': 'server_default',
                 'runtime': None,
                 'entitled': False,
@@ -21268,7 +21262,7 @@ def get_player_character_catalog():
 @app.route('/api/skills/character', methods=['POST'])
 @login_required
 def skills_character():
-    """儲存玩家選的全身角色基座到 player_appearance。Body: { "character_key": "hero_male" }"""
+    """Select an owned canonical Future30 key; legacy keys reject before any write."""
     uid  = session['user_id']
     data = request.get_json() or {}
     if not isinstance(data, dict):
@@ -21305,33 +21299,6 @@ def skills_character():
             return jsonify({'error': exc.code}), exc.status_code
         return jsonify({'ok': True, 'rejected': rejected_legacy_fields})
 
-    is_prem = is_premium(uid)
-    now = datetime.datetime.now().isoformat()
-    with get_db() as conn:
-        # ── 角色解鎖驗證（伺服器端權威） ──
-        metrics   = _compute_title_metrics(uid, conn)
-        char_ok   = _cosmetic_unlocked('character', ckey, metrics, is_prem)
-        rejected = ([] if char_ok else ['character']) + \
-                   rejected_legacy_fields
-
-        existing = conn.execute(
-            'SELECT user_id FROM player_appearance WHERE user_id=?', (uid,)
-        ).fetchone()
-        if existing:
-            sets, vals = ['updated_at=?'], [now]
-            if char_ok:
-                sets.insert(0, 'character_key=?'); vals.insert(0, ckey)
-            vals.append(uid)
-            conn.execute(
-                f"UPDATE player_appearance SET {', '.join(sets)} WHERE user_id=?", vals)
-        else:
-            eff_char = ckey if char_ok else 'apprentice'   # 新列且角色未解鎖 → 退回預設
-            cols = ['user_id', 'character_key', 'updated_at']
-            vals = [uid, eff_char, now]
-            ph = ','.join('?' * len(cols))
-            conn.execute(
-                f"INSERT INTO player_appearance({','.join(cols)}) VALUES({ph})", vals)
-    return jsonify({'ok': True, 'rejected': rejected})
 
 
 # ── 棋子皮膚 ─────────────────────────────────────────────────────────

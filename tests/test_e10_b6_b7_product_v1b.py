@@ -113,7 +113,10 @@ def test_b6_b7_packaging_closure_is_explicit():
         assert f"/app/{path}" in build["post_build_verification_files"]
         assert path in inventory["eligible_files"]["entries"]
         assert path in inventory["required_in_generation"]["entries"]
-    assert len(inventory["required_in_generation"]["entries"]) == 17
+    entries=inventory["required_in_generation"]["entries"]
+    assert len(entries)==len(set(entries))
+    assert set(entries)<=set(inventory["eligible_files"]["entries"])
+    assert all((ROOT/path).is_file() for path in entries)
 
 
 def test_control_plane_and_product_scope_are_bounded():

@@ -17,13 +17,13 @@ CSS = (ROOT / "css/e10/backpack.css").read_text(encoding="utf-8")
 
 
 def test_e10_route_marker_is_narrow_and_owned_by_the_existing_shell_contract():
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation
+    nav = _canonical_navigation()
     assert "new URLSearchParams(location.search).get('e10') === '1'" in INVENTORY
     assert "root.dataset.e10BackpackShell = 'true';" in INVENTORY
-    assert "root.dataset.e10VisualSkin = 'immersive-rpg';" in INVENTORY
-    assert "root.dataset.e10ArtKit = 'runtime-v1';" in INVENTORY
-    assert "marker.name = 'go-odyssey-static-contract';" in INVENTORY
     assert "marker.content = 'e10-vs1f-integrated-world-map';" in INVENTORY
-    assert "key: 'backpack', target: '/inventory' + '?e10=1'" in REGISTRY
+    assert next(x for x in nav['items'] if x['key']=='backpack')['target']=='/inventory?e10=1'
+    assert "functionalEquipmentLoadoutEnabled()" in INVENTORY
 
 
 def test_e10_backpack_context_survives_full_navigation_and_reload_without_global_conversion():
@@ -73,19 +73,13 @@ def test_inventory_data_categories_counts_and_api_authority_are_unchanged():
 
 
 def test_use_eligibility_and_non_manual_protection_remain_controller_owned():
-    for contract in (
-        "if (item.capability === 'spirit_managed')",
-        "if (item.usable === 'activate') return { kind:'manual'",
-        "if (item.usable === 'auto') return { kind:'automatic'",
-        "if (item.usable === 'in_question') return { kind:'automatic'",
-        "if (item.usable === 'instant') return { kind:'automatic'",
-        "fetch('/api/shop/use'",
-        "${capability.kind === 'manual' ?",
-        "useButton.hidden = capability.kind !== 'manual';",
-        "if (useButton) useButton.addEventListener('click'",
-    ):
+    for contract in ("if (item.capability === 'spirit_managed')", "if (item.usable === 'activate') return { kind:'manual'", "if (item.usable === 'auto') return { kind:'automatic'", "if (item.usable === 'in_question') return { kind:'automatic'", "if (item.usable === 'instant') return { kind:'automatic'", "fetch('/api/shop/use'"):
         assert contract in INVENTORY
     assert "fetch('/api/shop/buy'" not in INVENTORY
+    assert "blockedLoadout = !functionalEquipmentLoadoutEnabled()" in INVENTORY
+    assert "if (!functionalEquipmentLoadoutEnabled()" in INVENTORY
+    # Current containment is not a permanent ban on future authorized actions.
+    assert "performFunctionalEquipmentAction" in INVENTORY
 
 
 def test_return_action_uses_the_existing_world_map_lifecycle_target():

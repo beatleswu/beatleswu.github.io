@@ -116,15 +116,13 @@ def test_item_projection_contract_preserves_source_identity_without_inventory_du
 
 
 def test_backpack_is_an_enabled_independent_destination_with_exclusive_navigation():
-    assert "@app.route('/inventory')" in APP
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation
+    nav = _canonical_navigation()
+    assert [x['key'] for x in nav['global']] == ['learning_hub','arena','tavern','hero_hub','backpack','shop','premium']
+    backpack=next(x for x in nav['global'] if x['key']=='backpack')
+    assert backpack['target']=='/inventory?e10=1'
     assert "def inventory_page(): return _serve_live_static_or_baked('inventory.html')" in APP
-    assert "key: 'backpack', target: '/inventory'" in REGISTRY
-    assert "key: 'backpack', target: '/inventory'" in REGISTRY and "category: 'primary'" in REGISTRY
-    assert "href: '/inventory'" in SITE_NAV
-    assert "key: 'backpack'" in SITE_NAV
-    assert 'data-backpack-destination' in INVENTORY
     assert 'data-authoritative-backpack-grid' in INVENTORY
-    assert '<a href="/inventory"    class="nav-link active" aria-current="page"' in INVENTORY
 
 
 def test_backpack_uses_real_catalog_inventory_and_truthful_capabilities():

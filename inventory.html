@@ -890,15 +890,14 @@ function renderFunctionalEquipmentDetail(item) {
   // An item the canonical server will never equip must not offer an equip
   // action at all; ownership stays visible, the control just stops lying.
   const notEquippable = !functionalItemEquippable(item) && !item.equipped;
-  const blockedNewEquip = actionType === 'equip'
-    && !functionalEquipmentLoadoutEnabled()
+  const blockedLoadout = !functionalEquipmentLoadoutEnabled()
     && !FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE;
-  const blocked = notEquippable || blockedNewEquip;
+  const blocked = notEquippable || blockedLoadout;
   action.textContent = item.equipped
     ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下')
     : (notEquippable
       ? functionalItemBlockLabel(item)
-      : (blockedNewEquip
+      : (blockedLoadout
         ? (functionalEquipmentIsEn() ? 'Equip unavailable' : '尚未開放裝備')
         : (functionalEquipmentIsEn() ? 'Equip' : '裝備')));
   action.disabled = blocked;
@@ -906,7 +905,7 @@ function renderFunctionalEquipmentDetail(item) {
     ? (functionalEquipmentIsEn()
       ? 'You own this item; the server does not allow equipping it.'
       : '你已擁有這件物品；伺服器不允許裝備它。')
-    : (blockedNewEquip
+    : (blockedLoadout
       ? (functionalEquipmentIsEn() ? 'Loadout is not enabled; this is presentation only.' : '配裝功能尚未啟用；目前僅供查看。')
       : '');
   action.setAttribute('data-block-reason', notEquippable ? functionalItemBlockReason(item) : '');
@@ -914,9 +913,9 @@ function renderFunctionalEquipmentDetail(item) {
 }
 async function performFunctionalEquipmentAction(item, action, button) {
   if (!item || item.inv_id == null) return;
-  if (action === 'equip' && !functionalEquipmentLoadoutEnabled()
+  if (!functionalEquipmentLoadoutEnabled()
       && !FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE) {
-    showBackpackToast(functionalEquipmentIsEn() ? 'Equip is not available yet.' : '裝備功能尚未開放。');
+    showBackpackToast(functionalEquipmentIsEn() ? 'Loadout is not available yet.' : '配裝功能尚未開放。');
     return;
   }
   // Defence in depth. The control is already disabled for these, so this is

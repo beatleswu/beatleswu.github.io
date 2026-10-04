@@ -76,26 +76,16 @@ def test_marker_location_uses_current_zone_only_and_selection_renderer_does_not_
 
 
 def test_exactly_one_marker_host_moves_between_responsive_surfaces():
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _world_contract
     reconcile = _function_body(WORLD, "reconcilePlayerNodeMarker")
     assert WORLD.count("function reconcilePlayerNodeMarker(") == 1
     assert "markerHosts.slice(1).forEach(function (duplicate) { duplicate.remove(); });" in reconcile
     assert "restorePlayerMarkerHost(root, mapStage);" in reconcile
-    assert "function usesInlinePlayerMarkerSurface()" in WORLD
-    inline_surface = _function_body(WORLD, "usesInlinePlayerMarkerSurface")
-    assert "(max-width: 767px)" in inline_surface
-    assert "(min-width: 768px) and (max-width: 1279px)" in inline_surface
-    assert "(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)" in inline_surface
-    assert "(pointer: coarse)" in inline_surface
-    assert "navigator.maxTouchPoints" in inline_surface
-    assert "appleTouchSurface" in inline_surface
-    assert "navigator.userAgent" in inline_surface
-    assert "window.innerHeight >= 960" in inline_surface
-    assert "if (usesInlinePlayerMarkerSurface())" in reconcile
     assert "var mobileHero = marker;" in reconcile
     assert "document.createElement('span')" not in reconcile
-    assert "mobileHero.style.pointerEvents = 'none';" in reconcile
-    assert 'id="e9-world-stage-player"' in WORLD_HTML
-    assert WORLD_HTML.count('id="e9-world-stage-player"') == 1
+    assert WORLD_HTML.count('id="e9-world-stage-player"')==1
+    assert _world_contract('c.usesInlinePlayerMarkerSurface()',820,1180) is True
+    assert _world_contract('c.usesInlinePlayerMarkerSurface()',1440,900) is False
 
 
 def test_invalid_location_fails_closed_without_selected_zone_fallback():

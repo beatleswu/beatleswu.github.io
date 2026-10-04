@@ -117,6 +117,7 @@ switch ($Scenario) {
         # package-static-release.ps1 -- proves the real bundle needs
         # exactly ONE ssh mkdir operation, not one per directory.
         $manifestPath = Join-Path $PSScriptRoot '..\..\release-artifacts\go-odyssey-app_e5efe34f.static.json'
+        if ($env:GO_ODYSSEY_TEST_STATIC_MANIFEST) { $manifestPath = $env:GO_ODYSSEY_TEST_STATIC_MANIFEST }
         $text = Get-Content -Raw -Encoding UTF8 $manifestPath
         $text = $text -replace [char]0xFEFF, ''
         $manifest = $text | ConvertFrom-Json

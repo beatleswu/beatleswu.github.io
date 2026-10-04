@@ -1310,6 +1310,14 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
             )"""
         )
         seed.execute("CREATE TABLE user_pets (user_id INTEGER PRIMARY KEY)")
+        # Current pet read-side schema is part of the real settlement transaction.
+        seed.execute("""CREATE TABLE pet_collection (
+            user_id INTEGER NOT NULL, pet_key TEXT NOT NULL, nickname TEXT,
+            level INTEGER DEFAULT 1, xp INTEGER DEFAULT 0, fullness INTEGER DEFAULT 60,
+            affection INTEGER DEFAULT 10, selected_at TEXT NOT NULL, last_fed_at TEXT,
+            last_interacted_at TEXT, last_pet_at TEXT, last_train_at TEXT, daily_key TEXT,
+            daily_bond INTEGER DEFAULT 0, daily_train_xp INTEGER DEFAULT 0,
+            PRIMARY KEY(user_id,pet_key))""")
         ensure_map_battle_tables(seed)
         ensure_submission_lifecycle_schema(seed)
         create_map_battle(
@@ -1456,7 +1464,8 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
             connection = helpers._postgres_wrapper(database_url)
             thread_state.connection = connection
             try:
-                with app_module.app.app_context():
+                with app_module.app.test_request_context("/api/map-battle/progression", method="POST"):
+                    app_module.session["user_id"] = 101
                     start.wait(timeout=15)
                     outcome, status = app_module._run_map_battle_progression(
                         101, settlement
@@ -1483,7 +1492,8 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
 
         retry_connection = helpers._postgres_wrapper(database_url)
         thread_state.connection = retry_connection
-        with app_module.app.app_context():
+        with app_module.app.test_request_context("/api/map-battle/progression", method="POST"):
+            app_module.session["user_id"] = 101
             retry_outcome, retry_status = app_module._run_map_battle_progression(
                 101, settlement
             )

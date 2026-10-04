@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import sys
 
 import pytest
+
+# This module loads before test modules import app. The key is synthetic and
+# test-only; application imports must never create a repository secret_key.txt.
+os.environ.setdefault("SECRET_KEY", "g009-suite-test-only-deterministic-secret")
 
 
 _FEATURE_KEY_PREFIXES = ("workbench:", "question-report:")

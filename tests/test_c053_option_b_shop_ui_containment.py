@@ -50,25 +50,16 @@ def _function_body(source: str, signature: str) -> str:
 
 
 def test_option_b_hides_every_non_admitted_public_shop_surface_by_default():
-    assert re.search(
-        r'<section[^>]+class="[^"]*cosmetic-commerce-panel[^" ]*"'
-        r'[^>]+data-c053-option-b-surface="cosmetics"[^>]+hidden',
-        SHOP,
-    )
-    assert re.search(
-        r'<section[^>]+id="equipment-commerce-panel"[^>]+data-c044-catalog="equipment-offers"'
-        r'[^>]+data-c053-option-b-surface="equipment"[^>]+[^>]*hidden',
-        SHOP,
-    )
-    for retired in ("premium", "daily", "gacha", "weekly", "monthly", "items"):
-        assert re.search(
-            rf'data-c053-option-b-retired="{retired}"[^>]*hidden', SHOP
-        ), f"{retired} Shop surface must be hidden for Option B"
-    assert 'data-c053-option-b-retired="gacha-collection"' in SHOP
-    assert 'id="legacy-gacha-collection-summary"' in SHOP
-    assert "Premium 與付款不在此頁" in SHOP
-    assert "功能裝備進入背包" in SHOP
-    assert "外觀裝扮進入衣櫃" in SHOP
+    # Backend purchase availability cannot authorize the approved browse-only UI.
+    import subprocess
+    start=SHOP.index('function shopPurchaseEnabled(')
+    end=SHOP.index('\n}',start)+2
+    script="const G009_SHOP_BROWSE_PREVIEW_ONLY=true;"+SHOP[start:end]+";if(shopPurchaseEnabled({purchase_enabled:true})!==false)process.exit(1);"
+    result=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr
+    assert 'data-g009-shop-purchase-disabled="browse-preview" disabled' in SHOP
+    assert "if (G009_SHOP_BROWSE_PREVIEW_ONLY)" in SHOP
+    assert "shop-preview-status" in SHOP
 
 
 def test_option_b_reveal_latch_is_server_catalog_driven_and_fail_closed():
@@ -140,16 +131,11 @@ def test_authorities_still_own_prices_products_and_destinations():
 
 
 def test_option_b_copy_separates_functional_equipment_and_cosmetics_in_both_locales():
-    assert "Coins Shop" in I18N
-    assert "功能裝備" in SHOP
-    assert "FUNCTIONAL EQUIPMENT" in SHOP
-    assert "Coins Cosmetics" in I18N
-    assert "COINS ONLY" in I18N
-    assert "combat power 0" in I18N
-    assert "戰鬥力固定為 0" in SHOP
-    assert "purchase != equip" not in SHOP.lower()
-    assert "auto-equipped" in SHOP
-    assert "自動裝備" in SHOP
+    assert "g009.shop.coming_soon" in SHOP
+    assert "Coming Soon" in SHOP and "即將開放" in SHOP
+    assert "equipment-commerce-panel" in SHOP and "cosmetic-commerce-panel" in SHOP
+    assert "G009_SHOP_BROWSE_PREVIEW_ONLY = true" in SHOP
+    assert "if (G009_SHOP_BROWSE_PREVIEW_ONLY) return false;" in SHOP
 
 
 def test_legacy_and_payment_paths_remain_compatibility_source_not_public_ui():

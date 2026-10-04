@@ -182,7 +182,7 @@ def test_both_locales_have_exactly_97_aligned_dialogue_beats_and_no_fallback() -
     assert content["cinematicLocalization"]["replaySource"] == "same_localized_beat_manifest"
 
 
-def test_presentation_audio_and_fx_contracts_are_bound_without_new_ui() -> None:
+def test_presentation_audio_and_fx_contracts_are_bound_without_new_ui():
     presentation_audio = load(PRESENTATION_AUDIO)
     cues = presentation_audio["CUES"]
     assert len(cues) == 18
@@ -219,7 +219,8 @@ def test_presentation_audio_and_fx_contracts_are_bound_without_new_ui() -> None:
     assert "_zone3PresentationAudio" in index
     assert "_stopZone3PresentationRuntime" in index
     assert "enterShot(shotId" in index
-    assert "audio.muted = isZone3Presentation" in index
+    assert "_stopZone3PresentationRuntime" in index
+    assert "stopZone3" in audio_runtime or "stopAll" in audio_runtime or "stop()" in audio_runtime
     assert "Z3_BGM_DISCOVERY" in audio_runtime
     assert "Z3_BGM_ESCALATION" in audio_runtime
     assert "Z3_BGM_RECOVERY" in audio_runtime

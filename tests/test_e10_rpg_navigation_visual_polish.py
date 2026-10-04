@@ -50,13 +50,16 @@ def test_formal_icons_have_no_emoji_remote_or_external_dependency():
 
 
 def test_every_navigation_surface_uses_registry_icons_and_i18n_names():
-    for source in (LEFT_NAV, DOCK, TOP_JS):
+    # Canonical navigation owns global links; the retired dock adds no second surface.
+    for source in (LEFT_NAV, TOP_JS):
         assert "registry.icon(" in source
         assert "data-i18n" in source
     assert "registry.icon('coin'" in TOP_JS
     assert "registry.icon('close'" in TOP_JS
     assert "registry.icon('close'" in CARDS_JS
     assert "registry.icon('lock'" in LEFT_NAV
+    assert "no second global navigation surface" in DOCK
+    test_owner_global_nav_item_seven_is_pass_in_both_locales()
 
 
 def test_button_state_contract_covers_all_six_states():
@@ -129,3 +132,15 @@ def test_reduced_motion_and_cache_coupling_are_current():
     assert identity.asset_version
     assert identity.sw_version
     assert INDEX.count(read_cache_tag(ROOT, "css/e9/art_directed_runtime.css")) >= 8
+
+
+def test_owner_global_nav_item_seven_is_pass_in_both_locales():
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation
+    nav=_canonical_navigation()
+    assert len(nav['global'])==7
+    last=nav['global'][6]
+    assert last['key']=='premium' and last['target']=='/upgrade'
+    assert last['labelKey']=='g009.nav.premium'
+    entry=re.search(r"'g009.nav.premium':\s*\{([^}]+)\}",I18N).group(1)
+    assert "en: 'Pass'" in entry and "zh: '通行證'" in entry
+    assert "en: 'Premium'" not in entry

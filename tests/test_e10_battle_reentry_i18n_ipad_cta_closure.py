@@ -52,12 +52,13 @@ def test_action_label_key_resolves_to_required_zh_string(key, zh_value):
 
 
 def test_action_label_calls_the_now_defined_keys_with_matching_fallback():
-    # actionLabel() itself is unchanged -- confirms the keys just added are
-    # actually the ones this function reads, not a coincidentally similar key.
-    assert "t('e10.world_stage.resume_encounter', 'Resume Encounter')" in WORLD
-    assert "t('e10.world_stage.challenge_lord', 'Challenge Lord')" in WORLD
-    assert "t('e10.world_stage.replenish_stars', 'Replenish Stars')" in WORLD
-    assert "t('e10.world_stage.continue_adventure', 'Continue Adventure')" in WORLD
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _world_contract
+    assert _world_contract("c.actionLabel({kind:'resume_encounter'}, {})")=='Resume Encounter'
+    assert _world_contract("c.actionLabel({kind:'challenge_lord'}, {})")=='Lord Trial'
+    assert _world_contract("c.actionLabel({kind:'replay_completed'}, {})")=='Lord Trial'
+    assert _world_contract("c.actionLabel({kind:'replenish_stars'}, {})")=='Replenish Stars'
+    assert _world_contract("c.actionLabel({kind:'normal_progression',zoneKey:'z'}, {currentPlayerZoneKey:'z'})")=='Continue Adventure'
+    assert "g009.world.lord_trial" in (ROOT/'i18n.js').read_text(encoding='utf-8')
 
 
 def test_dispatch_routing_is_never_derived_from_the_rendered_label():

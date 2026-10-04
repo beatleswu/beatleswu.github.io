@@ -51,7 +51,7 @@ CORRECT_MOVE = {"action": "play", "x": 16, "y": 5}   # B qf
 WRONG_MOVE = {"action": "play", "x": 0, "y": 0}
 
 
-def _install_app_import_stubs():
+def _install_app_import_stubs(isolation):
     for name, attrs in (
         ("katago_explain", {"KataGoExplainer": type("K", (), {})}),
         ("explain_overrides", {"get_override": lambda *a, **k: None}),
@@ -68,7 +68,7 @@ def _install_app_import_stubs():
             module = types.ModuleType(name)
             for key, value in attrs.items():
                 setattr(module, key, value)
-            sys.modules[name] = module
+            isolation.setitem(sys.modules, name, module)
 
 
 def _questions():
@@ -92,19 +92,26 @@ def authenticated_stack():
     """Boot the real app against a disposable PostgreSQL with a live session."""
 
     from postgres_test_harness import disposable_postgres
+    # Bind the process DB configuration before the fixture overrides its environment.
+    import db as db_module
 
-    with disposable_postgres(name_prefix="go-odyssey-auth-e2e") as database:
-        os.environ["DATABASE_URL"] = database["database_url"]
-        os.environ["QUESTIONS_JSON_PATH"] = str(REPO_ROOT / "questions.json")
+    with pytest.MonkeyPatch.context() as isolation, disposable_postgres(name_prefix="go-odyssey-auth-e2e") as database:
+        isolation.setenv("DATABASE_URL", database["database_url"])
+        isolation.setenv("QUESTIONS_JSON_PATH", str(REPO_ROOT / "questions.json"))
         # app.py writes a secret_key.txt beside itself when SECRET_KEY is unset.
         # That file is a governed protected artifact: the release tooling refuses
         # any worktree containing it, so importing the app without this would
         # make THIS gate test break test_release_source_separation later in the
         # same run. Supply a throwaway value instead of creating the file.
-        os.environ.setdefault("SECRET_KEY", "release-gate-e2e-ephemeral-key")
-        _install_app_import_stubs()
+        isolation.setenv("SECRET_KEY", os.environ.get("SECRET_KEY", "release-gate-e2e-ephemeral-key"))
+        _install_app_import_stubs(isolation)
 
         import app as app_module
+        import db as db_module
+
+        # A prior app import must not bind this fixture to another database.
+        isolation.setattr(db_module, "DATABASE_URL", database["database_url"])
+        isolation.setattr(db_module, "_pool", None)
 
         from migrations.sgf_admin_workbench_v1 import upgrade as upgrade_workbench
 
@@ -113,10 +120,10 @@ def authenticated_stack():
             conn.commit()
         app_module.init_db()
 
-        app_module._load_questions = _questions
-        app_module._load_questions_fresh = _questions
-        app_module.question_is_free = lambda q: True
-        app_module.is_premium = lambda uid=None: True
+        isolation.setattr(app_module, "_load_questions", _questions)
+        isolation.setattr(app_module, "_load_questions_fresh", _questions)
+        isolation.setattr(app_module, "question_is_free", lambda q: True)
+        isolation.setattr(app_module, "is_premium", lambda uid=None: True)
 
         quest_key = app_module._quest_group_key(_questions()[0])
         segment = app_module._quest_segment_for_key(quest_key, True)
@@ -135,18 +142,22 @@ def authenticated_stack():
             )
             conn.commit()
 
-        app_module.app.config.update(TESTING=True)
+        isolation.setitem(app_module.app.config, "TESTING", True)
         client = app_module.app.test_client()
         with client.session_transaction() as session:
             session["user_id"] = USER_ID
             session["username"] = "auth_e2e_user"
 
-        yield {
-            "app": app_module,
-            "client": client,
-            "quest_key": segment["quest_key"],
-            "question_ids": segment["question_ids"],
-        }
+        try:
+            yield {
+                "app": app_module,
+                "client": client,
+                "quest_key": segment["quest_key"],
+                "question_ids": segment["question_ids"],
+            }
+        finally:
+            if db_module._pool is not None:
+                db_module._pool.closeall()
 
 
 def _review_log_rows(app_module, question_id=None):

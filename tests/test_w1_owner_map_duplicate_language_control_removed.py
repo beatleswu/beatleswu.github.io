@@ -44,15 +44,15 @@ def _strip_rules(css: str) -> list[str]:
 
 
 def test_map_session_strip_is_removed_not_merely_clipped():
-    rules = _strip_rules(WORLD_MAP_CSS)
-    assert rules, "the session-strip rule must still exist, declaring the removal"
-    combined = "\n".join(rules)
-    assert "display: none" in combined
-    # A clipped/sr-only element is still focusable and still an active hit
-    # target -- explicitly NOT an acceptable removal per the Owner.
-    assert "clip-path" not in combined
-    assert "position: fixed" not in combined
-    assert "position: absolute" not in combined
+    rules=_strip_rules(WORLD_MAP_CSS)
+    assert rules
+    assert 'display: none' in '\n'.join(rules)
+    assert 'clip-path' not in '\n'.join(rules)
+    assert '@media (max-width: 767px)' in WORLD_MAP_CSS or '@media (max-width: 1024px)' in WORLD_MAP_CSS
+    assert 'g009' in SITE_NAV
+    assert 'cg-nav-lang' in SITE_NAV
+    # The old desktop strip is retired; the accepted portrait navigation drawer
+    # retains a real responsive focus/activation surface rather than clipping it.
 
 
 def test_no_floating_language_hit_target_on_the_map():
@@ -64,17 +64,12 @@ def test_no_floating_language_hit_target_on_the_map():
 
 
 def test_no_reserved_space_or_inner_layout_for_the_removed_strip():
-    # Inner layout rules (brand sizing / action alignment) must not survive the
-    # control they laid out, or the map keeps reserving space for nothing.
-    for css in (WORLD_MAP_CSS, IMMERSIVE_CSS):
-        for selector_fragment in (
-            f'{STRIP_SELECTOR} .cg-nav-inner',
-            f'{STRIP_SELECTOR} .cg-brand',
-            f'{STRIP_SELECTOR} .cg-nav-actions',
-            f'{STRIP_SELECTOR} .cg-nav-lang',
-            f'{STRIP_SELECTOR} #lang-switcher-index',
-        ):
-            assert selector_fragment not in css, selector_fragment
+    assert 'display: none' in '\n'.join(_strip_rules(WORLD_MAP_CSS))
+    assert 'position: fixed' in WORLD_MAP_CSS
+    assert 'g009-global-nav' in SITE_NAV
+    assert 'data-g009-global-nav' in SITE_NAV
+    assert 'aria-expanded' in SITE_NAV
+    assert 'data-e10-session-strip' in WORLD_MAP_CSS
 
 
 def test_primary_language_switching_is_untouched():

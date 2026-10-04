@@ -42,16 +42,26 @@ FUNCTIONAL_IDS = {
 
 
 def test_character_presentation_fails_closed_to_server_default():
-    assert app_module._presentation_character_key("sage") == "sage"
-    assert app_module._presentation_character_key("hero_male") == "apprentice"
-    assert app_module._presentation_character_key("unknown") == "apprentice"
-    assert app_module._presentation_character_key(None) == "apprentice"
-
-    assert "character_key_source" in APP
-    assert "player_appearance.character_key" in APP
-    assert "authoritative hero presentation unavailable" in HERO
+    from future30_character_service import project_applied_character, STARTER_CHARACTER_KEYS
+    from tests.test_g009_starter_lazy_grant import _create_state_database
+    legacy=set(app_module.LEGACY_ACTIVE_CHARACTER_KEYS)|set(app_module.LEGACY_COMPATIBILITY_CHARACTER_KEYS)
+    assert len(legacy)==16
+    conn=_create_state_database()
+    conn.execute("INSERT INTO users VALUES(101,'projection-only')")
+    try:
+        for key in [*sorted(legacy),None,'','unknown','Z99']:
+            assert app_module._presentation_character_key(key)=='A1'
+            conn.execute('DELETE FROM player_appearance')
+            conn.execute('INSERT INTO player_appearance(user_id,character_key) VALUES(101,?)',(key,))
+            before=conn.total_changes
+            assert project_applied_character(conn,101,key)['character_key']=='A1'
+            assert conn.total_changes==before
+            assert conn.execute('SELECT character_key FROM player_appearance WHERE user_id=101').fetchone()[0]==key
+        assert project_applied_character(conn,101,'A3')['character_key']=='A1'
+        assert STARTER_CHARACTER_KEYS==('A1','R1','R2','R3','S2')
+    finally:conn.close()
     assert "fetch('/api/player/appearance'" in HERO
-    assert "charKeySynced" not in HERO
+    assert 'charKeySynced' not in HERO
 
 
 def test_functional_registry_has_fourteen_full_body_items_and_inventory_only_stone():

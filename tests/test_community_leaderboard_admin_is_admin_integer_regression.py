@@ -111,39 +111,9 @@ def _wait_for_postgres(database_url, timeout=30.0):
 
 @contextlib.contextmanager
 def _disposable_postgres():
-    if not _docker_available():
-        pytest.skip("docker unavailable for disposable PostgreSQL regression test")
-    container_name = f"go-odyssey-admin-type-test-{uuid.uuid4().hex[:10]}"
-    run = subprocess.run(
-        [
-            "docker", "run", "--rm", "-d",
-            "--name", container_name,
-            "-e", "POSTGRES_PASSWORD=test",
-            "-e", "POSTGRES_USER=test",
-            "-e", "POSTGRES_DB=test",
-            "-p", "127.0.0.1::5432",
-            "postgres:16-alpine",
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    container_id = run.stdout.strip()
-    try:
-        port_result = subprocess.run(
-            ["docker", "port", container_id, "5432/tcp"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        host, port_text = port_result.stdout.strip().rsplit(":", 1)
-        port = int(port_text)
-        _wait_for_port(host, port)
-        database_url = f"postgresql://test:test@{host}:{port}/test"
-        _wait_for_postgres(database_url)
-        yield database_url
-    finally:
-        subprocess.run(["docker", "rm", "-f", container_id], capture_output=True, text=True)
+    from tests.postgres_test_harness import disposable_postgres
+    with disposable_postgres(name_prefix="go-odyssey-admin-type-test", user="test", password="test", database="test") as runtime:
+        yield runtime["database_url"]
 
 
 def _pg_connect(database_url):
@@ -187,7 +157,9 @@ def _create_schema_matching_production(conn):
             user_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             grade INTEGER NOT NULL,
-            reviewed_at TEXT NOT NULL
+            reviewed_at TEXT NOT NULL,
+            source_context TEXT,
+            source TEXT
         )
         """
     )
@@ -219,8 +191,9 @@ def _add_user(conn, user_id, username, *, is_admin):
 
 def _add_solve(conn, user_id, question_id, *, grade=3, reviewed_at="2026-07-01T00:00:00"):
     conn.execute(
-        "INSERT INTO review_log(user_id, question_id, grade, reviewed_at) VALUES(%s,%s,%s,%s)",
-        (user_id, question_id, grade, reviewed_at),
+        "INSERT INTO review_log(user_id, question_id, grade, reviewed_at, source_context, source) VALUES(%s,%s,%s,%s,%s,%s)",
+        (user_id, question_id, grade, reviewed_at,
+         __import__("practice_answer_authority").practice_source_context({"nonce": f"fixture-{user_id}-{question_id}"}), "practice"),
     )
 
 

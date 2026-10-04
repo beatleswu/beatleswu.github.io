@@ -384,27 +384,16 @@ def test_monster_settlement_uses_roster_attack_at_runtime(tmp_path, monkeypatch)
 
 
 def test_backpack_and_loot_frontend_contracts_keep_functional_and_style_separate():
-    inventory = (ROOT / "inventory.html").read_text(encoding="utf-8")
-    index = (ROOT / "index.html").read_text(encoding="utf-8")
-
-    for label in (
-        "戰鬥裝備 / Functional Equipment",
-        "武器 / Weapon",
-        "防具 / Armor",
-        "飾品 / Accessory",
-        "已裝備 / Equipped",
-        "新取得 / New",
-        "外觀裝備 / Hero Style Gear",
-        "尚未啟用",
-        "Not currently effective",
-    ):
-        assert label in inventory
+    inventory=(ROOT/'inventory.html').read_text(encoding='utf-8')
+    index=(ROOT/'index.html').read_text(encoding='utf-8')
     assert "fetch('/api/player/inventory'" in inventory
     assert "fetch('/api/player/inventory/equip'" in inventory
-    assert "JSON.stringify({ inv_id:item.inv_id, action })" in inventory
-    assert "comparison_summary" in inventory
-    assert 'href="/hero?tab=equipment"' in inventory
-
-    assert 'id="loot-toast-backpack"' in index
-    assert "/inventory?equipment=" in index
-    assert "functional_equipment_new_ids" in index
+    assert 'JSON.stringify({ inv_id:item.inv_id, action })' in inventory
+    assert 'comparison_summary' in inventory
+    assert 'active_effect_details' in inventory
+    assert 'functional_equipment' in inventory
+    assert 'style' in inventory
+    assert 'blockedLoadout = !functionalEquipmentLoadoutEnabled()' in inventory
+    assert 'functional_equipment_new_ids' in index
+    assert 'loot-toast-backpack' in index
+    assert '/inventory?equipment=' in index

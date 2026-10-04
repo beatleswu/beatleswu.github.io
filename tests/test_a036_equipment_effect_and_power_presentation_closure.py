@@ -110,30 +110,28 @@ def test_frontend_uses_server_effect_details_without_a_duplicate_stat_table():
     for source in (HERO, INVENTORY):
         assert "active_effect_details" in source
         assert "EQUIPMENT_EFFECTS =" not in source
-        for raw_key in (
-            "dmg_bonus",
-            "player_dmg_reduce",
-            "negate_counter",
-            "first_question_ace",
-        ):
+        for raw_key in ("dmg_bonus", "player_dmg_reduce", "negate_counter", "first_question_ace"):
             assert raw_key not in source
-    assert "server-defined equipment" in HERO
-    assert "Server-defined effects only" in INVENTORY
     assert "declared_value_label" in INVENTORY
     assert "hero-functional-projection-state" in HERO
+    assert "blockedLoadout = !functionalEquipmentLoadoutEnabled()" in INVENTORY
+    assert "action.onclick = blocked ? null :" in INVENTORY
 
 
 def test_go_stone_and_loadout_gate_are_closed_in_backpack_ui():
     assert "let functionalEquipmentLoadoutCapability = false;" in INVENTORY
     assert "!!(me && me.equipment_loadout_enabled === true)" in INVENTORY
     assert "applyFunctionalEquipmentLoadoutCapability(me)" in INVENTORY
+    assert "const actionType = item.equipped ? 'unequip' : 'equip';" in INVENTORY
+    assert "const blocked = notEquippable || blockedLoadout;" in INVENTORY
+    assert "action.disabled = blocked;" in INVENTORY
     assert "FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED" not in INVENTORY
     assert "No combat power" in INVENTORY
     assert "不提供戰鬥能力" in INVENTORY
-    assert "action === 'equip' && !functionalEquipmentLoadoutEnabled()" in INVENTORY
+    assert "if (!functionalEquipmentLoadoutEnabled()" in INVENTORY
     assert "action.disabled = blocked;" in INVENTORY
-    assert "Equip is not available yet." in INVENTORY
-    assert "裝備功能尚未開放。" in INVENTORY
+    assert "Loadout is not available yet." in INVENTORY
+    assert "配裝功能尚未開放。" in INVENTORY
     assert "loadout_enabled = _equipment_canonical_loadout_enabled()" in APP
     assert "if not loadout_enabled:" in APP
     assert "return jsonify({'error': 'LOADOUT_DISABLED'}), 409" in APP

@@ -56,13 +56,12 @@ NODE_TEST = ROOT / "tests" / "e9_node_tests" / "run_pwa_portrait_tablet_override
 
 
 def test_portrait_tablet_override_algorithm_and_wiring():
-    result = subprocess.run(
-        ["node", str(NODE_TEST)],
-        cwd=str(ROOT),
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stdout + "\n" + result.stderr
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _world_contract
+    assert _world_contract('c.resolveViewportClass()',480,900)=='MOBILE_480'
+    assert _world_contract('c.resolveViewportClass()',820,1180)=='IPAD_PORTRAIT_820'
+    assert _world_contract('c.resolveViewportClass()',1180,820)=='IPAD_LANDSCAPE'
+    assert _world_contract('c.resolveViewportClass()',1440,900)=='DESKTOP'
+    assert _world_contract('c.resolveViewportClass()',1180,820,True)=='IPAD_PORTRAIT_820'
 
 
 def test_detection_script_is_present_and_early_in_head():
@@ -100,15 +99,11 @@ def test_e9_bottom_dock_component_is_unchanged():
 
 
 def test_desktop_legacy_navigation_category_is_the_proven_evidence_trail():
-    # This is the independent signal that proved the desktop breakpoint was
-    # active on the Owner's real device (soul_records/battle_log/tavern/
-    # star_chart/arena only ever render under that category). Recorded here
-    # so the evidence trail stays verifiable against source, not just this
-    # report's prose.
-    registry = (ROOT / "js" / "e9" / "navigation_registry.js").read_text(encoding="utf-8")
-    for key in ("soul_records", "battle_log", "tavern", "star_chart", "arena"):
-        entry_start = registry.find(f"key: '{key}'")
-        assert entry_start != -1, key
-        entry_end = registry.find("}", entry_start)
-        entry = registry[entry_start:entry_end]
-        assert "'desktop-legacy'" in entry, key
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation
+    nav = _canonical_navigation()
+    assert nav['desktop']==nav['global']
+    assert len(nav['desktop'])==7
+    assert all(x['category']=='global' for x in nav['desktop'])
+    site=(ROOT/'site-nav.js').read_text(encoding='utf-8')
+    assert 'buildLearningSecondaryNav' in site
+    for route in ('/mistakes','/stats','/rating_test'): assert route in site

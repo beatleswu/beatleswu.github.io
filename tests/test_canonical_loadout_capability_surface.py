@@ -200,7 +200,7 @@ def test_client_has_no_local_non_equippable_id_authority():
 def test_client_disables_the_equip_control_for_non_equippable_items():
     html = INVENTORY_HTML.read_text(encoding="utf-8")
     assert "const notEquippable = !functionalItemEquippable(item) && !item.equipped;" in html
-    assert "const blocked = notEquippable || blockedNewEquip;" in html
+    assert "const blocked = notEquippable || blockedLoadout;" in html
     assert "action.disabled = blocked;" in html
     assert "action.onclick = blocked ? null :" in html
 
@@ -293,7 +293,7 @@ def _snapshot(path):
 def _client_as(path, monkeypatch, user_id):
     monkeypatch.setattr(app_module, "get_db", lambda: _DbContext(path))
     monkeypatch.setenv(app_module.EQUIPMENT_CANONICAL_LOADOUT_FLAG, "1")
-    app_module.app.config.update(TESTING=True)
+    monkeypatch.setitem(app_module.app.config,"TESTING",True)
     client = app_module.app.test_client()
     with client.session_transaction() as session:
         session["user_id"] = user_id
@@ -337,3 +337,10 @@ def test_player_b_can_still_use_their_own_row(tmp_path, monkeypatch):
     rows = {row["id"]: row for row in _snapshot(path)}
     assert rows[2]["equipped"] == 0
     assert rows[1]["user_id"] == 1 and rows[1]["equipped"] == 0
+
+
+def test_closed_gate_blocks_both_equip_and_unequip_while_enabled_actions_remain():
+    import subprocess
+    script="const fs=require('fs'),vm=require('vm');\nconst html=fs.readFileSync('inventory.html','utf8');\nfunction source(name){const start=html.search(new RegExp('^(?:async )?function '+name+'\\\\(','m'));if(start<0)throw Error(name);const tail=html.slice(start);const next=tail.slice(1).search(/^(?:async )?function \\w+\\(/m);return next<0?tail:tail.slice(0,next+1);}\nconst nodes=new Map(),calls=[];\nconst node=id=>{if(!nodes.has(id))nodes.set(id,{dataset:{},hidden:false,disabled:false,onclick:null,textContent:'',innerHTML:'',setAttribute(k,v){this[k]=v;},removeAttribute(k){delete this[k];}});return nodes.get(id);};\nconst ctx={window:{},document:{getElementById:node},G009_BACKPACK_READ_ONLY:true,E10_BACKPACK_MODE:true,FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE:false,functionalEquipmentLoadoutCapability:false,\n functionalEquipmentName:i=>i.item_id,functionalEquipmentIsEn:()=>true,functionalEquipmentSlot:i=>i.slot,functionalEquipmentEscape:String,\n functionalEffectDetails:i=>i.active_effect_details||[],functionalUnsupportedEffects:()=>[],functionalEquipmentInventoryOnlyLine:()=>'',functionalDeltaLabel:String,\n showBackpackToast:()=>{},loadFunctionalEquipment:async()=>{},fetch:async(url,opts)=>{calls.push({url,payload:JSON.parse(opts.body)});return{ok:false,status:409,json:async()=>({error:'LOADOUT_DISABLED'})};}};\nvm.createContext(ctx);\nfor(const name of ['functionalEquipmentLoadoutEnabled','functionalItemEquippable','functionalItemBlockReason','functionalItemIsTrophy','functionalItemBlockLabel','renderFunctionalEquipmentDetail','performFunctionalEquipmentAction'])vm.runInContext(source(name),ctx);\n(async()=>{\n const results=[];\n for(const gate of [false,true])for(const equipped of [false,true]){\n  ctx.functionalEquipmentLoadoutCapability=gate;\n  const item={inv_id:1,item_id:'wooden_sword',slot:'weapon',equipped,canonical_equippable:true};\n  ctx.renderFunctionalEquipmentDetail(item);const action=node('functional-detail-action');\n  if(action.disabled!==!gate || (typeof action.onclick==='function')!==gate)throw Error('gate action mismatch');\n  await ctx.performFunctionalEquipmentAction(item,equipped?'unequip':'equip',action);\n  results.push({gate,equipped,disabled:action.disabled});\n }\n if(calls.length!==2 || calls[0].payload.action!=='equip' || calls[1].payload.action!=='unequip')throw Error('closed gate request or missing enabled request');\n ctx.E10_BACKPACK_MODE=false;ctx.renderFunctionalEquipmentDetail({inv_id:1,item_id:'wooden_sword',equipped:true,canonical_equippable:true});\n if(!node('functional-detail-action').hidden)throw Error('general exposure changed');\n console.log(JSON.stringify({results,calls}));\n})().catch(e=>{console.error(e.stack);process.exit(1);});"
+    result=subprocess.run(["node","-e",script],cwd=ROOT,capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr

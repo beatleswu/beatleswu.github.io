@@ -89,11 +89,13 @@ def _create_c049_postgres_schema(url):
         )
         conn.execute(
             "CREATE TABLE player_appearance("
-            "user_id INTEGER PRIMARY KEY, outfit_id TEXT, updated_at TEXT)"
+            "user_id INTEGER PRIMARY KEY, character_key TEXT, outfit_id TEXT, hat_id TEXT, back_id TEXT, title_id TEXT, accessory_id TEXT, pet_id TEXT, aura_id TEXT, updated_at TEXT)"
         )
         conn.execute(
             "CREATE TABLE daily_shop(shop_date TEXT PRIMARY KEY, slots TEXT NOT NULL)"
         )
+        from future30_character_service import initialize_future30_catalog
+        initialize_future30_catalog(conn)
         upgrade_event_outbox(conn)
         upgrade_purchase_operations(conn)
         conn.execute("INSERT INTO users(id,plan) VALUES(1,'free'),(2,'free')")
@@ -417,11 +419,8 @@ def test_postgres_appearance_purchase_replay_race_and_rollback(monkeypatch):
     url = _c049_postgres_url()
     _create_c049_postgres_schema(url)
     monkeypatch.setattr(app_module, "get_db", lambda: _PostgresDbContext(url))
-    app_module.app.config.update(
-        TESTING=True,
-        PROPAGATE_EXCEPTIONS=False,
-        SESSION_COOKIE_SECURE=False,
-    )
+    for key, value in {"TESTING": True, "PROPAGATE_EXCEPTIONS": False, "SESSION_COOKIE_SECURE": False}.items():
+        monkeypatch.setitem(app_module.app.config, key, value)
 
     def client_for(user_id):
         client = app_module.app.test_client()
@@ -443,6 +442,17 @@ def test_postgres_appearance_purchase_replay_race_and_rollback(monkeypatch):
             "cosmetic.outfit.hat_dragon_horn",
             "cosmetic.outfit.robe_premium",
         ]
+
+        monkeypatch.delenv(app_module.CANONICAL_COIN_SHOP_PURCHASE_FLAG, raising=False)
+        disabled = client_for(1).post("/api/cosmetic-commerce/purchase", json={
+            "product_id": "cosmetic.outfit.robe_plain", "purchase_operation_id": "disabled-no-write"})
+        assert disabled.status_code == 409
+        with _PostgresDbContext(url) as conn:
+            assert conn.execute("SELECT coins FROM user_stats WHERE user_id=1").fetchone()["coins"] == 500
+            for table in ("player_wardrobe", "coin_purchase_operations", "currency_log"):
+                assert conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"] == 0
+        # Opt in only this disposable test; preserve replay/race/rollback below.
+        monkeypatch.setenv(app_module.CANONICAL_COIN_SHOP_PURCHASE_FLAG, "1")
 
         first = client_for(1).post(
             "/api/cosmetic-commerce/purchase",

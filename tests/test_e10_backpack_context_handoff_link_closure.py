@@ -10,18 +10,19 @@ SITE_NAV = (ROOT / "site-nav.js").read_text(encoding="utf-8")
 
 
 def test_all_e10_backpack_producers_share_the_existing_handoff_helper():
-    assert "[data-e10-backpack-entry], [data-e10-nav-key=\"backpack\"]" in INDEX
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation
+    nav = _canonical_navigation()
+    assert next(x for x in nav['items'] if x['key']=='backpack')['target']=='/inventory?e10=1'
     assert "target.searchParams.set('e10', '1');" in INDEX
     assert "target.searchParams.delete('e10');" in INDEX
-    assert "component !== 'left_nav'" in INDEX
-    assert "component !== 'top_hud'" in INDEX
-    assert "component !== 'bottom_dock'" in INDEX
-    assert "Promise.resolve().then(() => syncE10BackpackEntryLinks());" in INDEX
-    assert "key: 'backpack', target: '/inventory' + '?e10=1'" in REGISTRY
+    assert "syncE10BackpackEntryLinks()" in INDEX
 
 
 def test_generic_and_legacy_navigation_remain_unmarked():
-    assert "{ href: '/inventory',   key: 'backpack'" in SITE_NAV
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation
+    nav = _canonical_navigation()
+    assert len([x for x in nav['items'] if x['key']=='backpack'])==1
     assert "const e10Context = isE10AdventureShellOwner();" in INDEX
     assert "if (e10Context) target.searchParams.set('e10', '1');" in INDEX
     assert "else target.searchParams.delete('e10');" in INDEX
+    assert "href: '/inventory'" in SITE_NAV

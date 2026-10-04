@@ -63,7 +63,7 @@ def projection_app(tmp_path, monkeypatch):
                 total_correct INTEGER DEFAULT 0,
                 max_streak INTEGER DEFAULT 0
             );
-            CREATE TABLE newbie_quest_state (user_id INTEGER PRIMARY KEY, graduated INTEGER DEFAULT 0);
+            CREATE TABLE newbie_quest_state (user_id INTEGER PRIMARY KEY, graduated INTEGER DEFAULT 0, updated_at TEXT);
             CREATE TABLE badges_earned (user_id INTEGER, badge_id INTEGER);
             CREATE TABLE subscriptions (
                 id INTEGER PRIMARY KEY,
@@ -81,7 +81,7 @@ def projection_app(tmp_path, monkeypatch):
         )
     app = _app_module()
     monkeypatch.setattr(app, "get_db", lambda: _DbContext(path))
-    app.app.config.update(TESTING=True)
+    monkeypatch.setitem(app.app.config, "TESTING", True)
     return app, path
 
 

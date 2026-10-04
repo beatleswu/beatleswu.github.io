@@ -206,11 +206,9 @@ def test_skills_character_rejects_new_compatibility_values_and_preserves_existin
     payload.update({field: f"new_{field}" for field in LEGACY_FIELDS})
     response = client.post("/api/skills/character", json=payload)
 
-    assert response.status_code == 200
-    assert set(response.get_json()["rejected"]) == set(LEGACY_FIELDS)
-    after = _appearance_values(path)
-    assert after[2:] == before[2:]
-    assert after[0] == "swordsman"
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "invalid character_key"}
+    assert _appearance_values(path) == before
 
 
 def test_skills_character_cannot_create_new_compatibility_values(
@@ -224,11 +222,9 @@ def test_skills_character_cannot_create_new_compatibility_values(
 
     response = client.post("/api/skills/character", json=payload)
 
-    assert response.status_code == 200
-    assert set(response.get_json()["rejected"]) == set(LEGACY_FIELDS)
-    row = _appearance_values(path)
-    assert row[0] == "apprentice"
-    assert all(value is None for value in row[2:])
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "invalid character_key"}
+    assert _appearance_values(path) is None
 
 
 def test_social_avatar_read_window_remains_read_only():
@@ -292,6 +288,8 @@ def test_canonical_equipment_and_product_gates_remain_closed():
     assert app_module._functional_equipment_payload(
         next(item for item in app_module.EQUIPMENT_DEFS if item["id"] == "go_stone_black")
     )["active_effect_details"] == []
-    assert "const FUNCTIONAL_EQUIPMENT_LOADOUT_ENABLED = false;" in INVENTORY
+    assert "let functionalEquipmentLoadoutCapability = false;" in INVENTORY
+    assert "me.equipment_loadout_enabled === true" in INVENTORY
+    assert "blockedLoadout = !functionalEquipmentLoadoutEnabled()" in INVENTORY
     assert "EQUIPMENT_CANONICAL_LOADOUT_ENABLED" in APP
     assert "CANONICAL_COIN_SHOP_PURCHASE_ENABLED" in APP

@@ -71,15 +71,14 @@ def test_visual_direction_tokens_and_touch_targets_are_explicit():
 
 
 def test_navigation_keeps_vs1d_markup_base_safe_and_builds_vs1f_icons_after_marker():
-    nav_js = (ROOT / "js/e9/left_nav.js").read_text(encoding="utf-8")
-    registry = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
-    assert 'class="e9-nav__icon"' not in NAV_HTML
-    assert "registry.exactContract()" in nav_js
-    assert "data-e10-vs1f-icon" in registry
-    for route in ('/hero?tab=hero', '/hero?tab=equipment', '/hero?tab=pet', '/inventory', '/shop', '/daily-challenge'):
-        assert route in registry
-    assert re.search(r"key:\s*'backpack',\s*target:\s*'/inventory'", registry)
-    assert not re.search(r"key:\s*'backpack'.*disabled:\s*true", registry)
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation
+    nav = _canonical_navigation()
+    assert len(nav['items'])==7 and nav['mobile']==nav['desktop']
+    site=(ROOT/'site-nav.js').read_text(encoding='utf-8')
+    for route in ('/mistakes','/stats','/rating_test'):
+        assert route in site
+    hero=(ROOT/'hero.html').read_text(encoding='utf-8')
+    assert hero.count('data-g009-hub-tab=')==5
     assert not re.search(r"[\U0001F300-\U0001FAFF]", NAV_HTML)
 
 

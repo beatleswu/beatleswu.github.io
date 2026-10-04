@@ -133,21 +133,26 @@ def test_collection_review_prototype_is_review_only_and_contains_required_states
         assert f"../../{rel}" in html, rel
 
 
-def test_current_character_ids_and_authority_paths_are_unchanged():
-    app = APP.read_text(encoding="utf-8")
-    hero = HERO.read_text(encoding="utf-8")
-
-    valid_block = re.search(r"VALID_CHARACTER_KEYS\s*=\s*\{(?P<body>.*?)\n\}", app, re.S)
-    assert valid_block, "VALID_CHARACTER_KEYS block is missing"
-    runtime_key_literals = set(re.findall(r"['\"]([a-z_]+)['\"]", valid_block.group("body")))
-    assert CURRENT_IDS <= runtime_key_literals
-    for new_id in ("trail_apprentice", "night_runner", "constellation_apprentice"):
-        assert new_id not in runtime_key_literals
-
-    assert "const CHARACTER_KEYS = COMBAT_GEAR.character.map(c => c.key);" in hero
-    assert all(re.search(rf"key\s*:\s*'{re.escape(current_id)}'", hero) for current_id in CURRENT_IDS)
-    assert all(not re.search(rf"key\s*:\s*'{re.escape(new_id)}'", hero) for new_id in ("trail_apprentice", "night_runner", "constellation_apprentice"))
-    assert "fetch('/api/skills/character'" in hero
-    assert "player_appearance" in app
-    assert "player_inventory" in app
-    assert "def _get_authoritative_combat_stats" in app
+def test_current_character_ids_and_authority_paths_are_unchanged(monkeypatch):
+    import app as application
+    legacy=set(application.LEGACY_ACTIVE_CHARACTER_KEYS)|set(application.LEGACY_COMPATIBILITY_CHARACTER_KEYS)
+    assert len(legacy)==16
+    assert application.VALID_CHARACTER_KEYS==set(application.FUTURE30_CHARACTER_KEYS)
+    opened=[]
+    def forbidden_db():
+        opened.append(True)
+        raise AssertionError('Legacy selection must reject before any DB access/write/canonicalization')
+    monkeypatch.setattr(application,'get_db',forbidden_db)
+    client=application.app.test_client()
+    with client.session_transaction() as session:session['user_id']=101
+    for key in sorted(legacy):
+        response=client.post('/api/skills/character',json={'character_key':key})
+        assert response.status_code==400,(key,response.get_json())
+    assert opened==[]
+    hero=HERO.read_text(encoding='utf-8')
+    css=(ROOT/'css/g009_hero_hub_batch_a.css').read_text(encoding='utf-8')
+    assert 'id="combat-character-grid"' in hero and 'aria-hidden="true"' in hero
+    assert 'display:none!important' in css.replace(' ','')
+    active=(ROOT/'js/g009_hero_hub_batch_a.js').read_text(encoding='utf-8')
+    assert 'g009-character-switch-grid' in active
+    assert '/api/player/character-catalog' in active

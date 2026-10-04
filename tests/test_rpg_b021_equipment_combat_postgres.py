@@ -60,6 +60,8 @@ def _reset_schema(conn: PostgresConnectionWrapper) -> None:
                PRIMARY KEY(user_id, skill_id)
            )"""
     )
+    from migrations.equipment_canonical_slot_v1 import upgrade
+    upgrade(conn)
     conn.commit()
 
 
@@ -83,9 +85,9 @@ def _seed_inventory(url: str) -> None:
     try:
         conn.execute("TRUNCATE player_inventory RESTART IDENTITY")
         conn.execute(
-            "INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) "
-            "VALUES(?,?,?,?,?)",
-            (7, "wooden_sword", 1, "2026-08-22", "b021-test"),
+            "INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source,canonical_slot) "
+            "VALUES(?,?,?,?,?,?)",
+            (7, "wooden_sword", 1, "2026-08-22", "b021-test", "weapon"),
         )
         conn.execute(
             "INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) "
@@ -114,14 +116,14 @@ def test_postgres_equipment_stats_are_server_defined_and_inventory_only_is_ignor
     conn = _connect(url)
     try:
         conn.execute(
-            "INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) "
-            "VALUES(?,?,?,?,?)",
-            (7, "dragon_eye", 1, "2026-08-22", "b021-test"),
+            "INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source,canonical_slot) "
+            "VALUES(?,?,?,?,?,?)",
+            (7, "dragon_eye", 1, "2026-08-22", "b021-test", "accessory"),
         )
         conn.execute(
             "INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) "
             "VALUES(?,?,?,?,?)",
-            (7, "go_stone_black", 1, "2026-08-22", "b021-test"),
+            (7, "go_stone_black", 0, "2026-08-22", "b021-test"),
         )
         conn.commit()
         stats = app_module._get_authoritative_combat_stats(conn, 7, "dragon")
@@ -131,6 +133,18 @@ def test_postgres_equipment_stats_are_server_defined_and_inventory_only_is_ignor
     assert stats["attack_bonus"] == pytest.approx(0.05)
     assert stats["crit_multiplier"] == pytest.approx(3.0)
     assert stats["counter_negated"] is False
+
+    monkeypatch.delenv("EQUIPMENT_CANONICAL_LOADOUT_ENABLED", raising=False)
+    for action, inv_id in (("equip", 2), ("unequip", 1)):
+        disabled = _authed_client().post("/api/player/inventory/equip", json={"inv_id": inv_id, "action": action})
+        assert disabled.status_code == 409
+        assert disabled.get_json()["error"] == "LOADOUT_DISABLED"
+    conn = _connect(url)
+    try:
+        assert [r["equipped"] for r in conn.execute("SELECT equipped FROM player_inventory ORDER BY id").fetchall()] == [1,0,1,0]
+    finally:
+        conn.close()
+    monkeypatch.setenv("EQUIPMENT_CANONICAL_LOADOUT_ENABLED", "1")
 
     response = _authed_client().post(
         "/api/player/inventory/equip",
@@ -146,6 +160,13 @@ def test_postgres_equipment_stats_are_server_defined_and_inventory_only_is_ignor
         conn.close()
     # A client-supplied effect payload is ignored.
     assert row["equipped"] == 1
+    conn = _connect(url)
+    try:
+        actual = app_module._get_authoritative_combat_stats(conn, 7, "dragon")
+        assert actual["attack_bonus"] == pytest.approx(app_module._EQUIP_MAP["iron_sword"]["effects"]["dmg_bonus"])
+        assert actual["crit_multiplier"] == pytest.approx(3.0)
+    finally:
+        conn.close()
 
     trophy_response = _authed_client().post(
         "/api/player/inventory/equip", json={"inv_id": 4, "action": "equip"}
@@ -159,7 +180,17 @@ def test_postgres_competing_weapon_equip_requests_leave_one_authoritative_slot(
     url = pg_database
     _seed_inventory(url)
     monkeypatch.setattr(app_module, "get_db", lambda: _connect(url))
-    app_module.app.config.update(TESTING=True)
+    monkeypatch.setitem(app_module.app.config, "TESTING", True)
+    monkeypatch.delenv("EQUIPMENT_CANONICAL_LOADOUT_ENABLED", raising=False)
+    for inv_id in (1, 2):
+        disabled = _authed_client().post("/api/player/inventory/equip", json={"inv_id": inv_id, "action": "equip"})
+        assert disabled.status_code == 409
+    conn = _connect(url)
+    try:
+        assert [r["equipped"] for r in conn.execute("SELECT equipped FROM player_inventory ORDER BY id").fetchall()] == [1,0]
+    finally:
+        conn.close()
+    monkeypatch.setenv("EQUIPMENT_CANONICAL_LOADOUT_ENABLED", "1")
     barrier = threading.Barrier(2)
 
     def equip(inv_id):
@@ -185,3 +216,8 @@ def test_postgres_competing_weapon_equip_requests_leave_one_authoritative_slot(
 
     assert sum(int(row["equipped"]) for row in rows) == 1
     assert {row["equip_id"] for row in rows} == {"wooden_sword", "iron_sword"}
+    conn = _connect(url)
+    try:
+        assert conn.execute("SELECT COUNT(*) AS n FROM player_inventory WHERE user_id=? AND canonical_slot='weapon' AND equipped=1", (7,)).fetchone()["n"] == 1
+    finally:
+        conn.close()

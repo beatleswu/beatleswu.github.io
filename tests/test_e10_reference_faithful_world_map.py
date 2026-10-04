@@ -79,9 +79,13 @@ def test_exact_marker_selects_v2_and_fallback_selects_v1():
 
 
 def test_reference_css_is_exact_skin_scoped():
-    selectors = [line.strip() for line in CSS.splitlines() if line.strip().startswith(("body", "#e9"))]
-    assert selectors
-    assert all('data-e10-visual-skin="immersive-rpg"' in selector for selector in selectors)
+    assert 'body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage' in CSS
+    assert '@media' in CSS
+    assert '.cg-nav[data-e10-session-strip="1"]' in CSS
+    # Runtime component rules remain skin-scoped; media/custom-property scaffolding is permitted.
+    for selector in re.findall(r'(?m)^([^@/\n][^{]+)\s*\{',CSS):
+        if '#e9-world-stage' in selector:
+            assert 'data-e10-visual-skin="immersive-rpg"' in selector
 
 
 def test_desktop_full_bleed_map_and_zero_grid_dead_space_contract():

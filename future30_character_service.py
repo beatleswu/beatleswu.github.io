@@ -36,7 +36,7 @@ from migrations.future30_character_catalog_v1 import (
 )
 
 
-DEFAULT_CHARACTER_KEY = "apprentice"
+DEFAULT_CHARACTER_KEY = "A1"
 ACCEPTANCE_ENVIRONMENTS = frozenset({"acceptance", "test", "local"})
 
 # Owner-finalized G009 bootstrap authority.  This is the only acquisition
@@ -498,8 +498,8 @@ def project_applied_character(
 
     if not is_future30_character_key(stored_key):
         return {
-            "character_key": stored_key if isinstance(stored_key, str) and stored_key else DEFAULT_CHARACTER_KEY,
-            "character_key_source": "player_appearance.character_key" if stored_key else "server_default",
+            "character_key": DEFAULT_CHARACTER_KEY,
+            "character_key_source": "server_default",
             "runtime": None,
             "entitled": True,
         }

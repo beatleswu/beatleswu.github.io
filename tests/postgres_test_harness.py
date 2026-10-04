@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+from pathlib import Path
 import shutil
 import socket
 import subprocess
@@ -248,7 +249,34 @@ def disposable_postgres(
     if not docker_available():
         pytest.skip("Docker daemon unavailable for disposable PostgreSQL")
 
-    container_name = f"{name_prefix}-{uuid.uuid4().hex[:12]}"
+    namespace = os.environ.get("GO_ODYSSEY_DISPOSABLE_PG_NAMESPACE", "").strip()
+    allocation_id = uuid.uuid4().hex[:12]
+    container_name = f"{namespace or name_prefix}-{allocation_id}"
+    publish = "127.0.0.1::5432"
+    extra_args = []
+    port_range = os.environ.get("GO_ODYSSEY_DIAGNOSTIC_PORT_RANGE", "").strip()
+    if port_range:
+        lower, upper = map(int, port_range.split("-"))
+        assert namespace and 1024 <= lower <= upper <= 65535
+        for candidate in range(lower, upper + 1):
+            with contextlib.closing(socket.socket()) as probe:
+                try:
+                    probe.bind(("127.0.0.1", candidate))
+                except OSError:
+                    continue
+                publish = f"127.0.0.1:{candidate}:5432"
+                break
+        else:
+            raise RuntimeError("No free port in explicitly reserved diagnostic range")
+    if namespace:
+        extra_args.extend(["--label", f"com.docker.compose.project={namespace}"])
+    data_root = os.environ.get("GO_ODYSSEY_DISPOSABLE_PG_DATA_ROOT", "").strip()
+    if data_root:
+        assert namespace, "task-owned namespace required for external data root"
+        data = Path(data_root).resolve() / allocation_id
+        data.mkdir(parents=True, exist_ok=False)
+        extra_args.extend(["--mount", f"type=bind,source={data},target=/var/lib/postgresql/data"])
+    database = os.environ.get("GO_ODYSSEY_DISPOSABLE_PG_DATABASE", database)
     container_id = ""
     try:
         run = _run_docker(
@@ -264,7 +292,8 @@ def disposable_postgres(
             "--env",
             f"POSTGRES_DB={database}",
             "--publish",
-            "127.0.0.1::5432",
+            publish,
+            *extra_args,
             "--health-cmd",
             f"pg_isready -U {user} -d {database}",
             "--health-interval",

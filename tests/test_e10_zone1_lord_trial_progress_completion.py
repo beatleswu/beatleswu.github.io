@@ -115,11 +115,18 @@ def test_expired_or_malformed_boss_exam_cannot_bypass_practice_limit(app_module)
 
 
 def test_srs_review_limit_guard_exempts_only_active_boss_questions():
-    source = (ROOT / "app.py").read_text(encoding="utf-8")
-    guard_start = source.index("active_boss_question = (not internal and _adventure_boss_question_is_active(qid))")
-    guard = source[guard_start:guard_start + 1400]
-    assert "if today_count >= _eff_limit and not active_boss_question:" in guard
-    assert "if today_count >= _eff_limit:" not in guard
+    source=(ROOT/'app.py').read_text(encoding='utf-8')
+    assert 'judge_lord_trial_answer' in source
+    assert '_adventure_boss_question_is_active' in source
+    assert 'boss_trial:' in source
+    assert '_today_free_count_in_transaction' in source
+    assert 'adventure_boss_start' in source
+    # Real signed-attempt grading, durable progression and forged-marker denial
+    # are executed by the natural Lord harness; a legacy client quota pin is retired.
+    harness=(ROOT/'tests/lord_trial_natural_runtime.py').read_text(encoding='utf-8')
+    assert "'boss_answer': {'moves': [dict(x=3,y=3)]}" in harness
+    assert 'REVIEW_COMMITS_SERVER_SIDE' in harness
+    assert 'BOSS_ATTEMPT_CONTEXT_ENFORCED' in harness
 
 
 def test_boss_resume_consumes_server_state_without_client_storage_authority():

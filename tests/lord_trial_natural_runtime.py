@@ -369,43 +369,9 @@ def _wait_for_postgres(database_url, timeout=90.0):
 
 @contextlib.contextmanager
 def disposable_postgres():
-    if not docker_available():
-        raise HarnessUnavailable('docker server unavailable for the disposable Lord Trial runtime')
-    container_name = f'go-odyssey-lord-trial-runtime-{uuid.uuid4().hex[:10]}'
-    run = subprocess.run(
-        [
-            'docker', 'run', '--rm', '-d',
-            '--name', container_name,
-            '-e', 'POSTGRES_PASSWORD=go',
-            '-e', 'POSTGRES_USER=go',
-            '-e', 'POSTGRES_DB=go_odyssey',
-            '-p', '127.0.0.1::5432',
-            POSTGRES_IMAGE,
-        ],
-        capture_output=True, text=True,
-    )
-    if run.returncode != 0:
-        raise HarnessUnavailable(f'could not start disposable PostgreSQL: {run.stderr.strip()}')
-    container_id = run.stdout.strip()
-    try:
-        port_result = subprocess.run(
-            ['docker', 'port', container_id, '5432/tcp'],
-            capture_output=True, text=True, check=True,
-        )
-        host, port_text = port_result.stdout.strip().splitlines()[0].rsplit(':', 1)
-        port = int(port_text)
-        _wait_for_port(host, port)
-        database_url = f'postgresql://go:go@{host}:{port}/go_odyssey'
-        _wait_for_postgres(database_url)
-        yield {
-            'container_id': container_id,
-            'container_name': container_name,
-            'host': host,
-            'port': port,
-            'database_url': database_url,
-        }
-    finally:
-        subprocess.run(['docker', 'rm', '-f', container_id], capture_output=True, text=True)
+    from postgres_test_harness import disposable_postgres as allocate
+    with allocate(name_prefix='go-odyssey-lord-trial-runtime', image=POSTGRES_IMAGE) as database:
+        yield dict(database,container_name=database['container_id'])
 
 
 # ---------------------------------------------------------------------------
@@ -471,38 +437,54 @@ def _now():
 
 
 def _seed_disposable_user(app_module, username, password, plan, questions_fixture):
-    """Create the single throwaway account and its zone progress evidence."""
+    """Seed mastery through real server-judged practice, not untrusted raw reviews."""
     from werkzeug.security import generate_password_hash
-
     questions = json.loads(questions_fixture.read_text(encoding='utf-8'))
     credited = [q['id'] for q in questions[:SEEDED_CORRECT_QUESTIONS]]
-    now = _now()
-
     with app_module.get_db() as conn:
         row = conn.execute(
-            'INSERT INTO users(username, password_hash, is_admin, plan, created_at) '
-            'VALUES(?,?,?,?,?) RETURNING id',
-            (username, generate_password_hash(password), 0, plan, now),
-        ).fetchone()
+            'INSERT INTO users(username,password_hash,is_admin,plan,created_at) VALUES(?,?,?,?,?) RETURNING id',
+            (username,generate_password_hash(password),0,plan,_now())).fetchone()
         uid = int(row['id'])
-        conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)', (uid,))
-        for qid in credited:
-            conn.execute(
-                'INSERT INTO srs_cards(user_id,question_id,ease_factor,interval,repetitions,'
-                'due_date,last_grade,updated_at,progress_credited) VALUES(?,?,?,?,?,?,?,?,?) '
-                'ON CONFLICT(user_id,question_id) DO NOTHING',
-                (uid, qid, 2.5, 1, 1, datetime.date.today().isoformat(), 5, now, 1),
-            )
-            conn.execute(
-                'INSERT INTO review_log(user_id,question_id,grade,topic,level,difficulty,'
-                'reviewed_at,source_context) VALUES(?,?,?,?,?,?,?,?)',
-                (uid, qid, 5, '1圍棋新手村', 'LV1', '30k',
-                 # Dated before today so the seeded mastery evidence never
-                 # consumes the free-tier daily allowance of the run itself.
-                 (datetime.datetime.now() - datetime.timedelta(days=3)).isoformat(timespec='seconds'),
-                 'practice'),
-            )
+        conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)',(uid,))
         conn.commit()
+    # Explicit synthetic identity/bootstrap fixture for this disposable corpus only.
+    # Never consume or claim authority for the frozen Learning Core corpus.
+    from puzzle_identity_store import PuzzleIdentityStore
+    from migrations.puzzle_identity_registry_v1 import upgrade as upgrade_identity
+    with app_module.get_db() as conn:
+        upgrade_identity(conn)
+        receipt_sha='ab'*32
+        conn.execute(
+            "INSERT INTO puzzle_identity_bootstrap_receipt "
+            "(receipt_sha256,bootstrap_singleton,frozen_corpus_sha256,record_count,namespace_uuid,"
+            "canonicalisation_rules_version,genesis_key_spec_version,historical_tree_commit,"
+            "historical_tree_manifest_sha256,historical_rename_map_sha256,genesis_record_manifest_sha256,"
+            "proposed_uuid_list_sha256,status,identities_written,applied_at,applied_by) "
+            "VALUES(?,'GENESIS',?,?,'synthetic-lord-fixture','canon-source-v1','genesis-key-v1',"
+            "'fixture','fixture','fixture','fixture','fixture','APPLIED',?,?, 'disposable-test-fixture')",
+            (receipt_sha,'cd'*32,len(questions),len(questions),_now()))
+        store=PuzzleIdentityStore(conn)
+        for question in questions:
+            store.create_native_identity(creation_reason='Disposable Lord corpus identity fixture',
+                legacy_question_id=question['id'],current_source_path=f"fixture/lord/{question['id']}.sgf")
+        conn.commit()
+    client = app_module.app.test_client()
+    with client.session_transaction() as session:
+        session['user_id'] = uid
+        session['username'] = username
+    for question in questions[:SEEDED_CORRECT_QUESTIONS]:
+        issued = client.post('/api/srs/practice/attempt',json={'question_id':question['id']})
+        assert issued.status_code == 200, issued.get_json()
+        result = client.post('/api/srs/practice/answer',json={
+            'attempt_token':issued.get_json()['attempt_token'],
+            'moves':[dict(action='play', **question['accepted_moves'][0])]})
+        assert result.status_code == 200, result.get_json()
+        assert result.get_json()['authoritative_grade'] == 5, result.get_json()
+    with app_module.get_db() as conn:
+        rows=conn.execute("SELECT question_id,source_context,grade FROM review_log WHERE user_id=?",(uid,)).fetchall()
+        assert len(rows) == len(credited)
+        assert all(row['source_context'].startswith('practice:v1:') and row['grade']==5 for row in rows)
     return uid, credited
 
 
@@ -608,7 +590,19 @@ class _ServerThread:
     def __init__(self, app, host='127.0.0.1'):
         from werkzeug.serving import make_server
 
-        self._server = make_server(host, 0, app, threaded=True)
+        port = 0
+        reserved = os.environ.get('GO_ODYSSEY_DIAGNOSTIC_PORT_RANGE', '')
+        if reserved:
+            import socket
+            lower, upper = map(int,reserved.split('-'))
+            for candidate in range(lower, upper+1):
+                with socket.socket() as probe:
+                    try: probe.bind((host,candidate))
+                    except OSError: continue
+                    port=candidate
+                    break
+            else: raise HarnessUnavailable('No free reserved runtime port')
+        self._server = make_server(host, port, app, threaded=True)
         self.host = host
         self.port = int(self._server.server_port)
         self.base_url = f'http://{host}:{self.port}'
@@ -872,6 +866,7 @@ def run_foundation_validation(runtime):
         'grade': 5,
         'source_context': f'boss_trial:{attempt_id}',
         'response_ms': 4200,
+        'boss_answer': {'moves': [dict(x=3,y=3)]},
     })
     report['evidence']['review_status'] = review_status
     report['evidence']['review_question_id'] = first_qid

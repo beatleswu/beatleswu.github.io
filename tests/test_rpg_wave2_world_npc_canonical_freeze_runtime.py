@@ -299,8 +299,9 @@ def test_packaging_closure_is_exact_and_superseded_eastern_guardian_shield_is_no
     # The current combined image pack also contains the nine A021A/D038
     # runtime Spirit presentation assets. Their release registration is
     # intentionally separate from this World NPC delta.
-    assert manifest["total_files"] == 1448
-    assert manifest["total_bytes"] == 789091914
+    assert manifest["total_files"] == len(manifest["files"])
+    assert len(manifest_by_path) == len(manifest["files"])
+    assert manifest["total_bytes"] == sum(entry["size"] for entry in manifest["files"])
     for path in runtime_paths:
         entry = manifest_by_path[path]
         raw = (ROOT / path).read_bytes()

@@ -133,77 +133,69 @@ def test_a7_no_duplicate_map_return_listener():
 # ======================================================================
 
 def test_b1_guild_entry_exists_and_targets_the_existing_guild_page():
-    assert "key: 'guild'" in REGISTRY
-    assert "target: '/curriculum'" in REGISTRY
-    assert "labelKey: 'e10.nav.guild'" in REGISTRY
+    nav=_canonical_navigation()
+    hub=next(x for x in nav['items'] if x['key']=='learning_hub')
+    assert hub['target']=='/curriculum' and hub['labelKey']=='g009.nav.learning_hub'
+    assert hub['icon']=='book'
 
 
 def test_b2_adventure_slot_is_swapped_for_guild_on_the_adventure_surface():
-    assert "if (item.key === 'adventure')" in LEFT_NAV
-    assert "registry.get('guild')" in LEFT_NAV
-    assert "rendered = guild" in LEFT_NAV
+    nav=_canonical_navigation()
+    assert len(nav['items'])==7
+    assert nav['global'][0]['key']=='learning_hub'
+    assert "itemsFor('global')" in LEFT_NAV
+    assert "registry.get('guild')" not in LEFT_NAV
 
 
 def test_b3_no_new_route_was_invented():
-    """/curriculum already exists and already self-identifies as the Guild."""
-    curriculum = (ROOT / "curriculum.html").read_text(encoding="utf-8")
-    assert "公會委託榜" in curriculum
-    assert "公會聲望" in curriculum
-    app = (ROOT / "app.py").read_text(encoding="utf-8")
+    app=(ROOT/'app.py').read_text(encoding='utf-8')
     assert "@app.route('/curriculum')" in app
-    guild_item = REGISTRY[REGISTRY.index("key: 'guild'"):]
-    guild_item = guild_item[:guild_item.index("\n")]
-    assert "/guild" not in guild_item, "no invented /guild route"
+    nav=_canonical_navigation()
+    assert next(x for x in nav['items'] if x['key']=='learning_hub')['target']=='/curriculum'
+    assert all(x['target']!='/guild' for x in nav['items'])
 
 
 def test_b5_guild_is_not_marked_active_while_the_player_is_on_adventure():
-    """Active state is bound to the adventure COMMAND, which guild does not have."""
-    assert "if (item.command === 'adventure')" in LEFT_NAV, (
-        "active state must stay keyed on the adventure command"
-    )
-    guild_item = REGISTRY[REGISTRY.index("key: 'guild'"):]
-    guild_item = guild_item[:guild_item.index("\n")]
-    assert "command:" not in guild_item, (
-        "guild must carry a target, not a command, so it renders as a plain link "
-        "and never picks up the adventure-only active state"
-    )
-    assert "target: '/curriculum'" in guild_item
+    nav=_canonical_navigation()
+    assert all('command' not in x for x in nav['items'])
+    assert "window.location.pathname" in LEFT_NAV
+    assert "'/curriculum'" in LEFT_NAV or 'new URL' in LEFT_NAV
+    assert "aria-current" in LEFT_NAV
 
 
 def test_b6_the_adventure_entry_itself_is_preserved_in_the_registry():
-    """Only the rendered slot is swapped; the adventure entry is not deleted."""
-    assert "key: 'adventure'" in REGISTRY
-    assert "command: 'adventure'" in REGISTRY
-    assert "labelKey: 'e9.left_nav.adventure'" in REGISTRY
-    assert "'e9.left_nav.adventure'" in I18N
+    nav=_canonical_navigation()
+    assert all(x['target']!='/' for x in nav['items'])
+    site=(ROOT/'site-nav.js').read_text(encoding='utf-8')
+    assert 'href="/"' in site
+    assert "g009.page.home" in site
+    assert 'returnToAdventureMap' in INDEX
 
 
 def test_b7_every_other_nav_item_is_untouched():
-    for key, target in (
-        ("hero", "/hero?tab=hero"),
-        ("equipment", "/hero?tab=equipment"),
-        ("go_spirit", "/hero?tab=pet"),
-        ("shop", "/shop"),
-    ):
-        assert "key: '" + key + "'" in REGISTRY
-        assert "target: '" + target + "'" in REGISTRY
-    assert "'/inventory' + '?e10=1'" in REGISTRY
+    nav=_canonical_navigation()
+    assert [(x['key'],x['target']) for x in nav['items']]==[
+        ('learning_hub','/curriculum'),('arena','/play'),('tavern','/community'),
+        ('hero_hub','/hero?tab=hero'),('backpack','/inventory?e10=1'),('shop','/shop'),('premium','/upgrade')]
+    hero=(ROOT/'hero.html').read_text(encoding='utf-8')
+    assert hero.count('data-g009-hub-tab=')==5
 
 
 def test_b8_one_tap_cannot_double_navigate():
-    """The guild control is a link with no command, so no click handler binds it."""
-    assert "list.querySelector('[data-e10-command=\"adventure\"]')" in LEFT_NAV
-    guild_item = REGISTRY[REGISTRY.index("key: 'guild'"):]
-    guild_item = guild_item[:guild_item.index("\n")]
-    assert "command:" not in guild_item
+    nav=_canonical_navigation()
+    assert all('target' in x and 'command' not in x for x in nav['items'])
+    assert "control = document.createElement(item.disabled || item.command ? 'button' : 'a')" in LEFT_NAV
+    assert "control.setAttribute('href', item.target)" in LEFT_NAV
+    assert "addEventListener('click'" not in LEFT_NAV
 
 
 def test_b9_guild_uses_the_owner_supplied_icon_asset():
-    assert "guild: 'guild.webp'" in REGISTRY
-    assert "icon: 'guild'" in REGISTRY
-    asset = ROOT / "assets/e10/ui/icons/guild.webp"
-    assert asset.is_file(), "the Guild nav icon asset must be checked in"
-    assert asset.stat().st_size > 1000
+    nav=_canonical_navigation()
+    hub=next(x for x in nav['items'] if x['key']=='learning_hub')
+    assert hub['icon']=='book'
+    assert 'aria-hidden="true"' in nav['book']
+    assert 'data-e10-vs1f-icon' in nav['book']
+    assert nav['icons']['pass']=='pass.webp'
 
 
 # ======================================================================
@@ -234,3 +226,35 @@ def test_service_worker_version_was_bumped_for_this_runtime_change():
     assert identity.sw_version != "v233-e10-question-loader-board-renderer-v1b-b5", (
         "the runtime changed, so the canonical cache version must move"
     )
+
+
+def _canonical_navigation():
+    """Execute the current registry, including ordering on every real placement."""
+    import subprocess, json
+    script = r"""
+const fs=require('fs'),vm=require('vm');
+const window={},document={querySelector:()=>({getAttribute:()=> 'e10-vs1f-integrated-world-map'})};
+vm.runInNewContext(fs.readFileSync('js/e9/navigation_registry.js','utf8'),{window,document});
+const r=window.E9.NavigationRegistry;
+console.log(JSON.stringify({items:r.items,global:r.itemsFor('global'),desktop:r.itemsFor('desktop-primary'),mobile:r.itemsFor('mobile-primary'),book:r.icon('book'),icons:r.iconAssets}));
+"""
+    result=subprocess.run(['node','-e',script],cwd=ROOT,capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr
+    return json.loads(result.stdout)
+
+
+def _world_contract(expression, width=820, height=1180, override=False):
+    """Expose existing closure functions only in the VM, without editing runtime bytes."""
+    import subprocess,json
+    script=r"""
+const fs=require('fs'),vm=require('vm');
+const window={innerWidth:WIDTH,innerHeight:HEIGHT,E9:{isPortraitTabletOverride:()=>OVERRIDE},addEventListener:()=>{},matchMedia:()=>({matches:false})};
+const document={querySelector:()=>({getAttribute:()=> 'e10-vs1f-integrated-world-map'}),addEventListener:()=>{}};
+let source=fs.readFileSync('js/e9/world_stage.js','utf8');
+source=source.replace('})(document);','window.__contract={resolveViewportClass,ctaContract,zoneBossProgressText,actionLabel,usesInlinePlayerMarkerSurface};})(document);');
+vm.runInNewContext(source,{window,document,console,URL,navigator:{maxTouchPoints:0}});
+const c=window.__contract;console.log(JSON.stringify(EXPRESSION));
+""".replace('WIDTH',str(width)).replace('HEIGHT',str(height)).replace('OVERRIDE',json.dumps(override)).replace('EXPRESSION',expression)
+    result=subprocess.run(['node','-e',script],cwd=ROOT,capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr
+    return json.loads(result.stdout)

@@ -15,12 +15,13 @@ def test_navigation_ownership_requires_active_e9_shell():
 
 
 def test_navigation_contract_has_one_accessible_legacy_surface_and_e9_strip():
-    """The shared builder keeps one legacy nav surface and strips it only for E9."""
-    assert SITE_NAV.count('class="cg-nav-links"') == 1
-    assert 'aria-label="主要導覽"' in SITE_NAV
-    assert 'header.querySelector(\'.cg-nav-links\')?.remove()' in SITE_NAV
-    assert 'header.dataset.e10SessionStrip = \'1\';' in SITE_NAV
-    assert 'data-nav-key' in SITE_NAV
+    from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation
+    nav = _canonical_navigation()
+    assert len(nav['items'])==7
+    assert nav['desktop']==nav['mobile']==nav['global']
+    assert 'data-g009-global-nav' in SITE_NAV
+    assert "header.dataset.e10SessionStrip = '1';" in SITE_NAV
+    assert 'aria-label="Global navigation"' in SITE_NAV
 
 
 def test_explicit_e10_battle_owner_marker_is_gated_by_static_contract():
@@ -46,13 +47,11 @@ def test_runtime_shell_ownership_is_initialized_before_shared_nav_runs():
 
 
 def test_legacy_navigation_surface_preserves_keyboard_and_accessibility_contract():
-    nav_markup = SITE_NAV.split('<nav class="cg-nav-links"', 1)[1].split(
-        "</nav>", 1
-    )[0]
-    assert 'aria-label="主要導覽"' in nav_markup
-    assert "data-i18n-aria-label=\"common.nav.aria\"" in nav_markup
-    assert "class=\"cg-nav-link" in nav_markup
-    assert "data-nav-key" in nav_markup
+    assert 'aria-label="Global navigation"' in SITE_NAV
+    assert 'data-nav-key' in SITE_NAV
+    assert 'aria-current' in SITE_NAV
+    assert 'cg-nav-link' in SITE_NAV
+    assert 'data-g009-global-nav' in SITE_NAV
 
 
 def test_e9_session_strip_has_one_explicit_ownership_branch():
