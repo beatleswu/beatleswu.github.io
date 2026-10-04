@@ -117,6 +117,9 @@ def test_frontend_uses_server_effect_details_without_a_duplicate_stat_table():
     assert "blockedLoadout = !functionalEquipmentLoadoutEnabled()" in INVENTORY
     assert "action.onclick = blocked ? null :" in INVENTORY
 
+    # PATH-B assertion retention, Owner packet case 1.
+    assert 'server-defined equipment' in HERO
+
 
 def test_go_stone_and_loadout_gate_are_closed_in_backpack_ui():
     assert "let functionalEquipmentLoadoutCapability = false;" in INVENTORY

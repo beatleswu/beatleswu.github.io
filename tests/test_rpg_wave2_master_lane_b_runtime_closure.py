@@ -63,6 +63,13 @@ def test_character_presentation_fails_closed_to_server_default():
     assert "fetch('/api/player/appearance'" in HERO
     assert 'charKeySynced' not in HERO
 
+    # PATH-B assertion retention, Owner packet case 117.
+    assert 'character_key_source' in APP
+    # PATH-B assertion retention, Owner packet case 118.
+    assert 'player_appearance.character_key' in APP
+    # PATH-B assertion retention, Owner packet case 119.
+    assert 'authoritative hero presentation unavailable' in HERO
+
 
 def test_functional_registry_has_fourteen_full_body_items_and_inventory_only_stone():
     assert set(app_module.FUNCTIONAL_EQUIPMENT_ART) == FUNCTIONAL_IDS

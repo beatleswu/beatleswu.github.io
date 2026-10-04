@@ -107,3 +107,13 @@ def test_desktop_legacy_navigation_category_is_the_proven_evidence_trail():
     site=(ROOT/'site-nav.js').read_text(encoding='utf-8')
     assert 'buildLearningSecondaryNav' in site
     for route in ('/mistakes','/stats','/rating_test'): assert route in site
+
+    # PATH-B runtime-probed assertion, Owner packet case 74.
+    registry = (ROOT / 'js/e9/navigation_registry.js').read_text(encoding='utf-8')
+    entry_start = registry.find("key: 'tavern'")
+    assert entry_start != -1, 'tavern'
+
+    # PATH-B runtime-probed assertion, Owner packet case 76.
+    registry = (ROOT / 'js/e9/navigation_registry.js').read_text(encoding='utf-8')
+    entry_start = registry.find("key: 'arena'")
+    assert entry_start != -1, 'arena'

@@ -25,6 +25,13 @@ def test_e10_route_marker_is_narrow_and_owned_by_the_existing_shell_contract():
     assert next(x for x in nav['items'] if x['key']=='backpack')['target']=='/inventory?e10=1'
     assert "functionalEquipmentLoadoutEnabled()" in INVENTORY
 
+    # PATH-B assertion retention, Owner packet case 34.
+    assert "root.dataset.e10VisualSkin = 'immersive-rpg';" in INVENTORY
+    # PATH-B assertion retention, Owner packet case 35.
+    assert "root.dataset.e10ArtKit = 'runtime-v1';" in INVENTORY
+    # PATH-B assertion retention, Owner packet case 36.
+    assert "marker.name = 'go-odyssey-static-contract';" in INVENTORY
+
 
 def test_e10_backpack_context_survives_full_navigation_and_reload_without_global_conversion():
     assert "const E10_BACKPACK_SHELL_OWNER = 'e10-backpack';" in INVENTORY
@@ -80,6 +87,11 @@ def test_use_eligibility_and_non_manual_protection_remain_controller_owned():
     assert "if (!functionalEquipmentLoadoutEnabled()" in INVENTORY
     # Current containment is not a permanent ban on future authorized actions.
     assert "performFunctionalEquipmentAction" in INVENTORY
+
+    # PATH-B assertion retention, Owner packet case 39.
+    assert "useButton.hidden = capability.kind !== 'manual';" in INVENTORY
+    # PATH-B assertion retention, Owner packet case 40.
+    assert "if (useButton) useButton.addEventListener('click'" in INVENTORY
 
 
 def test_return_action_uses_the_existing_world_map_lifecycle_target():

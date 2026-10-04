@@ -23,6 +23,11 @@ def test_navigation_contract_has_one_accessible_legacy_surface_and_e9_strip():
     assert "header.dataset.e10SessionStrip = '1';" in SITE_NAV
     assert 'aria-label="Global navigation"' in SITE_NAV
 
+    # PATH-B assertion retention, Owner packet case 48.
+    assert SITE_NAV.count('class="cg-nav-links"') == 1
+    # PATH-B assertion retention, Owner packet case 49.
+    assert 'data-nav-key' in SITE_NAV
+
 
 def test_explicit_e10_battle_owner_marker_is_gated_by_static_contract():
     guard = SITE_NAV.split("function ownsE10Navigation()", 1)[1].split(
@@ -52,6 +57,12 @@ def test_legacy_navigation_surface_preserves_keyboard_and_accessibility_contract
     assert 'aria-current' in SITE_NAV
     assert 'cg-nav-link' in SITE_NAV
     assert 'data-g009-global-nav' in SITE_NAV
+
+    # PATH-B assertion retention, Owner packet case 51.
+    nav_markup = SITE_NAV.split('<nav class="cg-nav-links"', 1)[1].split('</nav>', 1)[0]
+    assert 'class="cg-nav-link' in nav_markup
+    # PATH-B assertion retention, Owner packet case 52.
+    assert 'data-nav-key' in nav_markup
 
 
 def test_e9_session_strip_has_one_explicit_ownership_branch():

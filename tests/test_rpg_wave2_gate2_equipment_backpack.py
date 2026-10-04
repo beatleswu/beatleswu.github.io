@@ -397,3 +397,24 @@ def test_backpack_and_loot_frontend_contracts_keep_functional_and_style_separate
     assert 'functional_equipment_new_ids' in index
     assert 'loot-toast-backpack' in index
     assert '/inventory?equipment=' in index
+
+    # PATH-B assertion retention, Owner packet case 94.
+    assert '戰鬥裝備 / Functional Equipment' in inventory
+    # PATH-B assertion retention, Owner packet case 95.
+    assert '武器 / Weapon' in inventory
+    # PATH-B assertion retention, Owner packet case 96.
+    assert '防具 / Armor' in inventory
+    # PATH-B assertion retention, Owner packet case 97.
+    assert '飾品 / Accessory' in inventory
+    # PATH-B assertion retention, Owner packet case 98.
+    assert '已裝備 / Equipped' in inventory
+    # PATH-B assertion retention, Owner packet case 99.
+    assert '新取得 / New' in inventory
+    # PATH-B assertion retention, Owner packet case 101.
+    assert '尚未啟用' in inventory
+    # PATH-B assertion retention, Owner packet case 102.
+    assert 'Not currently effective' in inventory
+    # PATH-B assertion retention, Owner packet case 103.
+    assert 'href="/hero?tab=equipment"' in inventory
+    # PATH-B assertion retention, Owner packet case 104.
+    assert 'id="loot-toast-backpack"' in index

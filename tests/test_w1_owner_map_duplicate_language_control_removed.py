@@ -51,6 +51,10 @@ def test_map_session_strip_is_removed_not_merely_clipped():
     assert '@media (max-width: 767px)' in WORLD_MAP_CSS or '@media (max-width: 1024px)' in WORLD_MAP_CSS
     assert 'g009' in SITE_NAV
     assert 'cg-nav-lang' in SITE_NAV
+
+    # PATH-B runtime-probed assertion, Owner packet case 122.
+    combined = '\n'.join(_strip_rules(WORLD_MAP_CSS))
+    assert 'position: absolute' not in combined
     # The old desktop strip is retired; the accepted portrait navigation drawer
     # retains a real responsive focus/activation surface rather than clipping it.
 

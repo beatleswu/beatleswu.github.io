@@ -61,6 +61,25 @@ def test_option_b_hides_every_non_admitted_public_shop_surface_by_default():
     assert "if (G009_SHOP_BROWSE_PREVIEW_ONLY)" in SHOP
     assert "shop-preview-status" in SHOP
 
+    # PATH-B assertion retention, Owner packet case 9.
+    assert re.search('<section[^>]+class="[^"]*cosmetic-commerce-panel[^" ]*"[^>]+data-c053-option-b-surface="cosmetics"[^>]+hidden', SHOP)
+    # PATH-B assertion retention, Owner packet case 10.
+    assert re.search('<section[^>]+id="equipment-commerce-panel"[^>]+data-c044-catalog="equipment-offers"[^>]+data-c053-option-b-surface="equipment"[^>]+[^>]*hidden', SHOP)
+    # PATH-B assertion retention, Owner packet case 11.
+    assert re.search(f'''data-c053-option-b-retired="{'premium'}"[^>]*hidden''', SHOP), f"{'premium'} Shop surface must be hidden for Option B"
+    # PATH-B assertion retention, Owner packet case 12.
+    assert re.search(f'''data-c053-option-b-retired="{'daily'}"[^>]*hidden''', SHOP), f"{'daily'} Shop surface must be hidden for Option B"
+    # PATH-B assertion retention, Owner packet case 13.
+    assert re.search(f'''data-c053-option-b-retired="{'weekly'}"[^>]*hidden''', SHOP), f"{'weekly'} Shop surface must be hidden for Option B"
+    # PATH-B assertion retention, Owner packet case 14.
+    assert re.search(f'''data-c053-option-b-retired="{'monthly'}"[^>]*hidden''', SHOP), f"{'monthly'} Shop surface must be hidden for Option B"
+    # PATH-B assertion retention, Owner packet case 15.
+    assert re.search(f'''data-c053-option-b-retired="{'items'}"[^>]*hidden''', SHOP), f"{'items'} Shop surface must be hidden for Option B"
+    # PATH-B assertion retention, Owner packet case 16.
+    assert 'data-c053-option-b-retired="gacha-collection"' in SHOP
+    # PATH-B assertion retention, Owner packet case 17.
+    assert 'id="legacy-gacha-collection-summary"' in SHOP
+
 
 def test_option_b_reveal_latch_is_server_catalog_driven_and_fail_closed():
     helper = _function_body(SHOP, "function c053SetOptionBVisibility(")
@@ -136,6 +155,15 @@ def test_option_b_copy_separates_functional_equipment_and_cosmetics_in_both_loca
     assert "equipment-commerce-panel" in SHOP and "cosmetic-commerce-panel" in SHOP
     assert "G009_SHOP_BROWSE_PREVIEW_ONLY = true" in SHOP
     assert "if (G009_SHOP_BROWSE_PREVIEW_ONLY) return false;" in SHOP
+
+    # PATH-B assertion retention, Owner packet case 18.
+    assert '功能裝備' in SHOP
+    # PATH-B assertion retention, Owner packet case 19.
+    assert 'combat power 0' in I18N
+    # PATH-B assertion retention, Owner packet case 20.
+    assert '戰鬥力固定為 0' in SHOP
+    # PATH-B assertion retention, Owner packet case 21.
+    assert 'purchase != equip' not in SHOP.lower()
 
 
 def test_legacy_and_payment_paths_remain_compatibility_source_not_public_ui():

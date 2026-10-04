@@ -17,6 +17,17 @@ def test_all_e10_backpack_producers_share_the_existing_handoff_helper():
     assert "target.searchParams.delete('e10');" in INDEX
     assert "syncE10BackpackEntryLinks()" in INDEX
 
+    # PATH-B assertion retention, Owner packet case 28.
+    assert '[data-e10-backpack-entry], [data-e10-nav-key="backpack"]' in INDEX
+    # PATH-B assertion retention, Owner packet case 29.
+    assert "component !== 'left_nav'" in INDEX
+    # PATH-B assertion retention, Owner packet case 30.
+    assert "component !== 'top_hud'" in INDEX
+    # PATH-B assertion retention, Owner packet case 31.
+    assert "component !== 'bottom_dock'" in INDEX
+    # PATH-B assertion retention, Owner packet case 32.
+    assert 'Promise.resolve().then(() => syncE10BackpackEntryLinks());' in INDEX
+
 
 def test_generic_and_legacy_navigation_remain_unmarked():
     from tests.test_e10_ui_nav_guild_and_single_map_return import _canonical_navigation

@@ -203,6 +203,18 @@ def test_equipment_and_character_selection_authority_are_unchanged(monkeypatch):
     finally:conn.close()
     assert 'EQUIPMENT_CANONICAL_LOADOUT_ENABLED' in APP.read_text(encoding='utf-8')
 
+    # PATH-B assertion retention, Owner packet case 105.
+    app = (ROOT / 'app.py').read_text(encoding='utf-8')
+    assert 'FUNCTIONAL_EQUIPMENT_ART' in app
+    # PATH-B assertion retention, Owner packet case 106.
+    assert 'def equip_item()' in app
+    # PATH-B assertion retention, Owner packet case 107.
+    assert 'UPDATE player_inventory SET equipped=0' in app
+    # PATH-B assertion retention, Owner packet case 108.
+    assert 'UPDATE player_inventory SET equipped=1' in app
+    # PATH-B assertion retention, Owner packet case 109.
+    assert 'def skills_character()' in app
+
 
 def test_p2_artitecture_is_reused_without_bespoke_item_character_redraws():
     report = _json(REPORT)

@@ -156,3 +156,21 @@ def test_current_character_ids_and_authority_paths_are_unchanged(monkeypatch):
     active=(ROOT/'js/g009_hero_hub_batch_a.js').read_text(encoding='utf-8')
     assert 'g009-character-switch-grid' in active
     assert '/api/player/character-catalog' in active
+
+    # PATH-B assertion retention, Owner packet case 87.
+    assert 'const CHARACTER_KEYS = COMBAT_GEAR.character.map(c => c.key);' in hero
+    # PATH-B assertion retention, Owner packet case 90.
+    assert "fetch('/api/skills/character'" in hero
+    # PATH-B assertion retention, Owner packet case 91.
+    app = APP.read_text(encoding='utf-8')
+    assert 'player_appearance' in app
+    # PATH-B assertion retention, Owner packet case 92.
+    assert 'player_inventory' in app
+    # PATH-B assertion retention, Owner packet case 93.
+    assert 'def _get_authoritative_combat_stats' in app
+
+    # PATH-B runtime-probed assertion, Owner packet case 88.
+    assert all((re.search(f"key\\s*:\\s*'{re.escape(current_id)}'", hero) for current_id in CURRENT_IDS))
+
+    # PATH-B runtime-probed assertion, Owner packet case 89.
+    assert all((not re.search(f"key\\s*:\\s*'{re.escape(new_id)}'", hero) for new_id in ('trail_apprentice', 'night_runner', 'constellation_apprentice')))

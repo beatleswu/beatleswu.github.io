@@ -87,6 +87,11 @@ def test_exactly_one_marker_host_moves_between_responsive_surfaces():
     assert _world_contract('c.usesInlinePlayerMarkerSurface()',820,1180) is True
     assert _world_contract('c.usesInlinePlayerMarkerSurface()',1440,900) is False
 
+    # PATH-B assertion retention, Owner packet case 63.
+    assert 'function usesInlinePlayerMarkerSurface()' in WORLD
+    # PATH-B assertion retention, Owner packet case 65.
+    assert 'if (usesInlinePlayerMarkerSurface())' in reconcile
+
 
 def test_invalid_location_fails_closed_without_selected_zone_fallback():
     reconcile = _function_body(WORLD, "reconcilePlayerNodeMarker")

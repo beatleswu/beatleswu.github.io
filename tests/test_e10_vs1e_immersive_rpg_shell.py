@@ -81,6 +81,19 @@ def test_navigation_keeps_vs1d_markup_base_safe_and_builds_vs1f_icons_after_mark
     assert hero.count('data-g009-hub-tab=')==5
     assert not re.search(r"[\U0001F300-\U0001FAFF]", NAV_HTML)
 
+    # PATH-B assertion retention, Owner packet case 58.
+    assert 'class="e9-nav__icon"' not in NAV_HTML
+    # PATH-B assertion retention, Owner packet case 59.
+    nav_js = (ROOT / 'js/e9/left_nav.js').read_text(encoding='utf-8')
+    assert 'registry.exactContract()' in nav_js
+    # PATH-B assertion retention, Owner packet case 60.
+    registry = (ROOT / 'js/e9/navigation_registry.js').read_text(encoding='utf-8')
+    assert 'data-e10-vs1f-icon' in registry
+    # PATH-B assertion retention, Owner packet case 61.
+    assert '/hero?tab=hero' in registry
+    # PATH-B assertion retention, Owner packet case 62.
+    assert not re.search("key:\\s*'backpack'.*disabled:\\s*true", registry)
+
 
 def test_hud_restores_vs1d_fallback_and_builds_vs1f_brand_after_marker():
     assert "top-hud-avatar" in TOP_HTML

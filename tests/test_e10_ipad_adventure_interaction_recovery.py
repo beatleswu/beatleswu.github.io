@@ -133,6 +133,17 @@ def test_portrait_detail_uses_authoritative_boss_progress_and_replay_surface():
     assert "bossProgress.textContent = locked ? '' : zoneBossProgressText(zone);" in WORLD
     assert "configureStoryReplayButton(replay, zone);" in WORLD
 
+    # PATH-B assertion retention, Owner packet case 41.
+    assert 'function zoneBossProgressText(zone)' in WORLD
+    # PATH-B assertion retention, Owner packet case 42.
+    assert 'if (zone.bossAvailable) return bossReadyText(zone);' in WORLD
+    # PATH-B assertion retention, Owner packet case 43.
+    assert 'if (zone.cleared) return clearedText(zone);' in WORLD
+    # PATH-B assertion retention, Owner packet case 44.
+    assert 'index.adv.boss_intro_progress' in WORLD
+    # PATH-B assertion retention, Owner packet case 45.
+    assert "var bossProgress = root.querySelector('#e9-world-stage-details-boss-progress');" in WORLD
+
 
 def test_ipad_zone_card_responsive_layout_preserves_replay_and_close_controls():
     portrait = CSS.split(

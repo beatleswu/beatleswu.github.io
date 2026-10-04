@@ -197,6 +197,9 @@ def test_b9_guild_uses_the_owner_supplied_icon_asset():
     assert 'data-e10-vs1f-icon' in nav['book']
     assert nav['icons']['pass']=='pass.webp'
 
+    # PATH-B assertion retention, Owner packet case 57.
+    assert "guild: 'guild.webp'" in REGISTRY
+
 
 # ======================================================================
 # Language

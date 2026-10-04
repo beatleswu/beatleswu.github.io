@@ -124,6 +124,15 @@ def test_backpack_is_an_enabled_independent_destination_with_exclusive_navigatio
     assert "def inventory_page(): return _serve_live_static_or_baked('inventory.html')" in APP
     assert 'data-authoritative-backpack-grid' in INVENTORY
 
+    # PATH-B assertion retention, Owner packet case 22.
+    assert "@app.route('/inventory')" in APP
+    # PATH-B assertion retention, Owner packet case 24.
+    assert "href: '/inventory'" in SITE_NAV
+    # PATH-B assertion retention, Owner packet case 25.
+    assert 'data-backpack-destination' in INVENTORY
+    # PATH-B assertion retention, Owner packet case 26.
+    assert '<a href="/inventory"    class="nav-link active" aria-current="page"' in INVENTORY
+
 
 def test_backpack_uses_real_catalog_inventory_and_truthful_capabilities():
     assert "fetch('/api/shop/catalog'" in INVENTORY
