@@ -431,15 +431,15 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "36b5182b7600325e1b579cd821d321e904d2da48ba9220d62ff4daac67f70c3c",
-      "content_size_bytes": 79638,
+      "source_commit": "2782007adac2644acdfc99b728250ac8929ee844",
+      "source_branch_or_local_ref": "2782007adac2644acdfc99b728250ac8929ee844",
+      "source_commit_subject": "Correct Owner-approved G009 navigation, character and closed-loadout contracts",
+      "source_date": "2026-10-04",
+      "content_sha256": "dfe39bc3f828f5fb5b57624290672519ab293068f1d11ff962aca0fba62f2aae",
+      "content_size_bytes": 79584,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "Recorded local Goal2 Commit A bytes; not canonical integration, Owner visual approval, or release qualification evidence."
     },
     {
       "path": "badges.html",
@@ -467,15 +467,15 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "2850c90a23e8833d7be666c76f9ed8f5365f9dd7dae5353c2059c34737d8c55c",
+      "source_commit": "2782007adac2644acdfc99b728250ac8929ee844",
+      "source_branch_or_local_ref": "2782007adac2644acdfc99b728250ac8929ee844",
+      "source_commit_subject": "Correct Owner-approved G009 navigation, character and closed-loadout contracts",
+      "source_date": "2026-10-04",
+      "content_sha256": "fc80f0c61ec818e5bffa1af6e7b771e8dfb016b9dd0e09119e873cb31b561a15",
       "content_size_bytes": 408206,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "Recorded local Goal2 Commit A bytes; not canonical integration, Owner visual approval, or release qualification evidence."
     },
     {
       "path": "components/adventure/world_stage.html",
@@ -515,15 +515,15 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "493d00cf155372db2a71b49dd8d34baa639166d2",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "G009 consume finalized Derived84 asset authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "6df221c0ad6a71fbce5740b7eb0416a8659ad725966a6b66316fd7edd31d0bc4",
-      "content_size_bytes": 105313,
+      "source_commit": "2782007adac2644acdfc99b728250ac8929ee844",
+      "source_branch_or_local_ref": "2782007adac2644acdfc99b728250ac8929ee844",
+      "source_commit_subject": "Correct Owner-approved G009 navigation, character and closed-loadout contracts",
+      "source_date": "2026-10-04",
+      "content_sha256": "f848377128be8281867f62c5998fb0541a1e201f6da26a4509c966ddbb6eeea9",
+      "content_size_bytes": 113122,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data; Zone4 intro cinematic wiring",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "Recorded local Goal2 Commit A bytes; not canonical integration, Owner visual approval, or release qualification evidence."
     },
     {
       "path": "sw.js",
@@ -1181,15 +1181,15 @@
     },
     {
       "path": "app.py",
-      "source_commit": "3bf8b135c82bec3f073962f8c3907f91a55137a6",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "fix(g009): dual delivery for new public G009 assets (D004, D005)",
-      "source_date": "2026-10-01",
-      "content_sha256": "e9c33a7c75352b5864541e6a4134b924570cc7d6d8fec5cc74a472d02c172d44",
-      "content_size_bytes": 1424776,
+      "source_commit": "2782007adac2644acdfc99b728250ac8929ee844",
+      "source_branch_or_local_ref": "2782007adac2644acdfc99b728250ac8929ee844",
+      "source_commit_subject": "Correct Owner-approved G009 navigation, character and closed-loadout contracts",
+      "source_date": "2026-10-04",
+      "content_sha256": "0eeeab785bc09e94b35e8ae80711f1076ec154f2da73b6a133a6654be7a0cbb2",
+      "content_size_bytes": 1423218,
       "line_ending_policy": "LF",
       "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear and C045 Shop admission wiring; narrow Zone4 Owner-final presentation serving routes",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "Recorded local Goal2 Commit A bytes; not canonical integration, Owner visual approval, or release qualification evidence."
     },
     {
       "path": "coin_purchase_authority.py",
