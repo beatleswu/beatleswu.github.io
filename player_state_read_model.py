@@ -35,7 +35,7 @@ READ_MODEL_NAME = "player_hero_state"
 READ_MODEL_VERSION = "player_hero_state_v1"
 EQUIPMENT_SLOTS = ("weapon", "armor", "accessory")
 APPEARANCE_SLOTS = ("outfit", "hat", "back", "title", "accessory", "pet", "aura")
-PRESENTATION_DEFAULT_HERO_ID = "apprentice"
+PRESENTATION_DEFAULT_HERO_ID = "A1"
 XP_AMULET_ID = "xp_amulet"
 INVENTORY_ONLY_TROPHY_IDS = frozenset({"go_stone_black"})
 
@@ -508,6 +508,21 @@ def _appearance_display(definition: Mapping[str, Any], item_id: str) -> dict[str
     }
 
 
+def _owner_mapped_legacy_character_keys() -> frozenset[str]:
+    """Read the existing legacy authority without creating a second catalog."""
+    try:
+        from app import (
+            LEGACY_ACTIVE_CHARACTER_KEYS,
+            LEGACY_COMPATIBILITY_CHARACTER_KEYS,
+        )
+    except Exception as exc:  # pragma: no cover - deployment import failure
+        raise PlayerStateReadModelError(
+            "AUTHORITY_UNAVAILABLE",
+            "canonical legacy character authority is unavailable",
+        ) from exc
+    return LEGACY_ACTIVE_CHARACTER_KEYS | LEGACY_COMPATIBILITY_CHARACTER_KEYS
+
+
 def _project_cosmetics_and_hero(
     conn: Any,
     user_id: int,
@@ -611,9 +626,21 @@ def _project_cosmetics_and_hero(
             else None
         )
 
-    stored_character = _row_value(appearance_row, "character_key") if appearance_row else None
-    stored_character = str(stored_character).strip() if stored_character else None
-    if stored_character in active_characters:
+    stored_character_value = _row_value(appearance_row, "character_key") if appearance_row else None
+    stored_character = str(stored_character_value).strip() if stored_character_value else None
+    if stored_character and stored_character in _owner_mapped_legacy_character_keys():
+        # Owner Option A is a read-only presentation derivation, not a
+        # persisted selection, entitlement grant, or storage repair.
+        hero = {
+            "hero_id": PRESENTATION_DEFAULT_HERO_ID,
+            "identity_status": "DERIVED_FALLBACK",
+            "authority": "player_appearance.character_key",
+            "authority_scope": "presentation_only",
+            "presentation_fallback_id": PRESENTATION_DEFAULT_HERO_ID,
+            "stored_character_key": stored_character_value,
+        }
+        hero_status = "OK"
+    elif stored_character in active_characters:
         hero = {
             "hero_id": stored_character,
             "identity_status": "PRESENTATION_SELECTION",

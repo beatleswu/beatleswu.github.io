@@ -213,12 +213,14 @@ def test_inventory_enabled_path_is_server_gated_and_reuses_authoritative_endpoin
     assert "await loadFunctionalEquipment(item.inv_id)" in INVENTORY
     assert "LOADOUT_DISABLED" not in INVENTORY
     assert "localStorage" not in INVENTORY
-    # The control is now disabled by a strictly wider condition: the Loadout
-    # capability being off, OR the canonical server saying the item is not
-    # equippable at all (go_stone_black / xp_amulet).
-    assert "const blocked = notEquippable || blockedNewEquip;" in INVENTORY
+    # Owner P04: a closed Loadout blocks both Equip and Unequip; retain
+    # the independent non-equippable item guard and enabled-path contracts.
+    assert "const blockedLoadout = !functionalEquipmentLoadoutEnabled()" in INVENTORY
+    assert "const blocked = notEquippable || blockedLoadout;" in INVENTORY
     assert "action.disabled = blocked;" in INVENTORY
-    assert "action === 'equip' && !functionalEquipmentLoadoutEnabled()" in INVENTORY
+    handler = INVENTORY[INVENTORY.index("async function performFunctionalEquipmentAction"):]
+    assert "if (!functionalEquipmentLoadoutEnabled()" in handler
+    assert "if (action === 'equip' && !functionalItemEquippable(item))" in handler
 
 
 def test_hero_projection_consumes_server_equipped_wooden_sword_mapping_only():

@@ -246,6 +246,7 @@ def _validate_hero(value: Any) -> dict[str, Any]:
         "authority_scope",
         "presentation_fallback_id",
         "invalid_stored_value",
+        "stored_character_key",
     }
     _reject_unknown(data, allowed, "player_state.hero")
     if data.get("authority") != "player_appearance.character_key":

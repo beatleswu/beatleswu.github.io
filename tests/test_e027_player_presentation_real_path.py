@@ -187,7 +187,11 @@ def test_real_http_path_uses_session_identity_and_narrows_authoritative_values(
     payload = response.get_json()
     assert payload["contract_version"] == "PLAYER_PRESENTATION_API_V1"
     assert payload["player_id"] == 17
-    assert payload["hero"]["hero_id"] == "apprentice"
+    assert payload["hero"]["hero_id"] == "A1"
+    assert payload["hero"]["identity_status"] == "DERIVED_FALLBACK"
+    assert payload["hero"]["stored_character_key"] == "apprentice"
+    assert payload["hero"]["presentation_fallback_id"] == "A1"
+    assert payload["projection_status"] != "INVALID_STATE"
     assert payload["progression"]["xp"] == 321
     assert payload["progression"]["level"] == 12
     assert payload["progression"]["rank_level"] == "LV12"
@@ -229,6 +233,76 @@ def test_real_http_path_uses_session_identity_and_narrows_authoritative_values(
     # The context's successful commit is driver bookkeeping for a read-only
     # transaction; SQLite reports no business-data change.
     assert tracker == {"commit_calls": 1, "rollback_calls": 0}
+
+
+@pytest.mark.parametrize("stored_key", [
+    "apprentice", "apprentice_girl", "swordsman", "rogue", "ranger", "berserker",
+    "guardian", "paladin", "mage", "sage", "hero_male", "woman", "boy_child",
+    "girl_child", "elder_master", "elder_woman",
+])
+def test_mapped_legacy_real_route_derives_a1_without_mutation(authenticated_route, stored_key):
+    client, connection, tracker = authenticated_route
+    connection.execute("UPDATE player_appearance SET character_key=? WHERE user_id=17", (stored_key,))
+    connection.commit()
+    before = _snapshot(connection)
+    changes_before = connection.total_changes
+    statements = []
+    connection.set_trace_callback(statements.append)
+
+    response = client.get("/api/player/presentation")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["hero"] == {
+        "hero_id": "A1", "identity_status": "DERIVED_FALLBACK",
+        "authority": "player_appearance.character_key", "authority_scope": "presentation_only",
+        "presentation_fallback_id": "A1", "stored_character_key": stored_key,
+    }
+    assert payload["projection_status"] != "INVALID_STATE"
+    assert payload["cosmetics"]["projection_status"] == "OK"
+    assert connection.total_changes == changes_before
+    assert not any(sql.lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "REPLACE")) for sql in statements)
+    connection.set_trace_callback(None)
+    assert _snapshot(connection) == before
+    assert tracker == {"commit_calls": 1, "rollback_calls": 0}
+
+
+@pytest.mark.parametrize("stored_key", ["A31", "unmapped-corrupt-hero"])
+def test_unknown_real_route_hero_stays_invalid_without_repair(authenticated_route, stored_key):
+    client, connection, _tracker = authenticated_route
+    connection.execute("UPDATE player_appearance SET character_key=? WHERE user_id=17", (stored_key,))
+    connection.commit()
+    before = _snapshot(connection)
+    changes_before = connection.total_changes
+
+    response = client.get("/api/player/presentation")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["hero"]["hero_id"] is None
+    assert payload["hero"]["identity_status"] == "INVALID_STORED_STATE"
+    assert payload["hero"]["invalid_stored_value"] == stored_key
+    assert payload["projection_status"] == "INVALID_STATE"
+    assert _snapshot(connection) == before
+    assert connection.total_changes == changes_before
+
+
+def test_persisted_future30_real_route_selection_is_not_derived(authenticated_route):
+    client, connection, _tracker = authenticated_route
+    connection.execute("UPDATE player_appearance SET character_key='R2' WHERE user_id=17")
+    connection.commit()
+    before = _snapshot(connection)
+    changes_before = connection.total_changes
+
+    response = client.get("/api/player/presentation")
+
+    assert response.status_code == 200
+    hero = response.get_json()["hero"]
+    assert hero["hero_id"] == "R2"
+    assert hero["identity_status"] == "PRESENTATION_SELECTION"
+    assert "stored_character_key" not in hero
+    assert _snapshot(connection) == before
+    assert connection.total_changes == changes_before
 
 
 def test_unauthenticated_real_route_is_denied_without_db_access(monkeypatch):

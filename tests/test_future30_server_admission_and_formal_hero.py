@@ -48,8 +48,13 @@ def test_server_admission_uses_manifest_and_preserves_legacy_fallback():
     assert "is_future30_character_key" in app
     assert "VALID_CHARACTER_KEYS" in app
     assert "ACTIVE_CHARACTER_KEYS" in app
-    assert "PRESERVE_KEY_WITH_EXISTING_2D_FALLBACK" in app
-    assert "no legacy key is guessed into A1...E3" in app
+    assert "PRESENT_LEGACY_AS_A1_REJECT_LEGACY_SELECTION" in app
+    import app as app_module
+    legacy_keys = app_module.LEGACY_ACTIVE_CHARACTER_KEYS | app_module.LEGACY_COMPATIBILITY_CHARACTER_KEYS
+    assert len(legacy_keys) == 16
+    assert all(app_module._presentation_character_key(key) == "A1" for key in legacy_keys)
+    assert all(app_module._presentation_character_key(key) == "A1" for key in (None, "", "unknown", "A31"))
+    assert app_module._presentation_character_key("R2") == "R2"
     assert "asset_id" not in app[app.index("def _presentation_character_key"):app.index("@app.route('/api/skills/character'")]
     assert "FUTURE30_EXPECTED_LOGICAL_COUNT = 30" in registry
     assert "FUTURE30_EXPECTED_VISUAL_COUNT = 33" in registry
@@ -206,10 +211,20 @@ def test_real_character_route_requires_persistent_ownership_and_rejects_unknown(
     owned_r2 = next(entry for entry in appearance["entries"] if entry["character_key"] == "R2")
     assert owned_r2["is_applied"] is True
 
-    legacy_alias = client.post("/api/skills/character", json={"character_key": "hero_male"})
-    assert legacy_alias.status_code == 200
-    assert "character" in legacy_alias.get_json()["rejected"]
+    legacy_keys = app_module.LEGACY_ACTIVE_CHARACTER_KEYS | app_module.LEGACY_COMPATIBILITY_CHARACTER_KEYS
+    assert len(legacy_keys) == 16
+    with sqlite3.connect(db_path) as connection:
+        entitlements_before = connection.execute(
+            "SELECT * FROM player_character_entitlements ORDER BY user_id, character_key"
+        ).fetchall()
+    for legacy_key in sorted(legacy_keys):
+        legacy_alias = client.post("/api/skills/character", json={"character_key": legacy_key})
+        assert legacy_alias.status_code == 400
+        assert legacy_alias.get_json() == {"error": "invalid character_key"}
     with sqlite3.connect(db_path) as connection:
         assert connection.execute(
             "SELECT character_key FROM player_appearance WHERE user_id=7"
         ).fetchone()[0] == "R2"
+        assert connection.execute(
+            "SELECT * FROM player_character_entitlements ORDER BY user_id, character_key"
+        ).fetchall() == entitlements_before

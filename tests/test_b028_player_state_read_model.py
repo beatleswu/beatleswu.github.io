@@ -160,7 +160,9 @@ def test_valid_normal_player_projection_is_server_owned(conn):
     assert model["progression"]["xp"] == 123
     assert model["progression"]["level"] == 12
     assert model["equipment"]["slots"]["weapon"]["item_id"] == "iron_sword"
-    assert model["hero"]["hero_id"] == "apprentice"
+    assert model["hero"]["hero_id"] == "A1"
+    assert model["hero"]["identity_status"] == "DERIVED_FALLBACK"
+    assert model["hero"]["stored_character_key"] == "apprentice"
     assert model["world"]["projected"] is False
 
 
@@ -172,9 +174,18 @@ def test_default_current_catalog_adapter_projects_current_hero_and_spirit(conn):
     conn.execute("INSERT INTO user_pets(user_id, pet_key, level, xp) VALUES(1, 'ink_drop_kelpie', 12, 7)")
     conn.commit()
 
+    before = list(conn.iterdump())
+    changes_before = conn.total_changes
     model = build_player_state_read_model(conn, 1)
 
-    assert model["hero"]["hero_id"] == "apprentice"
+    assert model["hero"]["hero_id"] == "A1"
+    assert model["hero"]["identity_status"] == "DERIVED_FALLBACK"
+    assert model["hero"]["stored_character_key"] == "apprentice"
+    assert model["hero"]["presentation_fallback_id"] == "A1"
+    assert model["cosmetics"]["projection_status"] == "OK"
+    assert model["projection_status"] != "INVALID_STORED_STATE"
+    assert list(conn.iterdump()) == before
+    assert conn.total_changes == changes_before
     assert model["hero"]["authority"] == "player_appearance.character_key"
     assert model["spirit"]["active"]["spirit_id"] == "ink_drop_kelpie"
     assert model["equipment"]["slots"]["weapon"]["item_id"] == "iron_sword"
@@ -317,7 +328,64 @@ def test_missing_hero_selection_is_truthful(conn):
 
     assert model["hero"]["hero_id"] is None
     assert model["hero"]["identity_status"] == "MISSING_HERO_SELECTION"
-    assert model["hero"]["presentation_fallback_id"] == "apprentice"
+    assert model["hero"]["presentation_fallback_id"] == "A1"
+
+
+@pytest.mark.parametrize("stored_key", [
+    "apprentice", "apprentice_girl", "swordsman", "rogue", "ranger", "berserker",
+    "guardian", "paladin", "mage", "sage", "hero_male", "woman", "boy_child",
+    "girl_child", "elder_master", "elder_woman",
+])
+def test_owner_mapped_legacy_hero_is_derived_without_persistent_write(conn, stored_key):
+    conn.execute("INSERT INTO player_appearance(user_id, character_key) VALUES(1, ?)", (stored_key,))
+    conn.commit()
+    before = list(conn.iterdump())
+    changes_before = conn.total_changes
+    statements = []
+    conn.set_trace_callback(statements.append)
+
+    model = build_player_state_read_model(conn, 1)
+
+    assert model["hero"] == {
+        "hero_id": "A1", "identity_status": "DERIVED_FALLBACK",
+        "authority": "player_appearance.character_key", "authority_scope": "presentation_only",
+        "presentation_fallback_id": "A1", "stored_character_key": stored_key,
+    }
+    assert model["cosmetics"]["projection_status"] == "OK"
+    assert model["projection_status"] != "INVALID_STORED_STATE"
+    assert conn.total_changes == changes_before
+    assert not any(sql.lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "REPLACE")) for sql in statements)
+    conn.set_trace_callback(None)
+    assert list(conn.iterdump()) == before
+
+
+@pytest.mark.parametrize("stored_key", ["A31", "unmapped-corrupt-hero"])
+def test_unknown_stored_hero_remains_invalid_without_repair(conn, stored_key):
+    conn.execute("INSERT INTO player_appearance(user_id, character_key) VALUES(1, ?)", (stored_key,))
+    conn.commit()
+    before = list(conn.iterdump())
+    changes_before = conn.total_changes
+
+    model = build_player_state_read_model(conn, 1)
+
+    assert model["hero"]["hero_id"] is None
+    assert model["hero"]["identity_status"] == "INVALID_STORED_STATE"
+    assert model["hero"]["invalid_stored_value"] == stored_key
+    assert model["hero"]["presentation_fallback_id"] == "A1"
+    assert model["projection_status"] == "INVALID_STORED_STATE"
+    assert list(conn.iterdump()) == before
+    assert conn.total_changes == changes_before
+
+
+def test_admitted_persisted_hero_selection_is_not_derived_fallback(conn):
+    conn.execute("INSERT INTO player_appearance(user_id, character_key) VALUES(1, 'R2')")
+    conn.commit()
+    before = list(conn.iterdump())
+    model = build_player_state_read_model(conn, 1)
+    assert model["hero"]["hero_id"] == "R2"
+    assert model["hero"]["identity_status"] == "PRESENTATION_SELECTION"
+    assert "stored_character_key" not in model["hero"]
+    assert list(conn.iterdump()) == before
 
 
 def test_xp_level_and_hp_are_read_from_user_stats_authority(conn):
