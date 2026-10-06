@@ -35,11 +35,12 @@
 
 import { spawn } from 'node:child_process';
 import fssync from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+const { chromium } = createRequire(import.meta.url)('playwright-core');
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..', '..');
@@ -259,13 +260,21 @@ async function establishServiceWorkerControl(page, baseUrl) {
 
 async function enterLordTrial(page, runtime) {
   await page.waitForFunction(
-    (zoneKey) => typeof _adventureProgress !== 'undefined'
-      && Array.isArray(_adventureProgress)
-      && _adventureProgress.some((zone) => zone && zone.key === zoneKey),
+    (zoneKey) => {
+      const root = document.querySelector('#e9-world-stage-slot');
+      const state = root?.__e9WorldStageState;
+      return state?.zones?.some((zone) => zone?.key === zoneKey)
+        && state?.primaryAction?.zoneKey === zoneKey;
+    },
     ZONE_KEY,
     { timeout: 90000 },
   );
-  await page.evaluate((zoneKey) => startBossBattle(zoneKey), ZONE_KEY);
+  const target = await page.getAttribute(
+    '#e9-world-stage-primary-cta',
+    'data-challenge-target-zone',
+  );
+  if (target !== ZONE_KEY) throw new Error(`E9 CTA target mismatch: ${target}`);
+  await page.click('#e9-world-stage-primary-cta');
   await page.waitForSelector('#boss-cinematic.show', { timeout: 30000 });
   await page.click('#boss-cinematic-btn');
   await page.waitForFunction(
@@ -576,6 +585,7 @@ async function main() {
     SIGNED_BOSS_ATTEMPT_USED: review?.request?.source_context_is_boss === true,
     SRS_REVIEW_HTTP_STATUS: review?.status ?? null,
     SRS_REVIEW_RESPONSE_KEY_COUNT: review?.response_key_count ?? null,
+    PRODUCTION_SHAPED_RESPONSE: (review?.response_key_count ?? 0) > 20,
     PRODUCTION_SHAPED_RESPONSE_USED: (review?.response_key_count ?? 0) > 20,
     SERVER_REVIEW_COMMITTED:
       Number(afterServer.answered_count || 0) === Number(initialServer.answered_count || 0) + 1,

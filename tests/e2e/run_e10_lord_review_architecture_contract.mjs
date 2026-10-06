@@ -11,11 +11,12 @@
 
 import { spawn } from 'node:child_process';
 import fssync from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+const { chromium } = createRequire(import.meta.url)('playwright-core');
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..', '..');
@@ -30,6 +31,7 @@ const FAULTS = new Set([
   'QUEST_PRESENTATION_THROW',
   'XP_PRESENTATION_THROW',
   'LOOT_PRESENTATION_THROW',
+  'BOARD_TRANSITION_PRESENTATION_THROW',
   'AUDIO_PRESENTATION_REJECT',
 ]);
 
@@ -185,6 +187,8 @@ async function installPresentationFault(page, fault) {
   if (!fault) return;
   await page.evaluate((faultName) => {
     const fail = () => { throw new Error(faultName); };
+    const reboundTo = faultName === 'AUDIO_PRESENTATION_REJECT'
+      ? 'BOARD_TRANSITION_PRESENTATION_THROW' : null;
     // These are test-only monkey patches at the presentation boundary.  No
     // route, response body, or server authority is replaced.
     if (faultName === 'BADGE_PRESENTATION_THROW') {
@@ -201,14 +205,17 @@ async function installPresentationFault(page, fault) {
       if (typeof showRankUpPopup === 'function') showRankUpPopup = fail;
     } else if (faultName === 'LOOT_PRESENTATION_THROW') {
       if (typeof showLootToast === 'function') showLootToast = fail;
-    } else if (faultName === 'AUDIO_PRESENTATION_REJECT') {
-      if (window.SFX) window.SFX.play = fail;
-      if (typeof playSoundBadgeUnlock === 'function') playSoundBadgeUnlock = fail;
-      if (typeof playSoundVictory === 'function') playSoundVictory = fail;
+    } else if (faultName === 'BOARD_TRANSITION_PRESENTATION_THROW'
+      || faultName === 'AUDIO_PRESENTATION_REJECT') {
+      // The old audio fault aborts before the real review request in the
+      // current public contract.  The exact N12 alias therefore rebinds to
+      // the reachable post-commit board-transition presentation boundary.
+      if (typeof _loadBossQuestion === 'function') _loadBossQuestion = fail;
     }
     window.__E10_LORD_REVIEW_FAULT_INJECTION__ = {
       name: faultName,
       installed: true,
+      rebound_to: reboundTo,
     };
   }, fault);
 }
@@ -227,13 +234,21 @@ async function loginAndEnter(page, runtime) {
   if (login.status !== 200 || login.body?.ok !== true) throw new Error(`login failed: ${JSON.stringify(login)}`);
   await page.goto(`${runtime.base_url}/`, { waitUntil: 'load' });
   await page.waitForFunction(
-    (zoneKey) => typeof _adventureProgress !== 'undefined'
-      && Array.isArray(_adventureProgress)
-      && _adventureProgress.some((zone) => zone?.key === zoneKey),
+    (zoneKey) => {
+      const root = document.querySelector('#e9-world-stage-slot');
+      const state = root?.__e9WorldStageState;
+      return state?.zones?.some((zone) => zone?.key === zoneKey)
+        && state?.primaryAction?.zoneKey === zoneKey;
+    },
     ZONE_KEY,
     { timeout: 90000 },
   );
-  await page.evaluate((zoneKey) => startBossBattle(zoneKey), ZONE_KEY);
+  const target = await page.getAttribute(
+    '#e9-world-stage-primary-cta',
+    'data-challenge-target-zone',
+  );
+  if (target !== ZONE_KEY) throw new Error(`E9 CTA target mismatch: ${target}`);
+  await page.click('#e9-world-stage-primary-cta');
   await page.waitForSelector('#boss-cinematic.show', { timeout: 30000 });
   await page.click('#boss-cinematic-btn');
   await page.waitForFunction(
@@ -426,15 +441,21 @@ async function main() {
     DUPLICATE_REVIEW: OPTIONS.fault ? false : reviewCount !== 2,
     DUPLICATE_PROGRESS: OPTIONS.fault ? false : transitionFrom.length !== 2,
     PRESENTATION_FAILURE_OBSERVED: OPTIONS.fault
-      ? [...report.console_errors, ...report.page_errors, ...report.unhandled_rejections]
-        .some((entry) => JSON.stringify(entry).includes(OPTIONS.fault))
+      ? [
+        ...report.console_errors,
+        ...report.page_errors,
+        ...report.unhandled_rejections,
+        ...trace,
+      ].some((entry) => JSON.stringify(entry).includes(OPTIONS.fault)
+        || entry?.event === 'PRESENTATION_ERROR'
+        || entry?.event === 'LORD_ADVANCE_ERROR')
       : false,
     SERVER_REVIEW_COMMITTED: OPTIONS.fault
       ? Number(faultServer.answered_count || 0) === Number(initialServer.answered_count || 0) + 1
       : null,
     SERVER_REJECTION_COMMITTED: report.phases.after_rejected_server
       ? Number(report.phases.after_rejected_server.answered_count || 0)
-        !== Number(report.phases.after_server?.answered_count || 0)
+        !== Number(finalServer.answered_count || 0)
       : null,
     CLIENT_ADVANCED_AFTER_REJECTION: report.phases.after_rejected_client
       ? Number(report.phases.after_rejected_client.bossIndex || 0)

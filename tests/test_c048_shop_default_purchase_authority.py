@@ -15,6 +15,7 @@ from test_e030_shop_coin_purchase_and_equipment_runtime_integration import (
     _client,
     _coins,
     _create_db,
+    _seed_daily_slots,
     _inventory,
 )
 
@@ -34,6 +35,13 @@ def test_canonical_stackable_purchase_uses_durable_operation_and_replays_once(
 ):
     path = tmp_path / "c048-default-stackable.sqlite"
     _create_db(path, purchase_schema=True, include_wardrobe=False, coins=500)
+    # Keep this static-offer assertion independent of the host date.  When
+    # hint_ticket is in the daily rotation, the canonical server price is the
+    # daily price rather than SHOP_ITEMS' static price.
+    _seed_daily_slots(
+        path,
+        [{"type": "item", "item_key": "extra_questions_small", "price": 24}],
+    )
 
     def legacy_should_not_run(*args, **kwargs):
         raise AssertionError("default /api/shop/buy reached legacy mutation")
