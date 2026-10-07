@@ -39,7 +39,7 @@ body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
   display: none;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1024px), (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
   body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
     display: block;
     position: fixed;
@@ -946,11 +946,15 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-map-stage__pl
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-hud__utilities > .e10-utility-control { width: 46px; min-width: 46px; height: 46px; min-height: 46px; padding: 7px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud__coins { min-width: 110px; min-height: 46px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-hud__right { position: absolute !important; top: 50% !important; right: 40px !important; transform: translateY(-50%) !important; }
-  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { top: 17%; bottom: 19%; width: 68px; }
+  /* Owner real-iPad corrective: the seven global routes use the same shared
+     hamburger/drawer presentation as the other G009 surfaces on iPad. */
+  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { display: none !important; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item { width: 66px; min-height: 66px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon { width: 48px; height: 48px; padding: 8px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item > span:not(.e10-nav-status-lock) { width: 66px; font-size: 9px; }
-  body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot { right: 23.5%; left: 25%; width: auto !important; }
+  /* G009 Phase 3B deliberately emptied the secondary dock. Do not render
+     its five decorative slots after the links moved to shared global nav. */
+  body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot { display: none !important; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-dock__list { grid-template-columns: repeat(5,minmax(0,1fr)); }
   body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot { width: 28%; }
 }

@@ -300,6 +300,12 @@ body[data-g009-hero-hub="batch-a"] .g009-content-column {
 body[data-g009-hero-hub="batch-a"] .g009-page-head {
   min-height: 72px;
   padding: 2px 0 18px;
+  /* Owner real-iPad corrective: hero.html has a legacy generic header rule.
+     This G009 page head is content, not the legacy app header. */
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
 }
 
 body[data-g009-hero-hub="batch-a"] .g009-kicker,

@@ -390,7 +390,10 @@
 
   function usesLandmarkCards() {
     var viewportClass = resolveViewportClass();
-    return viewportClass === 'MOBILE_480' || viewportClass === 'IPAD_PORTRAIT_820';
+    // Owner real-iPad corrective: portrait iPad keeps the governed preview
+    // image in the selected-zone/details card only. Inline map-node landmark
+    // cards remain a compact-phone treatment.
+    return viewportClass === 'MOBILE_480';
   }
 
   function usesInlinePlayerMarkerSurface() {
