@@ -1204,3 +1204,88 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
     animation: none;
   }
 }
+
+/* G009 Owner real-iPad final landscape navigation corrective.
+   art_directed_runtime.css loads after reference_world_map.css, so this
+   final scoped block owns the actual iPad-landscape rail presentation.
+   Preserve all seven links; only normalize their visual language. */
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-left-nav-slot {
+    width: 168px !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav {
+    box-sizing: border-box !important;
+    padding: 8px !important;
+    border: 1px solid rgba(251,191,36,.22) !important;
+    border-radius: 16px !important;
+    background: rgba(5,10,12,.92) !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,.32) !important;
+    backdrop-filter: blur(12px);
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__list {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: repeat(7, minmax(44px, 1fr)) !important;
+    gap: 5px !important;
+    align-content: stretch !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: 46px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    padding: 5px 8px !important;
+    border: 1px solid rgba(236,201,120,.16) !important;
+    border-radius: 10px !important;
+    color: rgba(255,246,224,.84) !important;
+    background: rgba(255,255,255,.04) !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item:hover,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item:focus-visible {
+    color: #fff3d1 !important;
+    border-color: rgba(251,191,36,.30) !important;
+    background: rgba(251,191,36,.09) !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__icon {
+    width: 30px !important;
+    height: 30px !important;
+    flex: 0 0 30px !important;
+    padding: 4px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: rgba(255,255,255,.05) !important;
+    box-shadow: none !important;
+    opacity: .88;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item > span[data-i18n] {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    color: inherit !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
+}

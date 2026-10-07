@@ -77,3 +77,17 @@ def test_shared_global_drawer_matches_dark_g009_app_shell_without_restyling_sett
     # Settings remains a separate surface; the dark override is drawer-scoped.
     dark_block = SITE_NAV.split("/* Owner real-iPad corrective: the global drawer", 1)[1]
     assert ".cg-nav-settings__panel {" not in dark_block.split(".cg-nav-settings__panel", 1)[0]
+
+
+def test_art_runtime_final_landscape_override_keeps_labels_horizontal_and_rows_shared_shell_like():
+    art = (ROOT / "css/e9/art_directed_runtime.css").read_text(encoding="utf-8")
+    marker = "G009 Owner real-iPad final landscape navigation corrective"
+    assert marker in art
+    final = art.split(marker, 1)[1]
+    assert "width: 168px !important;" in final
+    assert "grid-template-rows: repeat(7, minmax(44px, 1fr)) !important;" in final
+    assert "flex-direction: row !important;" in final
+    assert "font-size: 12px !important;" in final
+    assert "white-space: nowrap !important;" in final
+    assert "writing-mode: horizontal-tb !important;" in final
+    assert "background: rgba(5,10,12,.92) !important;" in final
