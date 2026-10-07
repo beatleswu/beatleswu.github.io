@@ -39,7 +39,7 @@ body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
   display: none;
 }
 
-@media (max-width: 1024px), (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+@media (max-width: 1024px) {
   body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
     display: block;
     position: fixed;
@@ -946,12 +946,81 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-map-stage__pl
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-hud__utilities > .e10-utility-control { width: 46px; min-width: 46px; height: 46px; min-height: 46px; padding: 7px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-hud__coins { min-width: 110px; min-height: 46px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-hud__right { position: absolute !important; top: 50% !important; right: 40px !important; transform: translateY(-50%) !important; }
-  /* Owner real-iPad corrective: the seven global routes use the same shared
-     hamburger/drawer presentation as the other G009 surfaces on iPad. */
-  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { display: none !important; }
-  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item { width: 66px; min-height: 66px; }
-  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon { width: 48px; height: 48px; padding: 8px; }
-  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item > span:not(.e10-nav-status-lock) { width: 66px; font-size: 9px; }
+  /* Owner real-iPad follow-up: landscape keeps the seven visible global
+     links. Their presentation is normalized to the shared app-shell language
+     instead of the ornate desktop World Map rail. */
+  body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] {
+    display: none !important;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot {
+    display: block !important;
+    top: 15%;
+    bottom: 12%;
+    left: 1.1%;
+    width: 124px;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav {
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid rgba(251, 191, 36, .22);
+    border-radius: 16px;
+    background: rgba(5, 10, 12, .90);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .30);
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 48px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 7px;
+    padding: 4px 7px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    color: rgba(255, 246, 224, .82);
+    background: transparent;
+    text-decoration: none;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:hover,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:focus-visible {
+    color: #fff3d1;
+    border-color: rgba(251, 191, 36, .20);
+    background: rgba(251, 191, 36, .08);
+    outline: none;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    padding: 5px;
+    border: 1px solid rgba(251, 191, 36, .28);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .06);
+    box-shadow: none;
+  }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item > span:not(.e10-nav-status-lock) {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: inherit;
+    background: transparent;
+    box-shadow: none;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.15;
+    text-align: left;
+    white-space: normal;
+  }
   /* G009 Phase 3B deliberately emptied the secondary dock. Do not render
      its five decorative slots after the links moved to shared global nav. */
   body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot { display: none !important; }

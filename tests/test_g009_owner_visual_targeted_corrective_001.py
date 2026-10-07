@@ -34,12 +34,7 @@ def test_ipad_portrait_does_not_create_inline_zone_landmark_cards():
     assert "#e9-world-stage-details-landmark" in WORLD_JS
 
 
-def test_ipad_landscape_uses_shared_drawer_and_hides_duplicate_map_nav_shells():
-    media = (
-        '@media (max-width: 1024px), '
-        '(min-width: 768px) and (max-width: 1279px) and (orientation: landscape)'
-    )
-    assert media in WORLD_CSS
+def test_ipad_landscape_keeps_visible_seven_link_rail_in_shared_shell_style():
     landscape = re.search(
         r"@media \(min-width: 768px\) and \(max-width: 1279px\) and "
         r"\(orientation: landscape\) \{.*?\n\}",
@@ -48,7 +43,13 @@ def test_ipad_landscape_uses_shared_drawer_and_hides_duplicate_map_nav_shells():
     )
     assert landscape
     body = landscape.group(0)
-    assert '#e9-left-nav-slot { display: none !important; }' in body
+    assert '.cg-nav[data-e10-session-strip="1"]' in body
+    assert 'display: none !important;' in body
+    assert '#e9-left-nav-slot {' in body
+    assert 'display: block !important;' in body
+    assert 'grid-template-rows: repeat(7, minmax(0, 1fr));' in body
+    assert 'background: rgba(5, 10, 12, .90);' in body
+    assert 'border: 1px solid rgba(251, 191, 36, .22);' in body
     assert '#e9-bottom-dock-slot { display: none !important; }' in body
     assert 'data-g009-global-drawer' in SITE_NAV
     assert 'class="cg-nav-hamburger"' in SITE_NAV
