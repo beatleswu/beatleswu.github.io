@@ -66,3 +66,14 @@ def test_global_navigation_contract_stays_exactly_seven_without_world_map_item()
     assert "href: '/shop'" in nav
     assert "href: '/upgrade'" in nav
     assert "href: '/'" not in nav
+
+
+def test_shared_global_drawer_matches_dark_g009_app_shell_without_restyling_settings():
+    assert ".cg-nav-drawer__panel {" in SITE_NAV
+    assert "linear-gradient(180deg, #17213f 0%, #101832 48%, #070d24 100%)" in SITE_NAV
+    assert "border-right: 1px solid rgba(251,191,36,.24);" in SITE_NAV
+    assert ".cg-nav-drawer__header h2 {" in SITE_NAV
+    assert ".cg-nav-drawer__links .cg-nav-link.active {" in SITE_NAV
+    # Settings remains a separate surface; the dark override is drawer-scoped.
+    dark_block = SITE_NAV.split("/* Owner real-iPad corrective: the global drawer", 1)[1]
+    assert ".cg-nav-settings__panel {" not in dark_block.split(".cg-nav-settings__panel", 1)[0]

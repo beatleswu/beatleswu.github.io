@@ -691,6 +691,52 @@
       .cg-nav-drawer__links { display: grid; gap: 8px; }
       .cg-nav-drawer__links .cg-nav-link { justify-content: flex-start; min-height: 48px; color: #2f2412; border-color: rgba(47,36,18,.12); background: rgba(255,255,255,.76); }
       .cg-nav-drawer__links .cg-nav-link span { display: inline-flex; }
+
+      /* Owner real-iPad corrective: the global drawer is part of the shared
+         G009 app shell, so it uses the same dark navy / black-gold visual
+         language as the top shell. Keep settings as its separate cream modal. */
+      .cg-nav-drawer__panel {
+        border-right: 1px solid rgba(251,191,36,.24);
+        background:
+          radial-gradient(520px 280px at 12% 0%, rgba(244,213,138,.12), transparent 62%),
+          linear-gradient(180deg, #17213f 0%, #101832 48%, #070d24 100%);
+        color: #fff6dc;
+        box-shadow: 18px 0 42px rgba(0,0,0,.48);
+      }
+      .cg-nav-drawer__header h2 {
+        color: #fff6dc;
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-weight: 800;
+        letter-spacing: .01em;
+      }
+      .cg-nav-drawer__header button {
+        border-color: rgba(251,191,36,.26);
+        background: rgba(255,255,255,.06);
+        color: #f8e7bd;
+      }
+      .cg-nav-drawer__header button:hover,
+      .cg-nav-drawer__header button:focus-visible {
+        color: #fff3d1;
+        border-color: rgba(251,191,36,.42);
+        background: rgba(251,191,36,.10);
+      }
+      .cg-nav-drawer__links .cg-nav-link {
+        color: rgba(255,246,224,.84);
+        border-color: rgba(236,201,120,.18);
+        background: rgba(255,255,255,.045);
+      }
+      .cg-nav-drawer__links .cg-nav-link:hover,
+      .cg-nav-drawer__links .cg-nav-link:focus-visible {
+        color: #fff3d1;
+        border-color: rgba(251,191,36,.28);
+        background: rgba(251,191,36,.09);
+      }
+      .cg-nav-drawer__links .cg-nav-link.active {
+        color: #fbbf24;
+        border-color: rgba(251,191,36,.36);
+        background: linear-gradient(180deg, rgba(251,191,36,.18), rgba(120,53,15,.14));
+        box-shadow: inset 3px 0 0 rgba(251,191,36,.72);
+      }
       .cg-nav-settings__panel { left: 50%; top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(420px, calc(100vw - 32px)); border-radius: 16px; }
       .cg-nav-settings__panel > label { display: block; margin: 14px 0 6px; font-weight: 750; }
       .cg-nav-settings__sound { display: flex !important; align-items: center; justify-content: space-between; }
