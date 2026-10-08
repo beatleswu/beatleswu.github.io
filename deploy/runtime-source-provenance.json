@@ -244,15 +244,15 @@
     },
     {
       "path": "admin.html",
-      "source_commit": "feafb23435bc453655db118ed8967133a0e3bd35",
-      "source_branch_or_local_ref": "claude/qm-owner-uat-app-ux-polish-001",
-      "source_commit_subject": "feat(admin): unify question management center",
+      "source_commit": "8ac3132571636d2bfab0bdd0c56be460c1385c6c",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat(admin): reconcile Owner-approved Question Management onto owner-device canonical",
       "source_date": "2026-09-13",
       "content_sha256": "bb2eee358903700d5b2b437e4160414442cb391b4cab2c8c4585002549779e1f",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "candidate-branch provenance -- recorded source_commit is the commit on this implementation branch that introduced the current blob and is byte-identical to it; not an ancestor of origin/master until Owner merge, and deployment remains separately gated"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "bot.html",
@@ -280,14 +280,14 @@
     },
     {
       "path": "community.html",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "9edf84771600dc0cd022066687b5da09c12e7bb1cfee61e3a7891039a172f215",
+      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
+      "source_date": "2026-10-08",
+      "content_sha256": "81c18acadf005ab80f664a78accea81e1b6447c437eb2558eaed8c42af6a66de",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "messages.html",
@@ -326,15 +326,15 @@
     },
     {
       "path": "curriculum.html",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "8daf6d8d5c039bacae7365aa761895dde5a4c309394dbc3496281afcf13cb0df",
-      "content_size_bytes": 129299,
+      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
+      "source_date": "2026-10-08",
+      "content_sha256": "f19cac684e68a622b11157d78c7231425ddbe96b88cb311c1e59bbe5adbd42c9",
+      "content_size_bytes": 114150,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "hero.html",
@@ -361,15 +361,15 @@
     },
     {
       "path": "shop.html",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "a3aec7af1389c477939a5790ae6e190c1309c00c0b08d175df22bc04f866f069",
-      "content_size_bytes": 177109,
+      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
+      "source_date": "2026-10-08",
+      "content_sha256": "4a5c83e6b62e1b4f8f811b8a18839228e262ef6fa882d20c11cdbdf041eb52fc",
+      "content_size_bytes": 179741,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "profile.html",
@@ -398,14 +398,14 @@
     },
     {
       "path": "stats.html",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "5471e9f12a7256fab77109419e3dc02abab9f8326828ec5b97ca12c2b3d30e50",
+      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
+      "source_date": "2026-10-08",
+      "content_sha256": "a9e9c1fa8e958c7aef353e5d3461bcdc964d5f9414b233de6cff0ef43fc555a9",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "upgrade.html",
@@ -431,15 +431,15 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "f7895f97266b284e8f942992eb43af52b4296b71",
-      "source_branch_or_local_ref": "f7895f97266b284e8f942992eb43af52b4296b71",
-      "source_commit_subject": "test: retain Owner-approved G009 PATH B assertions",
-      "source_date": "2026-10-04",
-      "content_sha256": "dfe39bc3f828f5fb5b57624290672519ab293068f1d11ff962aca0fba62f2aae",
-      "content_size_bytes": 79584,
+      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
+      "source_date": "2026-10-08",
+      "content_sha256": "c992326e300f10ed145eef14038042c2c71d55d6c8826578a8de83e84d05c3d9",
+      "content_size_bytes": 83380,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "Recorded local Goal2 Commit A bytes; not canonical integration, Owner visual approval, or release qualification evidence."
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "badges.html",
@@ -515,15 +515,15 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "f7895f97266b284e8f942992eb43af52b4296b71",
-      "source_branch_or_local_ref": "f7895f97266b284e8f942992eb43af52b4296b71",
-      "source_commit_subject": "test: retain Owner-approved G009 PATH B assertions",
-      "source_date": "2026-10-04",
-      "content_sha256": "f848377128be8281867f62c5998fb0541a1e201f6da26a4509c966ddbb6eeea9",
-      "content_size_bytes": 113122,
+      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
+      "source_date": "2026-10-08",
+      "content_sha256": "206df35f2912dba15c18f14a5eb008baeec66de7ce84fa61b2cb33f8d3bb2885",
+      "content_size_bytes": 113536,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data; Zone4 intro cinematic wiring",
-      "source_status": "Recorded local Goal2 Commit A bytes; not canonical integration, Owner visual approval, or release qualification evidence."
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "sw.js",
@@ -565,8 +565,8 @@
     },
     {
       "path": "js/game/presentation_effects_b2.js",
-      "source_commit": "97393af07de15f6a28c164257ba8aae71ff091f4",
-      "source_branch_or_local_ref": "codex/e10-v1b-b2-product-implementation-023-k",
+      "source_commit": "a561bf90bbe8ca7e733d4a7dd42d9d81248821b9",
+      "source_branch_or_local_ref": "origin/master",
       "source_commit_subject": "feat(e10): migrate B2 presentation effects",
       "source_date": "2026-08-17",
       "content_sha256": "185b5867f0068f3d70d1f99c91342f66d3df28436fadfa5ab500cf39c96c1895",
@@ -574,7 +574,7 @@
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (observer-only B2 response-presentation effects; governed static subpath asset)",
       "production_hash_status": "candidate on the V1B B2 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B2 product integration commit and raw-byte-verified against current content"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "js/game/lord_trial_controller.js",
@@ -716,26 +716,26 @@
     },
     {
       "path": "mobile-nav.js",
-      "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
+      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: complete canonical image source closure",
-      "source_date": "2026-07-11",
-      "content_sha256": "5c428b33101502aa59e173214c4c346e8aa9a9256985caabeaaac5c684e671df",
+      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
+      "source_date": "2026-10-08",
+      "content_sha256": "cca3ce8f0e9590ae5daa40bdba92e555ab1d2d8da50c89e9f2890885709b38fa",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "site-nav.js",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "refs/backup/G_G009_DELIVERY_RUNTIME_PROVENANCE_CLOSURE_CORRECTIVE_RESUME_001/final",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "fca8310a15c3d08d10272ae488e3af98d01f63bc72354e510de02707b4285668",
+      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
+      "source_date": "2026-10-08",
+      "content_sha256": "aef07d55efc9eecb977db83c9dfc36af16371a737494afa9b76362d490ab7dfa",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "sitemap.xml",
