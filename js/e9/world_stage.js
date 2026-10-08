@@ -1949,7 +1949,11 @@
         tile.appendChild(label);
       }
 
-      if (!zone.locked && (zone.cleared || zone.stars > 0)) {
+      // Owner UAT corrective: every world-map Zone owns a stable three-slot
+      // star progression strip. Earned stars are lit; remaining slots stay
+      // visibly empty, including 0-star and locked Zones. This is presentation
+      // only: the server-provided zone.stars authority remains unchanged.
+      {
         var starsEl = document.createElement('span');
         starsEl.className = 'e9-zone__stars';
         starsEl.setAttribute('aria-label', t('index.adv.stars_label', 'Stars') + ': ' + zone.stars + ' / 3');

@@ -481,6 +481,41 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] .e10-a
   filter: grayscale(.75) opacity(.38);
 }
 
+/* OWNER_REAL_IPAD_NIGHT_ATLAS_STAR_STRIP_CORRECTIVE_001
+   World-map nodes keep a stable three-slot progression strip outside the
+   44px node body. Hero art occupies the upper side of the current node, so
+   the strip is anchored below the node; card/drawer star sizing is unchanged. */
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-zone__stars {
+  position: absolute;
+  z-index: 9;
+  top: calc(100% + 5px);
+  left: 50%;
+  display: flex;
+  gap: 2px;
+  min-width: max-content;
+  padding: 2px 4px 3px;
+  border-radius: 999px;
+  background: rgba(12, 18, 31, .48);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .38);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-zone__stars .e10-art-star {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .72));
+}
+
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-zone__stars .e10-art-star.is-earned {
+  filter: brightness(1.12) saturate(1.12) drop-shadow(0 0 3px rgba(255, 214, 102, .72)) drop-shadow(0 1px 2px rgba(0, 0, 0, .72));
+}
+
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-zone__stars .e10-art-star.is-empty {
+  filter: grayscale(.38) opacity(.62) brightness(.92) contrast(1.12) drop-shadow(0 1px 2px rgba(0, 0, 0, .72));
+}
+
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] .e10-zone-panel-runtime__cta {
   min-height: 54px;
   padding: 10px 22px;
@@ -900,9 +935,11 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   }
 
   body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav {
+    /* Night Atlas chrome: the portrait bar is navy glass with a gold
+       hairline, the same surface as the shared shell and drawer. */
     border: 0;
-    background: #4b2813;
-    box-shadow: inset 0 0 0 2px #9b651f, 0 -4px 14px rgba(27, 15, 8, .36);
+    background: linear-gradient(180deg, #17213f 0%, #070d24 100%);
+    box-shadow: inset 0 0 0 1px rgba(236, 201, 120, .42), 0 -4px 14px rgba(0, 0, 0, .36);
   }
 
   body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item {
@@ -1205,87 +1242,518 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   }
 }
 
+/* G009 Night Atlas — World Map portrait chrome (phone and iPad portrait).
+   The painted map stays the immersive tier. What frames it — page ground,
+   shell ground and the selected-zone / current-mission card — is shared
+   navy with one gold hairline, the same surface as the shell and drawer.
+   Geometry is untouched: only colour, border, radius and shadow change, and
+   the card keeps its landmark image. The primary action is the shared gold
+   button; the status pill is a quiet tag.
+
+   Declared !important where the older teal / wood / parchment layers in
+   immersive_rpg.css and reference_world_map.css set the same property with
+   higher specificity or !important. Landscape and desktop are not affected. */
+@media (max-width: 1279px) and (orientation: portrait), (max-width: 767px) {
+  body[data-e10-visual-skin="immersive-rpg"] {
+    background: #070d22 !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] main .practice {
+    background: linear-gradient(180deg, #0b1430 0%, #070d22 62%) !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
+    background: linear-gradient(180deg, #0b1430 0%, #070d22 100%) !important;
+    box-shadow: none !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #adventure-stage {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-stage__note {
+    color: #919bb8;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-map-stage {
+    border: 1px solid rgba(236, 201, 120, .42) !important;
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .34) !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details {
+    border: 1px solid rgba(236, 201, 120, .42) !important;
+    border-radius: 16px !important;
+    color: #c7cce0;
+    background: linear-gradient(180deg, rgba(35, 53, 96, .94), rgba(17, 29, 61, .97)) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .24) !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details::before {
+    background: linear-gradient(90deg, transparent, rgba(236, 201, 120, .42), transparent) !important;
+    opacity: 1;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__kicker {
+    color: #e3b457;
+    font-size: 12px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__identity,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__identity span {
+    color: #919bb8;
+    font-size: 12px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__label {
+    color: #fff1c4;
+    text-shadow: none;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__state {
+    border: 1px solid rgba(236, 201, 120, .42);
+    color: #fff1c4;
+    background: rgba(227, 180, 87, .13);
+    font-size: 12px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__summary,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__progress {
+    color: #c7cce0;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__progress p {
+    border: 1px solid rgba(236, 201, 120, .2);
+    border-radius: 12px;
+    color: #c7cce0;
+    background: rgba(255, 236, 190, .045);
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__progress span {
+    color: #919bb8;
+    font-size: 12px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__progress strong {
+    color: #f7f1df;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__landmark {
+    border-radius: 12px;
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .4));
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__cta {
+    border: 1px solid rgba(255, 241, 196, .5) !important;
+    border-radius: 12px;
+    color: #1b1404 !important;
+    background: linear-gradient(180deg, #f6dd9a, #e3b457 58%, #a9762b) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .28) !important;
+    text-shadow: none !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__cta--secondary,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__story-replay,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__view-details {
+    min-height: 48px;
+    border: 1px solid rgba(236, 201, 120, .42) !important;
+    border-radius: 12px;
+    color: #fff1c4 !important;
+    background: rgba(227, 180, 87, .13) !important;
+    box-shadow: none !important;
+    font-size: 14px;
+    font-weight: 800;
+    text-shadow: none !important;
+    cursor: pointer;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details button:focus-visible {
+    outline: 2px solid #fff1c4;
+    outline-offset: 2px;
+  }
+}
+
+/* Mirror of the block above for installed iPad PWAs that report a
+   desktop-class layout viewport while physically portrait (index.html sets
+   data-go-portrait-tablet-override). Media queries cannot match there, so
+   the same rules are repeated under the attribute. Keep the two in sync. */
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] {
+  background: #070d22 !important;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] main .practice {
+  background: linear-gradient(180deg, #0b1430 0%, #070d22 62%) !important;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
+  background: linear-gradient(180deg, #0b1430 0%, #070d22 100%) !important;
+  box-shadow: none !important;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #adventure-stage {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-stage__note {
+  color: #919bb8;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-map-stage {
+  border: 1px solid rgba(236, 201, 120, .42) !important;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .34) !important;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details {
+  border: 1px solid rgba(236, 201, 120, .42) !important;
+  border-radius: 16px !important;
+  color: #c7cce0;
+  background: linear-gradient(180deg, rgba(35, 53, 96, .94), rgba(17, 29, 61, .97)) !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .24) !important;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details::before {
+  background: linear-gradient(90deg, transparent, rgba(236, 201, 120, .42), transparent) !important;
+  opacity: 1;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__kicker {
+  color: #e3b457;
+  font-size: 12px;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__identity,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__identity span {
+  color: #919bb8;
+  font-size: 12px;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__label {
+  color: #fff1c4;
+  text-shadow: none;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__state {
+  border: 1px solid rgba(236, 201, 120, .42);
+  color: #fff1c4;
+  background: rgba(227, 180, 87, .13);
+  font-size: 12px;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__summary,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__progress {
+  color: #c7cce0;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__progress p {
+  border: 1px solid rgba(236, 201, 120, .2);
+  border-radius: 12px;
+  color: #c7cce0;
+  background: rgba(255, 236, 190, .045);
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__progress span {
+  color: #919bb8;
+  font-size: 12px;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__progress strong {
+  color: #f7f1df;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__landmark {
+  border-radius: 12px;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .4));
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__cta {
+  border: 1px solid rgba(255, 241, 196, .5) !important;
+  border-radius: 12px;
+  color: #1b1404 !important;
+  background: linear-gradient(180deg, #f6dd9a, #e3b457 58%, #a9762b) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .28) !important;
+  text-shadow: none !important;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__cta--secondary,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__story-replay,
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details .e9-zone-details__view-details {
+  min-height: 48px;
+  border: 1px solid rgba(236, 201, 120, .42) !important;
+  border-radius: 12px;
+  color: #fff1c4 !important;
+  background: rgba(227, 180, 87, .13) !important;
+  box-shadow: none !important;
+  font-size: 14px;
+  font-weight: 800;
+  text-shadow: none !important;
+  cursor: pointer;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-details button:focus-visible {
+  outline: 2px solid #fff1c4;
+  outline-offset: 2px;
+}
+
+/* Phone only: below 768px the map stage doubles as a zone list with an
+   inline card for the current zone. Same navy ledger surface; the zone
+   thumbnails and medals stay as the art. Gold marks the current location. */
+@media (max-width: 767px) {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-map-stage {
+    background: linear-gradient(180deg, rgba(35, 53, 96, .62), rgba(17, 29, 61, .9)) !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone__plaque,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone__name {
+    color: #f7f1df !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone--locked .e9-zone__name {
+    color: #919bb8 !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone__status-text {
+    color: #c7cce0 !important;
+    font-size: 12px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone.is-current .e9-zone__status-text {
+    color: #e3b457 !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone__inline-details {
+    border: 1px solid rgba(236, 201, 120, .42) !important;
+    border-radius: 12px;
+    color: #c7cce0 !important;
+    background: linear-gradient(180deg, rgba(35, 53, 96, .94), rgba(17, 29, 61, .97)) !important;
+    box-shadow: none !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone__inline-details p {
+    color: #c7cce0 !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone__inline-cta {
+    border: 1px solid rgba(255, 241, 196, .5) !important;
+    border-radius: 12px;
+    color: #1b1404 !important;
+    background: linear-gradient(180deg, #f6dd9a, #e3b457 58%, #a9762b) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .28) !important;
+    text-shadow: none !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone__inline-cta--details,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-zones .e9-zone__inline-cta--secondary {
+    border: 1px solid rgba(236, 201, 120, .42) !important;
+    color: #fff1c4 !important;
+    background: rgba(227, 180, 87, .13) !important;
+    box-shadow: none !important;
+  }
+}
+
 /* G009 Owner real-iPad final landscape navigation corrective.
    art_directed_runtime.css loads after reference_world_map.css, so this
-   final scoped block owns the actual iPad-landscape rail presentation.
-   Preserve all seven links; only normalize their visual language. */
-@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-left-nav-slot {
+   final scoped block is the single owner of the iPad-landscape rail.
+
+   Owner decision D3 — Navigator's Rail. A navy glass column anchored to the
+   left edge of the map frame. No per-row boxes: seven links in three groups
+   (Learning Hub / Arena / Tavern · Hero Hub / Backpack · Shop / Premium)
+   separated by gold hairlines, each icon in a small round gold-ringed
+   medallion that echoes the map's zone markers, labels at a readable 13px.
+   The seven destinations, their order and the zero-active state on the
+   World Map are unchanged. Colours mirror the shared Night Atlas tokens
+   (site-nav.js); the literal fallbacks keep the rail correct on its own.
+
+   The rules are !important because the earlier ornate desktop rail in this
+   file and in reference_world_map.css targets the same elements at this
+   width. Nothing else should restyle the landscape rail.
+
+   Reach: every iPad landscape. Below 1280px that is the existing
+   IPAD_LANDSCAPE range. From 1280px up (12.9"/13" iPads at 1366px, and an
+   installed app that reports a doubled layout viewport) the query also
+   requires a touch-primary device — (hover: none) and (pointer: coarse), the
+   same signal reference_world_map.css already uses for touch tablets and the
+   installed-app landscape. A desktop with a mouse never matches and keeps
+   its own rail. No device classification in JS is changed. */
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape), (min-width: 1280px) and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot {
+    left: 0 !important;
     width: 168px !important;
   }
 
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav {
+    /* Always seven visible links in landscape, including 1024px-wide iPads. */
+    display: block !important;
     box-sizing: border-box !important;
-    padding: 8px !important;
-    border: 1px solid rgba(251,191,36,.22) !important;
-    border-radius: 16px !important;
-    background: rgba(5,10,12,.92) !important;
-    box-shadow: 0 12px 30px rgba(0,0,0,.32) !important;
-    backdrop-filter: blur(12px);
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding: 12px 8px 12px 6px !important;
+    border: 1px solid var(--na-gold-hair, rgba(236,201,120,.2)) !important;
+    border-left: 0 !important;
+    border-radius: 0 18px 18px 0 !important;
+    background: linear-gradient(180deg, rgba(23,33,63,.9) 0%, rgba(11,20,48,.9) 55%, rgba(7,13,34,.92) 100%) !important;
+    box-shadow: 10px 0 30px rgba(0,0,0,.34), inset -1px 0 0 rgba(255,241,196,.05) !important;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
   }
 
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__list {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list {
     display: grid !important;
     grid-template-columns: 1fr !important;
     grid-template-rows: repeat(7, minmax(44px, 1fr)) !important;
-    gap: 5px !important;
-    align-content: stretch !important;
+    /* The group hairlines sit inside this gap. */
+    gap: 9px !important;
+    align-content: start !important;
   }
 
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item {
+  /* The locked route order is the registry order. A retired six-item mobile
+     rule in immersive_rpg.css still gives backpack/shop a flex `order` below
+     1280px, which drew them after Premium. Clear it so the rail reads in the
+     same order as the shared top bar and drawer. */
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li {
+    order: 0 !important;
+    position: relative;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Rhythm: a gold hairline closes the first group (after Tavern) and the
+     second (after Backpack). Route order is untouched. */
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li:nth-child(3)::after,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li:nth-child(5)::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    bottom: -5px;
+    left: 10px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--na-gold-edge, rgba(236,201,120,.42)), transparent);
+    pointer-events: none;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item {
     box-sizing: border-box !important;
+    display: flex !important;
     width: 100% !important;
-    min-height: 46px !important;
+    min-height: 52px !important;
     flex-direction: row !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    gap: 8px !important;
-    padding: 5px 8px !important;
-    border: 1px solid rgba(236,201,120,.16) !important;
-    border-radius: 10px !important;
-    color: rgba(255,246,224,.84) !important;
-    background: rgba(255,255,255,.04) !important;
+    gap: 9px !important;
+    padding: 6px 6px 6px 8px !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    color: var(--na-text, #f7f1df) !important;
+    background: transparent !important;
     box-shadow: none !important;
     text-decoration: none !important;
+    transition: background .16s ease, color .16s ease, box-shadow .16s ease;
   }
 
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item:hover,
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item:focus-visible {
-    color: #fff3d1 !important;
-    border-color: rgba(251,191,36,.30) !important;
-    background: rgba(251,191,36,.09) !important;
+  /* Hover, focus, press and "current" share one gold treatment: a gold left
+     edge and a soft glow that fades into the glass. */
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:hover,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:focus-visible,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:active,
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item.is-active {
+    color: var(--na-gold-100, #fff1c4) !important;
+    background: linear-gradient(90deg, rgba(227,180,87,.18), rgba(227,180,87,0)) !important;
+    box-shadow: inset 3px 0 0 var(--na-gold-300, #e3b457) !important;
   }
 
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__icon {
-    width: 30px !important;
-    height: 30px !important;
-    flex: 0 0 30px !important;
-    padding: 4px !important;
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:focus-visible {
+    outline: 2px solid var(--na-gold-100, #fff1c4) !important;
+    outline-offset: -2px !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon {
+    box-sizing: border-box !important;
+    width: 36px !important;
+    height: 36px !important;
+    flex: 0 0 36px !important;
+    padding: 5px !important;
     margin: 0 !important;
-    border: 0 !important;
-    border-radius: 8px !important;
-    background: rgba(255,255,255,.05) !important;
-    box-shadow: none !important;
-    opacity: .88;
+    border: 1px solid var(--na-gold-300, #e3b457) !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 50% 30%, #2a3d72, #0b1430 76%) !important;
+    box-shadow: 0 0 0 2px rgba(227,180,87,.12), 0 3px 8px rgba(0,0,0,.34) !important;
+    opacity: 1;
   }
 
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item > span[data-i18n] {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* Premium carries the rail's only tinted medallion. */
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-nav-item--premium .e9-nav__icon {
+    background: radial-gradient(circle at 50% 30%, rgba(227,180,87,.55), #1c2440 78%) !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item > span[data-i18n] {
+    flex: 1 1 auto;
     width: auto !important;
     min-width: 0 !important;
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden;
     border: 0 !important;
     border-radius: 0 !important;
     color: inherit !important;
     background: transparent !important;
     box-shadow: none !important;
-    font-size: 12px !important;
-    font-weight: 800 !important;
+    font-family: var(--na-font-body, 'DM Sans', 'Noto Sans TC', 'PingFang TC', system-ui, sans-serif);
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: .01em;
     line-height: 1.2 !important;
     text-align: left !important;
+    text-overflow: ellipsis;
     white-space: nowrap !important;
     writing-mode: horizontal-tb !important;
     text-orientation: mixed !important;
+  }
+}
+
+/* Large iPad landscape and installed-app landscape (touch-primary, >= 1280px).
+   The block above skins the rail; this one repeats the two structural facts
+   the 768-1279px block in reference_world_map.css provides: the rail slot
+   spans the map's left edge, and the emptied five-slot secondary dock is not
+   drawn. Fine-pointer desktops do not match. */
+@media (min-width: 1280px) and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot {
+    display: block !important;
+    top: 15% !important;
+    bottom: 17% !important;
+    height: auto !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot {
+    display: none !important;
+  }
+}
+
+/* An installed app can report twice the physical screen (2360px for an
+   1180pt iPad); scale the rail so it keeps its physical size there. */
+@media (min-width: 1900px) and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot {
+    width: 336px !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav {
+    zoom: 2;
   }
 }

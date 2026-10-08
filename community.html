@@ -12,23 +12,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Night Atlas theming, declared by the page itself. The Tavern keeps its own
+   token names (every rule below reads them); the values come from the shared
+   --na-* family in site-nav.js, with literal fallbacks so the first paint is
+   already navy. */
 :root {
-  --bg:#f8f3ea; --panel:#fffaf2; --paper:#fffdf8; --ink:#17110a; --muted:#746451; --soft:#a19078;
-  --line:rgba(89,65,39,.16); --line2:rgba(89,65,39,.28); --teal:#0f8f88; --teal2:#0b6f69;
-  --gold:#c98216; --gold2:#f2b84b; --red:#dc2626; --green:#16a34a; --blue:#2563eb; --violet:#7c3aed;
-  --shadow:0 14px 38px rgba(50,35,18,.11); --nav-h:var(--cg-nav-h,58px);
+  --bg:#070d22; --panel:var(--na-navy-800,#111d3d); --paper:rgba(255,236,190,.045);
+  --ink:var(--na-text,#f7f1df); --muted:var(--na-text-soft,#c7cce0); --soft:var(--na-text-muted,#919bb8);
+  --line:var(--na-gold-hair,rgba(236,201,120,.2)); --line2:var(--na-gold-edge,rgba(236,201,120,.42));
+  --teal:var(--na-gold-300,#e3b457); --teal2:var(--na-gold-500,#a9762b);
+  --gold:var(--na-gold-300,#e3b457); --gold2:var(--na-gold-100,#fff1c4);
+  --red:var(--na-danger,#f08a8a); --green:var(--na-success,#7fe0a6); --blue:#8fb4ff; --violet:#b9a3ff;
+  --shadow:var(--na-shadow-1,0 8px 22px rgba(0,0,0,.24)); --nav-h:var(--cg-nav-h,58px);
 }
 html { min-height:100%; background:var(--bg); }
 body {
   min-height:100vh; color:var(--ink);
   font-family:'DM Sans', system-ui, sans-serif;
   background:
-    linear-gradient(90deg, rgba(23,17,10,.035) 1px, transparent 1px),
-    linear-gradient(rgba(23,17,10,.035) 1px, transparent 1px),
-    radial-gradient(circle at 18% 6%, rgba(15,143,136,.18), transparent 34%),
-    radial-gradient(circle at 82% 0%, rgba(201,130,22,.18), transparent 33%),
-    var(--bg);
-  background-size:42px 42px,42px 42px,auto,auto,auto;
+    radial-gradient(1100px 520px at 50% -8%, rgba(227,180,87,.1), transparent 62%),
+    linear-gradient(180deg, #0b1430 0%, #070d22 62%);
 }
 a { color:inherit; } button,input,textarea,select { font:inherit; }
 .shell { width:min(1440px, calc(100vw - 40px)); margin:0 auto; padding:26px 0 42px; }
@@ -159,95 +162,51 @@ svg { width:18px; height:18px; stroke:currentColor; stroke-width:2; fill:none; s
 }
 
 /* ════════════════════════════════════════════════════════════
-   冒險者酒館皮膚（背景 + 木框/羊皮素材）
+   G009 Night Atlas — Tavern (hall tier)
+   The wood-plank / plaque / parchment-scroll skin that used to live here is
+   retired. Panels, cards, tabs, chips, buttons, fields and empty states take
+   their skin from the shared layer in site-nav.js. The Tavern keeps exactly
+   one warm accent area: the amber-washed header band, and the illustrated
+   podium inside the bounty board. No full-page background art.
    ════════════════════════════════════════════════════════════ */
-body {
-  background:
-    radial-gradient(circle at 50% -10%, rgba(120,70,25,.20), transparent 45%),
-    linear-gradient(180deg, #241710 0%, #160d07 100%) !important;
-  color:#f1e6cd;
-}
-/* Hero → 酒館全景背景（比例對齊底圖 7:3，整張完整放大、不裁老闆的頭）*/
+/* Header band: navy panel with an amber wash (the warm accent). */
 .hero {
-  aspect-ratio: 7 / 3;
-  grid-template-columns: 1fr !important;
-  min-height:0 !important;
+  grid-template-columns:1fr; min-height:0;
   background:
-    linear-gradient(180deg, rgba(20,12,6,0) 62%, rgba(16,10,5,.34) 100%),
-    url('assets/community/tavern_bg.webp') center top / cover no-repeat !important;
-  border:1px solid rgba(150,100,50,.55) !important;
-  box-shadow:0 18px 44px rgba(0,0,0,.5) !important;
+    radial-gradient(620px 240px at 0% 0%, rgba(227,180,87,.24), transparent 70%),
+    linear-gradient(180deg, rgba(35,53,96,.78), rgba(17,29,61,.88));
+  color:var(--ink);
 }
-@media (max-width:1050px){ .hero { aspect-ratio:auto; min-height:260px !important; } }
-/* 移除火爐前的裝飾光環與格線 */
-.hero-main::after, .hero-main::before { display:none !important; }
-.hero-side { background:transparent !important; border-left:0 !important; }
-.eyebrow { color:#f6d48a !important; }
-.hero h1 { color:#fbe7bd !important; text-shadow:0 3px 12px rgba(0,0,0,.85); }
-.hero-copy { color:rgba(255,244,222,.92) !important; text-shadow:0 1px 4px rgba(0,0,0,.7); }
+.hero-main { padding:24px 26px; }
+.hero-main::after, .hero-main::before { display:none; }
+.hero-side { display:flex; align-items:flex-end; justify-content:center; padding:10px; background:transparent; border-left:0; }
+.hero-copy { color:var(--muted); }
 
-/* NPC 老闆對話（底圖老闆說話，泡泡在他右側、尾巴朝左下指向他）*/
-.npc-bar { position:relative; margin:10px 0 28px 296px; max-width:290px; }
-.npc-bubble {
-  position:relative; background:linear-gradient(180deg,#fffaf0,#f3e6c8); color:#3a2410;
-  border:3px solid #6b4421; border-radius:20px; padding:14px 18px;
-  box-shadow:0 12px 30px rgba(0,0,0,.55);
-}
-/* 尾巴：邊框色 + 內裡色雙層三角，從左下角朝左下指向老闆 */
-.npc-bubble::before {
-  content:''; position:absolute; left:12px; bottom:-20px; width:0; height:0;
-  border:11px solid transparent; border-top-color:#6b4421; border-right-width:18px;
-}
-.npc-bubble::after {
-  content:''; position:absolute; left:16px; bottom:-12px; width:0; height:0;
-  border:8px solid transparent; border-top-color:#fbf3e0; border-right-width:13px;
-}
+/* The tavern keeper's line sits beside the heading as a quiet quotation. */
+.npc-bar { position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:center; }
+.npc-bubble { padding:12px 16px; border-left:2px solid var(--gold); color:var(--muted); }
 .npc-ico { margin-right:6px; }
 .npc-line { font-size:14px; line-height:1.65; }
-@media (max-width:760px){ .npc-bar { margin-left:0; } }
+@media (max-width:900px){ .npc-bar { grid-template-columns:1fr; gap:12px; } }
 
-/* 木牌按鈕（hero 行動鈕）*/
-.hero-actions .btn {
-  background:none !important; box-shadow:none !important;
-  border-style:solid !important; border-width:18px 36px !important;
-  border-image:url('assets/community/btn_plank.webp') 417 205 437 205 fill / 18px 36px / 0 stretch !important;
-  color:#f7e6c0 !important; font-weight:900 !important; text-shadow:0 1px 2px rgba(0,0,0,.75);
-  min-height:0 !important; padding:3px 8px !important;
-}
-.hero-actions .btn:hover { filter:brightness(1.08); }
-
-/* 狀態木牌（移到 hero 下方一橫排）*/
-.tavern-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin:0 0 18px; }
-.tavern-stats .stat-card {
-  position:relative;
-  background:none !important; box-shadow:none !important;
-  border-style:solid !important; border-width:24px 18px 24px 46px !important;
-  border-image:url('assets/community/status_plaque.webp') 430 150 458 370 fill / 24px 18px 24px 46px / 0 stretch !important;
-  display:flex; flex-direction:column; justify-content:center; padding:2px 4px !important;
-}
-.tavern-stats .stat-label { color:#6a4518 !important; font-weight:800 !important; }
-.tavern-stats .stat-value { color:#2b170c !important; font-size:24px !important; }
+/* 狀態（hero 下方一橫排） */
+.tavern-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:0 0 18px; }
+.tavern-stats .stat-card { position:relative; display:flex; flex-direction:column; justify-content:center; padding:14px 16px 14px 62px; }
 .tavern-stats .plaque-ic {
-  position:absolute; left:-44px; top:50%; transform:translateY(-50%);
-  width:40px; height:40px; object-fit:contain;
+  position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  width:36px; height:36px; object-fit:contain;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
 }
 @media (max-width:760px){ .tavern-stats { grid-template-columns:1fr; } }
 
-/* 火爐右邊：精簡本週賞金榜（縮小卷軸，靠下避開底圖棋盤）*/
-.hero-side { display:flex; align-items:flex-end; justify-content:center; padding:10px 10px 26px !important; }
-.hero-bounty {
-  width:100%; max-width:300px;
-  border-style:solid; border-width:36px 20px;
-  border-image:url('assets/community/scroll_board.webp') 200 110 fill / 36px 20px / 0 stretch;
-}
-.hero-bounty-title { text-align:center; font-weight:900; color:#6b4421; font-size:14px; margin-bottom:8px; }
+.hero-bounty { width:100%; max-width:300px; }
+.hero-bounty-title { text-align:center; font-weight:900; color:var(--gold2); font-size:14px; margin-bottom:8px; }
 .hero-bounty-list { display:flex; flex-direction:column; gap:7px; }
 .hb-row { display:flex; align-items:center; gap:9px; }
 .hb-rank { width:24px; text-align:center; font-size:15px; }
-.hb-name { font-weight:900; color:#3a2410; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.hb-score { margin-left:auto; font:900 13px 'DM Mono',monospace; color:#0b6f69; white-space:nowrap; }
-.hb-empty { text-align:center; color:#8a6a3a; font-size:12px; padding:14px 0; }
+.hb-name { font-weight:900; color:var(--ink); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hb-score { margin-left:auto; font:900 13px 'DM Mono',monospace; color:var(--gold2); white-space:nowrap; }
+.hb-empty { text-align:center; color:var(--soft); font-size:12px; padding:14px 0; }
 
 /* 側欄冒險者名冊：左欄拉長到與右側懸賞榜等高 */
 .grid { align-items:stretch !important; }
@@ -256,118 +215,44 @@ body {
 .grid > .side-stack > .panel > .panel-body { flex:1; }
 .roster-body { display:flex; flex-direction:column; }
 .roster-list { display:flex; flex-direction:column; gap:8px; flex:1; }
-.roster-cta {
-  margin-top:14px; width:100%; padding:11px; border-radius:7px; cursor:pointer;
-  border:1px solid rgba(74,46,18,.5);
-  background:linear-gradient(180deg, rgba(120,78,30,.22), rgba(74,46,18,.16));
-  color:#5a3a16; font-weight:900; letter-spacing:.5px;
-  box-shadow:inset 0 1px 0 rgba(255,235,180,.35); transition:.12s;
-}
-.roster-cta:hover { background:linear-gradient(180deg, rgba(150,98,38,.30), rgba(96,60,24,.22)); color:#3a2410; }
-/* 羊皮帳冊條目（去白卡、用分隔線融入羊皮）*/
+.roster-cta { margin-top:14px; width:100%; padding:11px; cursor:pointer; letter-spacing:.5px; }
+/* Roster entries: hairline-separated rows, no inner cards. */
 .roster-row {
-  display:flex; align-items:center; gap:10px; padding:9px 6px;
-  border:0; border-bottom:1px solid rgba(120,80,30,.2); border-radius:0;
+  display:flex; align-items:center; gap:10px; min-height:48px; padding:9px 6px;
+  border:0; border-bottom:1px solid var(--line); border-radius:0;
   background:transparent; text-decoration:none; transition:background .12s;
 }
 .roster-row:last-of-type { border-bottom:0; }
-.roster-row:hover { background:rgba(201,130,22,.14); }
+.roster-row:hover { background:rgba(227,180,87,.08); }
 .roster-fig { position:relative; flex-shrink:0; display:flex; }
 .roster-fig .avatar { width:42px; height:46px; }
 .roster-fig .hero-figure.sm { width:42px; height:46px; }
+/* Live presence is a live-state cue, so it keeps the cyan accent. */
 .online-dot {
   position:absolute; right:-1px; bottom:2px; width:11px; height:11px; border-radius:50%;
-  background:#1f9e4c; border:2px solid #efdcae; box-shadow:0 0 5px rgba(31,158,76,.8);
+  background:var(--na-cyan-300,#45d6c0); border:2px solid #111d3d; box-shadow:0 0 5px rgba(69,214,192,.7);
 }
 .roster-info { display:flex; flex-direction:column; gap:3px; min-width:0; }
-.roster-name { font-weight:900; color:#2b170c; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.roster-meta { font:600 11px 'DM Mono',monospace; color:#6b4a1e; display:flex; align-items:center; gap:6px; }
-.active-tag { color:#16a34a; font-weight:800; }
-/* 排行榜標題 → 高級木牌懸賞榜 */
-#view-leaderboard .panel-head {
-  justify-content:center; position:relative; padding:8px 12px 14px !important;
-}
-#view-leaderboard .kicker { display:none; }
-#view-leaderboard .lb-head-wrap {
-  width:min(620px,100%);
-  display:grid; justify-items:center; gap:8px;
-}
-#view-leaderboard .panel-title {
-  display:inline-flex; align-items:center; justify-content:center; min-height:58px; margin:0 auto;
-  border-style:solid !important; border-width:26px 52px !important;
-  border-image:url('assets/community/banner_board.webp') 456 183 415 183 fill / 26px 52px / 0 stretch !important;
-  color:#ffe27a !important; font-weight:900 !important;
-  text-shadow:0 0 1px #3a2008, 0 1px 0 #3a2008, 0 1px 4px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.6) !important;
-  padding:2px 8px !important; font-size:19px !important; letter-spacing:1px;
-}
+.roster-name { font-weight:900; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.roster-meta { font:600 12px 'DM Mono',monospace; color:var(--soft); display:flex; align-items:center; gap:6px; }
+.active-tag { color:var(--na-cyan-300,#45d6c0); font-weight:800; }
+
+/* Bounty board heading: centred title, shared heading skin. */
+#view-leaderboard .panel-head { justify-content:center; position:relative; padding:16px 12px 14px; }
+#view-leaderboard .lb-head-wrap { width:min(620px,100%); display:grid; justify-items:center; gap:6px; }
+#view-leaderboard .panel-title { margin:0 auto; font-size:22px; letter-spacing:.02em; }
 .lb-board-meta {
   display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
-  color:#5f3b14; font:900 11px 'DM Mono',monospace; letter-spacing:.6px; text-transform:uppercase;
+  color:var(--soft); font:800 12px 'DM Mono',monospace; letter-spacing:.6px; text-transform:uppercase;
 }
-.lb-board-meta span {
-  min-height:24px; display:inline-flex; align-items:center; padding:0 10px; border-radius:99px;
-  border:1px solid rgba(95,59,20,.28);
-  background:linear-gradient(180deg,rgba(255,247,221,.72),rgba(186,121,38,.18));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
-}
+.lb-board-meta span { min-height:24px; display:inline-flex; align-items:center; padding:0 10px; border-radius:99px; border:1px solid var(--line); }
 
-/* 分頁列 + 木框面板 */
-.tabs {
-  background:rgba(30,19,10,.72) !important; border:1px solid rgba(150,100,50,.4) !important;
-  position:relative; z-index:5; margin-top:-110px !important;
-  backdrop-filter:blur(2px);
-}
-.tab { color:#e8cf9b !important; }
-.tab.active { background:#7a4a16 !important; color:#fff7e6 !important; }
-
-.panel {
-  border:0 !important; box-shadow:0 12px 26px rgba(0,0,0,.4) !important;
-  border-style:solid !important; border-width:22px !important;
-  border-image:url('assets/community/panel_wood.webp') 220 fill / 22px / 0 stretch !important;
-  background:linear-gradient(180deg,#fbf2d8,#eedcab) padding-box !important;
-  border-radius:0 !important;
-}
-.panel-head { border-bottom:1px solid rgba(120,80,30,.28) !important; }
-.kicker { color:#9a6a2a !important; }
-.panel-title { color:#3a2410 !important; }
-
-/* 排行榜面板 → 羊皮捲軸 */
-#view-leaderboard {
-  border-style:solid !important; border-width:46px 30px !important;
-  border-image:url('assets/community/scroll_board.webp') 200 110 fill / 46px 30px / 0 stretch !important;
-  background:none !important;
-  position:relative;
-  filter:drop-shadow(0 22px 28px rgba(0,0,0,.34));
-}
-#view-leaderboard .panel-head { border-bottom:1px solid rgba(120,80,30,.22) !important; }
-#view-leaderboard .panel-body { padding:10px 18px 18px !important; }
-#view-leaderboard::before,
-#view-leaderboard::after {
-  content:''; position:absolute; top:28px; width:13px; height:13px; border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#fff0a8,#a46418 58%,#4b270b 100%);
-  box-shadow:0 2px 2px rgba(0,0,0,.42), 0 0 0 2px rgba(85,45,12,.24);
-  z-index:1;
-}
-#view-leaderboard::before { left:34px; }
-#view-leaderboard::after { right:34px; }
-
-#view-leaderboard .subtabs {
-  justify-content:center; gap:8px; margin:0 0 16px;
-  padding:8px; border-radius:8px;
-  background:linear-gradient(180deg,rgba(78,45,17,.22),rgba(255,244,205,.22));
-  border:1px solid rgba(93,57,20,.22);
-}
-#view-leaderboard .subtab {
-  height:34px; border-radius:7px; padding:0 13px;
-  border-color:rgba(90,55,18,.28);
-  background:linear-gradient(180deg,#fff3c7,#e2bd72);
-  color:#5f3b14; box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
-}
-#view-leaderboard .subtab.active {
-  background:linear-gradient(180deg,#3e2611,#6d3d12) !important;
-  border-color:#8f6220 !important; color:#ffe9a8 !important;
-  box-shadow:0 6px 14px rgba(76,40,12,.25), inset 0 1px 0 rgba(255,235,170,.25);
-}
+.tabs { position:relative; z-index:5; }
+.tab { padding:0 16px; }
+.panel-head { border-bottom:1px solid var(--line); }
+#view-leaderboard { position:relative; }
+#view-leaderboard .panel-body { padding:14px 18px 18px; }
+#view-leaderboard .subtabs { justify-content:center; gap:8px; margin:0 0 16px; }
 
 /* 英雄榜前段框 */
 /* 頒獎台底圖（三名各站台上）：透明 PNG 釘在底部，上方留站立空間 */
@@ -383,9 +268,9 @@ body {
 .podium-card {
   position:absolute; transform:translateX(-50%); z-index:2;
   display:flex; flex-direction:column; align-items:center; gap:2px;
-  width:max-content; max-width:46%; text-align:center; color:#2b170c;
-  background:none !important; border:0 !important; border-radius:0 !important;
-  min-height:0 !important; padding:0 !important; filter:none !important;
+  width:max-content; max-width:46%; text-align:center; color:var(--ink);
+  background:none; border:0; border-radius:0;
+  min-height:0; padding:0; filter:none;
 }
 /* 台面定位：left=台面水平中心，bottom=從容器底部量起的台面高度（腳底落台面）*/
 .podium-card.first  { left:50.0%; bottom:48.3cqw; }
@@ -397,13 +282,13 @@ body {
 .podium-card.first  .hero-figure.lg { width:35cqw; height:35cqw; }
 .podium-card .name {
   order:-2; font-weight:800; font-size:clamp(11px, 4cqw, 17px); line-height:1.15;
-  color:#2b170c; text-shadow:0 1px 2px rgba(255,250,235,.95);
+  color:var(--gold2); text-shadow:0 1px 3px rgba(0,0,0,.7);
   max-width:46cqw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .podium-card .score {
-  order:-1; align-self:center; padding:2px 9px; border-radius:99px;
-  font:800 clamp(10px, 3.2cqw, 14px)/1 'DM Mono', monospace;
-  color:#123d3a; background:rgba(255,250,235,.92); border:1px solid rgba(15,143,136,.32);
+  order:-1; align-self:center; padding:3px 10px; border-radius:99px;
+  font:800 clamp(12px, 3.2cqw, 14px)/1 'DM Mono', monospace;
+  color:var(--gold2); background:rgba(7,13,34,.78); border:1px solid var(--line2);
 }
 /* 名次與獎牌已畫進底圖，隱藏 JS 舊元素 */
 .podium-card .medal, .podium-card .rank-badge { display:none !important; }
@@ -412,12 +297,9 @@ body {
 .lb-rowname { display:flex; align-items:center; gap:10px; }
 .lb-rowname .avatar { width:38px; height:38px; flex-shrink:0; }
 .leaderboard-ledger {
-  overflow:hidden; border-radius:8px;
-  border:1px solid rgba(93,57,20,.25);
-  background:
-    linear-gradient(90deg, rgba(94,55,19,.08) 0 1px, transparent 1px 100%),
-    linear-gradient(180deg, rgba(255,255,255,.28), rgba(130,79,28,.08));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -12px 28px rgba(99,55,16,.08);
+  overflow:hidden; border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(7,13,34,.4);
 }
 /* 全身角色立繪 */
 .hero-figure { position:relative; display:inline-block; }
@@ -442,48 +324,62 @@ body {
 .hf-prem-crown { position:absolute; top:-9px; left:50%; transform:translateX(-50%);
   font-size:14px; z-index:9; filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)); pointer-events:none; line-height:1; }
 .hero-figure.lg .hf-prem-crown { font-size:22px; top:-14px; }
-#view-leaderboard th { color:#8a5a22 !important; }
 #view-leaderboard table { border-collapse:separate; border-spacing:0; }
 #view-leaderboard th {
-  padding:11px 12px !important; background:rgba(91,53,17,.08);
-  border-bottom:1px solid rgba(120,80,30,.18);
+  padding:11px 12px; color:var(--soft); font-size:12px; background:rgba(255,236,190,.045);
+  border-bottom:1px solid var(--line);
 }
-#view-leaderboard td {
-  padding:11px 12px !important; border-top:1px solid rgba(120,80,30,.14) !important;
+#view-leaderboard td { padding:11px 12px; border-top:1px solid var(--line); }
+#view-leaderboard tbody tr:hover { background:rgba(227,180,87,.07); }
+/* Gold = this is you. */
+#view-leaderboard tr.me, tr.me { background:rgba(227,180,87,.13); box-shadow:inset 3px 0 0 var(--gold); }
+#view-leaderboard .rank-num { width:46px; color:var(--muted); text-align:center; }
+#view-leaderboard .rank-num::before { content:'#'; color:var(--soft); font-size:12px; margin-right:1px; }
+#view-leaderboard .lb-player-meta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:4px; }
+#view-leaderboard .score, .score { color:var(--gold2); font-size:15px; }
+#view-leaderboard .leaderboard-ledger .name { color:var(--ink); }
+a.name { text-decoration:none; }
+a.name:hover { text-decoration:underline; }
+#view-leaderboard th { white-space:nowrap; }
+
+/* Remaining light literals from the base sheet, moved onto the shared tokens. */
+.hero-side .stat-card, .stat-card { border-color:var(--line); background:var(--paper); }
+.quick-icon, .avatar { background:radial-gradient(circle at 50% 30%, #2a3d72, #0b1430 78%); color:var(--gold2); border:1px solid var(--line2); }
+.task-mark, .task-card.warning .task-mark, .task-card.hot .task-mark, .task-card.done .task-mark { background:rgba(227,180,87,.13); color:var(--gold2); }
+.task-card, .progress-box { background:var(--paper); }
+/* The podium art is the frame; its cards never draw their own box. */
+.podium-card, .podium-card.first { background:none; border:0; }
+#view-leaderboard .kicker { display:none; }
+/* First-paint fallbacks for the base sheet's cream literals (the shared layer
+   applies the full panel/field skin once the shell script has run). */
+.panel, .tabs { background:#111d3d; }
+.search, .input, .select, textarea, .subtab { background:var(--paper); color:var(--ink); }
+.empty { background:transparent; }
+.tab.active, .subtab.active { background:rgba(227,180,87,.13); color:var(--gold2); border-color:var(--line2); }
+.pill, .pill.pending, .pill.active, .pill.completed, .rank-badge { background:transparent; color:var(--soft); }
+.bar { background:rgba(7,13,34,.7); }
+.bar span { background:linear-gradient(90deg, #a9762b, #e3b457); }
+.toast { border:1px solid var(--line2); background:#111d3d; color:var(--ink); }
+.fallback-nav { background:#0b1430; }
+.fallback-nav .links a.active, .fallback-nav .links a:hover { background:rgba(227,180,87,.13); color:var(--gold2); }
+th, .kicker, .item-meta, .stat-label, .rank-badge, .pill, .small, .quick-sub, .task-sub, .subtab { font-size:12px; }
+.btn, .tab, .subtab, .search, .input, .select { min-height:44px; }
+.subtab { height:auto; }
+@media (min-width:768px) {
+  .btn, .tab, .subtab, .search, .input, .select { min-height:48px; }
 }
-#view-leaderboard tbody tr {
-  background:linear-gradient(90deg,rgba(255,249,225,.34),rgba(255,249,225,.08));
+/* iPad portrait: one column — board first, roster after — so the page is
+   composed for the width instead of squeezing the desktop sidebar. */
+@media (min-width:701px) and (max-width:1100px) and (orientation:portrait) {
+  .grid { grid-template-columns:1fr; }
+  .grid > .side-stack { order:2; }
 }
-#view-leaderboard tbody tr:hover { background:rgba(201,130,22,.15); }
-#view-leaderboard tr.me {
-  background:linear-gradient(90deg,rgba(15,143,136,.18),rgba(201,130,22,.10)) !important;
-}
-#view-leaderboard .rank-num {
-  width:46px; color:#3a2410; text-align:center;
-}
-#view-leaderboard .rank-num::before {
-  content:'#'; color:#a36b22; font-size:11px; margin-right:1px;
-}
-#view-leaderboard .lb-player-meta {
-  display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:4px;
-}
-#view-leaderboard .score {
-  color:#123d3a; font-size:15px;
-  text-shadow:0 1px 0 rgba(255,255,255,.35);
-}
-#view-leaderboard .leaderboard-ledger .name {
-  color:#3a2410; text-shadow:0 1px 0 rgba(255,244,207,.5);
-}
-#view-leaderboard .leaderboard-ledger tr.me .name { color:#2b170c; }
 @media (max-width:760px) {
-  #view-leaderboard { border-width:36px 18px !important; }
-  #view-leaderboard::before, #view-leaderboard::after { display:none; }
-  #view-leaderboard .panel-body { padding:8px 8px 14px !important; }
-  #view-leaderboard .panel-title { font-size:16px !important; border-width:22px 34px !important; }
-  .lb-board-meta { font-size:10px; }
+  #view-leaderboard .panel-body { padding:10px 10px 14px; }
+  #view-leaderboard .panel-title { font-size:18px; }
   /* 頒獎台底圖在手機上整張等比縮小即可，沿用桌面絕對定位（cqw 自動縮放）*/
   #view-leaderboard th:nth-child(1), #view-leaderboard td:nth-child(1) { display:none; }
-  #view-leaderboard td { padding:10px 8px !important; }
+  #view-leaderboard td { padding:10px 8px; }
 }
 </style>
 </head>

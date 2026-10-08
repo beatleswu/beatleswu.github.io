@@ -35,46 +35,47 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
+/* Night Atlas theming, declared by the page itself. These legacy token names
+   are kept because every rule below reads them; their values now come from
+   the shared --na-* family (site-nav.js), with literal fallbacks so the first
+   paint is already navy. The Backpack is no longer themed by redefining
+   tokens from the navigation script. */
 :root {
-    --cream:    #faf7f2;
-    --cream2:   #f3ede3;
-    --cream3:   #ede4d4;
-    --ink:      #1c1409;
-    --ink2:     #3d2f1a;
-    --ink3:     #6b5740;
-    --ink4:     #a89070;
-    --amber:    #d97706;
-    --amber-bg: #fffbeb;
-    --teal:     #0d9488;
-    --teal-bg:  #f0fdfa;
-    --teal-mid: #99f6e4;
-    --border:   #e5ddd0;
-    --border2:  #d4c9b8;
-    --white:    #ffffff;
-    --surface2: #f6f1ea;
-    --shadow:   0 1px 3px rgba(28,20,9,.06), 0 4px 16px rgba(28,20,9,.06);
-    --shadow-lg:0 8px 40px rgba(28,20,9,.12);
-    --green:    #16a34a;
-    --red:      #dc2626;
-    --red-bg:   #fef2f2;
+    --cream:    var(--na-navy-950, #070d22);
+    --cream2:   rgba(255,236,190,.07);
+    --cream3:   rgba(255,236,190,.12);
+    --ink:      var(--na-text, #f7f1df);
+    --ink2:     var(--na-text-soft, #c7cce0);
+    --ink3:     var(--na-text-muted, #919bb8);
+    --ink4:     var(--na-text-muted, #919bb8);
+    --amber:    var(--na-gold-300, #e3b457);
+    --amber-bg: var(--na-gold-tint, rgba(227,180,87,.13));
+    /* Legacy "teal" was this page's selection accent. Selection is gold. */
+    --teal:     var(--na-gold-300, #e3b457);
+    --teal-dark:var(--na-gold-100, #fff1c4);
+    --teal-bg:  var(--na-gold-tint, rgba(227,180,87,.13));
+    --teal-mid: var(--na-gold-edge, rgba(236,201,120,.42));
+    --border:   var(--na-gold-hair, rgba(236,201,120,.2));
+    --border2:  var(--na-gold-edge, rgba(236,201,120,.42));
+    --white:    var(--na-navy-800, #111d3d);
+    --surface2: rgba(7,13,34,.4);
+    --shadow:   var(--na-shadow-1, 0 8px 22px rgba(0,0,0,.24));
+    --shadow-lg:var(--na-shadow-2, 0 18px 50px rgba(0,0,0,.34));
+    --green:    var(--na-success, #7fe0a6);
+    --red:      var(--na-danger, #f08a8a);
+    --red-bg:   rgba(240,138,138,.1);
     --mono:     'DM Mono', monospace;
 }
 
+html { background: #070d22; }
 body {
     font-family: 'DM Sans', sans-serif;
-    background: var(--cream);
+    background:
+        radial-gradient(1100px 520px at 50% -8%, rgba(227,180,87,.1), transparent 62%),
+        linear-gradient(180deg, #0b1430 0%, #070d22 62%);
     color: var(--ink);
     min-height: 100vh;
     overflow-x: hidden;
-}
-
-body::before {
-    content: '';
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background-image:
-        linear-gradient(var(--border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 52px 52px; opacity: .35;
 }
 
 /* ══ HEADER ══════════════════════════════════════════════════ */
@@ -363,12 +364,8 @@ main {
 .functional-equipment-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,330px); gap:16px; align-items:start; }
 .functional-equipment-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; min-height:120px; }
 .functional-equipment-card { position:relative; min-width:0; border:1.5px solid var(--border); border-radius:14px; background:#fff; padding:13px; text-align:left; cursor:pointer; transition:transform .15s,border-color .15s,box-shadow .15s; }
-.functional-equipment-card[data-rarity="uncommon"] { border-color:#0d9488; }
-.functional-equipment-card[data-rarity="rare"] { border-color:#2563eb; }
-.functional-equipment-card[data-rarity="epic"] { border-color:#7c3aed; }
-.functional-equipment-card[data-rarity="legendary"] { border-color:#d97706; box-shadow:0 4px 18px rgba(217,119,6,.12); }
-.functional-equipment-card:hover,.functional-equipment-card:focus-visible { transform:translateY(-2px); border-color:var(--teal); box-shadow:0 7px 20px rgba(13,148,136,.14); outline:none; }
-.functional-equipment-card[data-selected="true"] { border-color:var(--teal); box-shadow:0 0 0 3px rgba(13,148,136,.12); background:var(--teal-bg); }
+.functional-equipment-card:hover,.functional-equipment-card:focus-visible { transform:translateY(-2px); border-color:var(--teal-mid); box-shadow:var(--shadow); outline:none; }
+.functional-equipment-card[data-selected="true"] { border-color:var(--teal); box-shadow:0 0 0 1px var(--teal); background:var(--teal-bg); }
 .functional-equipment-card[data-equipped="true"]::after { content:'✓'; position:absolute; top:9px; right:10px; width:20px; height:20px; display:grid; place-items:center; border-radius:50%; background:var(--teal); color:#fff; font-size:12px; font-weight:900; }
 .functional-equipment-card-head { display:flex; gap:10px; align-items:center; min-width:0; }
 .functional-equipment-icon { width:64px; height:64px; flex:0 0 auto; border-radius:12px; background:var(--cream2); display:grid; place-items:center; overflow:hidden; }
@@ -439,6 +436,61 @@ main {
   .backpack-heading { flex-direction:column; }
   .backpack-shop-link { width:100%; justify-content:center; }
   .backpack-grid { grid-template-columns:1fr; padding-bottom:calc(78px + env(safe-area-inset-bottom)); }
+}
+
+/* ══ G009 Night Atlas — Backpack (ledger tier, read-only) ══════════
+   Skin (border, radius, selected state) comes from the shared layer in
+   site-nav.js. This block only removes the page's remaining light literals
+   and composes the layout for phone / iPad portrait / iPad landscape. */
+.backpack-filter, .functional-equipment-filter,
+.backpack-card, .functional-equipment-card, .functional-equipment-detail { background:var(--cream2); }
+.strip-stat .s-val.gold { color:var(--amber); }
+.backpack-toast { border:1px solid var(--border2); background:var(--white); color:var(--ink); }
+.functional-wearable-preview-host { background:radial-gradient(ellipse 80% 55% at 50% 30%, rgba(73,116,175,.24), transparent 72%), linear-gradient(180deg, rgba(21,36,77,.94), rgba(7,13,34,.98)); }
+.functional-equipment-shell { border-top:1px solid var(--border); }
+.section-label, .strip-stat .s-lbl,
+.backpack-card-meta, .functional-equipment-card-meta, .functional-detail-meta,
+.functional-effect-status, .functional-equipment-badge, .functional-detail-badge,
+.backpack-kicker, .functional-equipment-kicker, .functional-wearable-preview-title,
+.functional-effect-line, .functional-effect-value, .backpack-action-state { font-size:12px; }
+/* Summary: one calm row of five figures instead of a full-bleed strip. */
+main { max-width:1180px; }
+.stats-strip {
+  display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px;
+  width:min(1180px, calc(100% - 56px)); margin:16px auto 0; padding:14px 16px;
+  border:1px solid var(--border); border-radius:16px;
+}
+.strip-stat { min-width:0; }
+.functional-detail-badge { max-width:100%; white-space:normal; }
+.strip-stat + .strip-stat { border-left:1px solid var(--border); }
+/* Empty detail: a composed placeholder, not a blank admin box. */
+.functional-equipment-detail[data-empty="true"] { border-style:dashed; align-content:center; gap:14px; padding:28px 20px; }
+.functional-equipment-detail[data-empty="true"]::before {
+  content:''; width:64px; height:64px; margin:0 auto; border-radius:50%;
+  border:1px solid var(--border2);
+  background:radial-gradient(circle at 50% 30%, #2a3d72, #0b1430 76%);
+  box-shadow:0 0 0 6px rgba(227,180,87,.06);
+}
+.backpack-filter, .functional-equipment-filter, .backpack-shop-link, .functional-equipment-link { min-height:44px; }
+@media (min-width:768px) {
+  .backpack-filter, .functional-equipment-filter, .backpack-shop-link, .functional-equipment-link { min-height:48px; }
+}
+/* iPad portrait: single column, three-up item grid, detail below the grid. */
+@media (min-width:701px) and (max-width:1100px) and (orientation:portrait) {
+  .functional-equipment-layout { grid-template-columns:1fr; }
+  .functional-equipment-detail { position:static; }
+  .functional-equipment-detail[data-empty="true"] { min-height:140px; }
+  .functional-equipment-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+/* iPad landscape / desktop: item grid + sticky detail column. */
+@media (min-width:1024px) and (orientation:landscape) {
+  .functional-equipment-layout { grid-template-columns:minmax(0,1fr) 320px; }
+  .functional-equipment-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media (max-width:700px) {
+  main { padding:20px 16px 72px; }
+  .stats-strip { grid-template-columns:repeat(3,minmax(0,1fr)); width:calc(100% - 32px); row-gap:14px; }
+  .strip-stat + .strip-stat { border-left:0; }
 }
 </style>
 <link rel="stylesheet" href="/css/e10/backpack.css?v=20260826e10backpackfilter1">

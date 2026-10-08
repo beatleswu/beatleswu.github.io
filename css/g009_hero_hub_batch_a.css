@@ -9,21 +9,24 @@
  */
 
 body[data-g009-hero-hub="batch-a"] {
-  --g009-navy-950: #070d22;
-  --g009-navy-900: #0b1430;
-  --g009-navy-800: #111d3d;
-  --g009-panel: rgba(17, 29, 61, .88);
-  --g009-panel-hi: rgba(35, 53, 96, .78);
-  --g009-gold-100: #fff1c4;
-  --g009-gold-300: #e3b457;
-  --g009-gold-500: #a9762b;
-  --g009-gold-edge: rgba(236, 201, 120, .42);
-  --g009-cyan-100: #d5fff2;
-  --g009-cyan-300: #45d6c0;
-  --g009-cyan-edge: rgba(69, 214, 192, .68);
-  --g009-text: #f7f1df;
-  --g009-text-soft: #c7cce0;
-  --g009-text-muted: #919bb8;
+  /* Hero Hub is the baseline the shared Night Atlas tokens (--na-*, defined
+     in site-nav.js) were generalised from. The --g009-* names are kept as
+     aliases; the literals are the same values and cover first paint. */
+  --g009-navy-950: var(--na-navy-950, #070d22);
+  --g009-navy-900: var(--na-navy-900, #0b1430);
+  --g009-navy-800: var(--na-navy-800, #111d3d);
+  --g009-panel: var(--na-panel, rgba(17, 29, 61, .88));
+  --g009-panel-hi: var(--na-panel-hi, rgba(35, 53, 96, .78));
+  --g009-gold-100: var(--na-gold-100, #fff1c4);
+  --g009-gold-300: var(--na-gold-300, #e3b457);
+  --g009-gold-500: var(--na-gold-500, #a9762b);
+  --g009-gold-edge: var(--na-gold-edge, rgba(236, 201, 120, .42));
+  --g009-cyan-100: var(--na-cyan-100, #d5fff2);
+  --g009-cyan-300: var(--na-cyan-300, #45d6c0);
+  --g009-cyan-edge: var(--na-cyan-edge, rgba(69, 214, 192, .68));
+  --g009-text: var(--na-text, #f7f1df);
+  --g009-text-soft: var(--na-text-soft, #c7cce0);
+  --g009-text-muted: var(--na-text-muted, #919bb8);
   --g009-shadow: 0 18px 50px rgba(0, 0, 0, .28);
   min-height: 100%;
   overflow-x: hidden;
@@ -119,38 +122,44 @@ body[data-g009-hero-hub="batch-a"] .g009-subtab {
   transition: color .16s ease, border-color .16s ease, background .16s ease, transform .16s ease;
 }
 
+/* Owner decision D4: gold marks the selected tab / current location. Cyan is
+   reserved for live character state on the stage (aura, active companion). */
 body[data-g009-hero-hub="batch-a"] .g009-subtab:hover,
 body[data-g009-hero-hub="batch-a"] .g009-subtab:focus-visible {
-  color: var(--g009-text);
-  border-color: rgba(69, 214, 192, .38);
-  background: rgba(69, 214, 192, .07);
+  color: var(--g009-gold-100);
+  border-color: rgba(236, 201, 120, .2);
+  background: rgba(227, 180, 87, .07);
   outline: none;
 }
 
-body[data-g009-hero-hub="batch-a"] .g009-subtab.is-active {
-  color: #102036;
-  border-color: transparent;
-  background: linear-gradient(180deg, var(--g009-cyan-100), var(--g009-cyan-300));
-  box-shadow: 0 0 18px rgba(69, 214, 192, .18);
+body[data-g009-hero-hub="batch-a"] .g009-subtab:focus-visible {
+  outline: 2px solid var(--g009-gold-100);
+  outline-offset: 2px;
 }
 
+body[data-g009-hero-hub="batch-a"] .g009-subtab.is-active {
+  color: var(--g009-gold-100);
+  border-color: var(--g009-gold-edge);
+  background: rgba(227, 180, 87, .13);
+  box-shadow: inset 3px 0 0 var(--g009-gold-300);
+}
+
+/* The tab icon is a plain glyph: no second border inside the tab. */
 body[data-g009-hero-hub="batch-a"] .g009-subtab-icon {
   display: grid;
   place-items: center;
   width: 27px;
   height: 27px;
   flex: 0 0 auto;
-  border-radius: 9px;
-  color: var(--g009-gold-100);
+  border-radius: 50%;
+  color: var(--g009-gold-300);
   background: rgba(255, 236, 190, .06);
-  border: 1px solid rgba(236, 201, 120, .24);
   font-size: 16px;
 }
 
 body[data-g009-hero-hub="batch-a"] .g009-subtab.is-active .g009-subtab-icon {
-  color: #102036;
-  background: rgba(255, 255, 255, .42);
-  border-color: rgba(16, 32, 54, .18);
+  color: var(--g009-gold-100);
+  background: rgba(227, 180, 87, .2);
 }
 
 body[data-g009-hero-hub="batch-a"] .g009-stage-column {
@@ -289,7 +298,7 @@ body[data-g009-hero-hub="batch-a"] .g009-character-display-name {
 
 body[data-g009-hero-hub="batch-a"] .g009-runtime-status {
   color: var(--g009-text-muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -313,7 +322,7 @@ body[data-g009-hero-hub="batch-a"] .g009-label,
 body[data-g009-hero-hub="batch-a"] .g009-section-label {
   display: block;
   color: var(--g009-gold-300);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 1.1px;
   text-transform: uppercase;
@@ -452,8 +461,8 @@ body[data-g009-hero-hub="batch-a"] .g009-mini-icon {
   height: 38px;
   border-radius: 12px;
   color: var(--g009-gold-100);
-  background: rgba(69, 214, 192, .1);
-  border: 1px solid rgba(69, 214, 192, .35);
+  background: rgba(227, 180, 87, .1);
+  border: 1px solid rgba(236, 201, 120, .3);
   font-size: 18px;
 }
 
@@ -483,11 +492,14 @@ body[data-g009-hero-hub="batch-a"] .g009-action-button {
   transition: transform .16s ease, filter .16s ease, border-color .16s ease;
 }
 
+/* D4: actions are not live character state, so they carry no cyan. Inline
+   "go to" actions are the shared secondary button; the panel's main action
+   is the shared gold primary. */
 body[data-g009-hero-hub="batch-a"] .g009-inline-action {
   padding: 0 9px;
-  border: 1px solid rgba(69, 214, 192, .45);
-  background: rgba(69, 214, 192, .08);
-  color: var(--g009-cyan-100);
+  border: 1px solid var(--g009-gold-edge);
+  background: rgba(227, 180, 87, .13);
+  color: var(--g009-gold-100);
 }
 
 body[data-g009-hero-hub="batch-a"] .g009-action-button {
@@ -495,9 +507,9 @@ body[data-g009-hero-hub="batch-a"] .g009-action-button {
   align-items: center;
   justify-content: center;
   padding: 0 17px;
-  border: 1px solid transparent;
-  background: linear-gradient(180deg, var(--g009-cyan-100), var(--g009-cyan-300));
-  color: #102036;
+  border: 1px solid rgba(255, 241, 196, .5);
+  background: linear-gradient(180deg, #f6dd9a, var(--g009-gold-300) 58%, var(--g009-gold-500));
+  color: #1b1404;
 }
 
 body[data-g009-hero-hub="batch-a"] .g009-action-secondary {
@@ -590,7 +602,7 @@ body[data-g009-hero-hub="batch-a"] .g009-active-chip {
   padding: 0 9px;
   border-radius: 999px;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -680,7 +692,7 @@ body[data-g009-hero-hub="batch-a"] .g009-character-switch {
 
 body[data-g009-hero-hub="batch-a"] .g009-character-switch:hover,
 body[data-g009-hero-hub="batch-a"] .g009-character-switch:focus-visible {
-  border-color: var(--g009-cyan-edge);
+  border-color: var(--g009-gold-edge);
   outline: none;
 }
 
@@ -696,8 +708,8 @@ body[data-g009-hero-hub="batch-a"] .g009-character-switch-mark {
   width: 52px;
   height: 52px;
   border-radius: 16px;
-  color: var(--g009-cyan-100);
-  background: radial-gradient(circle at 50% 35%, #315c78, #101a38 72%);
+  color: var(--g009-gold-100);
+  background: radial-gradient(circle at 50% 35%, #2a3d72, #101a38 72%);
   box-shadow: 0 0 0 1px rgba(236, 201, 120, .48);
   font-size: 20px;
 }
@@ -743,8 +755,8 @@ body[data-g009-hero-hub="batch-a"] .g009-companion-art {
   flex: 0 0 auto;
   overflow: hidden;
   border-radius: 19px;
-  background: radial-gradient(circle at 50% 35%, rgba(69, 214, 192, .2), #101a38 72%);
-  border: 1px solid rgba(69, 214, 192, .42);
+  background: radial-gradient(circle at 50% 35%, #2a3d72, #101a38 72%);
+  border: 1px solid rgba(236, 201, 120, .3);
 }
 
 body[data-g009-hero-hub="batch-a"] .g009-companion-art img {
@@ -931,6 +943,11 @@ body[data-g009-hero-hub="batch-a"] .g009-title-heading {
     text-align: center;
   }
 
+  /* Horizontal tab row: the gold "you are here" edge sits underneath. */
+  body[data-g009-hero-hub="batch-a"] .g009-subtab.is-active {
+    box-shadow: inset 0 -2px 0 var(--g009-gold-300);
+  }
+
   body[data-g009-hero-hub="batch-a"] .g009-stage-host {
     min-height: 380px;
   }
@@ -982,13 +999,17 @@ body[data-g009-hero-hub="batch-a"] .g009-title-heading {
     min-height: 68px;
     flex: 1 1 auto;
     justify-content: center;
-    padding: 0 8px;
+    padding: 0 4px;
     flex-direction: column;
     gap: 3px;
-    font-size: 11px;
+    font-size: 12px;
     text-align: center;
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+
+  body[data-g009-hero-hub="batch-a"] .g009-subtab.is-active {
+    box-shadow: inset 0 -2px 0 var(--g009-gold-300);
   }
 
   body[data-g009-hero-hub="batch-a"] .g009-subtab > span:last-child {
@@ -1111,3 +1132,25 @@ body[data-g009-hero-hub="batch-a"] .g009-title-heading {
     flex: 1 1 0;
   }
 }
+
+/* G009 Night Atlas — Honors title list. hero.html still declares parchment
+   tokens for its legacy rules; these rows are drawn on the shared navy card
+   instead. Gold marks the equipped title. Read-only behaviour is unchanged. */
+body[data-g009-hero-hub="batch-a"] .title-item {
+  border: 1px solid rgba(236, 201, 120, .2);
+  border-radius: 12px;
+  color: var(--g009-text);
+  background: rgba(255, 236, 190, .045);
+}
+body[data-g009-hero-hub="batch-a"] .title-item::before { background: var(--g009-gold-300); }
+body[data-g009-hero-hub="batch-a"] .title-item:hover { border-color: var(--g009-gold-edge); }
+body[data-g009-hero-hub="batch-a"] .title-item.equipped {
+  border-color: var(--g009-gold-300);
+  background: rgba(227, 180, 87, .13);
+  box-shadow: 0 0 0 1px var(--g009-gold-300);
+}
+body[data-g009-hero-hub="batch-a"] .title-item.locked { opacity: .72; }
+body[data-g009-hero-hub="batch-a"] .title-item.locked:hover { border-color: rgba(236, 201, 120, .2); }
+body[data-g009-hero-hub="batch-a"] .title-item-name { color: var(--g009-text); }
+body[data-g009-hero-hub="batch-a"] .title-item-hint { color: var(--g009-text-muted); font-size: 12px; }
+body[data-g009-hero-hub="batch-a"] .title-equipped-chip { font-size: 12px; }

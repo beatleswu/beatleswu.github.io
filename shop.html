@@ -10,43 +10,42 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; }
+/* Night Atlas theming. The Shop keeps its own token names (every rule below
+   reads them) but the values come from the shared --na-* family in
+   site-nav.js, with literal fallbacks so the first paint is already navy. */
 :root {
-  --bg: #0b0d10;
-  --panel: rgba(23, 19, 16, .78);
-  --panel-strong: rgba(31, 24, 18, .92);
+  --bg: var(--na-navy-950, #070d22);
+  --panel: var(--na-panel, rgba(17, 29, 61, .88));
+  --panel-strong: var(--na-panel-hi, rgba(35, 53, 96, .78));
   --parchment: #f3dec0;
   --parchment-2: #d7b77d;
   --ink: #251708;
-  --text: #fff3d1;
-  --muted: rgba(255, 243, 209, .72);
-  --faint: rgba(255, 243, 209, .48);
-  --gold: #f0bf57;
-  --gold-2: #9f6727;
-  --teal: #56d6c2;
-  --red: #d65b4b;
-  --green: #7bd37a;
-  --border: rgba(240, 191, 87, .28);
-  --shadow: 0 22px 70px rgba(0, 0, 0, .46);
-  --radius: 8px;
+  --text: var(--na-text, #f7f1df);
+  --muted: var(--na-text-soft, #c7cce0);
+  --faint: var(--na-text-muted, #919bb8);
+  --gold: var(--na-gold-300, #e3b457);
+  --gold-2: var(--na-gold-500, #a9762b);
+  --teal: var(--na-cyan-300, #45d6c0);
+  --red: var(--na-danger, #f08a8a);
+  --green: var(--na-success, #7fe0a6);
+  --border: var(--na-gold-hair, rgba(236, 201, 120, .2));
+  --shadow: var(--na-shadow-1, 0 8px 22px rgba(0, 0, 0, .24));
+  --radius: var(--na-radius-sm, 12px);
 }
-html { min-height: 100%; background: var(--bg); }
+html { min-height: 100%; background: #070d22; }
 body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  font-family: "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "DM Sans", "Noto Sans TC", "PingFang TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Ledger tier: shared navy ground. The governed shop backdrop stays as a
+     faint texture under a deep navy wash, so the merchant and the item art
+     carry the colour instead of a full-strength photograph. */
   background:
-    linear-gradient(180deg, rgba(4, 6, 8, .5), #090907 72%),
-    url("/assets/shop/shop_bg.webp") center top / cover fixed no-repeat;
-}
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(90deg, rgba(0, 0, 0, .54), rgba(0, 0, 0, .08) 44%, rgba(0, 0, 0, .62));
-  pointer-events: none;
+    radial-gradient(1100px 520px at 50% -8%, rgba(227, 180, 87, .1), transparent 62%),
+    linear-gradient(180deg, rgba(11, 20, 48, .9) 0%, rgba(7, 13, 34, .97) 62%),
+    url("/assets/shop/shop_bg.webp") center top / cover fixed no-repeat,
+    #070d22;
 }
 button, input { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
@@ -97,11 +96,12 @@ header .logo { color: var(--text); text-decoration: none; font-weight: 900; }
 }
 h1 {
   margin: 16px 0 10px;
-  font-family: "Cormorant Garamond", "Noto Sans TC", serif;
-  font-size: clamp(45px, 7vw, 88px);
-  line-height: .92;
-  letter-spacing: 0;
-  text-shadow: 0 8px 26px rgba(0, 0, 0, .58);
+  font-family: "Cormorant Garamond", "Noto Serif TC", "Songti TC", "Noto Sans TC", serif;
+  /* Shared title scale: the same size as every other surface heading. */
+  font-size: clamp(26px, 3.6vw, 40px);
+  line-height: 1.15;
+  letter-spacing: .01em;
+  color: #fff1c4;
 }
 .lead {
   max-width: 560px;
@@ -731,7 +731,6 @@ button:focus-visible {
 }
 @media (max-width: 640px) {
   .page { width: min(100% - 22px, 1180px); padding-top: 12px; }
-  h1 { font-size: 44px; }
   .lead { font-size: 14px; }
   .merchant-stage { min-height: 430px; }
   .speech { left: 4px; bottom: 22%; width: 68%; padding: 11px; }
@@ -762,6 +761,34 @@ button:focus-visible {
   .section-head { display: block; }
   .section-sub { margin-top: 6px; }
 }
+
+/* ══ G009 Night Atlas — Shop (ledger tier, browse-preview only) ══════
+   Skin for panels, cards, buttons and the status tag comes from the shared
+   layer in site-nav.js. This block removes the Shop's private accents so it
+   reads as the same product: gold hairlines instead of teal frames (cyan is
+   reserved for live character state), and a quiet "Coming Soon" status tag
+   instead of a disabled call-to-action. No price or purchase affordance is
+   added; browse-preview semantics are unchanged. */
+header:not(.cg-nav) { background: #0b1430; }
+.equipment-commerce-panel, .equipment-card, .cosmetic-card, .equipment-detail,
+.equipment-purchase-feedback, .speech { border-color: var(--border); }
+.equipment-detail-art, .item-art { border-color: var(--border); background: radial-gradient(circle, rgba(227, 180, 87, .14), rgba(7, 13, 34, .3)); }
+.shop-purchase-use-copy { border-color: var(--border); background: rgba(255, 236, 190, .045); }
+.shop-purchase-use-copy strong { color: var(--gold); }
+.shop-purchase-state { background: linear-gradient(100deg, rgba(227, 180, 87, .12), rgba(17, 29, 61, .88)); border-color: var(--border); }
+.section-title, .equipment-detail-name, .cosmetic-modal-card h2 { color: #fff1c4; }
+.shop-preview-status,
+.btn[data-g009-shop-purchase-disabled="browse-preview"] {
+  display: inline-flex; align-items: center; width: auto; min-height: 26px; flex: 0 0 auto;
+  padding: 2px 10px; border: 1px solid var(--border); border-radius: 999px;
+  background: transparent; color: var(--faint); box-shadow: none;
+  font-size: 12px; font-weight: 700; white-space: nowrap; opacity: 1; cursor: default;
+}
+.tile-label, .section-kicker, .equipment-detail-class, .equipment-detail-fields,
+.equipment-ownership-badge, .equipment-catalog-status, .shop-purchase-use-copy,
+.cosmetic-visible, .header-links a, .item-meta { font-size: 12px; }
+.btn { min-height: 44px; }
+@media (min-width: 768px) { .btn { min-height: 48px; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
