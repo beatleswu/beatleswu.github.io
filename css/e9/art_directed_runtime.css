@@ -2190,3 +2190,77 @@ html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e
   text-align: left;
   transform: translateY(-50%);
 }
+
+/* G009_339_OWNER_ACCEPTED_LANDSCAPE_OVERVIEW_INTEGRATION_001 -- Owner-accepted iPad
+   landscape ten-zone overview (default) + reversible detail view. Gated by the
+   genuine data-g009-ipad-landscape flag set in world_stage.js;
+   data-g009-map-view="detail" restores the normal zoomed map with its WM-Q1 pan.
+   Portrait is untouched. The full 16:9 world is fitted right of the left nav. */
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-map-stage {
+  position: absolute !important;
+  inset: auto !important;
+  top: 52% !important;
+  left: clamp(190px, 15.5%, 230px) !important;
+  width: calc(100% - clamp(190px, 15.5%, 230px) - 14px) !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9 !important;
+  max-height: calc(100% - 110px) !important;
+  min-height: 0 !important;
+  transform: translateY(-50%) !important;
+  overflow: hidden !important;
+  border: 2px solid rgba(221,179,90,.9) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 14px 38px rgba(0,0,0,.54) !important;
+  background: #101b30 !important;
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-map-stage .e9-map-stage__pan-content {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-map-stage .e9-map-stage__base {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: fill !important;
+  object-position: center center !important;
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell {
+  background: radial-gradient(ellipse at 58% 46%,#233753 0%,#172740 55%,#0e192d 100%) !important;
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-world-stage-zones .e9-zone .e9-zone__plaque {
+  font-size: clamp(9px,1vw,12px);
+  padding: 3px 5px;
+  max-width: 105px;
+  min-width: 56px;
+  transform: translateY(-50%);
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-world-stage-zones .e9-zone .e9-zone__name {
+  font-size: clamp(9px,1vw,11px);
+}
+
+/* Keep stage 09's tag away from stage 04 at normal iPad widths. */
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-world-stage-zones .e9-zone[data-zone="d5_6"] .e9-zone__plaque {
+  transform: translateY(calc(-50% - 42px)) !important;
+}
+
+/* Overview / detail switch (button created by world_stage.js). */
+html[data-g009-ipad-landscape] #g009-map-overview-mode-switch {
+  position: fixed !important;
+  top: 122px;
+  right: 27px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid #dfb96a;
+  border-radius: 10px;
+  color: #fae6b8;
+  background: linear-gradient(180deg,#24385c,#15223e);
+  box-shadow: 0 4px 14px rgba(0,0,0,.42);
+  font: 700 13px/1.3 system-ui,sans-serif;
+  cursor: pointer;
+}
+html:not([data-g009-ipad-landscape]) #g009-map-overview-mode-switch { display: none !important; }

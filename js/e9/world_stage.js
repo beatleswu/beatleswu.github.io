@@ -400,6 +400,38 @@
     return width > 0 && height > 0 && width > height;
   }
 
+  // Presentation-only landscape map view toggle: 'overview' (default) fits the
+  // whole ten-zone world in one frame; 'detail' restores the normal zoomed map
+  // with its WM-Q1 horizontal pan. The button is created once (idempotent), is
+  // only visible under data-g009-ipad-landscape (CSS), and its label/aria state
+  // is re-synced from the root attribute on every viewport pass.
+  function syncMapViewSwitch(button) {
+    var detail = document.documentElement.getAttribute('data-g009-map-view') === 'detail';
+    button.textContent = detail ? '十關總覽' : '放大細看';
+    button.setAttribute('aria-pressed', detail ? 'true' : 'false');
+  }
+
+  function ensureMapViewSwitch() {
+    var rootEl = document.documentElement;
+    if (!rootEl || !document.body) return;
+    if (rootEl.getAttribute('data-g009-map-view') !== 'detail') rootEl.setAttribute('data-g009-map-view', 'overview');
+    var button = document.getElementById('g009-map-overview-mode-switch');
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'g009-map-overview-mode-switch';
+      button.type = 'button';
+      button.setAttribute('aria-label', '切換世界地圖總覽與細看模式');
+      button.addEventListener('click', function () {
+        var next = rootEl.getAttribute('data-g009-map-view') === 'detail' ? 'overview' : 'detail';
+        rootEl.setAttribute('data-g009-map-view', next);
+        syncMapViewSwitch(button);
+        try { window.dispatchEvent(new Event('resize')); } catch (e) { /* presentation-only reflow */ }
+      });
+      document.body.appendChild(button);
+    }
+    syncMapViewSwitch(button);
+  }
+
   function setViewportClass(root) {
     var viewportClass = resolveViewportClass();
     if (root) root.setAttribute('data-g009-viewport-class', viewportClass);
@@ -407,6 +439,7 @@
       document.documentElement.setAttribute('data-g009-viewport-class', viewportClass);
       if (isIpadLandscape() && viewportClass !== 'IPAD_PORTRAIT_820' && viewportClass !== 'MOBILE_480') {
         document.documentElement.setAttribute('data-g009-ipad-landscape', 'true');
+        ensureMapViewSwitch();
       } else {
         document.documentElement.removeAttribute('data-g009-ipad-landscape');
       }
