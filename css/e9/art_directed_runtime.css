@@ -1242,6 +1242,63 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   }
 }
 
+/* G009_IPAD_VISUAL_POLISH_PREDEPLOY_001 -- three narrow iPad Safari fixes.
+   CSS only; no route, API, data, navigation-architecture or View Details change. */
+
+/* (1) + (2) Compact portrait tablet (the shell hamburger owns navigation). */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  /* (1) Use the same plaque proportions as landscape so the avatar sits in the
+     ring and both text rows stay inside the gold frame, and start the plaque
+     to the right of the 44px hamburger instead of underneath it. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__player {
+    grid-template-columns: 60px minmax(0, 1fr) 20px;
+    grid-template-rows: auto auto;
+    row-gap: 2px;
+    align-content: center;
+    width: 286px;
+    max-width: calc(100% - 34px);
+    margin-left: 34px;
+    padding: 5px 22px 5px 38px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__avatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__name {
+    font-size: 13.5px;
+    line-height: 17px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__level,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__level > span {
+    min-height: 0;
+    font-size: 12.5px;
+    line-height: 15px;
+  }
+
+  /* (2) The selected-zone card below the map already carries the primary
+     action in this layout. reference_world_map.css hides the map-level CTA for
+     portrait, but the runtime-kit tablet rule above re-shows it with
+     display: inline-flex !important; restore that intent (hence !important),
+     and only while another primary action is actually visible. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #adventure-stage:has(#e9-world-stage-details-cta:not([hidden]), #e9-newbie-mainline:not([hidden])) #e9-world-stage-primary-cta {
+    display: none !important;
+  }
+}
+
+/* (3) Landscape tablet: the generic tablet drawer width (rwd.css, 360px) is
+   wider than the right-card slot it is positioned in (286px here), so the
+   parchment card ran past the right edge. Keep the card inside its slot, as
+   it already is at 1280px and wider. */
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e9-drawer-panel:not([hidden]) {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 /* G009 Night Atlas — World Map portrait chrome (phone and iPad portrait).
    The painted map stays the immersive tier. What frames it — page ground,
    shell ground and the selected-zone / current-mission card — is shared
