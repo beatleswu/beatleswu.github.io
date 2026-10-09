@@ -2023,3 +2023,78 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
     font-size: 11px;
   }
 }
+
+/* G009_A39_OWNER_LANDSCAPE_ZONE1_ZONE2_VISIBILITY_001 -- CSS only, landscape only.
+   iPad touch has no hover, so the locked Zone 2 plaque (opacity 0 until
+   hover/focus/selected/current) never showed. Show the Zone 1 and Zone 2
+   name plates at rest. Only plaque opacity and geometry change: no
+   disabled / aria-disabled, hidden, lock state or click dispatcher is touched. */
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape),
+       (min-width: 1280px) and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k26_30"] .e9-zone__plaque,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__plaque {
+    opacity: 1 !important;
+    transition: none !important;
+    visibility: visible !important;
+    width: max-content;
+    min-width: 0;
+    max-width: 160px;
+    padding: 5px 8px;
+    border: 1px solid rgba(236, 201, 120, .78);
+    border-radius: 9px;
+    color: #ffefc5;
+    background: rgba(13, 24, 52, .94);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .42);
+    text-shadow: none;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k26_30"] .e9-zone__name,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__name {
+    color: #ffefc5;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.3;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k26_30"] .e9-zone__name::before,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__name::before {
+    display: inline-block;
+    padding: 1px 4px;
+    margin-right: 5px;
+    border-radius: 5px;
+    color: #291c09;
+    background: #e4bf6b;
+    font: 900 10px/1.35 system-ui, sans-serif;
+    vertical-align: 1px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k26_30"] .e9-zone__name::before {
+    content: "01";
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__name::before {
+    content: "02";
+  }
+
+  /* Locked Zone 2: plate to the right of the node (baseline is left) so the
+     left rail never occludes it. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__plaque {
+    left: calc(100% + 9px);
+    right: auto;
+    text-align: left;
+    transform: translateY(-50%);
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"].e9-zone--locked {
+    opacity: .85;
+  }
+}
+
+/* Installed-PWA doubled viewport (2360px): keep the original zoom: 2 nav with
+   all seven links readable, but narrow only the slot (336 -> 312px) so the
+   rail clears the Zone 1 player marker. */
+@media (min-width: 1900px) and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-left-nav-slot {
+    width: 312px !important;
+  }
+}
