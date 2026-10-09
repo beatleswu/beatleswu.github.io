@@ -2090,6 +2090,87 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
   }
 }
 
+/* G009_4AA_OWNER_ALL10_IPAD_LANDSCAPE_READABILITY_001 -- CSS only.
+   Real iPad Safari landscape (flag set by world_stage.js setViewportClass,
+   independent of hover/pointer): all ten stage plaques are readable at rest
+   with a two-digit number. Only plaque presentation changes; geometry follows
+   the existing data-plaque-side anchors, and lock state, disabled/aria state,
+   [hidden] and click handling are untouched. The map keeps its WM-Q1
+   horizontal pan, so below ~1280px the remaining stages are reached by swiping. */
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone .e9-zone__plaque {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: none !important;
+  pointer-events: none;
+  z-index: 13;
+  width: max-content;
+  min-width: 88px;
+  max-width: 150px;
+  min-height: 0;
+  padding: 5px 7px 4px;
+  border: 1px solid rgba(210, 182, 117, .75);
+  border-radius: 8px;
+  color: #f2e5c8;
+  background: linear-gradient(170deg, rgba(20, 34, 62, .94), rgba(9, 16, 37, .97));
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .55);
+  text-shadow: none;
+}
+
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone .e9-zone__name {
+  display: block;
+  color: #f2e5c8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone .e9-zone__status-text {
+  color: #d4cab2;
+  font-size: 9px;
+  line-height: 1.15;
+}
+
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone .e9-zone__name::before {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 3px;
+  margin-right: 4px;
+  border-radius: 4px;
+  color: #161725;
+  background: #e6c26c;
+  font: 900 10px/1.1 system-ui, sans-serif;
+  text-align: center;
+}
+
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k26_30"] .e9-zone__name::before { content: "01"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k21_25"] .e9-zone__name::before { content: "02"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k16_20"] .e9-zone__name::before { content: "03"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k11_15"] .e9-zone__name::before { content: "04"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k6_10"] .e9-zone__name::before { content: "05"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k1_5"] .e9-zone__name::before { content: "06"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d1_2"] .e9-zone__name::before { content: "07"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d3_4"] .e9-zone__name::before { content: "08"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d5_6"] .e9-zone__name::before { content: "09"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d7_plus"] .e9-zone__name::before { content: "10"; }
+
+/* Locked stages stay visibly locked (dimmed + desaturated), never hidden. */
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone-locked="true"] {
+  opacity: .9;
+  filter: saturate(.7);
+}
+
+/* Anchor logic: honour data-plaque-side (left/top/bottom from the base rules;
+   Zone 1 right; Zone 2 right via the A39 rule). Zone 8 is the one 'right'
+   plaque near the scenic right edge, so it flips left to stay in frame. */
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d3_4"] .e9-zone__plaque {
+  right: calc(100% + 10px);
+  left: auto;
+  text-align: right;
+  transform: translateY(-50%);
+}
+
 /* Installed-PWA doubled viewport (2360px): keep the original zoom: 2 nav with
    all seven links readable, but narrow only the slot (336 -> 312px) so the
    rail clears the Zone 1 player marker. */
@@ -2097,4 +2178,15 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
   body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-left-nav-slot {
     width: 312px !important;
   }
+}
+
+
+/* G009_4AA_OWNER_ALL10_IPAD_LANDSCAPE_READABILITY_001 ADDENDUM A:
+   Zone 03's legacy left-side label was under the global left rail;
+   keep the node coordinate/lock unchanged and place only its plaque to the right. */
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k16_20"] .e9-zone__plaque {
+  right: auto;
+  left: calc(100% + 9px);
+  text-align: left;
+  transform: translateY(-50%);
 }

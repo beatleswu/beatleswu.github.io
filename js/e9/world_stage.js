@@ -381,10 +381,36 @@
     return 'DESKTOP';
   }
 
+  // Presentation-only flag: real iPad hardware (iPad UA, or iPadOS desktop-class
+  // Macintosh/MacIntel UA with multi-touch) currently in physical landscape.
+  // Deliberately independent of hover/pointer media features, which Safari
+  // reports inconsistently (trackpad => fine pointer). Never true in portrait.
+  function isIpadLandscape() {
+    var nav = window.navigator || {};
+    var ua = String(nav.userAgent || '');
+    var touchPoints = typeof nav.maxTouchPoints === 'number' ? nav.maxTouchPoints : 0;
+    var ipadUa = /iPad/.test(ua);
+    var desktopClassIpad = (/Macintosh/.test(ua) || nav.platform === 'MacIntel') && touchPoints > 1;
+    if (!ipadUa && !desktopClassIpad) return false;
+    if (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride()) return false;
+    var orientation = window.screen && window.screen.orientation;
+    if (orientation && typeof orientation.type === 'string') return orientation.type.indexOf('landscape') === 0;
+    var width = typeof window.innerWidth === 'number' ? window.innerWidth : 0;
+    var height = typeof window.innerHeight === 'number' ? window.innerHeight : 0;
+    return width > 0 && height > 0 && width > height;
+  }
+
   function setViewportClass(root) {
     var viewportClass = resolveViewportClass();
     if (root) root.setAttribute('data-g009-viewport-class', viewportClass);
-    if (document.documentElement) document.documentElement.setAttribute('data-g009-viewport-class', viewportClass);
+    if (document.documentElement) {
+      document.documentElement.setAttribute('data-g009-viewport-class', viewportClass);
+      if (isIpadLandscape() && viewportClass !== 'IPAD_PORTRAIT_820' && viewportClass !== 'MOBILE_480') {
+        document.documentElement.setAttribute('data-g009-ipad-landscape', 'true');
+      } else {
+        document.documentElement.removeAttribute('data-g009-ipad-landscape');
+      }
+    }
     return viewportClass;
   }
 
