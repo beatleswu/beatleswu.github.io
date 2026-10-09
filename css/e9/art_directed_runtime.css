@@ -1291,6 +1291,39 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   }
 }
 
+/* G009_PWA_ZONE1_FIRST_CHALLENGE_ENTRY_RECOVERY_001. The installed-PWA
+   portrait override (reference_world_map.css) hides the map-level CTA
+   unconditionally. With Zone 1 selected the card's own primary button is
+   suppressed, which left a new player with no way to start the first
+   challenge. Bring the existing map CTA back for Zone 1 only, and only when
+   the card button is unavailable and the map CTA itself is offered and
+   enabled. Nothing is enabled by styling. The override never laid this button
+   out (it was always hidden there), so it also takes the same compact sizes
+   the ordinary portrait tablet layout uses; without them the label wraps one
+   character per line. */
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-slot[data-g009-zone-key="k26_30"]:has(#e9-world-stage-details-cta[hidden], #e9-world-stage-details-cta:disabled) #e9-world-stage-primary-cta:not([hidden]):not(:disabled) {
+  display: inline-flex;
+  min-height: 64px;
+  padding: 8px 14px 8px 34px;
+  gap: 6px;
+  font-size: 13px;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-slot[data-g009-zone-key="k26_30"]:has(#e9-world-stage-details-cta[hidden], #e9-world-stage-details-cta:disabled) #e9-world-stage-primary-cta .e10-map-primary-cta__icon {
+  width: 46px;
+  height: 46px;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-slot[data-g009-zone-key="k26_30"]:has(#e9-world-stage-details-cta[hidden], #e9-world-stage-details-cta:disabled) #e9-world-stage-primary-cta .e10-map-primary-cta__copy strong {
+  font-size: 21px;
+  line-height: 1.04;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-slot[data-g009-zone-key="k26_30"]:has(#e9-world-stage-details-cta[hidden], #e9-world-stage-details-cta:disabled) #e9-world-stage-primary-cta .e10-map-primary-cta__copy span {
+  font-size: 11px;
+  line-height: 1.1;
+}
+
 /* (3) Landscape tablet: the generic tablet drawer width (rwd.css, 360px) is
    wider than the right-card slot it is positioned in (286px here), so the
    parchment card ran past the right edge. Keep the card inside its slot, as
