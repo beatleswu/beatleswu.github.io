@@ -515,15 +515,15 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat: materialize Owner-accepted Night Atlas UI",
-      "source_date": "2026-10-08",
-      "content_sha256": "206df35f2912dba15c18f14a5eb008baeec66de7ce84fa61b2cb33f8d3bb2885",
-      "content_size_bytes": 113536,
+      "source_commit": "a5226815a76f7a37c4ef42b32be3565248982a35",
+      "source_branch_or_local_ref": "HEAD",
+      "source_commit_subject": "feat(e10): add iPad landscape world overview and detail toggle",
+      "source_date": "2026-10-09",
+      "content_sha256": "e89459c2070f626b0b6dda10c5969f49ca67a2694a104a6d91a31136f201a183",
+      "content_size_bytes": 116728,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data; Zone4 intro cinematic wiring",
-      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
+      "source_status": "candidate-branch provenance -- recorded source_commit introduced the Owner-accepted current iPad landscape world-stage JS blob on unmerged candidate HEAD; not canonical origin/master nor Production-deployed until separately gated"
     },
     {
       "path": "sw.js",
