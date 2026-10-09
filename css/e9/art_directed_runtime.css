@@ -1282,8 +1282,11 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
      action in this layout. reference_world_map.css hides the map-level CTA for
      portrait, but the runtime-kit tablet rule above re-shows it with
      display: inline-flex !important; restore that intent (hence !important),
-     and only while another primary action is actually visible. */
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #adventure-stage:has(#e9-world-stage-details-cta:not([hidden]), #e9-newbie-mainline:not([hidden])) #e9-world-stage-primary-cta {
+     but only while the card's own primary button is shown and enabled. The
+     newbie mainline is deliberately not treated as an alternative: it can
+     lack the hidden attribute while still being display: none, and Zone 1
+     suppresses the card button, so the map CTA must stay there. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #adventure-stage:has(#e9-world-stage-details:not([hidden]) #e9-world-stage-details-cta:not([hidden]):not(:disabled)) #e9-world-stage-primary-cta {
     display: none !important;
   }
 }
