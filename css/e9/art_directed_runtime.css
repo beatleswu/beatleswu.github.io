@@ -1850,3 +1850,176 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
     zoom: 2;
   }
 }
+
+/* G009_C0_OWNER_IPAD_UNIFIED_UI_ENTRY_CORRECTIVE_003 -- CSS only.
+   No route, dispatcher, entitlement, copy or data change: the same
+   [data-e10-zone-cta] / #e9-world-stage-primary-cta buttons and their
+   existing click handlers are restyled and re-positioned, nothing is added
+   or duplicated. */
+
+/* (1) Map primary CTA: a compact navy plaque with a gold hairline instead of
+   the oversized green art frame. Text never wraps; the box grows to fit it.
+   Visibility (display) is still owned by the earlier portrait/override rules. */
+@media (min-width: 768px) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta.e10-map-primary-cta {
+    box-sizing: border-box;
+    width: auto;
+    max-width: 34%;
+    height: auto;
+    min-height: 52px;
+    gap: 8px;
+    padding: 6px 18px 6px 12px !important;
+    border: 1px solid rgba(236, 201, 120, .72);
+    border-radius: 12px;
+    color: #fff1c4;
+    background: linear-gradient(180deg, #1c2b57 0%, #0f1a3d 100%);
+    box-shadow: inset 0 0 0 1px rgba(255, 241, 196, .12), 0 6px 14px rgba(0, 0, 0, .38);
+    white-space: nowrap;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta .e10-map-primary-cta__icon {
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta .e10-map-primary-cta__copy {
+    gap: 1px;
+    white-space: nowrap;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta .e10-map-primary-cta__copy strong {
+    color: #e3b457;
+    font-size: 17px !important;
+    line-height: 1.15;
+    text-shadow: none;
+    white-space: nowrap;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta .e10-map-primary-cta__copy span {
+    color: #c7cce0;
+    font-size: 11px !important;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  /* (2) The current zone already carries the player avatar/pin. Drop the
+     green status text under its label on the map; the tile's aria-label
+     keeps the state for assistive technology, and the text stays in the DOM
+     (visually hidden, not display:none). */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone.is-current .e9-zone__status-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* (3) Landscape/side-panel drawer: keep the playable CTA in view. The
+   drawer scrolls (overflow-y: auto) and the CTA is its last child, so with the
+   tall landmark it sat below the fold. Shrink the landmark, let the runtime
+   wrapper dissolve so the CTA's containing block is the whole summary, and pin
+   the CTA to the bottom of the scrolling drawer. */
+@media (min-width: 768px) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-drawer-zone-summary__landmark {
+    aspect-ratio: auto;
+    height: clamp(64px, 11vh, 96px);
+    max-height: 96px;
+    margin-bottom: 6px;
+    object-fit: contain;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime {
+    display: contents;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime > * {
+    margin-top: 6px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 52px;
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 241, 196, .6);
+    border-radius: 12px;
+    color: #1b1404;
+    background: linear-gradient(180deg, #f6dd9a, #e3b457 58%, #a9762b);
+    box-shadow: 0 0 0 5px #f3dd9c, 0 -8px 10px 4px rgba(243, 221, 156, .96), 0 4px 10px rgba(0, 0, 0, .25);
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1.2;
+    text-shadow: none;
+    white-space: nowrap;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta:not(.e10-zone-panel-runtime__cta--secondary) {
+    position: sticky;
+    z-index: 3;
+    bottom: 0;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta--secondary {
+    box-shadow: none;
+    color: #4b2d17;
+    background: rgba(255, 249, 222, .82);
+    border-color: rgba(140, 100, 45, .7);
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta[hidden] {
+    display: none;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta:disabled {
+    color: #5e5a4c;
+    background: linear-gradient(180deg, #d9d2bd, #b8ad8d);
+    box-shadow: 0 0 0 5px #f3dd9c, 0 -8px 10px 4px rgba(243, 221, 156, .96);
+  }
+}
+
+
+/* G009_C0_OWNER_IPAD_UNIFIED_UI_ENTRY_CORRECTIVE_003 ADDENDUM A:
+   Collapse redundant context while the drawer owns the one primary CTA.
+   Keep original state/label in the DOM for assistive technology. */
+@media (min-width: 768px) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] .e9-body.is-right-drawer-open #e9-world-stage-primary-cta.e10-map-primary-cta {
+    display: none !important;
+  }
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-body.is-right-drawer-open #right-cards #e10-drawer-zone-state {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone.is-current .e9-zone__plaque {
+    width: max-content;
+    min-width: 0;
+    min-height: 25px;
+    max-width: 138px;
+    padding: 3px 8px;
+    border: 1px solid rgba(236, 201, 120, .58);
+    border-radius: 7px;
+    background: rgba(14, 25, 55, .84);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
+    color: #f6e6be;
+    text-shadow: none;
+  }
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone.is-current .e9-zone__name {
+    color: #f6e6be;
+    font-size: 11px;
+  }
+}
