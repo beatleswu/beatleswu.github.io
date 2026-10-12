@@ -1,4 +1,4 @@
-/* R12 successor: explicit-but-unmapped Future30 identity fails closed; legacy art and A1 default are kept. */
+/* R12 successor: explicit-but-unmapped Future30 identity fails closed; legacy keys present as A1. */
 'use strict';
 
 const assert = require('assert');
@@ -68,13 +68,18 @@ async function main() {
   assert.strictEqual(r.ok, true);
   assert.strictEqual(r.fallback, false);
 
-  // 7. A deliberately chosen legacy character keeps its shipped art and needs no manifest.
-  r = await PlayerState.fetchAvatarPresentation(fake({ appearance: okBody({ character_key: 'mage' }), manifest: { ok: false, status: 503 } }));
-  assert.strictEqual(r.ok, true);
-  assert.strictEqual(r.data.asset, '/assets/hero/characters/chibi_mage_normalized.webp');
-  assert.strictEqual(r.fallback, false);
+  // 7. Owner decision 2026-10-04: all 16 legacy character keys present as the approved A1.
+  const LEGACY = ['apprentice', 'apprentice_girl', 'swordsman', 'rogue', 'ranger', 'berserker', 'guardian', 'paladin',
+    'mage', 'sage', 'hero_male', 'woman', 'boy_child', 'girl_child', 'elder_master', 'elder_woman'];
+  for (const key of LEGACY) {
+    r = await PlayerState.fetchAvatarPresentation(fake({ appearance: okBody({ character_key: key }), manifest: okBody(manifest) }));
+    assert.strictEqual(r.ok, true, key);
+    assert.strictEqual(r.fallback, true, key);
+    assert.strictEqual(r.data.asset, `/${avatar.target_runtime_path}`, key);
+    assert.ok(!/chibi_/.test(JSON.stringify(r.data)), `${key}: no legacy image`);
+  }
 
-  console.log('R12 Future30 fail-closed successor: PASS cases=9');
+  console.log('R12 Future30 fail-closed successor: PASS cases=9+16legacy');
 }
 
 main().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

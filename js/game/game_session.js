@@ -206,7 +206,7 @@
                 : null;
             this._currentIdentity = null;
             this._reviewInFlightKey = null;
-            // Ordinary public Review recovery is separate from the render/Lord
+            // Ordinary public Review recovery is separate from the render-session
             // identity. invalidate()/endReview() must not discard an uncertain
             // HTTP submission. Stored acknowledgements are never commit authority.
             this._publicReviewStores = new Map();
