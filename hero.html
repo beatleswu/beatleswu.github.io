@@ -742,6 +742,16 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .g008-future30-hero-stage[data-state="loading"],
 .g008-future30-hero-stage[data-state="ready"] { display: block; }
 .g008-future30-hero-stage canvas { width: 100%; height: 100%; display: block; }
+/* Preview-only real-iPad 360-degree acceptance affordance. */
+.g008-future30-hero-stage[data-state="ready"] canvas { pointer-events: auto; touch-action: none; cursor: grab; }
+.g008-future30-hero-stage[data-state="ready"]::after {
+  content: "左右拖曳旋轉 360°";
+  position: absolute; right: 12px; top: 12px; z-index: 3;
+  pointer-events: none; user-select: none; -webkit-user-select: none;
+  padding: 6px 10px; border-radius: 999px;
+  background: rgba(10, 24, 51, .82); border: 1px solid rgba(210, 171, 94, .65);
+  color: #f5e3bc; font: 600 12px/1.4 system-ui, sans-serif;
+}
 .char-avatar[data-g008-future30-render="ready"] #char-fullbody-avatar-img,
 .char-avatar[data-g008-future30-render="ready"] .combat-gear-layer,
 .char-avatar[data-g008-future30-render="ready"] .functional-wearable-stack,
@@ -1146,6 +1156,23 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   transform: translateY(-2px); border-color: var(--pet-accent, var(--teal));
   box-shadow: 0 10px 26px rgba(28,16,4,.22);
 }
+/* Show real gated Spirit goals in both first-pet catalog and owned-roster views. */
+.pet-choice-card:disabled { cursor: default; border-style: dashed; opacity: .92; }
+.pet-choice-card:disabled:hover { transform: none; box-shadow: none; }
+.pet-choice-card.locked-spirit .pet-choice-art { filter: saturate(.78); }
+.pet-choice-requirement {
+  display: block; margin-top: 8px; font-weight: 800;
+  font-size: 12px; line-height: 1.45; color: #5c4829;
+  overflow-wrap: anywhere;
+}
+.pet-roster-unlock-requirement {
+  display: block; font-size: 10.5px; font-weight: 700;
+  line-height: 1.45; color: var(--ink2);
+  white-space: normal; overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .pet-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .pet-choice-art {
   width: 100%; aspect-ratio: 1 / 1; object-fit: contain; object-position: center;
   display: block; margin: 0 auto 8px; filter: drop-shadow(0 10px 16px rgba(42,23,8,.22));
@@ -1172,7 +1199,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .pet-roster-grid { display: flex; flex-wrap: wrap; gap: 9px; }
 .pet-roster-chip {
   position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  width: 92px; padding: 8px 6px 7px; cursor: pointer; text-align: center;
+  width: 145px; min-height: 138px; padding: 8px 8px 10px; cursor: pointer; text-align: center;
   border: 1.5px solid var(--border); border-radius: 12px;
   background: linear-gradient(180deg,#fff8df,#ecd9aa);
   transition: transform .15s, border-color .15s, box-shadow .15s;
@@ -1197,7 +1224,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 }
 .pet-roster-name {
   font-size: 11px; font-weight: 800; color: var(--ink2); max-width: 100%;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: normal; overflow-wrap: anywhere;
 }
 .pet-roster-lv { font-size: 9.5px; color: var(--ink3); font-family: 'DM Mono', monospace; }
 .pet-roster-lv.claim { color: var(--teal-dark); font-weight: 800; }
@@ -2396,6 +2423,15 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
                   data-i18n="g009.hero.character.serverState">伺服器權威的目前角色選擇</span>
           </div>
         </div>
+        <section id="g009-uat-owned-characters" style="margin:16px 0;padding:16px;border:1px solid #92744a;border-radius:16px;background:rgba(22,38,73,.9)">
+          <h3 style="margin:0 0 8px;color:#f2d69c">角色圖鑑 / Character Collection</h3>
+          <p id="g009-uat-character-status" role="status" style="color:#d8e2f7">載入完整角色目錄…</p>
+          <h4 style="margin:20px 0 10px;color:#f2d69c;font-size:16px">已解鎖 · 可切換角色</h4>
+          <div id="g009-uat-character-options" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px"></div>
+          <h4 style="margin:24px 0 8px;color:#f2d69c;font-size:16px">尚未解鎖 · 待取得 <span id="g009-uat-locked-count"></span></h4>
+          <p id="g009-uat-unlock-preview-disclaimer" style="color:#d6c6a3;margin:0 0 12px;font-size:13px">以下為「暫定 V1」取得方式，尚未生效或開放領取；各角色分配與條件後續可能調整，請以正式公告為準。</p>
+          <div id="g009-uat-locked-character-options" role="list" aria-label="尚未解鎖角色" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px"></div>
+        </section>
         <div class="g009-card-grid">
           <article class="g009-mini-card">
             <span class="g009-mini-icon" aria-hidden="true">♧</span>
@@ -3078,20 +3114,24 @@ function renderPetCompanion() {
       <div>
         <div class="pet-intro-text">
           ${isEn()
-            ? 'Choose one companion to begin. It will stay on your Hero page, gain levels through feeding and practice, and grow with your Go journey.'
-            : '選一隻棋靈夥伴開始同行。牠會留在 HERO 頁，透過餵食與修行升級，陪你一起走完整個圍棋旅程。'}
+            ? 'Your first Spirit is always Ink-drop Kelpie. Preview the others and their unlock requirements; unreleased Spirits cannot be claimed.'
+            : '第一隻棋靈固定為墨滴水靈馬。其他棋靈先展示外觀與取得條件，達標後依序領取；未公布的條件尚未開放。'}
         </div>
         ${petRosterHTML(collection, { showSingle: true })}
         <div class="pet-choice-grid">
-          ${(_petState.catalog || []).map(p => `
-            <button class="pet-choice-card" style="--pet-accent:${p.accent || '#0b6f69'}" onclick="choosePet('${p.key}')">
+          ${(_petState.catalog || []).map(p => {
+            const starter = p.key === 'ink_drop_kelpie';
+            const requirement = petUnlockConditionText(p.key, SPIRIT_DISPLAY_UNLOCK_GATES[p.key] ?? null, null, false);
+            return `
+            <button type="button" class="pet-choice-card${starter ? '' : ' locked-spirit'}" data-spirit-key="${escapeHTML(p.key)}" style="--pet-accent:${p.accent || '#0b6f69'}" ${starter ? "onclick=\"choosePet('ink_drop_kelpie')\"" : "disabled aria-disabled=\"true\""}>
               <img class="pet-choice-art" src="${petAnimatedImage(p)}" alt="${escapeHTML(petLocal(p,'name','name_en'))}" loading="lazy" decoding="async">
               <span class="pet-choice-role">${escapeHTML(petLocal(p,'role','role_en'))}</span>
               <div class="pet-choice-name">${escapeHTML(petLocal(p,'name','name_en'))}</div>
               <div class="pet-choice-en">${escapeHTML(p.name_en || '')}</div>
               <div class="pet-choice-desc">${escapeHTML(petLocal(p,'ability','ability_en'))}</div>
-            </button>
-          `).join('')}
+              <div class="pet-choice-requirement" data-spirit-initial-unlock="${escapeHTML(p.key)}">${escapeHTML(requirement)}</div>
+            </button>`;
+          }).join('')}
         </div>
       </div>`;
     return;
@@ -3364,6 +3404,23 @@ function petMilestoneToast(milestones) {
     : `里程碑 LV${m.level} 達成！陪練加成提升，獲得 ${reward}`;
 }
 
+// Read-only canonical first-three Spirit threshold copy. Once owned, prefer server locked-entry state.
+const SPIRIT_DISPLAY_UNLOCK_GATES = Object.freeze({
+  ink_drop_kelpie: 1, whispering_void_kit: 11, star_shell_hatchling: 16,
+  starpath_antlerling: null, fatty: null, obsidian_bastion: null,
+});
+function petUnlockConditionText(key, gate, maxLevel, claimable = false) {
+  if (key === 'ink_drop_kelpie') return isEn() ? 'First Spirit, fixed starter' : '初始棋靈：第一隻固定取得';
+  if (claimable) return isEn() ? 'Requirement met; claim in order' : '條件已達成，可依序領取';
+  if (Number.isSafeInteger(gate) && gate > 1) {
+    const now = Number.isSafeInteger(maxLevel) ? (isEn() ? ' (highest LV' + maxLevel + ')' : '（目前最高 LV' + maxLevel + '）') : '';
+    return isEn() ? 'Raise any owned Spirit to LV' + gate + now + ', claim in order'
+      : '將任一已擁有棋靈培養至 LV' + gate + now + '，依序領取';
+  }
+  return isEn() ? 'Condition not announced; not yet available'
+    : '解鎖條件尚未公布（待冒險／Boss／任務正式規則，目前未開放）';
+}
+
 function petRosterHTML(col, { showSingle = false } = {}) {
   if (!col) return '';
   const owned = col.collection || [];
@@ -3376,6 +3433,7 @@ function petRosterHTML(col, { showSingle = false } = {}) {
       <span class="pet-roster-lv">LV${o.level}${o.active ? ` · ${isEn() ? 'Active' : '出戰'}` : ''}</span>
     </button>`).join('');
   const lockedChips = locked.map(l => {
+    const requirement = petUnlockConditionText(l.key, l.unlock_level, col.max_level, l.claimable);
     const cond = l.claimable
       ? (isEn() ? 'Claim' : '可領取')
       : (l.unlock_level ? `LV${l.unlock_level}` : (isEn() ? 'Locked' : '未解鎖'));
@@ -3384,6 +3442,7 @@ function petRosterHTML(col, { showSingle = false } = {}) {
       <img class="pet-roster-art" src="${petAnimatedImage(l)}" alt="" loading="lazy" decoding="async" style="${l.claimable ? '' : 'filter:grayscale(1);opacity:.5'}">
       <span class="pet-roster-name">${escapeHTML(petLocal(l,'name','name_en'))}</span>
       <span class="pet-roster-lv${l.claimable ? ' claim' : ''}">${cond}</span>
+      <span class="pet-roster-unlock-requirement" data-spirit-locked-req="${escapeHTML(l.key)}">${escapeHTML(requirement)}</span>
     </button>`;
   }).join('');
   return `
@@ -4105,11 +4164,24 @@ const FUNCTIONAL_EQUIPMENT_IDS = new Set([
   'wooden_sword', 'iron_sword', 'fox_fang', 'dragon_claw', 'celestial_blade',
   'cloth_robe', 'leather_armor', 'fox_pelt', 'dragon_scale', 'void_mantle',
   'lucky_stone', 'xp_amulet', 'fox_mask', 'dragon_eye', 'go_stone_black',
+  'bamboo_shadow_blade', 'jade_river_bead', 'bamboo_scale_vest', 'foxtail_traveler_mantle',
+  'riverguard_coat', 'riverstone_sabre', 'cloudstep_star_lamellar', 'constellation_focus_lens',
+  'moonstar_rapier', 'odyssey_star_compass', 'emberline_cutlass', 'starglass_needle',
+  'weaveguard_vest', 'mirrorfall_mantle', 'copper_jade_talisman', 'prism_focus_charm',
 ]);
 const FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS = new Set([
   'wooden_sword', 'iron_sword', 'fox_fang', 'dragon_claw', 'celestial_blade',
   'cloth_robe', 'leather_armor', 'fox_pelt', 'dragon_scale', 'void_mantle',
   'lucky_stone', 'xp_amulet', 'fox_mask', 'dragon_eye',
+  'jade_river_bead', 'bamboo_scale_vest', 'foxtail_traveler_mantle', 'riverguard_coat',
+  'cloudstep_star_lamellar', 'constellation_focus_lens', 'odyssey_star_compass',
+  'weaveguard_vest', 'mirrorfall_mantle', 'copper_jade_talisman', 'prism_focus_charm',
+]);
+const FUNCTIONAL_HANDHELD_EQUIPMENT_IDS = new Set([
+  'bamboo_shadow_blade', 'riverstone_sabre', 'moonstar_rapier', 'emberline_cutlass', 'starglass_needle',
+]);
+const FUNCTIONAL_VISIBLE_EQUIPMENT_IDS = new Set([
+  ...FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS, ...FUNCTIONAL_HANDHELD_EQUIPMENT_IDS,
 ]);
 const FUNCTIONAL_HERO_SLOT_BY_ID = Object.freeze({
   wooden_sword: 'weapon', iron_sword: 'weapon', fox_fang: 'weapon',
@@ -4118,6 +4190,12 @@ const FUNCTIONAL_HERO_SLOT_BY_ID = Object.freeze({
   dragon_scale: 'armor', void_mantle: 'armor',
   lucky_stone: 'accessory', xp_amulet: 'accessory', fox_mask: 'accessory',
   dragon_eye: 'accessory',
+  bamboo_shadow_blade: 'weapon', riverstone_sabre: 'weapon', moonstar_rapier: 'weapon',
+  emberline_cutlass: 'weapon', starglass_needle: 'weapon',
+  bamboo_scale_vest: 'armor', foxtail_traveler_mantle: 'armor', riverguard_coat: 'armor',
+  cloudstep_star_lamellar: 'armor', weaveguard_vest: 'armor', mirrorfall_mantle: 'armor',
+  jade_river_bead: 'accessory', constellation_focus_lens: 'accessory', odyssey_star_compass: 'accessory',
+  copper_jade_talisman: 'accessory', prism_focus_charm: 'accessory',
 });
 const FUNCTIONAL_HERO_SLOTS = new Set(['weapon', 'armor', 'accessory']);
 function normalizeHeroFunctionalEquipment(items) {
@@ -4130,7 +4208,7 @@ function normalizeHeroFunctionalEquipment(items) {
     if (!FUNCTIONAL_EQUIPMENT_IDS.has(itemId)) return { status: 'unavailable', items: [] };
     if (FUNCTIONAL_INVENTORY_ONLY_IDS.has(itemId)) continue;
     if (item.functional_equipment !== true
-      || !FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(itemId)
+      || !FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(itemId)
       || !FUNCTIONAL_HERO_SLOTS.has(item.slot)
       || FUNCTIONAL_HERO_SLOT_BY_ID[itemId] !== item.slot) {
       return { status: 'unavailable', items: [] };
@@ -4162,14 +4240,16 @@ function functionalWearableDescriptor(item) {
   if (!item || item.functional_equipment !== true || item.equipped !== true) return null;
   const itemId = String(item.item_id || item.id || '');
   const presentation = item.presentation || {};
-  if (!FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(itemId)) return null;
-  if (presentation.mode !== 'FULL_BODY_OVERLAY' || presentation.full_body_required !== true) return null;
+  if (!FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(itemId)) return null;
+  const expectedMode = FUNCTIONAL_HANDHELD_EQUIPMENT_IDS.has(itemId) ? 'HANDHELD_OVERLAY' : 'FULL_BODY_OVERLAY';
+  if (presentation.mode !== expectedMode || presentation.full_body_required !== true) return null;
   const expectedAsset = `${FUNCTIONAL_WEARABLE_ASSET_ROOT}${itemId}.png`;
   if (presentation.asset !== expectedAsset) return null;
   const layer = String(presentation.layer || '');
   if (!layer) return null;
   return {
     itemId,
+    slot: FUNCTIONAL_HERO_SLOT_BY_ID[itemId],
     asset: expectedAsset,
     layer,
     maskRequirement: presentation.mask_requirement || '',
@@ -4218,7 +4298,9 @@ function renderFunctionalWearableProjection() {
   };
   return Promise.all(stages.map(([stage, fallback]) => {
     if (!stage) return Promise.resolve({ supported: false, reason: 'missing_stage' });
-    return renderer.renderSafe(stage, characterKey, equipped, { ...options, fallbackElement: fallback });
+    return renderer.renderSafe(stage, characterKey, equipped, {
+      ...options, fallbackElement: fallback, isCurrent: () => token === _functionalWearableRenderToken,
+    });
   })).then(results => {
     if (token !== _functionalWearableRenderToken) return results;
     stages.forEach(([stage], index) => {
@@ -4307,7 +4389,7 @@ function renderFunctionalEquipmentProjection() {
   const items = (_functionalEquipmentItems || []).filter(item => item
     && item.item_id !== 'go_stone_black'
     && item.functional_equipment === true
-    && FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)
+    && FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)
     && item.equipped === true);
   const targets = [
     [document.getElementById('hero-functional-projection'), document.getElementById('hero-functional-projection-list')],
@@ -4339,7 +4421,7 @@ function renderAuthoritativeFunctionalEffects(items = _functionalEquipmentItems)
   const chips = [];
   (Array.isArray(items) ? items : []).forEach(item => {
     if (!item || item.functional_equipment !== true || item.equipped !== true
-      || item.item_id === 'go_stone_black' || !FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)) return;
+      || item.item_id === 'go_stone_black' || !FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)) return;
     functionalProjectionEffectDetails(item.active_effect_details).forEach(effect => {
       const key = String(effect?.key || '').trim();
       if (!key || seen.has(key)) return;
@@ -5364,7 +5446,7 @@ function renderHeroOverview() {
   const functionalEquipped = _functionalEquipmentState === 'ready'
     ? (_functionalEquipmentItems || []).filter(item => item
       && item.functional_equipment === true
-      && FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)
+      && FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)
       && item.equipped === true)
     : [];
   const equipmentNames = functionalEquipped.map(functionalProjectionName);
@@ -5866,10 +5948,138 @@ function launchGoldConfetti() {
   }
 })();
 </script>
-<script type="module" src="/js/g008_future30_hero_renderer.js"></script>
+<script type="module" src="/js/g008_future30_hero_renderer.js?uat_orbit_selector_b4=1"></script>
 <script type="module" src="/js/g009_d007_shared_host_bootstrap.js"></script>
 <script type="module" src="/js/g009_d_r2_shared_host_bootstrap.js"></script>
 <script type="module" src="/js/g009_companion_formal18_bootstrap.mjs"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>
+<script>
+/* G009 character collection: all 30 canonical entries are visible; ownership still gates switching. */
+(() => {
+  const options = document.getElementById('g009-uat-character-options');
+  const lockedOptions = document.getElementById('g009-uat-locked-character-options');
+  const lockedCount = document.getElementById('g009-uat-locked-count');
+  const status = document.getElementById('g009-uat-character-status');
+  if (!options || !lockedOptions || !lockedCount || !status) return;
+  // Owner provisional visual-only plan V1; NOT the authoritative entitlement or acquisition rule.
+  // To revise, version this map and its linked immutable proposal receipt; server assignment stays UNASSIGNED.
+  const provisionalUnlockGroupsV1 = Object.freeze({"STAGE":["A3","V1","H1","K1","W1","M1","S1","F1","AR1","E1"],"PREMIUM":["V2","H2","K2","W2","M2"],"SHOP":["V3","H3","K3","W3","F2","F3","AR2","AR3","E2","E3"]});
+  const provisionalUnlockByKey = new Map();
+  provisionalUnlockGroupsV1.STAGE.forEach((key, i) => provisionalUnlockByKey.set(key, {
+    group:'STAGE', summary:'預計完成第 ' + (i + 1) + ' 關首次通關取得',
+    detail:'關卡角色預定獎勵，取得功能尚未開放'
+  }));
+  provisionalUnlockGroupsV1.PREMIUM.forEach(key => provisionalUnlockByKey.set(key, {
+    group:'PREMIUM', summary:'預計由通行證每月收藏包取得',
+    detail:'依正式發放規則，取得功能尚未開放'
+  }));
+  provisionalUnlockGroupsV1.SHOP.forEach(key => provisionalUnlockByKey.set(key, {
+    group:'SHOP', summary:'預計於商店開放後取得',
+    detail:'目前商店交易未開放，尚無正式價格'
+  }));
+  if (provisionalUnlockByKey.size !== 25) throw new Error('暫定角色取得表數量不符');
+  const load = async () => {
+    status.textContent = '載入完整角色目錄…';
+    try {
+      const response = await fetch('/api/player/character-catalog', { credentials:'include', cache:'no-store' });
+      if (!response.ok) throw new Error('catalog HTTP ' + response.status);
+      const catalog = await response.json();
+      if (catalog.logical_count !== 30 || catalog.visual_count !== 33 || !Array.isArray(catalog.entries) || catalog.entries.length !== 30) throw new Error('角色目錄驗證失敗');
+      const owned = catalog.entries.filter(x => x && x.owned === true);
+      const locked = catalog.entries.filter(x => x && x.owned === false);
+      if (owned.length + locked.length !== 30) throw new Error('角色持有狀態不完整');
+      const authorizedNames = new Set(catalog.entries.map(item => item.character_key));
+      if ([...provisionalUnlockByKey.keys()].some(key => !authorizedNames.has(key))) throw new Error('暫定分配不符合正式角色目錄');
+      options.replaceChildren();
+      lockedOptions.replaceChildren();
+      for (const item of owned) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.characterKey = item.character_key;
+        btn.textContent = (item.display_name_zh || item.display_name || item.character_key) + (item.is_applied ? ' ✓ 使用中' : ' · 切換');
+        btn.style.cssText = 'min-height:54px;padding:10px;border-radius:12px;border:1px solid #b69762;background:' + (item.is_applied ? '#725322' : '#172a51') + ';color:white;font:600 15px system-ui;touch-action:manipulation;cursor:pointer';
+        btn.disabled = item.is_applied === true;
+        options.appendChild(btn);
+      }
+      for (const item of locked) {
+        const modelId = item.visual_model_id;
+        if (typeof modelId !== 'string' || modelId !== 'FUTURE30_MODEL_' + item.character_key + '_RED') {
+          throw new Error('角色視覺資產身份不符：' + item.character_key);
+        }
+        const card = document.createElement('div');
+        card.dataset.characterKey = item.character_key;
+        card.dataset.visualModelId = modelId;
+        card.dataset.locked = 'true';
+        const preview = provisionalUnlockByKey.get(item.character_key);
+        if (!preview) throw new Error('缺少暫定角色取得方式：' + item.character_key);
+        card.dataset.acquisitionPreview = 'PROVISIONAL_V1';
+        card.dataset.acquisitionGroupPreview = preview.group;
+        card.setAttribute('role', 'listitem');
+        const name = item.display_name_zh || item.display_name || item.character_key;
+        card.setAttribute('aria-label', name + '，尚未解鎖');
+        card.style.cssText = 'min-height:244px;padding:10px;border-radius:14px;border:1px solid #52617b;background:linear-gradient(155deg,#182b4d,#101b33);color:#e0e8f3;display:flex;flex-direction:column;gap:8px;min-width:0;overflow:hidden';
+        const artFrame = document.createElement('div');
+        artFrame.style.cssText = 'height:178px;border-radius:10px;border:1px solid rgba(198,171,119,.28);background:radial-gradient(ellipse at 50% 50%,rgba(111,134,170,.24),rgba(18,30,54,.06) 68%);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden';
+        const art = document.createElement('img');
+        art.dataset.artSource = 'standing';
+        art.loading = 'eager';
+        art.decoding = 'async';
+        art.alt = name + ' 角色立繪';
+        art.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:saturate(.84);pointer-events:none';
+        art.src = '/assets/world-map-identity/standing/stand_' + encodeURIComponent(modelId) + '.png';
+        art.addEventListener('error', () => {
+          if (art.dataset.artSource === 'standing') {
+            art.dataset.artSource = 'avatar';
+            art.src = '/assets/world-map-identity/avatars/avatar_' + encodeURIComponent(modelId) + '.png';
+          } else {
+            art.dataset.artSource = 'missing';
+            art.alt = '此角色圖片暫時無法載入';
+            art.removeAttribute('src');
+          }
+        });
+        const lockBadge = document.createElement('span');
+        lockBadge.textContent = '🔒 尚未解鎖';
+        lockBadge.style.cssText = 'position:absolute;right:6px;bottom:6px;border-radius:8px;background:rgba(7,15,29,.84);border:1px solid rgba(226,195,136,.5);padding:4px 7px;color:#f0dab1;font:600 11px system-ui;white-space:nowrap';
+        artFrame.append(art, lockBadge);
+        const heading = document.createElement('strong');
+        heading.textContent = name;
+        heading.style.cssText = 'font:700 15px system-ui;overflow-wrap:anywhere';
+        const hint = document.createElement('span');
+        hint.textContent = '角色 ' + item.character_key + ' · 待取得';
+        hint.style.cssText = 'font:12px system-ui;color:#b0bfd5';
+        const condition = document.createElement('p');
+        condition.className = 'g009-unlock-preview-condition';
+        condition.textContent = preview.summary;
+        condition.style.cssText = 'font:600 12px/1.45 system-ui;color:#f4d99d;margin:0;min-height:34px;overflow-wrap:anywhere';
+        const proviso = document.createElement('p');
+        proviso.className = 'g009-unlock-preview-status';
+        proviso.textContent = '暫定 V1 · ' + preview.detail;
+        proviso.style.cssText = 'font:11px/1.4 system-ui;color:#acbacd;margin:0;overflow-wrap:anywhere';
+        card.append(artFrame, heading, hint, condition, proviso);
+        lockedOptions.appendChild(card);
+      }
+      lockedCount.textContent = '(' + locked.length + ')';
+      status.textContent = '角色總數 ' + catalog.entries.length + ' 位：已解鎖 ' + owned.length + ' 位，尚未解鎖 ' + locked.length + ' 位。已擁有角色可切換 3D 模型。';
+    } catch (err) { status.textContent = '角色載入失敗：' + String(err.message || err); }
+  };
+  options.addEventListener('click', async (event) => {
+    const btn = event.target.closest('button[data-character-key]');
+    if (!btn || btn.disabled) return;
+    const key = btn.dataset.characterKey;
+    options.querySelectorAll('button').forEach(b => b.disabled = true);
+    status.textContent = '切換角色中…';
+    try {
+      const response = await fetch('/api/skills/character', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({character_key:key}) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.error || result.rejected?.includes('character')) throw new Error(result.error || '切換被拒絕：HTTP ' + response.status);
+      const appearance = await fetch('/api/player/appearance', {credentials:'include',cache:'no-store'}).then(r => { if (!r.ok) throw new Error('appearance HTTP '+r.status); return r.json(); });
+      if (appearance.character_key !== key) throw new Error('伺服器角色未更新');
+      status.textContent = '切換成功，正在更新 3D…';
+      window.location.reload();
+    } catch (err) { status.textContent = '切換失敗：' + String(err.message || err); await load(); }
+  });
+  load();
+})();
+</script>
 </body>
 </html>

@@ -18,6 +18,29 @@
     'ink_drop_kelpie', 'whispering_void_kit', 'star_shell_hatchling',
     'starpath_antlerling', 'fatty', 'obsidian_bastion',
   ]);
+  // Canonical first three gate levels, for display while no pet has been selected.
+  // Once owned, use /api/pet/status collection.locked[].unlock_level / claimable.
+  const SPIRIT_DISPLAY_GATES = Object.freeze({
+    ink_drop_kelpie: 1, whispering_void_kit: 11, star_shell_hatchling: 16,
+    starpath_antlerling: null, fatty: null, obsidian_bastion: null,
+  });
+  function companionUnlockCopy(snapshot, key, owned) {
+    if (owned) return en() ? 'Owned · Available' : '已擁有 · 可於棋靈收藏中使用';
+    if (key === 'ink_drop_kelpie' && !snapshot?.pet)
+      return en() ? 'Fixed first Spirit · Choose to begin' : '初始棋靈 · 第一隻固定取得';
+    const entry = snapshot?.collection?.locked?.find(item => item.key === key);
+    if (entry?.claimable) return en() ? 'Requirement met · Claim in order' : '條件已達成 · 可依序領取';
+    const gate = entry ? entry.unlock_level : SPIRIT_DISPLAY_GATES[key];
+    if (Number.isSafeInteger(gate) && gate > 1) {
+      const level = snapshot?.collection?.max_level;
+      const progress = Number.isSafeInteger(level) ? (en() ? ' · Highest LV' + level : ' · 目前最高 LV' + level) : '';
+      return en() ? 'Raise any owned Spirit to LV' + gate + progress + ' · Claim in order'
+        : '將任一已擁有棋靈培養至 LV' + gate + progress + '，依序領取';
+    }
+    return en() ? 'Unlock condition not announced · Not yet available'
+      : '解鎖條件尚未公布 · 等待冒險／Boss／任務正式規則，目前未開放';
+  }
+
   const TAB_ORDER = Object.freeze(['hero', 'equipment', 'appearance', 'pet', 'honors']);
   const TAB_COPY = Object.freeze({
     hero: {
@@ -457,14 +480,28 @@
     }
     const catalog = Array.isArray(snapshot.catalog) ? snapshot.catalog : [];
     const entries = catalog.filter(item => item && COMPANION_KEYS.includes(item.key || item.pet_key));
+    const owned = new Set((snapshot.collection?.collection || []).map(item => item.key));
+    if (pet?.pet_key) owned.add(pet.pet_key);
+    rosterRoot.style.gridTemplateColumns = 'repeat(auto-fill,minmax(145px,1fr))';
     rosterRoot.innerHTML = entries.map(item => {
       const key = item.key || item.pet_key;
       const isActive = pet?.pet_key === key;
+      const isOwned = owned.has(key);
       const image = petImage(item);
-      const imageHTML = image ? `<img src="${esc(image)}" alt="" loading="lazy" decoding="async">` : '♧';
-      return `<div class="g009-companion-tile${isActive ? ' is-active' : ''}" data-pet-key="${esc(key)}">
-        ${imageHTML}<strong>${esc(petName(item))}</strong>${isActive ? `<span>${esc(tx('g009.hero.companion.withYou', 'With you'))}</span>` : ''}
-      </div>`;
+      const art = image ? '<img src="' + esc(image) + '" alt="" loading="lazy" decoding="async">' : '♧';
+      const isStarterReady = key === 'ink_drop_kelpie' && !pet;
+      const status = isActive ? (en() ? 'Active' : '出戰中')
+        : isOwned ? (en() ? 'Owned' : '已擁有')
+        : isStarterReady ? (en() ? 'Starter' : '初始棋靈')
+        : (en() ? 'Locked' : '🔒 未解鎖');
+      const req = companionUnlockCopy(snapshot, key, isOwned);
+      return '<div class="g009-companion-tile' + (isActive ? ' is-active' : '') + (isOwned ? ' is-owned' : ' is-locked')
+        + '" style="min-height:152px;justify-content:flex-start;padding:12px 8px" data-pet-key="' + esc(key)
+        + '" data-spirit-ownership="' + (isOwned ? 'owned' : 'locked') + '">'
+        + art + '<strong>' + esc(petName(item)) + '</strong>'
+        + '<span class="g009-companion-state">' + esc(status) + '</span>'
+        + '<span class="g009-companion-unlock-requirement" style="width:100%;display:block;white-space:normal;line-height:1.45;overflow-wrap:anywhere;font-size:11px;color:#ead29d" data-companion-requirement="' + esc(key) + '">'
+        + esc(req) + '</span></div>';
     }).join('');
   }
 

@@ -396,6 +396,50 @@
         }
     }
 
+    function publicReviewOutcome(payload, command) {
+        const outcome = mapOutcome(payload);
+        if (outcome.kind === 'PUBLIC_SUBMISSION_DUPLICATE') {
+            if (payload.submission_duplicate !== true
+                || payload.submission_id !== command.submission_id
+                || Number(payload.question_id) !== Number(command.question_id)
+                || Number(payload.grade) !== Number(command.grade)) {
+                throw new ReviewTransportError('public_review_ack_mismatch');
+            }
+            return 'DUPLICATE_COMMITTED_RECOVERED';
+        }
+        return 'NEW_COMMITTED';
+    }
+
+    function publicReviewFailure(error) {
+        return error && error.kind === 'REJECTED'
+            ? 'SERVER_REJECTED' : 'UNKNOWN_UNCONFIRMED';
+    }
+
+    async function reconcilePublicReview(command, userId, readProjection) {
+        // Transport validates read models but does not own unrelated endpoint
+        // reads or presentation. The caller supplies its authenticated reads.
+        if (typeof readProjection !== 'function') {
+            throw new ReviewTransportError('public_review_projection_unavailable');
+        }
+        const projection = await readProjection();
+        const card = projection?.card;
+        const stats = projection?.stats;
+        if (!isObjectPayload(card) || card.error || !isObjectPayload(stats) || stats.error) {
+            throw invalidResponse();
+        }
+        // The card endpoint's synthetic empty default is not durable proof.
+        // Return separate read models, never synthesize a full reward response.
+        if (Number(card.user_id) !== Number(userId)
+            || Number(card.question_id) !== Number(command.question_id)
+            || Number(card.last_grade) !== Number(command.grade)
+            || !card.updated_at || typeof card.due_date !== 'string'
+            || !Number.isFinite(Number(stats.xp)) || Number(stats.xp) < 0
+            || typeof stats.rank_level !== 'string') {
+            throw new ReviewTransportError('public_review_projection_mismatch');
+        }
+        return { card, stats };
+    }
+
     root.ReviewTransport = {
         endpoint: '/api/srs/review',
         buildRequest,
@@ -403,6 +447,9 @@
         review,
         practiceAttempt,
         practiceAnswer,
-        legacyReview
+        legacyReview,
+        publicReviewOutcome,
+        publicReviewFailure,
+        reconcilePublicReview
     };
 }(typeof window !== 'undefined' ? window : globalThis));
