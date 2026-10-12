@@ -172,15 +172,14 @@
     }
     return loadDerived84Manifest(doFetch).then(function (manifestIndex) {
       if (isFuture30Appearance(raw)) {
-        try {
-          var resolved = resolveFuture30AvatarPresentation(raw, manifestIndex);
-          resolved.fallback = false;
-          return resolved;
-        } catch (error) {
-          // An invalid Future30 visual identity is a legacy presentation
-          // fallback, never a fabricated legacy asset.
-          return resolveDefaultA1Presentation(manifestIndex);
-        }
+        // An explicit server-owned Future30 identity that the accepted
+        // Derived84 manifest does not map FAILS CLOSED: it is never presented
+        // as resolved, and never silently replaced by A1 (which would read as
+        // the player having been granted that character). Only a response
+        // carrying no Future30 identity at all takes the A1 default below.
+        var resolved = resolveFuture30AvatarPresentation(raw, manifestIndex);
+        resolved.fallback = false;
+        return resolved;
       }
       return resolveDefaultA1Presentation(manifestIndex);
     });
@@ -212,6 +211,20 @@
   function resolveCurrentPlayerAvatarPresentation(raw) {
     var legacy = legacyCharacterPresentation(raw);
     if (legacy) return legacy;
+    if (isFuture30Appearance(raw)) {
+      // Synchronous callers cannot consult the manifest: report the server's
+      // own identity as unresolved instead of claiming the default A1.
+      return {
+        id: raw.character_key || raw.character_runtime.visual_model_id,
+        asset: '',
+        avatarAsset: '',
+        standingAsset: '',
+        fallbackAsset: '',
+        presentationType: 'future30-derived84-unresolved',
+        characterKey: raw.character_key || null,
+        visualModelId: raw.character_runtime.visual_model_id,
+      };
+    }
     return {
       id: DEFAULT_CHARACTER_KEY,
       asset: '',
@@ -337,6 +350,24 @@
         return response.json().then(function (raw) {
           return resolveAppearanceAsync(raw, doFetch).then(function (appearance) {
             return { ok: true, data: appearance };
+          }, function (error) {
+            // Unmapped server identity: keep the HUD (name/level/coins) but
+            // show a neutral, explicitly unresolved avatar -- never A1.
+            if (error && error.message === 'derived84_visual_identity_unmapped') {
+              return { ok: true, data: {
+                avatarSrc: '',
+                avatarFallbackSrc: '',
+                avatarPresentation: {
+                  id: raw.character_key || raw.character_runtime.visual_model_id,
+                  asset: '', avatarAsset: '', standingAsset: '', fallbackAsset: '',
+                  presentationType: 'future30-derived84-unresolved',
+                  characterKey: raw.character_key || null,
+                  visualModelId: raw.character_runtime.visual_model_id,
+                  unmappedIdentity: true,
+                },
+              } };
+            }
+            throw error;
           });
         }, function () { return { ok: false, kind: 'error', status: response.status }; });
       }, function () { return { ok: false, kind: 'network', status: null }; }),
