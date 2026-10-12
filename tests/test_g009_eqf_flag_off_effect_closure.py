@@ -357,3 +357,35 @@ def test_postgres_flag_off_eq_f_effects_are_zero_and_legacy_unchanged(eqf_pg_url
         conn.close()
     assert stats["attack_bonus"] == pytest.approx(0.18)
     assert client.get("/api/player/sp").get_json()["max_sp"] == SP + 30 + 8
+
+
+# ── wrong-user / forged-request fail-closed ────────────────────────────────
+
+
+def test_other_player_never_inherits_eq_f_effects(tmp_path, monkeypatch):
+    path = tmp_path / "sp-wrong-user.sqlite"
+    _sqlite_sp_db(path, [("riverguard_coat", 1)], today_row=True)  # owned by user 1
+    client = _client(monkeypatch, lambda: _DbContext(path), user_id=2)
+    for on in (False, True):
+        _flag(monkeypatch, on)
+        assert client.get("/api/player/sp").get_json()["max_sp"] == SP
+
+
+def test_forged_effect_payload_cannot_create_eq_f_effects(tmp_path, monkeypatch):
+    path = tmp_path / "forged.sqlite"
+    _sqlite_sp_db(path, [("bamboo_shadow_blade", 0)], today_row=True)
+    client = _client(monkeypatch, lambda: _DbContext(path))
+    forged = {
+        "inv_id": 1,
+        "action": "equip",
+        "effects": {"dmg_bonus": 999, "sp_bonus": 999},
+        "dmg_bonus": 999,
+    }
+    _flag(monkeypatch, False)
+    assert client.post("/api/player/inventory/equip", json=forged).status_code == 409
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT equipped FROM player_inventory").fetchall() == [(0,)]
+        conn.row_factory = sqlite3.Row
+        stats = app_module._get_authoritative_combat_stats(conn, 1)
+    assert stats["attack_bonus"] == 0.0
+    assert client.get("/api/player/sp").get_json()["max_sp"] == SP
