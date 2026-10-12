@@ -211,6 +211,9 @@
             // HTTP submission. Stored acknowledgements are never commit authority.
             this._publicReviewStores = new Map();
             this._publicReviewInFlight = new Set();
+            // Server-confirmed outcomes observed by THIS page instance. Persisted
+            // state alone can never settle an answer (storage is client-writable).
+            this._publicReviewConfirmed = new Set();
         }
 
         _publicReviewStore(userId) {
@@ -298,13 +301,19 @@
             }
             const entry = this._publicReviewStore(attempt.userId).entries[attempt.key];
             entry.state = state;
+            if (['NEW_COMMITTED', 'DUPLICATE_COMMITTED_RECOVERED'].includes(state)) {
+                this._publicReviewConfirmed.add(attempt.lockKey);
+            } else {
+                this._publicReviewConfirmed.delete(attempt.lockKey);
+            }
             this._savePublicReview(attempt.userId);
         }
 
         settlePublicReview(attempt) {
             const entry = this._publicReviewStore(attempt.userId).entries[attempt.key];
             if (entry.uiSettled) return false;
-            if (!['NEW_COMMITTED', 'DUPLICATE_COMMITTED_RECOVERED'].includes(entry.state)) {
+            if (!this._publicReviewConfirmed.has(attempt.lockKey)
+                || !['NEW_COMMITTED', 'DUPLICATE_COMMITTED_RECOVERED'].includes(entry.state)) {
                 throw new Error('public_review_commit_not_confirmed');
             }
             entry.uiSettled = true;

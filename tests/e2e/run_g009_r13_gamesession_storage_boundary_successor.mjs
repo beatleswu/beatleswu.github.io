@@ -154,6 +154,19 @@ function tamperFailsClosed() {
   s.publicReviewCommand(a, false);
   assert.throws(() => s.settlePublicReview(a), /public_review_commit_not_confirmed/);
   assert.throws(() => s.recordPublicReviewOutcome(a, 'GRANTED_XP'), /public_review_outcome_invalid/);
+  // a forged local NEW_COMMITTED state cannot settle without a server outcome observed by this page
+  const stF = new FakeStorage();
+  const sF = load(stF);
+  const aF = sF.beginPublicReview(1, cmd());
+  const rawF = JSON.parse(stF.getItem(keyOf(1)));
+  rawF[ENTRY_KEY].state = 'NEW_COMMITTED';
+  stF.setItem(keyOf(1), JSON.stringify(rawF));
+  const sF2 = load(stF);
+  const aF2 = sF2.beginPublicReview(1, cmd());
+  assert.throws(() => sF2.settlePublicReview(aF2), /public_review_commit_not_confirmed/);
+  sF2.publicReviewCommand(aF2, false);
+  sF2.recordPublicReviewOutcome(aF2, 'NEW_COMMITTED'); // as index.html does from the server response
+  assert.equal(sF2.settlePublicReview(aF2), true);
   // a forged "settled" flag can only suppress a duplicate send; the API grants nothing
   const forged = new FakeStorage();
   forged.setItem(keyOf(1), JSON.stringify({ [ENTRY_KEY]: { command: { question_id: 7101, grade: 5, unit_name: 'u1',
