@@ -9497,8 +9497,7 @@ function showRankUpLegacyPopup(newLevel) {
     const t = _rankupText();
     document.getElementById('rankup-title').textContent = I18n.t('index.rankup_promoted') + newLevel + '！';
     document.getElementById('rankup-sub').textContent   = I18n.t('index.rankup_sub');
-    const rankBadge = document.getElementById('xp-rank-badge');
-    if (rankBadge) rankBadge.textContent = newLevel;
+    document.getElementById('xp-rank-badge').textContent = newLevel;
     popRankBadge();
     const popup = document.getElementById('rankup-popup');
     if (popup) popup.classList.add('show');

@@ -144,7 +144,32 @@
     return presentation;
   }
 
+  /*
+   * Compatibility for players whose committed appearance is one of the ten
+   * legacy runtime characters (a plain character_key, no Future30
+   * character_runtime): they keep their own formal asset instead of being
+   * silently replaced by the default A1. Unknown/missing keys and invalid
+   * Future30 identities still resolve to the Owner-accepted A1 rows.
+   */
+  function legacyCharacterPresentation(raw) {
+    if (isFuture30Appearance(raw)) return null;
+    var key = raw && typeof raw.character_key === 'string' ? raw.character_key.trim() : '';
+    if (!Object.prototype.hasOwnProperty.call(CHARACTER_PRESENTATIONS, key)) return null;
+    var resolved = CHARACTER_PRESENTATIONS[key];
+    return {
+      id: resolved.id,
+      asset: resolved.asset,
+      fallbackAsset: CHARACTER_PRESENTATIONS.apprentice.asset,
+      presentationType: 'full-body-character',
+    };
+  }
+
   function resolvePresentationAsync(raw, doFetch) {
+    var legacy = legacyCharacterPresentation(raw);
+    if (legacy) {
+      legacy.fallback = false;
+      return Promise.resolve(legacy);
+    }
     return loadDerived84Manifest(doFetch).then(function (manifestIndex) {
       if (isFuture30Appearance(raw)) {
         try {
@@ -163,6 +188,13 @@
 
   function resolveAppearanceAsync(raw, doFetch) {
     return resolvePresentationAsync(raw, doFetch).then(function (presentation) {
+      if (presentation.presentationType === 'full-body-character') {
+        return {
+          avatarSrc: presentation.asset,
+          avatarFallbackSrc: presentation.fallbackAsset,
+          avatarPresentation: presentation,
+        };
+      }
       return {
         avatarSrc: presentation.avatarAsset,
         avatarFallbackSrc: '',
@@ -178,6 +210,8 @@
    * Map continues to consume this resolved shape.
    */
   function resolveCurrentPlayerAvatarPresentation(raw) {
+    var legacy = legacyCharacterPresentation(raw);
+    if (legacy) return legacy;
     return {
       id: DEFAULT_CHARACTER_KEY,
       asset: '',
@@ -192,6 +226,13 @@
 
   function normalizeAppearance(raw) {
     var presentation = resolveCurrentPlayerAvatarPresentation(raw);
+    if (presentation.presentationType === 'full-body-character') {
+      return {
+        avatarSrc: presentation.asset,
+        avatarFallbackSrc: presentation.fallbackAsset,
+        avatarPresentation: presentation,
+      };
+    }
     return {
       avatarSrc: '',
       avatarFallbackSrc: '',
