@@ -167,13 +167,21 @@ function tamperFailsClosed() {
   sF2.publicReviewCommand(aF2, false);
   sF2.recordPublicReviewOutcome(aF2, 'NEW_COMMITTED'); // as index.html does from the server response
   assert.equal(sF2.settlePublicReview(aF2), true);
-  // a forged "settled" flag can only suppress a duplicate send; the API grants nothing
+  // a forged "settled" flag cannot skip server verification; the API grants nothing
   const forged = new FakeStorage();
   forged.setItem(keyOf(1), JSON.stringify({ [ENTRY_KEY]: { command: { question_id: 7101, grade: 5, unit_name: 'u1',
     source_context: 'practice', training_set_id: null, is_scaffolding: false, submission_id: 'forged' },
   state: 'NEW_COMMITTED', sent: true, uiSettled: true } }));
-  const f = load(forged).beginPublicReview(1, cmd());
-  assert.equal(f.settled, true);
+  const fS = load(forged);
+  const f = fS.beginPublicReview(1, cmd());
+  assert.equal(f.settled, false, 'a persisted settled flag is not trusted on a fresh page');
+  assert.equal(f.firstRequest, false, 'the stored submission id is reused for verification');
+  assert.equal(f.command.submission_id, 'forged');
+  fS.publicReviewCommand(f, false);
+  fS.recordPublicReviewOutcome(f, 'DUPLICATE_COMMITTED_RECOVERED');
+  assert.equal(fS.settlePublicReview(f), true);
+  fS.endPublicReview(f);
+  assert.equal(fS.beginPublicReview(1, cmd()).settled, true, 'settled once confirmed by this page');
   const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(load(new FakeStorage())));
   assert.ok(!methods.some((n) => /xp|reward|coin|grant|loot|rank/i.test(n)), 'GameSession exposes no reward/progression API');
 }

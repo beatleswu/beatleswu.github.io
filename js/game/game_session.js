@@ -265,6 +265,14 @@
                 || !entry.command.submission_id) {
                 throw new Error('public_review_recovery_state_invalid');
             }
+            if (entry.uiSettled && !this._publicReviewConfirmed.has(lockKey)) {
+                // A persisted "settled" flag is client-writable. Never trust it on a
+                // fresh page: re-verify through the idempotent resend (same
+                // submission id -> the server answers DUPLICATE, no second effect).
+                entry.uiSettled = false;
+                entry.state = 'UNKNOWN_UNCONFIRMED';
+                this._savePublicReview(userId);
+            }
             if (!entry.uiSettled) {
                 // Telemetry and the now-current unit completion projection are
                 // not a new logical payload. Reuse their original wire values.
