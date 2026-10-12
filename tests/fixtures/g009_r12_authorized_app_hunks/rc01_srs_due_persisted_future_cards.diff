@@ -1,0 +1,36 @@
+--- a/app.py
++++ b/app.py
+@@ -18316,16 +18316,28 @@
+         rows = conn.execute(
+             'SELECT question_id,interval,ease_factor,due_date FROM srs_cards WHERE user_id=? AND due_date<=?',
+             (uid,today)).fetchall()
++        # RC01 (Owner 2026-10-12): a card that is persisted but not yet due is
++        # NOT a never-seen question.  Without these ids the default-card
++        # admission below fabricated an interval-0 "due today" card for it, and
++        # SRS.init overlaid that fiction on the real /api/srs/all schedule.
++        # Only future-dated cards are read here (due/overdue cards are already
++        # in ``rows``); a legacy row with a NULL due_date is deliberately left
++        # to the historical default so no card silently disappears from the
++        # due list.
++        future_ids = {r['question_id'] for r in conn.execute(
++            'SELECT question_id FROM srs_cards WHERE user_id=? AND due_date>?',
++            (uid, today)).fetchall()}
+         qs   = _load_questions()
+         # LC019-W2: don't synthesize a default card for a question whose
+-        # canonical identity already has a real due card.  When the reader is
+-        # cold, _gk is the ("legacy", str(id)) bijection -> `seen` behaves exactly like the
+-        # raw id set, so `due` is byte-identical and no resolver is queried.
++        # canonical identity already has a persisted card (due or future).  When
++        # the reader is cold, _gk is the ("legacy", str(id)) bijection ->
++        # `seen` behaves exactly like the raw id set and no resolver is queried.
++        persisted_ids = {r['question_id'] for r in rows} | future_ids
+         seen = _IdentityKeyedSet(
+-            {r['question_id'] for r in rows},
++            persisted_ids,
+             _identity_group_key_map(
+                 conn,
+-                {r['question_id'] for r in rows} | {q['id'] for q in qs},
++                persisted_ids | {q['id'] for q in qs},
+             ),
+         )
+     due  = [dict(r) for r in rows]

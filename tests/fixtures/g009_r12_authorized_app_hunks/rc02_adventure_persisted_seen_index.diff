@@ -1,0 +1,10 @@
+--- a/index.html
++++ b/index.html
+@@ -14835,7 +14835,6 @@
+ 
+ function _adventureQuestionSeen(qid) {
+     return _mapBattleV1ServerProgress.has(String(qid))
+-        || !!SRS.getCard(qid)
+         || !!SRS.isSeen(qid);
+ }
+ 

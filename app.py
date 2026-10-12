@@ -305,6 +305,7 @@ from question_idempotency import (
 # implementation of its own (Incident 002/003G).
 from srs_scheduling_core import (
     ProgressCreditPolicy,
+    SrsAdvancePolicy,
     apply_srs_scheduling,
     should_grant_review_progress as _srs_core_should_grant_review_progress,
     sm2_update as _srs_core_sm2_update,
@@ -17546,6 +17547,26 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # server-owned Map Battle handoff (internal) may mint progression
         # credit; a public grade continues to update SM-2 but is never
         # allowed to become progression/reward/combat authority.
+        # P1 (Owner 2026-10-12): only an ordinary public Review is held to
+        # "advance when due".  The mode is decided from server-validated
+        # state, never from the client's source_context label alone: Map
+        # Battle (internal), Lord/Boss, Guild, Premium training and an
+        # active Boss question keep their historical always-advance
+        # behaviour.
+        ordinary_public_review = (
+            not internal
+            and public_review_authority is not None
+            and combat_settlement_context is None
+            and boss_source_context is None
+            and boss_answer is None
+            and boss_verdict is None
+            and not guild_source_context
+            and guild_answer is None
+            and guild_verdict is None
+            and training_item is None
+            and training_set_id is None
+            and not active_boss_question
+        )
         _srs_outcome = apply_srs_scheduling(
             conn,
             user_id=uid,
@@ -17555,6 +17576,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             progress_credit_policy=(
                 ProgressCreditPolicy.FIRST_PASS_ONLY if internal
                 else ProgressCreditPolicy.NEVER
+            ),
+            advance_policy=(
+                SrsAdvancePolicy.CORRECT_ONLY_WHEN_DUE if ordinary_public_review
+                else SrsAdvancePolicy.ALWAYS
             ),
         )
         ef, iv, rp, due = (
@@ -18291,16 +18316,28 @@ def srs_due():
         rows = conn.execute(
             'SELECT question_id,interval,ease_factor,due_date FROM srs_cards WHERE user_id=? AND due_date<=?',
             (uid,today)).fetchall()
+        # RC01 (Owner 2026-10-12): a card that is persisted but not yet due is
+        # NOT a never-seen question.  Without these ids the default-card
+        # admission below fabricated an interval-0 "due today" card for it, and
+        # SRS.init overlaid that fiction on the real /api/srs/all schedule.
+        # Only future-dated cards are read here (due/overdue cards are already
+        # in ``rows``); a legacy row with a NULL due_date is deliberately left
+        # to the historical default so no card silently disappears from the
+        # due list.
+        future_ids = {r['question_id'] for r in conn.execute(
+            'SELECT question_id FROM srs_cards WHERE user_id=? AND due_date>?',
+            (uid, today)).fetchall()}
         qs   = _load_questions()
         # LC019-W2: don't synthesize a default card for a question whose
-        # canonical identity already has a real due card.  When the reader is
-        # cold, _gk is the ("legacy", str(id)) bijection -> `seen` behaves exactly like the
-        # raw id set, so `due` is byte-identical and no resolver is queried.
+        # canonical identity already has a persisted card (due or future).  When
+        # the reader is cold, _gk is the ("legacy", str(id)) bijection ->
+        # `seen` behaves exactly like the raw id set and no resolver is queried.
+        persisted_ids = {r['question_id'] for r in rows} | future_ids
         seen = _IdentityKeyedSet(
-            {r['question_id'] for r in rows},
+            persisted_ids,
             _identity_group_key_map(
                 conn,
-                {r['question_id'] for r in rows} | {q['id'] for q in qs},
+                persisted_ids | {q['id'] for q in qs},
             ),
         )
     due  = [dict(r) for r in rows]

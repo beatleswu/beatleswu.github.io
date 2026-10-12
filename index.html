@@ -14835,7 +14835,6 @@ function _adventureQuestionDefeated(qid) {
 
 function _adventureQuestionSeen(qid) {
     return _mapBattleV1ServerProgress.has(String(qid))
-        || !!SRS.getCard(qid)
         || !!SRS.isSeen(qid);
 }
 

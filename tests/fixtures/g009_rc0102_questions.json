@@ -1,0 +1,390 @@
+[
+ {
+  "id": 7001,
+  "source": "g009-a1-fixture/one.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "A1 isolated Review",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7002,
+  "source": "g009-a1-fixture/two.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "A1 isolated Review",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7003,
+  "source": "g009-a1-fixture/three.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "A1 isolated Review",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7101,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7102,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7103,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7104,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7105,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7106,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7107,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7108,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7109,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7110,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7111,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7112,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7113,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7114,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7115,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7116,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7117,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7118,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7119,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7120,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7201,
+  "source": "g009-p1-a1-fixture/mb7201.sgf",
+  "content": "(;GM[1]FF[4]SZ[19]PL[B];B[dd];W[ee])",
+  "accepted_moves": [
+   {
+    "x": 3,
+    "y": 3
+   }
+  ],
+  "monster_hp": 40,
+  "monster_atk": 6,
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "P1 A1 map battle",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7202,
+  "source": "g009-p1-a1-fixture/mb7202.sgf",
+  "content": "(;GM[1]FF[4]SZ[19]PL[B];B[dd];W[ee])",
+  "accepted_moves": [
+   {
+    "x": 3,
+    "y": 3
+   }
+  ],
+  "monster_hp": 40,
+  "monster_atk": 6,
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "P1 A1 map battle",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7203,
+  "source": "g009-p1-a1-fixture/mb7203.sgf",
+  "content": "(;GM[1]FF[4]SZ[19]PL[B];B[dd];W[ee])",
+  "accepted_moves": [
+   {
+    "x": 3,
+    "y": 3
+   }
+  ],
+  "monster_hp": 40,
+  "monster_atk": 6,
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "P1 A1 map battle",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7204,
+  "source": "g009-p1-a1-fixture/mb7204.sgf",
+  "content": "(;GM[1]FF[4]SZ[19]PL[B];B[dd];W[ee])",
+  "accepted_moves": [
+   {
+    "x": 3,
+    "y": 3
+   }
+  ],
+  "monster_hp": 40,
+  "monster_atk": 6,
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "P1 A1 map battle",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7301,
+  "source": "g009-rc0102-fixture/7301.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "3d",
+  "difficulty": "3d",
+  "topic": "RC0102",
+  "level": "3d",
+  "discipline": "whole_board",
+  "stage": "LV30",
+  "enabled": true
+ },
+ {
+  "id": 7302,
+  "source": "g009-rc0102-fixture/7302.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "RC0102",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": false
+ },
+ {
+  "id": 7311,
+  "source": "g009-rc0102-fixture/7311.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd];W[ee])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "RC0102",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7312,
+  "source": "g009-rc0102-fixture/7312.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd];W[ee])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "RC0102",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7321,
+  "source": "g009-rc0102-fixture/7321.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B]AB[aa];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "RC0102",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7322,
+  "source": "g009-rc0102-fixture/7322.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B]AB[aa];B[ee])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "RC0102",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ }
+]
