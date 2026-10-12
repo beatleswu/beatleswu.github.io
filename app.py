@@ -1928,6 +1928,14 @@ _FUNCTIONAL_EFFECT_ACTIVE_KEYS.update({
     for definition in EQ_F_NEW_EQUIPMENT_DEFS
 })
 
+# EQ-F items are admitted only while the canonical Equipment Loadout is ON.
+# A row that is still ``equipped=1`` when the flag is OFF (earlier ON period,
+# admin grant, rollback) must not leak damage/SP/XP/loot effects into the
+# authoritative combat paths; legacy items are unaffected.
+_EQ_F_EQUIPMENT_IDS = frozenset(
+    str(definition['id']) for definition in EQ_F_NEW_EQUIPMENT_DEFS
+)
+
 _FUNCTIONAL_EFFECT_LABELS = {
     'dmg_bonus': ('傷害加成', 'Damage modifier'),
     'fox_dmg_bonus': ('對狐族傷害', 'Damage vs Fox'),
@@ -8325,7 +8333,10 @@ def _get_equip_effect(conn, uid, effect_key):
         'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1', (uid,)
     ).fetchall()
     total = 0.0
+    eq_f_effects_enabled = _equipment_canonical_loadout_enabled()
     for r in rows:
+        if r['equip_id'] in _EQ_F_EQUIPMENT_IDS and not eq_f_effects_enabled:
+            continue
         eq = _EQUIP_MAP.get(r['equip_id'], {})
         total += eq.get('effects', {}).get(effect_key, 0)
     return total
@@ -8343,8 +8354,11 @@ def _get_active_equip_effect(conn, uid, effect_key):
         'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1', (uid,)
     ).fetchall()
     total = 0.0
+    eq_f_effects_enabled = _equipment_canonical_loadout_enabled()
     for row in rows:
         equip_id = row['equip_id']
+        if equip_id in _EQ_F_EQUIPMENT_IDS and not eq_f_effects_enabled:
+            continue
         if effect_key not in _FUNCTIONAL_EFFECT_ACTIVE_KEYS.get(equip_id, set()):
             continue
         equip = _EQUIP_MAP.get(equip_id, {})
