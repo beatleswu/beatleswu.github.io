@@ -243,7 +243,11 @@
         beginPublicReview(userId, command, mode = 'normal') {
             if (!command || command.source_context !== 'practice'
                 || command.internal || command.boss_answer || command.guild_answer
-                || command.training_set_id != null) {
+                || command.training_set_id != null
+                || Object.keys(command).some((field) => ![
+                    'question_id', 'grade', 'unit_name', 'unit_done', 'response_ms',
+                    'source_context', 'training_set_id', 'is_scaffolding', 'submission_id',
+                ].includes(field))) {
                 throw new Error('public_review_recovery_scope_mismatch');
             }
             const store = this._publicReviewStore(userId);
@@ -261,8 +265,16 @@
                 };
                 store.entries[key] = entry;
                 this._savePublicReview(userId);
-            } else if (!entry.command || typeof entry.command.submission_id !== 'string'
-                || !entry.command.submission_id) {
+            } else if (!entry.command || typeof entry.command !== 'object'
+                || Array.isArray(entry.command)
+                || typeof entry.command.submission_id !== 'string'
+                || !entry.command.submission_id
+                || entry.command.source_context !== 'practice'
+                || entry.command.training_set_id != null
+                || Object.keys(entry.command).some((field) => ![
+                    'question_id', 'grade', 'unit_name', 'unit_done', 'response_ms',
+                    'source_context', 'training_set_id', 'is_scaffolding', 'submission_id',
+                ].includes(field))) {
                 throw new Error('public_review_recovery_state_invalid');
             }
             if (entry.uiSettled && !this._publicReviewConfirmed.has(lockKey)) {
