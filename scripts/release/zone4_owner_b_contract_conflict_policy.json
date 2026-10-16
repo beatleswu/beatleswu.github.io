@@ -1,0 +1,65 @@
+{
+  "schema": "g009-owner-approved-contract-conflict-policy-v1",
+  "policy_id": "G009_ZONE4_OWNER_B_BACKPACK_SIXTH_ROUTE_CONTRACT_CONFLICT_R1",
+  "label": "OWNER_APPROVED_CONTRACT_CONFLICT",
+  "author": "claude:dd0fc0f0-7539-450c-8a85-0330514abf27",
+  "owner_decision": {
+    "decision": "Zone4 conditional option B: recognise exactly the two Frozen route-contract failures caused solely by the Owner-admitted sixth route /css/e10/backpack.css as OWNER_APPROVED_CONTRACT_CONFLICT (never PASS); every other failure stays blocking; original FAILs and the three-node baseline are preserved.",
+    "owner_conditions": [
+      "only these two nodes and only the backpack.css cause",
+      "original FAIL evidence preserved, recorded as approved contract conflict not PASS",
+      "six-route independent acceptance before Build; checker change independently reviewed",
+      "built image verified (backpack.css present, SHA a7bb0e14..., HTTP 200 text/css) after Build and before deploy"
+    ],
+    "date": "2026-10-16",
+    "locators": [
+      "Owner approval relayed in the Claude session dd0fc0f0 on 2026-10-16 (Zone4 Build decision, conditions 1-4)",
+      "https://app.notion.com/p/3fa02f6568b481ca85eac3e6fdf9904e",
+      "https://app.notion.com/p/3f902f6568b48187a5bcd861615a5524"
+    ],
+    "sixth_route_asset_sha256": "a7bb0e14a24f8845c79f4850c36f37f7c69c49452d3699a93bbbfdd2fe93c888"
+  },
+  "signature_algorithm": "sha256(nodeid,type,normalized_message,normalized_text_v3)",
+  "policy_source_sha": "fc550fadc9f3a4c09294cbf5aff3ea06f03d13ba",
+  "frozen_module": {
+    "path": "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py",
+    "sha256": "c3aed0e03a24fc6ad9182624cb92f8d8de282b4dce0e997b13425ca1af5365da",
+    "expected_passed_nodeids": [
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_source_matches_the_owner_approved_identity[js/e10/zone4_cinematic_content.js]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_source_matches_the_owner_approved_identity[css/e10/encounter_presentation_framework_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_source_matches_the_owner_approved_identity[css/e10/go_combat_owner_reference_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_url_resolves_and_serves_the_approved_bytes[js/e10/zone4_cinematic_content.js]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_url_resolves_and_serves_the_approved_bytes[css/e10/encounter_presentation_framework_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_url_resolves_and_serves_the_approved_bytes[css/e10/go_combat_owner_reference_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_url_is_a_registered_rule_not_an_accidental_catch_all[js/e10/zone4_cinematic_content.js]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_url_is_a_registered_rule_not_an_accidental_catch_all[css/e10/encounter_presentation_framework_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_url_is_a_registered_rule_not_an_accidental_catch_all[css/e10/go_combat_owner_reference_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_no_generic_e10_catchall_was_introduced",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_sibling_and_generic_e9_surfaces_are_unchanged",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_baked_copy_is_packaged_in_the_image[js/e10/zone4_cinematic_content.js]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_baked_copy_is_packaged_in_the_image[css/e10/encounter_presentation_framework_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_baked_copy_is_packaged_in_the_image[css/e10/go_combat_owner_reference_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_index_html_reference_matches_the_served_url[js/e10/zone4_cinematic_content.js]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_index_html_reference_matches_the_served_url[css/e10/encounter_presentation_framework_v1.css]",
+      "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_index_html_reference_matches_the_served_url[css/e10/go_combat_owner_reference_v1.css]"
+    ]
+  },
+  "conflicts": [
+    {
+      "nodeid": "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_public_route_set_is_exactly_the_three_authorized_additions",
+      "signature": "a4a091ab34ae784a47e1f6004cf11a2c33b69de0563923ecab6f9dbf1d195066",
+      "reason_kind": "EXTRA_ROUTE_ONLY",
+      "route": "/css/e10/backpack.css"
+    },
+    {
+      "nodeid": "tests/deployment/test_p0_zone4_cinematic_content_route_corrective.py::test_unrouted_e10_siblings_still_404",
+      "signature": "e4d0dc59ab812bca769492ad5b9dedc102f18511e49186f778df631327011de5",
+      "reason_kind": "STATUS_200_NOT_404",
+      "route": "/css/e10/backpack.css"
+    }
+  ],
+  "activation": {
+    "review_receipt_path": "scripts/release/zone4_owner_b_independent_review_receipt.json",
+    "receipt_schema": "g009-owner-approved-contract-conflict-independent-review-v1"
+  }
+}

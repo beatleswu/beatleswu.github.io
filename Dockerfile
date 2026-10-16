@@ -432,6 +432,7 @@ COPY js/e10/zone4_cinematic_content.js ./js/e10/zone4_cinematic_content.js
 # so the baked copy is their only serving source rather than a fallback.
 COPY css/e10/encounter_presentation_framework_v1.css ./css/e10/encounter_presentation_framework_v1.css
 COPY css/e10/go_combat_owner_reference_v1.css ./css/e10/go_combat_owner_reference_v1.css
+COPY css/e10/backpack.css ./css/e10/backpack.css
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog

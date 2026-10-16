@@ -46,6 +46,7 @@
   "build_inputs": {
     "tracked_in_canonical_branch_this_sprint": [
       "Dockerfile",
+      "css/e10/backpack.css",
       "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb",
       "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb",
       "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb",
@@ -517,6 +518,7 @@
   },
   "post_build_verification_files": [
     "/app/app.py",
+    "/app/css/e10/backpack.css",
     "/app/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb",
     "/app/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb",
     "/app/assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb",
