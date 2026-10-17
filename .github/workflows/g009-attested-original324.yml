@@ -1,0 +1,201 @@
+# DRAFT_NOT_PUSHED -- R27 static draft. Inactive (".draft" suffix); the R27 session never pushes it.
+#
+# Future use (requires a NEW explicit Owner authorisation, separate from R27):
+#   1. Owner creates a brand-new NON-master branch  candidate/g009-attested-release-20261017-r1
+#      from the already-ACCEPTed R24 Product commit  b3f66df0599651748f61fc4321f5b72f94dd9dcc.
+#   2. Owner adds EXACTLY ONE file, .github/workflows/g009-attested-original324.yml (this draft without
+#      the ".draft" suffix), as the single new commit.  HEAD^ must therefore equal b3f66...
+#   3. The existing R26 branch is NOT touched, so the already-green R26 workflow is not re-triggered and
+#      cannot fail its own HEAD~2 source guard.
+# The commit SHA of that future commit is unknown today: this workflow only ever uses the GITHUB_SHA of the
+# run that executes it.  The Owner pins signer_workflow / source_ref / source_digest out-of-band AFTER a
+# real attestation exists (see implementation/trust_policy.r26_offline.json).
+name: G009 attested original Windows 324
+
+on:
+  push:
+    branches:
+      - candidate/g009-attested-release-20261017-r1
+
+permissions:
+  contents: read
+
+jobs:
+  native-original-324:
+    if: ${{ github.repository == 'beatleswu/beatleswu.github.io' && github.ref == 'refs/heads/candidate/g009-attested-release-20261017-r1' }}
+    runs-on: windows-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout full history with no persistent credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Setup exact Python major/minor
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Verify HEAD is exactly the accepted Product commit plus this workflow file
+        shell: pwsh
+        env:
+          ACCEPTED_PARENT: b3f66df0599651748f61fc4321f5b72f94dd9dcc
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $head = (git rev-parse HEAD).Trim()
+          $parent = (git rev-parse 'HEAD^').Trim()
+          if ($head -cne $env:GITHUB_SHA) { throw 'UNEXPECTED_GITHUB_COMMIT' }
+          if ($parent -cne $env:ACCEPTED_PARENT) { throw 'UNREVIEWED_PRODUCT_BASELINE' }
+          $changed = @(git diff --name-only $env:ACCEPTED_PARENT HEAD)
+          if ($changed.Count -ne 1 -or $changed[0] -cne '.github/workflows/g009-attested-original324.yml') { throw ('UNREVIEWED_CHANGED_PATHS: ' + ($changed -join ',')) }
+          if ((git status --porcelain).Length -ne 0) { throw 'CHECKOUT_DIRTY' }
+          [ordered]@{
+            github_run_id = $env:GITHUB_RUN_ID
+            github_run_attempt = $env:GITHUB_RUN_ATTEMPT
+            github_repository = $env:GITHUB_REPOSITORY
+            github_ref = $env:GITHUB_REF
+            exact_head = $head
+            accepted_product_parent = $parent
+            runner_os = $env:RUNNER_OS
+            formal_release_attestation = 'NOT_PRESENT'
+            release = 'NO_GO'
+          } | ConvertTo-Json | Set-Content -Encoding utf8 R26_GITHUB_SOURCE_IDENTITY.json
+      - name: Install only native test dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m pip install --disable-pip-version-check 'pytest==8.3.5' 'Flask==3.0.3'
+      - name: Run unchanged original Windows PowerShell 5.1 test contract
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          python -m pytest -q -p no:cacheprovider --basetemp=${{ runner.temp }}/g009-original324 --junitxml=R26_ORIGINAL324_NATIVE_JUNIT.xml tests/deployment/test_build_app_known_failure_baseline.py tests/deployment/test_g009_zone4_owner_b_contract_conflict_policy.py tests/deployment/test_g009_release_candidate_tooling.py tests/deployment/test_runtime_dependency_provenance.py 2>&1 | Tee-Object -FilePath R26_ORIGINAL324_NATIVE.log
+          $code = $LASTEXITCODE
+          ('native_ps51_exit=' + $code) | Set-Content -Encoding utf8 R26_ORIGINAL324_HOST_EXIT.txt
+          exit $code
+      - name: Count native JUnit results without changing them
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (!(Test-Path R26_ORIGINAL324_NATIVE_JUNIT.xml)) { throw 'JUNIT_MISSING' }
+          [xml]$xml = Get-Content -Raw R26_ORIGINAL324_NATIVE_JUNIT.xml
+          $cases = @(Select-Xml -Xml $xml -XPath '//testcase')
+          $fail = @($cases | Where-Object { $null -ne $_.Node.failure })
+          $errorCases = @($cases | Where-Object { $null -ne $_.Node.error })
+          $skipped = @($cases | Where-Object { $null -ne $_.Node.skipped })
+          [ordered]@{
+            total = $cases.Count
+            pass = $cases.Count - $fail.Count - $errorCases.Count - $skipped.Count
+            fail = $fail.Count
+            error = $errorCases.Count
+            skip = $skipped.Count
+            native_junit_sha256 = (Get-FileHash R26_ORIGINAL324_NATIVE_JUNIT.xml -Algorithm SHA256).Hash.ToLowerInvariant()
+            release = 'NO_GO_PENDING_OWNER'
+          } | ConvertTo-Json | Set-Content -Encoding utf8 R26_ORIGINAL324_NATIVE_TOTALS.json
+      - name: Require a fully green runner before anything can be attested
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $t = Get-Content -Raw R26_ORIGINAL324_NATIVE_TOTALS.json | ConvertFrom-Json
+          if ($t.total -ne 324 -or $t.pass -ne 324 -or $t.fail -ne 0 -or $t.error -ne 0 -or $t.skip -ne 0) { throw 'NOT_ALL_324_PASSED' }
+          if ((Get-Content -Raw R26_ORIGINAL324_HOST_EXIT.txt).Trim() -cne 'native_ps51_exit=0') { throw 'HOST_EXIT_NOT_ZERO' }
+      - name: Upload the five evidence files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: g009-original324-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            R26_GITHUB_SOURCE_IDENTITY.json
+            R26_ORIGINAL324_NATIVE_JUNIT.xml
+            R26_ORIGINAL324_NATIVE.log
+            R26_ORIGINAL324_HOST_EXIT.txt
+            R26_ORIGINAL324_NATIVE_TOTALS.json
+          if-no-files-found: error
+          retention-days: 14
+
+  attest:
+    # Runs only when the native job SUCCEEDED (default needs semantics); a red runner can never reach attestation.
+    needs: native-original-324
+    if: ${{ github.repository == 'beatleswu/beatleswu.github.io' && github.ref == 'refs/heads/candidate/g009-attested-release-20261017-r1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download the five evidence files produced by the native job
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: g009-original324-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence
+      - name: Basic digest / identity / total checks before signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd evidence
+          test "$(ls -1 | wc -l)" -eq 5
+          for f in R26_GITHUB_SOURCE_IDENTITY.json R26_ORIGINAL324_NATIVE_JUNIT.xml R26_ORIGINAL324_NATIVE.log R26_ORIGINAL324_HOST_EXIT.txt R26_ORIGINAL324_NATIVE_TOTALS.json; do
+            test -f "$f"
+          done
+          python3 - <<'PY'
+          import hashlib, json, os, re, sys
+          def rd(p): return open(p, 'rb').read()
+          ident = json.loads(rd('R26_GITHUB_SOURCE_IDENTITY.json').decode('utf-8-sig'))
+          totals = json.loads(rd('R26_ORIGINAL324_NATIVE_TOTALS.json').decode('utf-8-sig'))
+          junit = rd('R26_ORIGINAL324_NATIVE_JUNIT.xml')
+          want = {
+              'github_repository': os.environ['GITHUB_REPOSITORY'],
+              'github_ref': os.environ['GITHUB_REF'],
+              'exact_head': os.environ['GITHUB_SHA'],
+              'github_run_id': os.environ['GITHUB_RUN_ID'],
+              'github_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'accepted_product_parent': 'b3f66df0599651748f61fc4321f5b72f94dd9dcc',
+              'runner_os': 'Windows',
+          }
+          for k, v in want.items():
+              if ident.get(k) != v:
+                  sys.exit('IDENTITY_MISMATCH:' + k)
+          for k, v in (('total', 324), ('pass', 324), ('fail', 0), ('error', 0), ('skip', 0)):
+              if totals.get(k) != v:
+                  sys.exit('TOTALS_MISMATCH:' + k)
+          if totals.get('native_junit_sha256') != hashlib.sha256(junit).hexdigest():
+              sys.exit('JUNIT_DIGEST_MISMATCH')
+          if len(re.findall(rb'<testcase\b', junit)) != 324:
+              sys.exit('JUNIT_CASE_COUNT_MISMATCH')
+          if rd('R26_ORIGINAL324_HOST_EXIT.txt').decode('utf-8-sig').strip() != 'native_ps51_exit=0':
+              sys.exit('HOST_EXIT_NOT_ZERO')
+          if b'324 passed' not in rd('R26_ORIGINAL324_NATIVE.log'):
+              sys.exit('LOG_PASS_LINE_MISSING')
+          PY
+      - name: Attest all five evidence files (Sigstore keyless, GitHub OIDC)
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            evidence/R26_GITHUB_SOURCE_IDENTITY.json
+            evidence/R26_ORIGINAL324_NATIVE_JUNIT.xml
+            evidence/R26_ORIGINAL324_NATIVE.log
+            evidence/R26_ORIGINAL324_HOST_EXIT.txt
+            evidence/R26_ORIGINAL324_NATIVE_TOTALS.json
+      - name: Verify every file's attestation with the CLI (job fails if any is missing)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for f in evidence/*; do
+            gh attestation verify "$f" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/g009-attested-original324.yml" \
+              --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
+              --deny-self-hosted-runners \
+              --format json > /dev/null
+          done
+
+# Consumer-side verification happens OFF this workflow, on the governance host:
+#   python implementation/trusted_release_gate.py --zip <artifact.zip> --policy <owner_pinned_policy.json> \
+#     --ledger <append-only ledger> --online --allow-network
+# Note: the gh flags --source-ref / --source-digest used by trusted_release_gate.py are NOT verified against
+# an installed gh in the R27 session; confirm with `gh attestation verify --help` before relying on them.
