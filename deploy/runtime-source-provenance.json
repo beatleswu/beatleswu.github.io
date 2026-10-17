@@ -1181,15 +1181,15 @@
     },
     {
       "path": "app.py",
-      "source_commit": "076a93ef5b8425068dbbb5841594011681a8f096",
-      "source_branch_or_local_ref": "076a93ef5b8425068dbbb5841594011681a8f096",
-      "source_commit_subject": "fix(g009): reject malformed public review replay identities",
+      "source_commit": "a7ba24b1fd201c4305f44b4d1eb211bd6f2e3cd2",
+      "source_branch_or_local_ref": "a7ba24b1fd201c4305f44b4d1eb211bd6f2e3cd2",
+      "source_commit_subject": "fix(g009): close Guild SRS due-only bypass and pin A1 six-hunk scope",
       "source_date": "2026-10-17",
-      "content_sha256": "756c79cbccaad427da2869cc25ef985320a7371fb8f5dd9f5007930f62ecc27b",
-      "content_size_bytes": 1427193,
+      "content_sha256": "89dcdb9ebb12ba1b46e8d8eb33e5d3013497df5f18e51bed826f0c67913a2859",
+      "content_size_bytes": 1427152,
       "line_ending_policy": "LF",
       "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear and C045 Shop admission wiring; narrow Zone4 Owner-final presentation serving routes",
-      "source_status": "Local candidate HEAD-ancestor Git source blob verified against current file bytes; origin/master and Owner acceptance unverified; release remains separately gated."
+      "source_status": "Local candidate Git HEAD source blob SHA256 and raw bytes verified; NOT adopted on canonical origin/master, NOT Release approval."
     },
     {
       "path": "coin_purchase_authority.py",
