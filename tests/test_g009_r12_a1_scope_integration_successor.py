@@ -1,10 +1,9 @@
 """R12 integration successor for the N07/N08 A1 narrow-scope check.
 
-The A1 successor requires app.py to be byte-identical to the baseline. The
-integrated candidate legitimately carries three separately authorized app.py
-changes (N33 .glb/MIME overrides, EQ-F flag-off effect closure, P1 public due-only scheduling call site). This test keeps
-every other A1 scope assertion and requires app.py to equal the baseline once
-exactly those three recorded hunks are reversed. Original frozen tests are not edited.
+The A1 successor requires app.py to return byte-for-byte to its frozen baseline
+once exactly six recorded authorized hunks are reversed (EQ-F flag-off, N33 GLB,
+P1 public due-only, RC01 future due, P2 Guild due-only correction, R13 replay
+identity hardening). Unknown app.py edits still fail closed. Frozen tests stay unchanged.
 """
 import hashlib
 import importlib.util
@@ -59,12 +58,14 @@ def test_a1_index_scope_is_submit_srs_only_and_other_frozen_files_unchanged():
         assert (ROOT / path).read_bytes() == _git_show(path)
 
 
-def test_app_py_differs_from_baseline_only_by_the_two_authorized_hunks():
-    patches = sorted(p for p in HUNKS.glob("*.diff") if p.name.startswith(("eqf_", "n33_", "p1_", "rc01_")))
+def test_app_py_differs_from_baseline_only_by_six_exact_authorized_hunks():
+    patches = sorted(p for p in HUNKS.glob("*.diff") if p.name.startswith(("eqf_", "n33_", "p1_", "p2_", "rc01_", "r13_")))
     assert [p.name for p in patches] == [
         "eqf_flag_off_effect_closure.diff",
         "n33_glb_and_mime_overrides.diff",
         "p1_public_due_only.diff",
+        "p2_guild_label_due_only.diff",
+        "r13_replay_identity_hardening.diff",
         "rc01_srs_due_persisted_future_cards.diff",
     ]
     work = Path(tempfile.mkdtemp(prefix="r12-app-scope-"))

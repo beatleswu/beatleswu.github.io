@@ -462,7 +462,7 @@ def test_excluded_guild_keeps_always(rt, monkeypatch):
            expected_always=_expected_always(prior, grade), verdict="PASS")
 
 
-def test_excluded_guild_label_without_answer_keeps_always(rt, monkeypatch):
+def test_guild_label_without_judged_answer_is_due_only(rt, monkeypatch):
     uid, client = rt.user()
     _seed_card(rt, uid, 7104)
     prior = rt.card(uid, 7104)
@@ -471,10 +471,10 @@ def test_excluded_guild_label_without_answer_keeps_always(rt, monkeypatch):
     status = resp.status_code
     after = rt.card(uid, 7104)
     assert status == 200, resp.get_json()
-    assert spy.calls and spy.calls[-1]["advance_policy"] == "ALWAYS"
-    assert sched(after)["repetitions"] == prior["repetitions"] + 1
+    assert spy.calls and spy.calls[-1]["advance_policy"] == "CORRECT_ONLY_WHEN_DUE"
+    assert sched(after)["repetitions"] == prior["repetitions"]
     record(rt, "MODE_GUILD_LABEL_ONLY", uid=uid, spy=spy.calls, before=sched(prior), after=sched(after), verdict="PASS",
-           note="a client-supplied guild label without a judged answer stays on the historical always-advance path")
+           note="unverified client guild label cannot bypass the due-only rule")
 
 
 def test_server_judged_practice_static_call_site_and_runtime_status(rt, monkeypatch):
@@ -504,7 +504,7 @@ def test_internal_map_battle_is_classified_by_static_source_only():
     start = source.index("ordinary_public_review = (")
     block = source[start:source.index(")\n        _srs_outcome = apply_srs_scheduling(", start)]
     for term in ("not internal", "combat_settlement_context is None", "boss_source_context is None", "boss_answer is None",
-                 "boss_verdict is None", "not guild_source_context", "guild_answer is None", "guild_verdict is None",
+                 "boss_verdict is None", "guild_answer is None", "guild_verdict is None",
                  "training_item is None", "not active_boss_question"):
         assert term in block, term
 

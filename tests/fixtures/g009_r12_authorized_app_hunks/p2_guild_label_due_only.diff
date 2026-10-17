@@ -1,0 +1,14 @@
+--- a/app.py
++++ b/app.py
+@@ -17564,11 +17564,10 @@
+             and public_review_authority is not None
+             and combat_settlement_context is None
+             and boss_source_context is None
+             and boss_answer is None
+             and boss_verdict is None
+-            and not guild_source_context
+             and guild_answer is None
+             and guild_verdict is None
+             and training_item is None
+             and training_set_id is None
+             and not active_boss_question

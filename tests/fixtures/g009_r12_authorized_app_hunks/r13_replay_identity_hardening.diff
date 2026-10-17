@@ -1,0 +1,19 @@
+diff --git a/app.py b/app.py
+index e2f7c79..165fd84 100644
+--- a/app.py
++++ b/app.py
+@@ -16554,7 +16554,13 @@ def srs_review():
+             boss_answer=data.get('boss_answer'),
+             training_set_id=data.get('training_set_id'),
+             is_scaffolding=bool(data.get('is_scaffolding')),
+-            submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
++            # Only an absent, null, or empty-string body identity defers to the
++            # header; any other present value (e.g. [] or {}) must fail closed.
++            submission_id=(
++                data.get('submission_id')
++                if data.get('submission_id') not in (None, '')
++                else request.headers.get('Idempotency-Key')
++            ),
+             guild_answer=data.get('guild_answer'),
+             guild_quest_key=data.get('guild_quest_key'),
+         )

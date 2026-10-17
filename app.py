@@ -17566,7 +17566,6 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             and boss_source_context is None
             and boss_answer is None
             and boss_verdict is None
-            and not guild_source_context
             and guild_answer is None
             and guild_verdict is None
             and training_item is None
