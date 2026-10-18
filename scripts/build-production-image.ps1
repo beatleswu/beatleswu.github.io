@@ -64,6 +64,18 @@ function Fail-Bootstrap($msg) {
     exit 1
 }
 
+# G009 R11: source-checkout code is not a trusted Docker privilege boundary.
+# This child was directly callable despite the parent BUILD_APP signed-decision
+# guard. Until a separately provisioned, OS-isolated build broker exclusively
+# owns Docker and issues an invocation-bound grant, refuse ALL direct invocation.
+# No candidate-controlled CLI arg, environment variable, Git flag, or local
+# receipt can opt out. This is an explicit LOCK, not a functional broker.
+# A future owner-reviewed host installation must replace this lock with an
+# externally authenticated broker call, without returning Docker credentials
+# to this candidate process. Merely hardcoding or supplying a local hash is
+# insufficient to establish a trust boundary.
+Fail-Bootstrap "EXTERNAL_DOCKER_BUILD_BROKER_REQUIRED: the direct Docker build child is disabled until an independently authenticated OS-protected broker is installed."
+
 function Get-BootstrapCanonicalPath([string]$Path, [string]$Label) {
     if ([string]::IsNullOrWhiteSpace($Path) -or -not [System.IO.Path]::IsPathRooted($Path)) {
         Fail-Bootstrap "$Label must be a nonblank absolute filesystem path."
