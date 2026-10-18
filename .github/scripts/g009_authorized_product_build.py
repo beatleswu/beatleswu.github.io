@@ -14,7 +14,6 @@ import json
 import os
 from pathlib import Path
 import re
-import secrets
 import subprocess
 import sys
 import tempfile
@@ -76,6 +75,12 @@ def profile_from_environment(env):
             not SHA64.fullmatch(p["evidence_sha256"])):
         raise Rejected("INDEPENDENT_ISSUER_IDENTITY_INVALID")
     return p
+
+def prepared_challenge(env):
+    challenge = env.get('G009_PREPARED_CHALLENGE', '')
+    if not SHA64.fullmatch(challenge):
+        raise Rejected('COMPLETED_PREPARATION_JOB_CHALLENGE_REQUIRED')
+    return challenge
 
 def require_runner(env):
     if (env.get("GITHUB_REPOSITORY") != REPO or
@@ -208,8 +213,11 @@ def main():
     if cmd(["git", "status", "--porcelain=v1", "--untracked-files=normal"]):
         raise Rejected("GATE_WORKTREE_DIRTY")
     profile = profile_from_environment(env)
-    challenge = secrets.token_hex(32)
-    print("G009_SIGNER_CHALLENGE:", challenge, flush=True)
+    # Preparation is a different, ALREADY COMPLETED workflow job. Its immutable
+    # run/attempt-specific artifact is available to the independent issuer.
+    # Do not mint a second challenge inside the waiting authorization job.
+    challenge = prepared_challenge(env)
+    print("G009_SIGNER_CHALLENGE_FROM_COMPLETED_PREPARATION:", challenge, flush=True)
     print("G009_BUILD_RUN_BINDING:", env["GITHUB_RUN_ID"], env["GITHUB_RUN_ATTEMPT"], env["GITHUB_SHA"], PRODUCT_SHA, flush=True)
     signed, sha = verified_release_decision(profile, env, challenge)
     if not env.get("GITHUB_OUTPUT"):

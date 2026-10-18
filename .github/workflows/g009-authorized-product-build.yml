@@ -33,7 +33,42 @@ jobs:
         run: |
           set -euo pipefail
           PYTHONDONTWRITEBYTECODE=1 python3 -I -m unittest discover -s tests/deployment -p test_g009_authorized_product_build.py -v
+  prepare-run-challenge:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      challenge: ${{ steps.generate.outputs.challenge }}
+    steps:
+      - name: Generate unique run-and-attempt-bound 32-byte challenge
+        id: generate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, secrets
+          run, attempt, sha = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"], os.environ["GITHUB_SHA"]
+          challenge = secrets.token_hex(32)
+          record = {"schema":"g009-github-build-challenge-v1",
+                    "build_run_id":run,"build_attempt":attempt,
+                    "gate_sha":sha,"product_sha":"69dbe57aa535112b1759e3f3bdcf9ecbe1680efb",
+                    "challenge":challenge,"formal_build_authorized":False}
+          out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "G009_PREPARED_BUILD_CHALLENGE.json"
+          out.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write("challenge=" + challenge + "\n")
+              f.write("artifact=" + str(out) + "\n")
+          print("G009_CHALLENGE_READY", run, attempt, challenge)
+          PY
+      - name: Publish challenge artifact after preparation job completes
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: g009-build-challenge-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.generate.outputs.artifact }}
+          if-no-files-found: error
+          retention-days: 1
   authorized-product-build:
+    needs: prepare-run-challenge
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -62,7 +97,10 @@ jobs:
         working-directory: gate
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Issuer repository read-only credential, separately provisioned.
+          # The current repo GITHUB_TOKEN cannot read cross-repository Actions artifacts.
+          GH_TOKEN: ${{ secrets.G009_ISSUER_ACTIONS_READ_TOKEN }}
+          G009_PREPARED_CHALLENGE: ${{ needs['prepare-run-challenge'].outputs.challenge }}
           G009_APPROVED_ISSUER_PROFILE_B64: ${{ vars.G009_APPROVED_ISSUER_PROFILE_B64 }}
           G009_APPROVED_ISSUER_PROFILE_SHA256: ${{ vars.G009_APPROVED_ISSUER_PROFILE_SHA256 }}
         run: |

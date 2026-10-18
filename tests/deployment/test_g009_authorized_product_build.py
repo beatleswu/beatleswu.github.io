@@ -52,6 +52,28 @@ def fake_decision():
             "evidence_sha256": "c"*64}
 
 class TestAuthorizationContract(unittest.TestCase):
+    def test_prepared_challenge_must_come_from_completed_job(self):
+        with self.assertRaisesRegex(mod.Rejected, "COMPLETED_PREPARATION"):
+            mod.prepared_challenge({})
+        with self.assertRaisesRegex(mod.Rejected, "COMPLETED_PREPARATION"):
+            mod.prepared_challenge({"G009_PREPARED_CHALLENGE": "wrong"})
+        self.assertEqual(mod.prepared_challenge({"G009_PREPARED_CHALLENGE":"e"*64}),"e"*64)
+
+    def test_cross_repo_read_token_only_in_authorization_not_docker(self):
+        source=WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("GH_TOKEN: ${{ secrets.G009_ISSUER_ACTIONS_READ_TOKEN }}",source)
+        self.assertIn("G009_PREPARED_CHALLENGE: ${{ needs['prepare-run-challenge'].outputs.challenge }}",source)
+        builder=source.split("      - name: Build and package actual immutable linux ARM64 Product image")[1]
+        self.assertNotIn("G009_ISSUER_ACTIONS_READ_TOKEN", builder)
+        self.assertNotIn("GH_TOKEN:", builder)
+
+    def test_completed_prepare_job_must_publish_challenge_artifact(self):
+        y=WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("  prepare-run-challenge:", y)
+        self.assertIn("needs: prepare-run-challenge", y)
+        self.assertIn("g009-build-challenge-${{ github.run_id }}-${{ github.run_attempt }}",y)
+        self.assertIn("Generate unique run-and-attempt-bound 32-byte challenge",y)
+
     def test_no_profile_fails_closed(self):
         with self.assertRaisesRegex(mod.Rejected, "UNPROVISIONED"):
             mod.profile_from_environment({})
