@@ -11,11 +11,11 @@ import sys
 
 REPO = "beatleswu/beatleswu.github.io"
 REF = "refs/heads/candidate/g009-build-broker-isolation-20261018-r11"
-PARENT = "8de78a0ed4e2b2cbe928a279a67cf365ea90fb60"
+PARENT = "f1c317de5242d3a93520d160330eeba7bdb2d203"
 
 def invoke(argv, *, cwd=None):
     p = subprocess.run(argv, cwd=cwd, capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", timeout=120)
+                       encoding="utf-8", errors="replace", timeout=240)
     if p.returncode:
         raise RuntimeError(f"failed {argv!r}, exit={p.returncode}: {p.stderr[-900:]}")
     return p.stdout.strip()
@@ -61,6 +61,32 @@ def main():
         raise ValueError("IMAGE_SOURCE_OR_AUTHORITY_LABEL_MISMATCH")
     if not invoke(["docker", "image", "inspect", "--format", "{{.Id}}", image]).startswith("sha256:"):
         raise ValueError("IMAGE_DIGEST_MISSING")
+    # The real production image is linux/arm64, not the host's amd64. Prove
+    # that QEMU can execute ARM64 instructions rather than simply packaging
+    # scratch layers whose architecture metadata could be falsified.
+    arm_file = context / "Dockerfile.arm64"
+    arm_file.write_text(
+        "FROM alpine:3.20\n"
+        "RUN test \"$(uname -m)\" = \"aarch64\"\n"
+        "COPY fixture.txt /g009-smoke-fixture.txt\n"
+        f"LABEL org.opencontainers.image.revision=\"{head}\"\n"
+        "LABEL com.godokoro.g009.authority=\"test-only-NO-BUILD_APP\"\n",
+        encoding="utf-8")
+    arm_image = "g009-ephemeral-broker-arm64:" + head[:12]
+    invoke(["docker", "buildx", "build", "--platform", "linux/arm64",
+            "--network", "none", "--load", "--progress", "plain",
+            "--file", str(arm_file), "-t", arm_image, str(context)])
+    arm = json.loads(invoke(["docker", "image", "inspect", arm_image]))
+    if (len(arm) != 1 or arm[0]["Architecture"] != "arm64"
+            or arm[0]["Os"] != "linux"
+            or arm[0]["Config"]["Labels"].get("org.opencontainers.image.revision") != head
+            or arm[0]["Config"]["Labels"].get("com.godokoro.g009.authority") != "test-only-NO-BUILD_APP"):
+        raise ValueError("ARM64_IMAGE_SOURCE_OR_ARCH_MISMATCH")
+    execution = invoke(["docker", "run", "--rm", "--platform", "linux/arm64",
+                        "--network", "none", "--entrypoint", "uname",
+                        arm_image, "-m"])
+    if execution != "aarch64":
+        raise ValueError("QEMU_ARM64_EXECUTION_MISMATCH")
     record = {
         "schema": "g009-ephemeral-docker-broker-test-only-v1",
         "repo": REPO, "git_ref": REF, "git_head": head,
@@ -72,6 +98,9 @@ def main():
         "build_context_sha256": hashlib.sha256(data).hexdigest(),
         "output_image_id": meta[0]["Id"],
         "output_platform": "linux/amd64",
+        "arm64_output_image_id": arm[0]["Id"],
+        "arm64_output_platform": "linux/arm64",
+        "arm64_instruction_execution": execution,
         "candidate_product_build": False, "BUILD_APP_authorized": False,
         "source_signoff_admitted": False, "release_authorized": False,
         "deployment_performed": False, "secret_mounted": False,

@@ -18,6 +18,11 @@ def test_broker_is_a_real_isolated_nonproduct_docker_smoke():
                   "https://go-odyssey.invalid/attestations/build-authorization/v1"):
         assert field in w, field
     assert "docker/login-action" not in w
+    assert "docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392" in w
+    assert "docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435" in w
+    assert '"arm64_output_platform": "linux/arm64"' in s
+    assert '"arm64_instruction_execution": execution' in s
+    assert "QEMU_ARM64_EXECUTION_MISMATCH" in s
 
 def test_local_spoofed_github_metadata_is_rejected_before_docker():
     env=os.environ.copy()
