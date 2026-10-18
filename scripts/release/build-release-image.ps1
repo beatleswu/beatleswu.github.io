@@ -9,6 +9,9 @@ param(
     [string]$GovernanceExpectedGitCommonDirectory,
     [string]$GovernanceGateSourceSha,
     [string]$GovernanceProductSourceSha,
+    # Untrusted inputs: only a host-pinned cryptographic verifier can accept them.
+    [string]$GovernanceDecision,
+    [string]$GovernanceChallenge,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [switch]$DryRun
 )
@@ -36,10 +39,56 @@ if ($GovernanceGateSourceSha -cnotmatch '^[0-9a-f]{40}$' -or $GovernanceProductS
     -not [System.IO.Path]::IsPathRooted($GovernanceExpectedGitCommonDirectory)) {
     Fail 'EXTERNAL_GOVERNANCE_AUTHORITY_INVALID: absolute common directory and full lowercase commits required.'
 }
-# Explicit strings alone cannot authenticate their supplier. No trusted host
-# attestation verifier has been provided; do not invent a signer or accept a
-# candidate-authored receipt. All entry paths (including DryRun) remain closed.
-Fail 'EXTERNAL_GOVERNANCE_ATTESTATION_REQUIRED: independently authenticated host verifier is not wired.'
+# This also gates DryRun, before any detached worktree or test/build side effect.
+# There is deliberately no policy/key/executable override: this candidate cannot
+# nominate its own issuer. The bridge refuses until independently provisioned.
+if (-not $GovernanceDecision -or -not $GovernanceChallenge) {
+    Fail 'EXTERNAL_GOVERNANCE_ATTESTATION_REQUIRED: signed BUILD_APP decision and invocation challenge are missing.'
+}
+# Never execute a candidate script or PATH-resolved interpreter as the authority.
+# Installation/hash must be authenticated out of band by governance administrators.
+# No such installation receipt was supplied. An empty pin MUST remain closed.
+$governanceVerifier = 'C:\Program Files\Go Odyssey Governance\verify-governance.exe'
+$governanceVerifierSha256 = ''
+if ($governanceVerifierSha256 -cnotmatch '^[0-9a-f]{64}$') {
+    Fail 'EXTERNAL_GOVERNANCE_ATTESTATION_REQUIRED: EXTERNAL_GOVERNANCE_TRUST_ANCHOR_UNPROVISIONED; authenticated host verifier installation/hash and issuer pins are missing.'
+}
+if (-not (Test-Path -LiteralPath $governanceVerifier -PathType Leaf) -or
+    (Get-FileHash -LiteralPath $governanceVerifier -Algorithm SHA256).Hash.ToLowerInvariant() -cne $governanceVerifierSha256) {
+    Fail 'EXTERNAL_GOVERNANCE_ATTESTATION_REQUIRED: protected host verifier is missing or its authenticated bytes differ.'
+}
+$governanceOutput = @(& $governanceVerifier `
+    --decision $GovernanceDecision `
+    --challenge $GovernanceChallenge `
+    --gate-sha $GovernanceGateSourceSha `
+    --product-sha $GovernanceProductSourceSha `
+    --expected-common-dir $GovernanceExpectedGitCommonDirectory 2>&1)
+$governanceExitCode = $LASTEXITCODE
+$governanceOutput | Out-Host
+if ($governanceExitCode -ne 0) {
+    Fail "EXTERNAL_GOVERNANCE_ATTESTATION_REQUIRED: independent verification rejected: $($governanceOutput -join [Environment]::NewLine)"
+}
+try {
+    $governanceJson = $governanceOutput -join [Environment]::NewLine
+    # Windows PowerShell unwraps one-element JSON arrays; require an object.
+    if (-not $governanceJson.TrimStart().StartsWith('{')) {
+        throw 'Expected one JSON object'
+    }
+    $governanceReport = $governanceJson | ConvertFrom-Json -ErrorAction Stop
+} catch {
+    Fail 'EXTERNAL_GOVERNANCE_REPORT_INVALID: protected verifier did not return one JSON report.'
+}
+if ($governanceReport.status -cne 'BUILD_APP_AUTHORIZED' -or
+    $governanceReport.build_authorized -isnot [bool] -or $governanceReport.build_authorized -ne $true -or
+    $governanceReport.evidence_admitted -isnot [bool] -or $governanceReport.evidence_admitted -ne $false -or
+    $governanceReport.release_authorized -isnot [bool] -or $governanceReport.release_authorized -ne $false -or
+    $governanceReport.gate_sha -cne $GovernanceGateSourceSha -or
+    $governanceReport.product_sha -cne $GovernanceProductSourceSha -or
+    $governanceReport.git_common_dir -cne $GovernanceExpectedGitCommonDirectory -or
+    $governanceReport.challenge -cne $GovernanceChallenge -or
+    $governanceReport.decision_sha256 -cnotmatch '^[0-9a-f]{64}$') {
+    Fail 'EXTERNAL_GOVERNANCE_REPORT_INVALID: affirmative authorization with exact invocation bindings is required.'
+}
 $expectedGitCommonDirectory = $GovernanceExpectedGitCommonDirectory
 $gateWorktree = Get-RepoRoot
 if ($ExpectedGitSha -and ($GateSourceSha -or $ProductSourceSha)) {
@@ -77,7 +126,8 @@ $buildAppEvaluatorPath = Join-Path $gateWorktree 'scripts\release\evaluate_build
 # G009 Zone4 Owner option B: control-plane tools that bind the run to the exact Gate/Product candidate and let the
 # evaluator recognise (never pass) exactly two Owner-approved Frozen contract conflicts. The policy accepts nothing
 # until an authenticated external reviewer attests the receipt and its bytes.
-# No such host is wired here: policy and execution identity deliberately remain blocked.
+# Governance authorization does not admit test evidence: policy and execution
+# identity remain independently blocked pending their authenticated hosts.
 $ownerConflictPolicyPath = Join-Path $gateWorktree 'scripts\release\zone4_owner_b_contract_conflict_policy.json'
 $candidateBindingToolPath = Join-Path $gateWorktree 'scripts\release\verify_release_candidate_binding.py'
 $sixRouteToolPath = Join-Path $gateWorktree 'scripts\release\verify_e10_six_route_contract.py'

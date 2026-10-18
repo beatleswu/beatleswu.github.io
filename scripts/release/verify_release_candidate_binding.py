@@ -15,6 +15,8 @@
 
 The parent must independently govern --expected-common-dir and the exact expected commits.
 Candidate records, collection and JUnit cross-checks alone do not authenticate execution.
+verify_external_governance.py checks BUILD_APP authorization separately; even an
+authenticated governance decision cannot remove this tool's runner-attestation blocker.
 Exit 0 = BOUND (check only), 1 = REJECTED, 2 = usage error. Writes only --out.
 """
 from __future__ import annotations
@@ -39,6 +41,7 @@ RUNTIME_FILES = (
     "css/e10/encounter_presentation_framework_v1.css", "css/e10/go_combat_owner_reference_v1.css", "css/e10/backpack.css",
 )
 CONTROL_PLANE_FILES = (
+    "scripts/release/verify_external_governance.py",
     "scripts/release/evaluate_build_app_test_baseline.py", "scripts/release/zone4_owner_b_policy.py",
     "scripts/release/zone4_owner_b_contract_conflict_policy.json", "scripts/release/g009_release_identity_plugin.py",
     "scripts/release/verify_e10_six_route_contract.py", "scripts/release/verify_release_candidate_binding.py",

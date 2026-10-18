@@ -360,6 +360,9 @@ def test_identity_rejects(tmp_path, override):
 def test_identity_plugin_records_modules_and_nonce(tmp_path):
     proj = tmp_path / "proj"
     (proj / "tests").mkdir(parents=True)
+    # A worktree-local basetemp must not inherit the real repository's
+    # collection boundary or import its app instead of this disposable app.
+    (proj / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
     (proj / "app.py").write_text("VALUE = 1\n", encoding="utf-8")
     (proj / "tests" / "test_p0_zone4_cinematic_content_route_corrective.py").write_text("import app\n\ndef test_a():\n    assert app.VALUE == 1\n", encoding="utf-8")
     record = tmp_path / "record.json"
