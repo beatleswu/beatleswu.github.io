@@ -345,12 +345,27 @@
     setText('g009-player-display-name', profileName);
     setText('g009-character-display-name', key ? name : tx('g009.hero.character.noSelection', 'Future30 selection is loading.'));
     setText('g009-character-card-name', key ? name : tx('g009.hero.character.noSelection', 'Future30 selection is loading.'));
+    // Explain the existing progression contract without inventing a second
+    // hero level or deriving Go skill from XP. Keep this copy in our card.
+    const cardName = document.getElementById('g009-character-card-name');
+    if (cardName?.parentElement) {
+      let note = document.getElementById('g009-level-explanation');
+      if (!note) {
+        note = document.createElement('span');
+        note.id = 'g009-level-explanation';
+        note.className = 'g009-muted';
+        cardName.parentElement.appendChild(note);
+      }
+      note.textContent = en()
+        ? 'Player level (LV) follows XP; Go rank is shown separately as Go skill. This character selection does not provide a separate hero level.'
+        : '玩家等級（LV）依經驗值成長；圍棋棋力另以段級位顯示。目前角色選擇資料未提供獨立英雄等級。';
+    }
     const companion = currentPet()?.pet;
     setText('g009-character-companion-summary', companion ? petName(companion) : tx('g009.hero.companion.none', 'No active companion.'));
     const items = Array.isArray(state.inventory)
       ? state.inventory.filter(item => item && item.equipped === true)
       : [];
-    const equipmentNames = items.map(equipmentName).filter(Boolean);
+    const equipmentNames = items.filter(item => equipmentName(item)).map(item => `${equipmentName(item)} · ${equipmentKindLabel(item)}`);
     setText('g009-character-equipment-summary', equipmentNames.length
       ? equipmentNames.slice(0, 2).join(' · ')
       : tx('g009.hero.equipment.empty', 'No server-owned equipment is equipped.'));
@@ -369,6 +384,15 @@
       ? { weapon: 'Main hand', offhand: 'Off hand', armor: 'Armor', cape: 'Back', hat: 'Head', accessory: 'Accessory', aura: 'Aura' }
       : { weapon: '主手', offhand: '副手', armor: '防具', cape: '背部', hat: '頭部', accessory: '配飾', aura: '光環' };
     return labels[slot] || (en() ? 'Equipment' : '裝備');
+  }
+
+  function equipmentKindLabel(item) {
+    // The inventory projection explicitly identifies functional equipment.
+    // Missing/false metadata is not proof that an item is cosmetic, and a
+    // functional classification does not assert any particular active bonus.
+    return item?.functional_equipment === true
+      ? (en() ? 'Functional equipment' : '功能裝備')
+      : (en() ? 'Equipment type unconfirmed' : '裝備類型未確認');
   }
 
   function renderEquipment() {
@@ -391,7 +415,7 @@
         : (String(item.slot || '').toLowerCase() === 'offhand' ? '◇' : '◆');
       return `<article class="g009-slot-row" data-equipment-item="${esc(item.item_id || item.id || '')}">
         <span class="g009-slot-icon" aria-hidden="true">${iconHTML}</span>
-        <span class="g009-slot-copy"><span>${esc(equipmentSlotLabel(item))}</span><strong>${esc(equipmentName(item) || (en() ? 'Equipment' : '裝備'))}</strong></span>
+        <span class="g009-slot-copy"><span>${esc(equipmentSlotLabel(item))} · ${esc(equipmentKindLabel(item))}</span><strong>${esc(equipmentName(item) || (en() ? 'Equipment' : '裝備'))}</strong></span>
         <span class="g009-owned-chip">${esc(tx('g009.hero.equipment.serverOwned', 'Server-owned'))}</span>
       </article>`;
     }).join('');
@@ -415,7 +439,7 @@
       return `<button type="button" class="g009-character-switch${isActive ? ' is-active' : ''}"
         data-g009-character-key="${esc(key)}" aria-pressed="${String(isActive)}">
         <span class="g009-character-switch-mark" aria-hidden="true">✦</span>
-        <span class="g009-character-switch-name">${esc(future30Name(key, entry))}</span>
+        <span class="g009-character-switch-name">${esc(future30Name(key, entry))}<br><small>${esc(en() ? 'Character appearance' : '角色外觀')}</small></span>
         ${isActive ? `<span class="g009-character-switch-state">${esc(tx('g009.hero.appearance.active', 'Active'))}</span>` : ''}
       </button>`;
     }).join('');
