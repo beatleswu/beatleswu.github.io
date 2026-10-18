@@ -64,7 +64,19 @@ def compact(root: Path, batch: int = 48) -> dict:
             else:
                 mapped = destination.removeprefix("/app/").removeprefix("./")
             if mapped != source:
-                raise ValueError(f"Changed mapping: {source} -> {mapped}")
+                # Exact original Dockerfile directory-to-same-directory COPY
+                # entries copy CONTENTS into the existing target directory.
+                # Dockerfile 1.20 COPY --parents recreates that same parent.
+                # Restrict this exception to the three verified exact inputs.
+                existing_directory_copies = {
+                    "assets/3d_shop/p048/future30/c005/",
+                    "assets/3d_shop/p048/companion/formal_18/",
+                    "assets/world-map-identity/",
+                }
+                if not (source in existing_directory_copies
+                        and destination == "./" + source
+                        and src.is_dir()):
+                    raise ValueError(f"Changed mapping: {source} -> {mapped}")
             sources.append(source)
     if len(sources) != 313 or len(set(sources)) != 313:
         raise ValueError("Original curated input set does not match")
