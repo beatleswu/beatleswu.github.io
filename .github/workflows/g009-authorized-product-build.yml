@@ -1,0 +1,112 @@
+# Formal BUILD_APP: only a different OWNER's signed, current-run decision opens Docker.
+# Push on this integration branch only tests rejection; never builds the product.
+name: G009 Authorized Product Build
+on:
+  push:
+    branches:
+      - candidate/g009-authorized-product-build-bridge-20261018-r14
+    paths:
+      - .github/scripts/g009_authorized_product_build.py
+      - .github/scripts/g009_product_build_package.py
+      - .github/workflows/g009-authorized-product-build.yml
+      - tests/deployment/test_g009_authorized_product_build.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unauthorized-rejection-contract:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout only authorization integration tests
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/g009_authorized_product_build.py
+            .github/scripts/g009_product_build_package.py
+            tests/deployment/test_g009_authorized_product_build.py
+          sparse-checkout-cone-mode: false
+      - name: Focused fail-closed tests without real product Docker
+        run: |
+          set -euo pipefail
+          PYTHONDONTWRITEBYTECODE=1 python3 -I -m unittest discover -s tests/deployment -p test_g009_authorized_product_build.py -v
+  authorized-product-build:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    environment: g009-build-authority
+    concurrency:
+      group: g009-immutable-authorized-product-build
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout reviewed Gate only — Docker must remain unavailable yet
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          path: gate
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/g009_authorized_product_build.py
+            .github/scripts/g009_product_build_package.py
+          sparse-checkout-cone-mode: false
+      - name: Reject unless externally signed current-run BUILD_APP decision verifies
+        id: authorize
+        working-directory: gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          G009_APPROVED_ISSUER_PROFILE_B64: ${{ vars.G009_APPROVED_ISSUER_PROFILE_B64 }}
+          G009_APPROVED_ISSUER_PROFILE_SHA256: ${{ vars.G009_APPROVED_ISSUER_PROFILE_SHA256 }}
+        run: |
+          set -euo pipefail
+          python3 -I .github/scripts/g009_authorized_product_build.py
+      - name: Checkout immutable original Product source only after authorization
+        if: steps.authorize.outputs.authorized == 'true'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: 69dbe57aa535112b1759e3f3bdcf9ecbe1680efb
+          path: product
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Enable proven ARM64 QEMU on isolated GitHub-hosted runner
+        if: steps.authorize.outputs.authorized == 'true'
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+        with:
+          platforms: arm64
+      - name: Enable proven isolated Buildx
+        if: steps.authorize.outputs.authorized == 'true'
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Build and package actual immutable linux ARM64 Product image
+        if: steps.authorize.outputs.authorized == 'true'
+        id: build
+        env:
+          G009_AUTHORIZED: ${{ steps.authorize.outputs.authorized }}
+          G009_GATE_SHA: ${{ steps.authorize.outputs.gate_sha }}
+          G009_PRODUCT_SHA: ${{ steps.authorize.outputs.product_sha }}
+          G009_DECISION_SHA256: ${{ steps.authorize.outputs.decision_sha256 }}
+        run: |
+          set -euo pipefail
+          python3 -I gate/.github/scripts/g009_product_build_package.py
+      - name: Preserve candidate product image archive and immutable build receipt
+        if: steps.authorize.outputs.authorized == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: g009-authorized-arm64-product-image
+          path: |
+            ${{ steps.build.outputs.archive }}
+            ${{ steps.build.outputs.receipt }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Attest actual immutable arm64 image archive — NOT a deployment decision
+        if: steps.authorize.outputs.authorized == 'true'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.build.outputs.archive }}
