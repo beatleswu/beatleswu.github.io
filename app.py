@@ -29,6 +29,8 @@ from psycopg2.extras import DictCursor
 # slim 映像缺 /etc/mime.types，手動註冊常見靜態類型，避免 send_from_directory 回 octet-stream
 mimetypes.add_type('image/webp', '.webp')
 mimetypes.add_type('image/svg+xml', '.svg')
+# glTF binary (.glb) is likewise absent from the stdlib table on slim images; the static manifests declare model/gltf-binary.
+mimetypes.add_type('model/gltf-binary', '.glb')
 import random, string
 import hashlib
 import urllib.request
@@ -303,6 +305,7 @@ from question_idempotency import (
 # implementation of its own (Incident 002/003G).
 from srs_scheduling_core import (
     ProgressCreditPolicy,
+    SrsAdvancePolicy,
     apply_srs_scheduling,
     should_grant_review_progress as _srs_core_should_grant_review_progress,
     sm2_update as _srs_core_sm2_update,
@@ -1927,6 +1930,14 @@ _FUNCTIONAL_EFFECT_ACTIVE_KEYS.update({
     str(definition['id']): set(definition.get('effects') or {})
     for definition in EQ_F_NEW_EQUIPMENT_DEFS
 })
+
+# EQ-F items are admitted only while the canonical Equipment Loadout is ON.
+# A row that is still ``equipped=1`` when the flag is OFF (earlier ON period,
+# admin grant, rollback) must not leak damage/SP/XP/loot effects into the
+# authoritative combat paths; legacy items are unaffected.
+_EQ_F_EQUIPMENT_IDS = frozenset(
+    str(definition['id']) for definition in EQ_F_NEW_EQUIPMENT_DEFS
+)
 
 _FUNCTIONAL_EFFECT_LABELS = {
     'dmg_bonus': ('傷害加成', 'Damage modifier'),
@@ -8325,7 +8336,10 @@ def _get_equip_effect(conn, uid, effect_key):
         'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1', (uid,)
     ).fetchall()
     total = 0.0
+    eq_f_effects_enabled = _equipment_canonical_loadout_enabled()
     for r in rows:
+        if r['equip_id'] in _EQ_F_EQUIPMENT_IDS and not eq_f_effects_enabled:
+            continue
         eq = _EQUIP_MAP.get(r['equip_id'], {})
         total += eq.get('effects', {}).get(effect_key, 0)
     return total
@@ -8343,8 +8357,11 @@ def _get_active_equip_effect(conn, uid, effect_key):
         'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1', (uid,)
     ).fetchall()
     total = 0.0
+    eq_f_effects_enabled = _equipment_canonical_loadout_enabled()
     for row in rows:
         equip_id = row['equip_id']
+        if equip_id in _EQ_F_EQUIPMENT_IDS and not eq_f_effects_enabled:
+            continue
         if effect_key not in _FUNCTIONAL_EFFECT_ACTIVE_KEYS.get(equip_id, set()):
             continue
         equip = _EQUIP_MAP.get(equip_id, {})
@@ -16537,7 +16554,13 @@ def srs_review():
             boss_answer=data.get('boss_answer'),
             training_set_id=data.get('training_set_id'),
             is_scaffolding=bool(data.get('is_scaffolding')),
-            submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
+            # Only an absent, null, or empty-string body identity defers to the
+            # header; any other present value (e.g. [] or {}) must fail closed.
+            submission_id=(
+                data.get('submission_id')
+                if data.get('submission_id') not in (None, '')
+                else request.headers.get('Idempotency-Key')
+            ),
             guild_answer=data.get('guild_answer'),
             guild_quest_key=data.get('guild_quest_key'),
         )
@@ -17530,6 +17553,25 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # server-owned Map Battle handoff (internal) may mint progression
         # credit; a public grade continues to update SM-2 but is never
         # allowed to become progression/reward/combat authority.
+        # P1 (Owner 2026-10-12): only an ordinary public Review is held to
+        # "advance when due".  The mode is decided from server-validated
+        # state, never from the client's source_context label alone: Map
+        # Battle (internal), Lord/Boss, Guild, Premium training and an
+        # active Boss question keep their historical always-advance
+        # behaviour.
+        ordinary_public_review = (
+            not internal
+            and public_review_authority is not None
+            and combat_settlement_context is None
+            and boss_source_context is None
+            and boss_answer is None
+            and boss_verdict is None
+            and guild_answer is None
+            and guild_verdict is None
+            and training_item is None
+            and training_set_id is None
+            and not active_boss_question
+        )
         _srs_outcome = apply_srs_scheduling(
             conn,
             user_id=uid,
@@ -17539,6 +17581,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             progress_credit_policy=(
                 ProgressCreditPolicy.FIRST_PASS_ONLY if internal
                 else ProgressCreditPolicy.NEVER
+            ),
+            advance_policy=(
+                SrsAdvancePolicy.CORRECT_ONLY_WHEN_DUE if ordinary_public_review
+                else SrsAdvancePolicy.ALWAYS
             ),
         )
         ef, iv, rp, due = (
@@ -18275,16 +18321,28 @@ def srs_due():
         rows = conn.execute(
             'SELECT question_id,interval,ease_factor,due_date FROM srs_cards WHERE user_id=? AND due_date<=?',
             (uid,today)).fetchall()
+        # RC01 (Owner 2026-10-12): a card that is persisted but not yet due is
+        # NOT a never-seen question.  Without these ids the default-card
+        # admission below fabricated an interval-0 "due today" card for it, and
+        # SRS.init overlaid that fiction on the real /api/srs/all schedule.
+        # Only future-dated cards are read here (due/overdue cards are already
+        # in ``rows``); a legacy row with a NULL due_date is deliberately left
+        # to the historical default so no card silently disappears from the
+        # due list.
+        future_ids = {r['question_id'] for r in conn.execute(
+            'SELECT question_id FROM srs_cards WHERE user_id=? AND due_date>?',
+            (uid, today)).fetchall()}
         qs   = _load_questions()
         # LC019-W2: don't synthesize a default card for a question whose
-        # canonical identity already has a real due card.  When the reader is
-        # cold, _gk is the ("legacy", str(id)) bijection -> `seen` behaves exactly like the
-        # raw id set, so `due` is byte-identical and no resolver is queried.
+        # canonical identity already has a persisted card (due or future).  When
+        # the reader is cold, _gk is the ("legacy", str(id)) bijection ->
+        # `seen` behaves exactly like the raw id set and no resolver is queried.
+        persisted_ids = {r['question_id'] for r in rows} | future_ids
         seen = _IdentityKeyedSet(
-            {r['question_id'] for r in rows},
+            persisted_ids,
             _identity_group_key_map(
                 conn,
-                {r['question_id'] for r in rows} | {q['id'] for q in qs},
+                persisted_ids | {q['id'] for q in qs},
             ),
         )
     due  = [dict(r) for r in rows]
@@ -29166,6 +29224,7 @@ def _serve_live_static_or_baked_subpath(
     baked_subdir,
     live_static_subdir,
     allowed_subpaths=None,
+    mimetype=None,
 ):
     """Same fallback contract as _serve_live_static_or_baked, but for a
     file inside a subdirectory tree (e.g. assets/tiers/26-30.jpg)
@@ -29178,19 +29237,19 @@ def _serve_live_static_or_baked_subpath(
     inside the live-static root."""
     normalized_subpath = subpath.replace('\\', '/')
     if allowed_subpaths is not None and normalized_subpath not in allowed_subpaths:
-        return send_from_directory(os.path.join(_BASE, baked_subdir), subpath)
+        return send_from_directory(os.path.join(_BASE, baked_subdir), subpath, mimetype=mimetype)
 
     live_static_relative = f'{live_static_subdir}/{normalized_subpath}'
     live_static_path = _resolve_live_static_path(live_static_relative)
     if live_static_path:
         try:
-            return send_file(live_static_path, conditional=True)
+            return send_file(live_static_path, conditional=True, mimetype=mimetype)
         except OSError as exc:
             app.logger.warning(
                 '[live_static] failed to serve %s from %s: %s; falling back to baked asset',
                 subpath, live_static_path, exc
             )
-    return send_from_directory(os.path.join(_BASE, baked_subdir), subpath)
+    return send_from_directory(os.path.join(_BASE, baked_subdir), subpath, mimetype=mimetype)
 
 @app.route('/sound/<path:filename>')
 def serve_sound(filename):
@@ -29328,10 +29387,23 @@ text-decoration:none;font-weight:900}</style></head>
 @app.route('/icon-192.png')
 def serve_icon192(): return send_from_directory(_BASE,'icon-192.png')
 
+# These legacy filenames do not match their verified image byte signatures.
+# Preserve accepted assets and URLs; override only the five proven MIME cases.
+_LIVE_STATIC_ASSET_MIME_OVERRIDES = {
+    'community/tavern_bg.webp': 'image/png',
+    'hero/armor/answer_hero_avatar_verification.png': 'image/jpeg',
+    'hero/armor/hero_armor_overlay_verification.png': 'image/jpeg',
+    'hero/hero_bg.webp': 'image/png',
+    'monsters/monster_redraw_verification.png': 'image/jpeg',
+}
+
 @app.route('/assets/<path:subpath>')
 def serve_assets(subpath):
     """提供題庫相關資源圖（如棋力區封面 assets/tiers/26-30.jpg）"""
-    return _serve_live_static_or_baked_subpath(subpath, 'assets', 'assets')
+    return _serve_live_static_or_baked_subpath(
+        subpath, 'assets', 'assets',
+        mimetype=_LIVE_STATIC_ASSET_MIME_OVERRIDES.get(subpath),
+    )
 
 @app.route('/art/monsters/<path:filename>')
 def serve_zone3_monster_art(filename):
@@ -29535,6 +29607,14 @@ def serve_zone4_cinematic_content_js():
 def serve_encounter_presentation_framework_v1_css():
     return _serve_live_static_or_baked_subpath(
         'encounter_presentation_framework_v1.css', 'css/e10', 'css/e10'
+    )
+
+# G009 FAST-LANE: the existing backpack stylesheet is presentation-only.
+# Preserve the governed exact-route policy for css/e10; no broad static prefix.
+@app.route('/css/e10/backpack.css')
+def serve_e10_backpack_css():
+    return _serve_live_static_or_baked_subpath(
+        'backpack.css', 'css/e10', 'css/e10'
     )
 
 @app.route('/css/e10/go_combat_owner_reference_v1.css')

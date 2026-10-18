@@ -64,7 +64,7 @@
     return [...bySlot.values()];
   }
 
-  function appendLayer(stage, source, className, alt) {
+  function appendLayer(stage, source, className, alt, onAssetError) {
     const image = document.createElement('img');
     image.className = `rpg-wearable-layer ${className}`;
     image.src = source;
@@ -72,8 +72,10 @@
     image.decoding = 'async';
     image.draggable = false;
     image.addEventListener('error', () => {
+      if (image.parentNode !== stage) return;
       image.hidden = true;
       stage.dataset.assetError = source;
+      if (onAssetError) onAssetError();
     }, { once: true });
     stage.appendChild(image);
     return image;
@@ -123,21 +125,36 @@
     const selectedIds = normalizeEquipped(equipped, registry);
     const selected = new Set(selectedIds);
     const entries = selectedIds.map(id => registry.equipment[id]).filter(Boolean);
+    const maskRequired = entries.some(item => (item.mask_requirements || []).includes('HAIR_FRONT_MASK'));
+    const maskAsset = baseCharacter.hair_front_mask || opts.maskAsset || '';
+    if (maskRequired && !maskAsset) {
+      stage.hidden = true;
+      stage.dataset.supported = 'false';
+      setFallback(fallback, true);
+      return { supported: false, reason: 'required_mask_unavailable', character: characterKey };
+    }
+    const onAssetError = () => {
+      if (typeof opts.isCurrent === 'function' && !opts.isCurrent()) return;
+      stage.hidden = true;
+      stage.dataset.supported = 'false';
+      setFallback(fallback, true);
+    };
     const appendEntries = layer => entries
       .filter(item => item.layer === layer)
-      .forEach(item => appendLayer(stage, item.asset, `equipment-${item.id} layer-${layer.toLowerCase()}`, item.canonical_identity));
+      .forEach(item => appendLayer(stage, item.asset, `equipment-${item.id} layer-${layer.toLowerCase()}`, item.canonical_identity, onAssetError));
 
     appendEntries('BACK_WEAPON');
     appendEntries('BACK_BODY');
-    appendLayer(stage, baseCharacter.base, 'character-base', `${characterKey} character base`);
+    appendLayer(stage, baseCharacter.base, 'character-base', `${characterKey} character base`, onAssetError);
     appendEntries('TORSO_ARMOR');
     appendEntries('FRONT_BODY');
     appendEntries('FRONT_ACCESSORY');
+    // EQ-F's existing full-frame handheld artwork uses the accepted main-hand layer.
+    appendEntries('MAIN_HAND_WEAPON');
     appendEntries('HEAD_FACE');
 
     if (entries.some(item => (item.mask_requirements || []).includes('HAIR_FRONT_MASK'))) {
-      const maskAsset = baseCharacter.hair_front_mask || opts.maskAsset || '';
-      if (maskAsset) appendLayer(stage, maskAsset, 'character-hair-front-mask layer-hair-front-mask', 'reusable character hair mask');
+      if (maskAsset) appendLayer(stage, maskAsset, 'character-hair-front-mask layer-hair-front-mask', 'reusable character hair mask', onAssetError);
     }
     stage.dataset.equippedIds = selectedIds.join(',');
     stage.dataset.authority = 'server_equipped_projection';
@@ -337,16 +354,26 @@
       ...wearableEntries.map(entry => entry.asset),
     ];
     if (wearableEntries.some(entry => (entry.mask_requirements || []).includes('HAIR_FRONT_MASK'))) {
-      if (wearableCharacter.hair_front_mask) needed.push(wearableCharacter.hair_front_mask);
+      if (!wearableCharacter.hair_front_mask) throw new Error('required character hair mask unavailable');
+      needed.push(wearableCharacter.hair_front_mask);
     }
     await Promise.all([...new Set(needed)].map(async source => {
       assets.set(source, await handheldImage(source));
     }));
     context.clearRect(0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
-    context.drawImage(assets.get(character.base_asset), 0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
-    eraseHandheldMask(context, assets.get(character.open_hand_suppression_mask));
+    // Suppress the open hand on the character alone, preserving the back layers.
+    const baseCanvas = document.createElement('canvas');
+    baseCanvas.width = HANDHELD_FRAME.width;
+    baseCanvas.height = HANDHELD_FRAME.height;
+    const baseContext = baseCanvas.getContext('2d');
+    baseContext.drawImage(assets.get(character.base_asset), 0, 0, HANDHELD_FRAME.width, HANDHELD_FRAME.height);
+    eraseHandheldMask(baseContext, assets.get(character.open_hand_suppression_mask));
     for (const layer of layerOrder) {
-      if (layer === 'CHARACTER_BASE' || layer === 'HAIR_FRONT_MASK') continue;
+      if (layer === 'CHARACTER_BASE') {
+        context.drawImage(baseCanvas, 0, 0);
+        continue;
+      }
+      if (layer === 'HAIR_FRONT_MASK') continue;
       wearableEntries
         .filter(entry => entry.layer === layer)
         .filter(entry => entry.layer !== 'MAIN_HAND_WEAPON' && entry.handheld_runtime_supported !== true)

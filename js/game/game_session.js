@@ -206,6 +206,153 @@
                 : null;
             this._currentIdentity = null;
             this._reviewInFlightKey = null;
+            // Ordinary public Review recovery is separate from the render-session
+            // identity. invalidate()/endReview() must not discard an uncertain
+            // HTTP submission. Stored acknowledgements are never commit authority.
+            this._publicReviewStores = new Map();
+            this._publicReviewInFlight = new Set();
+            // Server-confirmed outcomes observed by THIS page instance. Persisted
+            // state alone can never settle an answer (storage is client-writable).
+            this._publicReviewConfirmed = new Set();
+        }
+
+        _publicReviewStore(userId) {
+            const owner = Number(userId);
+            if (!Number.isSafeInteger(owner) || owner <= 0) {
+                throw new Error('public_review_authenticated_owner_required');
+            }
+            if (!this._publicReviewStores.has(owner)) {
+                const storageKey = `go:public-review:v1:${owner}`;
+                const raw = global.sessionStorage.getItem(storageKey);
+                const entries = raw ? JSON.parse(raw) : {};
+                if (!entries || typeof entries !== 'object' || Array.isArray(entries)) {
+                    throw new Error('public_review_recovery_state_invalid');
+                }
+                this._publicReviewStores.set(owner, { storageKey, entries });
+            }
+            return this._publicReviewStores.get(owner);
+        }
+
+        _savePublicReview(userId) {
+            const store = this._publicReviewStore(userId);
+            // Fail before POST if persistence is unavailable; never silently
+            // replace a pending identity on reentry or a browser reload.
+            global.sessionStorage.setItem(store.storageKey, JSON.stringify(store.entries));
+        }
+
+        beginPublicReview(userId, command, mode = 'normal') {
+            if (!command || command.source_context !== 'practice'
+                || command.internal || command.boss_answer || command.guild_answer
+                || command.training_set_id != null
+                || Object.keys(command).some((field) => ![
+                    'question_id', 'grade', 'unit_name', 'unit_done', 'response_ms',
+                    'source_context', 'training_set_id', 'is_scaffolding', 'submission_id',
+                ].includes(field))) {
+                throw new Error('public_review_recovery_scope_mismatch');
+            }
+            const store = this._publicReviewStore(userId);
+            const key = JSON.stringify([mode, Number(command.question_id), command.unit_name || null]);
+            const lockKey = `${userId}:${key}`;
+            if (this._publicReviewInFlight.has(lockKey)) return null;
+            let entry = store.entries[key];
+            if (!entry) {
+                if (!global.crypto || typeof global.crypto.randomUUID !== 'function') {
+                    throw new Error('public_review_secure_identity_unavailable');
+                }
+                entry = {
+                    command: JSON.parse(JSON.stringify({ ...command, submission_id: global.crypto.randomUUID() })),
+                    state: 'CREATED', sent: false, uiSettled: false,
+                };
+                store.entries[key] = entry;
+                this._savePublicReview(userId);
+            } else if (!entry.command || typeof entry.command !== 'object'
+                || Array.isArray(entry.command)
+                || typeof entry.command.submission_id !== 'string'
+                || !entry.command.submission_id
+                || entry.command.source_context !== 'practice'
+                || entry.command.training_set_id != null
+                || Object.keys(entry.command).some((field) => ![
+                    'question_id', 'grade', 'unit_name', 'unit_done', 'response_ms',
+                    'source_context', 'training_set_id', 'is_scaffolding', 'submission_id',
+                ].includes(field))) {
+                throw new Error('public_review_recovery_state_invalid');
+            }
+            if (entry.uiSettled && !this._publicReviewConfirmed.has(lockKey)) {
+                // A persisted "settled" flag is client-writable. Never trust it on a
+                // fresh page: re-verify through the idempotent resend (same
+                // submission id -> the server answers DUPLICATE, no second effect).
+                entry.uiSettled = false;
+                entry.state = 'UNKNOWN_UNCONFIRMED';
+                this._savePublicReview(userId);
+            }
+            if (!entry.uiSettled) {
+                // Telemetry and the now-current unit completion projection are
+                // not a new logical payload. Reuse their original wire values.
+                for (const field of ['question_id', 'grade', 'unit_name', 'source_context',
+                    'training_set_id', 'is_scaffolding']) {
+                    if (JSON.stringify(entry.command[field]) !== JSON.stringify(command[field])) {
+                        throw new Error('public_review_pending_payload_changed');
+                    }
+                }
+                this._publicReviewInFlight.add(lockKey);
+            }
+            return Object.freeze({
+                userId: Number(userId), key, lockKey, settled: !!entry.uiSettled,
+                firstRequest: !entry.sent,
+                command: Object.freeze(JSON.parse(JSON.stringify(entry.command))),
+            });
+        }
+
+        publicReviewCommand(attempt, unitDone) {
+            const entry = this._publicReviewStore(attempt.userId).entries[attempt.key];
+            if (!entry.sent) {
+                entry.command.unit_done = !!unitDone;
+                entry.sent = true;
+                entry.state = 'UNKNOWN_UNCONFIRMED';
+                this._savePublicReview(attempt.userId);
+            }
+            return Object.freeze(JSON.parse(JSON.stringify(entry.command)));
+        }
+
+        recordPublicReviewOutcome(attempt, state) {
+            if (!['SERVER_REJECTED', 'UNKNOWN_UNCONFIRMED', 'NEW_COMMITTED',
+                'DUPLICATE_COMMITTED_RECOVERED'].includes(state)) {
+                throw new Error('public_review_outcome_invalid');
+            }
+            const entry = this._publicReviewStore(attempt.userId).entries[attempt.key];
+            entry.state = state;
+            if (['NEW_COMMITTED', 'DUPLICATE_COMMITTED_RECOVERED'].includes(state)) {
+                this._publicReviewConfirmed.add(attempt.lockKey);
+            } else {
+                this._publicReviewConfirmed.delete(attempt.lockKey);
+            }
+            this._savePublicReview(attempt.userId);
+        }
+
+        settlePublicReview(attempt) {
+            const entry = this._publicReviewStore(attempt.userId).entries[attempt.key];
+            if (entry.uiSettled) return false;
+            if (!this._publicReviewConfirmed.has(attempt.lockKey)
+                || !['NEW_COMMITTED', 'DUPLICATE_COMMITTED_RECOVERED'].includes(entry.state)) {
+                throw new Error('public_review_commit_not_confirmed');
+            }
+            entry.uiSettled = true;
+            this._savePublicReview(attempt.userId);
+            return true;
+        }
+
+        endPublicReview(attempt) {
+            if (attempt) this._publicReviewInFlight.delete(attempt.lockKey);
+        }
+
+        newPublicReviewAttempt(attempt) {
+            const store = this._publicReviewStore(attempt.userId);
+            const entry = store.entries[attempt.key];
+            if (!entry || this._publicReviewInFlight.has(attempt.lockKey)
+                || (!entry.uiSettled && entry.state !== 'SERVER_REJECTED')) return false;
+            delete store.entries[attempt.key];
+            this._savePublicReview(attempt.userId);
+            return true;
         }
 
         currentQuestionIdentity() {

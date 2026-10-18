@@ -15,7 +15,8 @@
   'use strict';
 
   var CHARACTER_ROOT = '/assets/hero/characters/';
-  var DEFAULT_CHARACTER_KEY = 'apprentice';
+  var DEFAULT_CHARACTER_KEY = 'A1';
+  var DEFAULT_VISUAL_MODEL_ID = 'FUTURE30_MODEL_A1_RED';
   var CHARACTER_PRESENTATIONS = {
     apprentice: { id: 'apprentice', asset: CHARACTER_ROOT + 'chibi_apprentice_normalized.webp' },
     apprentice_girl: { id: 'apprentice_girl', asset: CHARACTER_ROOT + 'chibi_apprentice_girl_normalized.webp' },
@@ -27,6 +28,24 @@
     paladin: { id: 'paladin', asset: CHARACTER_ROOT + 'chibi_paladin_normalized.webp' },
     mage: { id: 'mage', asset: CHARACTER_ROOT + 'chibi_mage_normalized.webp' },
     sage: { id: 'sage', asset: CHARACTER_ROOT + 'chibi_sage_normalized.webp' },
+  };
+  var LEGACY_CHARACTER_KEYS = {
+    apprentice: true,
+    apprentice_girl: true,
+    swordsman: true,
+    rogue: true,
+    ranger: true,
+    berserker: true,
+    guardian: true,
+    paladin: true,
+    mage: true,
+    sage: true,
+    hero_male: true,
+    woman: true,
+    boy_child: true,
+    girl_child: true,
+    elder_master: true,
+    elder_woman: true,
   };
   var DERIVED84_RUNTIME_MANIFEST_URL = '/assets/world-map-identity/runtime_manifest.json';
   var derived84ManifestPromise = null;
@@ -115,10 +134,34 @@
     };
   }
 
-  function resolveAppearanceAsync(raw, doFetch) {
-    if (!isFuture30Appearance(raw)) return Promise.resolve(normalizeAppearance(raw));
+  function resolveDefaultA1Presentation(manifestIndex) {
+    var a1 = {
+      character_runtime: { visual_model_id: DEFAULT_VISUAL_MODEL_ID },
+      character_key: DEFAULT_CHARACTER_KEY,
+    };
+    var presentation = resolveFuture30AvatarPresentation(a1, manifestIndex);
+    presentation.fallback = true;
+    return presentation;
+  }
+
+  function resolvePresentationAsync(raw, doFetch) {
     return loadDerived84Manifest(doFetch).then(function (manifestIndex) {
-      var presentation = resolveFuture30AvatarPresentation(raw, manifestIndex);
+      if (isFuture30Appearance(raw)) {
+        // An explicit server-owned Future30 identity that the accepted
+        // Derived84 manifest does not map FAILS CLOSED: it is never presented
+        // as resolved, and never silently replaced by A1 (which would read as
+        // the player having been granted that character). Only a response
+        // carrying no Future30 identity at all takes the A1 default below.
+        var resolved = resolveFuture30AvatarPresentation(raw, manifestIndex);
+        resolved.fallback = false;
+        return resolved;
+      }
+      return resolveDefaultA1Presentation(manifestIndex);
+    });
+  }
+
+  function resolveAppearanceAsync(raw, doFetch) {
+    return resolvePresentationAsync(raw, doFetch).then(function (presentation) {
       return {
         avatarSrc: presentation.avatarAsset,
         avatarFallbackSrc: '',
@@ -134,36 +177,37 @@
    * Map continues to consume this resolved shape.
    */
   function resolveCurrentPlayerAvatarPresentation(raw) {
-    var key = raw && typeof raw.character_key === 'string' ? raw.character_key.trim() : '';
-    var resolved = CHARACTER_PRESENTATIONS[key] || CHARACTER_PRESENTATIONS[DEFAULT_CHARACTER_KEY];
-    var fallback = CHARACTER_PRESENTATIONS[DEFAULT_CHARACTER_KEY];
+    if (isFuture30Appearance(raw)) {
+      // Synchronous callers cannot consult the manifest: report the server's
+      // own identity as unresolved instead of claiming the default A1.
+      return {
+        id: raw.character_key || raw.character_runtime.visual_model_id,
+        asset: '',
+        avatarAsset: '',
+        standingAsset: '',
+        fallbackAsset: '',
+        presentationType: 'future30-derived84-unresolved',
+        characterKey: raw.character_key || null,
+        visualModelId: raw.character_runtime.visual_model_id,
+      };
+    }
     return {
-      id: resolved.id,
-      asset: resolved.asset,
-      fallbackAsset: fallback.asset,
-      presentationType: 'full-body-character',
+      id: DEFAULT_CHARACTER_KEY,
+      asset: '',
+      avatarAsset: '',
+      standingAsset: '',
+      fallbackAsset: '',
+      presentationType: 'future30-derived84-unresolved',
+      characterKey: DEFAULT_CHARACTER_KEY,
+      visualModelId: DEFAULT_VISUAL_MODEL_ID,
     };
   }
 
   function normalizeAppearance(raw) {
-    if (isFuture30Appearance(raw)) {
-      return {
-        avatarSrc: '',
-        avatarFallbackSrc: '',
-        avatarPresentation: {
-          id: raw.character_key || raw.character_runtime.visual_model_id,
-          asset: '',
-          avatarAsset: '',
-          standingAsset: '',
-          fallbackAsset: '',
-          presentationType: 'future30-derived84-unresolved',
-        },
-      };
-    }
     var presentation = resolveCurrentPlayerAvatarPresentation(raw);
     return {
-      avatarSrc: presentation.asset,
-      avatarFallbackSrc: presentation.fallbackAsset,
+      avatarSrc: '',
+      avatarFallbackSrc: '',
       avatarPresentation: presentation,
     };
   }
@@ -217,20 +261,14 @@
   }
 
   function defaultAvatarPresentationResult(kind, status) {
-    return {
-      ok: true,
-      data: resolveCurrentPlayerAvatarPresentation({ character_key: DEFAULT_CHARACTER_KEY }),
-      fallback: true,
-      kind: kind || null,
-      status: status || null,
-    };
+    return { ok: false, kind: kind || 'error', status: status || null };
   }
 
   /**
    * Read only the committed appearance endpoint for consumers such as the
    * World Map. Preview/local-loadout state is deliberately not an input.
-   * Missing or invalid committed character data resolves through the same
-   * canonical default used by Character Appearance (apprentice).
+   * Missing or invalid committed character data resolves through the
+   * Owner-accepted Derived84 A1 AVATAR/STANDING rows.
    */
   function fetchAvatarPresentation(fetchImpl) {
     var doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
@@ -239,11 +277,8 @@
     return doFetch('/api/player/appearance', { credentials: 'same-origin' }).then(function (response) {
       if (!response.ok) return defaultAvatarPresentationResult(classifyHttpError(response.status), response.status);
       return response.json().then(function (raw) {
-        if (!isFuture30Appearance(raw)) {
-          return { ok: true, data: resolveCurrentPlayerAvatarPresentation(raw), fallback: false };
-        }
-        return loadDerived84Manifest(doFetch).then(function (manifestIndex) {
-          return { ok: true, data: resolveFuture30AvatarPresentation(raw, manifestIndex), fallback: false };
+        return resolvePresentationAsync(raw, doFetch).then(function (presentation) {
+          return { ok: true, data: presentation, fallback: presentation.fallback === true };
         });
       }, function () {
         return defaultAvatarPresentationResult('error', response.status);
@@ -251,7 +286,7 @@
     }, function () {
       return defaultAvatarPresentationResult('network', null);
     }).catch(function () {
-      return { ok: false, kind: 'error', status: null };
+      return defaultAvatarPresentationResult('error', null);
     });
   }
 
@@ -270,20 +305,41 @@
       doFetch('/api/skills/profile', { credentials: 'same-origin' }),
       doFetch('/api/user/coins', { credentials: 'same-origin' }),
       doFetch('/api/player/appearance', { credentials: 'same-origin' }).then(function (response) {
-        if (!response.ok) return normalizeAppearance(null);
+        if (!response.ok) return { ok: false, kind: classifyHttpError(response.status), status: response.status };
         return response.json().then(function (raw) {
-          return resolveAppearanceAsync(raw, doFetch);
-        }, function () { return normalizeAppearance(null); });
-      }, function () { return normalizeAppearance(null); }),
+          return resolveAppearanceAsync(raw, doFetch).then(function (appearance) {
+            return { ok: true, data: appearance };
+          }, function (error) {
+            // Unmapped server identity: keep the HUD (name/level/coins) but
+            // show a neutral, explicitly unresolved avatar -- never A1.
+            if (error && error.message === 'derived84_visual_identity_unmapped') {
+              return { ok: true, data: {
+                avatarSrc: '',
+                avatarFallbackSrc: '',
+                avatarPresentation: {
+                  id: raw.character_key || raw.character_runtime.visual_model_id,
+                  asset: '', avatarAsset: '', standingAsset: '', fallbackAsset: '',
+                  presentationType: 'future30-derived84-unresolved',
+                  characterKey: raw.character_key || null,
+                  visualModelId: raw.character_runtime.visual_model_id,
+                  unmappedIdentity: true,
+                },
+              } };
+            }
+            throw error;
+          });
+        }, function () { return { ok: false, kind: 'error', status: response.status }; });
+      }, function () { return { ok: false, kind: 'network', status: null }; }),
     ]).then(function (responses) {
       var profileRes = responses[0];
       var coinsRes = responses[1];
       if (!profileRes.ok) return { ok: false, kind: classifyHttpError(profileRes.status), status: profileRes.status };
       if (!coinsRes.ok) return { ok: false, kind: classifyHttpError(coinsRes.status), status: coinsRes.status };
+      if (!responses[2].ok) return responses[2];
       return Promise.all([profileRes.json(), coinsRes.json()]).then(function (bodies) {
         var profile = normalizeProfile(bodies[0]);
         var coins = normalizeCoins(bodies[1]);
-        var appearance = responses[2];
+        var appearance = responses[2].data;
         return { ok: true, data: {
           name: profile.name,
           level: profile.level,

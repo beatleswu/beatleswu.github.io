@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
@@ -18,6 +19,7 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
+from types import FunctionType
 
 
 SCHEMA = "go-odyssey-build-app-known-failure-baseline-v1"
@@ -234,9 +236,9 @@ def _nodeid_for_testcase(testcase: ET.Element) -> str:
     return f"{module_path}::{name}"
 
 
-def _parse_junit(path: Path) -> tuple[list[dict[str, str]], dict[str, int]]:
+def _parse_junit(path: Path | ET.Element) -> tuple[list[dict[str, str]], dict[str, int]]:
     try:
-        root = ET.parse(path).getroot()
+        root = path if isinstance(path, ET.Element) else ET.parse(path).getroot()
     except (OSError, ET.ParseError) as exc:
         raise JUnitEvidenceError(f"cannot parse pytest JUnit report: {exc}") from exc
 
@@ -245,6 +247,21 @@ def _parse_junit(path: Path) -> tuple[list[dict[str, str]], dict[str, int]]:
     suites = [root] if root.tag == "testsuite" else list(root.findall("./testsuite"))
     if not suites:
         raise JUnitEvidenceError("JUnit report contains no testsuite element")
+    # Only testsuites -> testsuite -> testcase is admitted. In particular,
+    # descendant searches must never silently include orphan result records.
+    parents = {child: parent for parent in root.iter() for child in parent}
+    if root.tag == "testsuites" and any(child.tag != "testsuite" for child in root):
+        raise JUnitEvidenceError("JUnit testsuites contains misplaced child")
+    for node in root.iter():
+        parent = parents.get(node)
+        if node.tag == "testsuite" and node not in suites:
+            raise JUnitEvidenceError("JUnit contains misplaced testsuite")
+        if node.tag == "testcase" and parent not in suites:
+            raise JUnitEvidenceError("JUnit contains misplaced testcase")
+        if node.tag in {"error", "failure", "skipped"} and (
+            parent is None or parent.tag != "testcase" or parents.get(parent) not in suites
+        ):
+            raise JUnitEvidenceError("JUnit contains misplaced result element")
     testcases = list(root.findall(".//testcase"))
     if not testcases:
         raise JUnitEvidenceError("JUnit report contains no testcase elements")
@@ -340,6 +357,19 @@ def _parse_junit(path: Path) -> tuple[list[dict[str, str]], dict[str, int]]:
         if testcase_errors:
             error_case_count += 1
 
+    if error_count != error_case_count:
+        raise JUnitEvidenceError("JUnit errors do not reconcile with testcase evidence")
+    if root.tag == "testsuites":
+        totals = {"tests": len(testcases), "failures": failure_case_count,
+                  "errors": error_case_count, "skipped": skipped_count}
+        for attribute, actual in totals.items():
+            if attribute in root.attrib:
+                try:
+                    declared = int(root.attrib[attribute])
+                except ValueError as exc:
+                    raise JUnitEvidenceError("JUnit aggregate count is not an integer") from exc
+                if declared != actual:
+                    raise JUnitEvidenceError("JUnit aggregate count does not match testcase evidence")
     passed_count = len(testcases) - skipped_count - failure_case_count - error_case_count
     return failures, {
         "passed": passed_count,
@@ -350,6 +380,107 @@ def _parse_junit(path: Path) -> tuple[list[dict[str, str]], dict[str, int]]:
     }
 
 
+OWNER_CONFLICT_RESULT = "PASS_WITH_OWNER_APPROVED_CONTRACT_CONFLICTS"
+PASSING_RESULTS = frozenset({"PASS", OWNER_CONFLICT_RESULT})
+
+
+def _execution_source_identity(expected_path: Path) -> str:
+    """Ordinary imports/CLI cannot recover their originally executed source bytes."""
+    raise BaselineValidationError("evaluator was not executed by the source snapshot loader")
+
+
+class _SourceSnapshotLoader:
+    """One read, one compile, one execution; never consult importlib's bytecode cache.
+
+    This is a loader for a trusted Python host, not an external reviewer or a
+    sandbox against a host that can replace Python functions/globals. The host
+    must trust this bootstrap independently; a candidate receipt cannot do that.
+    """
+
+    def __init__(self, path: Path):
+        self.path = str(path.resolve(strict=True))
+        if path.absolute() != Path(self.path):
+            raise BaselineValidationError("source snapshot path is redirected or ambiguous")
+        self.source = Path(self.path).read_bytes()
+        self.started = False
+
+    def create_module(self, spec):
+        return None
+
+    def exec_module(self, module):
+        if self.started:
+            raise BaselineValidationError("source snapshot cannot be executed twice")
+        self.started = True
+        # Both compile and digest consume these same immutable bytes, even if
+        # the pathname/symlink is changed during or after this load.
+        source = self.source
+        code = compile(source, self.path, "exec", dont_inherit=True, optimize=0)
+        namespace = module.__dict__
+        namespace["__file__"] = self.path
+        exec(code, namespace)
+        functions = {
+            name: (value, value.__code__)
+            for name, value in namespace.items()
+            if isinstance(value, FunctionType) and value.__globals__ is namespace
+            and name != "_execution_source_identity"
+        }
+        digest = hashlib.sha256(source).hexdigest()
+        origin = self.path
+        spec = module.__spec__
+
+        def executed_identity(expected_path: Path):
+            if (module.__dict__ is not namespace or namespace.get("__file__") != origin
+                    or Path(expected_path).absolute() != Path(origin)
+                    or namespace.get("__spec__") is not spec or spec.origin != origin
+                    or spec.loader is not self or namespace.get("__loader__") is not self
+                    or any(namespace.get(name) is not fn or fn.__code__ is not fn_code
+                           for name, (fn, fn_code) in functions.items())):
+                raise BaselineValidationError("executed source namespace/path/code identity changed")
+            return digest
+
+        namespace["_execution_source_identity"] = executed_identity
+
+
+def _load_source_snapshot(path: Path, name: str):
+    try:
+        loader = _SourceSnapshotLoader(path)
+        spec = importlib.util.spec_from_loader(name, loader, origin=loader.path)
+        if spec is None:
+            raise BaselineValidationError("source snapshot module spec unavailable")
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        return module
+    except (OSError, SyntaxError, UnicodeError) as exc:
+        raise BaselineValidationError(f"cannot execute source snapshot: {exc}") from exc
+
+
+def load_execution_snapshot():
+    """Explicit trusted-host entry point returning a fresh evaluator instance.
+
+    No automatic re-execution of an already imported evaluator, no sys.modules
+    replacement, and no reviewer authentication is implied. Ordinary imports
+    remain usable for baseline evaluation but cannot activate Owner-B conflicts.
+    """
+    return _load_source_snapshot(Path(__file__), "g009_snapshot_evaluator")
+
+
+def _load_owner_policy_module():
+    """Execute one sibling source snapshot, independent of sys.path and pyc."""
+    module = _load_source_snapshot(
+        Path(__file__).with_name("zone4_owner_b_policy.py"), "g009_snapshot_owner_policy"
+    )
+    # This provider belongs to this actual evaluator instance. There is no
+    # caller-supplied digest/boolean/provenance argument on evaluate_conflicts.
+    module._evaluator_execution_identity = _execution_source_identity
+    return module
+
+
+def _git_returncode(repo_root: Path, *args: str, allow_failure: bool = True) -> int:
+    return subprocess.run(
+        ["git", "-C", str(repo_root), *args], capture_output=True, check=False
+    ).returncode
+
+
 def evaluate(
     *,
     junit_path: Path,
@@ -357,11 +488,19 @@ def evaluate(
     repo_root: Path,
     gate_source_sha: str,
     pytest_exit_code: int,
+    owner_conflict_policy_path: Path | None = None,
+    review_attestor=None,
 ) -> dict[str, Any]:
     baseline = _load_baseline(baseline_path, repo_root, gate_source_sha)
-    failures, counts = _parse_junit(junit_path)
+    try:
+        junit_bytes = Path(junit_path).read_bytes()
+        junit_root = ET.fromstring(junit_bytes)
+    except (OSError, ET.ParseError) as exc:
+        raise JUnitEvidenceError(f"cannot parse pytest JUnit report: {exc}") from exc
+    failures, counts = _parse_junit(junit_root)
     result: dict[str, Any] = {
         "schema": SCHEMA,
+        "junit_sha256": hashlib.sha256(junit_bytes).hexdigest(),
         "pytest_exit_code": pytest_exit_code,
         "passed_test_count": counts["passed"],
         "skipped_test_count": counts["skipped"],
@@ -392,12 +531,50 @@ def evaluate(
         else:
             result["unexpected_failures"].append(failure)
 
+    accepted_conflicts: list[dict[str, Any]] = []
+    if owner_conflict_policy_path is not None:
+        policy_module = _load_owner_policy_module()
+        try:
+            owner_report = policy_module.evaluate_conflicts(
+                policy_path=Path(owner_conflict_policy_path),
+                junit_path=Path(junit_path),
+                repo_root=Path(repo_root),
+                gate_source_sha=gate_source_sha,
+                unexpected_failures=result["unexpected_failures"],
+                evaluator_path=Path(__file__).resolve(),
+                nodeid_for_testcase=_nodeid_for_testcase,
+                failure_signature=failure_signature,
+                stable_text=_stable_failure_text,
+                run_git=_git_returncode,
+                junit_root=junit_root,
+                review_attestor=review_attestor,
+            )
+        except policy_module.OwnerConflictPolicyError as exc:
+            result.update({"result": "BLOCK", "reason": "owner_conflict_policy_invalid", "detail": str(exc)})
+            result["candidate_introduced_failure_count"] = len(result["unexpected_failures"])
+            return result
+        result["owner_conflict_policy"] = owner_report
+        accepted = set(owner_report["accepted"])
+        accepted_conflicts = [
+            {**failure, "classification": policy_module.LABEL, "counted_as_passed": False}
+            for failure in result["unexpected_failures"]
+            if failure["nodeid"] in accepted
+        ]
+        result["unexpected_failures"] = [
+            failure for failure in result["unexpected_failures"] if failure["nodeid"] not in accepted
+        ]
+    result["owner_approved_contract_conflicts"] = accepted_conflicts
+    result["owner_approved_contract_conflict_count"] = len(accepted_conflicts)
+
     result["known_pre_existing_failure_count"] = len(result["known_pre_existing_failures"])
     result["candidate_introduced_failure_count"] = len(result["unexpected_failures"])
     if result["unexpected_failures"]:
         result.update({"result": "BLOCK", "reason": "unrecognized_or_changed_failure"})
         return result
 
+    if accepted_conflicts:
+        result.update({"result": OWNER_CONFLICT_RESULT, "reason": "exact_known_baseline_and_owner_approved_contract_conflicts"})
+        return result
     result.update({"result": "PASS", "reason": "exact_known_baseline_or_zero_failures"})
     return result
 
@@ -409,6 +586,8 @@ def _evaluate_for_cli(
     repo_root: Path,
     gate_source_sha: str,
     pytest_exit_code: int,
+    owner_conflict_policy_path: Path | None = None,
+    review_attestor=None,
 ) -> dict[str, Any]:
     try:
         return evaluate(
@@ -417,6 +596,8 @@ def _evaluate_for_cli(
             repo_root=repo_root,
             gate_source_sha=gate_source_sha,
             pytest_exit_code=pytest_exit_code,
+            owner_conflict_policy_path=owner_conflict_policy_path,
+            review_attestor=review_attestor,
         )
     except JUnitEvidenceError as exc:
         return {
@@ -451,6 +632,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--repo-root", required=True, type=Path)
     parser.add_argument("--gate-source-sha", required=True)
     parser.add_argument("--pytest-exit-code", required=True, type=int)
+    parser.add_argument(
+        "--owner-conflict-policy",
+        type=Path,
+        default=None,
+        help="Owner-approved contract-conflict policy (inactive until independently reviewed)",
+    )
     return parser
 
 
@@ -462,9 +649,10 @@ def main(argv: list[str] | None = None) -> int:
         repo_root=args.repo_root,
         gate_source_sha=args.gate_source_sha,
         pytest_exit_code=args.pytest_exit_code,
+        owner_conflict_policy_path=args.owner_conflict_policy,
     )
     print(json.dumps(report, sort_keys=True))
-    return 0 if report.get("result") == "PASS" else 1
+    return 0 if report.get("result") in PASSING_RESULTS else 1
 
 
 if __name__ == "__main__":

@@ -1,0 +1,84 @@
+diff --git a/app.py b/app.py
+index d7b9117a..bd3cf665 100644
+--- a/app.py
++++ b/app.py
+@@ -29,6 +29,8 @@ from psycopg2.extras import DictCursor
+ # slim 映像缺 /etc/mime.types，手動註冊常見靜態類型，避免 send_from_directory 回 octet-stream
+ mimetypes.add_type('image/webp', '.webp')
+ mimetypes.add_type('image/svg+xml', '.svg')
++# glTF binary (.glb) is likewise absent from the stdlib table on slim images; the static manifests declare model/gltf-binary.
++mimetypes.add_type('model/gltf-binary', '.glb')
+ import random, string
+ import hashlib
+ import urllib.request
+@@ -29180,6 +29182,7 @@ def _serve_live_static_or_baked_subpath(
+     baked_subdir,
+     live_static_subdir,
+     allowed_subpaths=None,
++    mimetype=None,
+ ):
+     """Same fallback contract as _serve_live_static_or_baked, but for a
+     file inside a subdirectory tree (e.g. assets/tiers/26-30.jpg)
+@@ -29192,19 +29195,19 @@ def _serve_live_static_or_baked_subpath(
+     inside the live-static root."""
+     normalized_subpath = subpath.replace('\\', '/')
+     if allowed_subpaths is not None and normalized_subpath not in allowed_subpaths:
+-        return send_from_directory(os.path.join(_BASE, baked_subdir), subpath)
++        return send_from_directory(os.path.join(_BASE, baked_subdir), subpath, mimetype=mimetype)
+ 
+     live_static_relative = f'{live_static_subdir}/{normalized_subpath}'
+     live_static_path = _resolve_live_static_path(live_static_relative)
+     if live_static_path:
+         try:
+-            return send_file(live_static_path, conditional=True)
++            return send_file(live_static_path, conditional=True, mimetype=mimetype)
+         except OSError as exc:
+             app.logger.warning(
+                 '[live_static] failed to serve %s from %s: %s; falling back to baked asset',
+                 subpath, live_static_path, exc
+             )
+-    return send_from_directory(os.path.join(_BASE, baked_subdir), subpath)
++    return send_from_directory(os.path.join(_BASE, baked_subdir), subpath, mimetype=mimetype)
+ 
+ @app.route('/sound/<path:filename>')
+ def serve_sound(filename):
+@@ -29342,10 +29345,23 @@ text-decoration:none;font-weight:900}</style></head>
+ @app.route('/icon-192.png')
+ def serve_icon192(): return send_from_directory(_BASE,'icon-192.png')
+ 
++# These legacy filenames do not match their verified image byte signatures.
++# Preserve accepted assets and URLs; override only the five proven MIME cases.
++_LIVE_STATIC_ASSET_MIME_OVERRIDES = {
++    'community/tavern_bg.webp': 'image/png',
++    'hero/armor/answer_hero_avatar_verification.png': 'image/jpeg',
++    'hero/armor/hero_armor_overlay_verification.png': 'image/jpeg',
++    'hero/hero_bg.webp': 'image/png',
++    'monsters/monster_redraw_verification.png': 'image/jpeg',
++}
++
+ @app.route('/assets/<path:subpath>')
+ def serve_assets(subpath):
+     """提供題庫相關資源圖（如棋力區封面 assets/tiers/26-30.jpg）"""
+-    return _serve_live_static_or_baked_subpath(subpath, 'assets', 'assets')
++    return _serve_live_static_or_baked_subpath(
++        subpath, 'assets', 'assets',
++        mimetype=_LIVE_STATIC_ASSET_MIME_OVERRIDES.get(subpath),
++    )
+ 
+ @app.route('/art/monsters/<path:filename>')
+ def serve_zone3_monster_art(filename):
+@@ -29551,6 +29567,14 @@ def serve_encounter_presentation_framework_v1_css():
+         'encounter_presentation_framework_v1.css', 'css/e10', 'css/e10'
+     )
+ 
++# G009 FAST-LANE: the existing backpack stylesheet is presentation-only.
++# Preserve the governed exact-route policy for css/e10; no broad static prefix.
++@app.route('/css/e10/backpack.css')
++def serve_e10_backpack_css():
++    return _serve_live_static_or_baked_subpath(
++        'backpack.css', 'css/e10', 'css/e10'
++    )
++
+ @app.route('/css/e10/go_combat_owner_reference_v1.css')
+ def serve_go_combat_owner_reference_v1_css():
+     return _serve_live_static_or_baked_subpath(

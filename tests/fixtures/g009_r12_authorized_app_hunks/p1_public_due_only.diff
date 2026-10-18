@@ -1,0 +1,50 @@
+diff --git a/app.py b/app.py
+index bd3cf665..d6761aa2 100644
+--- a/app.py
++++ b/app.py
+@@ -305,6 +305,7 @@ from question_idempotency import (
+ # implementation of its own (Incident 002/003G).
+ from srs_scheduling_core import (
+     ProgressCreditPolicy,
++    SrsAdvancePolicy,
+     apply_srs_scheduling,
+     should_grant_review_progress as _srs_core_should_grant_review_progress,
+     sm2_update as _srs_core_sm2_update,
+@@ -17546,6 +17547,26 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
+         # server-owned Map Battle handoff (internal) may mint progression
+         # credit; a public grade continues to update SM-2 but is never
+         # allowed to become progression/reward/combat authority.
++        # P1 (Owner 2026-10-12): only an ordinary public Review is held to
++        # "advance when due".  The mode is decided from server-validated
++        # state, never from the client's source_context label alone: Map
++        # Battle (internal), Lord/Boss, Guild, Premium training and an
++        # active Boss question keep their historical always-advance
++        # behaviour.
++        ordinary_public_review = (
++            not internal
++            and public_review_authority is not None
++            and combat_settlement_context is None
++            and boss_source_context is None
++            and boss_answer is None
++            and boss_verdict is None
++            and not guild_source_context
++            and guild_answer is None
++            and guild_verdict is None
++            and training_item is None
++            and training_set_id is None
++            and not active_boss_question
++        )
+         _srs_outcome = apply_srs_scheduling(
+             conn,
+             user_id=uid,
+@@ -17556,6 +17577,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
+                 ProgressCreditPolicy.FIRST_PASS_ONLY if internal
+                 else ProgressCreditPolicy.NEVER
+             ),
++            advance_policy=(
++                SrsAdvancePolicy.CORRECT_ONLY_WHEN_DUE if ordinary_public_review
++                else SrsAdvancePolicy.ALWAYS
++            ),
+         )
+         ef, iv, rp, due = (
+             _srs_outcome.ease_factor,

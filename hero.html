@@ -1146,6 +1146,23 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   transform: translateY(-2px); border-color: var(--pet-accent, var(--teal));
   box-shadow: 0 10px 26px rgba(28,16,4,.22);
 }
+/* Show real gated Spirit goals in both first-pet catalog and owned-roster views. */
+.pet-choice-card:disabled { cursor: default; border-style: dashed; opacity: .92; }
+.pet-choice-card:disabled:hover { transform: none; box-shadow: none; }
+.pet-choice-card.locked-spirit .pet-choice-art { filter: saturate(.78); }
+.pet-choice-requirement {
+  display: block; margin-top: 8px; font-weight: 800;
+  font-size: 12px; line-height: 1.45; color: #5c4829;
+  overflow-wrap: anywhere;
+}
+.pet-roster-unlock-requirement {
+  display: block; font-size: 10.5px; font-weight: 700;
+  line-height: 1.45; color: var(--ink2);
+  white-space: normal; overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .pet-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .pet-choice-art {
   width: 100%; aspect-ratio: 1 / 1; object-fit: contain; object-position: center;
   display: block; margin: 0 auto 8px; filter: drop-shadow(0 10px 16px rgba(42,23,8,.22));
@@ -1172,7 +1189,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .pet-roster-grid { display: flex; flex-wrap: wrap; gap: 9px; }
 .pet-roster-chip {
   position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  width: 92px; padding: 8px 6px 7px; cursor: pointer; text-align: center;
+  width: 145px; min-height: 138px; padding: 8px 8px 10px; cursor: pointer; text-align: center;
   border: 1.5px solid var(--border); border-radius: 12px;
   background: linear-gradient(180deg,#fff8df,#ecd9aa);
   transition: transform .15s, border-color .15s, box-shadow .15s;
@@ -1197,7 +1214,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 }
 .pet-roster-name {
   font-size: 11px; font-weight: 800; color: var(--ink2); max-width: 100%;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: normal; overflow-wrap: anywhere;
 }
 .pet-roster-lv { font-size: 9.5px; color: var(--ink3); font-family: 'DM Mono', monospace; }
 .pet-roster-lv.claim { color: var(--teal-dark); font-weight: 800; }
@@ -3078,20 +3095,24 @@ function renderPetCompanion() {
       <div>
         <div class="pet-intro-text">
           ${isEn()
-            ? 'Choose one companion to begin. It will stay on your Hero page, gain levels through feeding and practice, and grow with your Go journey.'
-            : '選一隻棋靈夥伴開始同行。牠會留在 HERO 頁，透過餵食與修行升級，陪你一起走完整個圍棋旅程。'}
+            ? 'Your first Spirit is always Ink-drop Kelpie. Preview the others and their unlock requirements; unreleased Spirits cannot be claimed.'
+            : '第一隻棋靈固定為墨滴水靈馬。其他棋靈先展示外觀與取得條件，達標後依序領取；未公布的條件尚未開放。'}
         </div>
         ${petRosterHTML(collection, { showSingle: true })}
         <div class="pet-choice-grid">
-          ${(_petState.catalog || []).map(p => `
-            <button class="pet-choice-card" style="--pet-accent:${p.accent || '#0b6f69'}" onclick="choosePet('${p.key}')">
+          ${(_petState.catalog || []).map(p => {
+            const starter = p.key === 'ink_drop_kelpie';
+            const requirement = petUnlockConditionText(p.key, SPIRIT_DISPLAY_UNLOCK_GATES[p.key] ?? null, null, false);
+            return `
+            <button type="button" class="pet-choice-card${starter ? '' : ' locked-spirit'}" data-spirit-key="${escapeHTML(p.key)}" style="--pet-accent:${p.accent || '#0b6f69'}" ${starter ? "onclick=\"choosePet('ink_drop_kelpie')\"" : "disabled aria-disabled=\"true\""}>
               <img class="pet-choice-art" src="${petAnimatedImage(p)}" alt="${escapeHTML(petLocal(p,'name','name_en'))}" loading="lazy" decoding="async">
               <span class="pet-choice-role">${escapeHTML(petLocal(p,'role','role_en'))}</span>
               <div class="pet-choice-name">${escapeHTML(petLocal(p,'name','name_en'))}</div>
               <div class="pet-choice-en">${escapeHTML(p.name_en || '')}</div>
               <div class="pet-choice-desc">${escapeHTML(petLocal(p,'ability','ability_en'))}</div>
-            </button>
-          `).join('')}
+              <div class="pet-choice-requirement" data-spirit-initial-unlock="${escapeHTML(p.key)}">${escapeHTML(requirement)}</div>
+            </button>`;
+          }).join('')}
         </div>
       </div>`;
     return;
@@ -3364,6 +3385,23 @@ function petMilestoneToast(milestones) {
     : `里程碑 LV${m.level} 達成！陪練加成提升，獲得 ${reward}`;
 }
 
+// Read-only canonical first-three Spirit threshold copy. Once owned, prefer server locked-entry state.
+const SPIRIT_DISPLAY_UNLOCK_GATES = Object.freeze({
+  ink_drop_kelpie: 1, whispering_void_kit: 11, star_shell_hatchling: 16,
+  starpath_antlerling: null, fatty: null, obsidian_bastion: null,
+});
+function petUnlockConditionText(key, gate, maxLevel, claimable = false) {
+  if (key === 'ink_drop_kelpie') return isEn() ? 'First Spirit, fixed starter' : '初始棋靈：第一隻固定取得';
+  if (claimable) return isEn() ? 'Requirement met; claim in order' : '條件已達成，可依序領取';
+  if (Number.isSafeInteger(gate) && gate > 1) {
+    const now = Number.isSafeInteger(maxLevel) ? (isEn() ? ' (highest LV' + maxLevel + ')' : '（目前最高 LV' + maxLevel + '）') : '';
+    return isEn() ? 'Raise any owned Spirit to LV' + gate + now + ', claim in order'
+      : '將任一已擁有棋靈培養至 LV' + gate + now + '，依序領取';
+  }
+  return isEn() ? 'Condition not announced; not yet available'
+    : '解鎖條件尚未公布（待冒險／Boss／任務正式規則，目前未開放）';
+}
+
 function petRosterHTML(col, { showSingle = false } = {}) {
   if (!col) return '';
   const owned = col.collection || [];
@@ -3376,6 +3414,7 @@ function petRosterHTML(col, { showSingle = false } = {}) {
       <span class="pet-roster-lv">LV${o.level}${o.active ? ` · ${isEn() ? 'Active' : '出戰'}` : ''}</span>
     </button>`).join('');
   const lockedChips = locked.map(l => {
+    const requirement = petUnlockConditionText(l.key, l.unlock_level, col.max_level, l.claimable);
     const cond = l.claimable
       ? (isEn() ? 'Claim' : '可領取')
       : (l.unlock_level ? `LV${l.unlock_level}` : (isEn() ? 'Locked' : '未解鎖'));
@@ -3384,6 +3423,7 @@ function petRosterHTML(col, { showSingle = false } = {}) {
       <img class="pet-roster-art" src="${petAnimatedImage(l)}" alt="" loading="lazy" decoding="async" style="${l.claimable ? '' : 'filter:grayscale(1);opacity:.5'}">
       <span class="pet-roster-name">${escapeHTML(petLocal(l,'name','name_en'))}</span>
       <span class="pet-roster-lv${l.claimable ? ' claim' : ''}">${cond}</span>
+      <span class="pet-roster-unlock-requirement" data-spirit-locked-req="${escapeHTML(l.key)}">${escapeHTML(requirement)}</span>
     </button>`;
   }).join('');
   return `
@@ -4105,11 +4145,24 @@ const FUNCTIONAL_EQUIPMENT_IDS = new Set([
   'wooden_sword', 'iron_sword', 'fox_fang', 'dragon_claw', 'celestial_blade',
   'cloth_robe', 'leather_armor', 'fox_pelt', 'dragon_scale', 'void_mantle',
   'lucky_stone', 'xp_amulet', 'fox_mask', 'dragon_eye', 'go_stone_black',
+  'bamboo_shadow_blade', 'jade_river_bead', 'bamboo_scale_vest', 'foxtail_traveler_mantle',
+  'riverguard_coat', 'riverstone_sabre', 'cloudstep_star_lamellar', 'constellation_focus_lens',
+  'moonstar_rapier', 'odyssey_star_compass', 'emberline_cutlass', 'starglass_needle',
+  'weaveguard_vest', 'mirrorfall_mantle', 'copper_jade_talisman', 'prism_focus_charm',
 ]);
 const FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS = new Set([
   'wooden_sword', 'iron_sword', 'fox_fang', 'dragon_claw', 'celestial_blade',
   'cloth_robe', 'leather_armor', 'fox_pelt', 'dragon_scale', 'void_mantle',
   'lucky_stone', 'xp_amulet', 'fox_mask', 'dragon_eye',
+  'jade_river_bead', 'bamboo_scale_vest', 'foxtail_traveler_mantle', 'riverguard_coat',
+  'cloudstep_star_lamellar', 'constellation_focus_lens', 'odyssey_star_compass',
+  'weaveguard_vest', 'mirrorfall_mantle', 'copper_jade_talisman', 'prism_focus_charm',
+]);
+const FUNCTIONAL_HANDHELD_EQUIPMENT_IDS = new Set([
+  'bamboo_shadow_blade', 'riverstone_sabre', 'moonstar_rapier', 'emberline_cutlass', 'starglass_needle',
+]);
+const FUNCTIONAL_VISIBLE_EQUIPMENT_IDS = new Set([
+  ...FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS, ...FUNCTIONAL_HANDHELD_EQUIPMENT_IDS,
 ]);
 const FUNCTIONAL_HERO_SLOT_BY_ID = Object.freeze({
   wooden_sword: 'weapon', iron_sword: 'weapon', fox_fang: 'weapon',
@@ -4118,6 +4171,12 @@ const FUNCTIONAL_HERO_SLOT_BY_ID = Object.freeze({
   dragon_scale: 'armor', void_mantle: 'armor',
   lucky_stone: 'accessory', xp_amulet: 'accessory', fox_mask: 'accessory',
   dragon_eye: 'accessory',
+  bamboo_shadow_blade: 'weapon', riverstone_sabre: 'weapon', moonstar_rapier: 'weapon',
+  emberline_cutlass: 'weapon', starglass_needle: 'weapon',
+  bamboo_scale_vest: 'armor', foxtail_traveler_mantle: 'armor', riverguard_coat: 'armor',
+  cloudstep_star_lamellar: 'armor', weaveguard_vest: 'armor', mirrorfall_mantle: 'armor',
+  jade_river_bead: 'accessory', constellation_focus_lens: 'accessory', odyssey_star_compass: 'accessory',
+  copper_jade_talisman: 'accessory', prism_focus_charm: 'accessory',
 });
 const FUNCTIONAL_HERO_SLOTS = new Set(['weapon', 'armor', 'accessory']);
 function normalizeHeroFunctionalEquipment(items) {
@@ -4130,7 +4189,7 @@ function normalizeHeroFunctionalEquipment(items) {
     if (!FUNCTIONAL_EQUIPMENT_IDS.has(itemId)) return { status: 'unavailable', items: [] };
     if (FUNCTIONAL_INVENTORY_ONLY_IDS.has(itemId)) continue;
     if (item.functional_equipment !== true
-      || !FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(itemId)
+      || !FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(itemId)
       || !FUNCTIONAL_HERO_SLOTS.has(item.slot)
       || FUNCTIONAL_HERO_SLOT_BY_ID[itemId] !== item.slot) {
       return { status: 'unavailable', items: [] };
@@ -4162,14 +4221,16 @@ function functionalWearableDescriptor(item) {
   if (!item || item.functional_equipment !== true || item.equipped !== true) return null;
   const itemId = String(item.item_id || item.id || '');
   const presentation = item.presentation || {};
-  if (!FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(itemId)) return null;
-  if (presentation.mode !== 'FULL_BODY_OVERLAY' || presentation.full_body_required !== true) return null;
+  if (!FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(itemId)) return null;
+  const expectedMode = FUNCTIONAL_HANDHELD_EQUIPMENT_IDS.has(itemId) ? 'HANDHELD_OVERLAY' : 'FULL_BODY_OVERLAY';
+  if (presentation.mode !== expectedMode || presentation.full_body_required !== true) return null;
   const expectedAsset = `${FUNCTIONAL_WEARABLE_ASSET_ROOT}${itemId}.png`;
   if (presentation.asset !== expectedAsset) return null;
   const layer = String(presentation.layer || '');
   if (!layer) return null;
   return {
     itemId,
+    slot: FUNCTIONAL_HERO_SLOT_BY_ID[itemId],
     asset: expectedAsset,
     layer,
     maskRequirement: presentation.mask_requirement || '',
@@ -4218,7 +4279,9 @@ function renderFunctionalWearableProjection() {
   };
   return Promise.all(stages.map(([stage, fallback]) => {
     if (!stage) return Promise.resolve({ supported: false, reason: 'missing_stage' });
-    return renderer.renderSafe(stage, characterKey, equipped, { ...options, fallbackElement: fallback });
+    return renderer.renderSafe(stage, characterKey, equipped, {
+      ...options, fallbackElement: fallback, isCurrent: () => token === _functionalWearableRenderToken,
+    });
   })).then(results => {
     if (token !== _functionalWearableRenderToken) return results;
     stages.forEach(([stage], index) => {
@@ -4307,7 +4370,7 @@ function renderFunctionalEquipmentProjection() {
   const items = (_functionalEquipmentItems || []).filter(item => item
     && item.item_id !== 'go_stone_black'
     && item.functional_equipment === true
-    && FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)
+    && FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)
     && item.equipped === true);
   const targets = [
     [document.getElementById('hero-functional-projection'), document.getElementById('hero-functional-projection-list')],
@@ -4339,7 +4402,7 @@ function renderAuthoritativeFunctionalEffects(items = _functionalEquipmentItems)
   const chips = [];
   (Array.isArray(items) ? items : []).forEach(item => {
     if (!item || item.functional_equipment !== true || item.equipped !== true
-      || item.item_id === 'go_stone_black' || !FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)) return;
+      || item.item_id === 'go_stone_black' || !FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)) return;
     functionalProjectionEffectDetails(item.active_effect_details).forEach(effect => {
       const key = String(effect?.key || '').trim();
       if (!key || seen.has(key)) return;
@@ -5364,7 +5427,7 @@ function renderHeroOverview() {
   const functionalEquipped = _functionalEquipmentState === 'ready'
     ? (_functionalEquipmentItems || []).filter(item => item
       && item.functional_equipment === true
-      && FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)
+      && FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)
       && item.equipped === true)
     : [];
   const equipmentNames = functionalEquipped.map(functionalProjectionName);
