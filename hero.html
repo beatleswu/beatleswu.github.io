@@ -3168,13 +3168,16 @@ function renderPetCompanion() {
         <div class="pet-food-row">
           ${foods.map(f => `
             <div class="pet-food-item">
-              <button class="pet-action-btn" onclick="feedPet('${f.key}')" ${f.qty <= 0 ? 'disabled' : ''}>
+              <button class="pet-action-btn" data-pet-feed="${escapeHTML(f.key)}" onclick="feedPet('${f.key}')" ${petFeedDisabled(f) ? 'disabled' : ''}>
                 ${escapeHTML(petLocal(f,'name','name_en'))} × ${f.qty}
               </button>
               ${petFoodHelpHTML(f)}
             </div>
           `).join('')}
         </div>
+        <div class="pet-food-help-effect">${isEn()
+          ? 'Feeding consumes one food even at full fullness. Fullness caps at 100; food still grants XP and Bond (Bond caps at 100).'
+          : '飽食度已滿仍可餵食，每次消耗 1 份食物。飽食度上限 100，仍獲得 XP 與親密度（親密度上限 100）。'}</div>
         ${petActionRowHTML(p, _petState)}
         <div class="pet-rename-row">
           <input id="pet-rename-input" maxlength="16" value="${petName}" placeholder="${isEn() ? 'Companion name' : '寵物名字'}">
@@ -3546,25 +3549,74 @@ async function choosePet(petKey) {
   }
 }
 
-async function feedPet(itemKey) {
-  const petKey = _petState && _petState.pet && _petState.pet.pet_key;
-  try {
-    const res = await fetch('/api/pet/feed', {
-      method:'POST', credentials:'include',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({item_key: itemKey}),
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || 'failed');
-    const hitMilestone = data.milestones && data.milestones.length;
-    showToast(hitMilestone ? petMilestoneToast(data.milestones)
-            : data.leveled ? (isEn() ? 'Level up!' : '寵物升級了！')
-            : (data.message || (isEn() ? 'Fed' : '餵食完成')));
-    if (petKey) _petPendingLine = { sit:'fed', action:'feed', leveled: !!data.leveled, milestone: !!hitMilestone, text: petSay(petKey, hitMilestone ? 'milestone' : data.leveled ? 'leveled' : 'fed') };
-    await loadPetStatus();
-  } catch (e) {
-    showToast(e.message || (isEn() ? 'Could not feed companion' : '餵食失敗'));
+let _petFeedInFlight = null;
+// Retain an uncertain operation until the same request receives a definitive reply.
+let _petFeedPending = null;
+
+function petFeedDisabled(food) {
+  if (_petFeedInFlight || !food) return true;
+  if (_petFeedPending) return food.key !== _petFeedPending.item_key || _petState?.pet?.pet_key !== _petFeedPending.spirit_id;
+  return food.qty <= 0;
+}
+
+function syncPetFeedButtons() {
+  document.querySelectorAll('[data-pet-feed]').forEach(btn => {
+    const food = (_petState?.inventory || []).find(f => f.key === btn.dataset.petFeed);
+    btn.disabled = petFeedDisabled(food);
+    btn.setAttribute('aria-busy', _petFeedInFlight ? 'true' : 'false');
+  });
+}
+
+function feedPet(itemKey) {
+  if (_petFeedInFlight) return _petFeedInFlight;
+  const petKey = _petState?.pet?.pet_key;
+  if (!petKey || !itemKey) return Promise.resolve();
+  if (_petFeedPending && (_petFeedPending.spirit_id !== petKey || _petFeedPending.item_key !== itemKey)) {
+    showToast(isEn() ? 'Retry the previous food with the original companion first.' : '請先切回原棋靈，重試上次的食物以確認結果。');
+    return Promise.resolve();
   }
+  if (!_petFeedPending) _petFeedPending = {
+    item_key: itemKey, spirit_id: petKey,
+    operation_id: newCompanionOperationId('companion:feed'),
+  };
+  const body = JSON.stringify(_petFeedPending);
+  // Defer execution so the lock exists before any request or UI refresh can run.
+  _petFeedInFlight = Promise.resolve().then(async () => {
+    try {
+      let res, data;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          res = await fetch('/api/pet/feed', {
+            method:'POST', credentials:'include',
+            headers:{'Content-Type':'application/json'}, body,
+          });
+          data = await res.json();
+          if (!data || (typeof data.ok !== 'boolean' && !(res.status >= 400 && res.status < 500 && data.error))) throw new Error('Invalid feed response');
+          break;
+        } catch (error) {
+          if (attempt === 1) throw error;
+        }
+      }
+      // A server failure may hide a committed result: keep its identity for retry.
+      if (res.status < 500) _petFeedPending = null;
+      if (!res.ok || data.ok !== true || data.error) throw new Error(data.error || data.message || 'failed');
+      const hitMilestone = data.milestones && data.milestones.length;
+      showToast(hitMilestone ? petMilestoneToast(data.milestones)
+              : data.leveled ? (isEn() ? 'Level up!' : '寵物升級了！')
+              : (data.message || (isEn() ? 'Fed' : '餵食完成')));
+      if (_petState?.pet?.pet_key === petKey) _petPendingLine = { sit:'fed', action:'feed', leveled: !!data.leveled, milestone: !!hitMilestone, text: petSay(petKey, hitMilestone ? 'milestone' : data.leveled ? 'leveled' : 'fed') };
+      await loadPetStatus();
+    } catch (e) {
+      showToast(_petFeedPending
+        ? (isEn() ? 'Feed result unconfirmed. Retry the same food with this companion to confirm without consuming twice.' : '餵食結果尚未確認。請以原棋靈重試相同食物，確認結果而不重複消耗。')
+        : (e.message || (isEn() ? 'Could not feed companion' : '餵食失敗')));
+    } finally {
+      _petFeedInFlight = null;
+      syncPetFeedButtons();
+    }
+  });
+  syncPetFeedButtons();
+  return _petFeedInFlight;
 }
 
 async function interactPet(mode, hours) {
