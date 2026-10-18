@@ -26,6 +26,7 @@ jobs:
           sparse-checkout: |
             .github/scripts/g009_authorized_product_build.py
             .github/scripts/g009_product_build_package.py
+            .github/workflows/g009-authorized-product-build.yml
             tests/deployment/test_g009_authorized_product_build.py
           sparse-checkout-cone-mode: false
       - name: Focused fail-closed tests without real product Docker
