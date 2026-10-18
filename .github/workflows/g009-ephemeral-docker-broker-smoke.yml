@@ -1,0 +1,58 @@
+# Real GitHub-hosted isolated fixture Docker build, NOT Product BUILD_APP
+name: G009 Ephemeral Docker Broker Proof
+on:
+  push:
+    branches:
+      - candidate/g009-build-broker-isolation-20261018-r11
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
+jobs:
+  isolated-docker-broker-smoke:
+    if: github.repository == 'beatleswu/beatleswu.github.io'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Read-only pinned checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Build isolated no-secret Docker fixture
+        id: smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I .github/scripts/g009_ephemeral_docker_broker_smoke.py
+      - name: Save Docker execution proof
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: g009-ephemeral-broker-test-only-evidence
+          path: ${{ steps.smoke.outputs.receipt }}
+          if-no-files-found: error
+          retention-days: 14
+      - name: Attest Docker test receipt as SLSA test evidence only
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.smoke.outputs.receipt }}
+      - name: Verify test provenance and reject BUILD_APP impersonation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh attestation verify '${{ steps.smoke.outputs.receipt }}' \
+            --repo beatleswu/beatleswu.github.io \
+            --cert-oidc-issuer https://token.actions.githubusercontent.com \
+            --cert-identity 'https://github.com/beatleswu/beatleswu.github.io/.github/workflows/g009-ephemeral-docker-broker-smoke.yml@refs/heads/candidate/g009-build-broker-isolation-20261018-r11' \
+            --deny-self-hosted-runners \
+            --predicate-type https://slsa.dev/provenance/v1 --format json > /dev/null
+          if gh attestation verify '${{ steps.smoke.outputs.receipt }}' \
+              --repo beatleswu/beatleswu.github.io \
+              --predicate-type https://go-odyssey.invalid/attestations/build-authorization/v1 \
+              --format json >/dev/null 2>&1; then
+            echo 'TEST_RECEIPT_WAS_MISTAKEN_FOR_BUILD_APP' >&2
+            exit 1
+          fi
+          echo 'G009_REAL_DOCKER_TEST_SIGNED; FORMAL_BUILD_APP_NOT_AUTHORIZED'
