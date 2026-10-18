@@ -87,7 +87,7 @@ def compact(root: Path, batch: int = 48) -> dict:
                  + "".join(lines[end+1:]))
     target = root / "Dockerfile.g009-compact"
     target.write_text(optimized, encoding="utf-8")
-    if optimized.count("COPY ") != len(groups)+1:
+    if sum(line.startswith("COPY ") for line in optimized.splitlines()) != len(groups)+1:
         target.unlink(missing_ok=True)
         raise ValueError("Unexpected derived COPY count")
     result = {
