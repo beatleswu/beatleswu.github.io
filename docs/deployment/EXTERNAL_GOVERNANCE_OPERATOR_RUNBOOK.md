@@ -179,7 +179,7 @@ verifies but **does not consume a decision or authorize Build**:
 $p = Get-Content -LiteralPath 'C:\Program Files\Go Odyssey Governance\host-profile.json' -Raw | ConvertFrom-Json
 $Decision = '<ABSOLUTE_PATH_TO_ISSUER_SIGNED_release-decision.json>'
 & $p.gh_path attestation verify $Decision --hostname github.com `
-  --repo $p.repository --signer-workflow $p.workflow --signer-digest $p.commit `
+  --repo $p.repository --signer-digest $p.commit `
   --source-ref $p.ref --source-digest $p.commit `
   --cert-oidc-issuer https://token.actions.githubusercontent.com `
   --cert-identity "https://github.com/$($p.workflow)@$($p.ref)" `

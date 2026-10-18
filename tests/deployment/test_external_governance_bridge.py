@@ -68,11 +68,15 @@ def test_positive_authenticated_shape_is_only_mock_and_never_consumes(case):
     cmd = seen[0]
     for flag, value in (("--signer-digest", case.p.commit), ("--source-digest", case.p.commit),
                         ("--source-ref", case.p.ref), ("--repo", case.p.repository),
-                        ("--predicate-type", G.PREDICATE), ("--signer-workflow", case.p.workflow)):
+                        ("--predicate-type", G.PREDICATE)):
         assert cmd[cmd.index(flag) + 1] == value
     assert cmd[0] == str(case.p.gh_path) and "--deny-self-hosted-runners" in cmd
     assert "--custom-trusted-root" in cmd and "--bundle" not in cmd
     assert cmd[cmd.index("--cert-identity") + 1] == f"https://github.com/{case.p.workflow}@{case.p.ref}"
+    # gh 2.95 mutually excludes --cert-identity and --signer-workflow; the
+    # exact SAN is verified here and all certificate fields are checked again.
+    assert "--signer-workflow" not in cmd and "--cert-identity-regex" not in cmd
+    assert cmd.count("--cert-identity") == 1
     with closing(sqlite3.connect(case.p.ledger)) as db:
         assert db.execute("SELECT * FROM consumed").fetchall() == []
 

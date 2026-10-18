@@ -157,8 +157,11 @@ def check_profile(p):
 
 
 def command(p, snapshot, root_snapshot=None):
+    # gh 2.95 rejects --signer-workflow and --cert-identity together.
+    # Use the exact, ref-bound certificate SAN as the sole workflow identity selector;
+    # check_verified_output separately checks all signer/source certificate fields.
     return [str(p.gh_path), "attestation", "verify", str(snapshot), "--hostname", "github.com",
-            "--repo", p.repository, "--signer-workflow", p.workflow,
+            "--repo", p.repository,
             "--signer-digest", p.commit, "--source-ref", p.ref, "--source-digest", p.commit,
             "--cert-oidc-issuer", OIDC_ISSUER,
             "--cert-identity", f"https://github.com/{p.workflow}@{p.ref}",
