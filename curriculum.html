@@ -1147,7 +1147,9 @@ header:not(.cg-nav) .btn-logout {
 .qc-prog { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .qc-prog-bg { flex: 1; height: 7px; border-radius: 99px; background: rgba(7,13,34,.7); box-shadow: inset 0 0 0 1px var(--border); overflow: hidden; }
 .qc-prog-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--teal), var(--teal-l)); }
-.qc-prog-num { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink3); white-space: nowrap; }
+.qc-prog-num { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink3); }
+.qc-progress-note { margin: 6px 0; font-size: 12px; line-height: 1.5; color: var(--ink3); }
+.qc-milestone { color: var(--amber-l); }
 .qc-reward {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   font-size: 12px; padding-top: 7px; margin-top: auto;
@@ -1803,6 +1805,11 @@ const QB_T = {
   recommend:     { zh: '👑 長老推薦',       en: '👑 Elder\'s Pick' },
   bounty:        { zh: '懸賞', en: 'BOUNTY' },
   cleared:       { zh: '討伐完成！', en: 'Cleared!' },
+  practiced:     { zh: '已練習', en: 'Practiced' },
+  mastery_note:  { zh: '練習紀錄不代表精熟；此頁未提供精熟判定。', en: 'Practice records do not establish mastery; mastery is not reported here.' },
+  progress_unknown: { zh: '練習進度暫不可用', en: 'Practice progress unavailable' },
+  milestone:     { zh: '練習節點 {done} / {total} 題；距下一節點 {next} 題還差 {left} 題', en: 'Practice milestone {done} / {total}; next: {next}, {left} to go' },
+  practice_complete: { zh: '本委託題目已全數練習；領賞狀態以伺服器為準。', en: 'All problems practiced; reward availability is determined by the server.' },
   tracker:       { zh: 'ACTIVE QUESTS · 當前委託', en: 'ACTIVE QUESTS' },
   tracker_empty: { zh: '尚未接取委託——到佈告欄看看吧', en: 'No active quests — check the board' },
   all_done:      { zh: '🎉 公會制霸！所有委託皆已完成，靜候新的試煉……', en: '🎉 Guild conquered! All bounties cleared — new trials await…' },
@@ -2021,8 +2028,6 @@ function questUnitFromApi(q) {
     stage_key: q.stage_key || key,
     discipline,
     stage,
-    practiced: Number(q.practiced || 0),
-    total: Number(q.total || 0),
     coins: Number(q.coins || 0),
     xp: Number(q.xp || 0),
     href: q.href || `/?discipline=${encodeURIComponent(discipline)}&stage=${encodeURIComponent(stage)}&quest=${encodeURIComponent(key)}&resume=1`,
@@ -2042,11 +2047,35 @@ function questLookup(unitStats) {
   return byKey;
 }
 
+// Display-only checkpoints over the server's practiced count, not new quest
+// objectives, mastery decisions, or reward eligibility.
+function questPracticeProgress(unit) {
+  const { practiced, total } = unit;
+  if (!Number.isSafeInteger(practiced) || !Number.isSafeInteger(total) ||
+      total <= 0 || practiced < 0 || practiced > total) {
+    return { pct: 0, label: qbT('progress_unknown'), milestone: '' };
+  }
+  let milestone = '';
+  if (total >= 30 && total <= 50) {
+    if (practiced === total) {
+      milestone = qbT('practice_complete');
+    } else {
+      const done = Math.floor(practiced / 10) * 10;
+      const next = Math.min(total, done + 10);
+      milestone = qbT('milestone').replace('{done}', done).replace('{total}', total)
+        .replace('{next}', next).replace('{left}', next - practiced);
+    }
+  }
+  return { pct: practiced / total * 100,
+    label: `${qbT('practiced')} ${practiced.toLocaleString()} / ${total.toLocaleString()}`,
+    milestone };
+}
+
 function questCard(unit, mode, opts = {}) {
   const { coins, xp } = questReward(unit);
   const rank = STAGE_RANK[unit.stage] || '';
   const isDan = STAGE_IS_DAN[unit.stage] || false;
-  const pct = unit.total ? Math.round(unit.practiced / unit.total * 100) : 0;
+  const progress = questPracticeProgress(unit);
   const card = document.createElement('div');
   card.className = 'quest-card ' + mode + (opts.recommended ? ' recommended' : '');
   const sealSrc = `assets/guild_ui/qb_seal_${isDan ? 'purple' : 'red'}.webp`;
@@ -2067,9 +2096,11 @@ function questCard(unit, mode, opts = {}) {
       </span>
     </div>
     <div class="qc-prog">
-      <div class="qc-prog-bg"><div class="qc-prog-fill" style="width:${mode === 'claim' ? 100 : pct}%"></div></div>
-      <span class="qc-prog-num">${mode === 'claim' ? qbT('cleared') : `${unit.practiced.toLocaleString()} / ${unit.total.toLocaleString()}`}</span>
+      <div class="qc-prog-bg"><div class="qc-prog-fill" style="width:${progress.pct}%"></div></div>
+      <span class="qc-prog-num">${progress.label}</span>
     </div>
+    <p class="qc-progress-note">${qbT('mastery_note')}</p>
+    ${progress.milestone ? `<p class="qc-progress-note qc-milestone">${progress.milestone}</p>` : ''}
     <div class="qc-reward">
       <span class="rw-label">${qbT('bounty')}</span>
       <span class="rw-coin"><img class="qc-icon-coin" src="assets/guild_ui/qb_coin.webp" alt="🪙" loading="lazy" decoding="async">${coins}</span>
@@ -2194,11 +2225,12 @@ function questTrackerHtml(unitStats) {
     if (!u) return '';
     const isC = claimSet.has(k);
     if (!isC && u.completed) return '';
-    const pct = u.total ? Math.round(u.practiced / u.total * 100) : 0;
+    const progress = questPracticeProgress(u);
     return `<a class="gqt-item${isC ? ' claimable' : ''}" href="${isC ? '#quest-board' : u.href}">
       <span class="gqt-name">${dLabel(u.discipline)} · ${u.stage}${questRangeText(u) ? ` · ${questRangeText(u)}` : ''}</span>
-      <span class="gqt-bar"><span class="gqt-fill" style="width:${isC ? 100 : pct}%"></span></span>
-      <span class="gqt-num">${isC ? qbT('cleared') : `${u.practiced.toLocaleString()} / ${u.total.toLocaleString()}`}</span>
+      <span class="gqt-bar"><span class="gqt-fill" style="width:${progress.pct}%"></span></span>
+      <span class="gqt-num">${progress.label}${isC ? ` · ${qbT('sec_claim')}` : ''}</span>
+      ${progress.milestone ? `<span class="qc-progress-note qc-milestone">${progress.milestone}</span>` : ''}
     </a>`;
   }).join('');
   return `<div class="guild-quest-tracker">
