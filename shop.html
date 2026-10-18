@@ -809,6 +809,7 @@ header:not(.cg-nav) { background: #0b1430; }
       <div class="eyebrow" data-i18n="shop.eyebrow">棋魂廣場</div>
       <h1 id="shop-title" data-i18n="shop.h1">Coins Shop</h1>
       <p class="lead" data-i18n="g009.shop.browse_only">目前僅供瀏覽預覽；購買功能已停用。</p>
+      <p class="section-sub" data-shop-availability-note>本頁僅供預覽，即使伺服器購買旗標開啟也不提供購買；寵物食物目前無法在此購買。已持有的食物可到 <a href="/hero?tab=pet" style="color:var(--teal)">棋靈 / Spirit</a> 頁查看餵食條件。<br>This page is preview only, even if the server purchase flag is enabled. Pet food cannot be bought here. Visit Spirit to check feeding options for food you already own.</p>
       <div class="wallet-row">
         <div class="wallet-tile">
           <div class="tile-label" data-i18n="shop.coin.label">持有金幣</div>
@@ -1091,9 +1092,9 @@ function shopPurchaseClosedCopy() {
       '即將開放',
     ),
     copy: uiText(
-      'g009.shop.browse_only',
-      'You can browse the catalog; purchases are disabled.',
-      '目前可以瀏覽商品；目前僅供瀏覽預覽，購買功能已停用。',
+      'shop.preview.purchaseUnavailable',
+      'You can browse the catalog; purchases, including pet food, are unavailable on this page. Coming Soon does not confirm a release date.',
+      '目前可以瀏覽商品；本頁無法購買，包括寵物食物。「即將開放」不代表已確定開放日期。',
     ),
   };
 }
