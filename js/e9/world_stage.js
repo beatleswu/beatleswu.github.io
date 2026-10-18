@@ -942,10 +942,17 @@
       .replace('{stars}', String(zone.stars));
   }
 
+  function zoneCompletionState(zone) {
+    if (zone.locked) return 'locked';
+    if (!(zone.cleared || zone.status === 'completed')) return 'incomplete';
+    return zone.stars === 3 ? 'three-star' : 'cleared';
+  }
+
   function zoneStateText(zone) {
     if (zone.locked) return t('g009.world.state_locked', 'Locked');
     if (zone.cleared || zone.status === 'completed') {
-      return t('g009.world.state_completed', 'Completed');
+      return t('index.adv.boss_defeated', 'Boss cleared') + ' · '
+        + t('index.adv.stars_label', 'Stars') + ': ' + zone.stars + ' / 3';
     }
     if (zone.status === 'skipped_by_placement') {
       return t('index.adv.status_skipped_by_placement', 'Star training available');
@@ -1491,6 +1498,43 @@
     }
   }
 
+  // A navigation entry, not a second gameplay dispatcher. Only an issued
+  // encounter, server primary action, or authoritative current zone may
+  // recommend a destination. Selection and star counts cannot invent one.
+  function recommendedEntryZone(state) {
+    if (!state || state.authorityUnavailable) return null;
+    var action = activeMandatoryEncounterAction(state) || state.primaryAction;
+    var key = action ? action.zoneKey : state.authoritativeCurrentZoneKey;
+    var zone = findZone(state.zones || [], key);
+    return zone && !zone.locked && zone.canEnter === true ? zone : null;
+  }
+
+  function configureRecommendedEntry(root, state) {
+    var button = root.querySelector('#e9-world-stage-recommended-entry');
+    if (!button) return;
+    if (button.__e9RecommendedHandler) {
+      button.removeEventListener('click', button.__e9RecommendedHandler);
+      button.__e9RecommendedHandler = null;
+    }
+    var zone = VS1E_STATIC_CONTRACT_ACTIVE && recommendedEntryZone(state);
+    button.hidden = !zone;
+    button.disabled = !zone;
+    button.textContent = zone ? t('index.adv.recommended_quest', 'Recommended Mainline')
+      + ': ' + zoneDisplayName(zone) : '';
+    button.removeAttribute('data-recommended-zone');
+    if (!zone) return;
+    button.setAttribute('data-recommended-zone', zone.key);
+    button.__e9RecommendedHandler = function () {
+      // Recheck live state; a refresh can revoke access after rendering.
+      var current = root.__e9WorldStageState;
+      var target = recommendedEntryZone(current);
+      if (!target) return;
+      renderSelectedZone(root, current.zones, target.key, true);
+      dispatchZoneSelection(root, target, current);
+    };
+    button.addEventListener('click', button.__e9RecommendedHandler);
+  }
+
   function configurePrimaryCta(root, zone, state) {
     var primary = root.querySelector('#e9-world-stage-primary-cta');
     if (!VS1E_STATIC_CONTRACT_ACTIVE) {
@@ -1533,6 +1577,7 @@
     setViewportClass(root);
     updateWorldMapMeterLabels(root);
     root.setAttribute('data-g009-zone-key', zone.key);
+    root.setAttribute('data-zone-completion', zoneCompletionState(zone));
     root.setAttribute('data-g009-zone-state', locked ? 'locked' : (zone.cleared ? 'completed' : 'available'));
     if (progressPanel) progressPanel.hidden = locked;
     if (viewDetails) viewDetails.setAttribute('data-g009-view-details', locked ? 'locked' : 'selected');
@@ -1922,6 +1967,7 @@
       tile.type = 'button';
       tile.className = 'e9-zone e9-zone--' + (zone.status || 'locked');
       tile.setAttribute('data-zone', zone.key);
+      tile.setAttribute('data-zone-completion', zoneCompletionState(zone));
       tile.setAttribute('data-g009-zone-state', zone.locked ? 'locked' : (
         playerLocation && zone.key === playerLocation.key ? 'current' : (
           zone.cleared || zone.status === 'completed' ? 'completed' : 'available'
@@ -1975,6 +2021,7 @@
         ))
       );
       stateBadge.textContent = isCompleted ? '\u2713' : '';
+      if (zoneCompletionState(zone) === 'three-star') stateBadge.textContent = '\u2605';
       tile.appendChild(stateBadge);
 
       tile.setAttribute('aria-pressed', 'false');
@@ -2118,6 +2165,7 @@
     // MOBILE_480 the inline detail card can change the current tile's height;
     // the WM-Q1 receipt must describe that final layout, while the focus
     // operation itself remains horizontal-only.
+    configureRecommendedEntry(root, state);
     if (VS1E_STATIC_CONTRACT_ACTIVE) focusCurrentZone(root, playerLocation);
   }
 

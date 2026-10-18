@@ -1857,6 +1857,38 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
   body[data-e10-visual-skin="immersive-rpg"] * { scroll-behavior: auto; animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 
+/* Lane D: a navigation-only recommendation and separate clear/star signals.
+   D/A010 still requires Owner UAT on a real iPad for this added control. */
+#e9-adventure-shell #e9-world-stage-recommended-entry {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 14px;
+  margin: 4px 0;
+  border: 2px solid #a97822;
+  border-radius: 8px;
+  background: #fff4d2;
+  color: #33230c;
+  font: inherit;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+#e9-adventure-shell #e9-world-stage-recommended-entry[hidden] { display: none !important; }
+#e9-adventure-shell #e9-world-stage-recommended-entry:focus-visible {
+  outline: 3px solid #16747b;
+  outline-offset: 2px;
+}
+#e9-adventure-shell .e9-zone[data-zone-completion="three-star"] .e9-zone__state {
+  background: #ffe5a0;
+  color: #503000;
+  border: 2px solid #a97822;
+}
+#e9-adventure-shell .e9-zone[data-zone-completion="cleared"] .e9-zone__state {
+  background: #d6f3ec;
+  color: #164c44;
+  border: 2px solid #30796a;
+}
+
 /* G009 R3 responsive semantics. The runtime owns the class because iPad
    portrait cannot be inferred from a <=767 breakpoint. These rules are
    deliberately structural: they prevent horizontal scroll and preserve the
