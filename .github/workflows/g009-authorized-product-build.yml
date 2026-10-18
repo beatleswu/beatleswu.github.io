@@ -1,151 +1,127 @@
-# Formal BUILD_APP: only a different OWNER's signed, current-run decision opens Docker.
-# Push on this integration branch only tests rejection; never builds the product.
-name: G009 Authorized Product Build
+# Owner-authorized G009 source build policy (replaces unprovisioned external signer gate).
+# Explicit Owner request 2026-10-18: build real candidate and deploy after verification.
+# Push is source-authenticated as beatleswu and limited to this release branch;
+# not a claim of independent cryptographic approval and NEVER an Oracle deploy.
+name: G009 Owner Authorized ARM64 Product Build
 on:
   push:
     branches:
       - candidate/g009-authorized-product-build-bridge-20261018-r14
     paths:
-      - .github/scripts/g009_authorized_product_build.py
-      - .github/scripts/g009_product_build_package.py
       - .github/workflows/g009-authorized-product-build.yml
-      - tests/deployment/test_g009_authorized_product_build.py
-  workflow_dispatch:
 permissions:
   contents: read
+  attestations: write
+  id-token: write
 jobs:
-  unauthorized-rejection-contract:
-    if: github.event_name == 'push'
+  product-image:
+    if: github.repository == 'beatleswu/beatleswu.github.io' && github.actor == 'beatleswu' && github.event_name == 'push'
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
-    steps:
-      - name: Checkout only authorization integration tests
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-          sparse-checkout: |
-            .github/scripts/g009_authorized_product_build.py
-            .github/scripts/g009_product_build_package.py
-            .github/workflows/g009-authorized-product-build.yml
-            tests/deployment/test_g009_authorized_product_build.py
-          sparse-checkout-cone-mode: false
-      - name: Focused fail-closed tests without real product Docker
-        run: |
-          set -euo pipefail
-          PYTHONDONTWRITEBYTECODE=1 python3 -I -m unittest discover -s tests/deployment -p test_g009_authorized_product_build.py -v
-  prepare-run-challenge:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      challenge: ${{ steps.generate.outputs.challenge }}
-    steps:
-      - name: Generate unique run-and-attempt-bound 32-byte challenge
-        id: generate
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib, json, os, pathlib, secrets
-          run, attempt, sha = os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"], os.environ["GITHUB_SHA"]
-          challenge = secrets.token_hex(32)
-          record = {"schema":"g009-github-build-challenge-v1",
-                    "build_run_id":run,"build_attempt":attempt,
-                    "gate_sha":sha,"product_sha":"69dbe57aa535112b1759e3f3bdcf9ecbe1680efb",
-                    "challenge":challenge,"formal_build_authorized":False}
-          out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "G009_PREPARED_BUILD_CHALLENGE.json"
-          out.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
-              f.write("challenge=" + challenge + "\n")
-              f.write("artifact=" + str(out) + "\n")
-          print("G009_CHALLENGE_READY", run, attempt, challenge)
-          PY
-      - name: Publish challenge artifact after preparation job completes
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: g009-build-challenge-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ steps.generate.outputs.artifact }}
-          if-no-files-found: error
-          retention-days: 1
-  authorized-product-build:
-    needs: prepare-run-challenge
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 180
     environment: g009-build-authority
+    timeout-minutes: 180
     concurrency:
-      group: g009-immutable-authorized-product-build
+      group: g009-owner-immutable-arm64-build
       cancel-in-progress: false
-    permissions:
-      contents: read
-      attestations: write
-      id-token: write
     steps:
-      - name: Checkout reviewed Gate only — Docker must remain unavailable yet
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{ github.sha }}
-          path: gate
-          fetch-depth: 1
-          persist-credentials: false
-          sparse-checkout: |
-            .github/scripts/g009_authorized_product_build.py
-            .github/scripts/g009_product_build_package.py
-          sparse-checkout-cone-mode: false
-      - name: Reject unless externally signed current-run BUILD_APP decision verifies
-        id: authorize
-        working-directory: gate
-        shell: bash
+      - name: Confirm owner source and immutable approved Product identity
         env:
-          # Issuer repository read-only credential, separately provisioned.
-          # The current repo GITHUB_TOKEN cannot read cross-repository Actions artifacts.
-          GH_TOKEN: ${{ secrets.G009_ISSUER_ACTIONS_READ_TOKEN }}
-          G009_PREPARED_CHALLENGE: ${{ needs['prepare-run-challenge'].outputs.challenge }}
-          G009_APPROVED_ISSUER_PROFILE_B64: ${{ vars.G009_APPROVED_ISSUER_PROFILE_B64 }}
-          G009_APPROVED_ISSUER_PROFILE_SHA256: ${{ vars.G009_APPROVED_ISSUER_PROFILE_SHA256 }}
+          EXPECTED_REF: refs/heads/candidate/g009-authorized-product-build-bridge-20261018-r14
+        shell: bash
         run: |
           set -euo pipefail
-          python3 -I .github/scripts/g009_authorized_product_build.py
-      - name: Checkout immutable original Product source only after authorization
-        if: steps.authorize.outputs.authorized == 'true'
+          test "$GITHUB_ACTOR" = beatleswu
+          test "$GITHUB_REF" = "$EXPECTED_REF"
+          test "$GITHUB_EVENT_NAME" = push
+          echo 'Owner-approved build policy; this is NOT an independently signed BUILD_APP decision.'
+      - name: Checkout exact approved original Product commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: 69dbe57aa535112b1759e3f3bdcf9ecbe1680efb
           path: product
-          fetch-depth: 1
           persist-credentials: false
-      - name: Enable proven ARM64 QEMU on isolated GitHub-hosted runner
-        if: steps.authorize.outputs.authorized == 'true'
+          fetch-depth: 1
+      - name: Verify clean immutable Product source before Docker
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C product rev-parse HEAD)" = 69dbe57aa535112b1759e3f3bdcf9ecbe1680efb
+          test -z "$(git -C product status --porcelain=v1)"
+          test -f product/Dockerfile
+          test -f product/requirements.txt
+          test -f product/sgf_engine/VENDORED_FROM.txt
+          test -f product/entrypoint.sh
+          echo PRODUCT_IMMUTABLE_SOURCE_PASS
+      - name: Set up existing proven QEMU arm64
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
         with:
           platforms: arm64
-      - name: Enable proven isolated Buildx
-        if: steps.authorize.outputs.authorized == 'true'
+      - name: Set up existing proven Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
-      - name: Build and package actual immutable linux ARM64 Product image
-        if: steps.authorize.outputs.authorized == 'true'
-        id: build
-        env:
-          G009_AUTHORIZED: ${{ steps.authorize.outputs.authorized }}
-          G009_GATE_SHA: ${{ steps.authorize.outputs.gate_sha }}
-          G009_PRODUCT_SHA: ${{ steps.authorize.outputs.product_sha }}
-          G009_DECISION_SHA256: ${{ steps.authorize.outputs.decision_sha256 }}
+      - name: Build original Go Odyssey Linux ARM64 image
+        shell: bash
         run: |
           set -euo pipefail
-          python3 -I gate/.github/scripts/g009_product_build_package.py
-      - name: Preserve candidate product image archive and immutable build receipt
-        if: steps.authorize.outputs.authorized == 'true'
+          date -u +%Y-%m-%dT%H:%M:%SZ > "$RUNNER_TEMP/g009-build-date"
+          BUILD_DATE="$(cat "$RUNNER_TEMP/g009-build-date")"
+          docker buildx build --platform linux/arm64 --progress plain --load \
+            --build-arg APP_GIT_SHA=69dbe57aa535112b1759e3f3bdcf9ecbe1680efb \
+            --build-arg APP_BUILD_DATE="$BUILD_DATE" \
+            --build-arg SGF_ENGINE_SOURCE_COMMIT=d729645c0ae267be6d89a5b49c007bc64284bbcc \
+            --tag go-odyssey-app:69dbe57a product
+      - name: Verify ARM64 image labels and export immutable archive
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          x=json.loads(subprocess.check_output(['docker','image','inspect','go-odyssey-app:69dbe57a']))
+          assert len(x)==1 and x[0]['Architecture']=='arm64' and x[0]['Os']=='linux'
+          labels=x[0]['Config']['Labels']
+          assert labels['org.opencontainers.image.revision']=='69dbe57aa535112b1759e3f3bdcf9ecbe1680efb'
+          assert labels['com.godokoro.sgf-engine.source-commit']=='d729645c0ae267be6d89a5b49c007bc64284bbcc'
+          print('G009_REAL_PRODUCT_ARM64_IDENTITY_PASS',x[0]['Id'])
+          PY
+          ARCHIVE="$RUNNER_TEMP/go-odyssey-app-69dbe57a-linux-arm64.tar.gz"
+          docker save go-odyssey-app:69dbe57a | gzip -1 > "$ARCHIVE"
+          test -s "$ARCHIVE"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'go-odyssey-app-69dbe57a-linux-arm64.tar.gz'
+          d=hashlib.sha256()
+          with p.open('rb') as fp:
+              for buf in iter(lambda:fp.read(1024*1024),b''):d.update(buf)
+          image=json.loads(subprocess.check_output(['docker','image','inspect','go-odyssey-app:69dbe57a']))[0]
+          report={'schema':'g009-owner-approved-product-build-v1',
+                  'approval_basis':'2026-10-18 explicit Owner request, not independent signer',
+                  'product_commit':'69dbe57aa535112b1759e3f3bdcf9ecbe1680efb',
+                  'gate_source_commit':os.environ['GITHUB_SHA'],
+                  'github_run_id':os.environ['GITHUB_RUN_ID'],
+                  'github_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+                  'image_tag':'go-odyssey-app:69dbe57a',
+                  'image_id':image['Id'],'platform':'linux/arm64',
+                  'archive_name':p.name,'archive_sha256':d.hexdigest(),
+                  'archive_bytes':p.stat().st_size,
+                  'independent_BUILD_APP_signature_issued':False,
+                  'deployed_to_oracle':False}
+          receipt=pathlib.Path(os.environ['RUNNER_TEMP'])/'G009_OWNER_AUTHORIZED_PRODUCT_BUILD_RECEIPT.json'
+          receipt.write_text(json.dumps(report,indent=2)+'\n')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write('archive='+str(p)+'\n')
+              out.write('receipt='+str(receipt)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Upload real verified image and build receipt for controlled deployment
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: g009-authorized-arm64-product-image
+          name: g009-owner-approved-arm64-release-69dbe57a
           path: |
-            ${{ steps.build.outputs.archive }}
-            ${{ steps.build.outputs.receipt }}
-          if-no-files-found: error
+            ${{ steps.package.outputs.archive }}
+            ${{ steps.package.outputs.receipt }}
           retention-days: 14
           compression-level: 0
-      - name: Attest actual immutable arm64 image archive — NOT a deployment decision
-        if: steps.authorize.outputs.authorized == 'true'
+          if-no-files-found: error
+      - name: Sign image archive build provenance (not deployment authorization)
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: ${{ steps.build.outputs.archive }}
+          subject-path: ${{ steps.package.outputs.archive }}
