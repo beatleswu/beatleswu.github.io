@@ -9,6 +9,7 @@ on:
       - candidate/g009-authorized-product-build-bridge-20261018-r14
     paths:
       - .github/workflows/g009-authorized-product-build.yml
+      - .github/scripts/g009_compact_dockerfile.py
 permissions:
   contents: read
   attestations: write
@@ -51,6 +52,30 @@ jobs:
           test -f product/sgf_engine/VENDORED_FROM.txt
           test -f product/entrypoint.sh
           echo PRODUCT_IMMUTABLE_SOURCE_PASS
+      - name: Read pinned Dockerfile compaction tool from exact candidate HEAD
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          path: gate
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/g009_compact_dockerfile.py
+          sparse-checkout-cone-mode: false
+      - name: Compact approved Dockerfile COPY instructions without touching app code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I gate/.github/scripts/g009_compact_dockerfile.py --product product
+          test -f product/Dockerfile.g009-compact.receipt.json
+          python3 - <<'PY'
+          import json,pathlib
+          p=json.loads(pathlib.Path('product/Dockerfile.g009-compact.receipt.json').read_text())
+          assert p['approved_product_sha']=='69dbe57aa535112b1759e3f3bdcf9ecbe1680efb'
+          assert p['original_copy_instructions']==249 and p['optimized_copy_instructions']==8
+          assert p['curated_source_count_excluding_requirements']==313
+          assert p['source_content_mutated'] is False
+          print('G009_CURATED_COMPACTION_249_TO_8_PASS')
+          PY
       - name: Set up existing proven QEMU arm64
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
         with:
@@ -64,6 +89,7 @@ jobs:
           date -u +%Y-%m-%dT%H:%M:%SZ > "$RUNNER_TEMP/g009-build-date"
           BUILD_DATE="$(cat "$RUNNER_TEMP/g009-build-date")"
           docker buildx build --platform linux/arm64 --progress plain --load \
+            --file product/Dockerfile.g009-compact \
             --build-arg APP_GIT_SHA=69dbe57aa535112b1759e3f3bdcf9ecbe1680efb \
             --build-arg APP_BUILD_DATE="$BUILD_DATE" \
             --build-arg SGF_ENGINE_SOURCE_COMMIT=d729645c0ae267be6d89a5b49c007bc64284bbcc \
@@ -87,6 +113,7 @@ jobs:
           test -s "$ARCHIVE"
           python3 - <<'PY'
           import hashlib,json,os,pathlib,subprocess
+          compact=json.loads(pathlib.Path('product/Dockerfile.g009-compact.receipt.json').read_text())
           p=pathlib.Path(os.environ['RUNNER_TEMP'])/'go-odyssey-app-69dbe57a-linux-arm64.tar.gz'
           d=hashlib.sha256()
           with p.open('rb') as fp:
@@ -102,6 +129,10 @@ jobs:
                   'image_id':image['Id'],'platform':'linux/arm64',
                   'archive_name':p.name,'archive_sha256':d.hexdigest(),
                   'archive_bytes':p.stat().st_size,
+                  'original_dockerfile_sha256':compact['original_dockerfile_sha256'],
+                  'derived_dockerfile_sha256':compact['optimized_dockerfile_sha256'],
+                  'dockerfile_curated_copy_count_before':249,
+                  'dockerfile_copy_count_after':8,
                   'independent_BUILD_APP_signature_issued':False,
                   'deployed_to_oracle':False}
           receipt=pathlib.Path(os.environ['RUNNER_TEMP'])/'G009_OWNER_AUTHORIZED_PRODUCT_BUILD_RECEIPT.json'
@@ -118,6 +149,7 @@ jobs:
           path: |
             ${{ steps.package.outputs.archive }}
             ${{ steps.package.outputs.receipt }}
+            product/Dockerfile.g009-compact.receipt.json
           retention-days: 14
           compression-level: 0
           if-no-files-found: error
