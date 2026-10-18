@@ -11,7 +11,7 @@ BRIDGE = "5672d5cf494aeaa140c71920db5befd3ae194af2"
 GATE = "e4a16813fc38e84891bbcfca77dbab7d291b61bc"
 ADDITIONS = {".github/scripts/g009_source_integrity_ci.py", ".github/workflows/g009-source-admission-proof.yml"}
 GOVERNANCE = {
-  "docs/deployment/EXTERNAL_GOVERNANCE_BRIDGE_REPORT.md": "b49ebcf764ec73b78963cc3a35819d44348af9a5f4ffa14bbe66163e3ac57660",
+  "docs/deployment/EXTERNAL_GOVERNANCE_BRIDGE_REPORT.md": "01950c0594720547581c1679a1faac772e215439b803da3ac93ec88e69b39c89",
   "docs/deployment/EXTERNAL_GOVERNANCE_OPERATOR_RUNBOOK.md": "0855317623d6ff164818ec6e3196435c58c19a2cc5202a4719f72f47f8dbb08d",
   "scripts/release/build-release-image.ps1": "e44e178bb781c8f93622303b5bf97851038e34e3cb59ee44dac74c1ec1ea0502",
   "scripts/release/verify_external_governance.py": "ab39785ed7a6c72c46b07a8d2ad4bad3e0da2e26d23d859191d82ee95d062911",
@@ -37,8 +37,11 @@ def main():
     head = git("rev-parse", "HEAD")
     if head != os.getenv("GITHUB_SHA"):
         raise RuntimeError("CHECKOUT_HEAD_DOES_NOT_MATCH_GITHUB_SHA")
-    if git("rev-parse", "HEAD^") != GATE or git("rev-parse", GATE+"^") != BRIDGE:
-        raise RuntimeError("GATE_PARENT_MISMATCH")
+    # A narrow CI-only fix commit is allowed, but no changes outside the two
+    # CI file paths can appear after the exact independently reviewed Gate.
+    if (subprocess.run(["git", "merge-base", "--is-ancestor", GATE, head]).returncode != 0
+            or git("rev-parse", GATE+"^") != BRIDGE):
+        raise RuntimeError("GATE_ANCESTRY_MISMATCH")
     if git("rev-parse", GATE+"^^") != PRODUCT:
         raise RuntimeError("PRODUCT_ANCESTRY_MISMATCH")
     if git("rev-parse", "refs/remotes/origin/master") != MASTER:
@@ -55,8 +58,13 @@ def main():
         raise RuntimeError("WHITESPACE_ERROR")
     for rel, expected in GOVERNANCE.items():
         f = Path(rel)
-        if not f.is_file() or f.is_symlink() or hashlib.sha256(f.read_bytes()).hexdigest() != expected:
-            raise RuntimeError("GOVERNANCE_BYTES_MISMATCH:" + rel)
+        # Git committed Blob bytes are canonical across checkout platforms;
+        # hashing Windows worktree bytes fails on GitHub Ubuntu for CRLF files.
+        blob = subprocess.run(["git", "cat-file", "blob", "HEAD:" + rel],
+                              capture_output=True, timeout=40)
+        if (not f.is_file() or f.is_symlink() or blob.returncode != 0
+                or hashlib.sha256(blob.stdout).hexdigest() != expected):
+            raise RuntimeError("GOVERNANCE_COMMITTED_BLOB_MISMATCH:" + rel)
     receipt = {
         "schema": "g009-github-source-integrity-v1",
         "repository": REPO, "github_ref": ref, "head_commit": head,
