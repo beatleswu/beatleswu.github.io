@@ -1,0 +1,52 @@
+# Independent GitHub-hosted source INTEGRITY evidence only (never BUILD_APP approval).
+name: G009 Source Snapshot Integrity
+on:
+  push:
+    branches:
+      - candidate/g009-governance-source-intake-20261018-r1
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
+jobs:
+  g009-source-snapshot:
+    if: github.repository == 'beatleswu/beatleswu.github.io'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Exact branch checkout without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: GitHub-hosted exact source fingerprints and ancestry
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I .github/scripts/g009_source_integrity_ci.py
+      - name: Preserve source verification receipt (no deployment authority)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: g009-source-snapshot-evidence
+          path: ${{ steps.verify.outputs.receipt }}
+          if-no-files-found: error
+          retention-days: 14
+      - name: Sign receipt as ordinary SLSA test provenance, not BUILD_APP
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.verify.outputs.receipt }}
+      - name: Verify GitHub keyless signer on issued test receipt
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh attestation verify '${{ steps.verify.outputs.receipt }}' \
+            --repo beatleswu/beatleswu.github.io \
+            --signer-workflow beatleswu/beatleswu.github.io/.github/workflows/g009-source-admission-proof.yml \
+            --cert-oidc-issuer https://token.actions.githubusercontent.com \
+            --deny-self-hosted-runners \
+            --predicate-type https://slsa.dev/provenance/v1 \
+            --format json > /dev/null
+          echo 'G009_SIGSTORE_TEST_RECEIPT_VERIFIED_NO_BUILD_APP_AUTHORITY'
