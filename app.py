@@ -1329,6 +1329,9 @@ BADGE_DEFS = [
 
     # ── Community 排行榜獎勵（Phase 3B：僅 weekly top1，尚未實際發放）──
     { 'id':'badge_lb_weekly_1', 'name':'週榜冠軍', 'icon':'🥇', 'desc':'週排行榜奪得第一名', 'type':'community_leaderboard', 'value':1, 'rarity':'gold' },
+    { 'id':'badge_lb_monthly_1', 'name':'月榜冠軍', 'icon':'🏆', 'desc':'月排行榜奪得第一名', 'type':'community_leaderboard', 'value':1, 'rarity':'legendary' },
+    { 'id':'badge_lb_monthly_top3', 'name':'月榜前三', 'icon':'🥈', 'desc':'月排行榜獲得第二或第三名', 'type':'community_leaderboard', 'value':3, 'rarity':'gold' },
+    { 'id':'badge_lb_monthly_top10', 'name':'月榜前十', 'icon':'🎖️', 'desc':'月排行榜獲得第四至第十名', 'type':'community_leaderboard', 'value':10, 'rarity':'silver' },
 ]
 
 # ══════════════════════════════════════════════════════════════
@@ -2794,6 +2797,15 @@ APPEARANCE_DEFS = [
         'flavor': '克萊兒說：你已準備好踏上這片棋海。',
         'hint': '完成新手任務全部 7 個 Stage 解鎖',
         'drop_from': [], 'drop_weight': 0,
+    },
+    {
+        'id': 'title_monthly_master',
+        'name': '月榜棋道宗師', 'slot': 'title', 'rarity': 'legendary',
+        'emoji': '🏆', 'color': '#d97706',
+        'flavor': '每月排行勇奪冠軍的榮耀。',
+        'hint': '月排行榜冠軍獎勵，結算後獲得',
+        'drop_from': [], 'drop_weight': 0,
+        'source_hint': 'leaderboard',
     },
 
     # ══════════════════════════════════════════════════════════════
@@ -21748,8 +21760,14 @@ def community_leaderboard_reward_notification_ack(claim_id):
 @app.route('/api/community/leaderboard/reward-rules')
 @login_required
 def community_leaderboard_reward_rules():
-    from community_leaderboard_rewards import get_weekly_leaderboard_reward_rules
-    return jsonify({'ok': True, 'rules': {'weekly': get_weekly_leaderboard_reward_rules()}})
+    from community_leaderboard_rewards import (
+        get_weekly_leaderboard_reward_rules,
+        get_monthly_leaderboard_reward_rules,
+    )
+    return jsonify({'ok': True, 'rules': {
+        'weekly': get_weekly_leaderboard_reward_rules(),
+        'monthly': get_monthly_leaderboard_reward_rules(),
+    }})
 
 
 @app.route('/api/community/tournament')
@@ -25352,6 +25370,15 @@ SHOP_ITEMS = {
         'usable': 'instant', 'category': 'pet',
         'grants_food': {'go_spirit_candy': 3, 'starfruit': 2, 'moon_drop': 1},
     },
+    'appearance_fragment': {
+        'key': 'appearance_fragment', 'price': 0, 'icon': '✨',
+        'name': '外觀碎片', 'name_en': 'Appearance Fragment',
+        'desc': '排行榜專用：使用後解鎖一件尚未擁有的常見或稀有外觀',
+        'desc_en': 'Leaderboard-only: redeem for a missing common or uncommon appearance',
+        'usable': 'activate', 'category': 'collection',
+        'shop_pool': 'reward_only', 'gacha_drop': False,
+        'effect': {'key': 'appearance_fragment', 'value': 1},
+    },
     'rare_appearance_fragment': {
         'key': 'rare_appearance_fragment', 'price': 980, 'icon': '✨',
         'name': '稀有外觀碎片', 'name_en': 'Rare Appearance Fragment',
@@ -26260,6 +26287,26 @@ def is_community_reward_badge_owned(conn, *, user_id, badge_key):
         'SELECT 1 FROM badges_earned WHERE user_id=? AND badge_id=?',
         (user_id, badge_key)).fetchone() is not None
 
+def grant_community_reward_title(conn, *, user_id, title_key):
+    """Grant a catalog-defined leaderboard title as owned wardrobe (no equip)."""
+    item = _APPEAR_MAP.get(title_key)
+    if title_key != 'title_monthly_master' or not item or item.get('slot') != 'title':
+        raise ValueError('unknown leaderboard title')
+    conn.execute(
+        'INSERT OR IGNORE INTO player_wardrobe(user_id,item_id,obtained_at,source) VALUES(?,?,?,?)',
+        (user_id, title_key, _now_iso(), 'community_leaderboard'),
+    )
+    if not is_community_reward_title_owned(conn, user_id=user_id, title_key=title_key):
+        raise RuntimeError('leaderboard title ownership was not persisted')
+
+
+def is_community_reward_title_owned(conn, *, user_id, title_key):
+    return conn.execute(
+        'SELECT 1 FROM player_wardrobe WHERE user_id=? AND item_id=?',
+        (user_id, title_key),
+    ).fetchone() is not None
+
+
 def _effect_get(conn, uid, effect_key):
     """取得仍有效的效果列（時效未過 / 當日有效 / 一次性未消耗）。"""
     now = _now_iso()
@@ -26943,6 +26990,8 @@ def shop_catalog():
 def shop_buy():
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
+    if str(body.get('item_key') or '') == 'appearance_fragment':
+        return jsonify({'error': 'reward_only_item_not_for_sale'}), 403
     # C048 closes the default authority split: /api/shop/buy always performs
     # server-fact classification before any mutation. Canonical Coin mutation
     # then applies the same request-time Shop gate before entering C019/C026;
@@ -33001,12 +33050,17 @@ def _start_community_leaderboard_weekly_scheduler():
         from community_leaderboard_rewards_scheduler import (
             SCHEDULER_WAKE_INTERVAL_SECONDS,
             run_community_leaderboard_weekly_cycle,
+            run_community_leaderboard_monthly_cycle,
         )
         while True:
             try:
                 run_community_leaderboard_weekly_cycle(__import__(__name__))
             except Exception:
                 app.logger.exception('[community_leaderboard_weekly] scheduled job failed')
+            try:
+                run_community_leaderboard_monthly_cycle(__import__(__name__))
+            except Exception:
+                app.logger.exception('[community_leaderboard_monthly] scheduled job failed')
             time.sleep(SCHEDULER_WAKE_INTERVAL_SECONDS)
 
     threading.Thread(target=worker, name='community-leaderboard-weekly', daemon=True).start()

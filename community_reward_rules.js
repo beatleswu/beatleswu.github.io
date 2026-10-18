@@ -21,13 +21,21 @@
         top25: 'communityRewards.rules.rankRange.top25',
         top50: 'communityRewards.rules.rankRange.top50',
     };
-    const ITEM_ICONS = { small_xp_potion: '🧪', xp_potion: '🧪' };
+    const ITEM_ICONS = {
+        small_xp_potion: '🧪', xp_potion: '🧪',
+        appearance_fragment: '✨', rare_appearance_fragment: '💎',
+    };
     const ITEM_LABEL_KEYS = {
         small_xp_potion: 'communityRewards.reward.item.small_xp_potion',
         xp_potion: 'communityRewards.reward.item.xp_potion',
+        appearance_fragment: 'communityRewards.reward.item.appearance_fragment',
+        rare_appearance_fragment: 'communityRewards.reward.item.rare_appearance_fragment',
     };
     const BADGE_LABEL_KEYS = {
         badge_lb_weekly_1: 'communityRewards.reward.badge.badge_lb_weekly_1',
+        badge_lb_monthly_1: 'communityRewards.reward.badge.badge_lb_monthly_1',
+        badge_lb_monthly_top3: 'communityRewards.reward.badge.badge_lb_monthly_top3',
+        badge_lb_monthly_top10: 'communityRewards.reward.badge.badge_lb_monthly_top10',
     };
 
     function esc(s) {
@@ -55,6 +63,9 @@
             const labelKey = BADGE_LABEL_KEYS[reward.key];
             const label = labelKey ? tr(labelKey) : tr('communityRewards.reward.unsupported');
             return `🏅 ${label} ×1`;
+        }
+        if (reward.type === 'title' && reward.key === 'title_monthly_master') {
+            return '👑 ' + tr('communityRewards.reward.title.title_monthly_master');
         }
         return `❓ ${tr('communityRewards.reward.unsupported')}`;
     }
@@ -143,6 +154,14 @@
           </table>
         </div>
 
+        <div class="crr-rules-section" data-crr="monthlySection" hidden>
+          <div class="crr-rules-heading" data-crr="monthlyHeading"></div>
+          <div class="crr-rules-text" data-crr="monthlyMinimum"></div>
+          <table class="crr-rules-table">
+            <tbody data-crr="monthlyRewardsBody"></tbody>
+          </table>
+        </div>
+
         <div class="crr-rules-section">
           <div class="crr-rules-heading" data-crr="deliveryHeading"></div>
           <div class="crr-rules-text" data-crr="deliveryAutomatic"></div>
@@ -169,7 +188,7 @@
         if (overlayEl) overlayEl.classList.remove('crr-open');
     }
 
-    function render(weekly) {
+    function render(weekly, monthly) {
         ensureModal();
         const q = (sel) => overlayEl.querySelector(sel);
         q('[data-crr="title"]').textContent = tr('communityRewards.rules.title');
@@ -210,19 +229,32 @@
             })
             .join('');
         q('[data-crr="rewardsBody"]').innerHTML = rowsHtml;
+        const monthlySection = q('[data-crr="monthlySection"]');
+        monthlySection.hidden = !monthly;
+        if (monthly) {
+            q('[data-crr="monthlyHeading"]').textContent = tr('communityRewards.rules.monthly.heading');
+            q('[data-crr="monthlyMinimum"]').textContent =
+                tr('communityRewards.rules.monthly.minimumScore').replace('{score}', monthly.minimum_score);
+            q('[data-crr="monthlyRewardsBody"]').innerHTML = (monthly.rank_bands || []).map(band => {
+                const rewardList = (band.rewards || []).map(reward =>
+                    `<span class="crr-rules-reward-line">${esc(formatReward(reward))}</span>`
+                ).join('');
+                return `<tr><td>${esc(rankRangeLabel(band))}</td><td>${rewardList}</td></tr>`;
+            }).join('');
+        }
 
         overlayEl.classList.add('crr-open');
     }
 
     async function show() {
-        if (cachedRules) { render(cachedRules); return; }
+        if (cachedRules) { render(cachedRules.weekly, cachedRules.monthly); return; }
         try {
             const res = await fetch(RULES_ENDPOINT, { credentials: 'same-origin' });
             if (!res.ok) return;
             const data = await res.json();
             if (!data || data.ok !== true || !data.rules || !data.rules.weekly) return;
-            cachedRules = data.rules.weekly;
-            render(cachedRules);
+            cachedRules = data.rules;
+            render(cachedRules.weekly, cachedRules.monthly);
         } catch (_err) {
             // Rules panel is informational only -- never block leaderboard usage.
         }

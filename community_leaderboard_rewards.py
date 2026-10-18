@@ -215,6 +215,30 @@ def get_weekly_leaderboard_reward_rules():
     }
 
 
+def get_monthly_leaderboard_reward_rules():
+    """Read-only monthly reward table; use the actual settlement catalog."""
+    bounds = _weekly_rank_band_bounds()
+    bands = []
+    for band in _WEEKLY_RULES_RANK_BANDS_ORDER:
+        coins, items, badges, titles = _split_reward_bundle(get_monthly_reward_bundle(band))
+        rewards = [{"type": "coins", "amount": coins}] if coins else []
+        rewards.extend({"type": "item", "key": k, "quantity": v} for k, v in items.items())
+        rewards.extend({"type": "badge", "key": k} for k in badges)
+        rewards.extend({"type": "title", "key": k} for k in titles)
+        rank_min, rank_max = bounds[band]
+        bands.append({
+            "key": band, "rank_min": rank_min, "rank_max": rank_max,
+            "rewards": rewards,
+        })
+    return {
+        "period": {"type": BOARD_TYPE_MONTHLY, "starts_on": "first_day", "ends_on": "last_day"},
+        "minimum_score": MONTHLY_REWARD_MIN_SCORE,
+        "coin_cap_policy": "leaderboard_rewards_bypass_daily_cap",
+        "delivery": "automatic",
+        "rank_bands": bands,
+    }
+
+
 def is_leaderboard_reward_eligible(board_type, score):
     if not isinstance(score, (int, float)):
         return False
@@ -1390,8 +1414,8 @@ def build_reward_notification_payload(claim):
     non-localized notification shape the frontend renders. Plain
     type/key/amount data only -- never a pre-localized label -- so the
     frontend can render it in whichever language the player has
-    selected. Title payloads are never surfaced here (titles remain
-    entirely unsupported end-to-end, matching every prior phase)."""
+    selected. Title rewards are shown only after the authoritative claim
+    has reached granted status; this reader never grants any component."""
     rewards = []
     if claim.get("granted_coins"):
         rewards.append({"type": "coins", "amount": claim["granted_coins"]})
@@ -1402,6 +1426,10 @@ def build_reward_notification_payload(claim):
         claim.get("granted_badges_json"), "granted_badges_json")
     for badge_key in badges:
         rewards.append({"type": "badge", "key": badge_key})
+    titles = _decode_leaderboard_reward_json_list(
+        claim.get("granted_titles_json"), "granted_titles_json")
+    for title_key in titles:
+        rewards.append({"type": "title", "key": title_key})
     return {
         "claim_id": claim["id"],
         "board": claim["board_type"],
@@ -2323,13 +2351,19 @@ def grant_leaderboard_reward_bundle(
 # actual production grant-commit decision) can happen later, entirely
 # separately from this commit.
 
-_WEEKLY_SAFE_ITEM_KEYS = frozenset({"small_xp_potion", "xp_potion"})
+_WEEKLY_SAFE_ITEM_KEYS = frozenset({
+    "small_xp_potion", "xp_potion",
+    "rare_appearance_fragment", "appearance_fragment",
+})
 # Phase 3B badge allowlist is deliberately narrow (weekly only). Monthly
 # badge keys (badge_lb_monthly_1, badge_lb_monthly_top3,
 # badge_lb_monthly_top10) are not yet in app.py's BADGE_DEFS and are
 # explicitly deferred -- see the Phase 3B-0 discovery doc. Whoever adds a
 # new reward badge to BADGE_DEFS must also add it here.
-_PHASE_3B_ALLOWED_BADGE_KEYS = frozenset({"badge_lb_weekly_1"})
+_PHASE_3B_ALLOWED_BADGE_KEYS = frozenset({
+    "badge_lb_weekly_1",
+    "badge_lb_monthly_1", "badge_lb_monthly_top3", "badge_lb_monthly_top10",
+})
 
 
 def is_phase_3b_item_key_allowed(item_key):

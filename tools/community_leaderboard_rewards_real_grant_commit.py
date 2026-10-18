@@ -76,6 +76,33 @@ def _real_is_badge_owned_fn(app_module, conn):
     return _fn
 
 
+def _real_grant_title_fn(app_module, conn):
+    def _fn(user_id, title_key):
+        return app_module.grant_community_reward_title(conn, user_id=user_id, title_key=title_key)
+    return _fn
+
+
+def _grant_title_component(conn, grant_title_fn, is_title_owned_fn, *, claim_id, user_id, title_key):
+    if title_key != "title_monthly_master":
+        raise ValueError("unknown monthly leaderboard title")
+    if lbr.is_leaderboard_reward_component_logged(conn, claim_id, "title", title_key):
+        return {
+            "claim_id": claim_id, "user_id": user_id, "component": "title",
+            "reward_key": title_key, "quantity": 1, "result": "skipped_existing",
+            "detail": "already logged in leaderboard_reward_component_log",
+        }
+    # Ownership may predate this period; an owned title is a satisfied reward,
+    # not a second entitlement. Verify ownership after the idempotent grant.
+    grant_title_fn(user_id, title_key)
+    if not is_title_owned_fn(user_id, title_key):
+        raise RuntimeError("monthly title not persisted")
+    lbr.log_leaderboard_reward_component(conn, claim_id, "title", title_key, 1, "granted")
+    return {
+        "claim_id": claim_id, "user_id": user_id, "component": "title",
+        "reward_key": title_key, "quantity": 1, "result": "granted", "detail": None,
+    }
+
+
 def _grant_coin_component(conn, grant_coins_fn, *, board_type, period_key, claim_id, user_id, amount, rank_band):
     if not amount or amount <= 0:
         return None
@@ -208,16 +235,15 @@ def execute_exact_period_grant_commit(conn, app_module, claims, *, board_type, p
     grant_badge_fn = _real_grant_badge_fn(app_module, conn)
     is_badge_owned_fn = _real_is_badge_owned_fn(app_module, conn)
 
+    grant_title_fn = _real_grant_title_fn(app_module, conn)
+    is_title_owned_fn = lambda uid, title_key: app_module.is_community_reward_title_owned(
+        conn, user_id=uid, title_key=title_key
+    )
     results = []
     for claim in claims:
         claim_id = claim["claim_id"]
         user_id = claim["user_id"]
         badge_title = lbr.extract_leaderboard_badge_title_payload(claim)
-        if badge_title["titles"]:
-            raise ValueError(
-                f"title grants are out of scope for exact-period commit "
-                f"(claim_id={claim_id}, board_type={board_type}, period_key={period_key})"
-            )
         components = []
         coin_result = _grant_coin_component(
             conn,
@@ -252,6 +278,11 @@ def execute_exact_period_grant_commit(conn, app_module, claims, *, board_type, p
                 badge_key=badge_key,
             )
             components.append(result)
+        for title_key in badge_title["titles"]:
+            components.append(_grant_title_component(
+                conn, grant_title_fn, is_title_owned_fn,
+                claim_id=claim_id, user_id=user_id, title_key=title_key,
+            ))
         lbr.mark_leaderboard_claim_granted(conn, claim_id)
         results.append({
             "claim_id": claim_id,

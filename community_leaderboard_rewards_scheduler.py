@@ -85,6 +85,30 @@ def get_weekly_scheduler_target(now=None, timezone=SCHEDULER_TIMEZONE):
     }
 
 
+MONTHLY_FIRST_REWARDED_PERIOD = "2026-10"
+
+
+def get_monthly_scheduler_target(now=None, timezone=SCHEDULER_TIMEZONE):
+    """Settle only complete months from October 2026 onward, on day 1 at 00:10."""
+    now_at = resolve_scheduler_now(now=now, timezone=timezone)
+    month_start = now_at.date().replace(day=1)
+    previous_month_start = (month_start - datetime.timedelta(days=1)).replace(day=1)
+    period_key = lbr.format_leaderboard_period_key(lbr.BOARD_TYPE_MONTHLY, previous_month_start)
+    due_at = datetime.datetime.combine(
+        month_start, datetime.time(hour=0, minute=10), tzinfo=now_at.tzinfo,
+    )
+    return {
+        "timezone": timezone,
+        "now_at": now_at,
+        "due_at": due_at,
+        "is_due": now_at >= due_at and period_key >= MONTHLY_FIRST_REWARDED_PERIOD,
+        "board_type": lbr.BOARD_TYPE_MONTHLY,
+        "period_key": period_key,
+        "period_start": previous_month_start.isoformat(),
+        "period_end_exclusive": month_start.isoformat(),
+    }
+
+
 def next_scheduler_check_at(now=None, timezone=SCHEDULER_TIMEZONE):
     now_at = resolve_scheduler_now(now=now, timezone=timezone)
     target = get_weekly_scheduler_target(now=now_at, timezone=timezone)
@@ -374,7 +398,7 @@ def log_scheduler_result(logger, result):
         "preview_sha_prefix": (result.get("preview_sha256") or "")[:12],
         "duration_seconds": result.get("duration_seconds"),
     }
-    logger.info("[community_leaderboard_weekly] %s", lbr.canonical_json_dumps(payload))
+    logger.info("[community_leaderboard_%s] %%s" % result.get("board_type", "weekly"), lbr.canonical_json_dumps(payload))
 
 
 def log_scheduler_failure(logger, result):
@@ -386,24 +410,38 @@ def log_scheduler_failure(logger, result):
     the transaction remains fail-closed.
     """
     payload = {
-        "job": "community_leaderboard_weekly",
+        "job": f"community_leaderboard_{result.get('board_type', 'weekly')}",
         "result": "failed_closed",
         "period_key": result.get("period_key"),
         "exception_type": result.get("error_type"),
     }
     if result.get("reason_code"):
         payload["reason_code"] = result["reason_code"]
-    logger.error("[community_leaderboard_weekly] %s", lbr.canonical_json_dumps(payload))
+    logger.error("[community_leaderboard_%s] %%s" % result.get("board_type", "weekly"), lbr.canonical_json_dumps(payload))
 
 
 def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_root=None):
+    return _run_community_leaderboard_cycle(
+        app_module, board_type=lbr.BOARD_TYPE_WEEKLY,
+        now=now, operations_root=operations_root,
+    )
+
+
+def run_community_leaderboard_monthly_cycle(app_module, *, now=None, operations_root=None):
+    return _run_community_leaderboard_cycle(
+        app_module, board_type=lbr.BOARD_TYPE_MONTHLY,
+        now=now, operations_root=operations_root,
+    )
+
+
+def _run_community_leaderboard_cycle(app_module, *, board_type, now=None, operations_root=None):
     logger = _logger_for(app_module)
     started_at = time.monotonic()
     flag_enabled = _community_rewards_flag_enabled(app_module)
     if not flag_enabled:
         result = {
             "result": "disabled_noop",
-            "board_type": lbr.BOARD_TYPE_WEEKLY,
+            "board_type": board_type,
             "period_key": None,
             "claim_count": 0,
             "component_count": 0,
@@ -415,7 +453,11 @@ def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_r
         log_scheduler_result(logger, result)
         return result
 
-    target = get_weekly_scheduler_target(now=now, timezone=SCHEDULER_TIMEZONE)
+    target = (
+        get_weekly_scheduler_target(now=now, timezone=SCHEDULER_TIMEZONE)
+        if board_type == lbr.BOARD_TYPE_WEEKLY
+        else get_monthly_scheduler_target(now=now, timezone=SCHEDULER_TIMEZONE)
+    )
     if not target["is_due"]:
         result = {
             "result": "not_due_noop",

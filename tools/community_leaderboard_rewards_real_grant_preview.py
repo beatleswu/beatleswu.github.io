@@ -36,6 +36,7 @@ REAL_ITEM_FUNCTION_NAME = "_grant_shop_purchase"
 REAL_SHOP_ITEMS_ATTR = "SHOP_ITEMS"
 REAL_BADGE_DEFS_ATTR = "BADGE_DEFS"
 REAL_BADGE_TABLE = "badges_earned"
+REAL_TITLE_TABLE = "player_wardrobe"
 
 EXPECTED_COIN_FUNCTION_PARAMS = ["conn", "uid", "amount", "reason", "bypass_daily_cap"]
 EXPECTED_ITEM_FUNCTION_PARAMS = ["conn", "uid", "item", "qty"]
@@ -139,6 +140,22 @@ def real_badge_dry_run_wrapper(app_module, conn, *, user_id, badge_key):
     }
 
 
+def real_title_dry_run_wrapper(app_module, conn, *, user_id, title_key):
+    allowed = title_key == "title_monthly_master"
+    definitions = getattr(app_module, "APPEARANCE_DEFS", [])
+    if not allowed or not any(row.get("id") == title_key and row.get("slot") == "title" for row in definitions):
+        raise ValueError("unknown monthly leaderboard title")
+    if not callable(getattr(app_module, "grant_community_reward_title", None)):
+        raise RuntimeError("missing real title grant target")
+    if not callable(getattr(app_module, "is_community_reward_title_owned", None)):
+        raise RuntimeError("missing title ownership checker")
+    owned = conn.execute(
+        "SELECT 1 FROM player_wardrobe WHERE user_id=? AND item_id=?",
+        (user_id, title_key),
+    ).fetchone() is not None
+    return {"signature_ok": True, "already_owned": owned}
+
+
 def verify_real_grant_targets_for_claims(app_module, conn, claims):
     """For every pending/granted claim's actual reward payload, run the
     appropriate dry-run wrapper(s) above and collect any errors (missing
@@ -185,10 +202,10 @@ def verify_real_grant_targets_for_claims(app_module, conn, claims):
                 real_badge_dry_run_wrapper(app_module, conn, user_id=user_id, badge_key=badge_key)
             except (ValueError, RuntimeError) as exc:
                 errors.append({"claim_id": claim_id, "component": "badge", "error": str(exc)})
-        if badge_title["titles"]:
-            errors.append({
-                "claim_id": claim_id, "component": "title",
-                "error": "title grants deferred in Phase 3B/3C -- no real target checked",
-            })
+        for title_key in badge_title["titles"]:
+            try:
+                real_title_dry_run_wrapper(app_module, conn, user_id=user_id, title_key=title_key)
+            except (ValueError, RuntimeError) as exc:
+                errors.append({"claim_id": claim_id, "component": "title", "error": str(exc)})
 
     return errors
