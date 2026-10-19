@@ -8908,6 +8908,9 @@ function setHomePlayerLayer(id, slot, key, characterKey) {
 
 let _homeSpiritPet = null;  // 主角卡片要顯示的棋靈夥伴立繪（取代舊的裝備寵物配飾）
 let _petStatusPromise = null;
+// Share the initial governed Spirit unlock across the home idle loader and
+// the Adventure board loader. Only the server can authorize the result.
+let _starterSpiritAutoChoosePromise = null;
 function getPetStatus() {
     if (!_petStatusPromise) {
         _petStatusPromise = fetch('/api/pet/status', { credentials:'include', cache:'no-store' })
@@ -10899,12 +10902,26 @@ async function loadQuizPet() {
         if (!d || !d.pet) {
             const starterKey = (d && d.catalog && d.catalog[0] && d.catalog[0].key) || 'ink_drop_kelpie';
             try {
-                const chosen = await fetch('/api/pet/choose', {
-                    method:'POST',
-                    credentials:'include',
-                    headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({pet_key: starterKey})
-                }).then(r=>r.json());
+                if (!_starterSpiritAutoChoosePromise) {
+                    _starterSpiritAutoChoosePromise = fetch('/api/pet/choose', {
+                        method:'POST',
+                        credentials:'include',
+                        headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({pet_key: starterKey})
+                    }).then(r => r.json()).then(chosen => {
+                        if (chosen && chosen.pet) {
+                            // Publish server-confirmed state before releasing
+                            // the single-flight lock. A later loader cannot
+                            // act on the pre-unlock cached /pet/status result.
+                            _petStatusPromise = Promise.resolve(
+                                Object.assign({}, d || {}, {pet: chosen.pet}));
+                        }
+                        return chosen;
+                    }).finally(() => {
+                        _starterSpiritAutoChoosePromise = null;
+                    });
+                }
+                const chosen = await _starterSpiritAutoChoosePromise;
                 if (chosen && chosen.pet) {
                     d = Object.assign({}, d || {}, {pet: chosen.pet});
                     _petStatusPromise = Promise.resolve(d);

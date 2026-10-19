@@ -71,6 +71,23 @@ def journey(native_runtime, monkeypatch):
     return app, client
 
 
+@pytest.fixture
+def journey_with_companion_schema(journey):
+    """Install the governed Companion schema in the disposable PG only.
+
+    app.init_db intentionally does not install production B023 operation
+    authority. This test fixture never changes deployment policy.
+    """
+    from migrations.companion_operations_v1 import upgrade as upgrade_companion
+    from migrations.spirit_evolution_events_v1 import upgrade as upgrade_evolution
+
+    app, client = journey
+    with app.get_db() as conn:
+        assert upgrade_companion(conn)["missing"] == []
+        assert upgrade_evolution(conn)["missing"] == []
+    return app, client
+
+
 def answer_payload(issued, moves):
     return {
         "battle_id": issued["battle_id"],
@@ -343,7 +360,7 @@ def test_actual_shipped_map_adapter_chrome_click_to_real_flask_pg(journey):
 
 
 @pytest.mark.parametrize('input_mode', ('desktop_mouse', 'chrome_tablet_touch'))
-def test_actual_index_html_wgo_click_judge_xp_level_and_map(journey, input_mode):
+def test_actual_index_html_wgo_click_judge_xp_level_and_map(journey_with_companion_schema, input_mode):
     """Real Chrome pointer -> shipped WGo board -> Flask Map answer -> PG -> LV2.
 
     No route interceptions or synthetic client grades; synthetic question
@@ -354,7 +371,7 @@ def test_actual_index_html_wgo_click_judge_xp_level_and_map(journey, input_mode)
     from pathlib import Path
     from werkzeug.serving import make_server
 
-    app, client = journey
+    app, client = journey_with_companion_schema
     cookie = client.get_cookie("session")
     assert cookie and cookie.value
     server = make_server("127.0.0.1", 0, app.app.wsgi_app, threaded=True)
@@ -378,7 +395,9 @@ def test_actual_index_html_wgo_click_judge_xp_level_and_map(journey, input_mode)
         info = json.loads(result.stdout)
         print("ACTUAL_INDEX_WGO_JOURNEY", json.dumps(info,ensure_ascii=False))
         assert info["verdict"] == "REAL_INDEX_REAL_WGO_REAL_MAP_ANSWER_PG_PASS"
-        assert info["passed"] == 8
+        assert info["passed"] == 10
+        assert 200 in info["spiritChooseStatuses"]
+        assert 503 not in info["spiritChooseStatuses"]
         assert info["actual_shipped_index_used"] is True
         assert info["actual_wgo_pointer_event_used"] is True
         assert info['emulated_touch_mode'] == (input_mode == 'chrome_tablet_touch')
@@ -393,8 +412,19 @@ def test_actual_index_html_wgo_click_judge_xp_level_and_map(journey, input_mode)
                 "WHERE user_id=? AND source_context LIKE ?",
                 (UID, "mbv1:%"),
             ).fetchone()["n"]
-        assert row["xp"] == 134 and row["rank_level"] == "LV2"
+            companion_count = conn.execute(
+                "SELECT COUNT(*) AS n FROM companion_operations WHERE user_id=? "
+                "AND status='COMPLETED' AND operation_type='SPIRIT_UNLOCK'",
+                (UID,),
+            ).fetchone()["n"]
+            pet_count = conn.execute(
+                "SELECT COUNT(*) AS n FROM user_pets WHERE user_id=?",
+                (UID,),
+            ).fetchone()["n"]
+        assert row["xp"] == 135 and row["rank_level"] == "LV2"
         assert int(count) == 1
+        assert int(companion_count) == 1, "first spirit unlock must settle exactly once"
+        assert int(pet_count) == 1, "no second starter spirit on hero navigation"
     finally:
         server.shutdown()
         thread.join(timeout=8)

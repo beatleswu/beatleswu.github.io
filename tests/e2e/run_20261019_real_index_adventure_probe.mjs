@@ -19,10 +19,14 @@ const ctx=await browser.newContext({
 });
 await ctx.addCookies([{name:'session',value:input.sessionCookie,url:input.origin}]);
 const page=await ctx.newPage();
-const jsErrors=[],fails=[],checks=[];
+const jsErrors=[],fails=[],checks=[],spiritChooseStatuses=[];
 page.on('pageerror',e=>jsErrors.push(String(e).slice(0,300)));
-page.on('response',r=>{if(r.status()>=400&&fails.length<40)
- fails.push({status:r.status(),path:new URL(r.url()).pathname})});
+page.on('response',r=>{
+ const path=new URL(r.url()).pathname;
+ if(path==='/api/pet/choose') spiritChooseStatuses.push(r.status());
+ if(r.status()>=400&&fails.length<40)
+ fails.push({status:r.status(),path});
+});
 async function check(name,fn){await fn();checks.push({name,status:'PASS'});}
 async function serverTruth(){
  return page.evaluate(async()=>{
@@ -55,6 +59,15 @@ try{
    assert.equal(state.boardVisible,true);
    assert.equal(state.active,true);
    assert.equal(state.zoneQuestions,1);
+ });
+ await page.waitForFunction(async()=>{
+   const r=await fetch('/api/pet/status',{credentials:'include',cache:'no-store'});
+   if(!r.ok)return false;
+   const d=await r.json();return d.pet?.pet_key==='ink_drop_kelpie';
+ },undefined,{timeout:12000});
+ await check('new_player_auto_selects_governed_spirit_without_503',async()=>{
+   assert.deepEqual(spiritChooseStatuses,[200],
+     'one real server-authorized starter Spirit POST; no 503 or duplicate 409');
  });
  // An authentic Zone 1 entry may show the PRE_PLAY cinematic above a
  // loaded (but not yet clickable) WGo board. Follow the actual player's
@@ -148,13 +161,13 @@ try{
  });
  await page.waitForFunction(async()=>{
    const r=await fetch('/api/xp/status',{credentials:'include',cache:'no-store'});
-   return r.ok&&(await r.json()).xp===134;
+   return r.ok&&(await r.json()).xp===135;
  },undefined,{timeout:15000});
  const after=await serverTruth();
  await check('XP_and_hero_level_progress_from_real_WGo_click',async()=>{
-   assert.equal(after.xp,134);
+   assert.equal(after.xp,135);
    assert.equal(after.level,2);
-   assert.equal(after.hero_xp,134);
+   assert.equal(after.hero_xp,135);
    assert.equal(after.hero_level,2);
  });
  await check('adventure_correct_count_saved_without_spurious_zone_clear',async()=>{
@@ -165,7 +178,7 @@ try{
  await page.reload({waitUntil:'domcontentloaded'});
  const fresh=await serverTruth();
  await check('full_index_refresh_retains_level_and_zone_score',async()=>{
-   assert.equal(fresh.xp,134);assert.equal(fresh.level,2);
+   assert.equal(fresh.xp,135);assert.equal(fresh.level,2);
    assert.equal(fresh.zoneCorrect,1);assert.equal(fresh.zoneCleared,false);
  });
  // Navigate to the original Hero page, let it fetch its own server data,
@@ -174,7 +187,7 @@ try{
  await page.waitForFunction(()=>{
    const lv=document.getElementById('badge-lv');
    const xp=document.getElementById('char-xp');
-   return lv?.textContent?.trim()==='LV2' && !!xp?.textContent?.includes('14 / 160 XP');
+   return lv?.textContent?.trim()==='LV2' && !!xp?.textContent?.includes('15 / 160 XP');
  },undefined,{timeout:20000});
  const actualHero=await page.evaluate(()=>({
    lv:document.getElementById('badge-lv')?.textContent?.trim(),
@@ -185,16 +198,34 @@ try{
  }));
  await check('actual_hero_page_shows_new_level_and_correct_current_XP',async()=>{
    assert.equal(actualHero.lv,'LV2');
-   assert.match(actualHero.xp,/14 \/ 160 XP/);
-   assert.match(actualHero.xp,/134/);
+   assert.match(actualHero.xp,/15 \/ 160 XP/);
+   assert.match(actualHero.xp,/135/);
    assert.equal(actualHero.pct,'9%');
    assert.equal(actualHero.bar,'9%');
+ });
+ // The active Hero UI is G009. Its legacy #hero-tab-pet is hidden by
+ // design: use the real visible G009 Companion navigation instead.
+ await page.locator('[data-g009-hub-tab="pet"]').click({timeout:10000});
+ await page.waitForSelector(
+   '#g009-panel-companion:not([hidden]) #g009-companion-active .g009-companion-card[data-pet-key="ink_drop_kelpie"]',
+   {timeout:14000});
+ const actualSpirit=await page.evaluate(()=>({
+   key:document.querySelector('#g009-companion-active .g009-companion-card')?.dataset.petKey,
+   name:document.querySelector('#g009-companion-active .g009-companion-card strong')?.textContent?.trim(),
+   ownedCard:!!document.querySelector('#g009-companion-active .g009-companion-card'),
+   tabVisible:!document.querySelector('#g009-panel-companion')?.hasAttribute('hidden'),
+ }));
+ await check('hero_spirit_tab_displays_server_owned_starter_after_answer',async()=>{
+   assert.equal(actualSpirit.key,'ink_drop_kelpie');
+   assert.equal(actualSpirit.ownedCard,true);
+   assert.equal(actualSpirit.tabVisible,true);
+   assert(actualSpirit.name);
  });
  console.log(JSON.stringify({
    schema:'GO_P1_REAL_INDEX_WGO_CLICK_TO_NATIVE_PG_R1',
    verdict:'REAL_INDEX_REAL_WGO_REAL_MAP_ANSWER_PG_PASS',
-   passed:checks.length,checks,
-   before,after,fresh,point,actualHero,
+   passed:checks.length,checks,spiritChooseStatuses,
+   before,after,fresh,point,actualHero,actualSpirit,
    javascript_errors:jsErrors.slice(0,10),
    failed_resources:fails.slice(0,25),
    actual_shipped_index_used:true,
