@@ -271,6 +271,18 @@ def apply_owner_approved_plan(
         ).fetchone()
         if existing:
             raise CatchupRefused("star2 already has an actual award event")
+        previous=conn.execute(
+            "SELECT earned_stars,updated_at FROM adventure_zone_star_progress "
+            "WHERE user_id=? AND zone_key=? FOR UPDATE",
+            (c.user_id,plan.zone),
+        ).fetchone()
+        previous_exists=previous is not None
+        previous_stars=(int(_value(previous,"earned_stars",0))
+                        if previous_exists else None)
+        previous_updated=(str(_value(previous,"updated_at",1))
+                          if previous_exists else None)
+        if previous_exists and previous_stars not in (0,1):
+            raise CatchupRefused("already-awarded or invalid previous star state")
         receipt_id=_fingerprint({
             "domain":"historical_zone_second_star",
             "zone":plan.zone,"uid":c.user_id,
@@ -281,11 +293,13 @@ def apply_owner_approved_plan(
             f"INSERT INTO {RECEIPT_TABLE} "
             "(user_id,zone_key,star_number,baseline_version,pool_sha256,"
             "pool_count,required_correct,distinct_correct,receipt_sha256,"
-            "candidate_digest,owner_batch_id,granted_at) "
-            "VALUES(?,?,2,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING",
+            "candidate_digest,prior_row_existed,prior_earned_stars,"
+            "prior_updated_at,owner_batch_id,granted_at) "
+            "VALUES(?,?,2,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING",
             (c.user_id,plan.zone,plan.baseline_version,plan.pool_sha256,
              plan.pool_count,plan.threshold,c.distinct_correct,
-             receipt_id,plan.candidate_digest,owner_batch_id,timestamp),
+             receipt_id,plan.candidate_digest,previous_exists,
+             previous_stars,previous_updated,owner_batch_id,timestamp),
         )
         if receipt.rowcount!=1:
             raise CatchupRefused("historical backfill receipt already exists")

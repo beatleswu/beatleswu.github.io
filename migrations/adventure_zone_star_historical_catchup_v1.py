@@ -21,7 +21,8 @@ def validate(conn):
     required={
         "user_id","zone_key","star_number","baseline_version","pool_sha256",
         "pool_count","required_correct","distinct_correct","receipt_sha256",
-        "candidate_digest",
+        "candidate_digest","prior_row_existed","prior_earned_stars",
+        "prior_updated_at",
         "owner_batch_id","granted_at",
     }
     if not found:
@@ -58,6 +59,15 @@ def upgrade(conn, *, owner_gate, execute=False):
            distinct_correct INTEGER NOT NULL CHECK(distinct_correct>=required_correct),
            receipt_sha256 TEXT NOT NULL UNIQUE CHECK(length(receipt_sha256)=64),
            candidate_digest TEXT NOT NULL CHECK(length(candidate_digest)=64),
+           prior_row_existed BOOLEAN NOT NULL,
+           prior_earned_stars INTEGER CHECK(prior_earned_stars BETWEEN 0 AND 1),
+           prior_updated_at TEXT,
+           CONSTRAINT prior_row_evidence_consistent CHECK(
+             (prior_row_existed AND prior_earned_stars IS NOT NULL
+              AND prior_updated_at IS NOT NULL)
+              OR (NOT prior_row_existed AND prior_earned_stars IS NULL
+                  AND prior_updated_at IS NULL)
+           ),
            owner_batch_id TEXT NOT NULL,
            granted_at TEXT NOT NULL,
            PRIMARY KEY(user_id,zone_key,star_number)

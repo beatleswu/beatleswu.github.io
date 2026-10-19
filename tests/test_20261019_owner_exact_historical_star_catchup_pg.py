@@ -146,6 +146,17 @@ def test_separate_historical_receipts_only_no_forged_map_ledger(fake_cohort):
             f"FROM {RECEIPT_TABLE} ORDER BY user_id",
         ).fetchall()
         assert len(receipts)==13
+        prior_rows=conn.execute(
+            f"SELECT user_id,prior_row_existed,prior_earned_stars,"
+            f"prior_updated_at FROM {RECEIPT_TABLE} ORDER BY user_id",
+        ).fetchall()
+        assert len(prior_rows)==13
+        assert all(bool(r["prior_row_existed"]) and
+                   int(r["prior_earned_stars"])==1 and
+                   r["prior_updated_at"]==STAMP for r in prior_rows[:3])
+        assert all(not bool(r["prior_row_existed"]) and
+                   r["prior_earned_stars"] is None and
+                   r["prior_updated_at"] is None for r in prior_rows[3:])
         assert all(int(r["star_number"])==2 and
                    int(r["distinct_correct"])==6 and
                    int(r["required_correct"])==6 for r in receipts)
