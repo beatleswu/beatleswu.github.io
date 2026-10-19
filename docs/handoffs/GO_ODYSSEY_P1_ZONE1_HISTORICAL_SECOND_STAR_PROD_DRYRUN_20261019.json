@@ -1,0 +1,15 @@
+﻿{
+    "baseline_version":  "GRANDFATHERED_LEGACY_CONTINUITY_V1",
+    "candidate_digest":  "279efb96aba3fc515250c32134f391d4d989b7409fd6bce2f739b0bfc982eb12",
+    "candidates_missing_second_star":  13,
+    "cleared_users":  23,
+    "conservative_records_needed_for_candidate":  0,
+    "pool_count":  1939,
+    "pool_sha256":  "5dd5ccf622873128fd7d9a66877acb60b58b84d00e333f222751b452c1d37248",
+    "potential_100pct_review_only":  0,
+    "production_mutated":  false,
+    "qualified_users":  13,
+    "second_star_required":  1164,
+    "verdict":  "DRY_RUN_ONLY_NOT_A_GRANT",
+    "zone_key":  "k26_30"
+}
