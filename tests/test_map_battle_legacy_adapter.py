@@ -384,7 +384,11 @@ def test_legacy_bridge_is_wired_without_e10_or_srs_damage_fallback(api_env):
     assert review_route in wrong_flow
     assert "/api/srs/review" not in html
     assert wrong_flow.index("_mapBattleV1IsActive()") < wrong_flow.index(review_route)
-    assert "SRS.review(currentQ.id,grade" in html
+    # The normal SRS path now adopts ReviewTransport public identity before
+    # falling through to the unchanged SRS.review authority. The original
+    # currentQ.id-only literal predates that idempotent submission adapter.
+    assert "SRS.review(publicCommand?.question_id ?? currentQ.id,grade" in html
+    assert "window.ReviewTransport.buildRequest(" in html
 
 
 def test_legacy_prepare_creates_resumes_battle_and_hashes_nonce(api_env):
@@ -1647,7 +1651,11 @@ def test_normal_srs_route_remains_present_and_service_worker_identity_is_unchang
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
     assert "@app.route('/api/srs/review', methods=['POST'])" in (ROOT / "app.py").read_text(encoding="utf-8")
-    assert "SRS.review(currentQ.id,grade" in html
+    # The normal SRS path now adopts ReviewTransport public identity before
+    # falling through to the unchanged SRS.review authority. The original
+    # currentQ.id-only literal predates that idempotent submission adapter.
+    assert "SRS.review(publicCommand?.question_id ?? currentQ.id,grade" in html
+    assert "window.ReviewTransport.buildRequest(" in html
     assert "?v=20260803e10s2b" in html
     identity = assert_static_runtime_identity_well_formed(read_static_runtime_identity(ROOT))
     assert identity.sw_version
