@@ -56,3 +56,22 @@ A 棋靈 Product 候選不變；B 主角／XP 候選不變；C 歷史補發一�
 - 下一步僅在正式可信執行環境依既有 Owner 核准範圍對三份原始碼進行 SHA／來源稽核和准入，重查備份，再執行同交易驗收。**不得**把 Product 的資料維護簡化為未核對來源的遠端一次性 Python／SQL，亦不得將此項授權擴充為網站部署。
 - PostgreSQL full dump 僅作事故復原證據；**不能在遊戲仍有新玩家進度時直接整庫覆蓋還原**。此批精確回滾應優先使用獨立 audit receipt 中的補發前狀態，走另行核准的受控補償交易，並確認沒有玩家在補發後取得後續正常星數。
 - **仍無正式 COMMIT**。正式 `beatles` 星數繼續以一顆為準，直到經新的唯讀 DB 連線與玩家畫面實測確認。
+
+
+## 2026-10-19 R2：離線來源准入包（仍未取得可信執行許可）
+
+已在 Windows Owner 本機候選完成**三份核准補星程式的完整性可驗證交接**：
+
+- `GO_ODYSSEY_13_STAR_SOURCE_ADMISSION_R2_20261019.zip`：ZIP SHA-256 `921428226ecc4457740dd7ed481446714e70441f2eecd4a23721859f047a7f11`，僅含三份補發功能程式，沒有備份、資料庫密碼或私人玩家資料。
+- `GO_ODYSSEY_13_STAR_SOURCE_ADMISSION_MANIFEST_R2_20261019.json`：SHA-256 `4d9d3b3d655a4e1c631dccfb253eb910b3768a4f85a1e70efee335cb70a9dcc2`；保留三份精確源碼 SHA、初始 13 位乾跑批次 SHA、原正式備份 SHA，額外固定 `db.py`、`adventure_progress_compatibility.py`、`adventure_zone_progression_authority.py` 三個**與 Oracle 現用 App 容器逐 byte 相同**的相依 SHA。
+- `tools/verify_owner_star_source_bundle_20261019.py`：純唯讀驗證器，只讀 zip / manifest / 已存在依賴檔案，不解壓、不 import、不執行補發程式，不連線資料庫。須傳入由**獨立審查者可信管道**取得的 `--pinned-manifest-sha256`；單有自帶 manifest 不能授權。檢查唯一三份原始碼、額外或重複檔案、路徑穿越、符號連結、不符 SHA、相依版本漂移，結果明確標記 `NOT_EXECUTION_AUTHORITY`。
+- `tests/test_20261019_star_source_admission_bundle.py`：含篡改程式碼、改變名單數、wrong PIN、加檔／少檔／依賴版本錯誤等拒絕案例。本輪與原補發交易 PG 正反驗證合計 **20 PASS，0 FAIL**（`GO_ODYSSEY_13_STAR_SOURCE_ADMISSION_OFFLINE_TESTS_R2_20261019.xml`）。
+- **目前缺少獨立於這份本機程式的可信簽章／動作簽發者**；Source PIN 不是簽章，Owner 在聊天核准「13 人範圍」也不能憑腳本常數替代外部執行身分驗證。V4 R25 許可限定「V4 自身唯讀審查」，**不可重用為 Product Oracle DB WRITE 的許可**。目前 Oracle 正式 App 容器仍不含三份歷史補發程式。
+
+獨立執行／審查路徑須：
+1. 對 Owner 指定的 Product scope、三份程式的原始 SHA、正式 Oracle DB 唯一目標、執行者身分、單次有效期與只允許補 Zone1 13 位第二星的資料庫異動簽發**獨立可信執行許可**；保留拒絕測試，**不接受腳本自認或聊天內容當密鑰**。
+2. 從已審核來源交付這個 ZIP 到有權限的短命維護執行環境，在**執行前**以已核對的 Manifest SHA 作來源核驗，另外對實際運行環境三項相依模組做 SHA 比對；任何不符即停止，不能改用臨時 SQL／stdin 程式繞行。
+3. 重新唯讀計算正式 23／13 人、1,939／1,164 題與固定雙 SHA；重新查驗完整備份、權限與回復路徑，在獨立授權的一次性單交易執行器內比對未變更欄位。
+4. 確認 13 位各 2 星、另外 10 位不變、0 位升第三星、13 張獨立補發稽核收據、獎品 XP 金幣不變；換新 read-only session 查核，最後由 Owner `beatles` 實機刷新查看。
+
+**以上為准入與交接資料，不是正式補發執行紀錄；至今不曾進行正式 INSERT／UPDATE／DDL，也無站台部署。**
