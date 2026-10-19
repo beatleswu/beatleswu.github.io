@@ -865,6 +865,108 @@ body[data-g009-hero-hub="batch-a"] button.g009-companion-tile:disabled {
   cursor: not-allowed;
 }
 
+/* Real GLB turntable — only when the authenticated G008 renderer is ready.
+   No rotating or skewing flat fallback images. */
+body[data-g009-hero-hub="batch-a"] #g008-future30-hero-stage[data-state="ready"] {
+  pointer-events: auto;
+}
+body[data-g009-hero-hub="batch-a"] #g008-future30-hero-stage[data-state="ready"] canvas,
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-viewport canvas {
+  touch-action: none;
+  cursor: grab;
+}
+body[data-g009-hero-hub="batch-a"] #g008-future30-hero-stage[data-state="ready"] canvas:active,
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-viewport canvas:active {
+  cursor: grabbing;
+}
+body[data-g009-hero-hub="batch-a"] .g009-stage-host .g009-turntable-controls {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 25;
+}
+body[data-g009-hero-hub="batch-a"] .g009-turntable-controls {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 7px 10px;
+  background: rgba(9, 17, 37, .83);
+  border: 1px solid rgba(236, 201, 120, .35);
+  border-radius: 12px;
+  color: var(--g009-text-soft);
+  backdrop-filter: blur(7px);
+}
+body[data-g009-hero-hub="batch-a"] .g009-turntable-controls[data-turntable-ready="true"] {
+  display: flex;
+}
+body[data-g009-hero-hub="batch-a"] .g009-turntable-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+body[data-g009-hero-hub="batch-a"] .g009-turntable-buttons {
+  display: flex;
+  gap: 5px;
+}
+body[data-g009-hero-hub="batch-a"] .g009-turntable-buttons button {
+  min-width: 40px;
+  min-height: 38px;
+  border: 1px solid rgba(236, 201, 120, .42);
+  border-radius: 8px;
+  background: rgba(35, 56, 95, .7);
+  color: var(--g009-text);
+  font: inherit;
+  cursor: pointer;
+}
+body[data-g009-hero-hub="batch-a"] .g009-turntable-buttons button:hover:not(:disabled),
+body[data-g009-hero-hub="batch-a"] .g009-turntable-buttons button:focus-visible {
+  outline: 2px solid var(--g009-cyan-edge);
+  outline-offset: 1px;
+}
+body[data-g009-hero-hub="batch-a"] .g009-turntable-buttons button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-shell {
+  display: none;
+  position: relative;
+  margin-bottom: 14px;
+  min-height: 338px;
+  overflow: hidden;
+  border: 1px solid rgba(236, 201, 120, .3);
+  border-radius: 18px;
+  background: radial-gradient(ellipse at 48% 45%, rgba(68, 114, 155, .26), rgba(9, 17, 40, .98) 78%);
+}
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-shell[data-preview-state="loading"],
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-shell[data-preview-state="ready"],
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-shell[data-preview-state="unavailable"] {
+  display: block;
+}
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-viewport {
+  width: 100%;
+  height: 280px;
+}
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-shell .g009-turntable-controls {
+  margin: 7px;
+}
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-status {
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--g009-text-muted);
+}
+body[data-g009-hero-hub="batch-a"] .g009-companion-3d-shell[data-preview-state="ready"] .g009-companion-3d-status {
+  display: none;
+}
+
 body[data-g009-hero-hub="batch-a"] .g009-honors-heading {
   display: flex;
   align-items: center;

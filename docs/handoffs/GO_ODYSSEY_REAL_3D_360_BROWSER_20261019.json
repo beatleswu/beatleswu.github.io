@@ -1,0 +1,59 @@
+{
+  "schema": "GO_ODYSSEY_REAL_GLB_360_BROWSER_20261019_V1",
+  "verdict": "LOCAL_REAL_3D_GLB_WEBGL_360_PASS_NOT_PRODUCTION_OR_REAL_IPAD",
+  "checks": [
+    {
+      "label": "real_verified_GLBS_hero_and_companion",
+      "verdict": "PASS",
+      "heroModel": "assets/3d_shop/p048/hero/a1_basic_adventurer.glb",
+      "petSha": "FCAC2521F47767210C5DF41C396AD4FF4B38D5E136719654D3B2AC08577463BC",
+      "meshCount": 4,
+      "petMeshes": 1,
+      "canvases": 2
+    },
+    {
+      "label": "hero_mouse_drag_rotates_mesh_and_changes_rendered_pixels",
+      "verdict": "PASS",
+      "dragAngle": 73,
+      "pixelsChanged": true,
+      "resetAngle": 0
+    },
+    {
+      "label": "companion_mouse_drag_rotates_real_3d_mesh",
+      "verdict": "PASS",
+      "dragAngle": 129,
+      "pixelsChanged": true,
+      "buttonsAndReset": true
+    },
+    {
+      "label": "keyboard_and_touch_pointer_contract",
+      "verdict": "PASS",
+      "heroKeyboard": true,
+      "petTouchPointer": true
+    },
+    {
+      "label": "tab_hide_releases_second_webgl_and_tab_return_restores_it",
+      "verdict": "PASS",
+      "companionRestored": true,
+      "maxCanvases": 2
+    },
+    {
+      "label": "tampered_companion_glb_fails_closed_without_fake_3d",
+      "verdict": "PASS",
+      "tamperedModelRejected": true,
+      "false360NeverDisplayed": true
+    }
+  ],
+  "passed": 6,
+  "failed": 0,
+  "page_errors": [],
+  "model_requests": [
+    "/assets/3d_shop/p048/hero/a1_basic_adventurer.glb",
+    "/assets/3d_shop/p048/companion/formal_18/ink_drop_kelpie/stage_i.glb",
+    "/assets/3d_shop/p048/companion/formal_18/ink_drop_kelpie/stage_i.glb",
+    "/assets/3d_shop/p048/hero/a1_basic_adventurer.glb"
+  ],
+  "authentic_prod_Test02": false,
+  "real_iPad": false,
+  "release_authorized": false
+}

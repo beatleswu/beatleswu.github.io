@@ -2379,6 +2379,14 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
         <div class="g009-stage-aura" aria-hidden="true"></div>
         <div class="g009-stage-light" aria-hidden="true"></div>
         <div class="g009-stage-pedestal" aria-hidden="true"></div>
+        <div id="g009-hero-rotate-controls" class="g009-turntable-controls" data-turntable-ready="false" aria-label="3D 角色旋轉操作">
+          <span class="g009-turntable-hint">3D 角色 · 拖曳或滑動可 360° 旋轉</span>
+          <div class="g009-turntable-buttons">
+            <button type="button" data-turntable-action="left" disabled aria-label="角色向左旋轉 45 度">↶</button>
+            <button type="button" data-turntable-action="reset" disabled aria-label="角色回到正面">正面</button>
+            <button type="button" data-turntable-action="right" disabled aria-label="角色向右旋轉 45 度">↷</button>
+          </div>
+        </div>
       </div>
       <div class="g009-stage-identity">
         <span id="g009-player-display-name" class="g009-player-display-name">—</span>
@@ -2484,6 +2492,18 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
           <span class="g009-panel-icon" aria-hidden="true">♧</span>
           <h2 data-i18n="g009.hero.companion.title">既有夥伴系統</h2>
           <span class="g009-panel-rule"></span>
+        </div>
+        <div id="g009-companion-3d-shell" class="g009-companion-3d-shell" data-preview-state="inactive">
+          <div id="g009-companion-3d-viewport" class="g009-companion-3d-viewport" aria-label="棋靈立體模型 360 度檢視"></div>
+          <div id="g009-companion-3d-status" class="g009-companion-3d-status" role="status">準備載入棋靈 3D 模型</div>
+          <div id="g009-companion-rotate-controls" class="g009-turntable-controls" data-turntable-ready="false" aria-label="3D 棋靈旋轉操作">
+            <span class="g009-turntable-hint">3D 棋靈 · 拖曳或滑動可 360° 旋轉</span>
+            <div class="g009-turntable-buttons">
+              <button type="button" data-turntable-action="left" disabled aria-label="棋靈向左旋轉 45 度">↶</button>
+              <button type="button" data-turntable-action="reset" disabled aria-label="棋靈回到正面">正面</button>
+              <button type="button" data-turntable-action="right" disabled aria-label="棋靈向右旋轉 45 度">↷</button>
+            </div>
+          </div>
         </div>
         <div id="g009-companion-active" class="g009-companion-active">
           <div class="g009-loading" data-i18n="g009.hero.companion.loading">載入夥伴資料…</div>
@@ -5985,6 +6005,7 @@ function launchGoldConfetti() {
 <script type="module" src="/js/g009_d007_shared_host_bootstrap.js"></script>
 <script type="module" src="/js/g009_d_r2_shared_host_bootstrap.js"></script>
 <script type="module" src="/js/g009_companion_formal18_bootstrap.mjs"></script>
+<script type="module" src="/js/g009_companion_360_viewer.mjs"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>
 </body>
 </html>

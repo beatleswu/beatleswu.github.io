@@ -14,12 +14,14 @@ ENTRYPOINTS = (
     "/js/g008_future30_hero_renderer.js",
     "/js/g009_d_r2_shared_host_bootstrap.js",
     "/js/g009_companion_formal18_bootstrap.mjs",
+    "/js/g009_companion_360_viewer.mjs",
 )
 COMPANION_RUNTIME_PATHS = frozenset({
     "js/companion_formal_18_mapping.js",
     "js/g009_companion_child.mjs",
     "js/g009_companion_formal18_assets.mjs",
     "js/g009_companion_formal18_bootstrap.mjs",
+    "js/g009_companion_360_viewer.mjs",
     "assets/3d_shop/p048/companion/formal_18/mapping_manifest.json",
     "assets/3d_shop/p048/companion/formal_18/fatty/stage_i.glb",
     "assets/3d_shop/p048/companion/formal_18/fatty/stage_ii.glb",
@@ -90,7 +92,7 @@ def test_recursive_module_graph_is_baked_and_http_reachable():
         response = client.get(url)
         assert response.status_code == 200, url
         pending.extend(_module_dependencies(url) - seen)
-    assert len(seen) == 20  # 17 application modules + three vendored modules.
+    assert len(seen) == 21  # 18 application modules + three vendored modules.
     assert "/js/g009_shared_hero_attachment_host.js" in seen
     assert COMPANION_RUNTIME_PATHS <= tracked
     assert {"/app/" + path for path in COMPANION_RUNTIME_PATHS} <= verified

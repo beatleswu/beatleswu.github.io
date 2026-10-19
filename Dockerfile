@@ -388,6 +388,8 @@ COPY js/companion_formal_18_mapping.js \
      js/g009_companion_child.mjs \
      js/g009_companion_formal18_assets.mjs \
      js/g009_companion_formal18_bootstrap.mjs ./js/
+# One additional lazy preview module; canonical GLB and mapping are unchanged.
+COPY js/g009_companion_360_viewer.mjs ./js/g009_companion_360_viewer.mjs
 COPY assets/3d_shop/p048/companion/formal_18/ ./assets/3d_shop/p048/companion/formal_18/
 # G009 Formal9 selected replacement GLBs are exact baked runtime fallbacks.
 # This does not change equip, acquisition, shop, drop, or release admission.
