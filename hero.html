@@ -5361,16 +5361,20 @@ function a028NormalizePlayerPresentationSnapshot(payload) {
   if (!progression || typeof progression !== 'object' || Array.isArray(progression)) {
     throw new Error('player presentation progression is unavailable');
   }
-  for (const key of ['xp', 'level', 'rank_level', 'go_rank']) {
+  for (const key of ['xp', 'level', 'rank_xp', 'rank_level', 'go_rank']) {
     if (!Object.prototype.hasOwnProperty.call(progression, key)) {
       throw new Error(`player presentation progression.${key} is missing`);
     }
   }
-  if (typeof progression.xp !== 'number' || !Number.isFinite(progression.xp) || progression.xp < 0) {
+  if (!Number.isSafeInteger(progression.xp) || progression.xp < 0) {
     throw new Error('player presentation XP is invalid');
   }
-  if (typeof progression.level !== 'number' || !Number.isFinite(progression.level) || progression.level < 0) {
+  if (typeof progression.level !== 'number' || !Number.isInteger(progression.level) || progression.level < 1 || progression.level > 100) {
     throw new Error('player presentation level is invalid');
+  }
+  if (progression.rank_xp !== null &&
+      (!Number.isSafeInteger(progression.rank_xp) || progression.rank_xp < 0 || progression.rank_xp > progression.xp)) {
+    throw new Error('player presentation level XP is invalid');
   }
   for (const key of ['rank_level', 'go_rank']) {
     if (progression[key] !== null && typeof progression[key] !== 'string') {
@@ -5393,6 +5397,7 @@ function a028NormalizePlayerPresentationSnapshot(payload) {
     hero: Object.freeze({ hero_id: hero.hero_id }),
     progression: Object.freeze({
       xp: progression.xp,
+      rank_xp: progression.rank_xp,
       level: progression.level,
       rank_level: progression.rank_level,
       go_rank: progression.go_rank,
@@ -5440,11 +5445,22 @@ function a028HeroOverviewView(legacyProfile = {}) {
       level: progression.level,
       rankLevel: progression.rank_level,
       goRank: progression.go_rank,
-      xp: progression.xp,
-      // The current profile denominator is retained only as display scale;
-      // the A028 numerator and all displayed identity/rank facts come from
-      // the Player Presentation snapshot.
-      xpNext: a028LegacyXpNext(legacyProfile),
+      xp: progression.xp, // canonical TOTAL XP, not XP in the current level
+      xpInLevel: progression.rank_xp, // server-owned current-level cache
+      // A legacy profile contributes only the level-size denominator,
+      // and only if its total XP, level, and level-XP all match this
+      // authoritative Player Presentation snapshot. A stale profile MUST
+      // NOT turn cumulative XP into a fake full progress bar.
+      xpNext: (
+        Number.isSafeInteger(legacyProfile.total_xp)
+        && Number.isSafeInteger(legacyProfile.level)
+        && Number.isSafeInteger(legacyProfile.lv_xp ?? legacyProfile.xp)
+        && legacyProfile.total_xp === progression.xp
+        && legacyProfile.level === progression.level
+        && (legacyProfile.lv_xp ?? legacyProfile.xp) === progression.rank_xp
+        && progression.rank_xp !== null
+        && a028LegacyXpNext(legacyProfile) > progression.rank_xp
+      ) ? a028LegacyXpNext(legacyProfile) : null,
     };
   }
   return {
@@ -5459,6 +5475,40 @@ function a028HeroOverviewView(legacyProfile = {}) {
   };
 }
 
+function a028HeroXpPresentation(view) {
+  const en = typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en';
+  const total = Number(view.xp ?? 0);
+  if (view.source !== 'player_presentation') {
+    const next = view.xpNext;
+    return {
+      text: next ? `${total.toLocaleString()} / ${next.toLocaleString()} XP` : `${total.toLocaleString()} XP`,
+      pct: next ? Math.max(0, Math.min(100, Math.round(total / next * 100))) : null,
+    };
+  }
+  if (view.level === 100) {
+    return {
+      text: en ? `${total.toLocaleString()} total XP · Max level`
+        : `總計 ${total.toLocaleString()} XP · 已達最高等級`,
+      pct: 100,
+    };
+  }
+  if (view.xpNext !== null && Number.isSafeInteger(view.xpInLevel) &&
+      view.xpInLevel >= 0 && view.xpInLevel < view.xpNext) {
+    return {
+      text: `${view.xpInLevel.toLocaleString()} / ${view.xpNext.toLocaleString()} XP · ` +
+        (en ? `${total.toLocaleString()} total` : `總計 ${total.toLocaleString()}`),
+      pct: Math.max(0, Math.min(100, Math.round(view.xpInLevel / view.xpNext * 100))),
+    };
+  }
+  // Not enough consistent facts for an XP progress ratio. Showing an
+  // unavailable fraction is safer than substituting cumulative XP.
+  return {
+    text: en ? `${total.toLocaleString()} total XP · Level progress unavailable`
+      : `總計 ${total.toLocaleString()} XP · 本級進度暫無法確認`,
+    pct: null,
+  };
+}
+
 function a028ApplyPlayerPresentationSafeFields(snapshot, legacyProfile = {}) {
   if (!snapshot) return false;
   const view = a028HeroOverviewView(legacyProfile);
@@ -5466,10 +5516,7 @@ function a028ApplyPlayerPresentationSafeFields(snapshot, legacyProfile = {}) {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
   };
-  const xp = Number(view.xp);
-  const xpNext = view.xpNext;
-  const xpText = xpNext ? `${xp.toLocaleString()} / ${xpNext.toLocaleString()} XP` : `${xp.toLocaleString()} XP`;
-  const xpPct = xpNext ? Math.max(0, Math.min(100, Math.round(xp / xpNext * 100))) : null;
+  const { text: xpText, pct: xpPct } = a028HeroXpPresentation(view);
   if (view.displayName) {
     set('char-name', view.displayName);
     set('hero-overview-name', view.displayName);
@@ -5532,11 +5579,7 @@ function renderHeroOverview() {
   set('hero-overview-equipment', _functionalEquipmentState === 'unavailable'
     ? (isEn() ? 'Equipment presentation unavailable' : '裝備展示暫不可用')
     : (equipmentNames.length ? equipmentNames.join(' · ') : (isEn() ? 'No stat equipment equipped' : '尚未裝備數值裝備')));
-  const overviewXp = Number(presentationView.xp ?? 0);
-  const overviewXpNext = presentationView.xpNext;
-  set('hero-overview-xp', overviewXpNext
-    ? `${overviewXp.toLocaleString()} / ${overviewXpNext.toLocaleString()} XP`
-    : `${overviewXp.toLocaleString()} XP`);
+  set('hero-overview-xp', a028HeroXpPresentation(presentationView).text);
   set('hero-overview-bonus', bonusLabels.length ? bonusLabels.join(' · ') : (isEn() ? 'No active bonus' : '目前沒有加成'));
 }
 

@@ -114,6 +114,7 @@ function healthyPayload() {
     hero: { hero_id: 'apprentice' },
     progression: {
       xp: 321,
+      rank_xp: 41,
       level: 12,
       rank_level: 'LV12',
       go_rank: '1d',
@@ -143,6 +144,7 @@ async function main() {
   assert.strictEqual(first.projection_status, 'OK');
   assert.strictEqual(first.hero.hero_id, 'apprentice');
   assert.strictEqual(first.progression.xp, 321);
+  assert.strictEqual(first.progression.rank_xp, 41);
   assert.strictEqual(first.progression.level, 12);
   assert.strictEqual(first.progression.rank_level, 'LV12');
   assert.strictEqual(first.progression.go_rank, '1d');
@@ -168,6 +170,8 @@ async function main() {
   assert.strictEqual(view.heroId, 'apprentice');
   assert.strictEqual(view.displayName, 'Server Hero');
   assert.strictEqual(view.xp, 321);
+  assert.strictEqual(view.xpInLevel, 41);
+  assert.strictEqual(view.xpNext, null, 'mismatched legacy profile cannot supply level denominator');
   assert.strictEqual(view.level, 12);
   assert.strictEqual(view.rankLevel, 'LV12');
   assert.strictEqual(view.goRank, '1d');
@@ -175,11 +179,81 @@ async function main() {
   assert.strictEqual(healthy.document.elements['char-name'].textContent, 'Server Hero');
   assert.strictEqual(healthy.document.elements['badge-lv'].textContent, 'LV12');
   assert.strictEqual(healthy.document.elements['badge-go'].textContent, '1d');
-  assert.strictEqual(healthy.document.elements['char-xp'].textContent, '321 / 1,000 XP');
+  assert.strictEqual(healthy.document.elements['char-xp'].textContent, '總計 321 XP · 本級進度暫無法確認');
   assert.strictEqual(healthy.document.elements['hero-overview-rank'].textContent, 'LV12 · 1d');
-  assert.strictEqual(healthy.document.elements['hero-overview-xp'].textContent, '321 / 1,000 XP');
-  assert.strictEqual(healthy.document.elements['char-xp-bar'].style.width, '32%');
-  assert.strictEqual(healthy.document.elements['char-xp-pct'].textContent, '32%');
+  assert.strictEqual(healthy.document.elements['hero-overview-xp'].textContent, '總計 321 XP · 本級進度暫無法確認');
+  assert.strictEqual(healthy.document.elements['char-xp-bar'].style.width, '0%');
+  assert.strictEqual(healthy.document.elements['char-xp-pct'].textContent, '—');
+
+  // Cross-system consistency: canonical accumulated XP 321 is LV4 and
+  // its current-level progress is 41 of 200. Never render 321/200 (100%).
+  const onLevelFour = createContext(async () => ({
+    ok: true, status: 200, json: async () => ({
+      ...healthyPayload(),
+      progression: { ...healthyPayload().progression, level: 4,
+        rank_level: 'LV4', xp: 321, rank_xp: 41 },
+    }),
+  }));
+  await onLevelFour.context.__a028.loadPlayerPresentationSnapshot();
+  const coherentProfile = { ...legacyProfile,
+    total_xp: 321, level: 4, xp: 41, lv_xp: 41, xp_next: 200 };
+  const consistentView = onLevelFour.context.__a028.a028HeroOverviewView(coherentProfile);
+  assert.strictEqual(consistentView.xp, 321);
+  assert.strictEqual(consistentView.xpInLevel, 41);
+  assert.strictEqual(consistentView.xpNext, 200);
+  onLevelFour.context.__a028.a028ApplyPlayerPresentationSafeFields(
+    onLevelFour.context.__a028.a028HeroOverviewView(coherentProfile), coherentProfile);
+  assert.strictEqual(onLevelFour.document.elements['char-xp'].textContent,
+    '41 / 200 XP · 總計 321');
+  assert.strictEqual(onLevelFour.document.elements['hero-overview-xp'].textContent,
+    '41 / 200 XP · 總計 321');
+  assert.strictEqual(onLevelFour.document.elements['char-xp-bar'].style.width, '21%');
+  assert.strictEqual(onLevelFour.document.elements['char-xp-pct'].textContent, '21%');
+  const staleProfile = { ...coherentProfile, total_xp: 320 };
+  const staleView = onLevelFour.context.__a028.a028HeroOverviewView(staleProfile);
+  assert.strictEqual(staleView.xpNext, null, 'do not combine two out-of-sync reads');
+  onLevelFour.context.__a028.a028ApplyPlayerPresentationSafeFields(
+    onLevelFour.context.__a028.a028HeroOverviewView(staleProfile), staleProfile);
+  assert.strictEqual(onLevelFour.document.elements['char-xp-bar'].style.width, '0%');
+  assert.match(onLevelFour.document.elements['char-xp'].textContent, /總計 321 XP/);
+
+  const atMaxLevel = createContext(async () => ({
+    ok: true, status: 200, json: async () => ({
+      ...healthyPayload(), progression: {
+        ...healthyPayload().progression, xp: 500123, rank_xp: 123,
+        level: 100, rank_level: 'LV100',
+      },
+    }),
+  }));
+  const maxSnapshot = await atMaxLevel.context.__a028.loadPlayerPresentationSnapshot();
+  atMaxLevel.context.__a028.a028ApplyPlayerPresentationSafeFields(maxSnapshot,
+    { ...legacyProfile, total_xp: 500123, xp: 123, level: 100, xp_next: 0 });
+  assert.strictEqual(atMaxLevel.document.elements['char-xp-bar'].style.width, '100%');
+  assert.match(atMaxLevel.document.elements['char-xp'].textContent, /最高等級/);
+  assert.match(atMaxLevel.document.elements['char-xp'].textContent, /500,123/);
+
+  const missingLevelXp = createContext(async () => ({
+    ok: true, status: 200, json: async () => ({
+      ...healthyPayload(),
+      progression: { xp: 321, level: 4, rank_level: 'LV4', go_rank: '1d' },
+    }),
+  }));
+  assert.strictEqual(await missingLevelXp.context.__a028.loadPlayerPresentationSnapshot(), null,
+    'missing canonical rank_xp may not silently fall back to total XP');
+
+  const fractionalXp = createContext(async () => ({
+    ok: true, status: 200, json: async () => ({
+      ...healthyPayload(),
+      progression: { ...healthyPayload().progression, xp: 321.5 },
+    }),
+  }));
+  assert.strictEqual(await fractionalXp.context.__a028.loadPlayerPresentationSnapshot(), null,
+    'fractional total XP may not be coerced into a progress bar');
+  const staleInvalidDenominator = onLevelFour.context.__a028.a028HeroOverviewView({
+    ...coherentProfile, xp_next: '200',
+  });
+  assert.strictEqual(staleInvalidDenominator.xpNext, 200,
+    'legacy denominator normalization is numeric, but source identity is strictly typed');
 
   const invalid = createContext(async () => ({
     ok: true,
