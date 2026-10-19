@@ -1,0 +1,42 @@
+{
+  "schema": "GO_G_MASTER_LB_R02_R06_BROWSER_R1",
+  "verdict": "LOCAL_REAL_CHROME_DOM_API_FIXTURE_PASS_NOT_PRODUCTION",
+  "passed": 8,
+  "checks": [
+    {
+      "label": "weekly_real_dom_uses_server_is_you_not_nickname",
+      "status": "PASS"
+    },
+    {
+      "label": "monthly_tab_rule_and_strict_above_score_gap",
+      "status": "PASS"
+    },
+    {
+      "label": "rank_is_explicitly_character_LV_not_go_dan_kyu",
+      "status": "PASS"
+    },
+    {
+      "label": "combo_best_saved_streak_no_current_combo_claim",
+      "status": "PASS"
+    },
+    {
+      "label": "friend_board_and_self_authorship",
+      "status": "PASS"
+    },
+    {
+      "label": "top50_truncation_never_invents_player_position",
+      "status": "PASS"
+    },
+    {
+      "label": "empty_board_explains_no_records",
+      "status": "PASS"
+    },
+    {
+      "label": "switch_back_rehydrates_current_authoritative_rows",
+      "status": "PASS"
+    }
+  ],
+  "prod_Test02_login": false,
+  "real_iPad": false,
+  "production_mutation": false
+}

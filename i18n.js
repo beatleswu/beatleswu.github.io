@@ -284,7 +284,7 @@ const I18n = (() => {
         'cm.lb.weekly':      { en: 'Weekly',   zh: '週榜' },
         'cm.lb.monthly':     { en: 'Monthly',  zh: '月榜' },
         'cm.lb.alltime':     { en: 'Total XP', zh: '總 XP' },
-        'cm.lb.rank':        { en: 'Level',    zh: '練習等級' },
+        'cm.lb.rank':        { en: 'Character LV', zh: '角色 LV' },
         'cm.lb.combo':       { en: 'Combo',    zh: '連擊' },
         'cm.lb.friends':     { en: 'Friends',  zh: '好友榜' },
         'cm.lb.loading':     { en: 'Loading leaderboard…', zh: '載入排行榜中...' },

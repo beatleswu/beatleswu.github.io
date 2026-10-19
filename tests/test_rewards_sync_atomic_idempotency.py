@@ -76,8 +76,17 @@ def _install_app_import_stubs():
 
 @pytest.fixture(scope='module')
 def app_module():
-    _install_app_import_stubs()
-    import app as app_module
+    # Import the REAL application and its real dependencies first. Injecting
+    # a fake grimoire_api into sys.modules unconditionally pollutes unrelated
+    # same-process PostgreSQL/monthly test fixtures (init_db later imports
+    # ensure_node_mastery_table from the genuine module).
+    try:
+        import app as app_module
+    except ModuleNotFoundError:
+        # Legacy minimal environments without optional libraries can still
+        # exercise this narrow reward test, but never shadow installed modules.
+        _install_app_import_stubs()
+        import app as app_module
     return app_module
 
 

@@ -1,0 +1,65 @@
+{
+  "schema": "GO_G_MASTER_Q04_CLAIM_RECONCILE_NODE_R2",
+  "verdict": "REAL_CLIENT_SOURCE_EXECUTED_LOCAL_FIXTURE_PASS_NOT_PRODUCTION",
+  "passed": 14,
+  "checks": [
+    {
+      "name": "network_error_before_commit_restores_server_authority_no_fake_coins",
+      "status": "PASS"
+    },
+    {
+      "name": "reply_lost_after_server_commit_rehydrates_real_wallet_once",
+      "status": "PASS"
+    },
+    {
+      "name": "http_500_and_failed_reconciliation_keeps_original_balance",
+      "status": "PASS"
+    },
+    {
+      "name": "malformed_http_200_payload_cannot_inflate_wallet",
+      "status": "PASS"
+    },
+    {
+      "name": "successful_verified_post_presents_only_server_granted_total",
+      "status": "PASS"
+    },
+    {
+      "name": "simultaneous_double_click_posts_once",
+      "status": "PASS"
+    },
+    {
+      "name": "preview_never_calls_reward_write_api",
+      "status": "PASS"
+    },
+    {
+      "name": "malformed_reconcile_snapshot_cannot_replace_state",
+      "status": "PASS"
+    },
+    {
+      "name": "quest_accept_http_500_does_not_optimistically_accept",
+      "status": "PASS"
+    },
+    {
+      "name": "quest_accept_200_must_match_readback_before_navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "quest_accept_readback_failure_does_not_forge_accepted_state",
+      "status": "PASS"
+    },
+    {
+      "name": "quest_abandon_http_500_does_not_optimistically_remove",
+      "status": "PASS"
+    },
+    {
+      "name": "quest_abandon_200_must_reflect_authoritative_get",
+      "status": "PASS"
+    },
+    {
+      "name": "quest_preview_accept_and_abandon_never_send_mutations",
+      "status": "PASS"
+    }
+  ],
+  "prod_Test02": false,
+  "mutates_production": false
+}

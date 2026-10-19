@@ -253,6 +253,14 @@ svg { width:18px; height:18px; stroke:currentColor; stroke-width:2; fill:none; s
 #view-leaderboard { position:relative; }
 #view-leaderboard .panel-body { padding:14px 18px 18px; }
 #view-leaderboard .subtabs { justify-content:center; gap:8px; margin:0 0 16px; }
+#view-leaderboard .leaderboard-context {
+  display:grid; gap:5px; margin:0 auto 12px; padding:11px 13px; width:100%;
+  border:1px solid var(--line); border-radius:12px;
+  color:var(--ink); background:rgba(7,13,34,.42); font-size:13px; line-height:1.5;
+}
+#view-leaderboard .leaderboard-context .lb-context-rule { color:var(--soft); font-size:12px; }
+#view-leaderboard .leaderboard-context .lb-context-me { color:var(--gold2); font-weight:700; }
+#view-leaderboard .leaderboard-context .lb-context-empty { color:var(--soft); }
 
 /* 英雄榜前段框 */
 /* 頒獎台底圖（三名各站台上）：透明 PNG 釘在底部，上方留站立空間 */
@@ -445,6 +453,7 @@ th, .kicker, .item-meta, .stat-label, .rank-badge, .pill, .small, .quick-sub, .t
           <button class="subtab" data-lb="combo" data-i18n="cm.lb.combo">連擊</button>
           <button class="subtab" data-lb="friends" data-i18n="cm.lb.friends">好友榜</button>
         </div>
+        <div id="leaderboard-context" class="leaderboard-context" role="status" aria-live="polite" data-board-context="pending"></div>
         <div id="podium" class="podium"></div>
         <div id="leaderboard-table" class="empty" data-i18n="cm.lb.loading">載入排行榜中...</div>
       </div>
@@ -700,8 +709,78 @@ function renderCommunityTasks() {
   `).join('');
 }
 
+// Display only: the API already owns scores, rank position, winner
+// identity, and tie ordering. Never compute rewards or alter server ranking.
+function leaderboardContextModel(boardKey, rows, english = false) {
+  const definitions = {
+    weekly: english
+      ? ['Weekly correct answers', 'Taiwan time · Monday 00:00 to next Monday; ties use earliest final counted answer, then account ID.']
+      : ['本週答對題數', '台灣時間每週一 00:00 起；同分依最後計入答對題的時間較早者、再依帳號識別順序排序。'],
+    monthly: english
+      ? ['Monthly correct answers', 'Taiwan time · 1st of each month 00:00 to the next month; ties use earliest final counted answer, then account ID. Prize eligibility is separate from ranking.']
+      : ['本月答對題數', '台灣時間每月 1 日 00:00 起；同分依最後計入答對題的時間較早者、再依帳號識別順序排序。上榜不等於一定符合得獎資格。'],
+    alltime: english
+      ? ['Lifetime character XP', 'Accumulated XP, not Go playing strength or dan/kyu rank.']
+      : ['累積角色 XP', '依角色累積 XP 排序，不代表圍棋實際棋力或段級位。'],
+    rank: english
+      ? ['Character LV ordered by lifetime XP', 'This is the same cumulative-XP ordering as Lifetime XP, with the character LV displayed. It is not a Go rank.']
+      : ['角色 LV（按累積 XP 排序）', '本榜與「總 XP」同樣依累積 XP 排序，另外顯示角色 LV；不是圍棋段級位排行榜。'],
+    combo: english
+      ? ['Best answer streak', 'Ordered by each player’s saved longest correct-answer streak.']
+      : ['最高連續答對紀錄', '依玩家保存的最高連續答對題數排序，不是當前連擊數。'],
+    friends: english
+      ? ['Friends and your lifetime XP', 'Only accepted friends and your own account are considered; this is a cumulative-XP board.']
+      : ['好友累積 XP', '僅列入已成為好友的帳號及自己，依累積 XP 排序。'],
+  };
+  const [title, rule] = definitions[boardKey] || definitions.weekly;
+  const list = Array.isArray(rows) ? rows : [];
+  const idx = list.findIndex(row => row?.is_you === true);
+  const mine = idx >= 0 ? list[idx] : null;
+  let personal = '';
+  if (!list.length) {
+    personal = english ? 'No ranking records in this view yet.' : '此排行榜目前沒有可顯示的紀錄。';
+  } else if (!mine) {
+    personal = english ? 'Your account is not in the displayed top 50; no rank or gap is inferred.'
+      : '你目前不在顯示的前 50 名內；不推測未顯示的名次或差距。';
+  } else if (idx === 0) {
+    personal = english
+      ? `You are #${mine.rank} · ${fmt(mine.score)}`
+      : `你目前排名第 ${mine.rank} 名 · ${fmt(mine.score)}`;
+  } else {
+    const ahead = list[idx - 1];
+    const strictLead = Math.max(1, Math.trunc(Number(ahead.score) - Number(mine.score)) + 1);
+    personal = english
+      ? `You are #${mine.rank} · ${fmt(mine.score)} · Need at least +${fmt(strictLead)} to exceed the score immediately above you.`
+      : `你目前排名第 ${mine.rank} 名 · ${fmt(mine.score)} · 至少再多 ${fmt(strictLead)} ${boardKey === 'weekly' || boardKey === 'monthly' || boardKey === 'combo' ? '題' : 'XP'}才能超過上一名的分數。`;
+  }
+  return {title, rule, personal, hasOwnRow: !!mine, hasRows: list.length > 0};
+}
+function renderLeaderboardContext(boardKey, rows) {
+  const node = $('leaderboard-context');
+  if (!node) return;
+  const model = leaderboardContextModel(boardKey, rows, I18n.getLang() === 'en');
+  node.dataset.boardContext = boardKey;
+  node.dataset.hasOwnRow = String(model.hasOwnRow);
+  node.innerHTML = `<strong>${esc(model.title)}</strong>
+    <span class="lb-context-rule">${esc(model.rule)}</span>
+    <span class="${model.hasOwnRow ? 'lb-context-me' : 'lb-context-empty'}">${esc(model.personal)}</span>`;
+}
 function renderLeaderboard() {
   const rows = state.leaderboard[state.lbKey] || [];
+  const english = I18n.getLang() === 'en';
+  const headings = english
+    ? { weekly: 'Bounty Board: This Week', monthly: 'Bounty Board: This Month',
+        alltime: 'Leaderboard: Total XP', rank: 'Leaderboard: Character LV',
+        combo: 'Leaderboard: Best Combo', friends: 'Leaderboard: Friends' }
+    : { weekly: '賞金榜：本週', monthly: '賞金榜：本月',
+        alltime: '排行榜：總 XP', rank: '排行榜：角色 LV',
+        combo: '排行榜：最高連擊', friends: '排行榜：好友' };
+  const heading = document.querySelector('#view-leaderboard .panel-title');
+  if (heading) {
+    heading.textContent = headings[state.lbKey] || headings.weekly;
+    heading.dataset.activeBoard = state.lbKey;
+  }
+  renderLeaderboardContext(state.lbKey, rows);
   const scoreLabels = {
     weekly:  ['', I18n.t('cm.lb.u.q')],
     monthly: ['', I18n.t('cm.lb.u.q')],
