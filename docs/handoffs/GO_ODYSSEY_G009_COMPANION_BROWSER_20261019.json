@@ -1,0 +1,68 @@
+{
+  "schema": "G009_COMPANION_VISIBLE_REAL_LOCAL_E2E_20261019_R1",
+  "verdict": "LOCAL_REAL_BROWSER_FLASK_SQLITE_PASS_NOT_TEST02_PRODUCTION",
+  "checks": [
+    {
+      "name": "g009_visible_pet_tab_and_real_button",
+      "verdict": "PASS"
+    },
+    {
+      "name": "switch_click_single_server_mutation_and_active_ui",
+      "verdict": "PASS"
+    },
+    {
+      "name": "pat_click_invokes_real_authoritative_interaction",
+      "verdict": "PASS"
+    },
+    {
+      "name": "food_double_click_is_one_POST_and_one_consumption",
+      "verdict": "PASS"
+    },
+    {
+      "name": "refresh_preserves_active_and_food_inventory",
+      "verdict": "PASS"
+    },
+    {
+      "name": "chrome_tablet_touch_emulation_switch_not_real_iPad",
+      "verdict": "PASS"
+    },
+    {
+      "name": "no_browser_script_exceptions",
+      "verdict": "PASS"
+    }
+  ],
+  "total": 7,
+  "passed": 7,
+  "pageErrors": [],
+  "apiCalls": [
+    {
+      "method": "POST",
+      "path": "/api/pet/switch",
+      "body": {
+        "pet_key": "starpath_antlerling",
+        "operation_id": "d037:spirit-switch:6dbe9380-bf9f-4a1d-b75f-eeaa81f7451f",
+        "expected_active_spirit_id": "ink_drop_kelpie"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/pet/interact",
+      "body": {
+        "mode": "pet"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/pet/feed",
+      "body": {
+        "item_key": "go_spirit_candy",
+        "spirit_id": "starpath_antlerling",
+        "operation_id": "companion:feed:6ad6de18-2ac2-46fe-8f3c-c225f7b8107a"
+      }
+    }
+  ],
+  "user_id": "ISOLATED_FIXTURE_37037",
+  "production_session_used": false,
+  "real_prod_Test02_pass": false,
+  "real_iPad_UAT_pass": false
+}

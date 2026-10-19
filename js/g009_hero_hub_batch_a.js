@@ -109,6 +109,8 @@
     refreshing: null,
     generation: 0,
     selectionInFlight: false,
+    spiritSelectionInFlight: false,
+    petActionInFlight: false,
   };
 
   function root() {
@@ -152,6 +154,7 @@
       if (name === '_characterAuthorityKey' && typeof _characterAuthorityKey !== 'undefined') return _characterAuthorityKey;
       if (name === '_functionalEquipmentItems' && typeof _functionalEquipmentItems !== 'undefined') return _functionalEquipmentItems;
       if (name === '_petState' && typeof _petState !== 'undefined') return _petState;
+      if (name === '_petFeedPending' && typeof _petFeedPending !== 'undefined') return _petFeedPending;
     } catch (_) {}
     return undefined;
   }
@@ -500,6 +503,17 @@
           <strong>${esc(petName(pet))}</strong>
           <span>${esc(stage || (en() ? 'Server level' : '伺服器等級'))} · ${esc(tx('g009.hero.companion.withYou', 'With you'))}</span>
         </span>
+      </div>
+      <div class="g009-companion-actions" role="group" aria-label="${en() ? 'Companion actions' : '棋靈互動'}">
+        <button type="button" class="g009-companion-action" data-g009-pet-action="pet" ${state.petActionInFlight ? 'disabled' : ''}>${en() ? 'Pat' : '拍拍'}</button>
+        ${(Array.isArray(snapshot.inventory) ? snapshot.inventory : []).map(food => {
+          // An uncertain feed result retains B023's operation ID. Only the
+          // same Spirit+food may retry, even after server inventory reaches zero.
+          const pending = lexicalValue('_petFeedPending');
+          const retry = pending?.spirit_id === pet.pet_key && pending?.item_key === food.key;
+          const available = pending ? retry : Number(food.qty) > 0;
+          return `<button type="button" class="g009-companion-action" data-g009-pet-action="feed" data-g009-food-key="${esc(food.key || '')}" ${!available || state.petActionInFlight ? 'disabled' : ''}>${esc(food.name || food.name_en || food.key || (en() ? 'Food' : '食物'))} × ${Number(food.qty) || 0}${retry ? (en() ? " · Confirm previous feed" : " · 確認上次餵食") : ""}</button>`;
+        }).join('')}
       </div>`;
     }
     const catalog = Array.isArray(snapshot.catalog) ? snapshot.catalog : [];
@@ -519,13 +533,19 @@
         : isStarterReady ? (en() ? 'Starter' : '初始棋靈')
         : (en() ? 'Locked' : '🔒 未解鎖');
       const req = companionUnlockCopy(snapshot, key, isOwned);
-      return '<div class="g009-companion-tile' + (isActive ? ' is-active' : '') + (isOwned ? ' is-owned' : ' is-locked')
+      const canSwitch = isOwned && !isActive;
+      const tag = canSwitch ? 'button' : 'div';
+      const selector = canSwitch
+        ? ' type="button" data-g009-select-spirit="' + esc(key) + '" aria-label="'
+            + esc((en() ? 'Switch to ' : '切換至') + petName(item)) + '"'
+        : '';
+      return '<' + tag + ' class="g009-companion-tile' + (isActive ? ' is-active' : '') + (isOwned ? ' is-owned' : ' is-locked')
         + '" style="min-height:152px;justify-content:flex-start;padding:12px 8px" data-pet-key="' + esc(key)
-        + '" data-spirit-ownership="' + (isOwned ? 'owned' : 'locked') + '">'
+        + '" data-spirit-ownership="' + (isOwned ? 'owned' : 'locked') + '"' + selector + '>'
         + art + '<strong>' + esc(petName(item)) + '</strong>'
         + '<span class="g009-companion-state">' + esc(status) + '</span>'
         + '<span class="g009-companion-unlock-requirement" style="width:100%;display:block;white-space:normal;line-height:1.45;overflow-wrap:anywhere;font-size:11px;color:#ead29d" data-companion-requirement="' + esc(key) + '">'
-        + esc(req) + '</span></div>';
+        + esc(req) + '</span></' + tag + '>';
     }).join('');
   }
 
@@ -570,7 +590,63 @@
     return state.refreshing;
   }
 
+  // G009 is the visible Hero Hub. Legacy pet buttons remain hidden by design,
+  // so delegate real user actions to their existing server-authoritative routes.
+  // Never simulate success or maintain a second client-side companion authority.
+  async function handleCompanionControl(event) {
+    const control = event.target.closest?.('[data-g009-select-spirit], [data-g009-pet-action]');
+    if (!control || control.disabled || state.spiritSelectionInFlight || state.petActionInFlight) return;
+    if (!document.getElementById('g009-panel-companion')?.contains(control)) return;
+    const pet = currentPet()?.pet;
+    const selected = control.dataset.g009SelectSpirit;
+    if (selected) {
+      const owned = new Set((currentPet()?.collection?.collection || []).map(item => item.key));
+      if (!owned.has(selected) || selected === pet?.pet_key) return;
+      state.spiritSelectionInFlight = true;
+      document.querySelectorAll('[data-g009-select-spirit]').forEach(button => { button.disabled = true; });
+      try {
+        if (typeof switchPet !== 'function') throw new Error('Companion selection is unavailable');
+        await switchPet(selected);
+      } catch (error) {
+        if (typeof showToast === 'function') showToast(error.message || 'Companion selection failed');
+      } finally {
+        state.spiritSelectionInFlight = false;
+        renderCompanion();
+      }
+      return;
+    }
+    if (!pet) return;
+    const action = control.dataset.g009PetAction;
+    if (action !== 'pet' && action !== 'feed') return;
+    const foodKey = control.dataset.g009FoodKey;
+    if (action === 'feed') {
+      const food = (currentPet()?.inventory || []).find(item => item.key === foodKey);
+      const pending = lexicalValue('_petFeedPending');
+      const retry = pending?.spirit_id === pet.pet_key && pending?.item_key === foodKey;
+      if (!food || (pending ? !retry : Number(food.qty) <= 0)) return;
+    }
+    state.petActionInFlight = true;
+    renderCompanion();
+    try {
+      if (action === 'pet') {
+        if (typeof interactPet !== 'function') throw new Error('Companion interaction unavailable');
+        await interactPet('pet');
+      } else {
+        if (typeof feedPet !== 'function') throw new Error('Companion feeding unavailable');
+        await feedPet(foodKey);
+      }
+    } catch (error) {
+      if (typeof showToast === 'function') showToast(error.message || 'Companion action failed');
+    } finally {
+      state.petActionInFlight = false;
+      renderCompanion();
+    }
+  }
+
   function installRuntimeSignals() {
+    document.getElementById('g009-panel-companion')?.addEventListener('click', event => {
+      void handleCompanionControl(event);
+    });
     window.addEventListener('g009:companion-status', () => {
       const pet = lexicalValue('_petState');
       if (pet) state.pet = pet;

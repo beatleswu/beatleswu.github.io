@@ -6,6 +6,7 @@ the real Hero/Adventure pages, and an in-memory SQLite database only.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -24,11 +25,20 @@ import test_d030_r2_spirit_adventure_milestone_wiring as d030  # noqa: E402
 
 
 d030._install_app_import_stubs()
+os.environ.setdefault('SECRET_KEY', 'd037-disposable-local-browser-fixture-only')
 import app as app_module  # noqa: E402
 
 
 USER_ID = 37037
 conn = d030._new_db()
+# Disposable food and item-use authority for the real browser feed journey.
+# This never touches a player account or any production database.
+from migrations.item_use_operations_v1 import upgrade as upgrade_item_use_schema  # noqa: E402
+upgrade_item_use_schema(conn)
+conn.execute(
+    "INSERT INTO pet_inventory(user_id,item_key,qty) VALUES(?,?,?)",
+    (USER_ID, "go_spirit_candy", 2),
+)
 for column in (
     "last_pet_at",
     "last_train_at",
