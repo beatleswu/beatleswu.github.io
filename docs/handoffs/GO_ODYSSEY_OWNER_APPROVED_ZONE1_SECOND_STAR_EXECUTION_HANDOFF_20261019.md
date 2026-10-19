@@ -45,3 +45,14 @@ Owner 明確核准：只為第一關 (`k26_30`) 已完成領主首通、歷史�
 
 ### A–F 狀態
 A 棋靈 Product 候選不變；B 主角／XP 候選不變；C 歷史補發一次性交易、重試及外部 Gate 隔離驗證 PASS；D 正式 13 人補星交易**未提交**、實際玩家 UAT 待測；E 排行榜與月榜未改；F GitHub／Oracle Product Build／Deploy 未獲此授權，V4 Goal Loop NO_GO。
+
+
+## 2026-10-19 追加：正式執行來源准入定位
+
+- 已在 Oracle 正式 App 容器以**唯讀**檢查下列三個路徑：`/app/tools/incident_019b_owner_scoped_production_apply_20261019.py`、`/app/tools/incident_019b_historical_second_star_catchup.py`、`/app/migrations/adventure_zone_star_historical_catchup_v1.py`，結果全部 **ABSENT**。這是可獨立驗證的正式維護程式來源／准入缺口；不應改用臨時 SQL 或 stdin 注入程式迴避來源治理。
+- 本機已建立 `GO_ODYSSEY_13_STAR_OWNER_AUTHORIZED_SOURCE_MANIFEST_20261019.json`，含三個實際源碼檔案 SHA-256、候選 Commit `50fdc2e9cea3c338c55207025626c1018c44a03c`、補發範圍、正式備份雜湊及 20/20 隔離驗收證據。**檔案雜湊不是獨立數位簽章，manifest 不是可信執行許可**。
+- 同日用正式 App 現行題庫與歷史資料再次執行**無寫入 dry-run**，固定 23／13／1,939／1,164／0／0 及 candidate digest `279efb96aba3fc515250c32134f391d4d989b7409fd6bce2f739b0bfc982eb12` **全部未漂移**。該檢查只是 SELECT，沒有安裝／運行三份補發程式。
+- Windows PowerShell 初始化時出現的 `PSSecurityException` 來自 **profile.ps1** 的載入限制；同一命令中的只讀 SSH／測試仍可繼續執行。**不能單憑這項訊息聲稱正式維護執行許可已拒絕或已核准**；真正缺少的准入是被授權執行環境對本機三份檔案的可信來源核驗、獨立正式維護動作 Gate 與可稽核執行程序。
+- 下一步僅在正式可信執行環境依既有 Owner 核准範圍對三份原始碼進行 SHA／來源稽核和准入，重查備份，再執行同交易驗收。**不得**把 Product 的資料維護簡化為未核對來源的遠端一次性 Python／SQL，亦不得將此項授權擴充為網站部署。
+- PostgreSQL full dump 僅作事故復原證據；**不能在遊戲仍有新玩家進度時直接整庫覆蓋還原**。此批精確回滾應優先使用獨立 audit receipt 中的補發前狀態，走另行核准的受控補償交易，並確認沒有玩家在補發後取得後續正常星數。
+- **仍無正式 COMMIT**。正式 `beatles` 星數繼續以一顆為準，直到經新的唯讀 DB 連線與玩家畫面實測確認。
