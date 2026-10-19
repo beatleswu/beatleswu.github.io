@@ -263,3 +263,67 @@ def test_monthly_149_at_reward_rank_is_not_paid_and_taipei_boundary_counts(runti
     state = _state(runtime)
     assert [(r["user_id"], r["score"]) for r in state["leaderboard_reward_claims"]] == [(2, 150)]
     assert {r["user_id"]: r["coins"] for r in state["user_stats"]} == {1: 0, 2: 1500}
+
+
+def test_monthly_reward_survives_new_login_session_without_double_grant(runtime, tmp_path):
+    """Isolated PostgreSQL session-rehydration rehearsal, NOT production Test02 E2E.
+
+    The seeded nickname Test02 participates as a normal prize-eligible player.
+    New Flask test clients represent independent login sessions, without
+    reading or changing any existing credential or live player database.
+    """
+    app = runtime
+    _seed(app)
+    first_grant = scheduler.run_community_leaderboard_monthly_cycle(
+        app, now=DUE, operations_root=tmp_path / "relogin-monthly")
+    assert first_grant["result"] == "granted"
+    assert first_grant["claim_count"] == 50
+
+    with app.get_db() as conn:
+        player = conn.execute(
+            "SELECT username, nickname FROM users WHERE id=?", (2,)).fetchone()
+        assert player["nickname"] == "Test02"
+        assert player["username"] == "monthly-test-2"
+
+    first_session = _client(app, 2)
+    first_response = first_session.get("/api/community/leaderboard/reward-notifications")
+    assert first_response.status_code == 200
+    first_notifications = first_response.get_json()["notifications"]
+    assert len(first_notifications) == 1
+    assert first_notifications[0]["board"] == "monthly"
+    assert first_notifications[0]["period_key"] == "2026-10"
+    assert len(first_notifications[0]["rewards"]) == 4
+    before = _state(app)
+
+    # Drop the client entirely: a NEW Flask session must rehydrate the same
+    # server-owned prize, without triggering a second grant.
+    del first_session
+    second_session = _client(app, 2)
+    again = second_session.get("/api/community/leaderboard/reward-notifications")
+    assert again.status_code == 200
+    assert again.get_json()["notifications"] == first_notifications
+    assert _state(app) == before
+
+    rerun = scheduler.run_community_leaderboard_monthly_cycle(
+        app, now=DUE, operations_root=tmp_path / "relogin-monthly")
+    assert rerun["result"] == "already_granted_noop"
+    assert _state(app) == before
+
+    claim = next(row for row in before["leaderboard_reward_claims"]
+                 if row["user_id"] == 2)
+    acknowledgement = second_session.post(
+        f"/api/community/leaderboard/reward-notifications/{claim['id']}/ack")
+    assert acknowledgement.status_code == 200
+    after_ack = _state(app)
+
+    third_session = _client(app, 2)
+    assert third_session.get("/api/community/leaderboard/reward-notifications"
+                             ).get_json()["notifications"] == []
+    assert _state(app) == after_ack
+    with app.get_db() as conn:
+        coins = conn.execute("SELECT coins FROM user_stats WHERE user_id=?", (2,)).fetchone()
+        assert coins["coins"] == 1500
+        fragments = conn.execute(
+            "SELECT qty FROM shop_inventory WHERE user_id=? AND item_key=?",
+            (2, "rare_appearance_fragment")).fetchone()
+        assert fragments is not None and fragments["qty"] == 2
