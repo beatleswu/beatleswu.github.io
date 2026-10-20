@@ -16076,23 +16076,28 @@ function _handleAdventureMapNodeActivation(event) {
     if (!host || !host.contains(node)) return;
 
     const now = Date.now();
-    const lastHandled = Number(node.dataset.adventureRoutingTs || 0);
-    if (lastHandled && now - lastHandled < 600) return;
-    node.dataset.adventureRoutingTs = String(now);
-
+    // The node can be replaced when selection re-renders the map. Keep the
+    // activation guard on its persistent host rather than the old DOM node.
+    const lastHandled = Number(host.dataset.adventureRoutingTs || 0);
+    const repeatedZone = host.dataset.adventureRoutingZone === node.dataset.zone;
+    // Consume the follow-up synthetic click even if pointerup/touchend
+    // already entered the zone. Otherwise its href/inline onclick runs
+    // after this handler returns and can double-enter the same stage.
     if (event) {
         event.preventDefault?.();
         event.stopPropagation?.();
         event.stopImmediatePropagation?.();
     }
+    if (repeatedZone && lastHandled && now - lastHandled < 600) return;
+    host.dataset.adventureRoutingTs = String(now);
+    host.dataset.adventureRoutingZone = node.dataset.zone;
 
     const zoneKey = node.dataset.zone;
     if (!zoneKey || node.classList.contains('locked')) return;
-    if (node.classList.contains('boss-ready')) {
-        startBossBattle(zoneKey);
-        return;
-    }
-    startAdventureStage(zoneKey);
+    // Use the same authorized node path as the visible click handler:
+    // persist selection before entering training. Lord challenges remain
+    // behind the quest card's explicit CTA, even when boss_ready is true.
+    void onAdventureMapNodeClick(zoneKey);
 }
 
 function _bindAdventureMapNodeRouting(host) {

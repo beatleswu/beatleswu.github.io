@@ -28,7 +28,7 @@ page.on('response',async r=>{
  if(path==='/api/srs/review')reviews.push({status:r.status()});
  if(path==='/api/adventure/boss/finish')bossFinishes.push({status:r.status()});
 });
-let answered=0,trace=[];
+let answered=0,trace=[],finishBodyForDiag=null;
 function state(){
  return page.evaluate(()=>({
   bossMode:typeof _bossMode!=='undefined'?_bossMode:null,
@@ -112,7 +112,7 @@ try{
   const payload=await r.json();
   assert.equal(r.status(),200,JSON.stringify({i,qid:p.qid,payload}).slice(0,300));
   assert.equal(payload.ok,true,JSON.stringify({i,qid:p.qid,payload}).slice(0,300));
-  trace.push({step:i+1,qid:p.qid,http:r.status()});
+  trace.push({step:i+1,qid:p.qid,http:r.status(),reply:JSON.stringify(payload).slice(0,400)});
   answered++;
   if(i<19){
    await page.waitForFunction(index=>_bossIndex===index+1,
@@ -124,6 +124,7 @@ try{
  assert(finalFinishResponse,'Missing final-click Boss finish watcher');
  const finishHTTP=await finalFinishResponse;
  const finishBody=await finishHTTP.json();
+ finishBodyForDiag=finishBody;
  assert.equal(finishHTTP.status(),200,JSON.stringify(finishBody).slice(0,500));
  assert.equal(finishBody.ok,true);
  assert.equal(finishBody.passed,true);
@@ -158,7 +159,9 @@ try{
  },null,2));
 }catch(e){
  console.error('REAL_LORD_20_WGO_BLOCKED',String(e.stack||e),JSON.stringify({
-  answered,trace:trace.slice(-5),state:await state().catch(()=>null),
+  answered,trace:trace.slice(0,3).concat(trace.slice(-3)).map(t=>({...t,reply:t.reply.slice(0,180)})),
+  state:await state().catch(()=>null),
+  finishSummary:finishBodyForDiag?{passed:finishBodyForDiag.passed,correct:finishBodyForDiag.correct,total:finishBodyForDiag.total,reason:finishBodyForDiag.reason,error:finishBodyForDiag.error,keys:Object.keys(finishBodyForDiag)}:null,
   reviews:reviews.length,bossFinishes,httpErrors: httpErrors.slice(-12),errors
  }));
  process.exitCode=1;

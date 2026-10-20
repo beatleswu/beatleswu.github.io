@@ -135,6 +135,7 @@ from monster_encounter_selector_runtime import (
 )
 from monster_settlement import (
     MonsterSettlementRejected,
+    MonsterSettlementResult,
     build_monster_defeated_event,
     next_roster_entry,
     settle_monster_defeat,
@@ -157,6 +158,8 @@ from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skil
 from sgf_engine.parser.sgf_parser import parse_sgf
 from shadow_dashboard import aggregate_shadow_events, recent_shadow_dashboard_data
 from map_battle_runtime import (
+    DEFERRED_REWARD_DROP_POLICY,
+    ZONE1_2_BINDING_SOURCE,
     FeatureDisabled,
     JudgeUnavailable,
     ModeNotEligible,
@@ -8443,6 +8446,103 @@ def _gain_sp(conn, uid, amount):
     return new_sp
 
 
+def _settle_zone1_2_defeat_without_deferred_rewards(
+    conn, uid, *, authority, settlement_id, hp_before, hp_after,
+):
+    """Persist a verified Z1/Z2 defeat without inventing a release reward.
+
+    This branch exists because exact Zone1/2 Monster identities are admitted
+    for combat, but their reward/drop and taxonomy policies are explicitly
+    DEFERRED. In particular they must never fall into the old Battlefield
+    monster-index resolver and silently pick an unrelated paid drop profile.
+    The existing D5A outbox owns the once-only, server-authored fact; D017
+    Quest V2 consumes it with the exact same submission identity.
+    """
+    if (
+        authority is None
+        or authority.zone_key not in ('Z1', 'Z2')
+        or authority.drop_profile_id is not None
+        or authority.reward_profile_id is not None
+        or not authority.monster_id
+    ):
+        raise MonsterSettlementRejected('Zone1/2 deferred Monster binding unavailable')
+    event = build_monster_defeated_event(
+        settlement_id=settlement_id,
+        user_id=uid,
+        monster_id=authority.monster_id,
+        zone_id=authority.zone_key,
+        roster_slot=authority.roster_slot,
+        encounter_class=authority.encounter_class,
+        family_id=authority.family_id,
+        hp_before=hp_before,
+        hp_after=hp_after,
+    )
+    key = f'monster-defeated:{event.settlement_id}'
+    prior = get_event_by_idempotency_key(
+        conn, player_id=str(uid), event_type='MONSTER_DEFEATED',
+        idempotency_key=key,
+    )
+    payload = {
+        'settlement_id': event.settlement_id,
+        'monster_id': event.monster_id,
+        'zone_id': event.zone_id,
+        'roster_slot': event.roster_slot,
+        'encounter_class': event.encounter_class,
+        'family_id': event.family_id,
+        'hp_before': event.hp_before,
+        'hp_after': event.hp_after,
+        'reward_drop_policy': DEFERRED_REWARD_DROP_POLICY,
+        'coins_granted': 0,
+        'functional_drop_id': None,
+        'appearance_drop_id': None,
+    }
+    if prior is not None:
+        original = prior.get('payload') or {}
+        if any(original.get(field) != payload[field] for field in (
+            'settlement_id', 'monster_id', 'zone_id', 'roster_slot',
+            'encounter_class', 'hp_before', 'hp_after',
+            'reward_drop_policy',
+        )):
+            raise MonsterSettlementRejected('Zone1/2 Monster replay binding conflict')
+        record = prior
+        duplicate = True
+    else:
+        try:
+            record = append_event(
+                conn, event_type='MONSTER_DEFEATED', player_id=str(uid),
+                lineage_id=f'monster-settlement:{event.settlement_id}',
+                source_event_id=event.settlement_id,
+                idempotency_key=key, outcome='SUCCESS', payload=payload,
+            )
+            duplicate = False
+        except DuplicateOutboxEvent as error:
+            record = error.existing_event
+            original = record.get('payload') or {}
+            if any(original.get(field) != payload[field] for field in (
+                'settlement_id', 'monster_id', 'zone_id', 'roster_slot',
+                'encounter_class', 'hp_before', 'hp_after',
+                'reward_drop_policy',
+            )):
+                raise MonsterSettlementRejected('Zone1/2 Monster concurrent replay conflict') from error
+            duplicate = True
+    return MonsterSettlementResult(
+        event_record={**record, 'payload': payload},
+        duplicate=duplicate,
+        monster_id=event.monster_id,
+        functional_drop_id=None, functional_drop_quantity=0,
+        appearance_drop_id=None, coins_granted=0,
+        functional_lineage_count=0, wardrobe_lineage_count=0,
+        functional_payload=None, appearance_payload=None,
+        quest_event={
+            'event_type': 'MONSTER_DEFEATED',
+            'event_id': record.get('event_id'),
+            'settlement_id': event.settlement_id,
+            'monster_id': event.monster_id,
+            'duplicate': duplicate,
+        },
+    )
+
+
 def _settle_monster_defeat_in_tx(
     conn,
     uid,
@@ -8454,6 +8554,7 @@ def _settle_monster_defeat_in_tx(
     loot_bonus=0.0,
     battlefield_authority: BattlefieldCatalogAuthorityProfile | None = None,
     adventure_authority=None,
+    map_battle_authority=None,
 ):
     """Close one server-owned Monster defeat inside the caller transaction.
 
@@ -8463,6 +8564,12 @@ def _settle_monster_defeat_in_tx(
     inventory, wardrobe, Coins, and D5A writers.  The legacy identity branch
     remains solely for the separate Map Battle compatibility caller.
     """
+
+    if map_battle_authority is not None:
+        return _settle_zone1_2_defeat_without_deferred_rewards(
+            conn, uid, authority=map_battle_authority,
+            settlement_id=settlement_id, hp_before=hp_before, hp_after=hp_after,
+        )
 
     source = dict(battlefield or {})
     settlement_registry = None
@@ -17894,6 +18001,33 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                             raise MonsterSettlementRejected(
                                 'Map Battle defeat has no authoritative submission'
                             )
+                        zone1_2_authority = None
+                        if (authoritative_map_battle_submission[
+                            'battle_migration_source'
+                        ] == ZONE1_2_BINDING_SOURCE):
+                            # Restore exact persisted server-selected M-ID; do
+                            # not derive it from a mutable question or client.
+                            bound_battle = load_authoritative_battle_state(
+                                conn, user_id=int(uid),
+                                battle_id=authoritative_map_battle_submission['battle_id'],
+                            )
+                            if bound_battle is None:
+                                raise MonsterSettlementRejected(
+                                    'settled Zone1/2 Monster battle missing'
+                                )
+                            resolved = _map_battle_provider_for_restore(
+                                bound_battle, q_info,
+                                _map_battle_question_context(q_info),
+                                user_id=int(uid),
+                            )
+                            zone1_2_authority = resolved.binding
+                            if (
+                                zone1_2_authority is None
+                                or zone1_2_authority.zone_key not in ('Z1', 'Z2')
+                            ):
+                                raise MonsterSettlementRejected(
+                                    'settled Zone1/2 Monster identity not admitted'
+                                )
                         monster_settlement_result = _settle_monster_defeat_in_tx(
                             conn,
                             uid,
@@ -17911,6 +18045,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                             adventure_authority=q_info.get(
                                 '_adventure_zone3_binding'
                             ),
+                            map_battle_authority=zone1_2_authority,
                         )
                     monster_data = _map_battle_noncombat_progression(
                         conn,
@@ -29175,6 +29310,7 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     'srs.js', 'monster_trash.js', 'sound.js', 'mobile-nav.js',
     'site-nav.js', 'community_reward_notifications.js',
     'community_reward_rules.js', 'pwa.js', 'sgf_report_widget.js',
+    'g010_m4_quest_leaderboard.js', 'g010_m4_quest_leaderboard.css',
     # static config served as flat root files
     'manifest.json', 'robots.txt', 'sitemap.xml',
     # public/known HTML pages (explicit allowlist; every one of these is
@@ -29335,6 +29471,17 @@ def serve_community_reward_notifications_js():
 @app.route('/community_reward_rules.js')
 def serve_community_reward_rules_js():
     return _serve_live_static_or_baked('community_reward_rules.js')
+
+# M4 optional Quest V2 panel assets: no wildcard static-serving permissions.
+@app.route('/g010_m4_quest_leaderboard.js')
+@login_required
+def serve_g010_m4_quest_leaderboard_js():
+    return _serve_live_static_or_baked('g010_m4_quest_leaderboard.js')
+
+@app.route('/g010_m4_quest_leaderboard.css')
+@login_required
+def serve_g010_m4_quest_leaderboard_css():
+    return _serve_live_static_or_baked('g010_m4_quest_leaderboard.css')
 
 @app.route('/pwa.js')
 def serve_pwa_js(): return _serve_live_static_or_baked('pwa.js')

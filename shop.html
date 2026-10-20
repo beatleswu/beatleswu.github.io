@@ -2254,7 +2254,19 @@ function c053ServerCatalogEnablesOptionB(data) {
   // public surface.  Prices, product identities, and the Coins balance remain
   // server-owned facts; this check only fails closed when the response is
   // incomplete.
-  return c043EquipmentOffers(data).length === 3
+  // C053's original three-item starter assortment stays admitted.
+  // When the *server* enables the canonical Coin Shop, C045 may return an
+  // expanded 9-item assortment; do not hide all nine legitimate offers.
+  // Every item must still pass the strict C043 offer adapter; a malformed,
+  // duplicated or client-fabricated entry cannot open the Option B panel.
+  const offers = c043EquipmentOffers(data);
+  const starterAssortment = c043EquipmentOffers(data).length === 3;
+  const expandedServerAssortment = data?.purchase_enabled === true
+    && Array.isArray(data?.equipment_offers)
+    && data.equipment_offers.length > 3
+    && offers.length === data.equipment_offers.length
+    && new Set(offers.map(offer => offer.offer_id)).size === offers.length;
+  return (starterAssortment || expandedServerAssortment)
     && Number.isInteger(data?.coins)
     && data.coins >= 0;
 }

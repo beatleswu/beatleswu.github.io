@@ -290,7 +290,8 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
      ZONE4_RUNTIME_MANIFEST.json ./
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
-     community_reward_rules.js pwa.js sgf_answer_review.js \
+     community_reward_rules.js g010_m4_quest_leaderboard.js \
+     g010_m4_quest_leaderboard.css pwa.js sgf_answer_review.js \
      sgf_admin_workbench_ux_v2.js sgf_workbench_v2a.js \
      admin_questions.js sgf_report_widget.js ./
 COPY review_data/sgf_answer_review_queue_v1.json \
