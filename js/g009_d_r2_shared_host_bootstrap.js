@@ -172,7 +172,19 @@ async function applyServerInventoryProjection(adapter, appearance) {
 const G015_P038_LOCAL_QA = globalThis.location?.protocol === "http:"
   && globalThis.location?.hostname === "127.0.0.1"
   && new URLSearchParams(globalThis.location?.search || "").get("g015_qa") === "1";
-if (G015_P038_LOCAL_QA) {
+// G018 P022 13 source-exact static held-object QA: another independent
+// loopback-only route, no formal P022 release module in the Docker image.
+const G018_P022_LOCAL_QA = globalThis.location?.protocol === "http:"
+  && globalThis.location?.hostname === "127.0.0.1"
+  && new URLSearchParams(globalThis.location?.search || "").get("g018_qa") === "1";
+if (G018_P022_LOCAL_QA) {
+  void import("/tests/e2e/g018_p022_original_hero_qa.mjs").then(
+    ({ installG018P022OriginalHeroQA }) => installG018P022OriginalHeroQA()
+  ).catch(error => {
+    console.warn("G018 P022 localhost QA remains fail-closed",
+      error instanceof Error ? error.message : String(error));
+  });
+} else if (G015_P038_LOCAL_QA) {
   void import("/tests/e2e/g015_p038_original_hero_qa.mjs").then(
     ({ installG015P038OriginalHeroQA }) => installG015P038OriginalHeroQA()
   ).catch(error => {
