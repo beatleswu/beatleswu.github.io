@@ -10397,6 +10397,11 @@ def auth_me():
         # for both eligibility and the equip/unequip write path; this field
         # only tells the UI whether to offer the control.
         'equipment_loadout_enabled': _equipment_canonical_loadout_enabled(),
+        'g019_equipment_actions_ui_enabled': (
+            _equipment_canonical_loadout_enabled()
+            and _canonical_coin_shop_purchase_enabled()
+            and _env_flag_enabled(G019_APPROVED_EQUIPMENT_SHOP_UI_FLAG, default=False)
+        ),
     })
 
 @app.route('/api/auth/tour_done', methods=['POST'])
@@ -25663,6 +25668,9 @@ def _grant_shop_purchase(conn, uid, item, qty=1):
 # changing repository or Production defaults.
 CANONICAL_COIN_SHOP_PURCHASE_FLAG = 'CANONICAL_COIN_SHOP_PURCHASE_ENABLED'
 EQUIPMENT_CANONICAL_LOADOUT_FLAG = 'EQUIPMENT_CANONICAL_LOADOUT_ENABLED'
+# G019 candidate: independent default-OFF presentation admission for the nine
+# server-owned canonical equipment offers. Never admits any P022/P038 QA model.
+G019_APPROVED_EQUIPMENT_SHOP_UI_FLAG = 'G019_APPROVED_EQUIPMENT_SHOP_UI_ENABLED'
 
 SHOP_R1_CONSUMABLE_SKUS = (
     'hint_ticket',
@@ -27101,6 +27109,12 @@ def shop_catalog():
     product_registry = build_shop_product_grant_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
     return jsonify({
         'purchase_enabled': purchase_enabled,
+        'approved_equipment_purchase_ui_enabled': (
+            purchase_enabled and _equipment_canonical_loadout_enabled()
+            and _env_flag_enabled(
+                G019_APPROVED_EQUIPMENT_SHOP_UI_FLAG, default=False
+            ) and len(equipment_offers) == 9
+        ),
         'coins': bal,
         'earned_today': earned,
         'daily_cap': _COIN_DAILY_CAP,

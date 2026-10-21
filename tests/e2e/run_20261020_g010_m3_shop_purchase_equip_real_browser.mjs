@@ -2,7 +2,8 @@
 // The backend is unmocked native PostgreSQL and original Flask routes.
 // Production HTML files remain locked; no browser API interception.
 import assert from 'node:assert/strict';
-import {chromium} from 'playwright-core';
+// Use the already-installed authorized beatles Playwright runtime; no npm install.
+import {chromium} from 'file:///D:/go-odyssey-sixroute-20261019/g/tests/e2e/node_modules/playwright-core/index.mjs';
 let input='';
 for await(const c of process.stdin) input+=c;
 const {origin,sessionCookie,reloginCookie,offerId,itemId,price,startingCoins}=JSON.parse(input);
