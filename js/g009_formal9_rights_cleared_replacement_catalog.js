@@ -23,6 +23,8 @@ export const G009_RIGHTS_CLEARED_FORMAL_ASSET_RIGHTS = Object.freeze({
   PLAYER_SELECTABLE: false,
   RELEASE_ENABLED: false,
   PRODUCTION_ASSET_ADMISSION: false,
+  // G030 Owner public 3D *visual preview* approval; no item entitlement.
+  PUBLIC_3D_PREVIEW_ADMITTED: true,
 });
 
 const MAIN_HAND_TRANSFORM = Object.freeze({

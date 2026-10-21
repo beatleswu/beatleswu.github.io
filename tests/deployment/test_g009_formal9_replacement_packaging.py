@@ -45,6 +45,7 @@ def test_static_pack_matches_selected_authority_and_actual_glb_bytes():
     assert pack["total_files"] == len(EXPECTED) == 4
     assert pack["product_release_admission"] is False
     assert pack["production_asset_admission"] is False
+    assert pack["public_3d_preview_admission"] is True
 
     source_by_path = {entry["FINAL_GLB"]: entry for entry in authority["assets"]}
     pack_by_path = {entry["path"]: entry for entry in pack["files"]}

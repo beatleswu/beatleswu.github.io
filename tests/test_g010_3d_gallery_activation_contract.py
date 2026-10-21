@@ -35,7 +35,10 @@ def test_complete_owner_authorized_manifest_sources_and_counts():
  assert "totals.accessory!==6" in code
  assert "totals.weapon!==4" in code
  assert "totals.bonus!==2" in code
- assert "new Set(models.map(x=>x.id)).size!==63" in code
+ assert "new Set(models.map(x=>x.id)).size!==expected" in code
+ assert "totals.equipment_preview!==8" in code
+ assert 'new Set(G009_FORMAL9_RETIRED_ASSET_IDS)' in code
+ assert 'g030_original_equipment_ownership_gate_failed' in code
 def test_weapon_presentation_does_not_grant_release_or_equip_rights():
  data=json.loads(src("schemas/g009_formal9_rights_cleared_replacement_v1.json"))
  assert len(data["items"])==4
@@ -45,6 +48,8 @@ def test_weapon_presentation_does_not_grant_release_or_equip_rights():
  assert data["rights"]["PURCHASE_ENABLED"] is False
  assert data["rights"]["EQUIP_ENABLED"] is False
  assert data["rights"]["PRODUCTION_ASSET_ADMISSION"] is False
+ assert data["rights"]["PUBLIC_3D_PREVIEW_ADMITTED"] is True
+ assert 'row.rights?.PUBLIC_3D_PREVIEW_ADMITTED !== true' in src("js/g010_hero_3d_gallery.mjs")
  assert '3D_SHOP_PRESENTATION_ENABLED' not in src("js/g010_hero_3d_gallery.mjs")
  assert 'G009_SHOP_BROWSE_PREVIEW_ONLY = true' in src("shop.html")
 def test_shop_and_inventory_links_point_to_actual_g010_gallery():

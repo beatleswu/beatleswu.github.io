@@ -5,7 +5,7 @@
  */
 import * as THREE from "/assets/3d_shop/p048/vendor/three.module.js";
 import { GLTFLoader } from "/assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js";
-import { G009_FORMAL9_REPLACEMENT_ROWS } from "/js/g009_formal9_rights_cleared_replacement_catalog.js";
+import { G009_FORMAL9_REPLACEMENT_ROWS, G009_FORMAL9_RETIRED_ASSET_IDS } from "/js/g009_formal9_rights_cleared_replacement_catalog.js";
 
 const G011_QA_MODE = ["localhost","127.0.0.1"].includes(location.hostname)
   && new URLSearchParams(location.search).get("g011_qa")==="1"
@@ -19,6 +19,7 @@ const MODELS = {
   spirit: "棋靈（18 款成長模型）",
   accessory: "頭飾／背包（6 款）",
   weapon: "武器（4 款已確認權利模型）",
+  equipment_preview: "其他裝備外觀（8 款預覽，不改變持有權）",
   bonus: "附加棋靈預覽（2 款）",
 };
 const state = { data: [], selected: null, renderer: null, scene: null, camera: null,
@@ -47,10 +48,11 @@ async function fetchJson(url) {
   return response.json();
 }
 async function catalog() {
-  const [future, formal18, p048] = await Promise.all([
+  const [future, formal18, p048, d007] = await Promise.all([
     fetchJson("/schemas/future30_c005_real_asset_runtime_mapping_manifest.json"),
     fetchJson("/assets/3d_shop/p048/companion/formal_18/mapping_manifest.json"),
     fetchJson("/assets/3d_shop/p048/runtime_manifest.json"),
+    fetchJson("/schemas/g009_d007_runtime_prerequisite_v1.json"),
   ]);
   if (future.authority?.authority_status !== "FINAL_V1_PRODUCT"
     || future.counts?.visual_model_count !== 33 || future.visual_models?.length !== 33
@@ -78,7 +80,8 @@ async function catalog() {
       item.runtime_sha256, item.presentation_id));
   }
   for (const row of G009_FORMAL9_REPLACEMENT_ROWS) {
-    if (row.rights?.RIGHTS_STATUS !== "RIGHTS_CLEARED"
+    if (row.rights?.PUBLIC_3D_PREVIEW_ADMITTED !== true
+      || row.rights?.RIGHTS_STATUS !== "RIGHTS_CLEARED"
       || row.rights?.LICENSE_TYPE !== "CC0-1.0"
       || row.release_eligibility !== "RIGHTS_CLEARED_RELEASE_NOT_ADMITTED") {
       throw new Error("weapon_rights_not_verified");
@@ -86,9 +89,32 @@ async function catalog() {
     models.push(entry("weapon", row.server_item_id.replaceAll("_"," "), row.runtime_asset.slice(1),
       row.runtime_sha256, row.asset_id));
   }
+  // G030 public visual activation: the eight non-retired original equipment GLBs
+  // are already in the canonical 47-file Hero asset pack. Display only:
+  // NOT_CLEARED is NEVER promoted to equip/shop/acquisition authority.
+  // Keep the historical G011 private QA catalog (63+28) unchanged.
+  if (!G011_QA_MODE) {
+    const retired = new Set(G009_FORMAL9_RETIRED_ASSET_IDS);
+    const original = (d007.equipment_catalog?.items || []).filter(item=>!retired.has(item.asset_id));
+    if (original.length !== 8) throw new Error("g030_original_equipment_count_mismatch");
+    for (const item of original) {
+      if (item.release_eligibility !== "NOT_CLEARED"
+        || item.equip_capability !== false
+        || typeof item.runtime_asset !== "string"
+        || !item.runtime_asset.startsWith("/assets/3d_shop/formal_character_equipment_v1/weapons/")) {
+        throw new Error("g030_original_equipment_ownership_gate_failed");
+      }
+      models.push(entry("equipment_preview",
+        (item.server_item_id || item.asset_id).replaceAll("_"," ") + " · 純展示",
+        item.runtime_asset.slice(1), item.runtime_sha256, item.asset_id));
+    }
+  }
   const totals = Object.fromEntries(Object.keys(MODELS).map(k=>[k,models.filter(x=>x.kind===k).length]));
+  const expected = G011_QA_MODE ? 63 : 71;
   if (totals.character!==33 || totals.spirit!==18 || totals.accessory!==6
-    || totals.weapon!==4 || totals.bonus!==2 || new Set(models.map(x=>x.id)).size!==63) {
+    || totals.weapon!==4 || totals.bonus!==2
+    || (!G011_QA_MODE && totals.equipment_preview!==8)
+    || new Set(models.map(x=>x.id)).size!==expected) {
     throw new Error("3d_catalog_count_or_identity_mismatch:" + JSON.stringify(totals));
   }
   // P038 historical 8 mainhand + 4 shields: isolated QA comparison ONLY.
@@ -254,6 +280,7 @@ async function init() {
     const category=$("#g010-3d-category"),select=$("#g010-3d-model");
     if(G011_QA_MODE) MODELS.p038_qa="P022／P038 武器・盾牌・弓箭（28 件，內部測試）";
     Object.entries(MODELS).forEach(([name,label])=>{
+      if (G011_QA_MODE && name === "equipment_preview") return;
       const opt=document.createElement("option");opt.value=name;opt.textContent=label;category.appendChild(opt);
     });
     category.addEventListener("change",choices);
@@ -285,7 +312,7 @@ if(ROOT&&PANEL){
   document.addEventListener("click",()=>queueMicrotask(sync));
   void init();
 }
-export const G010_3D_GALLERY_CATEGORY_COUNTS=Object.freeze({character:33,spirit:18,accessory:6,weapon:4,bonus:2});
+export const G010_3D_GALLERY_CATEGORY_COUNTS=Object.freeze({character:33,spirit:18,accessory:6,weapon:4,equipment_preview:8,bonus:2});
 export function g010GalleryDiagnostics(){
   return Object.freeze({qa_only_p038_12:G011_QA_MODE,catalog_size:state.data.length,current:state.selected,
   loaded:state.loaded,rendered:state.displayed,live_canvas:!!state.renderer,
