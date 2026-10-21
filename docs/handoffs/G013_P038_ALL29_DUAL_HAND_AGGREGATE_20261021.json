@@ -1,0 +1,71 @@
+{
+  "schema": "G013_P038_G009_SHARED_HOST_29_REAL_HERO_QA_V1",
+  "verdict": "29_HERO_8_MAIN_4_OFF_HAND_REAL_GL_B_DUAL_ATTACH_PASS",
+  "scope": "isolated localhost P038 unadmitted QA, not authenticated player equip nor official production",
+  "base_head_before_g013": "5ba112bdb7682c5e6e13e43e834240b55c37e1c3",
+  "active_characters": 29,
+  "active_character_ids": [
+    "A1",
+    "A3",
+    "V1",
+    "V2",
+    "V3",
+    "R1",
+    "R3",
+    "H1",
+    "H2",
+    "H3",
+    "K1",
+    "K2",
+    "K3",
+    "W1",
+    "W2",
+    "W3",
+    "M1",
+    "M2",
+    "S1",
+    "S2",
+    "F1",
+    "F2",
+    "F3",
+    "AR1",
+    "AR2",
+    "AR3",
+    "E1",
+    "E2",
+    "E3"
+  ],
+  "pose_states": 31,
+  "combinations": 992,
+  "individual_attached_hand_checks": 1984,
+  "unique_mainhand_assets": 8,
+  "unique_offhand_assets": 4,
+  "sha_verified_p038_models": 12,
+  "qa_screenshot_count": 4,
+  "browser_glb_requests": 2013,
+  "max_simultaneous_webgl_renderers": 1,
+  "bone_follow_and_scale_bounds": {
+    "boneMatrixDelta": {
+      "min": 0.0,
+      "max": 0.0
+    },
+    "centerHandRatio": {
+      "min": 0.0,
+      "max": 0.14218020199126172
+    },
+    "maxDimensionRatio": {
+      "min": 0.22517149070237494,
+      "max": 0.34244755806647187
+    }
+  },
+  "expanded_hero_intersection_false_count": 0,
+  "expanded_hero_intersection_false_sample": [],
+  "javascript_errors": [],
+  "unit_level_qa_only": true,
+  "formal_asset_release_admitted": false,
+  "server_inventory_equip_closure": false,
+  "owner_ipad_safari_uat": false,
+  "raw_receipt": "D:\\go-odyssey-g010-3d-activation-evidence-20261021\\G013_P038_ALL29_DUAL_HAND_20261021.json",
+  "raw_sha256": "c7ad0fc77607f801f5c4f78a5b0601f22d73723d68a4280c400694800e310393",
+  "production_write": false
+}
