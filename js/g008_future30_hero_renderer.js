@@ -24,6 +24,7 @@ let pending = null;
 let controller = null;
 let ownedRoot = null;
 let ownedRenderer = null;
+let heroTurntableControls = null;
 let sharedAttachmentHost = null;
 let sharedAttachmentFacade = null;
 let serverAppearance = null;
@@ -213,6 +214,8 @@ function releaseOwnedResources() {
   }
   cancelFrameWait?.();
   cancelFrameWait = null;
+  heroTurntableControls?.dispose();
+  heroTurntableControls = null;
   sharedAttachmentHost?.destroy();
   sharedAttachmentHost = null;
   sharedAttachmentFacade = null;
@@ -304,6 +307,112 @@ function fitModel(root) {
   return new THREE.Box3().setFromObject(root);
 }
 
+// One true 360-degree model turntable. Rotates THREE.Object3D geometry rather
+// than using CSS transforms on image assets. Shared with the independent
+// Companion preview; no model, account or entitlement authority lives here.
+export function bindG009Turntable360(canvas, turntable, {
+  controlsRoot = null, label = "Drag to rotate the 3D model 360 degrees",
+} = {}) {
+  if (!canvas || !turntable?.rotation) throw new Error("turntable_geometry_required");
+  const full = 2 * Math.PI;
+  let activePointer = null;
+  let previousX = 0;
+  let disposed = false;
+  const yaw = () => ((turntable.rotation.y % full) + full) % full;
+  function rotate(delta) {
+    if (disposed || !Number.isFinite(delta)) return;
+    turntable.rotation.y = ((turntable.rotation.y + delta) % full + full) % full;
+    if (canvas.dataset) canvas.dataset.rotationDegrees = String(
+      Math.round(turntable.rotation.y * 180 / Math.PI) % 360);
+  }
+  function reset() {
+    if (disposed) return;
+    rotate(-turntable.rotation.y);
+  }
+  const start = event => {
+    if (event.button !== undefined && event.button !== 0) return;
+    if (activePointer !== null) return;
+    activePointer = event.pointerId;
+    previousX = event.clientX;
+    try { canvas.setPointerCapture?.(event.pointerId); } catch (_) {
+      // Synthetic touch / Safari may decline capture; pointer movement still works.
+    }
+  };
+  const move = event => {
+    if (activePointer !== event.pointerId) return;
+    const x = event.clientX;
+    rotate((x - previousX) * 0.012);
+    previousX = x;
+  };
+  const stop = event => {
+    if (activePointer !== event.pointerId) return;
+    activePointer = null;
+    if (canvas.hasPointerCapture?.(event.pointerId)) {
+      canvas.releasePointerCapture?.(event.pointerId);
+    }
+  };
+  const keyboard = event => {
+    let delta = 0;
+    if (event.key === "ArrowLeft") delta = -Math.PI / 8;
+    if (event.key === "ArrowRight") delta = Math.PI / 8;
+    if (event.key === "Home") {
+      event.preventDefault();
+      reset();
+      return;
+    }
+    if (delta) {
+      event.preventDefault();
+      rotate(delta);
+    }
+  };
+  const controls = [];
+  if (typeof canvas.addEventListener === "function") {
+    canvas.style.touchAction = "none";
+    canvas.style.cursor = "grab";
+    canvas.tabIndex = 0;
+    canvas.setAttribute?.("role", "group");
+    canvas.setAttribute?.("aria-label", label);
+    for (const [event, fn] of [
+      ["pointerdown", start], ["pointermove", move],
+      ["pointerup", stop], ["pointercancel", stop],
+      ["lostpointercapture", stop], ["keydown", keyboard],
+    ]) canvas.addEventListener(event, fn);
+  }
+  for (const button of controlsRoot?.querySelectorAll?.("[data-turntable-action]") || []) {
+    const action = button.dataset.turntableAction;
+    if (!["left", "right", "reset"].includes(action)) continue;
+    const click = () => {
+      if (action === "reset") reset();
+      else rotate(action === "left" ? -Math.PI / 4 : Math.PI / 4);
+    };
+    button.addEventListener("click", click);
+    button.disabled = false;
+    controls.push([button, click]);
+  }
+  if (controlsRoot?.dataset) controlsRoot.dataset.turntableReady = "true";
+  rotate(0);
+  return Object.freeze({
+    rotate, reset, getYaw: yaw,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      activePointer = null;
+      if (typeof canvas.removeEventListener === "function") {
+        for (const [event, fn] of [
+          ["pointerdown", start], ["pointermove", move],
+          ["pointerup", stop], ["pointercancel", stop],
+          ["lostpointercapture", stop], ["keydown", keyboard],
+        ]) canvas.removeEventListener(event, fn);
+      }
+      for (const [button, click] of controls) {
+        button.removeEventListener("click", click);
+        button.disabled = true;
+      }
+      if (controlsRoot?.dataset) controlsRoot.dataset.turntableReady = "false";
+    },
+  });
+}
+
 function renderModel(root, bounds, token) {
   if (!stage) throw new Error("hero_stage_missing");
   const width = Math.max(1, Math.round(stage.clientWidth));
@@ -316,7 +425,13 @@ function renderModel(root, bounds, token) {
   const fillLight = new THREE.DirectionalLight(0xa9d9ff, 1.1);
   fillLight.position.set(4, 3, -4);
   scene.add(fillLight);
-  scene.add(root);
+  // Preserve the canonical character and attached equipment/Companion as one
+  // scene subtree. Rotate the *group* about ground-centred x/z = 0, not the
+  // GLB's arbitrary origin, so all 360-degree viewpoints stay in frame.
+  const turntable = new THREE.Group();
+  turntable.name = "G008_Authoritative_3D_Turntable";
+  turntable.add(root);
+  scene.add(turntable);
 
   const center = bounds.getCenter(new THREE.Vector3());
   const camera = new THREE.PerspectiveCamera(34, width / height, 0.01, 100);
@@ -331,6 +446,12 @@ function renderModel(root, bounds, token) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
   stage.replaceChildren(renderer.domElement);
+  heroTurntableControls?.dispose();
+  const controlsRoot = document.getElementById?.("g009-hero-rotate-controls");
+  heroTurntableControls = bindG009Turntable360(renderer.domElement, turntable, {
+    controlsRoot,
+    label: "3D character: drag left or right to rotate 360 degrees; arrow keys and Home also work",
+  });
 
   let renderFrames = 0;
   renderer.setAnimationLoop(() => {

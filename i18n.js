@@ -284,7 +284,7 @@ const I18n = (() => {
         'cm.lb.weekly':      { en: 'Weekly',   zh: '週榜' },
         'cm.lb.monthly':     { en: 'Monthly',  zh: '月榜' },
         'cm.lb.alltime':     { en: 'Total XP', zh: '總 XP' },
-        'cm.lb.rank':        { en: 'Level',    zh: '練習等級' },
+        'cm.lb.rank':        { en: 'Character LV', zh: '角色 LV' },
         'cm.lb.combo':       { en: 'Combo',    zh: '連擊' },
         'cm.lb.friends':     { en: 'Friends',  zh: '好友榜' },
         'cm.lb.loading':     { en: 'Loading leaderboard…', zh: '載入排行榜中...' },
@@ -3239,6 +3239,7 @@ const I18n = (() => {
         'communityRewards.rank.first': { en: '1st Place', zh: '第 1 名' },
 
         'communityRewards.rankBand.top1':  { en: 'Weekly Champion', zh: '週榜冠軍' },
+        'communityRewards.rankBand.monthly.top1': { en: 'Monthly Champion', zh: '月榜冠軍' },
         'communityRewards.rankBand.top3':  { en: 'Top 3 Reward', zh: 'Top 3 獎勵' },
         'communityRewards.rankBand.top10': { en: 'Top 10 Reward', zh: 'Top 10 獎勵' },
         'communityRewards.rankBand.top25': { en: 'Top 25 Reward', zh: 'Top 25 獎勵' },
@@ -3248,11 +3249,19 @@ const I18n = (() => {
         'communityRewards.reward.item.small_xp_potion':     { en: 'Small XP Potion', zh: '小經驗藥水' },
         'communityRewards.reward.item.xp_potion':           { en: 'XP Potion', zh: '經驗藥水' },
         'communityRewards.reward.badge.badge_lb_weekly_1':  { en: 'Weekly Champion Badge', zh: '週榜冠軍徽章' },
+        'communityRewards.reward.badge.badge_lb_monthly_1': { en: 'Monthly Champion Badge', zh: '月榜冠軍徽章' },
+        'communityRewards.reward.badge.badge_lb_monthly_top3': { en: 'Monthly Top 3 Badge', zh: '月榜前三徽章' },
+        'communityRewards.reward.badge.badge_lb_monthly_top10': { en: 'Monthly Top 10 Badge', zh: '月榜前十徽章' },
+        'communityRewards.reward.item.appearance_fragment': { en: 'Appearance Fragment', zh: '外觀碎片' },
+        'communityRewards.reward.item.rare_appearance_fragment': { en: 'Rare Appearance Fragment', zh: '稀有外觀碎片' },
+        'communityRewards.reward.title.title_monthly_master': { en: 'Monthly Grandmaster Title', zh: '月榜棋道宗師稱號' },
+        'communityRewards.rules.monthly.heading': { en: 'Monthly Leaderboard Rewards', zh: '月排行榜獎勵' },
+        'communityRewards.rules.monthly.minimumScore': { en: 'Monthly minimum score: {score} distinct correct answers', zh: '月榜最低門檻：答對 {score} 道不同題目' },
         'communityRewards.reward.unsupported':              { en: 'Special Reward', zh: '特殊獎勵' },
 
         // ── Phase 4B: leaderboard reward rules ──────────────────────
         'communityRewards.rules.button': { en: '🎁 Reward Rules', zh: '🎁 獎勵規則' },
-        'communityRewards.rules.title':  { en: 'Weekly Leaderboard Reward Rules', zh: '週排行榜獎勵規則' },
+        'communityRewards.rules.title':  { en: 'Leaderboard Reward Rules', zh: '排行榜獎勵規則' },
         'communityRewards.rules.closeButton': { en: 'Close', zh: '關閉' },
 
         'communityRewards.rules.period.heading': { en: 'Ranking Period', zh: '統計期間' },

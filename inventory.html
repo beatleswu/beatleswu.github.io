@@ -344,7 +344,7 @@ main {
 .backpack-card-name { color:var(--ink); font-size:15px; font-weight:800; overflow-wrap:anywhere; }
 .backpack-card-meta { margin-top:3px; color:var(--ink3); font:500 10px/1.35 var(--mono); }
 .backpack-card-desc { flex:1; color:var(--ink3); font-size:12px; line-height:1.6; }
-.backpack-card-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.backpack-card-foot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; }
 .backpack-action-state { color:var(--teal); font-size:11px; font-weight:700; }
 .backpack-use { min-height:40px; padding:0 14px; border:0; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; cursor:pointer; }
 .backpack-use:disabled { opacity:.55; cursor:wait; }
@@ -413,6 +413,13 @@ main {
 .functional-detail-action { flex:1; min-height:42px; border:0; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; cursor:pointer; }
 .functional-detail-action.secondary { background:var(--cream2); color:var(--ink2); border:1px solid var(--border2); }
 .functional-detail-action:disabled { opacity:.55; cursor:not-allowed; }
+/* G019 server-owned release only: overrides G009 presentation-only
+   CSS on the original Backpack, never reveals unknown or disabled items. */
+body[data-g019-equipment-actions-ui="server-approved"] #functional-detail-action:not([hidden]) {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
 .functional-detail-source { color:var(--ink3); font-size:12px; line-height:1.55; }
 @media (max-width:700px) {
   .functional-equipment-layout { grid-template-columns:1fr; }
@@ -541,7 +548,7 @@ main { max-width:1180px; }
         <h1 id="functional-equipment-title">持有裝備 / Equipment</h1>
         <p class="functional-equipment-note">這裡只呈現 server-owned equipment projection；目前僅供查看。<br>Server-owned equipment projection; this surface is view only.</p>
       </div>
-      <a class="functional-equipment-link" href="/hero?tab=equipment">返回英雄殿 / Back to Hero Hub</a>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><a class="functional-equipment-link" href="/hero?tab=equipment">返回英雄殿 / Back to Hero Hub</a><a class="functional-equipment-link" href="/hero?tab=equipment#g010-3d-gallery">真實 3D 模型館</a></div>
     </div>
     <div id="functional-equipment-status" class="functional-equipment-status" role="status" aria-live="polite" data-state="loading">正在載入戰鬥裝備…</div>
     <div class="functional-equipment-filters" id="functional-equipment-filters" role="tablist" aria-label="戰鬥裝備分類">
@@ -602,9 +609,12 @@ main { max-width:1180px; }
       <div>
         <p class="backpack-kicker">BACKPACK</p>
         <h1 id="backpack-title" data-i18n="backpack.title">我的背包</h1>
-        <p data-i18n="backpack.subtitle">查看真實持有量、分類與可用狀態；商品價格與購買行為只在商店顯示。</p>
+        <p>查看持有量與物品狀態；商店目前僅供預覽，無法購買。持有物品不代表可以使用或裝備，請到對應頁面確認可用操作。<br>Review owned items and their status. The Shop is preview only; purchases are unavailable. Ownership does not guarantee use or equip availability. Check the destination page for available actions.</p>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end">
+        <a class="backpack-shop-link" href="/hero?tab=hero" data-backpack-destination="hero">英雄 / Hero</a>
+        <a class="backpack-shop-link" href="/hero?tab=pet" data-backpack-destination="pet">棋靈 / Spirit</a>
+        <a class="backpack-shop-link" href="/hero?tab=honors" data-backpack-destination="honors">榮譽 / Honors</a>
         <a class="backpack-shop-link" href="/item-journal">物品圖鑑 / Item Journal</a>
         <a class="backpack-shop-link" href="/shop" data-i18n="backpack.goShop">前往商店</a>
       </div>
@@ -663,6 +673,7 @@ const FUNCTIONAL_SLOT_LABELS = {
 // /api/auth/me reports the canonical Loadout capability, so the client never
 // becomes a second authority and a failed/blocked capability read fails closed.
 let functionalEquipmentLoadoutCapability = false;
+let g019ServerApprovedEquipmentActionsUi = false;
 function functionalEquipmentLoadoutEnabled() {
   return functionalEquipmentLoadoutCapability === true;
 }
@@ -674,7 +685,12 @@ const FUNCTIONAL_EQUIPMENT_LOADOUT_TEST_OVERRIDE =
   && window.__GO_EQUIPMENT_LOADOUT_TEST_OVERRIDE__ === true;
 function applyFunctionalEquipmentLoadoutCapability(me) {
   const next = !!(me && me.equipment_loadout_enabled === true);
-  if (next === functionalEquipmentLoadoutCapability) return;
+  g019ServerApprovedEquipmentActionsUi = next
+    && me?.g019_equipment_actions_ui_enabled === true;
+  document.body.dataset.g019EquipmentActionsUi = g019ServerApprovedEquipmentActionsUi
+    ? 'server-approved' : 'default-closed';
+  if (next === functionalEquipmentLoadoutCapability
+      && selectedFunctionalInventoryId == null) return;
   functionalEquipmentLoadoutCapability = next;
   // Re-render the detail panel so the equip control reflects the capability
   // that arrived after first paint.
@@ -930,12 +946,19 @@ function renderFunctionalEquipmentDetail(item) {
   const action = document.getElementById('functional-detail-action');
   if (!action) return;
   if (G009_BACKPACK_READ_ONLY && !E10_BACKPACK_MODE) {
-    action.hidden = true;
-    action.disabled = true;
-    action.onclick = null;
-    action.textContent = '';
-    action.removeAttribute('data-block-reason');
-    return;
+    // Default G009 visual lock stays intact. The normal Hero/Backpack has no
+    // client URL switch: only signed authenticated server capability permits
+    // the additive Product candidate Equipment control.
+    const released = typeof g019ServerApprovedEquipmentActionsUi !== 'undefined'
+      && g019ServerApprovedEquipmentActionsUi === true;
+    if (!released) {
+      action.hidden = true;
+      action.disabled = true;
+      action.onclick = null;
+      action.textContent = '';
+      action.removeAttribute('data-block-reason');
+      return;
+    }
   }
   action.hidden = false;
   const actionType = item.equipped ? 'unequip' : 'equip';
@@ -1065,12 +1088,12 @@ function backpackCategory(item) {
     || BACKPACK_CATEGORIES.find(category => category.key === 'other');
 }
 function backpackCapability(item) {
-  if (item.capability === 'spirit_managed') return { kind:'managed', label:backpackText('在棋靈頁合法使用','Use from the Spirit domain') };
+  if (item.capability === 'spirit_managed') return { kind:'managed', label:backpackText('到棋靈頁查看餵食條件','Check feeding options in Spirit') };
   if (item.usable === 'activate') return { kind:'manual', label:backpackText('可手動使用','Manual use') };
   if (item.usable === 'auto') return { kind:'automatic', label:backpackText('符合條件時自動消耗','Used automatically when eligible') };
   if (item.usable === 'in_question') return { kind:'automatic', label:backpackText('答題時條件使用','Conditionally used while solving') };
   if (item.usable === 'instant') return { kind:'automatic', label:backpackText('取得時自動生效','Applied automatically when acquired') };
-  return { kind:'readonly', label:backpackText('被動生效／唯讀','Passive / read-only') };
+  return { kind:'readonly', label:backpackText('僅供查看；未提供使用操作','View only; no use action provided') };
 }
 function backpackRarity(item) {
   const raw = String(item.rarity || item.rarity_tier || item.quality || 'common').toLowerCase();
@@ -1263,6 +1286,7 @@ function renderBackpackGrid() {
       </div>
       <p class="backpack-card-desc">${backpackDescription(item)}</p>
       <div class="backpack-card-foot"><span class="backpack-action-state"${E10_BACKPACK_MODE ? ` data-e10-backpack-status="${capability.kind}"` : ''}>${capability.label}</span>
+      ${capability.kind === 'managed' ? `<a class="backpack-shop-link" href="/hero?tab=pet" data-backpack-spirit-link>${backpackText('前往棋靈','Visit Spirit')}</a>` : ''}
       ${E10_BACKPACK_MODE ? `<button type="button" class="e10-backpack-details" data-item-details="${item.key}">${backpackText('查看詳情','Details')}</button>` : ''}
       ${E10_BACKPACK_MODE && capability.kind === 'manual' ? `<button type="button" class="backpack-use" data-use-item="${item.key}">${backpackText('使用','Use')}</button>` : ''}</div>`;
     const useButton = card.querySelector('[data-use-item]');

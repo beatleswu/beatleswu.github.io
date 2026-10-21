@@ -1,0 +1,238 @@
+[
+ {
+  "id": 7001,
+  "source": "g009-a1-fixture/one.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "A1 isolated Review",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7002,
+  "source": "g009-a1-fixture/two.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "A1 isolated Review",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7003,
+  "source": "g009-a1-fixture/three.sgf",
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "topic": "A1 isolated Review",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "enabled": true
+ },
+ {
+  "id": 7101,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7102,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7103,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7104,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7105,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7106,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7107,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7108,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7109,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7110,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7111,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7112,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7113,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7114,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7115,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7116,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7117,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7118,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7119,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ },
+ {
+  "id": 7120,
+  "content": "(;GM[1]FF[4]SZ[9]PL[B];B[dd])",
+  "rank": "30k",
+  "difficulty": "30k",
+  "level": "30k",
+  "discipline": "whole_board",
+  "stage": "LV1",
+  "topic": "1圍棋新手村"
+ }
+]

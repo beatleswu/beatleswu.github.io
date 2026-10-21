@@ -1,0 +1,13 @@
+{
+  "schema": "G011_DEFAULT_PUBLIC_CATALOG_GATE_V1",
+  "pass": [
+    "fixture_200",
+    "public_catalog_still_only_five_categories",
+    "QA_legacy_28_hidden_by_default",
+    "formal_weapon_catalog_still_exact_four",
+    "formal_glb_still_SHA_valid",
+    "no_browser_errors"
+  ],
+  "error": [],
+  "verdict": "G011_28_QA_MODE_FAIL_CLOSED_DEFAULT_PASS"
+}

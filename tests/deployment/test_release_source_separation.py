@@ -594,34 +594,28 @@ def _create_small_release_source_pair(tmp_path: pathlib.Path):
     return repo, gate_sha, product_sha
 
 
-def test_canonical_source_separation_dry_run_uses_product_identity_without_build(tmp_path):
+def test_canonical_source_separation_dry_run_requires_external_governance(tmp_path):
+    """An arbitrary local SHA pair cannot authorize even DryRun.
+
+    Under the hardened 2026-10-20 gate, source separation can only be
+    evaluated by an independently authenticated host. This negative case
+    must stop BEFORE generating a dry-run Product release plan.
+    """
     real_gate_sha = git(ROOT, "rev-parse", "HEAD")
     real_product_sha = derive_product_sha(real_gate_sha)
     assert git(ROOT, "merge-base", real_product_sha, real_gate_sha) == real_product_sha
     repo, gate_sha, product_sha = _create_small_release_source_pair(tmp_path)
+    assert gate_sha != product_sha
+    assert git(repo, "merge-base", gate_sha, product_sha) == product_sha
     returncode, stdout, stderr = _dry_run(
-        gate_sha,
-        product_sha,
-        repo_root=repo,
+        gate_sha, product_sha, repo_root=repo,
         build_script=repo / "scripts" / "release" / "build-release-image.ps1",
     )
-    assert returncode == 0, (
-        f"derived product sha {product_sha}\n"
-        f"--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}"
-    )
-    payload = parse_last_json(stdout)
-    assert payload["source_separation_check"] == "PASS"
-    assert payload["gate_source_sha"] == gate_sha
-    assert payload["product_source_sha"] == product_sha
-    assert payload["product_worktree_head"] == product_sha
-    assert payload["product_worktree_clean"] is True
-    assert payload["product_runtime_diff_from_product"] == 0
-    assert payload["build_context"] == "PRODUCT_WORKTREE"
-    assert payload["test_source"] == "GATE_WORKTREE"
-    assert payload["oci_revision_would_be"] == product_sha
-    assert payload["static_source_would_be"] == product_sha
-    assert payload["build_not_executed"] is True
-    assert "docker buildx" not in stdout.lower()
+    assert returncode != 0, "unauthenticated candidate DryRun must fail closed"
+    combined = f"{stdout}\n{stderr}"
+    assert "EXTERNAL_GOVERNANCE_AUTHORITY_REQUIRED" in combined, combined[:2000]
+    assert "source_separation_check" not in stdout
+    assert "docker buildx" not in combined.lower()
 
 
 def test_derived_product_identity_is_a_real_ancestor_and_control_plane_only():
@@ -644,34 +638,34 @@ def test_derived_product_identity_is_a_real_ancestor_and_control_plane_only():
 
 
 def test_unauthorized_product_diff_negative_control():
-    """A Product baseline with real product drift must still fail closed.
+    """Historical Product byte drift remains real and unauthorised.
 
-    Uses the historical fixed pin, which is exactly such a baseline now. This
-    is the guard against a derivation that 'passes' by choosing a point where
-    every diff is empty.
+    The formal entrypoint must reject the unauthenticated invocation BEFORE
+    evaluating this diff. This is fail-closed, not an approval of the diff.
     """
     gate_sha = git(ROOT, "rev-parse", "HEAD")
     unauthorized = _non_control_plane_paths(HISTORICAL_FIXED_PRODUCT_SHA, gate_sha)
-    assert unauthorized, "negative control is only meaningful with real product drift"
-
+    assert unauthorized, "negative control needs actual Product drift"
     returncode, stdout, stderr = _dry_run(gate_sha, HISTORICAL_FIXED_PRODUCT_SHA)
-    assert returncode != 0, "unauthorized product drift must not pass the gate"
+    assert returncode != 0
     combined = f"{stdout}\n{stderr}"
-    assert "UNAPPROVED_PRODUCT_DIFF_DETECTED" in combined, combined[:2000]
+    assert "EXTERNAL_GOVERNANCE_AUTHORITY_REQUIRED" in combined, combined[:2000]
+    assert "source_separation_check" not in stdout
 
 
 def test_source_separation_failure_diagnostic_surfaces_real_message():
-    """The real gate message must reach the assertion, not TypeError/None.
+    """Validate the real hardened denial diagnostic and UTF-8 decoding.
 
-    This is the regression guard for the zh-TW PowerShell decoding defect.
+    The rejected local invocation must not leak a swallowed PowerShell or
+    Unicode exception in place of the actual governance safety error.
     """
     gate_sha = git(ROOT, "rev-parse", "HEAD")
     returncode, stdout, stderr = _dry_run(gate_sha, HISTORICAL_FIXED_PRODUCT_SHA)
     assert returncode != 0
     assert stdout is not None and stderr is not None
     combined = f"{stdout}\n{stderr}"
-    assert combined.strip(), "diagnostics must not be empty"
-    assert "UNAPPROVED_PRODUCT_DIFF_DETECTED" in combined
+    assert combined.strip()
+    assert "EXTERNAL_GOVERNANCE_AUTHORITY_REQUIRED" in combined
     assert "TypeError" not in combined
     assert "UnicodeDecodeError" not in combined
 

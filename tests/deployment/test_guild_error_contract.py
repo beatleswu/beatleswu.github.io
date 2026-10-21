@@ -121,7 +121,7 @@ def test_surfacing_a_reason_does_not_advance_or_mark_seen():
     """Diagnostics only: progression must still gate on data.ok."""
 
     text = INDEX_HTML.read_text(encoding="utf-8").replace(" ", "")
-    assert "if(data.ok)SRS.markSeen(" in text, (
+    assert "if(data.ok&&!ordinaryPublicReview)SRS.markSeen(" in text, (
         "markSeen must remain gated on data.ok so a surfaced rejection cannot "
         "mark a question answered"
     )

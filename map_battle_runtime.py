@@ -37,6 +37,7 @@ from adventure_monster_runtime_contract import (
     resolve_runtime_binding,
 )
 from adventure_zone1_2_monster_runtime_provider import (
+    DEFERRED_REWARD_DROP_POLICY,
     ZONE1_2_BINDING_SOURCE,
     ZONE1_2_MONSTER_RUNTIME_PROVIDER,
     ZONE1_2_PROVIDER_ID,

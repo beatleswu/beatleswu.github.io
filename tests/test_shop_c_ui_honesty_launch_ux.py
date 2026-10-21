@@ -68,7 +68,13 @@ def test_every_purchase_entry_point_and_shared_request_guard_fail_closed():
         "async function doGacha(",
     ):
         body = _function_body(SHOP, signature)
-        assert "if (!shopPurchaseEnabled())" in body, signature
+        if signature == "async function purchaseEquipment(":
+            # G019 adds a separately server-approved 9-item *equipment-only*
+            # path. An absent release marker must still take this closed path.
+            assert "if (!g019ServerApprovedEquipmentUi(catalog, offerId)" in body
+            assert "&& !shopPurchaseEnabled())" in body
+        else:
+            assert "if (!shopPurchaseEnabled())" in body, signature
         assert "showShopPurchaseClosed()" in body, signature
 
     # The UI never sends a client-provided price or a raw internal error token.

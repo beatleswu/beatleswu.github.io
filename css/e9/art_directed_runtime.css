@@ -1242,6 +1242,99 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   }
 }
 
+/* G009_IPAD_VISUAL_POLISH_PREDEPLOY_001 -- three narrow iPad Safari fixes.
+   CSS only; no route, API, data, navigation-architecture or View Details change. */
+
+/* (1) + (2) Compact portrait tablet (the shell hamburger owns navigation). */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  /* (1) Use the same plaque proportions as landscape so the avatar sits in the
+     ring and both text rows stay inside the gold frame, and start the plaque
+     to the right of the 44px hamburger instead of underneath it. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__player {
+    grid-template-columns: 60px minmax(0, 1fr) 20px;
+    grid-template-rows: auto auto;
+    row-gap: 2px;
+    align-content: center;
+    width: 286px;
+    max-width: calc(100% - 34px);
+    margin-left: 34px;
+    padding: 5px 22px 5px 38px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__avatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__name {
+    font-size: 13.5px;
+    line-height: 17px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__level,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #top-hud .e9-hud__level > span {
+    min-height: 0;
+    font-size: 12.5px;
+    line-height: 15px;
+  }
+
+  /* (2) The selected-zone card below the map already carries the primary
+     action in this layout. reference_world_map.css hides the map-level CTA for
+     portrait, but the runtime-kit tablet rule above re-shows it with
+     display: inline-flex !important; restore that intent (hence !important),
+     but only while the card's own primary button is shown and enabled. The
+     newbie mainline is deliberately not treated as an alternative: it can
+     lack the hidden attribute while still being display: none, and Zone 1
+     suppresses the card button, so the map CTA must stay there. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #adventure-stage:has(#e9-world-stage-details:not([hidden]) #e9-world-stage-details-cta:not([hidden]):not(:disabled)) #e9-world-stage-primary-cta {
+    display: none !important;
+  }
+}
+
+/* G009_PWA_ZONE1_FIRST_CHALLENGE_ENTRY_RECOVERY_001. The installed-PWA
+   portrait override (reference_world_map.css) hides the map-level CTA
+   unconditionally. With Zone 1 selected the card's own primary button is
+   suppressed, which left a new player with no way to start the first
+   challenge. Bring the existing map CTA back for Zone 1 only, and only when
+   the card button is unavailable and the map CTA itself is offered and
+   enabled. Nothing is enabled by styling. The override never laid this button
+   out (it was always hidden there), so it also takes the same compact sizes
+   the ordinary portrait tablet layout uses; without them the label wraps one
+   character per line. */
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-slot[data-g009-zone-key="k26_30"]:has(#e9-world-stage-details-cta[hidden], #e9-world-stage-details-cta:disabled) #e9-world-stage-primary-cta:not([hidden]):not(:disabled) {
+  display: inline-flex;
+  min-height: 64px;
+  padding: 8px 14px 8px 34px;
+  gap: 6px;
+  font-size: 13px;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-slot[data-g009-zone-key="k26_30"]:has(#e9-world-stage-details-cta[hidden], #e9-world-stage-details-cta:disabled) #e9-world-stage-primary-cta .e10-map-primary-cta__icon {
+  width: 46px;
+  height: 46px;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-slot[data-g009-zone-key="k26_30"]:has(#e9-world-stage-details-cta[hidden], #e9-world-stage-details-cta:disabled) #e9-world-stage-primary-cta .e10-map-primary-cta__copy strong {
+  font-size: 21px;
+  line-height: 1.04;
+}
+
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-slot[data-g009-zone-key="k26_30"]:has(#e9-world-stage-details-cta[hidden], #e9-world-stage-details-cta:disabled) #e9-world-stage-primary-cta .e10-map-primary-cta__copy span {
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+/* (3) Landscape tablet: the generic tablet drawer width (rwd.css, 360px) is
+   wider than the right-card slot it is positioned in (286px here), so the
+   parchment card ran past the right edge. Keep the card inside its slot, as
+   it already is at 1280px and wider. */
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e9-drawer-panel:not([hidden]) {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 /* G009 Night Atlas — World Map portrait chrome (phone and iPad portrait).
    The painted map stays the immersive tier. What frames it — page ground,
    shell ground and the selected-zone / current-mission card — is shared
@@ -1757,3 +1850,499 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
     zoom: 2;
   }
 }
+
+/* G009_C0_OWNER_IPAD_UNIFIED_UI_ENTRY_CORRECTIVE_003 -- CSS only.
+   No route, dispatcher, entitlement, copy or data change: the same
+   [data-e10-zone-cta] / #e9-world-stage-primary-cta buttons and their
+   existing click handlers are restyled and re-positioned, nothing is added
+   or duplicated. */
+
+/* (1) Map primary CTA: a compact navy plaque with a gold hairline instead of
+   the oversized green art frame. Text never wraps; the box grows to fit it.
+   Visibility (display) is still owned by the earlier portrait/override rules. */
+@media (min-width: 768px) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta.e10-map-primary-cta {
+    box-sizing: border-box;
+    width: auto;
+    max-width: 34%;
+    height: auto;
+    min-height: 52px;
+    gap: 8px;
+    padding: 6px 18px 6px 12px !important;
+    border: 1px solid rgba(236, 201, 120, .72);
+    border-radius: 12px;
+    color: #fff1c4;
+    background: linear-gradient(180deg, #1c2b57 0%, #0f1a3d 100%);
+    box-shadow: inset 0 0 0 1px rgba(255, 241, 196, .12), 0 6px 14px rgba(0, 0, 0, .38);
+    white-space: nowrap;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta .e10-map-primary-cta__icon {
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta .e10-map-primary-cta__copy {
+    gap: 1px;
+    white-space: nowrap;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta .e10-map-primary-cta__copy strong {
+    color: #e3b457;
+    font-size: 17px !important;
+    line-height: 1.15;
+    text-shadow: none;
+    white-space: nowrap;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-primary-cta .e10-map-primary-cta__copy span {
+    color: #c7cce0;
+    font-size: 11px !important;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  /* (2) The current zone already carries the player avatar/pin. Drop the
+     green status text under its label on the map; the tile's aria-label
+     keeps the state for assistive technology, and the text stays in the DOM
+     (visually hidden, not display:none). */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone.is-current .e9-zone__status-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* (3) Landscape/side-panel drawer: keep the playable CTA in view. The
+   drawer scrolls (overflow-y: auto) and the CTA is its last child, so with the
+   tall landmark it sat below the fold. Shrink the landmark, let the runtime
+   wrapper dissolve so the CTA's containing block is the whole summary, and pin
+   the CTA to the bottom of the scrolling drawer. */
+@media (min-width: 768px) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-drawer-zone-summary__landmark {
+    aspect-ratio: auto;
+    height: clamp(64px, 11vh, 96px);
+    max-height: 96px;
+    margin-bottom: 6px;
+    object-fit: contain;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime {
+    display: contents;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime > * {
+    margin-top: 6px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 52px;
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 241, 196, .6);
+    border-radius: 12px;
+    color: #1b1404;
+    background: linear-gradient(180deg, #f6dd9a, #e3b457 58%, #a9762b);
+    box-shadow: 0 0 0 5px #f3dd9c, 0 -8px 10px 4px rgba(243, 221, 156, .96), 0 4px 10px rgba(0, 0, 0, .25);
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1.2;
+    text-shadow: none;
+    white-space: nowrap;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta:not(.e10-zone-panel-runtime__cta--secondary) {
+    position: sticky;
+    z-index: 3;
+    bottom: 0;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta--secondary {
+    box-shadow: none;
+    color: #4b2d17;
+    background: rgba(255, 249, 222, .82);
+    border-color: rgba(140, 100, 45, .7);
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta[hidden] {
+    display: none;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #right-cards .e10-zone-panel-runtime__cta:disabled {
+    color: #5e5a4c;
+    background: linear-gradient(180deg, #d9d2bd, #b8ad8d);
+    box-shadow: 0 0 0 5px #f3dd9c, 0 -8px 10px 4px rgba(243, 221, 156, .96);
+  }
+}
+
+
+/* G009_C0_OWNER_IPAD_UNIFIED_UI_ENTRY_CORRECTIVE_003 ADDENDUM A:
+   Collapse redundant context while the drawer owns the one primary CTA.
+   Keep original state/label in the DOM for assistive technology. */
+@media (min-width: 768px) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] .e9-body.is-right-drawer-open #e9-world-stage-primary-cta.e10-map-primary-cta {
+    display: none !important;
+  }
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-body.is-right-drawer-open #right-cards #e10-drawer-zone-state {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone.is-current .e9-zone__plaque {
+    width: max-content;
+    min-width: 0;
+    min-height: 25px;
+    max-width: 138px;
+    padding: 3px 8px;
+    border: 1px solid rgba(236, 201, 120, .58);
+    border-radius: 7px;
+    background: rgba(14, 25, 55, .84);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
+    color: #f6e6be;
+    text-shadow: none;
+  }
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone.is-current .e9-zone__name {
+    color: #f6e6be;
+    font-size: 11px;
+  }
+}
+
+/* G009_A39_OWNER_LANDSCAPE_ZONE1_ZONE2_VISIBILITY_001 -- CSS only, landscape only.
+   iPad touch has no hover, so the locked Zone 2 plaque (opacity 0 until
+   hover/focus/selected/current) never showed. Show the Zone 1 and Zone 2
+   name plates at rest. Only plaque opacity and geometry change: no
+   disabled / aria-disabled, hidden, lock state or click dispatcher is touched. */
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape),
+       (min-width: 1280px) and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k26_30"] .e9-zone__plaque,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__plaque {
+    opacity: 1 !important;
+    transition: none !important;
+    visibility: visible !important;
+    width: max-content;
+    min-width: 0;
+    max-width: 160px;
+    padding: 5px 8px;
+    border: 1px solid rgba(236, 201, 120, .78);
+    border-radius: 9px;
+    color: #ffefc5;
+    background: rgba(13, 24, 52, .94);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .42);
+    text-shadow: none;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k26_30"] .e9-zone__name,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__name {
+    color: #ffefc5;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.3;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k26_30"] .e9-zone__name::before,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__name::before {
+    display: inline-block;
+    padding: 1px 4px;
+    margin-right: 5px;
+    border-radius: 5px;
+    color: #291c09;
+    background: #e4bf6b;
+    font: 900 10px/1.35 system-ui, sans-serif;
+    vertical-align: 1px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k26_30"] .e9-zone__name::before {
+    content: "01";
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__name::before {
+    content: "02";
+  }
+
+  /* Locked Zone 2: plate to the right of the node (baseline is left) so the
+     left rail never occludes it. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"] .e9-zone__plaque {
+    left: calc(100% + 9px);
+    right: auto;
+    text-align: left;
+    transform: translateY(-50%);
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-map-stage .e9-zone[data-zone="k21_25"].e9-zone--locked {
+    opacity: .85;
+  }
+}
+
+/* G009_4AA_OWNER_ALL10_IPAD_LANDSCAPE_READABILITY_001 -- CSS only.
+   Real iPad Safari landscape (flag set by world_stage.js setViewportClass,
+   independent of hover/pointer): all ten stage plaques are readable at rest
+   with a two-digit number. Only plaque presentation changes; geometry follows
+   the existing data-plaque-side anchors, and lock state, disabled/aria state,
+   [hidden] and click handling are untouched. The map keeps its WM-Q1
+   horizontal pan, so below ~1280px the remaining stages are reached by swiping. */
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone .e9-zone__plaque {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: none !important;
+  pointer-events: none;
+  z-index: 13;
+  width: max-content;
+  min-width: 88px;
+  max-width: 150px;
+  min-height: 0;
+  padding: 5px 7px 4px;
+  border: 1px solid rgba(210, 182, 117, .75);
+  border-radius: 8px;
+  color: #f2e5c8;
+  background: linear-gradient(170deg, rgba(20, 34, 62, .94), rgba(9, 16, 37, .97));
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .55);
+  text-shadow: none;
+}
+
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone .e9-zone__name {
+  display: block;
+  color: #f2e5c8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone .e9-zone__status-text {
+  color: #d4cab2;
+  font-size: 9px;
+  line-height: 1.15;
+}
+
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone .e9-zone__name::before {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 3px;
+  margin-right: 4px;
+  border-radius: 4px;
+  color: #161725;
+  background: #e6c26c;
+  font: 900 10px/1.1 system-ui, sans-serif;
+  text-align: center;
+}
+
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k26_30"] .e9-zone__name::before { content: "01"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k21_25"] .e9-zone__name::before { content: "02"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k16_20"] .e9-zone__name::before { content: "03"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k11_15"] .e9-zone__name::before { content: "04"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k6_10"] .e9-zone__name::before { content: "05"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k1_5"] .e9-zone__name::before { content: "06"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d1_2"] .e9-zone__name::before { content: "07"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d3_4"] .e9-zone__name::before { content: "08"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d5_6"] .e9-zone__name::before { content: "09"; }
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d7_plus"] .e9-zone__name::before { content: "10"; }
+
+/* Locked stages stay visibly locked (dimmed + desaturated), never hidden. */
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone-locked="true"] {
+  opacity: .9;
+  filter: saturate(.7);
+}
+
+/* Anchor logic: honour data-plaque-side (left/top/bottom from the base rules;
+   Zone 1 right; Zone 2 right via the A39 rule). Zone 8 is the one 'right'
+   plaque near the scenic right edge, so it flips left to stay in frame. */
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="d3_4"] .e9-zone__plaque {
+  right: calc(100% + 10px);
+  left: auto;
+  text-align: right;
+  transform: translateY(-50%);
+}
+
+/* Installed-PWA doubled viewport (2360px): keep the original zoom: 2 nav with
+   all seven links readable at the owner-approved 336px coarse rail width. */
+@media (min-width: 1900px) and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-left-nav-slot {
+    width: 336px !important;
+  }
+}
+
+/* G009_R74_N25_IPAD_FINE_POINTER_RAIL_CSS_CORRECTION_001.
+   Safari iPadOS may expose a trackpad as a fine pointer while the genuine
+   landscape iPad marker is already present on <html>. Reuse the locked D3
+   rail presentation through that marker only; the existing coarse-pointer
+   blocks above remain the touch path, and desktop mouse/portrait stay out. */
+@media (min-width: 1280px) and (orientation: landscape) {
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot {
+    display: block !important; top: 15% !important; bottom: 17% !important;
+    height: auto !important; left: 0 !important; width: 168px !important;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav {
+    display: block !important; box-sizing: border-box !important; max-height: 100%;
+    overflow-y: auto; scrollbar-width: none; padding: 12px 8px 12px 6px !important;
+    border: 1px solid var(--na-gold-hair, rgba(236,201,120,.2)) !important;
+    border-left: 0 !important; border-radius: 0 18px 18px 0 !important;
+    background: linear-gradient(180deg, rgba(23,33,63,.9) 0%, rgba(11,20,48,.9) 55%, rgba(7,13,34,.92) 100%) !important;
+    box-shadow: 10px 0 30px rgba(0,0,0,.34), inset -1px 0 0 rgba(255,241,196,.05) !important;
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav::-webkit-scrollbar { display: none; }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list {
+    display: grid !important; grid-template-columns: 1fr !important;
+    grid-template-rows: repeat(7, minmax(44px, 1fr)) !important;
+    gap: 9px !important; align-content: start !important;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li {
+    order: 0 !important; position: relative; min-width: 0; margin: 0; padding: 0;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li:nth-child(3)::after,
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li:nth-child(5)::after {
+    content: ""; position: absolute; right: 10px; bottom: -5px; left: 10px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--na-gold-edge, rgba(236,201,120,.42)), transparent);
+    pointer-events: none;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item {
+    box-sizing: border-box !important; display: flex !important; width: 100% !important;
+    min-height: 52px !important; flex-direction: row !important; align-items: center !important;
+    justify-content: flex-start !important; gap: 9px !important; padding: 6px 6px 6px 8px !important;
+    border: 0 !important; border-radius: 12px !important; color: var(--na-text, #f7f1df) !important;
+    background: transparent !important; box-shadow: none !important; text-decoration: none !important;
+    transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:hover,
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:focus-visible,
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:active,
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item.is-active {
+    color: var(--na-gold-100, #fff1c4) !important;
+    background: linear-gradient(90deg, rgba(227,180,87,.18), rgba(227,180,87,0)) !important;
+    box-shadow: inset 3px 0 0 var(--na-gold-300, #e3b457) !important;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item:focus-visible {
+    outline: 2px solid var(--na-gold-100, #fff1c4) !important; outline-offset: -2px !important;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon {
+    box-sizing: border-box !important; width: 36px !important; height: 36px !important;
+    flex: 0 0 36px !important; padding: 5px !important; margin: 0 !important;
+    border: 1px solid var(--na-gold-300, #e3b457) !important; border-radius: 50% !important;
+    background: radial-gradient(circle at 50% 30%, #2a3d72, #0b1430 76%) !important;
+    box-shadow: 0 0 0 2px rgba(227,180,87,.12), 0 3px 8px rgba(0,0,0,.34) !important; opacity: 1;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon > img {
+    display: block; width: 100%; height: 100%; object-fit: contain;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-nav-item--premium .e9-nav__icon {
+    background: radial-gradient(circle at 50% 30%, rgba(227,180,87,.55), #1c2440 78%) !important;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item > span[data-i18n] {
+    flex: 1 1 auto; width: auto !important; min-width: 0 !important; min-height: 0 !important;
+    margin: 0 !important; padding: 0 !important; overflow: hidden; border: 0 !important;
+    border-radius: 0 !important; color: inherit !important; background: transparent !important;
+    box-shadow: none !important; font-family: var(--na-font-body, 'DM Sans', 'Noto Sans TC', 'PingFang TC', system-ui, sans-serif);
+    font-size: 13px !important; font-weight: 700 !important; letter-spacing: .01em;
+    line-height: 1.2 !important; text-align: left !important; text-overflow: ellipsis;
+    white-space: nowrap !important; writing-mode: horizontal-tb !important; text-orientation: mixed !important;
+  }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot { display: none !important; }
+}
+
+@media (min-width: 1900px) and (orientation: landscape) {
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { width: 336px !important; }
+  html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav { zoom: 2; }
+}
+
+
+/* G009_4AA_OWNER_ALL10_IPAD_LANDSCAPE_READABILITY_001 ADDENDUM A:
+   Zone 03's legacy left-side label was under the global left rail;
+   keep the node coordinate/lock unchanged and place only its plaque to the right. */
+html[data-g009-ipad-landscape] body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell #e9-world-stage-zones .e9-zone[data-zone="k16_20"] .e9-zone__plaque {
+  right: auto;
+  left: calc(100% + 9px);
+  text-align: left;
+  transform: translateY(-50%);
+}
+
+/* G009_339_OWNER_ACCEPTED_LANDSCAPE_OVERVIEW_INTEGRATION_001 -- Owner-accepted iPad
+   landscape ten-zone overview (default) + reversible detail view. Gated by the
+   genuine data-g009-ipad-landscape flag set in world_stage.js;
+   data-g009-map-view="detail" restores the normal zoomed map with its WM-Q1 pan.
+   Portrait is untouched. The full 16:9 world is fitted right of the left nav. */
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-map-stage {
+  position: absolute !important;
+  inset: auto !important;
+  top: 52% !important;
+  left: clamp(190px, 15.5%, 230px) !important;
+  width: calc(100% - clamp(190px, 15.5%, 230px) - 14px) !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9 !important;
+  max-height: calc(100% - 110px) !important;
+  min-height: 0 !important;
+  transform: translateY(-50%) !important;
+  overflow: hidden !important;
+  border: 2px solid rgba(221,179,90,.9) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 14px 38px rgba(0,0,0,.54) !important;
+  background: #101b30 !important;
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-map-stage .e9-map-stage__pan-content {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-map-stage .e9-map-stage__base {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: fill !important;
+  object-position: center center !important;
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell {
+  background: radial-gradient(ellipse at 58% 46%,#233753 0%,#172740 55%,#0e192d 100%) !important;
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-world-stage-zones .e9-zone .e9-zone__plaque {
+  font-size: clamp(9px,1vw,12px);
+  padding: 3px 5px;
+  max-width: 105px;
+  min-width: 56px;
+  transform: translateY(-50%);
+}
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-world-stage-zones .e9-zone .e9-zone__name {
+  font-size: clamp(9px,1vw,11px);
+}
+
+/* Keep stage 09's tag away from stage 04 at normal iPad widths. */
+html[data-g009-ipad-landscape]:not([data-g009-map-view="detail"]) body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-world-stage-zones .e9-zone[data-zone="d5_6"] .e9-zone__plaque {
+  transform: translateY(calc(-50% - 42px)) !important;
+}
+
+/* Overview / detail switch (button created by world_stage.js). */
+html[data-g009-ipad-landscape] #g009-map-overview-mode-switch {
+  position: fixed !important;
+  top: 122px;
+  right: 27px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid #dfb96a;
+  border-radius: 10px;
+  color: #fae6b8;
+  background: linear-gradient(180deg,#24385c,#15223e);
+  box-shadow: 0 4px 14px rgba(0,0,0,.42);
+  font: 700 13px/1.3 system-ui,sans-serif;
+  cursor: pointer;
+}
+html:not([data-g009-ipad-landscape]) #g009-map-overview-mode-switch { display: none !important; }

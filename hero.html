@@ -1146,6 +1146,23 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   transform: translateY(-2px); border-color: var(--pet-accent, var(--teal));
   box-shadow: 0 10px 26px rgba(28,16,4,.22);
 }
+/* Show real gated Spirit goals in both first-pet catalog and owned-roster views. */
+.pet-choice-card:disabled { cursor: default; border-style: dashed; opacity: .92; }
+.pet-choice-card:disabled:hover { transform: none; box-shadow: none; }
+.pet-choice-card.locked-spirit .pet-choice-art { filter: saturate(.78); }
+.pet-choice-requirement {
+  display: block; margin-top: 8px; font-weight: 800;
+  font-size: 12px; line-height: 1.45; color: #5c4829;
+  overflow-wrap: anywhere;
+}
+.pet-roster-unlock-requirement {
+  display: block; font-size: 10.5px; font-weight: 700;
+  line-height: 1.45; color: var(--ink2);
+  white-space: normal; overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .pet-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .pet-choice-art {
   width: 100%; aspect-ratio: 1 / 1; object-fit: contain; object-position: center;
   display: block; margin: 0 auto 8px; filter: drop-shadow(0 10px 16px rgba(42,23,8,.22));
@@ -1172,7 +1189,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .pet-roster-grid { display: flex; flex-wrap: wrap; gap: 9px; }
 .pet-roster-chip {
   position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  width: 92px; padding: 8px 6px 7px; cursor: pointer; text-align: center;
+  width: 145px; min-height: 138px; padding: 8px 8px 10px; cursor: pointer; text-align: center;
   border: 1.5px solid var(--border); border-radius: 12px;
   background: linear-gradient(180deg,#fff8df,#ecd9aa);
   transition: transform .15s, border-color .15s, box-shadow .15s;
@@ -1197,7 +1214,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 }
 .pet-roster-name {
   font-size: 11px; font-weight: 800; color: var(--ink2); max-width: 100%;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: normal; overflow-wrap: anywhere;
 }
 .pet-roster-lv { font-size: 9.5px; color: var(--ink3); font-family: 'DM Mono', monospace; }
 .pet-roster-lv.claim { color: var(--teal-dark); font-weight: 800; }
@@ -1812,6 +1829,22 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 {"imports":{"three":"/assets/3d_shop/p048/vendor/three.module.js"}}
 </script>
 <link rel="stylesheet" href="/css/g009_hero_hub_batch_a.css">
+<style id="g010-hero-3d-gallery-style">
+#g010-3d-gallery{margin:18px 0;padding:16px;border:1px solid #a58d60;border-radius:18px;background:linear-gradient(160deg,#fff8e9,#e8eef4);color:#243344}
+#g010-3d-gallery h3{font-size:clamp(17px,2vw,22px);margin:0 0 8px;font-weight:800}
+#g010-3d-gallery p{margin:6px 0 14px;line-height:1.55}
+#g010-3d-gallery .g010-3d-caption{color:#47596a}
+#g010-3d-gallery .g010-3d-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#g010-3d-gallery label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700}
+#g010-3d-gallery select{display:block;min-width:0;width:100%;min-height:44px;padding:8px 10px;border:1px solid #8b9cac;border-radius:9px;background:#fff;color:#243344;font:inherit}
+#g010-3d-gallery #g010-3d-canvas{width:100%;height:clamp(300px,48vw,460px);margin-top:12px;border:1px solid #637b91;border-radius:12px;overflow:hidden;background:#142439;touch-action:none}
+#g010-3d-gallery #g010-3d-canvas canvas{display:block;width:100%;height:100%;touch-action:none}
+#g010-3d-gallery .g010-3d-foot{margin-top:10px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+#g010-3d-gallery #g010-3d-status{font-size:13px;line-height:1.5}
+#g010-3d-gallery #g010-3d-reset{min-height:44px;border:1px solid #647b91;border-radius:9px;padding:7px 12px;background:#e4edf4;color:#26384a;white-space:nowrap}
+#g010-3d-gallery .g010-3d-rights{font-size:11px;opacity:.74;margin-bottom:0}
+@media(max-width:600px){#g010-3d-gallery{padding:12px}#g010-3d-gallery .g010-3d-controls{grid-template-columns:1fr}#g010-3d-gallery .g010-3d-foot{flex-direction:column;align-items:stretch}#g010-3d-gallery #g010-3d-canvas{height:340px}}
+</style>
 </head>
 <body data-hero-tab="hero" data-loadout-effective="off" data-g009-surface="hero-hub" data-g009-hero-sections="5" data-g009-hero-hub="batch-a" data-g009-visual-authority="locked-12-surfaces">
 
@@ -2362,6 +2395,14 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
         <div class="g009-stage-aura" aria-hidden="true"></div>
         <div class="g009-stage-light" aria-hidden="true"></div>
         <div class="g009-stage-pedestal" aria-hidden="true"></div>
+        <div id="g009-hero-rotate-controls" class="g009-turntable-controls" data-turntable-ready="false" aria-label="3D 角色旋轉操作">
+          <span class="g009-turntable-hint">3D 角色 · 拖曳或滑動可 360° 旋轉</span>
+          <div class="g009-turntable-buttons">
+            <button type="button" data-turntable-action="left" disabled aria-label="角色向左旋轉 45 度">↶</button>
+            <button type="button" data-turntable-action="reset" disabled aria-label="角色回到正面">正面</button>
+            <button type="button" data-turntable-action="right" disabled aria-label="角色向右旋轉 45 度">↷</button>
+          </div>
+        </div>
       </div>
       <div class="g009-stage-identity">
         <span id="g009-player-display-name" class="g009-player-display-name">—</span>
@@ -2435,6 +2476,21 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
         <div id="g009-equipment-list" class="g009-slot-list">
           <div class="g009-loading" data-i18n="g009.hero.equipment.unavailable">裝備呈現暫時不可用。</div>
         </div>
+        <section class="g010-3d-gallery" id="g010-3d-gallery" data-state="loading"
+                aria-label="真實 3D 資產展示">
+          <h3>3D 模型館 · 真人物／武器／裝備／棋靈</h3>
+          <p class="g010-3d-caption">可檢視已核准的真實 GLB 模型、滑動旋轉與切換。展示不代表已擁有，也不會購買或穿戴；實際裝備由背包管理。</p>
+          <div class="g010-3d-controls">
+            <label>模型分類<select id="g010-3d-category" aria-label="3D 模型分類"></select></label>
+            <label>選擇 3D 模型<select id="g010-3d-model" aria-label="3D 模型選擇"></select></label>
+          </div>
+          <div id="g010-3d-canvas" aria-label="真實 3D 模型旋轉檢視區"></div>
+          <div class="g010-3d-foot">
+            <span id="g010-3d-status" role="status" aria-live="polite">核對 3D 資產中…</span>
+            <button id="g010-3d-reset" type="button">重置視角</button>
+          </div>
+          <p class="g010-3d-rights">依資產權利與 Owner 既有模型授權清單顯示；尚未正式准入的武器不會藉此取得購買、穿戴或部署權限。</p>
+        </section>
         <div class="g009-actions">
           <a class="g009-action-button" href="/inventory" data-i18n="g009.hero.equipment.backpack">到背包管理</a>
         </div>
@@ -2467,6 +2523,18 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
           <span class="g009-panel-icon" aria-hidden="true">♧</span>
           <h2 data-i18n="g009.hero.companion.title">既有夥伴系統</h2>
           <span class="g009-panel-rule"></span>
+        </div>
+        <div id="g009-companion-3d-shell" class="g009-companion-3d-shell" data-preview-state="inactive">
+          <div id="g009-companion-3d-viewport" class="g009-companion-3d-viewport" aria-label="棋靈立體模型 360 度檢視"></div>
+          <div id="g009-companion-3d-status" class="g009-companion-3d-status" role="status">準備載入棋靈 3D 模型</div>
+          <div id="g009-companion-rotate-controls" class="g009-turntable-controls" data-turntable-ready="false" aria-label="3D 棋靈旋轉操作">
+            <span class="g009-turntable-hint">3D 棋靈 · 拖曳或滑動可 360° 旋轉</span>
+            <div class="g009-turntable-buttons">
+              <button type="button" data-turntable-action="left" disabled aria-label="棋靈向左旋轉 45 度">↶</button>
+              <button type="button" data-turntable-action="reset" disabled aria-label="棋靈回到正面">正面</button>
+              <button type="button" data-turntable-action="right" disabled aria-label="棋靈向右旋轉 45 度">↷</button>
+            </div>
+          </div>
         </div>
         <div id="g009-companion-active" class="g009-companion-active">
           <div class="g009-loading" data-i18n="g009.hero.companion.loading">載入夥伴資料…</div>
@@ -3078,20 +3146,24 @@ function renderPetCompanion() {
       <div>
         <div class="pet-intro-text">
           ${isEn()
-            ? 'Choose one companion to begin. It will stay on your Hero page, gain levels through feeding and practice, and grow with your Go journey.'
-            : '選一隻棋靈夥伴開始同行。牠會留在 HERO 頁，透過餵食與修行升級，陪你一起走完整個圍棋旅程。'}
+            ? 'Your first Spirit is always Ink-drop Kelpie. Preview the others and their unlock requirements; unreleased Spirits cannot be claimed.'
+            : '第一隻棋靈固定為墨滴水靈馬。其他棋靈先展示外觀與取得條件，達標後依序領取；未公布的條件尚未開放。'}
         </div>
         ${petRosterHTML(collection, { showSingle: true })}
         <div class="pet-choice-grid">
-          ${(_petState.catalog || []).map(p => `
-            <button class="pet-choice-card" style="--pet-accent:${p.accent || '#0b6f69'}" onclick="choosePet('${p.key}')">
+          ${(_petState.catalog || []).map(p => {
+            const starter = p.key === 'ink_drop_kelpie';
+            const requirement = petUnlockConditionText(p.key, SPIRIT_DISPLAY_UNLOCK_GATES[p.key] ?? null, null, false);
+            return `
+            <button type="button" class="pet-choice-card${starter ? '' : ' locked-spirit'}" data-spirit-key="${escapeHTML(p.key)}" style="--pet-accent:${p.accent || '#0b6f69'}" ${starter ? "onclick=\"choosePet('ink_drop_kelpie')\"" : "disabled aria-disabled=\"true\""}>
               <img class="pet-choice-art" src="${petAnimatedImage(p)}" alt="${escapeHTML(petLocal(p,'name','name_en'))}" loading="lazy" decoding="async">
               <span class="pet-choice-role">${escapeHTML(petLocal(p,'role','role_en'))}</span>
               <div class="pet-choice-name">${escapeHTML(petLocal(p,'name','name_en'))}</div>
               <div class="pet-choice-en">${escapeHTML(p.name_en || '')}</div>
               <div class="pet-choice-desc">${escapeHTML(petLocal(p,'ability','ability_en'))}</div>
-            </button>
-          `).join('')}
+              <div class="pet-choice-requirement" data-spirit-initial-unlock="${escapeHTML(p.key)}">${escapeHTML(requirement)}</div>
+            </button>`;
+          }).join('')}
         </div>
       </div>`;
     return;
@@ -3147,13 +3219,16 @@ function renderPetCompanion() {
         <div class="pet-food-row">
           ${foods.map(f => `
             <div class="pet-food-item">
-              <button class="pet-action-btn" onclick="feedPet('${f.key}')" ${f.qty <= 0 ? 'disabled' : ''}>
+              <button class="pet-action-btn" data-pet-feed="${escapeHTML(f.key)}" onclick="feedPet('${f.key}')" ${petFeedDisabled(f) ? 'disabled' : ''}>
                 ${escapeHTML(petLocal(f,'name','name_en'))} × ${f.qty}
               </button>
               ${petFoodHelpHTML(f)}
             </div>
           `).join('')}
         </div>
+        <div class="pet-food-help-effect">${isEn()
+          ? 'Feeding consumes one food even at full fullness. Fullness caps at 100; food still grants XP and Bond (Bond caps at 100).'
+          : '飽食度已滿仍可餵食，每次消耗 1 份食物。飽食度上限 100，仍獲得 XP 與親密度（親密度上限 100）。'}</div>
         ${petActionRowHTML(p, _petState)}
         <div class="pet-rename-row">
           <input id="pet-rename-input" maxlength="16" value="${petName}" placeholder="${isEn() ? 'Companion name' : '寵物名字'}">
@@ -3364,6 +3439,23 @@ function petMilestoneToast(milestones) {
     : `里程碑 LV${m.level} 達成！陪練加成提升，獲得 ${reward}`;
 }
 
+// Read-only canonical first-three Spirit threshold copy. Once owned, prefer server locked-entry state.
+const SPIRIT_DISPLAY_UNLOCK_GATES = Object.freeze({
+  ink_drop_kelpie: 1, whispering_void_kit: 11, star_shell_hatchling: 16,
+  starpath_antlerling: null, fatty: null, obsidian_bastion: null,
+});
+function petUnlockConditionText(key, gate, maxLevel, claimable = false) {
+  if (key === 'ink_drop_kelpie') return isEn() ? 'First Spirit, fixed starter' : '初始棋靈：第一隻固定取得';
+  if (claimable) return isEn() ? 'Requirement met; claim in order' : '條件已達成，可依序領取';
+  if (Number.isSafeInteger(gate) && gate > 1) {
+    const now = Number.isSafeInteger(maxLevel) ? (isEn() ? ' (highest LV' + maxLevel + ')' : '（目前最高 LV' + maxLevel + '）') : '';
+    return isEn() ? 'Raise any owned Spirit to LV' + gate + now + ', claim in order'
+      : '將任一已擁有棋靈培養至 LV' + gate + now + '，依序領取';
+  }
+  return isEn() ? 'Condition not announced; not yet available'
+    : '解鎖條件尚未公布（待冒險／Boss／任務正式規則，目前未開放）';
+}
+
 function petRosterHTML(col, { showSingle = false } = {}) {
   if (!col) return '';
   const owned = col.collection || [];
@@ -3376,6 +3468,7 @@ function petRosterHTML(col, { showSingle = false } = {}) {
       <span class="pet-roster-lv">LV${o.level}${o.active ? ` · ${isEn() ? 'Active' : '出戰'}` : ''}</span>
     </button>`).join('');
   const lockedChips = locked.map(l => {
+    const requirement = petUnlockConditionText(l.key, l.unlock_level, col.max_level, l.claimable);
     const cond = l.claimable
       ? (isEn() ? 'Claim' : '可領取')
       : (l.unlock_level ? `LV${l.unlock_level}` : (isEn() ? 'Locked' : '未解鎖'));
@@ -3384,6 +3477,7 @@ function petRosterHTML(col, { showSingle = false } = {}) {
       <img class="pet-roster-art" src="${petAnimatedImage(l)}" alt="" loading="lazy" decoding="async" style="${l.claimable ? '' : 'filter:grayscale(1);opacity:.5'}">
       <span class="pet-roster-name">${escapeHTML(petLocal(l,'name','name_en'))}</span>
       <span class="pet-roster-lv${l.claimable ? ' claim' : ''}">${cond}</span>
+      <span class="pet-roster-unlock-requirement" data-spirit-locked-req="${escapeHTML(l.key)}">${escapeHTML(requirement)}</span>
     </button>`;
   }).join('');
   return `
@@ -3506,25 +3600,74 @@ async function choosePet(petKey) {
   }
 }
 
-async function feedPet(itemKey) {
-  const petKey = _petState && _petState.pet && _petState.pet.pet_key;
-  try {
-    const res = await fetch('/api/pet/feed', {
-      method:'POST', credentials:'include',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({item_key: itemKey}),
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || 'failed');
-    const hitMilestone = data.milestones && data.milestones.length;
-    showToast(hitMilestone ? petMilestoneToast(data.milestones)
-            : data.leveled ? (isEn() ? 'Level up!' : '寵物升級了！')
-            : (data.message || (isEn() ? 'Fed' : '餵食完成')));
-    if (petKey) _petPendingLine = { sit:'fed', action:'feed', leveled: !!data.leveled, milestone: !!hitMilestone, text: petSay(petKey, hitMilestone ? 'milestone' : data.leveled ? 'leveled' : 'fed') };
-    await loadPetStatus();
-  } catch (e) {
-    showToast(e.message || (isEn() ? 'Could not feed companion' : '餵食失敗'));
+let _petFeedInFlight = null;
+// Retain an uncertain operation until the same request receives a definitive reply.
+let _petFeedPending = null;
+
+function petFeedDisabled(food) {
+  if (_petFeedInFlight || !food) return true;
+  if (_petFeedPending) return food.key !== _petFeedPending.item_key || _petState?.pet?.pet_key !== _petFeedPending.spirit_id;
+  return food.qty <= 0;
+}
+
+function syncPetFeedButtons() {
+  document.querySelectorAll('[data-pet-feed]').forEach(btn => {
+    const food = (_petState?.inventory || []).find(f => f.key === btn.dataset.petFeed);
+    btn.disabled = petFeedDisabled(food);
+    btn.setAttribute('aria-busy', _petFeedInFlight ? 'true' : 'false');
+  });
+}
+
+function feedPet(itemKey) {
+  if (_petFeedInFlight) return _petFeedInFlight;
+  const petKey = _petState?.pet?.pet_key;
+  if (!petKey || !itemKey) return Promise.resolve();
+  if (_petFeedPending && (_petFeedPending.spirit_id !== petKey || _petFeedPending.item_key !== itemKey)) {
+    showToast(isEn() ? 'Retry the previous food with the original companion first.' : '請先切回原棋靈，重試上次的食物以確認結果。');
+    return Promise.resolve();
   }
+  if (!_petFeedPending) _petFeedPending = {
+    item_key: itemKey, spirit_id: petKey,
+    operation_id: newCompanionOperationId('companion:feed'),
+  };
+  const body = JSON.stringify(_petFeedPending);
+  // Defer execution so the lock exists before any request or UI refresh can run.
+  _petFeedInFlight = Promise.resolve().then(async () => {
+    try {
+      let res, data;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          res = await fetch('/api/pet/feed', {
+            method:'POST', credentials:'include',
+            headers:{'Content-Type':'application/json'}, body,
+          });
+          data = await res.json();
+          if (!data || (typeof data.ok !== 'boolean' && !(res.status >= 400 && res.status < 500 && data.error))) throw new Error('Invalid feed response');
+          break;
+        } catch (error) {
+          if (attempt === 1) throw error;
+        }
+      }
+      // A server failure may hide a committed result: keep its identity for retry.
+      if (res.status < 500) _petFeedPending = null;
+      if (!res.ok || data.ok !== true || data.error) throw new Error(data.error || data.message || 'failed');
+      const hitMilestone = data.milestones && data.milestones.length;
+      showToast(hitMilestone ? petMilestoneToast(data.milestones)
+              : data.leveled ? (isEn() ? 'Level up!' : '寵物升級了！')
+              : (data.message || (isEn() ? 'Fed' : '餵食完成')));
+      if (_petState?.pet?.pet_key === petKey) _petPendingLine = { sit:'fed', action:'feed', leveled: !!data.leveled, milestone: !!hitMilestone, text: petSay(petKey, hitMilestone ? 'milestone' : data.leveled ? 'leveled' : 'fed') };
+      await loadPetStatus();
+    } catch (e) {
+      showToast(_petFeedPending
+        ? (isEn() ? 'Feed result unconfirmed. Retry the same food with this companion to confirm without consuming twice.' : '餵食結果尚未確認。請以原棋靈重試相同食物，確認結果而不重複消耗。')
+        : (e.message || (isEn() ? 'Could not feed companion' : '餵食失敗')));
+    } finally {
+      _petFeedInFlight = null;
+      syncPetFeedButtons();
+    }
+  });
+  syncPetFeedButtons();
+  return _petFeedInFlight;
 }
 
 async function interactPet(mode, hours) {
@@ -4105,11 +4248,24 @@ const FUNCTIONAL_EQUIPMENT_IDS = new Set([
   'wooden_sword', 'iron_sword', 'fox_fang', 'dragon_claw', 'celestial_blade',
   'cloth_robe', 'leather_armor', 'fox_pelt', 'dragon_scale', 'void_mantle',
   'lucky_stone', 'xp_amulet', 'fox_mask', 'dragon_eye', 'go_stone_black',
+  'bamboo_shadow_blade', 'jade_river_bead', 'bamboo_scale_vest', 'foxtail_traveler_mantle',
+  'riverguard_coat', 'riverstone_sabre', 'cloudstep_star_lamellar', 'constellation_focus_lens',
+  'moonstar_rapier', 'odyssey_star_compass', 'emberline_cutlass', 'starglass_needle',
+  'weaveguard_vest', 'mirrorfall_mantle', 'copper_jade_talisman', 'prism_focus_charm',
 ]);
 const FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS = new Set([
   'wooden_sword', 'iron_sword', 'fox_fang', 'dragon_claw', 'celestial_blade',
   'cloth_robe', 'leather_armor', 'fox_pelt', 'dragon_scale', 'void_mantle',
   'lucky_stone', 'xp_amulet', 'fox_mask', 'dragon_eye',
+  'jade_river_bead', 'bamboo_scale_vest', 'foxtail_traveler_mantle', 'riverguard_coat',
+  'cloudstep_star_lamellar', 'constellation_focus_lens', 'odyssey_star_compass',
+  'weaveguard_vest', 'mirrorfall_mantle', 'copper_jade_talisman', 'prism_focus_charm',
+]);
+const FUNCTIONAL_HANDHELD_EQUIPMENT_IDS = new Set([
+  'bamboo_shadow_blade', 'riverstone_sabre', 'moonstar_rapier', 'emberline_cutlass', 'starglass_needle',
+]);
+const FUNCTIONAL_VISIBLE_EQUIPMENT_IDS = new Set([
+  ...FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS, ...FUNCTIONAL_HANDHELD_EQUIPMENT_IDS,
 ]);
 const FUNCTIONAL_HERO_SLOT_BY_ID = Object.freeze({
   wooden_sword: 'weapon', iron_sword: 'weapon', fox_fang: 'weapon',
@@ -4118,6 +4274,12 @@ const FUNCTIONAL_HERO_SLOT_BY_ID = Object.freeze({
   dragon_scale: 'armor', void_mantle: 'armor',
   lucky_stone: 'accessory', xp_amulet: 'accessory', fox_mask: 'accessory',
   dragon_eye: 'accessory',
+  bamboo_shadow_blade: 'weapon', riverstone_sabre: 'weapon', moonstar_rapier: 'weapon',
+  emberline_cutlass: 'weapon', starglass_needle: 'weapon',
+  bamboo_scale_vest: 'armor', foxtail_traveler_mantle: 'armor', riverguard_coat: 'armor',
+  cloudstep_star_lamellar: 'armor', weaveguard_vest: 'armor', mirrorfall_mantle: 'armor',
+  jade_river_bead: 'accessory', constellation_focus_lens: 'accessory', odyssey_star_compass: 'accessory',
+  copper_jade_talisman: 'accessory', prism_focus_charm: 'accessory',
 });
 const FUNCTIONAL_HERO_SLOTS = new Set(['weapon', 'armor', 'accessory']);
 function normalizeHeroFunctionalEquipment(items) {
@@ -4130,7 +4292,7 @@ function normalizeHeroFunctionalEquipment(items) {
     if (!FUNCTIONAL_EQUIPMENT_IDS.has(itemId)) return { status: 'unavailable', items: [] };
     if (FUNCTIONAL_INVENTORY_ONLY_IDS.has(itemId)) continue;
     if (item.functional_equipment !== true
-      || !FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(itemId)
+      || !FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(itemId)
       || !FUNCTIONAL_HERO_SLOTS.has(item.slot)
       || FUNCTIONAL_HERO_SLOT_BY_ID[itemId] !== item.slot) {
       return { status: 'unavailable', items: [] };
@@ -4162,14 +4324,16 @@ function functionalWearableDescriptor(item) {
   if (!item || item.functional_equipment !== true || item.equipped !== true) return null;
   const itemId = String(item.item_id || item.id || '');
   const presentation = item.presentation || {};
-  if (!FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(itemId)) return null;
-  if (presentation.mode !== 'FULL_BODY_OVERLAY' || presentation.full_body_required !== true) return null;
+  if (!FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(itemId)) return null;
+  const expectedMode = FUNCTIONAL_HANDHELD_EQUIPMENT_IDS.has(itemId) ? 'HANDHELD_OVERLAY' : 'FULL_BODY_OVERLAY';
+  if (presentation.mode !== expectedMode || presentation.full_body_required !== true) return null;
   const expectedAsset = `${FUNCTIONAL_WEARABLE_ASSET_ROOT}${itemId}.png`;
   if (presentation.asset !== expectedAsset) return null;
   const layer = String(presentation.layer || '');
   if (!layer) return null;
   return {
     itemId,
+    slot: FUNCTIONAL_HERO_SLOT_BY_ID[itemId],
     asset: expectedAsset,
     layer,
     maskRequirement: presentation.mask_requirement || '',
@@ -4218,7 +4382,9 @@ function renderFunctionalWearableProjection() {
   };
   return Promise.all(stages.map(([stage, fallback]) => {
     if (!stage) return Promise.resolve({ supported: false, reason: 'missing_stage' });
-    return renderer.renderSafe(stage, characterKey, equipped, { ...options, fallbackElement: fallback });
+    return renderer.renderSafe(stage, characterKey, equipped, {
+      ...options, fallbackElement: fallback, isCurrent: () => token === _functionalWearableRenderToken,
+    });
   })).then(results => {
     if (token !== _functionalWearableRenderToken) return results;
     stages.forEach(([stage], index) => {
@@ -4307,7 +4473,7 @@ function renderFunctionalEquipmentProjection() {
   const items = (_functionalEquipmentItems || []).filter(item => item
     && item.item_id !== 'go_stone_black'
     && item.functional_equipment === true
-    && FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)
+    && FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)
     && item.equipped === true);
   const targets = [
     [document.getElementById('hero-functional-projection'), document.getElementById('hero-functional-projection-list')],
@@ -4339,7 +4505,7 @@ function renderAuthoritativeFunctionalEffects(items = _functionalEquipmentItems)
   const chips = [];
   (Array.isArray(items) ? items : []).forEach(item => {
     if (!item || item.functional_equipment !== true || item.equipped !== true
-      || item.item_id === 'go_stone_black' || !FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)) return;
+      || item.item_id === 'go_stone_black' || !FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)) return;
     functionalProjectionEffectDetails(item.active_effect_details).forEach(effect => {
       const key = String(effect?.key || '').trim();
       if (!key || seen.has(key)) return;
@@ -5226,16 +5392,20 @@ function a028NormalizePlayerPresentationSnapshot(payload) {
   if (!progression || typeof progression !== 'object' || Array.isArray(progression)) {
     throw new Error('player presentation progression is unavailable');
   }
-  for (const key of ['xp', 'level', 'rank_level', 'go_rank']) {
+  for (const key of ['xp', 'level', 'rank_xp', 'rank_level', 'go_rank']) {
     if (!Object.prototype.hasOwnProperty.call(progression, key)) {
       throw new Error(`player presentation progression.${key} is missing`);
     }
   }
-  if (typeof progression.xp !== 'number' || !Number.isFinite(progression.xp) || progression.xp < 0) {
+  if (!Number.isSafeInteger(progression.xp) || progression.xp < 0) {
     throw new Error('player presentation XP is invalid');
   }
-  if (typeof progression.level !== 'number' || !Number.isFinite(progression.level) || progression.level < 0) {
+  if (typeof progression.level !== 'number' || !Number.isInteger(progression.level) || progression.level < 1 || progression.level > 100) {
     throw new Error('player presentation level is invalid');
+  }
+  if (progression.rank_xp !== null &&
+      (!Number.isSafeInteger(progression.rank_xp) || progression.rank_xp < 0 || progression.rank_xp > progression.xp)) {
+    throw new Error('player presentation level XP is invalid');
   }
   for (const key of ['rank_level', 'go_rank']) {
     if (progression[key] !== null && typeof progression[key] !== 'string') {
@@ -5258,6 +5428,7 @@ function a028NormalizePlayerPresentationSnapshot(payload) {
     hero: Object.freeze({ hero_id: hero.hero_id }),
     progression: Object.freeze({
       xp: progression.xp,
+      rank_xp: progression.rank_xp,
       level: progression.level,
       rank_level: progression.rank_level,
       go_rank: progression.go_rank,
@@ -5305,11 +5476,22 @@ function a028HeroOverviewView(legacyProfile = {}) {
       level: progression.level,
       rankLevel: progression.rank_level,
       goRank: progression.go_rank,
-      xp: progression.xp,
-      // The current profile denominator is retained only as display scale;
-      // the A028 numerator and all displayed identity/rank facts come from
-      // the Player Presentation snapshot.
-      xpNext: a028LegacyXpNext(legacyProfile),
+      xp: progression.xp, // canonical TOTAL XP, not XP in the current level
+      xpInLevel: progression.rank_xp, // server-owned current-level cache
+      // A legacy profile contributes only the level-size denominator,
+      // and only if its total XP, level, and level-XP all match this
+      // authoritative Player Presentation snapshot. A stale profile MUST
+      // NOT turn cumulative XP into a fake full progress bar.
+      xpNext: (
+        Number.isSafeInteger(legacyProfile.total_xp)
+        && Number.isSafeInteger(legacyProfile.level)
+        && Number.isSafeInteger(legacyProfile.lv_xp ?? legacyProfile.xp)
+        && legacyProfile.total_xp === progression.xp
+        && legacyProfile.level === progression.level
+        && (legacyProfile.lv_xp ?? legacyProfile.xp) === progression.rank_xp
+        && progression.rank_xp !== null
+        && a028LegacyXpNext(legacyProfile) > progression.rank_xp
+      ) ? a028LegacyXpNext(legacyProfile) : null,
     };
   }
   return {
@@ -5324,6 +5506,40 @@ function a028HeroOverviewView(legacyProfile = {}) {
   };
 }
 
+function a028HeroXpPresentation(view) {
+  const en = typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en';
+  const total = Number(view.xp ?? 0);
+  if (view.source !== 'player_presentation') {
+    const next = view.xpNext;
+    return {
+      text: next ? `${total.toLocaleString()} / ${next.toLocaleString()} XP` : `${total.toLocaleString()} XP`,
+      pct: next ? Math.max(0, Math.min(100, Math.round(total / next * 100))) : null,
+    };
+  }
+  if (view.level === 100) {
+    return {
+      text: en ? `${total.toLocaleString()} total XP · Max level`
+        : `總計 ${total.toLocaleString()} XP · 已達最高等級`,
+      pct: 100,
+    };
+  }
+  if (view.xpNext !== null && Number.isSafeInteger(view.xpInLevel) &&
+      view.xpInLevel >= 0 && view.xpInLevel < view.xpNext) {
+    return {
+      text: `${view.xpInLevel.toLocaleString()} / ${view.xpNext.toLocaleString()} XP · ` +
+        (en ? `${total.toLocaleString()} total` : `總計 ${total.toLocaleString()}`),
+      pct: Math.max(0, Math.min(100, Math.round(view.xpInLevel / view.xpNext * 100))),
+    };
+  }
+  // Not enough consistent facts for an XP progress ratio. Showing an
+  // unavailable fraction is safer than substituting cumulative XP.
+  return {
+    text: en ? `${total.toLocaleString()} total XP · Level progress unavailable`
+      : `總計 ${total.toLocaleString()} XP · 本級進度暫無法確認`,
+    pct: null,
+  };
+}
+
 function a028ApplyPlayerPresentationSafeFields(snapshot, legacyProfile = {}) {
   if (!snapshot) return false;
   const view = a028HeroOverviewView(legacyProfile);
@@ -5331,10 +5547,7 @@ function a028ApplyPlayerPresentationSafeFields(snapshot, legacyProfile = {}) {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
   };
-  const xp = Number(view.xp);
-  const xpNext = view.xpNext;
-  const xpText = xpNext ? `${xp.toLocaleString()} / ${xpNext.toLocaleString()} XP` : `${xp.toLocaleString()} XP`;
-  const xpPct = xpNext ? Math.max(0, Math.min(100, Math.round(xp / xpNext * 100))) : null;
+  const { text: xpText, pct: xpPct } = a028HeroXpPresentation(view);
   if (view.displayName) {
     set('char-name', view.displayName);
     set('hero-overview-name', view.displayName);
@@ -5364,7 +5577,7 @@ function renderHeroOverview() {
   const functionalEquipped = _functionalEquipmentState === 'ready'
     ? (_functionalEquipmentItems || []).filter(item => item
       && item.functional_equipment === true
-      && FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(item.item_id)
+      && FUNCTIONAL_VISIBLE_EQUIPMENT_IDS.has(item.item_id)
       && item.equipped === true)
     : [];
   const equipmentNames = functionalEquipped.map(functionalProjectionName);
@@ -5397,11 +5610,7 @@ function renderHeroOverview() {
   set('hero-overview-equipment', _functionalEquipmentState === 'unavailable'
     ? (isEn() ? 'Equipment presentation unavailable' : '裝備展示暫不可用')
     : (equipmentNames.length ? equipmentNames.join(' · ') : (isEn() ? 'No stat equipment equipped' : '尚未裝備數值裝備')));
-  const overviewXp = Number(presentationView.xp ?? 0);
-  const overviewXpNext = presentationView.xpNext;
-  set('hero-overview-xp', overviewXpNext
-    ? `${overviewXp.toLocaleString()} / ${overviewXpNext.toLocaleString()} XP`
-    : `${overviewXp.toLocaleString()} XP`);
+  set('hero-overview-xp', a028HeroXpPresentation(presentationView).text);
   set('hero-overview-bonus', bonusLabels.length ? bonusLabels.join(' · ') : (isEn() ? 'No active bonus' : '目前沒有加成'));
 }
 
@@ -5870,6 +6079,8 @@ function launchGoldConfetti() {
 <script type="module" src="/js/g009_d007_shared_host_bootstrap.js"></script>
 <script type="module" src="/js/g009_d_r2_shared_host_bootstrap.js"></script>
 <script type="module" src="/js/g009_companion_formal18_bootstrap.mjs"></script>
+<script type="module" src="/js/g009_companion_360_viewer.mjs"></script>
+<script type="module" src="/js/g010_hero_3d_gallery.mjs"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>
 </body>
 </html>

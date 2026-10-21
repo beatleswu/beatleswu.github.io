@@ -281,10 +281,16 @@ export function createG009SharedHeroAttachmentHost(characterRoot, THREE) {
     const anchorPosition = handBones.has(slot)
       ? anchors.get(slot).position.toArray()
       : positions[slot];
+    // Read-only geometric fact for isolated hand-attachment fitting.
+    // Existing keys and slot authority are unchanged; never grants equipment.
+    const boneScale = handBones.has(slot) && handBones.get(slot)
+      ? handBones.get(slot).getWorldScale(new THREE.Vector3()).toArray()
+      : null;
     return Object.freeze({
       character_size: Object.freeze([size.x, size.y, size.z]),
       anchor_position: Object.freeze([...anchorPosition]),
       ground_y: localBounds.min.y,
+      hand_world_scale: boneScale ? Object.freeze([...boneScale]) : null,
     });
   }
 

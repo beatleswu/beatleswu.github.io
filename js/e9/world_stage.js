@@ -381,10 +381,69 @@
     return 'DESKTOP';
   }
 
+  // Presentation-only flag: real iPad hardware (iPad UA, or iPadOS desktop-class
+  // Macintosh/MacIntel UA with multi-touch) currently in physical landscape.
+  // Deliberately independent of hover/pointer media features, which Safari
+  // reports inconsistently (trackpad => fine pointer). Never true in portrait.
+  function isIpadLandscape() {
+    var nav = window.navigator || {};
+    var ua = String(nav.userAgent || '');
+    var touchPoints = typeof nav.maxTouchPoints === 'number' ? nav.maxTouchPoints : 0;
+    var ipadUa = /iPad/.test(ua);
+    var desktopClassIpad = (/Macintosh/.test(ua) || nav.platform === 'MacIntel') && touchPoints > 1;
+    if (!ipadUa && !desktopClassIpad) return false;
+    if (window.E9 && window.E9.isPortraitTabletOverride && window.E9.isPortraitTabletOverride()) return false;
+    var orientation = window.screen && window.screen.orientation;
+    if (orientation && typeof orientation.type === 'string') return orientation.type.indexOf('landscape') === 0;
+    var width = typeof window.innerWidth === 'number' ? window.innerWidth : 0;
+    var height = typeof window.innerHeight === 'number' ? window.innerHeight : 0;
+    return width > 0 && height > 0 && width > height;
+  }
+
+  // Presentation-only landscape map view toggle: 'overview' (default) fits the
+  // whole ten-zone world in one frame; 'detail' restores the normal zoomed map
+  // with its WM-Q1 horizontal pan. The button is created once (idempotent), is
+  // only visible under data-g009-ipad-landscape (CSS), and its label/aria state
+  // is re-synced from the root attribute on every viewport pass.
+  function syncMapViewSwitch(button) {
+    var detail = document.documentElement.getAttribute('data-g009-map-view') === 'detail';
+    button.textContent = detail ? '十關總覽' : '放大細看';
+    button.setAttribute('aria-pressed', detail ? 'true' : 'false');
+  }
+
+  function ensureMapViewSwitch() {
+    var rootEl = document.documentElement;
+    if (!rootEl || !document.body) return;
+    if (rootEl.getAttribute('data-g009-map-view') !== 'detail') rootEl.setAttribute('data-g009-map-view', 'overview');
+    var button = document.getElementById('g009-map-overview-mode-switch');
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'g009-map-overview-mode-switch';
+      button.type = 'button';
+      button.setAttribute('aria-label', '切換世界地圖總覽與細看模式');
+      button.addEventListener('click', function () {
+        var next = rootEl.getAttribute('data-g009-map-view') === 'detail' ? 'overview' : 'detail';
+        rootEl.setAttribute('data-g009-map-view', next);
+        syncMapViewSwitch(button);
+        try { window.dispatchEvent(new Event('resize')); } catch (e) { /* presentation-only reflow */ }
+      });
+      document.body.appendChild(button);
+    }
+    syncMapViewSwitch(button);
+  }
+
   function setViewportClass(root) {
     var viewportClass = resolveViewportClass();
     if (root) root.setAttribute('data-g009-viewport-class', viewportClass);
-    if (document.documentElement) document.documentElement.setAttribute('data-g009-viewport-class', viewportClass);
+    if (document.documentElement) {
+      document.documentElement.setAttribute('data-g009-viewport-class', viewportClass);
+      if (isIpadLandscape() && viewportClass !== 'IPAD_PORTRAIT_820' && viewportClass !== 'MOBILE_480') {
+        document.documentElement.setAttribute('data-g009-ipad-landscape', 'true');
+        ensureMapViewSwitch();
+      } else {
+        document.documentElement.removeAttribute('data-g009-ipad-landscape');
+      }
+    }
     return viewportClass;
   }
 
@@ -883,10 +942,17 @@
       .replace('{stars}', String(zone.stars));
   }
 
+  function zoneCompletionState(zone) {
+    if (zone.locked) return 'locked';
+    if (!(zone.cleared || zone.status === 'completed')) return 'incomplete';
+    return zone.stars === 3 ? 'three-star' : 'cleared';
+  }
+
   function zoneStateText(zone) {
     if (zone.locked) return t('g009.world.state_locked', 'Locked');
     if (zone.cleared || zone.status === 'completed') {
-      return t('g009.world.state_completed', 'Completed');
+      return t('index.adv.boss_defeated', 'Boss cleared') + ' · '
+        + t('index.adv.stars_label', 'Stars') + ': ' + zone.stars + ' / 3';
     }
     if (zone.status === 'skipped_by_placement') {
       return t('index.adv.status_skipped_by_placement', 'Star training available');
@@ -1432,6 +1498,43 @@
     }
   }
 
+  // A navigation entry, not a second gameplay dispatcher. Only an issued
+  // encounter, server primary action, or authoritative current zone may
+  // recommend a destination. Selection and star counts cannot invent one.
+  function recommendedEntryZone(state) {
+    if (!state || state.authorityUnavailable) return null;
+    var action = activeMandatoryEncounterAction(state) || state.primaryAction;
+    var key = action ? action.zoneKey : state.authoritativeCurrentZoneKey;
+    var zone = findZone(state.zones || [], key);
+    return zone && !zone.locked && zone.canEnter === true ? zone : null;
+  }
+
+  function configureRecommendedEntry(root, state) {
+    var button = root.querySelector('#e9-world-stage-recommended-entry');
+    if (!button) return;
+    if (button.__e9RecommendedHandler) {
+      button.removeEventListener('click', button.__e9RecommendedHandler);
+      button.__e9RecommendedHandler = null;
+    }
+    var zone = VS1E_STATIC_CONTRACT_ACTIVE && recommendedEntryZone(state);
+    button.hidden = !zone;
+    button.disabled = !zone;
+    button.textContent = zone ? t('index.adv.recommended_quest', 'Recommended Mainline')
+      + ': ' + zoneDisplayName(zone) : '';
+    button.removeAttribute('data-recommended-zone');
+    if (!zone) return;
+    button.setAttribute('data-recommended-zone', zone.key);
+    button.__e9RecommendedHandler = function () {
+      // Recheck live state; a refresh can revoke access after rendering.
+      var current = root.__e9WorldStageState;
+      var target = recommendedEntryZone(current);
+      if (!target) return;
+      renderSelectedZone(root, current.zones, target.key, true);
+      dispatchZoneSelection(root, target, current);
+    };
+    button.addEventListener('click', button.__e9RecommendedHandler);
+  }
+
   function configurePrimaryCta(root, zone, state) {
     var primary = root.querySelector('#e9-world-stage-primary-cta');
     if (!VS1E_STATIC_CONTRACT_ACTIVE) {
@@ -1474,6 +1577,7 @@
     setViewportClass(root);
     updateWorldMapMeterLabels(root);
     root.setAttribute('data-g009-zone-key', zone.key);
+    root.setAttribute('data-zone-completion', zoneCompletionState(zone));
     root.setAttribute('data-g009-zone-state', locked ? 'locked' : (zone.cleared ? 'completed' : 'available'));
     if (progressPanel) progressPanel.hidden = locked;
     if (viewDetails) viewDetails.setAttribute('data-g009-view-details', locked ? 'locked' : 'selected');
@@ -1863,6 +1967,7 @@
       tile.type = 'button';
       tile.className = 'e9-zone e9-zone--' + (zone.status || 'locked');
       tile.setAttribute('data-zone', zone.key);
+      tile.setAttribute('data-zone-completion', zoneCompletionState(zone));
       tile.setAttribute('data-g009-zone-state', zone.locked ? 'locked' : (
         playerLocation && zone.key === playerLocation.key ? 'current' : (
           zone.cleared || zone.status === 'completed' ? 'completed' : 'available'
@@ -1916,6 +2021,7 @@
         ))
       );
       stateBadge.textContent = isCompleted ? '\u2713' : '';
+      if (zoneCompletionState(zone) === 'three-star') stateBadge.textContent = '\u2605';
       tile.appendChild(stateBadge);
 
       tile.setAttribute('aria-pressed', 'false');
@@ -2059,6 +2165,7 @@
     // MOBILE_480 the inline detail card can change the current tile's height;
     // the WM-Q1 receipt must describe that final layout, while the focus
     // operation itself remains horizontal-only.
+    configureRecommendedEntry(root, state);
     if (VS1E_STATIC_CONTRACT_ACTIVE) focusCurrentZone(root, playerLocation);
   }
 

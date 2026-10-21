@@ -1147,7 +1147,9 @@ header:not(.cg-nav) .btn-logout {
 .qc-prog { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .qc-prog-bg { flex: 1; height: 7px; border-radius: 99px; background: rgba(7,13,34,.7); box-shadow: inset 0 0 0 1px var(--border); overflow: hidden; }
 .qc-prog-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--teal), var(--teal-l)); }
-.qc-prog-num { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink3); white-space: nowrap; }
+.qc-prog-num { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink3); }
+.qc-progress-note { margin: 6px 0; font-size: 12px; line-height: 1.5; color: var(--ink3); }
+.qc-milestone { color: var(--amber-l); }
 .qc-reward {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   font-size: 12px; padding-top: 7px; margin-top: auto;
@@ -1803,6 +1805,11 @@ const QB_T = {
   recommend:     { zh: '👑 長老推薦',       en: '👑 Elder\'s Pick' },
   bounty:        { zh: '懸賞', en: 'BOUNTY' },
   cleared:       { zh: '討伐完成！', en: 'Cleared!' },
+  practiced:     { zh: '已練習', en: 'Practiced' },
+  mastery_note:  { zh: '練習紀錄不代表精熟；此頁未提供精熟判定。', en: 'Practice records do not establish mastery; mastery is not reported here.' },
+  progress_unknown: { zh: '練習進度暫不可用', en: 'Practice progress unavailable' },
+  milestone:     { zh: '練習節點 {done} / {total} 題；距下一節點 {next} 題還差 {left} 題', en: 'Practice milestone {done} / {total}; next: {next}, {left} to go' },
+  practice_complete: { zh: '本委託題目已全數練習；領賞狀態以伺服器為準。', en: 'All problems practiced; reward availability is determined by the server.' },
   tracker:       { zh: 'ACTIVE QUESTS · 當前委託', en: 'ACTIVE QUESTS' },
   tracker_empty: { zh: '尚未接取委託——到佈告欄看看吧', en: 'No active quests — check the board' },
   all_done:      { zh: '🎉 公會制霸！所有委託皆已完成，靜候新的試煉……', en: '🎉 Guild conquered! All bounties cleared — new trials await…' },
@@ -2021,8 +2028,6 @@ function questUnitFromApi(q) {
     stage_key: q.stage_key || key,
     discipline,
     stage,
-    practiced: Number(q.practiced || 0),
-    total: Number(q.total || 0),
     coins: Number(q.coins || 0),
     xp: Number(q.xp || 0),
     href: q.href || `/?discipline=${encodeURIComponent(discipline)}&stage=${encodeURIComponent(stage)}&quest=${encodeURIComponent(key)}&resume=1`,
@@ -2042,11 +2047,35 @@ function questLookup(unitStats) {
   return byKey;
 }
 
+// Display-only checkpoints over the server's practiced count, not new quest
+// objectives, mastery decisions, or reward eligibility.
+function questPracticeProgress(unit) {
+  const { practiced, total } = unit;
+  if (!Number.isSafeInteger(practiced) || !Number.isSafeInteger(total) ||
+      total <= 0 || practiced < 0 || practiced > total) {
+    return { pct: 0, label: qbT('progress_unknown'), milestone: '' };
+  }
+  let milestone = '';
+  if (total >= 30 && total <= 50) {
+    if (practiced === total) {
+      milestone = qbT('practice_complete');
+    } else {
+      const done = Math.floor(practiced / 10) * 10;
+      const next = Math.min(total, done + 10);
+      milestone = qbT('milestone').replace('{done}', done).replace('{total}', total)
+        .replace('{next}', next).replace('{left}', next - practiced);
+    }
+  }
+  return { pct: practiced / total * 100,
+    label: `${qbT('practiced')} ${practiced.toLocaleString()} / ${total.toLocaleString()}`,
+    milestone };
+}
+
 function questCard(unit, mode, opts = {}) {
   const { coins, xp } = questReward(unit);
   const rank = STAGE_RANK[unit.stage] || '';
   const isDan = STAGE_IS_DAN[unit.stage] || false;
-  const pct = unit.total ? Math.round(unit.practiced / unit.total * 100) : 0;
+  const progress = questPracticeProgress(unit);
   const card = document.createElement('div');
   card.className = 'quest-card ' + mode + (opts.recommended ? ' recommended' : '');
   const sealSrc = `assets/guild_ui/qb_seal_${isDan ? 'purple' : 'red'}.webp`;
@@ -2067,9 +2096,11 @@ function questCard(unit, mode, opts = {}) {
       </span>
     </div>
     <div class="qc-prog">
-      <div class="qc-prog-bg"><div class="qc-prog-fill" style="width:${mode === 'claim' ? 100 : pct}%"></div></div>
-      <span class="qc-prog-num">${mode === 'claim' ? qbT('cleared') : `${unit.practiced.toLocaleString()} / ${unit.total.toLocaleString()}`}</span>
+      <div class="qc-prog-bg"><div class="qc-prog-fill" style="width:${progress.pct}%"></div></div>
+      <span class="qc-prog-num">${progress.label}</span>
     </div>
+    <p class="qc-progress-note">${qbT('mastery_note')}</p>
+    ${progress.milestone ? `<p class="qc-progress-note qc-milestone">${progress.milestone}</p>` : ''}
     <div class="qc-reward">
       <span class="rw-label">${qbT('bounty')}</span>
       <span class="rw-coin"><img class="qc-icon-coin" src="assets/guild_ui/qb_coin.webp" alt="🪙" loading="lazy" decoding="async">${coins}</span>
@@ -2194,11 +2225,12 @@ function questTrackerHtml(unitStats) {
     if (!u) return '';
     const isC = claimSet.has(k);
     if (!isC && u.completed) return '';
-    const pct = u.total ? Math.round(u.practiced / u.total * 100) : 0;
+    const progress = questPracticeProgress(u);
     return `<a class="gqt-item${isC ? ' claimable' : ''}" href="${isC ? '#quest-board' : u.href}">
       <span class="gqt-name">${dLabel(u.discipline)} · ${u.stage}${questRangeText(u) ? ` · ${questRangeText(u)}` : ''}</span>
-      <span class="gqt-bar"><span class="gqt-fill" style="width:${isC ? 100 : pct}%"></span></span>
-      <span class="gqt-num">${isC ? qbT('cleared') : `${u.practiced.toLocaleString()} / ${u.total.toLocaleString()}`}</span>
+      <span class="gqt-bar"><span class="gqt-fill" style="width:${progress.pct}%"></span></span>
+      <span class="gqt-num">${progress.label}${isC ? ` · ${qbT('sec_claim')}` : ''}</span>
+      ${progress.milestone ? `<span class="qc-progress-note qc-milestone">${progress.milestone}</span>` : ''}
     </a>`;
   }).join('');
   return `<div class="guild-quest-tracker">
@@ -2215,34 +2247,102 @@ function rerenderBoard() {
 }
 
 async function acceptQuest(key, href) {
+  if (location.protocol === 'file:' || new URLSearchParams(location.search).has('preview')) {
+    showQuestClaimFeedback(_isEnCur() ? 'Preview mode cannot accept quests.' : '預覽模式不會接取正式委託。');
+    return;
+  }
   try {
-    await fetch('/api/quest-board/accept', {
+    const response = await fetch('/api/quest-board/accept', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quest_key: key })
     });
-  } catch (e) {}
-  if (!_questBoard.accepted.includes(key)) _questBoard.accepted.push(key);
-  if (href) { location.href = href; return; }
-  rerenderBoard();
+    if (!response.ok) throw new Error('quest_accept_http_' + response.status);
+    const result = await response.json();
+    if (result?.ok !== true) throw new Error('quest_accept_not_confirmed');
+    // A 200 acknowledgement is followed by a fresh authoritative read;
+    // no local accepted state is invented on timeout or transport failure.
+    await refreshQuestBoardAfterUncertainClaim();
+    if (!_questBoard.accepted.includes(key)) throw new Error('quest_accept_not_in_server_state');
+    if (href) { location.href = href; return; }
+  } catch (error) {
+    try { await refreshQuestBoardAfterUncertainClaim(); } catch (_) {}
+    showQuestClaimFeedback(_isEnCur()
+      ? 'Could not confirm quest acceptance. Review the server-owned quest board before retrying.'
+      : '無法確認是否接下委託，請先查看伺服器更新後的任務狀態再操作。');
+  }
 }
 
 async function abandonQuest(key) {
+  if (location.protocol === 'file:' || new URLSearchParams(location.search).has('preview')) {
+    showQuestClaimFeedback(_isEnCur() ? 'Preview mode cannot remove quests.' : '預覽模式不會變更正式委託。');
+    return;
+  }
   if (!confirm(qbT('abandon_confirm'))) return;
   try {
-    await fetch('/api/quest-board/abandon', {
+    const response = await fetch('/api/quest-board/abandon', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quest_key: key })
     });
-  } catch (e) {}
-  _questBoard.accepted = _questBoard.accepted.filter(k => k !== key);
-  rerenderBoard();
+    if (!response.ok) throw new Error('quest_abandon_http_' + response.status);
+    const result = await response.json();
+    if (result?.ok !== true) throw new Error('quest_abandon_not_confirmed');
+    await refreshQuestBoardAfterUncertainClaim();
+    if (_questBoard.accepted.includes(key)) throw new Error('quest_abandon_still_accepted');
+  } catch (error) {
+    try { await refreshQuestBoardAfterUncertainClaim(); } catch (_) {}
+    showQuestClaimFeedback(_isEnCur()
+      ? 'Could not confirm quest removal. Review the server-owned quest board before retrying.'
+      : '無法確認是否放棄委託，請先查看伺服器更新後的任務狀態再操作。');
+  }
 }
 
 let _claiming = false;
+// This board is only a projection. No local "pretend grant" may alter the
+// wallet/claims after a failed or unconfirmed server response.
+function showQuestClaimFeedback(message) {
+  const board = document.getElementById('quest-board');
+  if (!board) return;
+  let note = document.getElementById('quest-claim-feedback');
+  if (!note) {
+    note = document.createElement('p');
+    note.id = 'quest-claim-feedback';
+    note.setAttribute('role', 'status');
+    note.setAttribute('aria-live', 'polite');
+    note.style.cssText = 'margin:8px 0;padding:10px 12px;border:1px solid #d97706;border-radius:9px;font-size:13px;line-height:1.6;';
+    board.prepend(note);
+  }
+  note.textContent = message;
+}
+async function refreshQuestBoardAfterUncertainClaim() {
+  const response = await fetch('/api/quest-board', {
+    credentials: 'include', cache: 'no-store'
+  });
+  if (!response.ok) throw new Error('quest_board_http_' + response.status);
+  const updated = await response.json();
+  if (!updated || !Array.isArray(updated.accepted) ||
+      !Array.isArray(updated.claimable) || !Array.isArray(updated.open_quests) ||
+      !Number.isFinite(Number(updated.coins)) || !Number.isFinite(Number(updated.xp)) ||
+      Number(updated.coins) < 0 || Number(updated.xp) < 0) {
+    throw new Error('quest_board_authority_invalid');
+  }
+  _questBoard = {
+    accepted: updated.accepted,
+    claimable: updated.claimable,
+    open_quests: updated.open_quests,
+    quest_meta: Array.isArray(updated.quest_meta) ? updated.quest_meta : [],
+    coins: Number(updated.coins),
+    xp: Number(updated.xp),
+  };
+  rerenderBoard();
+}
 async function claimRewards(btn) {
   if (_claiming) return;
+  if (location.protocol === 'file:' || new URLSearchParams(location.search).has('preview')) {
+    showQuestClaimFeedback(_isEnCur() ? 'Preview mode does not grant rewards.' : '預覽模式不會發放獎勵。');
+    return;
+  }
   _claiming = true;
   // 寶箱開蓋動畫
   const chestIcon = btn ? btn.querySelector('.qc-chest-icon') : null;
@@ -2254,16 +2354,42 @@ async function claimRewards(btn) {
   const fromRect = btn ? btn.getBoundingClientRect() : null;
   let res;
   try {
-    res = await fetch('/api/rewards/sync', { method: 'POST', credentials: 'include' }).then(r => r.json());
-  } catch (e) {
-    // 預覽 / 離線：本地模擬發放
-    const tc = (_questBoard.claimable || []).reduce((s, c) => s + c.coins, 0);
-    const tx = (_questBoard.claimable || []).reduce((s, c) => s + c.xp, 0);
-    res = {
-      granted: (_questBoard.claimable || []).map(c => ({ stage_key: c.stage_key })),
-      gained_coins: tc, gained_xp: tx,
-      coins: _questBoard.coins + tc, xp: _questBoard.xp + tx
-    };
+    const response = await fetch('/api/rewards/sync', {
+      method: 'POST', credentials: 'include'
+    });
+    if (!response.ok) throw new Error('rewards_sync_http_' + response.status);
+    res = await response.json();
+    // A successful HTTP status is not enough: only a complete, finite,
+    // server-authored settlement may update the displayed wallet and claims.
+    if (!res || !Array.isArray(res.granted) ||
+        ![res.gained_coins, res.gained_xp, res.coins, res.xp]
+          .every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0)) {
+      throw new Error('rewards_sync_unverified_response');
+    }
+  } catch (error) {
+    // POST may have committed before its reply was lost. Do NOT fabricate
+    // a grant or blindly repeat the POST. Reconcile with a read-only
+    // authoritative board snapshot instead, preserving the original claim
+    // state if even that read fails.
+    let reconciled = false;
+    try {
+      await refreshQuestBoardAfterUncertainClaim();
+      reconciled = true;
+    } catch (_) {}
+    _claiming = false;
+    if (btn?.isConnected) btn.disabled = false;
+    if (chestIcon?.isConnected) {
+      chestIcon.src = 'assets/guild_ui/qb_chest_closed.webp';
+      chestIcon.classList.remove('opening');
+    }
+    showQuestClaimFeedback(reconciled
+      ? (_isEnCur()
+          ? 'Reward response was not confirmed. Current rewards were reloaded from the server; check your balance before claiming again.'
+          : '\u9818\u734e\u56de\u61c9\u672a\u78ba\u8a8d\uff1b\u5df2\u91cd\u65b0\u5411\u4f3a\u670d\u5668\u8b80\u53d6\u5be6\u969b\u734e\u52f5\u8207\u9918\u984d\uff0c\u8acb\u6838\u5c0d\u5f8c\u518d\u64cd\u4f5c\u3002')
+      : (_isEnCur()
+          ? 'Could not confirm reward delivery. No wallet change was assumed. Check your account after reconnecting.'
+          : '\u7121\u6cd5\u78ba\u8a8d\u734e\u52f5\u662f\u5426\u5165\u5e33\uff1b\u756b\u9762\u6c92\u6709\u5047\u8a2d\u5df2\u767c\u734e\u3002\u8acb\u6062\u5fa9\u9023\u7dda\u5f8c\u91cd\u65b0\u67e5\u770b\u5e33\u6236\u3002'));
+    return;
   }
   const grantedKeys = new Set((res.granted || []).map(g => g.stage_key));
   _questBoard.claimable = (_questBoard.claimable || []).filter(c => !grantedKeys.has(c.stage_key));

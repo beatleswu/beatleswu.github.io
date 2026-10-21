@@ -52,6 +52,21 @@ class ProgressCreditPolicy(str, Enum):
     FIRST_PASS_ONLY = "FIRST_PASS_ONLY"
 
 
+class SrsAdvancePolicy(str, Enum):
+    """When a review may advance the SM-2 schedule of an existing card."""
+
+    #: Historical behaviour: every review advances the card, due or not.
+    ALWAYS = "ALWAYS"
+
+    #: Ordinary public Review only (Owner decision 2026-10-12, "P1"): a
+    #: correct answer on an existing card that is NOT yet due is recorded by
+    #: the caller's ``review_log`` row but leaves ease_factor, interval,
+    #: repetitions and due_date untouched. First reviews, due/overdue
+    #: reviews and every failure (grade < 3, the forgetting reset) follow
+    #: the normal SM-2 transition.
+    CORRECT_ONLY_WHEN_DUE = "CORRECT_ONLY_WHEN_DUE"
+
+
 @dataclass(frozen=True, slots=True)
 class SrsSchedulingOutcome:
     """The committed scheduling state plus the progression decision.
@@ -72,6 +87,10 @@ class SrsSchedulingOutcome:
     #: call.  Callers use it for "first time answering this question"
     #: presentation decisions; it is not a progression authority.
     existed: bool
+    #: False only when ``SrsAdvancePolicy.CORRECT_ONLY_WHEN_DUE`` held an
+    #: early correct answer back; the schedule fields above are then the
+    #: card's unchanged stored values.
+    advanced: bool = True
 
 
 def sm2_update(ef, iv, rp, grade):
@@ -85,6 +104,25 @@ def sm2_update(ef, iv, rp, grade):
     ef  = max(1.3, ef + 0.1 - (5-q)*(0.08+(5-q)*0.02))
     due = (datetime.date.today() + datetime.timedelta(days=iv)).isoformat()
     return ef, iv, rp, due
+
+
+def _is_sqlite_connection(conn: Any) -> bool:
+    raw = getattr(conn, "_conn", conn)
+    return raw.__class__.__module__.startswith("sqlite3")
+
+
+def _card_is_due(due_date: Any) -> bool:
+    """True when the stored due date is today or earlier.
+
+    The comparison uses the same server clock as :func:`sm2_update`. A value
+    that cannot be parsed counts as due so the historical transition applies
+    instead of silently freezing the card.
+    """
+
+    try:
+        return datetime.date.fromisoformat(str(due_date)[:10]) <= datetime.date.today()
+    except (TypeError, ValueError):
+        return True
 
 
 def should_grant_review_progress(existing_srs_row, grade):
@@ -115,6 +153,7 @@ def apply_srs_scheduling(
     grade: int,
     now: str,
     progress_credit_policy: ProgressCreditPolicy = ProgressCreditPolicy.NEVER,
+    advance_policy: SrsAdvancePolicy = SrsAdvancePolicy.ALWAYS,
 ) -> SrsSchedulingOutcome:
     """Advance SM-2 and write the one canonical ``srs_cards`` row.
 
@@ -126,10 +165,42 @@ def apply_srs_scheduling(
     Never commits and never rolls back: the caller owns the transaction.
     """
 
+    # Serialize competing reviews of one card (due-only policy only, so the
+    # historical callers keep their exact statements): the second writer
+    # re-reads the first writer's committed schedule instead of a stale one.
+    lock = (
+        " FOR UPDATE"
+        if advance_policy is SrsAdvancePolicy.CORRECT_ONLY_WHEN_DUE
+        and not _is_sqlite_connection(conn)
+        else ""
+    )
     row = conn.execute(
-        'SELECT * FROM srs_cards WHERE user_id=? AND question_id=?',
+        'SELECT * FROM srs_cards WHERE user_id=? AND question_id=?' + lock,
         (user_id, question_id),
     ).fetchone()
+
+    if (
+        advance_policy is SrsAdvancePolicy.CORRECT_ONLY_WHEN_DUE
+        and row
+        and grade >= 3
+        and not _card_is_due(row['due_date'])
+    ):
+        conn.execute(
+            'UPDATE srs_cards SET last_grade=?, updated_at=? '
+            'WHERE user_id=? AND question_id=?',
+            (grade, now, user_id, question_id),
+        )
+        return SrsSchedulingOutcome(
+            ease_factor=row['ease_factor'],
+            interval=row['interval'],
+            repetitions=row['repetitions'],
+            due_date=str(row['due_date']),
+            last_grade=grade,
+            progress_credited=1 if row['progress_credited'] else 0,
+            progress_credit_granted=False,
+            existed=True,
+            advanced=False,
+        )
 
     ef, iv, rp = (
         (row['ease_factor'], row['interval'], row['repetitions'])
@@ -174,6 +245,7 @@ def apply_srs_scheduling(
 
 __all__ = [
     "ProgressCreditPolicy",
+    "SrsAdvancePolicy",
     "SrsSchedulingOutcome",
     "apply_srs_scheduling",
     "should_grant_review_progress",

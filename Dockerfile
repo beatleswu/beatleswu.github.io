@@ -290,7 +290,8 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
      ZONE4_RUNTIME_MANIFEST.json ./
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
-     community_reward_rules.js pwa.js sgf_answer_review.js \
+     community_reward_rules.js g010_m4_quest_leaderboard.js \
+     g010_m4_quest_leaderboard.css pwa.js sgf_answer_review.js \
      sgf_admin_workbench_ux_v2.js sgf_workbench_v2a.js \
      admin_questions.js sgf_report_widget.js ./
 COPY review_data/sgf_answer_review_queue_v1.json \
@@ -388,6 +389,13 @@ COPY js/companion_formal_18_mapping.js \
      js/g009_companion_child.mjs \
      js/g009_companion_formal18_assets.mjs \
      js/g009_companion_formal18_bootstrap.mjs ./js/
+# One additional lazy preview module; canonical GLB and mapping are unchanged.
+COPY js/g009_companion_360_viewer.mjs ./js/g009_companion_360_viewer.mjs
+COPY js/g010_hero_3d_gallery.mjs ./js/g010_hero_3d_gallery.mjs
+# Exact bytes for P048 approved display-only C01/C04 companions (bunny also needs external texture).
+COPY assets/3d_shop/p048/companion/C01/animal-bunny.glb ./assets/3d_shop/p048/companion/C01/animal-bunny.glb
+COPY assets/3d_shop/p048/companion/C01/Textures/colormap.png ./assets/3d_shop/p048/companion/C01/Textures/colormap.png
+COPY assets/3d_shop/p048/companion/C04/Corgi.glb ./assets/3d_shop/p048/companion/C04/Corgi.glb
 COPY assets/3d_shop/p048/companion/formal_18/ ./assets/3d_shop/p048/companion/formal_18/
 # G009 Formal9 selected replacement GLBs are exact baked runtime fallbacks.
 # This does not change equip, acquisition, shop, drop, or release admission.
@@ -402,6 +410,10 @@ COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb ./
 # external generation or a single file in it is unavailable.
 COPY css/g009_hero_hub_batch_a.css ./css/g009_hero_hub_batch_a.css
 COPY js/g009_hero_hub_batch_a.js ./js/g009_hero_hub_batch_a.js
+# G010 M4 community leaderboard: explicit baked fallback for the two
+# live-static generation-bound root assets; no wildcard expansion.
+COPY g010_m4_quest_leaderboard.js ./g010_m4_quest_leaderboard.js
+COPY g010_m4_quest_leaderboard.css ./g010_m4_quest_leaderboard.css
 # Derived84: the 84 Owner-accepted identity assets and their runtime
 # manifest. They are also derived84_asset_registry.py's module-local
 # validation inputs, so they must exist in the image at these exact paths.
@@ -432,6 +444,7 @@ COPY js/e10/zone4_cinematic_content.js ./js/e10/zone4_cinematic_content.js
 # so the baked copy is their only serving source rather than a fallback.
 COPY css/e10/encounter_presentation_framework_v1.css ./css/e10/encounter_presentation_framework_v1.css
 COPY css/e10/go_combat_owner_reference_v1.css ./css/e10/go_combat_owner_reference_v1.css
+COPY css/e10/backpack.css ./css/e10/backpack.css
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog

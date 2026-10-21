@@ -18,6 +18,29 @@
     'ink_drop_kelpie', 'whispering_void_kit', 'star_shell_hatchling',
     'starpath_antlerling', 'fatty', 'obsidian_bastion',
   ]);
+  // Canonical first three gate levels, for display while no pet has been selected.
+  // Once owned, use /api/pet/status collection.locked[].unlock_level / claimable.
+  const SPIRIT_DISPLAY_GATES = Object.freeze({
+    ink_drop_kelpie: 1, whispering_void_kit: 11, star_shell_hatchling: 16,
+    starpath_antlerling: null, fatty: null, obsidian_bastion: null,
+  });
+  function companionUnlockCopy(snapshot, key, owned) {
+    if (owned) return en() ? 'Owned · Available' : '已擁有 · 可於棋靈收藏中使用';
+    if (key === 'ink_drop_kelpie' && !snapshot?.pet)
+      return en() ? 'Fixed first Spirit · Choose to begin' : '初始棋靈 · 第一隻固定取得';
+    const entry = snapshot?.collection?.locked?.find(item => item.key === key);
+    if (entry?.claimable) return en() ? 'Requirement met · Claim in order' : '條件已達成 · 可依序領取';
+    const gate = entry ? entry.unlock_level : SPIRIT_DISPLAY_GATES[key];
+    if (Number.isSafeInteger(gate) && gate > 1) {
+      const level = snapshot?.collection?.max_level;
+      const progress = Number.isSafeInteger(level) ? (en() ? ' · Highest LV' + level : ' · 目前最高 LV' + level) : '';
+      return en() ? 'Raise any owned Spirit to LV' + gate + progress + ' · Claim in order'
+        : '將任一已擁有棋靈培養至 LV' + gate + progress + '，依序領取';
+    }
+    return en() ? 'Unlock condition not announced · Not yet available'
+      : '解鎖條件尚未公布 · 等待冒險／Boss／任務正式規則，目前未開放';
+  }
+
   const TAB_ORDER = Object.freeze(['hero', 'equipment', 'appearance', 'pet', 'honors']);
   const TAB_COPY = Object.freeze({
     hero: {
@@ -86,6 +109,8 @@
     refreshing: null,
     generation: 0,
     selectionInFlight: false,
+    spiritSelectionInFlight: false,
+    petActionInFlight: false,
   };
 
   function root() {
@@ -129,6 +154,7 @@
       if (name === '_characterAuthorityKey' && typeof _characterAuthorityKey !== 'undefined') return _characterAuthorityKey;
       if (name === '_functionalEquipmentItems' && typeof _functionalEquipmentItems !== 'undefined') return _functionalEquipmentItems;
       if (name === '_petState' && typeof _petState !== 'undefined') return _petState;
+      if (name === '_petFeedPending' && typeof _petFeedPending !== 'undefined') return _petFeedPending;
     } catch (_) {}
     return undefined;
   }
@@ -322,12 +348,27 @@
     setText('g009-player-display-name', profileName);
     setText('g009-character-display-name', key ? name : tx('g009.hero.character.noSelection', 'Future30 selection is loading.'));
     setText('g009-character-card-name', key ? name : tx('g009.hero.character.noSelection', 'Future30 selection is loading.'));
+    // Explain the existing progression contract without inventing a second
+    // hero level or deriving Go skill from XP. Keep this copy in our card.
+    const cardName = document.getElementById('g009-character-card-name');
+    if (cardName?.parentElement) {
+      let note = document.getElementById('g009-level-explanation');
+      if (!note) {
+        note = document.createElement('span');
+        note.id = 'g009-level-explanation';
+        note.className = 'g009-muted';
+        cardName.parentElement.appendChild(note);
+      }
+      note.textContent = en()
+        ? 'Player level (LV) follows XP; Go rank is shown separately as Go skill. This character selection does not provide a separate hero level.'
+        : '玩家等級（LV）依經驗值成長；圍棋棋力另以段級位顯示。目前角色選擇資料未提供獨立英雄等級。';
+    }
     const companion = currentPet()?.pet;
     setText('g009-character-companion-summary', companion ? petName(companion) : tx('g009.hero.companion.none', 'No active companion.'));
     const items = Array.isArray(state.inventory)
       ? state.inventory.filter(item => item && item.equipped === true)
       : [];
-    const equipmentNames = items.map(equipmentName).filter(Boolean);
+    const equipmentNames = items.filter(item => equipmentName(item)).map(item => `${equipmentName(item)} · ${equipmentKindLabel(item)}`);
     setText('g009-character-equipment-summary', equipmentNames.length
       ? equipmentNames.slice(0, 2).join(' · ')
       : tx('g009.hero.equipment.empty', 'No server-owned equipment is equipped.'));
@@ -346,6 +387,15 @@
       ? { weapon: 'Main hand', offhand: 'Off hand', armor: 'Armor', cape: 'Back', hat: 'Head', accessory: 'Accessory', aura: 'Aura' }
       : { weapon: '主手', offhand: '副手', armor: '防具', cape: '背部', hat: '頭部', accessory: '配飾', aura: '光環' };
     return labels[slot] || (en() ? 'Equipment' : '裝備');
+  }
+
+  function equipmentKindLabel(item) {
+    // The inventory projection explicitly identifies functional equipment.
+    // Missing/false metadata is not proof that an item is cosmetic, and a
+    // functional classification does not assert any particular active bonus.
+    return item?.functional_equipment === true
+      ? (en() ? 'Functional equipment' : '功能裝備')
+      : (en() ? 'Equipment type unconfirmed' : '裝備類型未確認');
   }
 
   function renderEquipment() {
@@ -368,7 +418,7 @@
         : (String(item.slot || '').toLowerCase() === 'offhand' ? '◇' : '◆');
       return `<article class="g009-slot-row" data-equipment-item="${esc(item.item_id || item.id || '')}">
         <span class="g009-slot-icon" aria-hidden="true">${iconHTML}</span>
-        <span class="g009-slot-copy"><span>${esc(equipmentSlotLabel(item))}</span><strong>${esc(equipmentName(item) || (en() ? 'Equipment' : '裝備'))}</strong></span>
+        <span class="g009-slot-copy"><span>${esc(equipmentSlotLabel(item))} · ${esc(equipmentKindLabel(item))}</span><strong>${esc(equipmentName(item) || (en() ? 'Equipment' : '裝備'))}</strong></span>
         <span class="g009-owned-chip">${esc(tx('g009.hero.equipment.serverOwned', 'Server-owned'))}</span>
       </article>`;
     }).join('');
@@ -392,7 +442,7 @@
       return `<button type="button" class="g009-character-switch${isActive ? ' is-active' : ''}"
         data-g009-character-key="${esc(key)}" aria-pressed="${String(isActive)}">
         <span class="g009-character-switch-mark" aria-hidden="true">✦</span>
-        <span class="g009-character-switch-name">${esc(future30Name(key, entry))}</span>
+        <span class="g009-character-switch-name">${esc(future30Name(key, entry))}<br><small>${esc(en() ? 'Character appearance' : '角色外觀')}</small></span>
         ${isActive ? `<span class="g009-character-switch-state">${esc(tx('g009.hero.appearance.active', 'Active'))}</span>` : ''}
       </button>`;
     }).join('');
@@ -453,18 +503,49 @@
           <strong>${esc(petName(pet))}</strong>
           <span>${esc(stage || (en() ? 'Server level' : '伺服器等級'))} · ${esc(tx('g009.hero.companion.withYou', 'With you'))}</span>
         </span>
+      </div>
+      <div class="g009-companion-actions" role="group" aria-label="${en() ? 'Companion actions' : '棋靈互動'}">
+        <button type="button" class="g009-companion-action" data-g009-pet-action="pet" ${state.petActionInFlight ? 'disabled' : ''}>${en() ? 'Pat' : '拍拍'}</button>
+        ${(Array.isArray(snapshot.inventory) ? snapshot.inventory : []).map(food => {
+          // An uncertain feed result retains B023's operation ID. Only the
+          // same Spirit+food may retry, even after server inventory reaches zero.
+          const pending = lexicalValue('_petFeedPending');
+          const retry = pending?.spirit_id === pet.pet_key && pending?.item_key === food.key;
+          const available = pending ? retry : Number(food.qty) > 0;
+          return `<button type="button" class="g009-companion-action" data-g009-pet-action="feed" data-g009-food-key="${esc(food.key || '')}" ${!available || state.petActionInFlight ? 'disabled' : ''}>${esc(food.name || food.name_en || food.key || (en() ? 'Food' : '食物'))} × ${Number(food.qty) || 0}${retry ? (en() ? " · Confirm previous feed" : " · 確認上次餵食") : ""}</button>`;
+        }).join('')}
       </div>`;
     }
     const catalog = Array.isArray(snapshot.catalog) ? snapshot.catalog : [];
     const entries = catalog.filter(item => item && COMPANION_KEYS.includes(item.key || item.pet_key));
+    const owned = new Set((snapshot.collection?.collection || []).map(item => item.key));
+    if (pet?.pet_key) owned.add(pet.pet_key);
+    rosterRoot.style.gridTemplateColumns = 'repeat(auto-fill,minmax(145px,1fr))';
     rosterRoot.innerHTML = entries.map(item => {
       const key = item.key || item.pet_key;
       const isActive = pet?.pet_key === key;
+      const isOwned = owned.has(key);
       const image = petImage(item);
-      const imageHTML = image ? `<img src="${esc(image)}" alt="" loading="lazy" decoding="async">` : '♧';
-      return `<div class="g009-companion-tile${isActive ? ' is-active' : ''}" data-pet-key="${esc(key)}">
-        ${imageHTML}<strong>${esc(petName(item))}</strong>${isActive ? `<span>${esc(tx('g009.hero.companion.withYou', 'With you'))}</span>` : ''}
-      </div>`;
+      const art = image ? '<img src="' + esc(image) + '" alt="" loading="lazy" decoding="async">' : '♧';
+      const isStarterReady = key === 'ink_drop_kelpie' && !pet;
+      const status = isActive ? (en() ? 'Active' : '出戰中')
+        : isOwned ? (en() ? 'Owned' : '已擁有')
+        : isStarterReady ? (en() ? 'Starter' : '初始棋靈')
+        : (en() ? 'Locked' : '🔒 未解鎖');
+      const req = companionUnlockCopy(snapshot, key, isOwned);
+      const canSwitch = isOwned && !isActive;
+      const tag = canSwitch ? 'button' : 'div';
+      const selector = canSwitch
+        ? ' type="button" data-g009-select-spirit="' + esc(key) + '" aria-label="'
+            + esc((en() ? 'Switch to ' : '切換至') + petName(item)) + '"'
+        : '';
+      return '<' + tag + ' class="g009-companion-tile' + (isActive ? ' is-active' : '') + (isOwned ? ' is-owned' : ' is-locked')
+        + '" style="min-height:152px;justify-content:flex-start;padding:12px 8px" data-pet-key="' + esc(key)
+        + '" data-spirit-ownership="' + (isOwned ? 'owned' : 'locked') + '"' + selector + '>'
+        + art + '<strong>' + esc(petName(item)) + '</strong>'
+        + '<span class="g009-companion-state">' + esc(status) + '</span>'
+        + '<span class="g009-companion-unlock-requirement" style="width:100%;display:block;white-space:normal;line-height:1.45;overflow-wrap:anywhere;font-size:11px;color:#ead29d" data-companion-requirement="' + esc(key) + '">'
+        + esc(req) + '</span></' + tag + '>';
     }).join('');
   }
 
@@ -509,7 +590,63 @@
     return state.refreshing;
   }
 
+  // G009 is the visible Hero Hub. Legacy pet buttons remain hidden by design,
+  // so delegate real user actions to their existing server-authoritative routes.
+  // Never simulate success or maintain a second client-side companion authority.
+  async function handleCompanionControl(event) {
+    const control = event.target.closest?.('[data-g009-select-spirit], [data-g009-pet-action]');
+    if (!control || control.disabled || state.spiritSelectionInFlight || state.petActionInFlight) return;
+    if (!document.getElementById('g009-panel-companion')?.contains(control)) return;
+    const pet = currentPet()?.pet;
+    const selected = control.dataset.g009SelectSpirit;
+    if (selected) {
+      const owned = new Set((currentPet()?.collection?.collection || []).map(item => item.key));
+      if (!owned.has(selected) || selected === pet?.pet_key) return;
+      state.spiritSelectionInFlight = true;
+      document.querySelectorAll('[data-g009-select-spirit]').forEach(button => { button.disabled = true; });
+      try {
+        if (typeof switchPet !== 'function') throw new Error('Companion selection is unavailable');
+        await switchPet(selected);
+      } catch (error) {
+        if (typeof showToast === 'function') showToast(error.message || 'Companion selection failed');
+      } finally {
+        state.spiritSelectionInFlight = false;
+        renderCompanion();
+      }
+      return;
+    }
+    if (!pet) return;
+    const action = control.dataset.g009PetAction;
+    if (action !== 'pet' && action !== 'feed') return;
+    const foodKey = control.dataset.g009FoodKey;
+    if (action === 'feed') {
+      const food = (currentPet()?.inventory || []).find(item => item.key === foodKey);
+      const pending = lexicalValue('_petFeedPending');
+      const retry = pending?.spirit_id === pet.pet_key && pending?.item_key === foodKey;
+      if (!food || (pending ? !retry : Number(food.qty) <= 0)) return;
+    }
+    state.petActionInFlight = true;
+    renderCompanion();
+    try {
+      if (action === 'pet') {
+        if (typeof interactPet !== 'function') throw new Error('Companion interaction unavailable');
+        await interactPet('pet');
+      } else {
+        if (typeof feedPet !== 'function') throw new Error('Companion feeding unavailable');
+        await feedPet(foodKey);
+      }
+    } catch (error) {
+      if (typeof showToast === 'function') showToast(error.message || 'Companion action failed');
+    } finally {
+      state.petActionInFlight = false;
+      renderCompanion();
+    }
+  }
+
   function installRuntimeSignals() {
+    document.getElementById('g009-panel-companion')?.addEventListener('click', event => {
+      void handleCompanionControl(event);
+    });
     window.addEventListener('g009:companion-status', () => {
       const pet = lexicalValue('_petState');
       if (pet) state.pet = pet;

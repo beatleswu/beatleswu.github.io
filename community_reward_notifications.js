@@ -27,13 +27,21 @@
         top25: 'communityRewards.rankBand.top25',
         top50: 'communityRewards.rankBand.top50',
     };
-    const ITEM_ICONS = { small_xp_potion: '🧪', xp_potion: '🧪' };
+    const ITEM_ICONS = {
+        small_xp_potion: '🧪', xp_potion: '🧪',
+        appearance_fragment: '✨', rare_appearance_fragment: '💎',
+    };
     const ITEM_LABEL_KEYS = {
         small_xp_potion: 'communityRewards.reward.item.small_xp_potion',
         xp_potion: 'communityRewards.reward.item.xp_potion',
+        appearance_fragment: 'communityRewards.reward.item.appearance_fragment',
+        rare_appearance_fragment: 'communityRewards.reward.item.rare_appearance_fragment',
     };
     const BADGE_LABEL_KEYS = {
         badge_lb_weekly_1: 'communityRewards.reward.badge.badge_lb_weekly_1',
+        badge_lb_monthly_1: 'communityRewards.reward.badge.badge_lb_monthly_1',
+        badge_lb_monthly_top3: 'communityRewards.reward.badge.badge_lb_monthly_top3',
+        badge_lb_monthly_top10: 'communityRewards.reward.badge.badge_lb_monthly_top10',
     };
 
     function esc(s) {
@@ -54,7 +62,9 @@
         const boardKey = BOARD_LABEL_KEYS[notification.board];
         const board = boardKey ? tr(boardKey) : notification.board;
         const bandKey = RANK_BAND_LABEL_KEYS[notification.rank_band];
-        const band = bandKey ? tr(bandKey) : notification.rank_band;
+        const band = (notification.board === 'monthly' && notification.rank_band === 'top1')
+            ? tr('communityRewards.rankBand.monthly.top1')
+            : (bandKey ? tr(bandKey) : notification.rank_band);
         return `${notification.period_key} ${board}・${band}`;
     }
 
@@ -74,6 +84,11 @@
             const label = labelKey ? tr(labelKey) : tr('communityRewards.reward.unsupported');
             if (!labelKey) console.warn('[community_reward_notifications] unknown badge key', reward.key);
             return `🏅 ${label}`;
+        }
+        if (reward.type === 'title') {
+            if (reward.key === 'title_monthly_master') {
+                return '👑 ' + tr('communityRewards.reward.title.title_monthly_master');
+            }
         }
         console.warn('[community_reward_notifications] unsupported reward type', reward.type);
         return `❓ ${tr('communityRewards.reward.unsupported')}`;

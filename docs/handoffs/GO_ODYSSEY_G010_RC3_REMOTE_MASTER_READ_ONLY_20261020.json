@@ -1,0 +1,17 @@
+{
+  "schema": "G010_RC3_GITHUB_MASTER_READ_ONLY_CHECK_V1",
+  "checked_at_date": "2026-10-20",
+  "source": "connected GitHub read-only REST branch GET",
+  "repository": "beatleswu/beatleswu.github.io",
+  "branch": "master",
+  "observed_sha": "0f14f95c4fd9f70fcbdaa929b8fed3a4a9316463",
+  "protected": true,
+  "local_cached_origin_master_same_as_remote": true,
+  "comparison_candidate_head": "efd4524c3a3b5669b693ee0be50acf586c73ad90",
+  "comparison_source": "local git ahead/behind",
+  "candidate_ahead_of_remote_master_at_check": 50,
+  "candidate_dirty": true,
+  "not_a_trusted_signed_release_attestation": true,
+  "github_push_performed": false,
+  "release_go": "NO_GO"
+}

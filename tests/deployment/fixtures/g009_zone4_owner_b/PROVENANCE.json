@@ -1,0 +1,7 @@
+{
+  "source_junit": "D:/go-odyssey-g009-storage-recovery/G009_CLAUDE_P0_RELEASE_SOURCE_CHAIN_RECONSTRUCTION_20261014_R1/raw/buildapp/fc550_full_tests_deployment_junit.xml",
+  "source_junit_sha256": "a442a09de63a33cb7f9efc94334ba1e5fdfdde146ac20f6ac03efc6148be1845",
+  "source_run": "BUILD_APP-equivalent `python -X utf8 -m pytest -q tests/deployment/` on pristine fc550 checkout D:/g009c/claude-b4-r3-baseline-fc550-20261013, 2026-10-14 (task G009_CLAUDE_P0_RELEASE_SOURCE_CHAIN_RECONSTRUCTION_20261014_R1)",
+  "extracted": "19 testcase elements of tests.deployment.test_p0_zone4_cinematic_content_route_corrective, unchanged except system-out/system-err removed",
+  "fixture_sha256": "97e25019c37ae127cb1e3c29520252f950c5807f721dacf86643c48b95771871"
+}

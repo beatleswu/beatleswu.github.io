@@ -1,0 +1,29 @@
+{
+  "verdict": "RC2_LOCAL_ARM64_IMAGE_BINARY_SOURCE_INTEGRITY_PASS",
+  "image_id": "sha256:8b8225c88a53e0dfbce6289ee842c8f329dcceec8b7b2e216483c0adf52d92bc",
+  "source_baseline": "efd4524c3a3b5669b693ee0be50acf586c73ad90",
+  "file_sha256": {
+    "app.py": "7d234f96e2718dd68bd4e8ec0683ccd342064691050b34f02598e9e46a0d9f12",
+    "community.html": "ec3c995296e4c6255f6f67c5dbe328d49eb819d7384c706c8364e5958de6ac81",
+    "index.html": "a1106f1cd85797e13a9b718ddd414dd93b92e067df9f41c4e044ec289916b01f",
+    "map_battle_runtime.py": "e1fde476673341a61e808476389d421a8dcd6837ae6bbddf4141414e17e4fef4",
+    "shop.html": "e48dd5b1a853609236b4bde695f2433f00e5d3ce084bec04482b6b3f83d7d43c",
+    "g010_m4_quest_leaderboard.js": "a746ee0660ba9632990cc790b3f2e0e71016c71ddbdb8dd67e3598e69467b800",
+    "g010_m4_quest_leaderboard.css": "a7704b27508127b1caaf4553350c5b123929d31c41909f887d045983002dc8ac"
+  },
+  "manifest_required_assets_verified": [
+    "/app/community.html",
+    "/app/g010_m4_quest_leaderboard.css",
+    "/app/g010_m4_quest_leaderboard.js"
+  ],
+  "shipped_shop_backpack_default": "OFF",
+  "sensitive_app_files": "ABSENT",
+  "network_used": false,
+  "external_trusted_attestation": "NOT_VERIFIED",
+  "physical_ipad_uat": "NOT_VERIFIED",
+  "formal_deployment": "NOT_AUTHORIZED",
+  "image_platform": "linux/arm64",
+  "official_release_owner_grant": "NOT_VERIFIED",
+  "independent_attestation": "NOT_VERIFIED",
+  "release_admission": "NO_GO"
+}

@@ -29,6 +29,8 @@ from psycopg2.extras import DictCursor
 # slim 映像缺 /etc/mime.types，手動註冊常見靜態類型，避免 send_from_directory 回 octet-stream
 mimetypes.add_type('image/webp', '.webp')
 mimetypes.add_type('image/svg+xml', '.svg')
+# glTF binary (.glb) is likewise absent from the stdlib table on slim images; the static manifests declare model/gltf-binary.
+mimetypes.add_type('model/gltf-binary', '.glb')
 import random, string
 import hashlib
 import urllib.request
@@ -133,6 +135,7 @@ from monster_encounter_selector_runtime import (
 )
 from monster_settlement import (
     MonsterSettlementRejected,
+    MonsterSettlementResult,
     build_monster_defeated_event,
     next_roster_entry,
     settle_monster_defeat,
@@ -155,6 +158,8 @@ from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skil
 from sgf_engine.parser.sgf_parser import parse_sgf
 from shadow_dashboard import aggregate_shadow_events, recent_shadow_dashboard_data
 from map_battle_runtime import (
+    DEFERRED_REWARD_DROP_POLICY,
+    ZONE1_2_BINDING_SOURCE,
     FeatureDisabled,
     JudgeUnavailable,
     ModeNotEligible,
@@ -303,6 +308,7 @@ from question_idempotency import (
 # implementation of its own (Incident 002/003G).
 from srs_scheduling_core import (
     ProgressCreditPolicy,
+    SrsAdvancePolicy,
     apply_srs_scheduling,
     should_grant_review_progress as _srs_core_should_grant_review_progress,
     sm2_update as _srs_core_sm2_update,
@@ -1326,6 +1332,9 @@ BADGE_DEFS = [
 
     # ── Community 排行榜獎勵（Phase 3B：僅 weekly top1，尚未實際發放）──
     { 'id':'badge_lb_weekly_1', 'name':'週榜冠軍', 'icon':'🥇', 'desc':'週排行榜奪得第一名', 'type':'community_leaderboard', 'value':1, 'rarity':'gold' },
+    { 'id':'badge_lb_monthly_1', 'name':'月榜冠軍', 'icon':'🏆', 'desc':'月排行榜奪得第一名', 'type':'community_leaderboard', 'value':1, 'rarity':'legendary' },
+    { 'id':'badge_lb_monthly_top3', 'name':'月榜前三', 'icon':'🥈', 'desc':'月排行榜獲得第二或第三名', 'type':'community_leaderboard', 'value':3, 'rarity':'gold' },
+    { 'id':'badge_lb_monthly_top10', 'name':'月榜前十', 'icon':'🎖️', 'desc':'月排行榜獲得第四至第十名', 'type':'community_leaderboard', 'value':10, 'rarity':'silver' },
 ]
 
 # ══════════════════════════════════════════════════════════════
@@ -1927,6 +1936,14 @@ _FUNCTIONAL_EFFECT_ACTIVE_KEYS.update({
     str(definition['id']): set(definition.get('effects') or {})
     for definition in EQ_F_NEW_EQUIPMENT_DEFS
 })
+
+# EQ-F items are admitted only while the canonical Equipment Loadout is ON.
+# A row that is still ``equipped=1`` when the flag is OFF (earlier ON period,
+# admin grant, rollback) must not leak damage/SP/XP/loot effects into the
+# authoritative combat paths; legacy items are unaffected.
+_EQ_F_EQUIPMENT_IDS = frozenset(
+    str(definition['id']) for definition in EQ_F_NEW_EQUIPMENT_DEFS
+)
 
 _FUNCTIONAL_EFFECT_LABELS = {
     'dmg_bonus': ('傷害加成', 'Damage modifier'),
@@ -2783,6 +2800,15 @@ APPEARANCE_DEFS = [
         'flavor': '克萊兒說：你已準備好踏上這片棋海。',
         'hint': '完成新手任務全部 7 個 Stage 解鎖',
         'drop_from': [], 'drop_weight': 0,
+    },
+    {
+        'id': 'title_monthly_master',
+        'name': '月榜棋道宗師', 'slot': 'title', 'rarity': 'legendary',
+        'emoji': '🏆', 'color': '#d97706',
+        'flavor': '每月排行勇奪冠軍的榮耀。',
+        'hint': '月排行榜冠軍獎勵，結算後獲得',
+        'drop_from': [], 'drop_weight': 0,
+        'source_hint': 'leaderboard',
     },
 
     # ══════════════════════════════════════════════════════════════
@@ -8325,7 +8351,10 @@ def _get_equip_effect(conn, uid, effect_key):
         'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1', (uid,)
     ).fetchall()
     total = 0.0
+    eq_f_effects_enabled = _equipment_canonical_loadout_enabled()
     for r in rows:
+        if r['equip_id'] in _EQ_F_EQUIPMENT_IDS and not eq_f_effects_enabled:
+            continue
         eq = _EQUIP_MAP.get(r['equip_id'], {})
         total += eq.get('effects', {}).get(effect_key, 0)
     return total
@@ -8343,8 +8372,11 @@ def _get_active_equip_effect(conn, uid, effect_key):
         'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1', (uid,)
     ).fetchall()
     total = 0.0
+    eq_f_effects_enabled = _equipment_canonical_loadout_enabled()
     for row in rows:
         equip_id = row['equip_id']
+        if equip_id in _EQ_F_EQUIPMENT_IDS and not eq_f_effects_enabled:
+            continue
         if effect_key not in _FUNCTIONAL_EFFECT_ACTIVE_KEYS.get(equip_id, set()):
             continue
         equip = _EQUIP_MAP.get(equip_id, {})
@@ -8414,6 +8446,103 @@ def _gain_sp(conn, uid, amount):
     return new_sp
 
 
+def _settle_zone1_2_defeat_without_deferred_rewards(
+    conn, uid, *, authority, settlement_id, hp_before, hp_after,
+):
+    """Persist a verified Z1/Z2 defeat without inventing a release reward.
+
+    This branch exists because exact Zone1/2 Monster identities are admitted
+    for combat, but their reward/drop and taxonomy policies are explicitly
+    DEFERRED. In particular they must never fall into the old Battlefield
+    monster-index resolver and silently pick an unrelated paid drop profile.
+    The existing D5A outbox owns the once-only, server-authored fact; D017
+    Quest V2 consumes it with the exact same submission identity.
+    """
+    if (
+        authority is None
+        or authority.zone_key not in ('Z1', 'Z2')
+        or authority.drop_profile_id is not None
+        or authority.reward_profile_id is not None
+        or not authority.monster_id
+    ):
+        raise MonsterSettlementRejected('Zone1/2 deferred Monster binding unavailable')
+    event = build_monster_defeated_event(
+        settlement_id=settlement_id,
+        user_id=uid,
+        monster_id=authority.monster_id,
+        zone_id=authority.zone_key,
+        roster_slot=authority.roster_slot,
+        encounter_class=authority.encounter_class,
+        family_id=authority.family_id,
+        hp_before=hp_before,
+        hp_after=hp_after,
+    )
+    key = f'monster-defeated:{event.settlement_id}'
+    prior = get_event_by_idempotency_key(
+        conn, player_id=str(uid), event_type='MONSTER_DEFEATED',
+        idempotency_key=key,
+    )
+    payload = {
+        'settlement_id': event.settlement_id,
+        'monster_id': event.monster_id,
+        'zone_id': event.zone_id,
+        'roster_slot': event.roster_slot,
+        'encounter_class': event.encounter_class,
+        'family_id': event.family_id,
+        'hp_before': event.hp_before,
+        'hp_after': event.hp_after,
+        'reward_drop_policy': DEFERRED_REWARD_DROP_POLICY,
+        'coins_granted': 0,
+        'functional_drop_id': None,
+        'appearance_drop_id': None,
+    }
+    if prior is not None:
+        original = prior.get('payload') or {}
+        if any(original.get(field) != payload[field] for field in (
+            'settlement_id', 'monster_id', 'zone_id', 'roster_slot',
+            'encounter_class', 'hp_before', 'hp_after',
+            'reward_drop_policy',
+        )):
+            raise MonsterSettlementRejected('Zone1/2 Monster replay binding conflict')
+        record = prior
+        duplicate = True
+    else:
+        try:
+            record = append_event(
+                conn, event_type='MONSTER_DEFEATED', player_id=str(uid),
+                lineage_id=f'monster-settlement:{event.settlement_id}',
+                source_event_id=event.settlement_id,
+                idempotency_key=key, outcome='SUCCESS', payload=payload,
+            )
+            duplicate = False
+        except DuplicateOutboxEvent as error:
+            record = error.existing_event
+            original = record.get('payload') or {}
+            if any(original.get(field) != payload[field] for field in (
+                'settlement_id', 'monster_id', 'zone_id', 'roster_slot',
+                'encounter_class', 'hp_before', 'hp_after',
+                'reward_drop_policy',
+            )):
+                raise MonsterSettlementRejected('Zone1/2 Monster concurrent replay conflict') from error
+            duplicate = True
+    return MonsterSettlementResult(
+        event_record={**record, 'payload': payload},
+        duplicate=duplicate,
+        monster_id=event.monster_id,
+        functional_drop_id=None, functional_drop_quantity=0,
+        appearance_drop_id=None, coins_granted=0,
+        functional_lineage_count=0, wardrobe_lineage_count=0,
+        functional_payload=None, appearance_payload=None,
+        quest_event={
+            'event_type': 'MONSTER_DEFEATED',
+            'event_id': record.get('event_id'),
+            'settlement_id': event.settlement_id,
+            'monster_id': event.monster_id,
+            'duplicate': duplicate,
+        },
+    )
+
+
 def _settle_monster_defeat_in_tx(
     conn,
     uid,
@@ -8425,6 +8554,7 @@ def _settle_monster_defeat_in_tx(
     loot_bonus=0.0,
     battlefield_authority: BattlefieldCatalogAuthorityProfile | None = None,
     adventure_authority=None,
+    map_battle_authority=None,
 ):
     """Close one server-owned Monster defeat inside the caller transaction.
 
@@ -8434,6 +8564,12 @@ def _settle_monster_defeat_in_tx(
     inventory, wardrobe, Coins, and D5A writers.  The legacy identity branch
     remains solely for the separate Map Battle compatibility caller.
     """
+
+    if map_battle_authority is not None:
+        return _settle_zone1_2_defeat_without_deferred_rewards(
+            conn, uid, authority=map_battle_authority,
+            settlement_id=settlement_id, hp_before=hp_before, hp_after=hp_after,
+        )
 
     source = dict(battlefield or {})
     settlement_registry = None
@@ -10261,6 +10397,11 @@ def auth_me():
         # for both eligibility and the equip/unequip write path; this field
         # only tells the UI whether to offer the control.
         'equipment_loadout_enabled': _equipment_canonical_loadout_enabled(),
+        'g019_equipment_actions_ui_enabled': (
+            _equipment_canonical_loadout_enabled()
+            and _canonical_coin_shop_purchase_enabled()
+            and _env_flag_enabled(G019_APPROVED_EQUIPMENT_SHOP_UI_FLAG, default=False)
+        ),
     })
 
 @app.route('/api/auth/tour_done', methods=['POST'])
@@ -16537,7 +16678,13 @@ def srs_review():
             boss_answer=data.get('boss_answer'),
             training_set_id=data.get('training_set_id'),
             is_scaffolding=bool(data.get('is_scaffolding')),
-            submission_id=data.get('submission_id') or request.headers.get('Idempotency-Key'),
+            # Only an absent, null, or empty-string body identity defers to the
+            # header; any other present value (e.g. [] or {}) must fail closed.
+            submission_id=(
+                data.get('submission_id')
+                if data.get('submission_id') not in (None, '')
+                else request.headers.get('Idempotency-Key')
+            ),
             guild_answer=data.get('guild_answer'),
             guild_quest_key=data.get('guild_quest_key'),
         )
@@ -17530,6 +17677,25 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         # server-owned Map Battle handoff (internal) may mint progression
         # credit; a public grade continues to update SM-2 but is never
         # allowed to become progression/reward/combat authority.
+        # P1 (Owner 2026-10-12): only an ordinary public Review is held to
+        # "advance when due".  The mode is decided from server-validated
+        # state, never from the client's source_context label alone: Map
+        # Battle (internal), Lord/Boss, Guild, Premium training and an
+        # active Boss question keep their historical always-advance
+        # behaviour.
+        ordinary_public_review = (
+            not internal
+            and public_review_authority is not None
+            and combat_settlement_context is None
+            and boss_source_context is None
+            and boss_answer is None
+            and boss_verdict is None
+            and guild_answer is None
+            and guild_verdict is None
+            and training_item is None
+            and training_set_id is None
+            and not active_boss_question
+        )
         _srs_outcome = apply_srs_scheduling(
             conn,
             user_id=uid,
@@ -17539,6 +17705,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             progress_credit_policy=(
                 ProgressCreditPolicy.FIRST_PASS_ONLY if internal
                 else ProgressCreditPolicy.NEVER
+            ),
+            advance_policy=(
+                SrsAdvancePolicy.CORRECT_ONLY_WHEN_DUE if ordinary_public_review
+                else SrsAdvancePolicy.ALWAYS
             ),
         )
         ef, iv, rp, due = (
@@ -17836,6 +18006,33 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                             raise MonsterSettlementRejected(
                                 'Map Battle defeat has no authoritative submission'
                             )
+                        zone1_2_authority = None
+                        if (authoritative_map_battle_submission[
+                            'battle_migration_source'
+                        ] == ZONE1_2_BINDING_SOURCE):
+                            # Restore exact persisted server-selected M-ID; do
+                            # not derive it from a mutable question or client.
+                            bound_battle = load_authoritative_battle_state(
+                                conn, user_id=int(uid),
+                                battle_id=authoritative_map_battle_submission['battle_id'],
+                            )
+                            if bound_battle is None:
+                                raise MonsterSettlementRejected(
+                                    'settled Zone1/2 Monster battle missing'
+                                )
+                            resolved = _map_battle_provider_for_restore(
+                                bound_battle, q_info,
+                                _map_battle_question_context(q_info),
+                                user_id=int(uid),
+                            )
+                            zone1_2_authority = resolved.binding
+                            if (
+                                zone1_2_authority is None
+                                or zone1_2_authority.zone_key not in ('Z1', 'Z2')
+                            ):
+                                raise MonsterSettlementRejected(
+                                    'settled Zone1/2 Monster identity not admitted'
+                                )
                         monster_settlement_result = _settle_monster_defeat_in_tx(
                             conn,
                             uid,
@@ -17853,6 +18050,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                             adventure_authority=q_info.get(
                                 '_adventure_zone3_binding'
                             ),
+                            map_battle_authority=zone1_2_authority,
                         )
                     monster_data = _map_battle_noncombat_progression(
                         conn,
@@ -18275,16 +18473,28 @@ def srs_due():
         rows = conn.execute(
             'SELECT question_id,interval,ease_factor,due_date FROM srs_cards WHERE user_id=? AND due_date<=?',
             (uid,today)).fetchall()
+        # RC01 (Owner 2026-10-12): a card that is persisted but not yet due is
+        # NOT a never-seen question.  Without these ids the default-card
+        # admission below fabricated an interval-0 "due today" card for it, and
+        # SRS.init overlaid that fiction on the real /api/srs/all schedule.
+        # Only future-dated cards are read here (due/overdue cards are already
+        # in ``rows``); a legacy row with a NULL due_date is deliberately left
+        # to the historical default so no card silently disappears from the
+        # due list.
+        future_ids = {r['question_id'] for r in conn.execute(
+            'SELECT question_id FROM srs_cards WHERE user_id=? AND due_date>?',
+            (uid, today)).fetchall()}
         qs   = _load_questions()
         # LC019-W2: don't synthesize a default card for a question whose
-        # canonical identity already has a real due card.  When the reader is
-        # cold, _gk is the ("legacy", str(id)) bijection -> `seen` behaves exactly like the
-        # raw id set, so `due` is byte-identical and no resolver is queried.
+        # canonical identity already has a persisted card (due or future).  When
+        # the reader is cold, _gk is the ("legacy", str(id)) bijection ->
+        # `seen` behaves exactly like the raw id set and no resolver is queried.
+        persisted_ids = {r['question_id'] for r in rows} | future_ids
         seen = _IdentityKeyedSet(
-            {r['question_id'] for r in rows},
+            persisted_ids,
             _identity_group_key_map(
                 conn,
-                {r['question_id'] for r in rows} | {q['id'] for q in qs},
+                persisted_ids | {q['id'] for q in qs},
             ),
         )
     due  = [dict(r) for r in rows]
@@ -21690,8 +21900,14 @@ def community_leaderboard_reward_notification_ack(claim_id):
 @app.route('/api/community/leaderboard/reward-rules')
 @login_required
 def community_leaderboard_reward_rules():
-    from community_leaderboard_rewards import get_weekly_leaderboard_reward_rules
-    return jsonify({'ok': True, 'rules': {'weekly': get_weekly_leaderboard_reward_rules()}})
+    from community_leaderboard_rewards import (
+        get_weekly_leaderboard_reward_rules,
+        get_monthly_leaderboard_reward_rules,
+    )
+    return jsonify({'ok': True, 'rules': {
+        'weekly': get_weekly_leaderboard_reward_rules(),
+        'monthly': get_monthly_leaderboard_reward_rules(),
+    }})
 
 
 @app.route('/api/community/tournament')
@@ -25294,6 +25510,15 @@ SHOP_ITEMS = {
         'usable': 'instant', 'category': 'pet',
         'grants_food': {'go_spirit_candy': 3, 'starfruit': 2, 'moon_drop': 1},
     },
+    'appearance_fragment': {
+        'key': 'appearance_fragment', 'price': 0, 'icon': '✨',
+        'name': '外觀碎片', 'name_en': 'Appearance Fragment',
+        'desc': '排行榜專用：使用後解鎖一件尚未擁有的常見或稀有外觀',
+        'desc_en': 'Leaderboard-only: redeem for a missing common or uncommon appearance',
+        'usable': 'activate', 'category': 'collection',
+        'shop_pool': 'reward_only', 'gacha_drop': False,
+        'effect': {'key': 'appearance_fragment', 'value': 1},
+    },
     'rare_appearance_fragment': {
         'key': 'rare_appearance_fragment', 'price': 980, 'icon': '✨',
         'name': '稀有外觀碎片', 'name_en': 'Rare Appearance Fragment',
@@ -25443,6 +25668,9 @@ def _grant_shop_purchase(conn, uid, item, qty=1):
 # changing repository or Production defaults.
 CANONICAL_COIN_SHOP_PURCHASE_FLAG = 'CANONICAL_COIN_SHOP_PURCHASE_ENABLED'
 EQUIPMENT_CANONICAL_LOADOUT_FLAG = 'EQUIPMENT_CANONICAL_LOADOUT_ENABLED'
+# G019 candidate: independent default-OFF presentation admission for the nine
+# server-owned canonical equipment offers. Never admits any P022/P038 QA model.
+G019_APPROVED_EQUIPMENT_SHOP_UI_FLAG = 'G019_APPROVED_EQUIPMENT_SHOP_UI_ENABLED'
 
 SHOP_R1_CONSUMABLE_SKUS = (
     'hint_ticket',
@@ -26202,6 +26430,26 @@ def is_community_reward_badge_owned(conn, *, user_id, badge_key):
         'SELECT 1 FROM badges_earned WHERE user_id=? AND badge_id=?',
         (user_id, badge_key)).fetchone() is not None
 
+def grant_community_reward_title(conn, *, user_id, title_key):
+    """Grant a catalog-defined leaderboard title as owned wardrobe (no equip)."""
+    item = _APPEAR_MAP.get(title_key)
+    if title_key != 'title_monthly_master' or not item or item.get('slot') != 'title':
+        raise ValueError('unknown leaderboard title')
+    conn.execute(
+        'INSERT OR IGNORE INTO player_wardrobe(user_id,item_id,obtained_at,source) VALUES(?,?,?,?)',
+        (user_id, title_key, _now_iso(), 'community_leaderboard'),
+    )
+    if not is_community_reward_title_owned(conn, user_id=user_id, title_key=title_key):
+        raise RuntimeError('leaderboard title ownership was not persisted')
+
+
+def is_community_reward_title_owned(conn, *, user_id, title_key):
+    return conn.execute(
+        'SELECT 1 FROM player_wardrobe WHERE user_id=? AND item_id=?',
+        (user_id, title_key),
+    ).fetchone() is not None
+
+
 def _effect_get(conn, uid, effect_key):
     """取得仍有效的效果列（時效未過 / 當日有效 / 一次性未消耗）。"""
     now = _now_iso()
@@ -26861,6 +27109,12 @@ def shop_catalog():
     product_registry = build_shop_product_grant_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
     return jsonify({
         'purchase_enabled': purchase_enabled,
+        'approved_equipment_purchase_ui_enabled': (
+            purchase_enabled and _equipment_canonical_loadout_enabled()
+            and _env_flag_enabled(
+                G019_APPROVED_EQUIPMENT_SHOP_UI_FLAG, default=False
+            ) and len(equipment_offers) == 9
+        ),
         'coins': bal,
         'earned_today': earned,
         'daily_cap': _COIN_DAILY_CAP,
@@ -26885,6 +27139,8 @@ def shop_catalog():
 def shop_buy():
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
+    if str(body.get('item_key') or '') == 'appearance_fragment':
+        return jsonify({'error': 'reward_only_item_not_for_sale'}), 403
     # C048 closes the default authority split: /api/shop/buy always performs
     # server-fact classification before any mutation. Canonical Coin mutation
     # then applies the same request-time Shop gate before entering C019/C026;
@@ -29068,6 +29324,7 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     'srs.js', 'monster_trash.js', 'sound.js', 'mobile-nav.js',
     'site-nav.js', 'community_reward_notifications.js',
     'community_reward_rules.js', 'pwa.js', 'sgf_report_widget.js',
+    'g010_m4_quest_leaderboard.js', 'g010_m4_quest_leaderboard.css',
     # static config served as flat root files
     'manifest.json', 'robots.txt', 'sitemap.xml',
     # public/known HTML pages (explicit allowlist; every one of these is
@@ -29166,6 +29423,7 @@ def _serve_live_static_or_baked_subpath(
     baked_subdir,
     live_static_subdir,
     allowed_subpaths=None,
+    mimetype=None,
 ):
     """Same fallback contract as _serve_live_static_or_baked, but for a
     file inside a subdirectory tree (e.g. assets/tiers/26-30.jpg)
@@ -29178,19 +29436,19 @@ def _serve_live_static_or_baked_subpath(
     inside the live-static root."""
     normalized_subpath = subpath.replace('\\', '/')
     if allowed_subpaths is not None and normalized_subpath not in allowed_subpaths:
-        return send_from_directory(os.path.join(_BASE, baked_subdir), subpath)
+        return send_from_directory(os.path.join(_BASE, baked_subdir), subpath, mimetype=mimetype)
 
     live_static_relative = f'{live_static_subdir}/{normalized_subpath}'
     live_static_path = _resolve_live_static_path(live_static_relative)
     if live_static_path:
         try:
-            return send_file(live_static_path, conditional=True)
+            return send_file(live_static_path, conditional=True, mimetype=mimetype)
         except OSError as exc:
             app.logger.warning(
                 '[live_static] failed to serve %s from %s: %s; falling back to baked asset',
                 subpath, live_static_path, exc
             )
-    return send_from_directory(os.path.join(_BASE, baked_subdir), subpath)
+    return send_from_directory(os.path.join(_BASE, baked_subdir), subpath, mimetype=mimetype)
 
 @app.route('/sound/<path:filename>')
 def serve_sound(filename):
@@ -29228,6 +29486,17 @@ def serve_community_reward_notifications_js():
 def serve_community_reward_rules_js():
     return _serve_live_static_or_baked('community_reward_rules.js')
 
+# M4 optional Quest V2 panel assets: no wildcard static-serving permissions.
+@app.route('/g010_m4_quest_leaderboard.js')
+@login_required
+def serve_g010_m4_quest_leaderboard_js():
+    return _serve_live_static_or_baked('g010_m4_quest_leaderboard.js')
+
+@app.route('/g010_m4_quest_leaderboard.css')
+@login_required
+def serve_g010_m4_quest_leaderboard_css():
+    return _serve_live_static_or_baked('g010_m4_quest_leaderboard.css')
+
 @app.route('/pwa.js')
 def serve_pwa_js(): return _serve_live_static_or_baked('pwa.js')
 
@@ -29257,6 +29526,9 @@ _G009_FORMAL_RUNTIME_JS_FILES = frozenset({
     'g009_companion_child.mjs',
     'g009_companion_formal18_assets.mjs',
     'g009_companion_formal18_bootstrap.mjs',
+    # Exact-route-only real 3D turntable on the already governed Hero page.
+    'g009_companion_360_viewer.mjs',
+    'g010_hero_3d_gallery.mjs',
     # G009 Hero Hub bundle: dual delivery (live-static first, baked fallback).
     'g009_hero_hub_batch_a.js',
 })
@@ -29328,10 +29600,23 @@ text-decoration:none;font-weight:900}</style></head>
 @app.route('/icon-192.png')
 def serve_icon192(): return send_from_directory(_BASE,'icon-192.png')
 
+# These legacy filenames do not match their verified image byte signatures.
+# Preserve accepted assets and URLs; override only the five proven MIME cases.
+_LIVE_STATIC_ASSET_MIME_OVERRIDES = {
+    'community/tavern_bg.webp': 'image/png',
+    'hero/armor/answer_hero_avatar_verification.png': 'image/jpeg',
+    'hero/armor/hero_armor_overlay_verification.png': 'image/jpeg',
+    'hero/hero_bg.webp': 'image/png',
+    'monsters/monster_redraw_verification.png': 'image/jpeg',
+}
+
 @app.route('/assets/<path:subpath>')
 def serve_assets(subpath):
     """提供題庫相關資源圖（如棋力區封面 assets/tiers/26-30.jpg）"""
-    return _serve_live_static_or_baked_subpath(subpath, 'assets', 'assets')
+    return _serve_live_static_or_baked_subpath(
+        subpath, 'assets', 'assets',
+        mimetype=_LIVE_STATIC_ASSET_MIME_OVERRIDES.get(subpath),
+    )
 
 @app.route('/art/monsters/<path:filename>')
 def serve_zone3_monster_art(filename):
@@ -29535,6 +29820,14 @@ def serve_zone4_cinematic_content_js():
 def serve_encounter_presentation_framework_v1_css():
     return _serve_live_static_or_baked_subpath(
         'encounter_presentation_framework_v1.css', 'css/e10', 'css/e10'
+    )
+
+# G009 FAST-LANE: the existing backpack stylesheet is presentation-only.
+# Preserve the governed exact-route policy for css/e10; no broad static prefix.
+@app.route('/css/e10/backpack.css')
+def serve_e10_backpack_css():
+    return _serve_live_static_or_baked_subpath(
+        'backpack.css', 'css/e10', 'css/e10'
     )
 
 @app.route('/css/e10/go_combat_owner_reference_v1.css')
@@ -32921,12 +33214,17 @@ def _start_community_leaderboard_weekly_scheduler():
         from community_leaderboard_rewards_scheduler import (
             SCHEDULER_WAKE_INTERVAL_SECONDS,
             run_community_leaderboard_weekly_cycle,
+            run_community_leaderboard_monthly_cycle,
         )
         while True:
             try:
                 run_community_leaderboard_weekly_cycle(__import__(__name__))
             except Exception:
                 app.logger.exception('[community_leaderboard_weekly] scheduled job failed')
+            try:
+                run_community_leaderboard_monthly_cycle(__import__(__name__))
+            except Exception:
+                app.logger.exception('[community_leaderboard_monthly] scheduled job failed')
             time.sleep(SCHEDULER_WAKE_INTERVAL_SECONDS)
 
     threading.Thread(target=worker, name='community-leaderboard-weekly', daemon=True).start()

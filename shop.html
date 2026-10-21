@@ -800,6 +800,7 @@ header:not(.cg-nav) { background: #0b1430; }
   <nav class="header-links" aria-label="Shop navigation" data-i18n-aria-label="shop.nav.label">
     <a href="/item-journal" data-i18n="shop.nav.journal">物品圖鑑</a>
     <a href="/inventory" data-i18n="shop.nav.backpack">背包</a>
+    <a href="/hero?tab=equipment#g010-3d-gallery" aria-label="到英雄殿檢視已核准的真實 3D 模型">3D 模型館</a>
   </nav>
 </header>
 
@@ -809,6 +810,7 @@ header:not(.cg-nav) { background: #0b1430; }
       <div class="eyebrow" data-i18n="shop.eyebrow">棋魂廣場</div>
       <h1 id="shop-title" data-i18n="shop.h1">Coins Shop</h1>
       <p class="lead" data-i18n="g009.shop.browse_only">目前僅供瀏覽預覽；購買功能已停用。</p>
+      <p class="section-sub" data-shop-availability-note>本頁僅供預覽，即使伺服器購買旗標開啟也不提供購買；寵物食物目前無法在此購買。已持有的食物可到 <a href="/hero?tab=pet" style="color:var(--teal)">棋靈 / Spirit</a> 頁查看餵食條件。<br>This page is preview only, even if the server purchase flag is enabled. Pet food cannot be bought here. Visit Spirit to check feeding options for food you already own.</p>
       <div class="wallet-row">
         <div class="wallet-tile">
           <div class="tile-label" data-i18n="shop.coin.label">持有金幣</div>
@@ -1078,6 +1080,35 @@ let c053OptionBVisible = false;
 // catalog/purchase contract readable for compatibility, but never let a
 // server response enable a purchase control on this surface.
 const G009_SHOP_BROWSE_PREVIEW_ONLY = true;
+// G019: independent OFF-by-default Product candidate seam. Only a full
+// server-owned canonical EQUIPMENT list (not legacy consumables, cosmetic,
+// P022/P038 placeholders, or client URL switches) can open equipment controls.
+// The original 11/11 browse-only G009 design and its fixed default stay intact.
+function g019ServerApprovedEquipmentUi(data = catalog, offerId = null) {
+  if (!data || data.purchase_enabled !== true
+      || data.approved_equipment_purchase_ui_enabled !== true
+      || !Array.isArray(data.equipment_offers)
+      || data.equipment_offers.length !== 9
+      || !Number.isInteger(data.coins) || data.coins < 0) return false;
+  const source = data.equipment_offers;
+  const approved = new Set();
+  const items = new Set();
+  for (const offer of source) {
+    if (!offer || typeof offer.offer_id !== 'string'
+        || typeof offer.item_id !== 'string'
+        || !/^[A-Za-z][A-Za-z0-9_.:-]{2,80}$/.test(offer.offer_id)
+        || !/^[A-Za-z][A-Za-z0-9_]{2,80}$/.test(offer.item_id)
+        || /^(g0[0-9]+_qa_|G01[0-9]_)/i.test(offer.item_id)
+        || !Number.isInteger(offer.price) || offer.price <= 0
+        || approved.has(offer.offer_id) || items.has(offer.item_id)
+        || !data.equipment_ownership
+        || !Object.prototype.hasOwnProperty.call(data.equipment_ownership, offer.item_id))
+      return false;
+    approved.add(offer.offer_id);
+    items.add(offer.item_id);
+  }
+  return offerId == null || approved.has(String(offerId));
+}
 function shopPurchaseEnabled(data = catalog) {
   if (G009_SHOP_BROWSE_PREVIEW_ONLY) return false;
   return data?.purchase_enabled === true;
@@ -1091,9 +1122,9 @@ function shopPurchaseClosedCopy() {
       '即將開放',
     ),
     copy: uiText(
-      'g009.shop.browse_only',
-      'You can browse the catalog; purchases are disabled.',
-      '目前可以瀏覽商品；目前僅供瀏覽預覽，購買功能已停用。',
+      'shop.preview.purchaseUnavailable',
+      'You can browse the catalog; purchases, including pet food, are unavailable on this page. Coming Soon does not confirm a release date.',
+      '目前可以瀏覽商品；本頁無法購買，包括寵物食物。「即將開放」不代表已確定開放日期。',
     ),
   };
 }
@@ -1103,21 +1134,29 @@ function updateShopPurchaseState(data = catalog) {
   const title = document.getElementById('shop-purchase-state-title');
   const copy = document.getElementById('shop-purchase-state-copy');
   if (!state || !title || !copy) return;
-  const enabled = shopPurchaseEnabled(data);
+  const equipmentOnly = typeof g019ServerApprovedEquipmentUi === 'function'
+    && g019ServerApprovedEquipmentUi(data);
+  const enabled = shopPurchaseEnabled(data) || equipmentOnly;
   const hasAuthoritativeBoolean = typeof data?.purchase_enabled === 'boolean';
   const closed = shopPurchaseClosedCopy();
   state.hidden = enabled;
-  state.dataset.shopPurchaseState = enabled ? 'open' : 'closed';
+  state.dataset.shopPurchaseState = equipmentOnly
+    ? 'equipment-only' : enabled ? 'open' : 'closed';
   state.dataset.purchaseEnabled = enabled ? 'true' : 'false';
-  state.dataset.purchaseEnabledSource = G009_SHOP_BROWSE_PREVIEW_ONLY
-    ? 'g009-browse-preview-locked'
-    : hasAuthoritativeBoolean ? 'server' : 'missing';
-  title.textContent = enabled
-    ? uiText('shop.purchase.openTitle', 'Purchases available', '購買功能已開放')
+  state.dataset.purchaseEnabledSource = equipmentOnly
+    ? 'g019-server-equipment-only'
+    : G009_SHOP_BROWSE_PREVIEW_ONLY
+      ? 'g009-browse-preview-locked'
+      : hasAuthoritativeBoolean ? 'server' : 'missing';
+  title.textContent = equipmentOnly
+    ? uiText('shop.g019.equipmentTitle', 'Equipment purchases available', '功能裝備購買已開放')
+    : enabled ? uiText('shop.purchase.openTitle', 'Purchases available', '購買功能已開放')
     : closed.title;
-  copy.textContent = enabled
-    ? uiText('shop.purchase.openCopy', 'Buy adds the item to your Backpack or wardrobe; use and equip actions happen separately.', '購買會將物品加入背包或衣櫃；使用與裝備仍是分開的操作。')
-    : closed.copy;
+  copy.textContent = equipmentOnly
+    ? uiText('shop.g019.equipmentCopy', 'Only the nine approved server equipment offers can be purchased. Other Shop goods are preview-only; equipping is a separate Backpack action.', '目前只有九項伺服器核准的功能裝備可購買；其他商品仍僅供瀏覽，穿戴需在背包另外操作。')
+    : enabled
+      ? uiText('shop.purchase.openCopy', 'Buy adds the item to your Backpack or wardrobe; use and equip actions happen separately.', '購買會將物品加入背包或衣櫃；使用與裝備仍是分開的操作。')
+      : closed.copy;
 }
 
 function showShopPurchaseClosed() {
@@ -1562,7 +1601,7 @@ function showToast(message) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
 }
 function merchantLine(group) {
-  if (G009_SHOP_BROWSE_PREVIEW_ONLY) {
+  if (G009_SHOP_BROWSE_PREVIEW_ONLY && !g019ServerApprovedEquipmentUi(catalog)) {
     return isEn()
       ? "Browse the server catalog; purchases are disabled."
       : "瀏覽伺服器目錄；購買功能已停用。";
@@ -2069,7 +2108,12 @@ async function requestShopPurchase(route, selector, payload) {
   // Keep the client fail-closed even if a caller is invoked programmatically
   // after the catalog has changed.  The optional function check preserves the
   // isolated E030 helper contract, where this function is evaluated alone.
-  if (typeof shopPurchaseEnabled === 'function' && !shopPurchaseEnabled()) {
+  const isG019CanonicalEquipment = route === '/api/shop/buy'
+    && g019ServerApprovedEquipmentUi(catalog, selector)
+    && catalog.equipment_offers.some(offer =>
+      offer.offer_id === selector && offer.item_id === payload?.item_key);
+  if (typeof shopPurchaseEnabled === 'function' && !shopPurchaseEnabled()
+      && !isG019CanonicalEquipment) {
     return { error: 'SHOP_PURCHASE_DISABLED' };
   }
   const intent = beginShopPurchaseIntent(route, selector);
@@ -2253,7 +2297,19 @@ function c053ServerCatalogEnablesOptionB(data) {
   // public surface.  Prices, product identities, and the Coins balance remain
   // server-owned facts; this check only fails closed when the response is
   // incomplete.
-  return c043EquipmentOffers(data).length === 3
+  // C053's original three-item starter assortment stays admitted.
+  // When the *server* enables the canonical Coin Shop, C045 may return an
+  // expanded 9-item assortment; do not hide all nine legitimate offers.
+  // Every item must still pass the strict C043 offer adapter; a malformed,
+  // duplicated or client-fabricated entry cannot open the Option B panel.
+  const offers = c043EquipmentOffers(data);
+  const starterAssortment = c043EquipmentOffers(data).length === 3;
+  const expandedServerAssortment = data?.purchase_enabled === true
+    && Array.isArray(data?.equipment_offers)
+    && data.equipment_offers.length > 3
+    && offers.length === data.equipment_offers.length
+    && new Set(offers.map(offer => offer.offer_id)).size === offers.length;
+  return (starterAssortment || expandedServerAssortment)
     && Number.isInteger(data?.coins)
     && data.coins >= 0;
 }
@@ -2857,7 +2913,8 @@ function c043EquipmentOfferCardHTML(offer) {
   const ownership = c044EquipmentOwnership(catalog, offer);
   const pending = c044EquipmentPurchaseInFlight.has(offer.offer_id);
   const ownedReject = c044EquipmentRejectsOwned(offer, ownership);
-  const purchaseClosed = !shopPurchaseEnabled();
+  const purchaseClosed = !g019ServerApprovedEquipmentUi(catalog, offer.offer_id)
+    && !shopPurchaseEnabled();
   const buttonLabel = pending
     ? uiText('shop.equipment.pending', 'Confirming…', '確認中…')
     : ownedReject
@@ -2900,7 +2957,8 @@ function c044EquipmentPurchaseLabel(offer, ownership, pending) {
   if (c044EquipmentRejectsOwned(offer, ownership)) {
     return uiText('shop.equipment.owned', 'Owned', '已擁有');
   }
-  if (!shopPurchaseEnabled()) return shopPurchaseClosedActionLabel();
+  if (!g019ServerApprovedEquipmentUi(catalog, offer.offer_id)
+      && !shopPurchaseEnabled()) return shopPurchaseClosedActionLabel();
   if (!c044EquipmentCatalogBalanceIsCurrent()) {
     return uiText('shop.equipment.refreshBalance', 'Refresh Coins before buying', '請先刷新金幣再購買');
   }
@@ -2913,7 +2971,8 @@ function c044ApplyEquipmentButtonState(button, offer) {
   const pending = c044EquipmentPurchaseInFlight.has(offer.offer_id);
   const ownedReject = c044EquipmentRejectsOwned(offer, ownership);
   const staleBalance = !c044EquipmentCatalogBalanceIsCurrent();
-  const purchaseClosed = !shopPurchaseEnabled();
+  const purchaseClosed = !g019ServerApprovedEquipmentUi(catalog, offer.offer_id)
+    && !shopPurchaseEnabled();
   applyShopPurchaseControlState(button, {
     disabled: ownedReject || staleBalance,
     pending,
@@ -2921,6 +2980,13 @@ function c044ApplyEquipmentButtonState(button, offer) {
   });
   button.disabled = pending || ownedReject || staleBalance;
   if (purchaseClosed) button.disabled = true;
+  // The global G009 browse-only latch still governs everything except exact
+  // server-admitted equipment offers. Do not change other Shop controls.
+  button.dataset.shopPurchaseDisabled = purchaseClosed ? 'true' : 'false';
+  if (!purchaseClosed && !button.disabled) {
+    button.removeAttribute('aria-disabled');
+    delete button.dataset.shopPurchaseDisabledReason;
+  }
   if (pending) button.setAttribute('aria-busy', 'true');
   else button.removeAttribute('aria-busy');
   button.dataset.c044Pending = pending ? 'true' : 'false';
@@ -3072,6 +3138,8 @@ function renderEquipmentOffers(data) {
   }
   panel.hidden = false;
   grid.dataset.c044CatalogRevision = String(c044EquipmentCatalogRevision);
+  panel.dataset.g019CanonicalPurchaseUi = g019ServerApprovedEquipmentUi(data)
+    ? 'server-approved' : 'default-closed';
   const status = document.getElementById('equipment-catalog-status');
   if (status) {
     status.dataset.c044CatalogStatus = 'ready';
@@ -3207,7 +3275,8 @@ async function c044RecoverEquipmentPurchaseFailure(message) {
 }
 
 async function purchaseEquipment(offerId, button) {
-  if (!shopPurchaseEnabled()) {
+  if (!g019ServerApprovedEquipmentUi(catalog, offerId)
+      && !shopPurchaseEnabled()) {
     showShopPurchaseClosed();
     return;
   }

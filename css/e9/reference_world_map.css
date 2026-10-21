@@ -1052,7 +1052,7 @@ body[data-e10-visual-skin="immersive-rpg"] #ios-install-guide { display: none !i
   body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-details:not([hidden]) { display: block; position: static !important; margin: 10px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { position: fixed; z-index: 60; top: auto; right: 8px; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); left: 8px; width: auto; height: auto; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav { padding: 5px; border: 1px solid var(--na-gold-edge, rgba(236,201,120,.42)); border-radius: 12px; background: linear-gradient(180deg, #17213f 0%, #070d24 100%); /* Night Atlas chrome */ }
-  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list { grid-template-columns: repeat(6,minmax(0,1fr)); grid-template-rows: 1fr; gap: 3px; }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list { grid-template-columns: repeat(7,minmax(0,1fr)); grid-template-rows: 1fr; gap: 3px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li:has([data-e10-command="adventure"]) { display: block; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item { width: 100%; min-height: 62px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon { width: 30px; height: 30px; padding: 4px; }
@@ -1192,7 +1192,7 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
    rendered a ~46%-width, single-column card that did not match Safari. */
 html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { position: fixed; z-index: 60; top: auto; right: 8px; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); left: 8px; width: auto; height: auto; }
 html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav { padding: 5px; border: 1px solid var(--na-gold-edge, rgba(236,201,120,.42)); border-radius: 12px; background: linear-gradient(180deg, #17213f 0%, #070d24 100%); /* Night Atlas chrome */ }
-html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list { grid-template-columns: repeat(6,minmax(0,1fr)); grid-template-rows: 1fr; gap: 3px; }
+html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list { grid-template-columns: repeat(7,minmax(0,1fr)); grid-template-rows: 1fr; gap: 3px; }
 html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list > li:has([data-e10-command="adventure"]) { display: block; }
 html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__item { width: 100%; min-height: 62px; }
 html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__icon { width: 30px; height: 30px; padding: 4px; }
@@ -1855,6 +1855,38 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
 
 @media (prefers-reduced-motion: reduce) {
   body[data-e10-visual-skin="immersive-rpg"] * { scroll-behavior: auto; animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* Lane D: a navigation-only recommendation and separate clear/star signals.
+   D/A010 still requires Owner UAT on a real iPad for this added control. */
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-recommended-entry {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 14px;
+  margin: 4px 0;
+  border: 2px solid #a97822;
+  border-radius: 8px;
+  background: #fff4d2;
+  color: #33230c;
+  font: inherit;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-recommended-entry[hidden] { display: none !important; }
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-recommended-entry:focus-visible {
+  outline: 3px solid #16747b;
+  outline-offset: 2px;
+}
+#e9-adventure-shell .e9-zone[data-zone-completion="three-star"] .e9-zone__state {
+  background: #ffe5a0;
+  color: #503000;
+  border: 2px solid #a97822;
+}
+#e9-adventure-shell .e9-zone[data-zone-completion="cleared"] .e9-zone__state {
+  background: #d6f3ec;
+  color: #164c44;
+  border: 2px solid #30796a;
 }
 
 /* G009 R3 responsive semantics. The runtime owns the class because iPad

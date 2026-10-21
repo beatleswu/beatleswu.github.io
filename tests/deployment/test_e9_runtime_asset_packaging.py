@@ -30,6 +30,7 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+import uuid
 
 import pytest
 
@@ -246,7 +247,9 @@ def _free_port():
 
 def _http_get(url, timeout=10):
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as resp:
+        # Test-server loopback must bypass workstation proxy configuration.
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(url, timeout=timeout) as resp:
             return resp.status, resp.read()
     except urllib.error.HTTPError as e:
         return e.code, b""
@@ -265,16 +268,17 @@ class TestBuiltContainerHttpRoutes:
     `if __name__ == '__main__': init_db()` guard (see app.py), which would
     otherwise require a reachable Postgres just to serve a static file."""
 
-    container_name = "e9_packaging_http_test"
+    # Per-run QA identity; never remove another operator's container by name.
+    container_name = f"e9_packaging_http_test_{os.getpid()}_{uuid.uuid4().hex[:8]}"
 
     @classmethod
     def setup_class(cls):
         cls.port = _free_port()
-        subprocess.run(["docker", "rm", "-f", cls.container_name], capture_output=True)
         cmd = [
             "docker", "run", "-d", "--rm",
             "--name", cls.container_name,
-            "-p", f"{cls.port}:8080",
+            # Bind only Windows loopback, as in the already passing SGF canary.
+            "-p", f"127.0.0.1:{cls.port}:8080",
             "--entrypoint", "python",
             IMAGE_TAG,
             "-c", "from app import app; app.run(host='0.0.0.0', port=8080)",
@@ -284,7 +288,8 @@ class TestBuiltContainerHttpRoutes:
 
         base = f"http://127.0.0.1:{cls.port}"
         time.sleep(2)  # let the Flask dev server finish binding before the first attempt
-        deadline = time.time() + 30
+        # ARM64 emulation cold import may exceed 30s on Docker Desktop.
+        deadline = time.time() + 75
         ready = False
         while time.time() < deadline:
             status, _ = _http_get(f"{base}/js/e9/feature_flags.js", timeout=3)

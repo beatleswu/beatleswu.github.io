@@ -8908,6 +8908,9 @@ function setHomePlayerLayer(id, slot, key, characterKey) {
 
 let _homeSpiritPet = null;  // 主角卡片要顯示的棋靈夥伴立繪（取代舊的裝備寵物配飾）
 let _petStatusPromise = null;
+// Share the initial governed Spirit unlock across the home idle loader and
+// the Adventure board loader. Only the server can authorize the result.
+let _starterSpiritAutoChoosePromise = null;
 function getPetStatus() {
     if (!_petStatusPromise) {
         _petStatusPromise = fetch('/api/pet/status', { credentials:'include', cache:'no-store' })
@@ -10418,9 +10421,56 @@ async function submitSRS(grade){
         reviewMetadata,
     });
     if (!_gameSession.beginReview(identity)) return;
+    let publicAttempt = null;
     return (async () => {
     const unit=currentUnitName();let unitDone=false;
-    if(!_bossMode&&grade>=3&&unit&&!incident002Practice){
+    const ordinaryPublicReview = !incident002Practice && !_bossMode
+        && !_guildQuestMode && !_premiumWeeklyMode
+        && reviewMetadata.source_context === 'practice';
+    const publicStateMessage = (text, allowNewAttempt = false) => {
+        setMsg(text, 'info');
+        document.querySelectorAll('[data-public-review-recovery]').forEach(button => button.remove());
+        if (!publicAttempt) return;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.publicReviewRecovery = allowNewAttempt ? 'new-attempt' : 'retry';
+        // The quiz-board anchor overlays the inline message at some sizes.
+        // Keep this explicit recovery action outside that stacking context.
+        button.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:1000000;padding:12px 18px;border-radius:8px;background:#0d9488;color:white;border:0;cursor:pointer;';
+        button.textContent = I18n.getLang() === 'en'
+            ? (allowNewAttempt ? 'Practice again' : 'Confirm this answer')
+            : (allowNewAttempt ? '再次練習' : '確認這次答題');
+        button.addEventListener('click', () => {
+            if (Number(currentQ?.id) !== publicAttempt.command.question_id
+                || Number(_currentUserId) !== publicAttempt.userId) return;
+            if (allowNewAttempt) {
+                if (_gameSession.newPublicReviewAttempt(publicAttempt)) { button.remove(); resetProblem(); }
+            } else {
+                void submitSRS(publicAttempt.command.grade);
+            }
+        });
+        document.body.appendChild(button);
+    };
+    if (ordinaryPublicReview) {
+        try {
+            publicAttempt = _gameSession.beginPublicReview(_currentUserId,
+                window.ReviewTransport.buildRequest({ question_id: Number(currentQ.id),
+                    grade, unit_name: unit, unit_done: false, ...reviewMetadata }),
+                _modeContext.currentMode());
+        } catch (error) {
+            setMsg(I18n.getLang() === 'en'
+                ? 'This answer is not confirmed. Do not submit a new answer; retry the original result.'
+                : '這次答題尚未確認，請勿改交另一個結果；請重試原答題。', 'err');
+            return;
+        }
+        if (!publicAttempt) return;
+        if (publicAttempt.settled) {
+            publicStateMessage(I18n.getLang() === 'en' ? 'This answer is already recorded.' : '這次答題已記錄。', true);
+            return;
+        }
+    }
+    if(!_bossMode&&grade>=3&&unit&&!incident002Practice
+        && (!ordinaryPublicReview || publicAttempt.firstRequest)){
         try{const prog=await SRS.reportUnitProgress(currentQ.id,unit);unitDone=prog.unit_complete;}
         catch(e){/* /api/unit-progress 不存在時靜默忽略 */}
     }
@@ -10433,15 +10483,29 @@ async function submitSRS(grade){
         index: bossAnswerContext?.index,
         questionId: bossAnswerContext?.questionId,
     });
+    let publicCommand = null;
     try {
+        if (ordinaryPublicReview) {
+            publicCommand = _gameSession.publicReviewCommand(publicAttempt, unitDone);
+            grade = publicCommand.grade;
+        }
         data = incident002Practice
             ? await SRS.practiceAnswer(
                 currentQ.id,
                 _practiceAnswerMoves.map(move => ({...move})),
                 reviewMetadata,
             )
-            : await SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata);
+            : await SRS.review(publicCommand?.question_id ?? currentQ.id,grade,
+                publicCommand?.unit_name ?? unit,publicCommand?.unit_done ?? unitDone,
+                publicCommand || reviewMetadata);
     } catch(e) {
+        if (ordinaryPublicReview) {
+            _gameSession.recordPublicReviewOutcome(publicAttempt, window.ReviewTransport.publicReviewFailure(e));
+            publicStateMessage(I18n.getLang() === 'en'
+                ? (e?.kind === 'REJECTED' ? `The server rejected this answer (${e.code || e.status}).` : 'The result is not confirmed. Confirm the same answer safely.')
+                : (e?.kind === 'REJECTED' ? `伺服器拒絕這次答題（${e.code || e.status}）。` : '結果尚未確認，請安全確認同一次答題。'));
+            return;
+        }
         const diagnosticRef = e?.payload?.diagnostic_ref || null;
         console.warn(incident002Practice ? '[SRS.practiceAnswer] failed; answer was not saved' : '[SRS.review] failed; answer was not saved', {
             errorType: e?.name || 'Error',
@@ -10462,7 +10526,10 @@ async function submitSRS(grade){
         grade = Number(data.authoritative_grade);
         _practiceAnswerMoves = [];
     }
-    if (data.ok) SRS.markSeen(currentQ.id); // 只在伺服器接受後標記已作答
+    if (ordinaryPublicReview && !data.ok) {
+        _gameSession.recordPublicReviewOutcome(publicAttempt, 'SERVER_REJECTED');
+    }
+    if (data.ok && !ordinaryPublicReview) SRS.markSeen(currentQ.id); // 只在伺服器接受後標記已作答
     if(!data.ok){
         _e10AcceptanceTrace('REVIEW_REJECTED', {
             qid: Number(currentQ.id), grade, reason: data.error || 'not_committed',
@@ -10507,6 +10574,65 @@ async function submitSRS(grade){
     _e10AcceptanceTrace('REVIEW_COMMITTED', {
         qid: Number(currentQ.id), grade, lord: _bossMode === true,
     });
+    if (ordinaryPublicReview) {
+        let outcome;
+        let projection = null;
+        try {
+            outcome = window.ReviewTransport.publicReviewOutcome(data, publicCommand);
+            _gameSession.recordPublicReviewOutcome(publicAttempt, outcome);
+            if (outcome === 'DUPLICATE_COMMITTED_RECOVERED') {
+                projection = await window.ReviewTransport.reconcilePublicReview(publicCommand, publicAttempt.userId, async () => {
+                    const read = async url => {
+                        const response = await fetch(url, { credentials: 'include', cache: 'no-store' });
+                        if (!response.ok) throw new Error('public_review_projection_unavailable');
+                        return response.json();
+                    };
+                    const [card, stats] = await Promise.all([
+                        read(`/api/srs/card/${encodeURIComponent(publicCommand.question_id)}`),
+                        read('/api/xp/status'),
+                    ]);
+                    return { card, stats };
+                });
+            }
+        } catch (error) {
+            publicStateMessage(I18n.getLang() === 'en'
+                ? 'The authoritative result is not fully confirmed. Confirm this same answer again.'
+                : '伺服器結果尚未完整確認，請再次確認同一次答題。');
+            return;
+        }
+        // A stale render may confirm the old request, but cannot advance a
+        // different visible question. A same-question reentry reuses its ID.
+        if (!_gameSession.isCurrent(identity) || Number(_currentUserId) !== publicAttempt.userId) return;
+        if (!_gameSession.settlePublicReview(publicAttempt)) return;
+        document.querySelectorAll('[data-public-review-recovery]').forEach(button => button.remove());
+        try {
+            SRS.markSeen(publicCommand.question_id);
+            if (outcome === 'NEW_COMMITTED') {
+                _todayTotal++; if (grade >= 3) _todayCorrect++;
+                updateTodayMini();
+                _dispatchCommittedReviewPresentation(data, grade);
+            } else {
+                updateXpHud(projection.stats.xp, projection.stats.rank_level,
+                    projection.stats.rank_pct, projection.stats);
+                publicStateMessage(I18n.getLang() === 'en'
+                    ? 'Recorded answer confirmed; rewards were not replayed.'
+                    : '已確認答題記錄；沒有重播獎勵。');
+            }
+        } catch (error) {
+            console.error('[SRS.review] presentation failed after durable commit', error);
+            publicStateMessage(I18n.getLang() === 'en'
+                ? 'Your answer is recorded, but its display could not be updated.'
+                : '答題已記錄，但畫面更新未完成。');
+        } finally {
+            // Consume once before calling any presentation or navigation
+            // callback. Display faults must not turn into a second POST.
+            if (_gameSession.isCurrent(identity)) {
+                if (grade === 0) resetProblem();
+                else { srsDoneCount++; updateSRSProgress(); nextQuestion(); }
+            }
+        }
+        return;
+    }
     // Read the production-shaped response before the Lord authority handoff,
     // but keep every callback invocation after the committed transition.  The
     // snapshot preserves the old response-shape guard without allowing a
@@ -10650,7 +10776,10 @@ async function submitSRS(grade){
             if(grade===0){resetProblem();}else{srsDoneCount++;updateSRSProgress();nextQuestion();}
         }
     }
-    })().finally(() => _gameSession.endReview(identity));
+    })().finally(() => {
+        _gameSession.endPublicReview(publicAttempt);
+        _gameSession.endReview(identity);
+    });
 }
 // ═══════════════════════════════════════════════════════════════
 // ─── 怪物 UI ──────────────────────────────────────────────────
@@ -10773,12 +10902,26 @@ async function loadQuizPet() {
         if (!d || !d.pet) {
             const starterKey = (d && d.catalog && d.catalog[0] && d.catalog[0].key) || 'ink_drop_kelpie';
             try {
-                const chosen = await fetch('/api/pet/choose', {
-                    method:'POST',
-                    credentials:'include',
-                    headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({pet_key: starterKey})
-                }).then(r=>r.json());
+                if (!_starterSpiritAutoChoosePromise) {
+                    _starterSpiritAutoChoosePromise = fetch('/api/pet/choose', {
+                        method:'POST',
+                        credentials:'include',
+                        headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({pet_key: starterKey})
+                    }).then(r => r.json()).then(chosen => {
+                        if (chosen && chosen.pet) {
+                            // Publish server-confirmed state before releasing
+                            // the single-flight lock. A later loader cannot
+                            // act on the pre-unlock cached /pet/status result.
+                            _petStatusPromise = Promise.resolve(
+                                Object.assign({}, d || {}, {pet: chosen.pet}));
+                        }
+                        return chosen;
+                    }).finally(() => {
+                        _starterSpiritAutoChoosePromise = null;
+                    });
+                }
+                const chosen = await _starterSpiritAutoChoosePromise;
                 if (chosen && chosen.pet) {
                     d = Object.assign({}, d || {}, {pet: chosen.pet});
                     _petStatusPromise = Promise.resolve(d);
@@ -14709,7 +14852,6 @@ function _adventureQuestionDefeated(qid) {
 
 function _adventureQuestionSeen(qid) {
     return _mapBattleV1ServerProgress.has(String(qid))
-        || !!SRS.getCard(qid)
         || !!SRS.isSeen(qid);
 }
 
@@ -15934,23 +16076,28 @@ function _handleAdventureMapNodeActivation(event) {
     if (!host || !host.contains(node)) return;
 
     const now = Date.now();
-    const lastHandled = Number(node.dataset.adventureRoutingTs || 0);
-    if (lastHandled && now - lastHandled < 600) return;
-    node.dataset.adventureRoutingTs = String(now);
-
+    // The node can be replaced when selection re-renders the map. Keep the
+    // activation guard on its persistent host rather than the old DOM node.
+    const lastHandled = Number(host.dataset.adventureRoutingTs || 0);
+    const repeatedZone = host.dataset.adventureRoutingZone === node.dataset.zone;
+    // Consume the follow-up synthetic click even if pointerup/touchend
+    // already entered the zone. Otherwise its href/inline onclick runs
+    // after this handler returns and can double-enter the same stage.
     if (event) {
         event.preventDefault?.();
         event.stopPropagation?.();
         event.stopImmediatePropagation?.();
     }
+    if (repeatedZone && lastHandled && now - lastHandled < 600) return;
+    host.dataset.adventureRoutingTs = String(now);
+    host.dataset.adventureRoutingZone = node.dataset.zone;
 
     const zoneKey = node.dataset.zone;
     if (!zoneKey || node.classList.contains('locked')) return;
-    if (node.classList.contains('boss-ready')) {
-        startBossBattle(zoneKey);
-        return;
-    }
-    startAdventureStage(zoneKey);
+    // Use the same authorized node path as the visible click handler:
+    // persist selection before entering training. Lord challenges remain
+    // behind the quest card's explicit CTA, even when boss_ready is true.
+    void onAdventureMapNodeClick(zoneKey);
 }
 
 function _bindAdventureMapNodeRouting(host) {

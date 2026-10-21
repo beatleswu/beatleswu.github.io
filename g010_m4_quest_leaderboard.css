@@ -1,0 +1,16 @@
+/* G010 M4 optional Quest V2 ledger. Product stays hidden until server gate. */
+#g010-m4-quest-panel[hidden] { display:none !important; }
+#g010-m4-quest-panel .panel-body { display:grid; gap:12px; }
+#g010-m4-quest-status { color:var(--soft); font-size:13px; line-height:1.55; }
+#g010-m4-quest-totals { color:var(--gold2); font-size:13px; }
+.g010-m4-quest-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px; }
+.g010-m4-quest-card { display:flex; flex-direction:column; gap:8px; padding:16px;
+ background:var(--paper); border:1px solid var(--line); border-radius:12px; }
+.g010-m4-quest-card strong { color:var(--ink); font-size:15px; overflow-wrap:anywhere; }
+.g010-m4-quest-card span,.g010-m4-quest-card small { color:var(--soft); font-size:13px; }
+.g010-m4-quest-card progress { width:100%; height:10px; accent-color:var(--gold); }
+.g010-m4-quest-card button { min-height:44px; padding:9px 14px; margin-top:auto;
+ background:var(--gold); color:#211706; border:0; border-radius:8px; font-weight:700; cursor:pointer; }
+.g010-m4-quest-card button:disabled { opacity:.65; cursor:default; }
+.g010-m4-quest-card .g010-m4-done { color:var(--green); font-weight:700; }
+@media(max-width:600px){.g010-m4-quest-grid { grid-template-columns:1fr; }}

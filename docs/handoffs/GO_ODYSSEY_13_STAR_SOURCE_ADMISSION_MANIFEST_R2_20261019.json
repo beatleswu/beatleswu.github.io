@@ -1,0 +1,63 @@
+{
+  "backup": {
+    "location": "oracle-local only; do not copy player data into chat",
+    "sha256": "77237595ff4aea9f946a13e2ffc44e436c825a74f6c7bc7f2e88acc28216effe",
+    "verified_custom_dump_bytes": 19909706
+  },
+  "execution_scope": "single authorized transaction, initial k26_30, star2 only",
+  "immutable_preflight": {
+    "60_percent_threshold": 1164,
+    "candidate_digest": "279efb96aba3fc515250c32134f391d4d989b7409fd6bce2f739b0bfc982eb12",
+    "canonical_pool_sha256": "5dd5ccf622873128fd7d9a66877acb60b58b84d00e333f222751b452c1d37248",
+    "cleared_users": 23,
+    "conservative_needed": 0,
+    "eligible_unawarded_users": 13,
+    "pool_count": 1939,
+    "third_star_users": 0
+  },
+  "independent_source_admission_required": true,
+  "isolated_regression": {
+    "failed": 0,
+    "junit": "docs/handoffs/GO_ODYSSEY_P1_HISTORICAL_STAR_OWNER_APPROVAL_RUNNER_R2_20261019.xml",
+    "passed": 20,
+    "skipped": 0,
+    "tests": 20
+  },
+  "owner_authorization": "13 first-zone EXACT historical second stars only, no other rewards and no deployments",
+  "product_candidate_commit": "50fdc2e9cea3c338c55207025626c1018c44a03c",
+  "production_observation": {
+    "approved_runner_present": false,
+    "historical_plan_present": false,
+    "historical_receipt_migration_present": false,
+    "production_change_committed": false,
+    "website_deploy_authorized": false
+  },
+  "production_runtime_dependencies_sha256": {
+    "adventure_progress_compatibility.py": "4f2b5513470e4ded37eb5718b4cc1e4facbfaf305ed76d24f711c0301d6ad098",
+    "adventure_zone_progression_authority.py": "a9b8c59efb98481a546651213c0195c3c2beb78b96f93f6bf3f48faec63be9c5",
+    "db.py": "b8b13e91f7f867b7843d4e6dbdce644e4c5a170f018934753cd2c7ab0dbe7230"
+  },
+  "required_further_gates": [
+    "independent verification of these exact source files on approved maintenance host",
+    "trusted execution authorization, not self-asserted environment flags",
+    "fresh read-only candidate and backup hash match",
+    "post-commit new-connection verification plus owner device UAT"
+  ],
+  "source": {
+    "migrations/adventure_zone_star_historical_catchup_v1.py": {
+      "sha256": "549e44e6caed010269b0b7b194bad8f0e1da971e0ba26f70a0ef788d0d6f1d12",
+      "size_bytes": 3683
+    },
+    "tools/incident_019b_historical_second_star_catchup.py": {
+      "sha256": "73aa88ba7c43b3543dc8f1e6f2fb0d1813b666bbde2af1af18f24ed6b03620f8",
+      "size_bytes": 16297
+    },
+    "tools/incident_019b_owner_scoped_production_apply_20261019.py": {
+      "sha256": "3219395bc8de9080f290431d3a9a05fe7209c254abbacad2a55ded723cecfde8",
+      "size_bytes": 12327
+    }
+  },
+  "status": "SOURCE_REVIEW_PACKAGE_ONLY_NOT_A_EXECUTION_PERMIT",
+  "v4_r25_permit_reusable_for_product": false,
+  "version": "portable-offline-verifiable-R2"
+}

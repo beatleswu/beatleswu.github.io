@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="19"><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_source_matches_the_owner_approved_identity[js/e10/zone4_cinematic_content.js]" time="0.014" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_source_matches_the_owner_approved_identity[css/e10/encounter_presentation_framework_v1.css]" time="0.012" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_source_matches_the_owner_approved_identity[css/e10/go_combat_owner_reference_v1.css]" time="0.007" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_url_resolves_and_serves_the_approved_bytes[js/e10/zone4_cinematic_content.js]" time="0.002" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_url_resolves_and_serves_the_approved_bytes[css/e10/encounter_presentation_framework_v1.css]" time="0.002" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_url_resolves_and_serves_the_approved_bytes[css/e10/go_combat_owner_reference_v1.css]" time="0.002" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_url_is_a_registered_rule_not_an_accidental_catch_all[js/e10/zone4_cinematic_content.js]" time="0.001" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_url_is_a_registered_rule_not_an_accidental_catch_all[css/e10/encounter_presentation_framework_v1.css]" time="0.001" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_url_is_a_registered_rule_not_an_accidental_catch_all[css/e10/go_combat_owner_reference_v1.css]" time="0.001" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_no_generic_e10_catchall_was_introduced" time="0.001" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_public_route_set_is_exactly_the_three_authorized_additions" time="0.001"><failure message="AssertionError: assert {'/css/e10/ba...y_runtime.js'} == {'/css/e10/en...y_runtime.js'}&#10;  &#10;  Extra items in the left set:&#10;  '/css/e10/backpack.css'&#10;  Use -v to get more diff">def test_public_route_set_is_exactly_the_three_authorized_additions():
+        """No route expansion beyond the authorized set."""
+        rules = {rule.rule for rule in app_module.app.url_map.iter_rules()}
+        e10_rules = {r for r in rules if r.startswith(("/js/e10/", "/css/e10/"))}
+&gt;       assert e10_rules == {
+            # pre-existing, untouched
+            "/js/e10/zone4_owner_story_runtime.js",
+            "/css/e10/zone4_owner_story_runtime.css",
+            # the three added by this corrective
+            "/js/e10/zone4_cinematic_content.js",
+            "/css/e10/encounter_presentation_framework_v1.css",
+            "/css/e10/go_combat_owner_reference_v1.css",
+        }
+E       AssertionError: assert {'/css/e10/ba...y_runtime.js'} == {'/css/e10/en...y_runtime.js'}
+E         
+E         Extra items in the left set:
+E         '/css/e10/backpack.css'
+E         Use -v to get more diff
+
+tests\deployment\test_p0_zone4_cinematic_content_route_corrective.py:118: AssertionError</failure></testcase><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_sibling_and_generic_e9_surfaces_are_unchanged" time="0.001" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_unrouted_e10_siblings_still_404" time="0.011"><failure message="AssertionError: assert 200 == 404&#10; +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code&#10; +    where &lt;WrapperTestResponse streamed [200 OK]&gt; = get('/css/e10/backpack.css')&#10; +      where get = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;.get">def test_unrouted_e10_siblings_still_404():
+        """The narrow-allowlist property is intact, not widened by this fix."""
+        client = _client()
+        assert client.get("/js/e10/not_a_real_zone4_file.js").status_code == 404
+        assert client.get("/css/e10/not_a_real_stylesheet.css").status_code == 404
+        # backpack.css is in the tree but unreferenced by index.html and was NOT
+        # authorized for routing; it must stay unrouted.
+&gt;       assert client.get("/css/e10/backpack.css").status_code == 404
+E       AssertionError: assert 200 == 404
+E        +  where 200 = &lt;WrapperTestResponse streamed [200 OK]&gt;.status_code
+E        +    where &lt;WrapperTestResponse streamed [200 OK]&gt; = get('/css/e10/backpack.css')
+E        +      where get = &lt;FlaskClient &lt;Flask 'app'&gt;&gt;.get
+
+tests\deployment\test_p0_zone4_cinematic_content_route_corrective.py:144: AssertionError</failure></testcase><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_baked_copy_is_packaged_in_the_image[js/e10/zone4_cinematic_content.js]" time="0.001" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_baked_copy_is_packaged_in_the_image[css/e10/encounter_presentation_framework_v1.css]" time="0.001" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_baked_copy_is_packaged_in_the_image[css/e10/go_combat_owner_reference_v1.css]" time="0.001" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_index_html_reference_matches_the_served_url[js/e10/zone4_cinematic_content.js]" time="0.007" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_index_html_reference_matches_the_served_url[css/e10/encounter_presentation_framework_v1.css]" time="0.007" /><testcase classname="tests.deployment.test_p0_zone4_cinematic_content_route_corrective" name="test_index_html_reference_matches_the_served_url[css/e10/go_combat_owner_reference_v1.css]" time="0.007" /></testsuite></testsuites>

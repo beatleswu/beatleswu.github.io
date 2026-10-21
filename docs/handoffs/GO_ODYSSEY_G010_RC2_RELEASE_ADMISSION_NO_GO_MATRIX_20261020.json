@@ -1,0 +1,44 @@
+{
+  "schema": "G010_RC2_LOCAL_GOVERNANCE_V1",
+  "baseline_head": "efd4524c3a3b5669b693ee0be50acf586c73ad90",
+  "candidate_branch": "candidate/go-product-integrated-20261019",
+  "working_tree_clean": false,
+  "original_local_build_platform": "linux/amd64",
+  "formal_platform_required": "linux/arm64",
+  "arm_local_image_platform": "linux/arm64",
+  "arm_local_image_id": "sha256:8b8225c88a53e0dfbce6289ee842c8f329dcceec8b7b2e216483c0adf52d92bc",
+  "source_overlay_hashes_match": true,
+  "tamper_and_authentication_negative_controls": {
+    "wrong_architecture": "DENIED_AS_REQUIRED",
+    "tampered_source": "DENIED_AS_REQUIRED",
+    "dirty_uncommitted_tree": "DENIED_AS_REQUIRED",
+    "missing_independent_signer": "DENIED_AS_REQUIRED",
+    "fake_all_authority_flags": "DENIED_AS_REQUIRED",
+    "all_missing": "DENIED_AS_REQUIRED"
+  },
+  "formal_governance": {
+    "formal_release_admission": "NO_GO",
+    "local_diagnostics": {
+      "local_source_hashes": true,
+      "local_target_platform": true,
+      "clean_exact_committed_source": false,
+      "external_reviewer_signature_supplied": false,
+      "owner_release_grant_claimed": false,
+      "physical_ipad_uat_claimed": false,
+      "external_verifier_claimed": false
+    },
+    "blocking_reasons": [
+      "CLEAN_EXACT_COMMITTED_SOURCE_NOT_SATISFIED",
+      "INDEPENDENT_TRUST_ROOT_SIGNATURE_NOT_VERIFIED",
+      "EXTERNAL_OWNER_SINGLE_USE_GRANT_NOT_VERIFIED",
+      "PHYSICAL_IPAD_OWNER_UAT_NOT_VERIFIED",
+      "SEPARATE_SIGNED_RELEASE_ADMISSION_REQUIRED"
+    ]
+  },
+  "signed_independent_review": "NOT_OBTAINED",
+  "owner_physical_ipad_uat": "NOT_PERFORMED",
+  "independent_build_provenance": "NOT_OBTAINED",
+  "master_merge_push": "NOT_AUTHORIZED",
+  "oracle_production_deploy": "NOT_AUTHORIZED",
+  "stage_rc2_local_safety_checks": "PASS"
+}
