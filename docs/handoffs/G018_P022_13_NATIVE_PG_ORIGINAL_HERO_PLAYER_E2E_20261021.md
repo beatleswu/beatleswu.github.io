@@ -23,3 +23,15 @@
 
 ## Strict NOT RELEASE / next phase
 The P022 13 are **technical prototype equipment items in local QA only**. In particular, the four two-handed/staff models only passed **single-hand static model placement**, not secondary-grip inverse kinematics; three bows did not pass draw/fire/projectile animations; three arrows are visual props, **never equipped as weapons**. No confirmed current official item-by-item asset redistribution/usage admission, Owner release permission or formal server item IDs. A normal player cannot obtain/sell/equip this set because canonical server defs have not been modified; real Owner iPad Safari physical UAT still pending; no GO_MERGE or GO_DEPLOY without explicit Owner authorization.
+
+## G018 post-commit image integrity acceptance (same source, clean independent BuildKit)
+**This section supersedes the earlier pending-image note.** The real Product-source commit is
+`246decad0207228f6c9c87f0309610b5d8bbcdb8`.
+Clean independent builder `g016-clean-only` executed complete 261-step Dockerfile and OCI export with exit 0; this is NOT a production rollout.
+
+- OCI: `D:\go-odyssey-g010-3d-activation-evidence-20261021\G018_246DECA_CLEAN_BUILDKIT_20261021.tar`, **289,701,888 bytes**, SHA-256 `c0af67b72280050962effc340789c7fb4d4770cdc245642f91ff4c63ba3825a3`.
+- OCI manifest / imported real Docker image ID: `sha256:497c03f970ff78745e91df9d6abcb7ba6166530479c0ff289120479c414788f4`; OCI config digest `sha256:8d1d77fb468e2ed9de5f965cc62d22ea1a74804e9c790a12bfc9ab2f98d454e1`.
+- Independent exact content audit: OCI layout/index/manifest/config, **all 264 blob SHA256 pass**, all 264 layers plus four extracted key runtime source files exact-matching the committed code, revision label and APP_GIT_SHA. Full failure 0; no test-only G018/G015 QA bridge, private 16 converted GLBs or local secret in release image. Auditor receipt `D:\go-odyssey-g010-3d-activation-evidence-20261021\G018_CLEAN_BUILDKIT_FULL_OCI_VERIFICATION_20261021.json`.
+- Actual Docker load of this immutable OCI: exit 0. Local tag `go-odyssey:g018-246deca-verified-local` only. `docker run --rm --network none --read-only --tmpfs /tmp` startup ran Python inside the loaded image and verified exact source SHA, Hero bootstrap `g015_qa` and `g018_qa` guarded paths, correct canonical slots, and absence of test-only module/secret; exit 0, `G018_OFFLINE_IMPORTED_IMAGE_SMOKE_PASS`. Receipt `D:\go-odyssey-g010-3d-activation-evidence-20261021\G018_IMPORTED_IMAGE_NETWORKLESS_RUNTIME_SMOKE_20261021.json`.
+- Extra independent **actual G015 native PG + original Hero WebGL** replay after G018 source change: **1 PASS, 0 FAIL**, 32.28 sec. Associated non-E2E regression **164 PASS, 8 SKIP, 0 FAIL**. New G018 native PG original Hero 13 item E2E **1 PASS, 0 FAIL**.
+- **Distinct formal gate remains NO-GO.** Clean image proof attests the normal app and source integrity, not release rights, formal server SKU grants, projectile fighting, two-hand IK, iPad Safari or production deployment. 13 G018 QA models live solely under ignored tests/e2e binary fixtures and do not become official paid items through Docker Build.
