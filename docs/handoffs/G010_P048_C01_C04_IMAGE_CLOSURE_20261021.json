@@ -1,0 +1,25 @@
+{
+  "schema": "G010_P048_C01_C04_IMAGE_CLOSURE_V1",
+  "verdict": "EXACT_MISSING_BONUS_3_FILES_ADDED_TO_BAKED_IMAGE",
+  "models": 2,
+  "external_textures": 1,
+  "files": [
+    {
+      "path": "assets/3d_shop/p048/companion/C01/animal-bunny.glb",
+      "sha256": "94b654915d9de70071bcf0bfa13de379a3ba4fdfeb231f0fec49335232cbc821",
+      "bytes": 131568
+    },
+    {
+      "path": "assets/3d_shop/p048/companion/C01/Textures/colormap.png",
+      "sha256": "2f6d0032e51c2d49b13b8e689d59eb39aa3ee6c32f2a1851213e11fc7593177d",
+      "bytes": 10915
+    },
+    {
+      "path": "assets/3d_shop/p048/companion/C04/Corgi.glb",
+      "sha256": "95cd2c4d53d70ee9dd2e1329dcb6de7d4a725301d504a4f2f00ecb34dc1a0851",
+      "bytes": 73516
+    }
+  ],
+  "release_admission": false,
+  "ownership_authority_changes": false
+}

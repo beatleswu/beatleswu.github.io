@@ -392,6 +392,10 @@ COPY js/companion_formal_18_mapping.js \
 # One additional lazy preview module; canonical GLB and mapping are unchanged.
 COPY js/g009_companion_360_viewer.mjs ./js/g009_companion_360_viewer.mjs
 COPY js/g010_hero_3d_gallery.mjs ./js/g010_hero_3d_gallery.mjs
+# Exact bytes for P048 approved display-only C01/C04 companions (bunny also needs external texture).
+COPY assets/3d_shop/p048/companion/C01/animal-bunny.glb ./assets/3d_shop/p048/companion/C01/animal-bunny.glb
+COPY assets/3d_shop/p048/companion/C01/Textures/colormap.png ./assets/3d_shop/p048/companion/C01/Textures/colormap.png
+COPY assets/3d_shop/p048/companion/C04/Corgi.glb ./assets/3d_shop/p048/companion/C04/Corgi.glb
 COPY assets/3d_shop/p048/companion/formal_18/ ./assets/3d_shop/p048/companion/formal_18/
 # G009 Formal9 selected replacement GLBs are exact baked runtime fallbacks.
 # This does not change equip, acquisition, shop, drop, or release admission.
