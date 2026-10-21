@@ -405,6 +405,10 @@ COPY assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb ./
 # external generation or a single file in it is unavailable.
 COPY css/g009_hero_hub_batch_a.css ./css/g009_hero_hub_batch_a.css
 COPY js/g009_hero_hub_batch_a.js ./js/g009_hero_hub_batch_a.js
+# G010 M4 community leaderboard: explicit baked fallback for the two
+# live-static generation-bound root assets; no wildcard expansion.
+COPY g010_m4_quest_leaderboard.js ./g010_m4_quest_leaderboard.js
+COPY g010_m4_quest_leaderboard.css ./g010_m4_quest_leaderboard.css
 # Derived84: the 84 Owner-accepted identity assets and their runtime
 # manifest. They are also derived84_asset_registry.py's module-local
 # validation inputs, so they must exist in the image at these exact paths.

@@ -9,6 +9,9 @@ param(
     [string]$GovernanceExpectedGitCommonDirectory,
     [string]$GovernanceGateSourceSha,
     [string]$GovernanceProductSourceSha,
+    # OWNER 2026-10-21: explicit opt-in to the simplified SOURCE QA policy.
+    # This flag is NOT GO_MERGE, GO_DEPLOY or an external signature.
+    [switch]$OwnerSimplifiedPolicy,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [switch]$DryRun
 )
@@ -27,19 +30,38 @@ function Resolve-ExactCommit([string]$WorkingDirectory, [string]$Value, [string]
     return Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', "$Value^{commit}") -WorkingDirectory $WorkingDirectory)
 }
 
-foreach ($authority in @($GovernanceExpectedGitCommonDirectory, $GovernanceGateSourceSha, $GovernanceProductSourceSha)) {
-    if ([string]::IsNullOrWhiteSpace($authority)) {
-        Fail 'EXTERNAL_GOVERNANCE_AUTHORITY_REQUIRED: common directory and exact Gate/Product commits must be supplied by a trusted external host.'
+if ($OwnerSimplifiedPolicy) {
+    # Owner approved removal of a separate signing HOST as a Product release
+    # prerequisite. Still require two explicit full Git source identities,
+    # checked against the actual clean Git checkout below. This is NOT an
+    # authenticated merge or deploy grant, nor does it skip any QA tests.
+    if ($GovernanceExpectedGitCommonDirectory -or $GovernanceGateSourceSha -or $GovernanceProductSourceSha) {
+        Fail 'OWNER_SIMPLIFIED_POLICY_NO_EXTERNAL_GOVERNANCE_MIX: choose exactly one source policy.'
     }
+    if ($ExpectedGitSha -or [string]::IsNullOrWhiteSpace($GateSourceSha) -or [string]::IsNullOrWhiteSpace($ProductSourceSha) -or
+        $GateSourceSha -cnotmatch '^[0-9a-f]{40}$' -or $ProductSourceSha -cnotmatch '^[0-9a-f]{40}$') {
+        Fail 'OWNER_SIMPLIFIED_POLICY_EXACT_SOURCE_REQUIRED: both Gate and Product Git commits must be explicit full lowercase SHA-1.'
+    }
+    $GovernanceExpectedGitCommonDirectory = Get-GitCommonDirectory -WorkingDirectory (Get-RepoRoot)
+    $GovernanceGateSourceSha = $GateSourceSha
+    $GovernanceProductSourceSha = $ProductSourceSha
 }
-if ($GovernanceGateSourceSha -cnotmatch '^[0-9a-f]{40}$' -or $GovernanceProductSourceSha -cnotmatch '^[0-9a-f]{40}$' -or
-    -not [System.IO.Path]::IsPathRooted($GovernanceExpectedGitCommonDirectory)) {
-    Fail 'EXTERNAL_GOVERNANCE_AUTHORITY_INVALID: absolute common directory and full lowercase commits required.'
+else {
+    # Historical external governance mode remains fail-closed. Callers must
+    # explicitly request the revised Owner policy to avoid ambiguous authority.
+    foreach ($authority in @($GovernanceExpectedGitCommonDirectory, $GovernanceGateSourceSha, $GovernanceProductSourceSha)) {
+        if ([string]::IsNullOrWhiteSpace($authority)) {
+            Fail 'EXTERNAL_GOVERNANCE_AUTHORITY_REQUIRED: common directory and exact Gate/Product commits must be supplied by a trusted external host.'
+        }
+    }
+    if ($GovernanceGateSourceSha -cnotmatch '^[0-9a-f]{40}$' -or $GovernanceProductSourceSha -cnotmatch '^[0-9a-f]{40}$' -or
+        -not [System.IO.Path]::IsPathRooted($GovernanceExpectedGitCommonDirectory)) {
+        Fail 'EXTERNAL_GOVERNANCE_AUTHORITY_INVALID: absolute common directory and full lowercase commits required.'
+    }
+    # No independent external host verifier is installed. Do not infer any
+    # external-host authority from self-supplied strings in historical mode.
+    Fail 'EXTERNAL_GOVERNANCE_ATTESTATION_REQUIRED: independently authenticated host verifier is not wired.'
 }
-# Explicit strings alone cannot authenticate their supplier. No trusted host
-# attestation verifier has been provided; do not invent a signer or accept a
-# candidate-authored receipt. All entry paths (including DryRun) remain closed.
-Fail 'EXTERNAL_GOVERNANCE_ATTESTATION_REQUIRED: independently authenticated host verifier is not wired.'
 $expectedGitCommonDirectory = $GovernanceExpectedGitCommonDirectory
 $gateWorktree = Get-RepoRoot
 if ($ExpectedGitSha -and ($GateSourceSha -or $ProductSourceSha)) {

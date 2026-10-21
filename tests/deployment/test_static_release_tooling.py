@@ -148,11 +148,20 @@ G009_HERO_REQUIRED_IN_GENERATION = frozenset(
         "js/g009_hero_hub_batch_a.js",
     }
 )
+# G010 M4 community leaderboard loads these root-level assets as a pair.
+# Their live-static generation must not fall back to stale baked image bytes.
+G010_M4_REQUIRED_IN_GENERATION = frozenset(
+    {
+        "g010_m4_quest_leaderboard.js",
+        "g010_m4_quest_leaderboard.css",
+    }
+)
 STATIC_CURRENT_REQUIRED_COUNT = (
     STATIC_B1_REQUIRED_COUNT
     + len(POST_B1_REQUIRED_IN_GENERATION)
     + len(ZONE4_REQUIRED_IN_GENERATION)
     + len(G009_HERO_REQUIRED_IN_GENERATION)
+    + len(G010_M4_REQUIRED_IN_GENERATION)
 )
 
 
@@ -162,6 +171,7 @@ def _current_expected_required_in_generation(presentation_present):
         | POST_B1_REQUIRED_IN_GENERATION
         | ZONE4_REQUIRED_IN_GENERATION
         | G009_HERO_REQUIRED_IN_GENERATION
+        | G010_M4_REQUIRED_IN_GENERATION
     )
 
 
@@ -565,6 +575,21 @@ def test_f32_batch_a_preserves_l3_map_battle_release_coupling():
     assert "@app.route('/js/map_battle_v1_adapter.js')" in app_content
     assert "js/map_battle_v1_adapter.js" in inventory["required_in_generation"]["entries"]
     assert "COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js" in dockerfile
+
+
+def test_g010_m4_leaderboard_static_assets_are_release_closed():
+    inventory = _load_inventory()
+    required = set(inventory["required_in_generation"]["entries"])
+    eligible = set(inventory["eligible_files"]["entries"])
+    html = _read(REPO_ROOT / "community.html")
+    app_content = _read(APP_PY)
+    dockerfile = _read(DOCKERFILE)
+    for asset in G010_M4_REQUIRED_IN_GENERATION:
+        assert asset in required and asset in eligible
+        assert (REPO_ROOT / asset).is_file()
+        assert f"/{asset}" in html
+        assert f"@app.route('/{asset}')" in app_content
+        assert f"COPY {asset} ./{asset}" in dockerfile
 
 
 def test_inventory_required_in_generation_is_subset_of_eligible():

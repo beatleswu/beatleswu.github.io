@@ -477,7 +477,13 @@ def test_control_plane_rule_matches_powershell(path):
     # Test-ReleaseControlPlanePath is module-private: invoke it inside the module's own scope
     cmd = (f"$m = Import-Module '{psm1}' -Force -DisableNameChecking -PassThru; "
            f"if (& $m {{ param($p) Test-ReleaseControlPlanePath -Path $p }} '{path}') {{ 'True' }} else {{ 'False' }}")
-    p = subprocess.run(["powershell", "-NoProfile", "-Command", cmd], capture_output=True, text=True)
+    # This is an isolated read-only module parity check, not the formal
+    # release/build entrypoint. Use process-scoped PowerShell permission so
+    # machine/user execution policies remain unchanged.
+    p = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd],
+        capture_output=True, text=True,
+    )
     assert p.returncode == 0, p.stderr
     assert (p.stdout.strip().splitlines()[-1] == "True") == BIND.is_control_plane(path)
 
