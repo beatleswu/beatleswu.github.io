@@ -21,7 +21,7 @@
       "js/g009_d007_shared_host_adapter.js", "js/g009_shared_hero_attachment_host.js",
       "js/companion_formal_18_mapping.js", "js/g009_companion_child.mjs",
       "js/g009_companion_formal18_assets.mjs", "js/g009_companion_formal18_bootstrap.mjs",
-      "js/g009_companion_360_viewer.mjs",
+      "js/g009_companion_360_viewer.mjs", "js/g010_hero_3d_gallery.mjs",
       "schemas/g009_d007_runtime_prerequisite_v1.json", "schemas/g009_formal9_rights_cleared_replacement_v1.json",
       "schemas/future30_c005_real_asset_runtime_mapping_manifest.json",
       "js/e9/adapters/activity_state.js", "js/e9/adapters/adventure_state.js",

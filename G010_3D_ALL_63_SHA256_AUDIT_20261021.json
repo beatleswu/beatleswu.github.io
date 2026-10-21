@@ -1,0 +1,523 @@
+{
+  "schema": "G010_3D_ALL_63_ASSETS_SHA_AUDIT_V1",
+  "timestamp_utc": "2026-10-21T05:15:20.023307+00:00",
+  "verdict": "63_OF_63_SHA256_BYTES_VERIFIED",
+  "count_by_category": {
+    "character": 33,
+    "spirit": 18,
+    "accessory": 6,
+    "bonus": 2,
+    "weapon": 4
+  },
+  "total_assets": 63,
+  "total_bytes": 270885952,
+  "no_ownership_change": true,
+  "production_admission": false,
+  "weapons_not_admitted_for_production": 4,
+  "models": [
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_A1_RED",
+      "path": "assets/3d_shop/p048/hero/a1_basic_adventurer.glb",
+      "sha256": "ad6c0f6d96140bba2cee3033da2af45a7c583fdf5ac82990b8431acdea04d040",
+      "bytes": 580884,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_A3_RED",
+      "path": "assets/3d_shop/p048/future30/c005/a3_red_c005.glb",
+      "sha256": "ee0c43539208af45255a1790ea24da36356ba7218ad417dd33c9a375f056698d",
+      "bytes": 398320,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_V1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/v1_red_c005.glb",
+      "sha256": "897b8d16049624699e4cc1aaecb8b455736d68a2af3efcb689b182d3790cf476",
+      "bytes": 343412,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_V2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/v2_red_c005.glb",
+      "sha256": "3dfc58f701fd2ffd57b3f96bc0ab458c57021fdeeb5075ef2868241d39ed5858",
+      "bytes": 382916,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_V3_RED",
+      "path": "assets/3d_shop/p048/future30/c004/v3_child.glb",
+      "sha256": "724f38dd481794385517585f0211b0fd79c393deef603923ca4caccddf0483c7",
+      "bytes": 509060,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_R1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/r1_red_c005.glb",
+      "sha256": "fc80b18374c6271f20e229893a6966d15a1aa00d612417af86e43c3db4523238",
+      "bytes": 601160,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_R2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/r2_red_c005.glb",
+      "sha256": "b5aec263f0f60bd46807829f00802ce20146f3ee9b522fa5a94cb74b0e6b6c8e",
+      "bytes": 586760,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_R3_RED",
+      "path": "assets/3d_shop/p048/future30/c005/r3_red_c005.glb",
+      "sha256": "77f81f70d19db4b4a2e9732c18228be40ce6462fb525b80bee81f7fbdebd0493",
+      "bytes": 436488,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_H1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/h1_red_c005.glb",
+      "sha256": "fba25bc5e4402975173049cf2b10881f2fec70091277412b9b3fa23930774abc",
+      "bytes": 460524,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_H2_RED",
+      "path": "assets/3d_shop/p048/future30/c004/h2_wizard.glb",
+      "sha256": "5d0cbfe0a5a36ca558f0d7072f9f31a7137f1e027f1fc995fcfc510545bda021",
+      "bytes": 674692,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_H3_RED",
+      "path": "assets/3d_shop/p048/future30/c005/h3_red_c005.glb",
+      "sha256": "bad3705d24a3803788cbb94fc10608c5448e5821da84188f0fc38f23c51795fa",
+      "bytes": 243544,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_K1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/k1_red_c005.glb",
+      "sha256": "1bf124f9ccefe4186dd0e4047003bad6eb39d21ec5d204822fdc3f82f06b84b7",
+      "bytes": 532812,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_K2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/k2_red_c005.glb",
+      "sha256": "8a931dea5e8ff2b76337dc9c99a837190813cc72ee0251d398bc067a8e51ffc9",
+      "bytes": 513444,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_K3_RED",
+      "path": "assets/3d_shop/p048/future30/c005/k3_red_c005.glb",
+      "sha256": "9f74a6d5c35189c3fc239345b18971a8fc495f70b7536d4583f7f729e6c6eca3",
+      "bytes": 531372,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_W1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/w1_red_c005.glb",
+      "sha256": "9a3dd27364c1eab34a2a46caad0b29f73049e9199efb5a0ec5a56095051bea2e",
+      "bytes": 598652,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_W2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/w2_red_c005.glb",
+      "sha256": "e8cf5d0d464fb61ae2ca4b653a24158db475cf63091449fcb7e614b8927e89d2",
+      "bytes": 494800,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_W3_RED",
+      "path": "assets/3d_shop/p048/future30/c005/w3_red_c005.glb",
+      "sha256": "45262912b04c75a0d83b191cbf701ebc7dbcbc96149bd5648d62e3c7c1147ed8",
+      "bytes": 566316,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_M1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/m1_red_c005.glb",
+      "sha256": "e5c7a1ec76e47902c9894c5404632d9271872b770311d9cf851875b311e44108",
+      "bytes": 1234828,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_M2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/m2_red_c005.glb",
+      "sha256": "36ee5fa53fa60fea2dab35b19922139bc591191880caaf12b85d51514147e3d9",
+      "bytes": 814944,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_S1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/s1_red_c005.glb",
+      "sha256": "e871a950fb2ba6f8b740490b13ad8986c083c5f2e7a1cc2d6ec4d1a9f8d855df",
+      "bytes": 346200,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_S2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/s2_red_c005.glb",
+      "sha256": "3d94372b51f746666b5b7ccd056d2710ac446b4ba73f0a9d0414842937d052c2",
+      "bytes": 427388,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_F1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/f1_red_c005.glb",
+      "sha256": "183ea1c242c1739114b4d17b78e38a2dc7e72ac84351599d8f0d18a1f5e0ebf2",
+      "bytes": 432724,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_F2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/f2_red_c005.glb",
+      "sha256": "ac8bc306c634191c933d9b5e3be1bd58ba46f1bb10df2d95d4c69246499fddc6",
+      "bytes": 475560,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_F3_RED",
+      "path": "assets/3d_shop/p048/future30/c005/f3_red_c005.glb",
+      "sha256": "dd26594e8870d9fb11e4e1a1ed9eb87cdd66a6a2d83bef7ff4528f873e851a00",
+      "bytes": 466044,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_AR1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/ar1_red_c005.glb",
+      "sha256": "d0d52ea6e34c2ce970550ac4d6ca177068f796cd85ed89914663b95a42ad19b7",
+      "bytes": 402528,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_AR2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/ar2_red_c005.glb",
+      "sha256": "f8addaca916b4cf45474345d537fb535b654e5032e106cf0ffe44da7c5fc94f6",
+      "bytes": 404920,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_AR3_RED",
+      "path": "assets/3d_shop/p048/future30/c005/ar3_red_c005.glb",
+      "sha256": "5ff104f48989929f66d823a2a8a28bed56c7fa7db8a7711715fd42ce57f27028",
+      "bytes": 379436,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_E1_RED",
+      "path": "assets/3d_shop/p048/future30/c005/e1_red_c005.glb",
+      "sha256": "bf249356e149a9ad0c77823f435c9287796a84b3d5ed8c02c440828c3955ff73",
+      "bytes": 254172,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_E2_RED",
+      "path": "assets/3d_shop/p048/future30/c005/e2_red_c005.glb",
+      "sha256": "e57ea02ae1cc44e9981b5bcfcebdcaa5976d51f39041948616a632906c7383ad",
+      "bytes": 623080,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_E3_RED",
+      "path": "assets/3d_shop/p048/future30/c005/e3_red_c005.glb",
+      "sha256": "d385c3be121ad8df1ad855c239bf10571d4e452466cef807a9ed11497a420300",
+      "bytes": 574876,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_AR1_BLUE",
+      "path": "assets/3d_shop/p048/future30/c005/ar1_blue_c005.glb",
+      "sha256": "0e82558f4282d5ce4c783123b532b409b085a777a87f93f8d43eedb6e3cf5549",
+      "bytes": 402544,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_AR2_BLUE",
+      "path": "assets/3d_shop/p048/future30/c005/ar2_blue_c005.glb",
+      "sha256": "d34a61351ee91e54ee31b4a2117803f8258ef9710bcce20d0baae1e7741d55c1",
+      "bytes": 404968,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "character",
+      "id": "FUTURE30_MODEL_AR3_BLUE",
+      "path": "assets/3d_shop/p048/future30/c005/ar3_blue_c005.glb",
+      "sha256": "030066b733be6632ff6ca2a0a87ec3595a3fd5bdcee3019b47aebc10bf01f061",
+      "bytes": 379448,
+      "rights": "Owner admitted"
+    },
+    {
+      "category": "spirit",
+      "id": "ink_drop_kelpie.I",
+      "path": "assets/3d_shop/p048/companion/formal_18/ink_drop_kelpie/stage_i.glb",
+      "sha256": "fcac2521f47767210c5df41c396ad4ff4b38d5e136719654d3b2ac08577463bc",
+      "bytes": 15363508,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "ink_drop_kelpie.II",
+      "path": "assets/3d_shop/p048/companion/formal_18/ink_drop_kelpie/stage_ii.glb",
+      "sha256": "39e76dbc72099b3f4d66a52f5d975f30f2f352be2928703bc0cd8f4889c9845e",
+      "bytes": 18409172,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "ink_drop_kelpie.III",
+      "path": "assets/3d_shop/p048/companion/formal_18/ink_drop_kelpie/stage_iii.glb",
+      "sha256": "5cb54c513cbecf169aa5c386d8a4b2fc760a42492b25d97b6ae9193a8f5b7982",
+      "bytes": 14367192,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "whispering_void_kit.I",
+      "path": "assets/3d_shop/p048/companion/formal_18/whispering_void_kit/stage_i.glb",
+      "sha256": "8a5e5c2a974782f6403ba6ba91400dce88918044682fd69e7552c71ac1a92ab1",
+      "bytes": 11755420,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "whispering_void_kit.II",
+      "path": "assets/3d_shop/p048/companion/formal_18/whispering_void_kit/stage_ii.glb",
+      "sha256": "6cdcda1ab90e7bc9b6f1d525e73e7b2732305b365ea114c04e2bca83f259f3cc",
+      "bytes": 14541844,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "whispering_void_kit.III",
+      "path": "assets/3d_shop/p048/companion/formal_18/whispering_void_kit/stage_iii.glb",
+      "sha256": "12cf3a386cc44d8c5e0a684feb44da6563c3dc7874c622280109b97f3d949ad0",
+      "bytes": 18168724,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "star_shell_hatchling.I",
+      "path": "assets/3d_shop/p048/companion/formal_18/star_shell_hatchling/stage_i.glb",
+      "sha256": "db2c5b62ed223a568dd4f78905610f54dd39772bd7a55cdd9009f75779a5f86b",
+      "bytes": 8767356,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "star_shell_hatchling.II",
+      "path": "assets/3d_shop/p048/companion/formal_18/star_shell_hatchling/stage_ii.glb",
+      "sha256": "77a3a4d8e785437e2b06fcec42f1c99cdf699f0bca600ae445dae9b017c3f66a",
+      "bytes": 8571584,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "star_shell_hatchling.III",
+      "path": "assets/3d_shop/p048/companion/formal_18/star_shell_hatchling/stage_iii.glb",
+      "sha256": "b21957ca799164c1782d3bc5d7cedb1b2dfb52f358627eba7ab0444162af7af2",
+      "bytes": 9160904,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "starpath_antlerling.I",
+      "path": "assets/3d_shop/p048/companion/formal_18/starpath_antlerling/stage_i.glb",
+      "sha256": "019cb8591a72d07a05815a21f6baa6f81bb25eac4fa4b3d402d50d150390ac0b",
+      "bytes": 17945412,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "starpath_antlerling.II",
+      "path": "assets/3d_shop/p048/companion/formal_18/starpath_antlerling/stage_ii.glb",
+      "sha256": "fcf74157606886a5e4635cd908b4f603cf3c8a602db4a9f67034691757b378b7",
+      "bytes": 18144272,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "starpath_antlerling.III",
+      "path": "assets/3d_shop/p048/companion/formal_18/starpath_antlerling/stage_iii.glb",
+      "sha256": "a7608ca9bca793509a9946ba2711ce132f3d587cf7edce9f81e1308236e0a4b7",
+      "bytes": 19323560,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "fatty.I",
+      "path": "assets/3d_shop/p048/companion/formal_18/fatty/stage_i.glb",
+      "sha256": "0167b9e182ca4a800be00b5206669d0eba5cb34795145943419616dca1b468ef",
+      "bytes": 11696144,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "fatty.II",
+      "path": "assets/3d_shop/p048/companion/formal_18/fatty/stage_ii.glb",
+      "sha256": "8099def0b7874fd6182d3b2f75f6c046b13c0f12910bbb76f53d9b8d5c30c790",
+      "bytes": 11691428,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "fatty.III",
+      "path": "assets/3d_shop/p048/companion/formal_18/fatty/stage_iii.glb",
+      "sha256": "1f62b29118703c40b7500d27b9b2b123ce9ad132e32b580d51e39b7a53c88385",
+      "bytes": 14366308,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "obsidian_bastion.I",
+      "path": "assets/3d_shop/p048/companion/formal_18/obsidian_bastion/stage_i.glb",
+      "sha256": "8a5e2dbd34d1bdfc9a9f7ec5bbf44e7a6824d22e912f64f3ed2a40fad730af59",
+      "bytes": 13196616,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "obsidian_bastion.II",
+      "path": "assets/3d_shop/p048/companion/formal_18/obsidian_bastion/stage_ii.glb",
+      "sha256": "03afa8dd69be736592cd60db9c290837a9b03a372a65f978a34cc8ac1bc6f458",
+      "bytes": 12897312,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "spirit",
+      "id": "obsidian_bastion.III",
+      "path": "assets/3d_shop/p048/companion/formal_18/obsidian_bastion/stage_iii.glb",
+      "sha256": "2828a376273717bdbee1010af074556eb1e4bd0091a45ebedd9d2ca0cd8d2be3",
+      "bytes": 15338256,
+      "rights": "Owner approved"
+    },
+    {
+      "category": "accessory",
+      "id": "P045_H06_BEANIE",
+      "path": "assets/3d_shop/p048/head/H06_Beanie.glb",
+      "sha256": "249ac0bca07017cd49b44ff3f35da4c053302fdd2ca67bf23eb08cd2fa1c2166",
+      "bytes": 12468,
+      "rights": "commercial use approved, preview only"
+    },
+    {
+      "category": "accessory",
+      "id": "P045_H06_TOP_HAT",
+      "path": "assets/3d_shop/p048/head/H06_Top_Hat.glb",
+      "sha256": "ef8539badc1bb900019a33fc81a19a3e773d5676d696b8ccd928a2e809259ff6",
+      "bytes": 12876,
+      "rights": "commercial use approved, preview only"
+    },
+    {
+      "category": "accessory",
+      "id": "P045_H06_FROG_HAT",
+      "path": "assets/3d_shop/p048/head/H06_Frog_Hat.glb",
+      "sha256": "bf1c037ee0b11537d6291fac6114048ca2d39f2eed858be2deba5d2d4643a458",
+      "bytes": 18956,
+      "rights": "commercial use approved, preview only"
+    },
+    {
+      "category": "accessory",
+      "id": "P045_H06_SANTA_HAT",
+      "path": "assets/3d_shop/p048/head/H06_Santa_Hat.glb",
+      "sha256": "4a6eb96e85ef4d41af120ce0157618ead56e007495abc209248564eb33f29279",
+      "bytes": 57712,
+      "rights": "commercial use approved, preview only"
+    },
+    {
+      "category": "accessory",
+      "id": "P045_H06_SUNGLASSES",
+      "path": "assets/3d_shop/p048/head/H06_Sunglasses.glb",
+      "sha256": "12eaf26c4fec1e430f130f3f406ad1588d518e2646d81b0a6287360a275c6dd0",
+      "bytes": 28392,
+      "rights": "commercial use approved, preview only"
+    },
+    {
+      "category": "accessory",
+      "id": "P045_B02_BACKPACK",
+      "path": "assets/3d_shop/p048/back/B02_Backpack.glb",
+      "sha256": "2447d90b7b3e1d12ddcf83bc9ac860445c5844acd19faccca0304d4267dde0f5",
+      "bytes": 216804,
+      "rights": "commercial use approved, preview only"
+    },
+    {
+      "category": "bonus",
+      "id": "P045_C01_BUNNY",
+      "path": "assets/3d_shop/p048/companion/C01/animal-bunny.glb",
+      "sha256": "94b654915d9de70071bcf0bfa13de379a3ba4fdfeb231f0fec49335232cbc821",
+      "bytes": 131568,
+      "rights": "commercial use approved, preview only"
+    },
+    {
+      "category": "bonus",
+      "id": "P045_C04_CORGI",
+      "path": "assets/3d_shop/p048/companion/C04/Corgi.glb",
+      "sha256": "95cd2c4d53d70ee9dd2e1329dcb6de7d4a725301d504a4f2f00ecb34dc1a0851",
+      "bytes": 73516,
+      "rights": "commercial use approved, preview only"
+    },
+    {
+      "category": "weapon",
+      "id": "iron_sword",
+      "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb",
+      "sha256": "c43e15596ca656355553585e3ac4a398b37a0216471539e8dda6401d67b7580b",
+      "bytes": 17496,
+      "rights": "rights-cleared; not production release admitted"
+    },
+    {
+      "category": "weapon",
+      "id": "fox_fang",
+      "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_6f06505a7bed.glb",
+      "sha256": "6f06505a7bed0ea7681216df58d2a89696b2305f9c080b5f0fa4d9fcabc72af0",
+      "bytes": 37296,
+      "rights": "rights-cleared; not production release admitted"
+    },
+    {
+      "category": "weapon",
+      "id": "riverstone_sabre",
+      "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_ec86ce30e759.glb",
+      "sha256": "ec86ce30e7591bc89badac98a4ed0c00b6614ac8e97b8b79ea734ba7f82c2409",
+      "bytes": 45124,
+      "rights": "rights-cleared; not production release admitted"
+    },
+    {
+      "category": "weapon",
+      "id": "bamboo_shadow_blade",
+      "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c84a8635bed2.glb",
+      "sha256": "c84a8635bed2d2252a6937dbd8837c585872502a4253f549a7b94069e7b776c6",
+      "bytes": 49916,
+      "rights": "rights-cleared; not production release admitted"
+    }
+  ]
+}

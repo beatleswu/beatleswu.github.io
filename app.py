@@ -29514,6 +29514,7 @@ _G009_FORMAL_RUNTIME_JS_FILES = frozenset({
     'g009_companion_formal18_bootstrap.mjs',
     # Exact-route-only real 3D turntable on the already governed Hero page.
     'g009_companion_360_viewer.mjs',
+    'g010_hero_3d_gallery.mjs',
     # G009 Hero Hub bundle: dual delivery (live-static first, baked fallback).
     'g009_hero_hub_batch_a.js',
 })

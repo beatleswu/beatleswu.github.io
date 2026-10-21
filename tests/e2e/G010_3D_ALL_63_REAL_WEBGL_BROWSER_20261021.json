@@ -1,0 +1,465 @@
+{
+  "schema": "G010_TRUE_3D_GALLERY_BROWSER_V1",
+  "checks": [
+    "authentic_static_fixture_page",
+    "five_owner_authorized_categories",
+    "catalog_character_33",
+    "catalog_spirit_18",
+    "catalog_accessory_6",
+    "catalog_weapon_4",
+    "catalog_bonus_2",
+    "rendered_sha_verified_character_0",
+    "rendered_sha_verified_character_1",
+    "rendered_sha_verified_character_2",
+    "genuine_webgl_rotation_pixel_delta",
+    "reset_view_click",
+    "rendered_sha_verified_character_3",
+    "rendered_sha_verified_character_4",
+    "rendered_sha_verified_character_5",
+    "rendered_sha_verified_character_6",
+    "rendered_sha_verified_character_7",
+    "rendered_sha_verified_character_8",
+    "rendered_sha_verified_character_9",
+    "rendered_sha_verified_character_10",
+    "rendered_sha_verified_character_11",
+    "rendered_sha_verified_character_12",
+    "rendered_sha_verified_character_13",
+    "rendered_sha_verified_character_14",
+    "rendered_sha_verified_character_15",
+    "rendered_sha_verified_character_16",
+    "rendered_sha_verified_character_17",
+    "rendered_sha_verified_character_18",
+    "rendered_sha_verified_character_19",
+    "rendered_sha_verified_character_20",
+    "rendered_sha_verified_character_21",
+    "rendered_sha_verified_character_22",
+    "rendered_sha_verified_character_23",
+    "rendered_sha_verified_character_24",
+    "rendered_sha_verified_character_25",
+    "rendered_sha_verified_character_26",
+    "rendered_sha_verified_character_27",
+    "rendered_sha_verified_character_28",
+    "rendered_sha_verified_character_29",
+    "rendered_sha_verified_character_30",
+    "rendered_sha_verified_character_31",
+    "rendered_sha_verified_character_32",
+    "rendered_sha_verified_spirit_33",
+    "rendered_sha_verified_spirit_34",
+    "rendered_sha_verified_spirit_35",
+    "rendered_sha_verified_spirit_36",
+    "rendered_sha_verified_spirit_37",
+    "rendered_sha_verified_spirit_38",
+    "rendered_sha_verified_spirit_39",
+    "rendered_sha_verified_spirit_40",
+    "rendered_sha_verified_spirit_41",
+    "rendered_sha_verified_spirit_42",
+    "rendered_sha_verified_spirit_43",
+    "rendered_sha_verified_spirit_44",
+    "rendered_sha_verified_spirit_45",
+    "rendered_sha_verified_spirit_46",
+    "rendered_sha_verified_spirit_47",
+    "rendered_sha_verified_spirit_48",
+    "rendered_sha_verified_spirit_49",
+    "rendered_sha_verified_spirit_50",
+    "rendered_sha_verified_accessory_51",
+    "rendered_sha_verified_accessory_52",
+    "rendered_sha_verified_accessory_53",
+    "rendered_sha_verified_accessory_54",
+    "rendered_sha_verified_accessory_55",
+    "rendered_sha_verified_accessory_56",
+    "rendered_sha_verified_weapon_57",
+    "rendered_sha_verified_weapon_58",
+    "rendered_sha_verified_weapon_59",
+    "rendered_sha_verified_weapon_60",
+    "rendered_sha_verified_bonus_61",
+    "rendered_sha_verified_bonus_62",
+    "gpu_canvas_disposed_when_tab_hidden",
+    "recreated_on_tab_return",
+    "no_uncaught_browser_errors",
+    "no_http_fails"
+  ],
+  "errors": [],
+  "httpFail": [],
+  "selected": [
+    {
+      "id": "FUTURE30_MODEL_A1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_A3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_V1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_V2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_V3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_R1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_R2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_R3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_H1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_H2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_H3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_K1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_K2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_K3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_W1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_W2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_W3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_M1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_M2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_S1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_S2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_F1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_F2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_F3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_AR1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_AR2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_AR3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_E1_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_E2_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_E3_RED",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_AR1_BLUE",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_AR2_BLUE",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "FUTURE30_MODEL_AR3_BLUE",
+      "category": "character",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "ink_drop_kelpie:I",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "ink_drop_kelpie:II",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "ink_drop_kelpie:III",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "whispering_void_kit:I",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "whispering_void_kit:II",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "whispering_void_kit:III",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "star_shell_hatchling:I",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "star_shell_hatchling:II",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "star_shell_hatchling:III",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "starpath_antlerling:I",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "starpath_antlerling:II",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "starpath_antlerling:III",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "fatty:I",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "fatty:II",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "fatty:III",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "obsidian_bastion:I",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "obsidian_bastion:II",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "obsidian_bastion:III",
+      "category": "spirit",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "P045_H06_BEANIE",
+      "category": "accessory",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "P045_H06_TOP_HAT",
+      "category": "accessory",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "P045_H06_FROG_HAT",
+      "category": "accessory",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "P045_H06_SANTA_HAT",
+      "category": "accessory",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "P045_H06_SUNGLASSES",
+      "category": "accessory",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "P045_B02_BACKPACK",
+      "category": "accessory",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "WEAPON_C43E15596CA6",
+      "category": "weapon",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "WEAPON_6F06505A7BED",
+      "category": "weapon",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "WEAPON_EC86CE30E759",
+      "category": "weapon",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "WEAPON_C84A8635BED2",
+      "category": "weapon",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "P045_C01_BUNNY",
+      "category": "bonus",
+      "shaVerified": true,
+      "realCanvas": true
+    },
+    {
+      "id": "P045_C04_CORGI",
+      "category": "bonus",
+      "shaVerified": true,
+      "realCanvas": true
+    }
+  ],
+  "verdict": "G010_ALL_63_REAL_WEBGL_GLBS_PASS",
+  "pass": 76
+}

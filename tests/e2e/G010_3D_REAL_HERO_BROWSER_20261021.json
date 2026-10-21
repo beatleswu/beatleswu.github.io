@@ -1,0 +1,15 @@
+{
+  "schema": "G010_3D_ACTUAL_HERO_PAGE_V1",
+  "checks": [
+    "real_Hero_HTML200",
+    "real_Hero_3d_markup",
+    "real_5_categories",
+    "actual_Hero_equipment_tab_WebGL_weapon",
+    "real_Hero_weapon_visible_canvas_area",
+    "real_3d_module_no_errors"
+  ],
+  "unexpected3d": [],
+  "browserErrors": [],
+  "verdict": "ACTUAL_HERO_WEBGL_GALLERY_WIRING_PASS",
+  "pass": 6
+}
