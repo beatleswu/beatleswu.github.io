@@ -64,6 +64,63 @@
           "The current Production schema fingerprint matches the recorded schema and neither a2f33 nor 70f7 contains a migration change."
         ]
       }
+    },
+    {
+      "pair_id": "production-69dbe57a-runtime-e53a4775-static-verified-20261022",
+      "runtime_source_sha": "69dbe57aa535112b1759e3f3bdcf9ecbe1680efb",
+      "scheduler_source_sha": "69dbe57aa535112b1759e3f3bdcf9ecbe1680efb",
+      "runtime_image_tag": "go-odyssey-app:69dbe57a",
+      "runtime_image_id": "sha256:c1e30ff40ca21633fc543c717032550536304d0772838528442d27502302dd8e",
+      "scheduler_image_tag": "go-odyssey-app:69dbe57a",
+      "scheduler_image_id": "sha256:c1e30ff40ca21633fc543c717032550536304d0772838528442d27502302dd8e",
+      "static_source_sha": "e53a477524af60b6b3a87dfe30b983089c137d80",
+      "expected_runtime_base_sha": "e53a477524af60b6b3a87dfe30b983089c137d80",
+      "static_overlay": true,
+      "static_generation_id": "20260920-034411-e53a4775-v242-zone4-storyboard-pwa-parity",
+      "static_generation_path": "/opt/go-odyssey-static/releases/20260920-034411-e53a4775-v242-zone4-storyboard-pwa-parity",
+      "static_manifest_sha256": "2dbf2619e906a02ed06e050021005ecd727b09db143f5cc34d2e3ab0525ff3a1",
+      "static_archive_sha256": "d3b9f69069217800b084d78aae61b21b5b9bbb0a798b0fba11c10c38bf6bd3ec",
+      "static_service_worker_version": "v242-zone4-storyboard-pwa-parity",
+      "static_sw_sha256": "577898714c26eede5d5b83db06b6efa005f3d3edd933034599f5ec35f5154513",
+      "static_i18n_sha256": "46d68158b7482e66fc28df9dd4020360ca1c2addfb191c400ee6259541d7d668",
+      "static_index_sha256": "888b475f590b7bfaf25a9cc750c7a727c973377a3412f85075df5b7ac53eea5a",
+      "static_asset_count": 2158,
+      "schema_fingerprint": "89a2668f34c83a05d5faca68516b9a6beba7526f8b047d826d7c18d6a3263635",
+      "schema_migration_required": false,
+      "evidence": {
+        "runtime_release_records": [
+          {
+            "path": "/opt/go-odyssey/releases/go-odyssey-app_69dbe57a.deployment.json",
+            "sha256": "d6dc4dafc8d7fd365514723636e2009f72cbdc5d0820dede5b5983ba8ae90b9b",
+            "source_sha": "69dbe57aa535112b1759e3f3bdcf9ecbe1680efb",
+            "verification_result": "production verified stable 3x after transient orchestration failure"
+          }
+        ],
+        "runtime_artifact": {
+          "path": "/opt/go-odyssey/releases/go-odyssey-app-69dbe57a-linux-arm64.tar.gz",
+          "sha256": "4e7d3c176e61319d7ecdab921078d7b64cc581ea5da83d23583b95587053670",
+          "image_id": "sha256:c1e30ff40ca21633fc543c717032550536304d0772838528442d27502302dd8e",
+          "verification": "G023 full SHA matching deployed manifest, G028 direct live recheck"
+        },
+        "static_release_manifest": {
+          "path": "/opt/go-odyssey-static/releases/20260920-034411-e53a4775-v242-zone4-storyboard-pwa-parity/release-manifest.json",
+          "sha256": "2dbf2619e906a02ed06e050021005ecd727b09db143f5cc34d2e3ab0525ff3a1",
+          "release_git_sha": "e53a477524af60b6b3a87dfe30b983089c137d80",
+          "archive_sha256": "d3b9f69069217800b084d78aae61b21b5b9bbb0a798b0fba11c10c38bf6bd3ec",
+          "file_count": 2158
+        },
+        "schema_fingerprint_method": "SHA256 of stable UTF8 CSV of public pg_class/pg_attribute types and defaults, sorted by relname and attnum",
+        "schema_catalog_entries": 1435,
+        "observed_utc": "2026-10-21T22:50:00.921419+00:00",
+        "read_only_receipt": "G028_REAL_CURRENT_ORACLE_ROLLBACK_PAIR_20261022.json (beatles offline)",
+        "compatibility_basis": [
+          "Exact immutable running App and Scheduler image IDs equal, with matching OCI revision from image labels and live deployment record; running App healthy and zero restarts.",
+          "Exact active immutable Static release generation, manifest digest, 2158 asset count and SW/i18n/index file SHA-256 verified from production files.",
+          "Original deployment record is marked production verified stable 3x after a transient orchestration failure; official rollback predecessor immutable image is still present.",
+          "Production live unauthenticated GET /healthz, /login and / returned HTTP 200 on G028 read-only inspection.",
+          "Database schema fingerprint derived directly from public system catalog only; this record is an AS-IS baseline and does NOT authorize any new-schema migration or attest untested business-feature compatibility."
+        ]
+      }
     }
   ]
 }
