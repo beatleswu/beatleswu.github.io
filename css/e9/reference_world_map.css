@@ -1859,7 +1859,7 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
 
 /* Lane D: a navigation-only recommendation and separate clear/star signals.
    D/A010 still requires Owner UAT on a real iPad for this added control. */
-#e9-adventure-shell #e9-world-stage-recommended-entry {
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-recommended-entry {
   min-height: 44px;
   max-width: 100%;
   padding: 8px 14px;
@@ -1873,8 +1873,8 @@ html[data-go-portrait-tablet-override] body[data-e10-visual-skin="immersive-rpg"
   overflow-wrap: anywhere;
   cursor: pointer;
 }
-#e9-adventure-shell #e9-world-stage-recommended-entry[hidden] { display: none !important; }
-#e9-adventure-shell #e9-world-stage-recommended-entry:focus-visible {
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-recommended-entry[hidden] { display: none !important; }
+body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell #e9-world-stage-recommended-entry:focus-visible {
   outline: 3px solid #16747b;
   outline-offset: 2px;
 }
