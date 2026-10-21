@@ -7,17 +7,20 @@ import * as THREE from "/assets/3d_shop/p048/vendor/three.module.js";
 import { GLTFLoader } from "/assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js";
 import { G009_FORMAL9_REPLACEMENT_ROWS } from "/js/g009_formal9_rights_cleared_replacement_catalog.js";
 
+const G011_QA_MODE = ["localhost","127.0.0.1"].includes(location.hostname)
+  && new URLSearchParams(location.search).get("g011_qa")==="1"
+  && location.protocol==="http:";
 const ROOT = document.getElementById("g010-3d-gallery");
 const PANEL = document.getElementById("g009-panel-equipment");
 const $ = (selector) => ROOT?.querySelector(selector);
 const SHA = /^[0-9a-f]{64}$/i;
-const MODELS = Object.freeze({
+const MODELS = {
   character: "角色（33 款真實模型）",
   spirit: "棋靈（18 款成長模型）",
   accessory: "頭飾／背包（6 款）",
   weapon: "武器（4 款已確認權利模型）",
   bonus: "附加棋靈預覽（2 款）",
-});
+};
 const state = { data: [], selected: null, renderer: null, scene: null, camera: null,
   group: null, frame: 0, resize: null, request: 0, drag: null, errors: [],
   loaded: 0, displayed: 0 };
@@ -87,6 +90,50 @@ async function catalog() {
   if (totals.character!==33 || totals.spirit!==18 || totals.accessory!==6
     || totals.weapon!==4 || totals.bonus!==2 || new Set(models.map(x=>x.id)).size!==63) {
     throw new Error("3d_catalog_count_or_identity_mismatch:" + JSON.stringify(totals));
+  }
+  // P038 historical 8 mainhand + 4 shields: isolated QA comparison ONLY.
+  // Deliberately outside the 63 Product asset catalog and formal Docker pack.
+  // Legacy D007/G009 NOT_CLEARED release gates remain unchanged.
+  if (G011_QA_MODE) {
+    const recovered=await fetchJson("/docs/handoffs/G011_P022_P038_QA_MODEL_RECOVERY_20261021.json");
+    if (recovered.schema!=="G011_3D_P022_P038_RECOVERY_V1"
+        || recovered.task!=="NON_PRODUCTION_VISUAL_TEST_ONLY"
+        || recovered.release_status!=="NOT_ADMITTED"
+        || recovered.expected_runtime_qa_models!==12
+        || recovered.models?.length!==12
+        || recovered.qa_preview_total!==28
+        || recovered.p022_qa_derived_models?.length!==16) throw new Error("g011_qa_catalog_invalid");
+    for(const model of recovered.models){
+      if(model.formal_product_release!=="NOT_ADMITTED"
+        || model.real_player_equip_enabled!==false
+        || !["MAIN_HAND","OFF_HAND"].includes(model.slot)
+        || !/^G011_P038_[A-Za-z0-9-]+$/.test(model.qa_id)) throw new Error("g011_qa_authority_invalid");
+      const path=model.runtime_glb;
+      if(!path.startsWith("assets/3d_shop/formal_character_equipment_v1/weapons/")
+         && !/^tests\/e2e\/g011_private_qa_assets\/[A-Za-z0-9_-]+\.glb$/.test(path)){
+        throw new Error("g011_qa_model_path_blocked");
+      }
+      const safeEntry=Object.freeze({kind:"p038_qa",name:model.name+" · "+model.slot,
+        id:model.qa_id,sha:model.runtime_sha256.toLowerCase(),url:"/"+path});
+      if(!SHA.test(safeEntry.sha))throw new Error("g011_qa_sha_invalid");
+      models.push(safeEntry);
+    }
+    for (const model of recovered.p022_qa_derived_models) {
+      if (model.qa_derived_only!==true || model.release_admitted!==false
+        || model.real_player_equip_enabled!==false
+        || !/^G011_P022_[A-Z0-9-]+$/.test(model.qa_id)
+        || !/^tests\/e2e\/g011_private_qa_assets\/[A-Za-z0-9_-]+\.glb$/.test(model.runtime_glb)
+        || !SHA.test(model.runtime_sha256)) {
+        throw new Error("g011_p022_qa_unadmitted_model_blocked");
+      }
+      models.push(Object.freeze({kind:"p038_qa",
+        name:model.name+" · "+model.category+"（QA）",
+        id:model.qa_id,sha:model.runtime_sha256.toLowerCase(),
+        url:"/"+model.runtime_glb}));
+    }
+    if(models.length!==91 || new Set(models.map(x=>x.id)).size!==91) {
+      throw new Error("g011_qa_model_identity_conflict");
+    }
   }
   return models;
 }
@@ -205,6 +252,7 @@ async function init() {
   try{
     state.data=await catalog();
     const category=$("#g010-3d-category"),select=$("#g010-3d-model");
+    if(G011_QA_MODE) MODELS.p038_qa="P022／P038 武器・盾牌・弓箭（28 件，內部測試）";
     Object.entries(MODELS).forEach(([name,label])=>{
       const opt=document.createElement("option");opt.value=name;opt.textContent=label;category.appendChild(opt);
     });
@@ -239,7 +287,7 @@ if(ROOT&&PANEL){
 }
 export const G010_3D_GALLERY_CATEGORY_COUNTS=Object.freeze({character:33,spirit:18,accessory:6,weapon:4,bonus:2});
 export function g010GalleryDiagnostics(){
- return Object.freeze({catalog_size:state.data.length,current:state.selected,
+  return Object.freeze({qa_only_p038_12:G011_QA_MODE,catalog_size:state.data.length,current:state.selected,
   loaded:state.loaded,rendered:state.displayed,live_canvas:!!state.renderer,
   integrity:ROOT?.dataset.integrity||"pending",errors:[...state.errors]});
 }

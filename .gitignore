@@ -5,3 +5,6 @@ release-artifacts/
 docs/testing/
 tests/e2e/node_modules/
 tools/e10_zone1_audio/_local_review/
+
+# Temporary derived P038 QA GLBs copied from authorized local archive; never pack/release.
+tests/e2e/g011_private_qa_assets/
