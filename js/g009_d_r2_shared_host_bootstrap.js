@@ -165,6 +165,23 @@ async function applyServerInventoryProjection(adapter, appearance) {
   }
 }
 
-void registerEquipmentAdapter().catch((error) => {
-  console.warn("Hero equipment presentation remains fail-closed", error instanceof Error ? error.message : String(error));
-});
+// G015 isolation: original /hero and original G008 renderer, but only the
+// disposable loopback QA host may resolve P038 NOT_ADMITTED test fixtures.
+// The QA module and recovered private binaries are intentionally absent from
+// production Docker builds. A missing test module fails closed (no fallback).
+const G015_P038_LOCAL_QA = globalThis.location?.protocol === "http:"
+  && globalThis.location?.hostname === "127.0.0.1"
+  && new URLSearchParams(globalThis.location?.search || "").get("g015_qa") === "1";
+if (G015_P038_LOCAL_QA) {
+  void import("/tests/e2e/g015_p038_original_hero_qa.mjs").then(
+    ({ installG015P038OriginalHeroQA }) => installG015P038OriginalHeroQA()
+  ).catch(error => {
+    console.warn("G015 P038 localhost-only QA remains fail-closed",
+      error instanceof Error ? error.message : String(error));
+  });
+} else {
+  void registerEquipmentAdapter().catch((error) => {
+    console.warn("Hero equipment presentation remains fail-closed",
+      error instanceof Error ? error.message : String(error));
+  });
+}
