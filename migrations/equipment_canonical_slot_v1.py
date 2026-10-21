@@ -36,7 +36,10 @@ SQLITE_VALIDITY_INSERT_TRIGGER = "trg_player_inventory_equipped_requires_slot_in
 SQLITE_VALIDITY_UPDATE_TRIGGER = "trg_player_inventory_equipped_requires_slot_update"
 ADVISORY_LOCK_KEY = 773310034
 
-CANONICAL_SLOTS = ("weapon", "armor", "accessory")
+CANONICAL_SLOTS = ("weapon", "armor", "accessory", "offhand")
+# Additive slot support only: no official offhand item definitions or release admission.
+# Unknown/QA-only shields remain non-equippable unless an authorized server
+# catalog explicitly declares a matching offhand definition.
 INVENTORY_ONLY_EQUIPMENT_IDS = frozenset({"go_stone_black"})
 HOLD_FOR_AUTHORITY_EQUIPMENT_IDS = frozenset({"xp_amulet"})
 NON_FUNCTIONAL_EQUIPMENT_IDS = (
