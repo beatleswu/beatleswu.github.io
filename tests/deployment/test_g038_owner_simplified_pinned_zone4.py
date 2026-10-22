@@ -126,7 +126,8 @@ def test_runtime_opt_in_reaches_the_exact_evaluator_and_no_frozen_file_changes()
     build=(ROOT/"scripts/release/build-release-image.ps1").read_text(encoding="utf8")
     evaluator=EVALUATOR.read_text(encoding="utf8")
     policy_mod=(ROOT/"scripts/release/zone4_owner_b_policy.py").read_text(encoding="utf8")
-    assert "$ownerConflictArgs = if ($OwnerSimplifiedPolicy)" in build
+    assert "[string[]]$ownerConflictArgs = @()" in build
+    assert "if ($OwnerSimplifiedPolicy) { $ownerConflictArgs = @('--owner-simplified-policy') }" in build
     assert "--owner-conflict-policy $ownerConflictPolicyPath @ownerConflictArgs" in build
     assert 'action="store_true"' in evaluator
     assert 'OWNER_SIMPLIFIED_PINNED_POLICY_SHA256' in policy_mod

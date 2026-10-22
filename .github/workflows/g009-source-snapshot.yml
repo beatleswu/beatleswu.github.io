@@ -65,7 +65,9 @@ jobs:
             'tests/deployment/test_g009_dual_delivery_closure.py' \
             'tests/deployment/test_image_content_boundary.py' \
             'tests/deployment/test_g043_bonus_supplemental_static_pack.py' \
-            'docs/deployment/G043_owner_approved_supplemental_bunny_corgi_static_20261022.md' > /tmp/g036-expected.txt
+            'docs/deployment/G043_owner_approved_supplemental_bunny_corgi_static_20261022.md' \
+            'tests/deployment/test_g046_owner_cli_array_handoff.py' \
+            'docs/deployment/G046_owner_cli_atomic_array_fix_20261022.md' > /tmp/g036-expected.txt
           diff -u <(sort /tmp/g036-expected.txt) <(sort /tmp/g036-changed.txt)
           test "$(sha256sum deploy/known-production-rollback-pairs.json | cut -d' ' -f1)" = "$G028_PAIR_SHA"
           test -z "$(git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD -- assets/3d_shop/)"
@@ -178,6 +180,7 @@ jobs:
             tests/deployment/test_g036_coordinator_simplified_policy.py \
             tests/deployment/test_g038_owner_simplified_pinned_zone4.py \
             tests/deployment/test_g041_junit_identity_policy.py \
+            tests/deployment/test_g046_owner_cli_array_handoff.py \
             tests/deployment/test_g009_zone4_owner_b_contract_conflict_policy.py \
             tests/deployment/test_build_app_known_failure_baseline.py \
             tests/deployment/test_release_source_separation.py::test_control_plane_authority_declarations_agree \
