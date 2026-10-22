@@ -11,6 +11,7 @@
   "owner_receipt_sha256": "8f66b7b70dc4e06d9a2b061280c2039c0876c5b9cb726fb32c76da1fd29ddce8",
   "product_release_admission": false,
   "production_asset_admission": false,
+  "public_3d_preview_admission": true,
   "files": [
     {
       "path": "assets/3d_shop/formal9_rights_cleared_v1/weapons/weapon_c43e15596ca6.glb",

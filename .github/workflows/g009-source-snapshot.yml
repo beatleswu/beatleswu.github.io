@@ -5,6 +5,7 @@ on:
     branches:
       - g027-owner-approved-product-intake-20261022
       - g028-owner-approved-production-baseline-20261022
+      - g030-3d-public-assets-20261022
   pull_request:
     branches:
       - master
@@ -27,18 +28,34 @@ jobs:
         env:
           PINNED_PRODUCT_SHA: "477598897c8d36ecf14ce4b79f16862e01cb7c4a"
           G028_PAIR_SHA: "5465b3d9f109d22e31ef1f7dfd971cb91dae6422cd687f6f0a1def2bfaa876d4"
+          G028_ADOPTED_MASTER_SHA: "283dc22b8e1685732443d781074b6f4216ca3dea"
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "beatleswu/beatleswu.github.io"
           test -z "$(git status --porcelain)"
           git cat-file -e "$PINNED_PRODUCT_SHA^{commit}"
           git merge-base --is-ancestor "$PINNED_PRODUCT_SHA" HEAD
-          git diff --name-only "$PINNED_PRODUCT_SHA" HEAD > /tmp/g027-changed.txt
-          test "$(wc -l < /tmp/g027-changed.txt)" -eq 2
-          grep -Fxq '.github/workflows/g009-source-snapshot.yml' /tmp/g027-changed.txt
-          grep -Fxq 'deploy/known-production-rollback-pairs.json' /tmp/g027-changed.txt
+          git cat-file -e "$G028_ADOPTED_MASTER_SHA^{commit}"
+          git merge-base --is-ancestor "$G028_ADOPTED_MASTER_SHA" HEAD
+          git diff --name-only "$G028_ADOPTED_MASTER_SHA" HEAD > /tmp/g030-changed.txt
+          printf '%s\n' \
+            '.github/workflows/g009-source-snapshot.yml' \
+            'deploy/g009-formal9-replacement-static-pack-manifest.json' \
+            'docs/handoffs/G030_69_PUBLIC_3D_VISUAL_ACTIVATION_20261022.md' \
+            'hero.html' \
+            'js/g009_formal9_rights_cleared_replacement_catalog.js' \
+            'js/g010_hero_3d_gallery.mjs' \
+            'schemas/g009_formal9_rights_cleared_replacement_v1.json' \
+            'tests/deployment/test_g009_formal9_replacement_packaging.py' \
+            'tests/e2e/g030_3d_all_69_public_models_browser.cjs' \
+            'tests/e2e/g030_full_360_orbit_pinch_real_browser.cjs' \
+            'tests/test_g010_3d_gallery_activation_contract.py' \
+            'tests/test_g030_public_69_3d_assets_activation.py' \
+            'tests/e2e/g010_3d_activation_fixture.html' > /tmp/g030-expected.txt
+          diff -u <(sort /tmp/g030-expected.txt) <(sort /tmp/g030-changed.txt)
           test "$(sha256sum deploy/known-production-rollback-pairs.json | cut -d' ' -f1)" = "$G028_PAIR_SHA"
-          git diff --check "$PINNED_PRODUCT_SHA" HEAD
+          test -z "$(git diff --name-only "$G028_ADOPTED_MASTER_SHA" HEAD -- assets/3d_shop/)"
+          git diff --check "$G028_ADOPTED_MASTER_SHA" HEAD
           # Preserve the sole historical pair byte-for-byte as a parsed value;
           # only one exact new Oracle observed baseline record is admitted.
           python - <<'PY'
@@ -58,15 +75,15 @@ jobs:
           assert p['runtime_image_id']==p['scheduler_image_id']
           assert len(p['evidence']['compatibility_basis'])>=4
           PY
-          for path in app.py shop.html inventory.html hero.html Dockerfile \
-                      js/g010_hero_3d_gallery.mjs migrations/quest_claim_v1.py \
+          for path in app.py shop.html inventory.html Dockerfile \
+                      migrations/quest_claim_v1.py \
                       deploy/live-static-asset-inventory.json index.html sw.js; do
             test -f "$path"
             test "$(git hash-object "$path")" = "$(git rev-parse "$PINNED_PRODUCT_SHA:$path")"
           done
           test ! -e secret_key.txt
           test ! -e .env
-          echo "Source identity and 10 Product artifact blobs verified"
+          echo "G030 scoped 3D visual activation: frozen original Product runtime verified; entitlement gates preserved"
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -79,4 +96,9 @@ jobs:
           python -m pytest -q -p no:cacheprovider \
             tests/test_g026_daily_gcs_backup_offline_preflight.py \
             tests/test_g025_backup_audit_evidence_contract.py \
-            tests/test_g025_backup_iam_403_readonly_gate.py
+            tests/test_g025_backup_iam_403_readonly_gate.py \
+            tests/test_g030_public_69_3d_assets_activation.py \
+            tests/test_g010_3d_gallery_activation_contract.py \
+            tests/deployment/test_g009_formal9_replacement_packaging.py \
+            tests/test_g022_release_admission_and_image_rollback_contract.py \
+            tests/test_g024_arm64_quest_d015_migration_prod_backup_gate.py

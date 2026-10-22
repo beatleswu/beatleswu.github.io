@@ -15,7 +15,8 @@
     "DROP_ENABLED": false,
     "PLAYER_SELECTABLE": false,
     "RELEASE_ENABLED": false,
-    "PRODUCTION_ASSET_ADMISSION": false
+    "PRODUCTION_ASSET_ADMISSION": false,
+    "PUBLIC_3D_PREVIEW_ADMITTED": true
   },
   "mapping": [
     {
@@ -70,7 +71,8 @@
         "DROP_ENABLED": false,
         "PLAYER_SELECTABLE": false,
         "RELEASE_ENABLED": false,
-        "PRODUCTION_ASSET_ADMISSION": false
+        "PRODUCTION_ASSET_ADMISSION": false,
+      "PUBLIC_3D_PREVIEW_ADMITTED": true
       }
     },
     {
@@ -107,7 +109,8 @@
         "DROP_ENABLED": false,
         "PLAYER_SELECTABLE": false,
         "RELEASE_ENABLED": false,
-        "PRODUCTION_ASSET_ADMISSION": false
+        "PRODUCTION_ASSET_ADMISSION": false,
+      "PUBLIC_3D_PREVIEW_ADMITTED": true
       }
     },
     {
@@ -144,7 +147,8 @@
         "DROP_ENABLED": false,
         "PLAYER_SELECTABLE": false,
         "RELEASE_ENABLED": false,
-        "PRODUCTION_ASSET_ADMISSION": false
+        "PRODUCTION_ASSET_ADMISSION": false,
+      "PUBLIC_3D_PREVIEW_ADMITTED": true
       }
     },
     {
@@ -181,7 +185,8 @@
         "DROP_ENABLED": false,
         "PLAYER_SELECTABLE": false,
         "RELEASE_ENABLED": false,
-        "PRODUCTION_ASSET_ADMISSION": false
+        "PRODUCTION_ASSET_ADMISSION": false,
+      "PUBLIC_3D_PREVIEW_ADMITTED": true
       }
     }
   ],
