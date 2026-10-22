@@ -1,0 +1,42 @@
+{
+  "$schema_note": "Owner 2026-10-22 G043 approval: present C01 Bunny and C04 Corgi bonus visuals with one external texture from a separate governed Static generation. Original G010 admission:false is historical and remains unchanged. This does not add any model to the 69 canonical Hero/Companion/Formal9 visuals, does not create an entitlement, inventory item, ownership change, shop purchase, or pet_key grant.",
+  "manifest_version": "1.0.0",
+  "generated_for": "G043_OWNER_APPROVED_BONUS_PRESENTATION_ONLY_DUAL_DELIVERY",
+  "prefix": "assets/3d_shop/p048/companion/",
+  "owner_authorization": "2026-10-22 chat instruction 授權 — approve G043 additional Bunny+Corgi+PNG separate supplemental static pack",
+  "release_admission": true,
+  "admission_scope": "EXACT_THREE_BONUS_PRESENTATION_ASSETS_ONLY",
+  "canonical_formal_69_glb_unchanged": true,
+  "new_pet_entitlement": false,
+  "pet_key_runtime_authority": "EXISTING_PET_KEY_REQUIRED_AT_RUNTIME",
+  "source_evidence": "docs/handoffs/G010_P048_C01_C04_IMAGE_CLOSURE_20261021.json",
+  "source_evidence_sha256": "e179f24190930db27dcdbaf122173e160c61167b7f71d7183b1dfe3c88f7ec71",
+  "total_files": 3,
+  "total_bytes": 215999,
+  "files": [
+    {
+      "path": "assets/3d_shop/p048/companion/C01/animal-bunny.glb",
+      "size": 131568,
+      "sha256": "94b654915d9de70071bcf0bfa13de379a3ba4fdfeb231f0fec49335232cbc821",
+      "mime": "model/gltf-binary",
+      "provenance": "Owner-approved G043 supplemental presentation-only static closure; original G010 recorded asset rights",
+      "origin_evidence": "docs/handoffs/G010_P048_C01_C04_IMAGE_CLOSURE_20261021.json"
+    },
+    {
+      "path": "assets/3d_shop/p048/companion/C01/Textures/colormap.png",
+      "size": 10915,
+      "sha256": "2f6d0032e51c2d49b13b8e689d59eb39aa3ee6c32f2a1851213e11fc7593177d",
+      "mime": "image/png",
+      "provenance": "Owner-approved G043 supplemental presentation-only static closure; original G010 recorded asset rights",
+      "origin_evidence": "docs/handoffs/G010_P048_C01_C04_IMAGE_CLOSURE_20261021.json"
+    },
+    {
+      "path": "assets/3d_shop/p048/companion/C04/Corgi.glb",
+      "size": 73516,
+      "sha256": "95cd2c4d53d70ee9dd2e1329dcb6de7d4a725301d504a4f2f00ecb34dc1a0851",
+      "mime": "model/gltf-binary",
+      "provenance": "Owner-approved G043 supplemental presentation-only static closure; original G010 recorded asset rights",
+      "origin_evidence": "docs/handoffs/G010_P048_C01_C04_IMAGE_CLOSURE_20261021.json"
+    }
+  ]
+}

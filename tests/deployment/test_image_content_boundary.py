@@ -149,6 +149,7 @@ G009_DUAL_DELIVERY_STATIC_MANIFESTS = frozenset({
     "deploy/g009-hero-model-static-pack-manifest.json",
     "deploy/g009-companion-formal18-static-pack-manifest.json",
     "deploy/g009-formal9-replacement-static-pack-manifest.json",
+    "deploy/g043-bonus-companion-supplemental-static-pack-manifest.json",
 })
 IMAGE_ONLY_RUNTIME_SUPPORT_ASSETS = frozenset({
     "assets/3d_shop/p048/runtime_manifest.json",
