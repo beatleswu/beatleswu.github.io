@@ -1,5 +1,15 @@
 # Deployment Workflow V3: Bounded Operational Recovery
 
+> **Status update — NON-PRIMARY.** `scripts/release/deploy-production.ps1` is now the recommended
+> canonical Production deployment entrypoint; see
+> [simplified_production_deploy.md](simplified_production_deploy.md). V3's first real Production
+> execution stopped safely before any mutation, but it exposed two defects in the generic layers
+> described below: a fully successful build was misclassified as a failure because the orchestrator
+> located a JSON payload by scanning stdout for a brace, and two unrelated failures shared one
+> `BUILD_APP::default` retry budget. Those defects are recorded here, not repaired. This document
+> and its tooling are retained for reference and are deliberately not deleted; retirement is gated
+> on the simplified path having successfully deployed Production at least once.
+
 Status: new (this document). Introduces `GO_DEPLOY_WITH_BOUNDED_RECOVERY`, an additive owner-gate
 concept alongside the existing `GO_DEPLOY`/`GO_ROLLBACK` gates documented in
 [production_deployment_governance.md](production_deployment_governance.md). It does not replace,
