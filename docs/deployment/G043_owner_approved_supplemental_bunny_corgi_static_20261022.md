@@ -18,3 +18,7 @@ Owner 回覆「授權」，承接上一輪單獨要求 G043 的 Bunny、Corgi �
 `deploy/live-static-asset-inventory.json` 的 `required_subtrees.entries` 加**唯一一筆**指向新的 Supplemental Manifest。靜態發布由既有 `package-static-release.ps1`／`New-StaticReleaseBundle` 根據manifest嚴格驗每一byte的 size/SHA，把三檔放入同一次Generation；不允許目錄全量copy、額外GLB/PNG或 wildcard。原雙渠道 App fallback bytes 不動。原 `tests/deployment/test_g009_dual_delivery_closure.py` 保留 formally 69 total GLB，另精確驗兩bonus GLB；`test_image_content_boundary.py` 納入新的獨立清單，且保留 image-only support 例外原樣。新 `test_g043_bonus_supplemental_static_pack.py` 提供正例/篡改內容、檔案數、玩家權限和69數目不變的負例。現有 required GitHub CI 精確 23檔 scope，還須比對整份舊 inventory 除唯一新條目外完全相同，並重驗三檔與舊證據實體bytes，原 `app.py`、`hero.html`、69GLB 與已知 Oracle rollback檔必須字節不變。
 
 **流程分界**：本隔離 Product 候選將產生新的 Git SHA。即使補充包的 Public Asset admission已授權，G043 PR正式合併 `GO_MERGE` 及新SHA的 `GO_DEPLOY_WITH_BOUNDED_RECOVERY` 仍須各自具體Owner Gate；之前產品2ae01985的部署核准不得直接用來部署未知新SHA。完整官方 BUILD_APP 1695+ JUnit在乾淨受治理新Gate必須真PASS、靜態TAR 2346個文件全部SHAPASS、Oracle dry-run/backup/rollback/真機UAT必要條件都通過，才可正式發版。正式Players DB NO_WRITE、QuestV2/D015 migration OFF。
+
+## Linux required CI full regression dependencies
+
+The initial GitHub CI exercised all G043 asset regressions, but its lightweight Python runner lacked Flask, which the original full dual-delivery test legitimately imports. The CI now installs the exact repo-pinned requirements.txt as well as pinned pytest instead of omitting the Flask-dependent test. All governed asset integrity and negative regression tests remain enabled. This does not alter the App, canonical 69 GLB, or production sources.

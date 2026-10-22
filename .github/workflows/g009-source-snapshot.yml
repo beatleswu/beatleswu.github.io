@@ -165,7 +165,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check 'pytest==8.3.5'
+          python -m pip install --disable-pip-version-check -r requirements.txt 'pytest==8.3.5'
           python -m pytest -q -p no:cacheprovider \
             tests/test_g026_daily_gcs_backup_offline_preflight.py \
             tests/test_g025_backup_audit_evidence_contract.py \
