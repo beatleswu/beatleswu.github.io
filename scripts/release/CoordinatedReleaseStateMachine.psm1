@@ -670,10 +670,12 @@ function Invoke-CoordinatedReleaseStateMachine {
                 if ($staticPromoted) {
                     $rb = Invoke-ReleasePhase -Action $RollbackStatic -ActionArgs @($baseline)
                     $report.static_rolled_back = [bool]$rb.success
+                    $recoveryEntry.static_rollback_result = $rb
                 }
                 if ($appPromoted) {
                     $rb = Invoke-ReleasePhase -Action $RollbackApp -ActionArgs @($baseline)
                     $report.app_rolled_back = [bool]$rb.success
+                    $recoveryEntry.app_rollback_result = $rb
                 }
             }
             # Always independently re-observe final state before stopping,
@@ -710,11 +712,13 @@ function Invoke-CoordinatedReleaseStateMachine {
         if ($staticPromoted) {
             $rb = Invoke-ReleasePhase -Action $RollbackStatic -ActionArgs @($baseline)
             $report.static_rolled_back = [bool]$rb.success
+                    $recoveryEntry.static_rollback_result = $rb
             $rollbackOk = $rollbackOk -and $rb.success
         }
         if ($appPromoted) {
             $rb = Invoke-ReleasePhase -Action $RollbackApp -ActionArgs @($baseline)
             $report.app_rolled_back = [bool]$rb.success
+                    $recoveryEntry.app_rollback_result = $rb
             $rollbackOk = $rollbackOk -and $rb.success
         }
         $verify = Invoke-ReleasePhase -Action $GetCurrentState
