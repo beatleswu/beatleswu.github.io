@@ -50,6 +50,10 @@ jobs:
           git diff --name-only "$G062_APPROVED_PRODUCT_SHA" HEAD > /tmp/g062-post-approved.txt
           test "$(cat /tmp/g062-post-approved.txt)" = ".github/workflows/g009-source-snapshot.yml"
           git cat-file -e "$G062_APPROVED_APP_COMMIT^{commit}"
+          # Actions checkout uses detached HEAD for PRs. The provenance test
+          # needs the explicit, exact candidate-local source ref before merge.
+          git update-ref refs/heads/g062-static-rollback-fix-20261022 "$G062_APPROVED_PRODUCT_SHA"
+          test "$(git rev-parse refs/heads/g062-static-rollback-fix-20261022)" = "$G062_APPROVED_PRODUCT_SHA"
           git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD > /tmp/g036-changed.txt
           printf '%s\n' \
             '.github/workflows/g009-source-snapshot.yml' \
@@ -181,6 +185,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Real rollback tests call powershell. Ubuntu runners typically ship
+          # PowerShell Core as pwsh; expose that actual executable by the
+          # expected name for this job. Fail closed if neither exists.
+          if ! command -v powershell >/dev/null 2>&1; then
+            command -v pwsh >/dev/null 2>&1 || { echo "PowerShell Core required for G062 tests" >&2; exit 1; }
+            mkdir -p "$RUNNER_TEMP/g073-powershell-bin"
+            ln -s "$(command -v pwsh)" "$RUNNER_TEMP/g073-powershell-bin/powershell"
+            export PATH="$RUNNER_TEMP/g073-powershell-bin:$PATH"
+          fi
+          powershell -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
           python -m pip install --disable-pip-version-check -r requirements.txt 'pytest==8.3.5'
           python -m pytest -q -p no:cacheprovider \
             tests/test_g026_daily_gcs_backup_offline_preflight.py \
