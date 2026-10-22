@@ -338,15 +338,15 @@
     },
     {
       "path": "hero.html",
-      "source_commit": "767d697ff3cc7e2ff2ce9fb3697171c9a16d5b2d",
-      "source_branch_or_local_ref": "767d697ff3cc7e2ff2ce9fb3697171c9a16d5b2d",
-      "source_commit_subject": "fix(hero): derive level progress from server rank XP across adventure sessions",
-      "source_date": "2026-10-19",
-      "content_sha256": "50c106be1b7bc4e4f8a07b07125b6fa19ca7ab8d0340e4981c96a3dc9ec91571",
-      "content_size_bytes": 307825,
+      "source_commit": "c52fb0efd2b8e5562be2aaac09c5c1eb1d86ac1a",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat(g030): add unlimited 360-degree two-axis orbit and touch pinch zoom",
+      "source_date": "2026-10-22",
+      "content_sha256": "da938c6a08c99ebea3affd860b7c8b0a5192a14503936cd0eb6af24738dff221",
+      "content_size_bytes": 311730,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "local G010 candidate Git provenance -- exact Git source commit and bytes verified in this checkout; not adopted on canonical origin/master and not independently attested"
+      "source_status": "G030 Owner-merged canonical Git source; exact content and source commit verified locally, without claiming independent external attestation."
     },
     {
       "path": "rating_test.html",
@@ -361,15 +361,15 @@
     },
     {
       "path": "shop.html",
-      "source_commit": "fce7c05acdc9deaf1f20ecb45909bce448be5eef",
-      "source_branch_or_local_ref": "fce7c05acdc9deaf1f20ecb45909bce448be5eef",
-      "source_commit_subject": "G010 RC3 local candidate staging (NOT independently admitted)",
-      "source_date": "2026-10-20",
-      "content_sha256": "e48dd5b1a853609236b4bde695f2433f00e5d3ce084bec04482b6b3f83d7d43c",
-      "content_size_bytes": 181111,
+      "source_commit": "15cbcdbe9c28b8f16107387e45cddb7c087f9627",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat(g019): unlock canonical equipment on original shop and backpack by three server gates",
+      "source_date": "2026-10-21",
+      "content_sha256": "896472452af7d80069ebd45babceab81dcc9337d19803b7361fb317042602e7a",
+      "content_size_bytes": 184467,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "local G010 candidate Git provenance -- exact Git source commit and bytes verified in this checkout; not adopted on canonical origin/master and not independently attested"
+      "source_status": "G019 Owner-merged canonical Git source and exact runtime blob verified locally; no independent external signature claimed."
     },
     {
       "path": "profile.html",
@@ -431,15 +431,15 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "618b724b96e013ad0489f17d6afdf0e8abce54ef",
-      "source_branch_or_local_ref": "618b724b96e013ad0489f17d6afdf0e8abce54ef",
-      "source_commit_subject": "fix(shop): clarify preview availability and link backpack destinations",
-      "source_date": "2026-10-19",
-      "content_sha256": "63888973299006200657fa83cddf056b1e501b752ab8a514837f7959d62b9011",
-      "content_size_bytes": 84183,
+      "source_commit": "15cbcdbe9c28b8f16107387e45cddb7c087f9627",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat(g019): unlock canonical equipment on original shop and backpack by three server gates",
+      "source_date": "2026-10-21",
+      "content_sha256": "29db4b17b01095b324b1d886c2f5c100ec1003145bb28f1ea0f9ce7ebb53bb45",
+      "content_size_bytes": 85387,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "local G010 candidate Git provenance -- exact Git source commit and bytes verified in this checkout; not adopted on canonical origin/master and not independently attested"
+      "source_status": "G019 Owner-merged canonical Git source and exact runtime blob verified locally; no independent external signature claimed."
     },
     {
       "path": "badges.html",
@@ -1181,15 +1181,15 @@
     },
     {
       "path": "app.py",
-      "source_commit": "fce7c05acdc9deaf1f20ecb45909bce448be5eef",
-      "source_branch_or_local_ref": "fce7c05acdc9deaf1f20ecb45909bce448be5eef",
-      "source_commit_subject": "G010 RC3 local candidate staging (NOT independently admitted)",
-      "source_date": "2026-10-20",
-      "content_sha256": "7d234f96e2718dd68bd4e8ec0683ccd342064691050b34f02598e9e46a0d9f12",
-      "content_size_bytes": 1436735,
+      "source_commit": "15cbcdbe9c28b8f16107387e45cddb7c087f9627",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "feat(g019): unlock canonical equipment on original shop and backpack by three server gates",
+      "source_date": "2026-10-21",
+      "content_sha256": "147e1aea99270b35f516a094e69d08287a5705ed9b386a3d58cb51124fb47fd2",
+      "content_size_bytes": 1437541,
       "line_ending_policy": "LF",
       "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear and C045 Shop admission wiring; narrow Zone4 Owner-final presentation serving routes",
-      "source_status": "local G010 candidate Git provenance -- exact Git source commit and bytes verified in this checkout; not adopted on canonical origin/master and not independently attested"
+      "source_status": "G019 Owner-merged canonical Git source and exact runtime blob verified locally; no independent external signature claimed."
     },
     {
       "path": "coin_purchase_authority.py",

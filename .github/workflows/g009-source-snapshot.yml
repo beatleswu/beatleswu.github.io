@@ -58,7 +58,8 @@ jobs:
             'tests/deployment/test_release_source_separation.py' \
             'tests/deployment/test_deploy_coordinated_release_real_wiring.py' \
             'tests/deployment/test_g041_junit_identity_policy.py' \
-            'docs/deployment/G041_strict_junit_identity_and_two_rollback_pairs_20261022.md' > /tmp/g036-expected.txt
+            'docs/deployment/G041_strict_junit_identity_and_two_rollback_pairs_20261022.md' \
+            'deploy/runtime-source-provenance.json' > /tmp/g036-expected.txt
           diff -u <(sort /tmp/g036-expected.txt) <(sort /tmp/g036-changed.txt)
           test "$(sha256sum deploy/known-production-rollback-pairs.json | cut -d' ' -f1)" = "$G028_PAIR_SHA"
           test -z "$(git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD -- assets/3d_shop/)"
@@ -81,6 +82,30 @@ jobs:
           assert p['schema_migration_required'] is False
           assert p['runtime_image_id']==p['scheduler_image_id']
           assert len(p['evidence']['compatibility_basis'])>=4
+          PY
+          # Exact, source-verifiable G019/G030 provenance correction only.
+          python - <<'PY'
+          import hashlib,json,subprocess,pathlib
+          records=json.loads(pathlib.Path('deploy/runtime-source-provenance.json').read_text(encoding='utf8'))
+          known={'app.py':'15cbcdbe9c28b8f16107387e45cddb7c087f9627',
+                 'shop.html':'15cbcdbe9c28b8f16107387e45cddb7c087f9627',
+                 'inventory.html':'15cbcdbe9c28b8f16107387e45cddb7c087f9627',
+                 'hero.html':'c52fb0efd2b8e5562be2aaac09c5c1eb1d86ac1a'}
+          for path,commit in known.items():
+            entries=[e for e in records['files'] if e['path']==path]
+            assert len(entries)==1
+            row=entries[0]
+            data=pathlib.Path(path).read_bytes()
+            blob=subprocess.check_output(['git','show',commit+':'+path])
+            assert blob==data
+            assert row['source_commit']==commit
+            assert row['source_branch_or_local_ref']=='origin/master'
+            assert row['content_sha256']==hashlib.sha256(data).hexdigest()
+            assert row['content_size_bytes']==len(data)
+            assert row['source_commit_subject']==subprocess.check_output(
+              ['git','show','-s','--format=%s',commit],text=True).strip()
+            assert row['source_date']==subprocess.check_output(
+              ['git','show','-s','--format=%cs',commit],text=True).strip()
           PY
           for path in app.py shop.html inventory.html Dockerfile \
                       migrations/quest_claim_v1.py \
@@ -115,4 +140,5 @@ jobs:
             tests/deployment/test_g009_zone4_owner_b_contract_conflict_policy.py \
             tests/deployment/test_build_app_known_failure_baseline.py \
             tests/deployment/test_release_source_separation.py::test_control_plane_authority_declarations_agree \
-            tests/deployment/test_e10_development_workflow_v2.py
+            tests/deployment/test_e10_development_workflow_v2.py \
+            tests/deployment/test_runtime_dependency_provenance.py
