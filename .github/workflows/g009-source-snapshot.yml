@@ -110,5 +110,5 @@ jobs:
             tests/deployment/test_g038_owner_simplified_pinned_zone4.py \
             tests/deployment/test_g009_zone4_owner_b_contract_conflict_policy.py \
             tests/deployment/test_build_app_known_failure_baseline.py \
-            tests/deployment/test_release_source_separation.py \
+            tests/deployment/test_release_source_separation.py::test_control_plane_authority_declarations_agree \
             tests/deployment/test_e10_development_workflow_v2.py

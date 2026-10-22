@@ -43,3 +43,14 @@ normalized github/workflows/g009-source-snapshot.yml, and updated the original
 consistency test to normalize both sides with the **existing** exact same rule.
 It still compares full **exact sets** and rejects all other CI workflows.
 G038 total scope is 13 release-control-plane files vs Product 2ae01985.
+
+
+GitHub Linux and Windows PowerShell test environment distinction:
+Required CI first real run 39720840426 had 266 PASS and exactly 8 FAIL
+ONLY because Linux lacks the legacy Windows powershell.exe executable used
+by eight unchanged subprocess tests. Those tests PASSED on beatles Windows
+in the 198/198 extended regression. Linux required CI now runs the exact
+portable authority-consistency check from that file while retaining G036,
+G038, historical baseline, Frozen Zone4 and E10 regression tests. This does
+not change the source separation validator or relax failure semantics.
+Update is a new fast-forward commit, never force-pushed history rewrite.
