@@ -758,7 +758,12 @@ def test_historical_rollback_pair_metadata_is_exact_and_positive_provenance_boun
         "mixed_pair_acceptance": "exact_record_only",
         "same_sha_pair_acceptance": "strict_identity_coherence",
     }
-    assert len(document["pairs"]) == 1
+    # Two verified production rollback pairs: historical and actual live G028.
+    assert len(document["pairs"]) == 2
+    assert {p["pair_id"] for p in document["pairs"]} == {
+        "production-70f7-runtime-a2f33-static-overlay-20260914",
+        "production-69dbe57a-runtime-e53a4775-static-verified-20261022",
+    }
     pair = document["pairs"][0]
     assert pair["pair_id"] == "production-70f7-runtime-a2f33-static-overlay-20260914"
     assert pair["runtime_source_sha"] == "70f7ed5067e8163eb7bc4cf1cfc664baec06f496"
@@ -769,6 +774,14 @@ def test_historical_rollback_pair_metadata_is_exact_and_positive_provenance_boun
     assert pair["schema_fingerprint"] == "5ebf4094dcec631137efe27e3ae38db8ccfde82068a33b2043c3399363dbd3c1"
     assert len(pair["evidence"]["runtime_release_records"]) == 2
     assert pair["evidence"]["compatibility_basis"]
+    current = document["pairs"][1]
+    assert current["runtime_source_sha"] == current["scheduler_source_sha"] == "69dbe57aa535112b1759e3f3bdcf9ecbe1680efb"
+    assert current["runtime_image_tag"] == current["scheduler_image_tag"] == "go-odyssey-app:69dbe57a"
+    assert current["runtime_image_id"] == current["scheduler_image_id"] == "sha256:c1e30ff40ca21633fc543c717032550536304d0772838528442d27502302dd8e"
+    assert current["static_source_sha"] == "e53a477524af60b6b3a87dfe30b983089c137d80"
+    assert current["schema_fingerprint"] == "89a2668f34c83a05d5faca68516b9a6beba7526f8b047d826d7c18d6a3263635"
+    assert current["schema_migration_required"] is False
+    assert current["evidence"]["compatibility_basis"]
 
 
 def test_real_pair_document_validator_rejects_a_record_without_compatibility_evidence():
@@ -802,7 +815,7 @@ catch {{ $schema_rejected = $true }}
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout.strip().splitlines()[-1]) == {
-        "valid_count": 1,
+        "valid_count": 2,
         "broken_rejected": True,
         "schema_rejected": True,
     }
@@ -852,7 +865,7 @@ $bad_result = & $ProvenMixedBaselineValidator $bad
     assert json.loads(result.stdout.strip().splitlines()[-1]) == {
         "good": True,
         "bad": False,
-        "pair_count": 1,
+        "pair_count": 2,
     }
 
 
