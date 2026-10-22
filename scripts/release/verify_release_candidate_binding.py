@@ -45,7 +45,7 @@ CONTROL_PLANE_FILES = (
     "scripts/release/verify_release_image_backpack.py",
     "scripts/release/build-release-image.ps1", "deploy/build-app-known-failure-baseline.json", FROZEN_REL,
 )
-CONTROL_PLANE_EXACT = ("scripts/build-production-image.ps1", "tools/questions_corpus_validation.py", "tests/test_questions_corpus_validation.py")
+CONTROL_PLANE_EXACT = ("scripts/build-production-image.ps1", "tools/questions_corpus_validation.py", "tests/test_questions_corpus_validation.py", "github/workflows/g009-source-snapshot.yml")
 CONTROL_PLANE_PREFIXES = ("scripts/release/", "tests/deployment/", "tests/release/", "docs/deployment/")
 
 
