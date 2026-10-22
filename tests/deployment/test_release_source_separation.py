@@ -513,14 +513,29 @@ def test_control_plane_authority_declarations_agree():
     for prefix in CONTROL_PLANE_PREFIXES:
         assert f"'{prefix}**'" in allowlist_block, prefix
     for exact in CONTROL_PLANE_EXACT_PATHS:
-        assert f"'{exact}'" in allowlist_block, exact
+        # The sole .github CI path is spelled with its leading dot in the
+        # advisory PowerShell list, then normalized by TrimStart('./') for
+        # actual enforcement. Every other exact path must match literally.
+        declared_path = (
+            "." + exact
+            if exact == "github/workflows/g009-source-snapshot.yml"
+            else exact
+        )
+        assert f"'{declared_path}'" in allowlist_block, exact
     # and nothing extra on the PowerShell side
     declared = {
         line.strip().strip("',")
         for line in allowlist_block.splitlines()
         if line.strip().startswith("'")
     }
-    normalized = {d[:-2] if d.endswith("/**") else d for d in declared}
+    # PowerShell Test-ReleaseControlPlanePath calls TrimStart('./') before
+    # comparing any path. The one required CI workflow can be represented
+    # in the advisory list in both forms; compare its normalized identity,
+    # not an accidental text spelling. No other .github path is admitted.
+    normalized = {
+        (d[:-2] if d.endswith("/**") else d).lstrip("./")
+        for d in declared
+    }
     assert normalized == set(CONTROL_PLANE_PREFIXES) | set(CONTROL_PLANE_EXACT_PATHS)
 
     # Get-ReleaseControlPlaneAllowlist is advisory; Test-ReleaseControlPlanePath

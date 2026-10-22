@@ -62,6 +62,8 @@ CONTROL_PLANE_EXACT_PATHS = frozenset(
         # /app/tools and are genuinely product.
         "tools/questions_corpus_validation.py",
         "tests/test_questions_corpus_validation.py",
+        # The one existing required GitHub source-integrity workflow.
+        "github/workflows/g009-source-snapshot.yml",
     }
 )
 CONTROL_PLANE_PREFIXES = (

@@ -490,7 +490,10 @@ def evaluate(
     pytest_exit_code: int,
     owner_conflict_policy_path: Path | None = None,
     review_attestor=None,
+    owner_simplified_policy: bool = False,
 ) -> dict[str, Any]:
+    if owner_simplified_policy and owner_conflict_policy_path is None:
+        raise BaselineValidationError("Owner simplified policy needs the exact tracked policy")
     baseline = _load_baseline(baseline_path, repo_root, gate_source_sha)
     try:
         junit_bytes = Path(junit_path).read_bytes()
@@ -548,6 +551,7 @@ def evaluate(
                 run_git=_git_returncode,
                 junit_root=junit_root,
                 review_attestor=review_attestor,
+                owner_simplified_policy=owner_simplified_policy,
             )
         except policy_module.OwnerConflictPolicyError as exc:
             result.update({"result": "BLOCK", "reason": "owner_conflict_policy_invalid", "detail": str(exc)})
@@ -588,6 +592,7 @@ def _evaluate_for_cli(
     pytest_exit_code: int,
     owner_conflict_policy_path: Path | None = None,
     review_attestor=None,
+    owner_simplified_policy: bool = False,
 ) -> dict[str, Any]:
     try:
         return evaluate(
@@ -598,6 +603,7 @@ def _evaluate_for_cli(
             pytest_exit_code=pytest_exit_code,
             owner_conflict_policy_path=owner_conflict_policy_path,
             review_attestor=review_attestor,
+            owner_simplified_policy=owner_simplified_policy,
         )
     except JUnitEvidenceError as exc:
         return {
@@ -636,8 +642,10 @@ def _parser() -> argparse.ArgumentParser:
         "--owner-conflict-policy",
         type=Path,
         default=None,
-        help="Owner-approved contract-conflict policy (inactive until independently reviewed)",
+        help="Exact Owner-approved Zone4 contract-conflict policy",
     )
+    parser.add_argument("--owner-simplified-policy", action="store_true",
+                        help="Explicit approved local pinned Zone4 contract evaluation, never generic PASS")
     return parser
 
 
@@ -650,6 +658,7 @@ def main(argv: list[str] | None = None) -> int:
         gate_source_sha=args.gate_source_sha,
         pytest_exit_code=args.pytest_exit_code,
         owner_conflict_policy_path=args.owner_conflict_policy,
+        owner_simplified_policy=args.owner_simplified_policy,
     )
     print(json.dumps(report, sort_keys=True))
     return 0 if report.get("result") in PASSING_RESULTS else 1

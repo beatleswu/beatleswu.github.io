@@ -32,6 +32,7 @@ RECEIPT_SCHEMA = "g009-owner-approved-contract-conflict-independent-review-v1"
 LABEL = "OWNER_APPROVED_CONTRACT_CONFLICT"
 SIGNATURE_ALGORITHM = "sha256(nodeid,type,normalized_message,normalized_text_v3)"
 REASON_KINDS = {"EXTRA_ROUTE_ONLY", "STATUS_200_NOT_404"}
+OWNER_SIMPLIFIED_PINNED_POLICY_SHA256 = "9a48e1887adffc27927305da7724bb6d7eb4bee7ae37d7a904550b0074208dbe"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 POLICY_KEYS = {
@@ -280,6 +281,7 @@ def evaluate_conflicts(
     run_git: Callable[..., str],
     junit_root: ET.Element | None = None,
     review_attestor: Callable | None = None,
+    owner_simplified_policy: bool = False,
 ) -> dict[str, Any]:
     """Decide whether the two pinned Zone4 failures are recognised. Raises OwnerConflictPolicyError for a
     malformed or unbound policy; otherwise returns {'accepted': [...], 'status': ..., 'checks': {...}}."""
@@ -294,8 +296,18 @@ def evaluate_conflicts(
     ancestor = run_git(Path(repo_root), "merge-base", "--is-ancestor", policy["policy_source_sha"], gate_source_sha, allow_failure=True)
     _require(ancestor == 0, "gate source does not descend from the commit that established the owner conflict policy")
 
-    active, why = activation_status(policy, policy_sha256, Path(repo_root), Path(evaluator_path),
-                                   review_attestor)
+    if owner_simplified_policy:
+        # Owner 2026-10-21 canceled the compulsory separate signing/reviewer
+        # host; admit ONLY the unchanged already approved policy, with the
+        # exact Frozen outcomes and pinned failure signatures checked below.
+        _require(policy_sha256 == OWNER_SIMPLIFIED_PINNED_POLICY_SHA256,
+                 "Owner simplified mode rejected modified Zone4 policy")
+        active, why = True, "OWNER_SIMPLIFIED_PINNED_POLICY_ONLY"
+    else:
+        active, why = activation_status(
+            policy, policy_sha256, Path(repo_root), Path(evaluator_path),
+            review_attestor,
+        )
     report["activation"] = why
     if not active:
         report["status"] = "REJECTED_" + why.split(":", 1)[0]
