@@ -1181,15 +1181,15 @@
     },
     {
       "path": "app.py",
-      "source_commit": "15cbcdbe9c28b8f16107387e45cddb7c087f9627",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(g019): unlock canonical equipment on original shop and backpack by three server gates",
-      "source_date": "2026-10-21",
-      "content_sha256": "147e1aea99270b35f516a094e69d08287a5705ed9b386a3d58cb51124fb47fd2",
-      "content_size_bytes": 1437541,
+      "source_commit": "ecd3744b8b242d9a3dc0d0a6c1f46da0841079ca",
+      "source_branch_or_local_ref": "g062-static-rollback-fix-20261022",
+      "source_commit_subject": "fix: serve leaderboard presentation assets without login redirect",
+      "source_date": "2026-10-22",
+      "content_sha256": "7e9dcb8e64c27aa2ec874a17d5c23c312fcc2e7edb6a69557bedcaa833bea4e7",
+      "content_size_bytes": 1437583,
       "line_ending_policy": "LF",
       "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear and C045 Shop admission wiring; narrow Zone4 Owner-final presentation serving routes",
-      "source_status": "G019 Owner-merged canonical Git source and exact runtime blob verified locally; no independent external signature claimed."
+      "source_status": "G062 isolated candidate source and exact runtime blob verified locally; not Owner-merged or deployed; no external signature claimed."
     },
     {
       "path": "coin_purchase_authority.py",

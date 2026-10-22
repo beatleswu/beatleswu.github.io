@@ -29487,13 +29487,12 @@ def serve_community_reward_rules_js():
     return _serve_live_static_or_baked('community_reward_rules.js')
 
 # M4 optional Quest V2 panel assets: no wildcard static-serving permissions.
+# Public presentation bytes only; player-data APIs retain login_required.
 @app.route('/g010_m4_quest_leaderboard.js')
-@login_required
 def serve_g010_m4_quest_leaderboard_js():
     return _serve_live_static_or_baked('g010_m4_quest_leaderboard.js')
 
 @app.route('/g010_m4_quest_leaderboard.css')
-@login_required
 def serve_g010_m4_quest_leaderboard_css():
     return _serve_live_static_or_baked('g010_m4_quest_leaderboard.css')
 
