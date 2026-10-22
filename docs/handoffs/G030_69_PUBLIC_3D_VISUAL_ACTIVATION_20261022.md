@@ -22,3 +22,13 @@ Formal9 的四款是 Owner 已於 2026-09-28 4/4 選定且記錄 CC0-1.0 RIGHTS_
 ## 下一個必要 Owner Gate
 
 正式 GitHub master merge `GO_MERGE` **需這次 G030 的獨立明確核准**（此前 G027/G028 針對其他限定範圍的批准不可自動重複使用），必須走現有 GitHub ruleset 的 `g009-source-snapshot`，不得跳過。合併後要以新的正式 master source SHA 重建官版 ARM64 Image + Static，完成真機 iPad Safari UAT；僅在部署前所有既有安全 Gate 都滿足時才可依前次有條件 GO_DEPLOY 授權執行。當前 Oracle 生產仍是舊版，NO_DEPLOY / 玩家資料 NO_WRITE。
+
+## Owner 增量決策：雙軸完整 360° 自由旋轉及縮放（2026-10-22）
+
+Owner 說「好」，明確核准將此前僅左右連續旋轉、上下 ±20° 的現況改成**上下左右均可連續完整 360° 轉動**，加上雙指 Pinch Zoom、滑鼠滾輪、明確 +/- 按鈕及一鍵還原鏡頭與角度。G030 既有 69 GLB/71 展示來源 SHA、Form9 視覺與 Shop/EQUIP/player NO_WRITE Gate、G011 私有 QA 與前一輪權限保護均不變。
+
+實作改用 camera-aligned quaternion，手指/滑鼠拖動每 720px 完成 2π rad，完全不做 Euler pitch clamp。手勢採 PointerEvent Map 支援雙觸點間距比值的 zoom；滑鼠滾輪 passive:false 並 preventDefault；相機距離限制在 3–22，避免穿模或遠離看不清；模型切換及 reset 同步還原 orientation + zoom，頁籤隱藏時清理 GPU renderer 與指標狀態；控制按鈕 >=44px，支援鍵盤焦點。
+
+真實瀏覽器驗收：既有 G030 隔離 loopback Chrome WebGL/GLTFLoader，桌面及 820px 模擬觸控兩組，分別發送完整 720px 水平/垂直拖曳，各以 quaternion 在 180° 反面/底面確認及轉完 360° 回 identity；90° 時真 Canvas Pixel SHA 與原畫面不同；兩指分開 pinch、滾輪縮放、+/- 控制、遠近界限及 reset camera 一致性、模型切換恢復及無 HTTP/JS errors。合計 **24 checks PASS**，兩種 UI mode all PASS，證據 D:\go-odyssey-g030-evidence-20261022\G030_TWO_AXIS_360_REAL_WEBGL_BROWSER_20261022.json。僅 Chrome 觸控模擬，不代表實體 iPad Safari UAT。
+
+G030 PR #437 仍需要單獨 GO_MERGE Owner 核准；本次增量程式可在同一 PR 透過正規 GitHub checks 追加提交並驗證，NO GO_DEPLOY/NO player write。

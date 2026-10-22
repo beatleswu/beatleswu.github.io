@@ -11,14 +11,16 @@ def test_hero_has_real_lazy_3d_surface_and_runtime():
   assert s in html
  assert html.index('id="g010-3d-gallery"')>html.index('id="g009-panel-equipment"')
  assert html.count('id="g010-3d-gallery"')==1
- assert '可檢視已核准的真實 GLB' in html
+ assert '上下左右 360° 自由旋轉' in html
+ for button in ('g010-3d-zoom-in','g010-3d-zoom-out','g010-3d-reset'):
+  assert f'id="{button}"' in html
 def test_3d_viewer_webgl_integrity_lifecycle_without_backend_mutations():
  code=src("js/g010_hero_3d_gallery.mjs")
  for fragment in ('new THREE.WebGLRenderer','crypto.subtle.digest("SHA-256",bytes)',
   'new GLTFLoader().parseAsync','"model_integrity_rejected"','state.resize?.disconnect()',
   'renderer?.forceContextLoss','IntersectionObserver' if False else 'new MutationObserver(sync)',
   'document.addEventListener("visibilitychange",sync)',
-  'state.group.rotation.y','releaseResources(old)',"asset_id"):
+  'state.group.quaternion.premultiply','releaseResources(old)',"asset_id"):
   if fragment=="asset_id":continue
   assert fragment in code,fragment
  assert not re.search(r'method:\s*["\']POST["\']',code)

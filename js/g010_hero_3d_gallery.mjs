@@ -22,9 +22,14 @@ const MODELS = {
   equipment_preview: "其他裝備外觀（8 款預覽，不改變持有權）",
   bonus: "附加棋靈預覽（2 款）",
 };
+// All directions can rotate continuously, without Euler pitch clamping.
+const FULL_TURN_PIXELS = 720;
+const ROTATE_RAD_PER_PX = (Math.PI * 2) / FULL_TURN_PIXELS;
+const DEFAULT_CAMERA_POSITION = new THREE.Vector3(4.1, 2.3, 6.5);
+const MIN_CAMERA_DISTANCE = 3.0, MAX_CAMERA_DISTANCE = 22.0;
 const state = { data: [], selected: null, renderer: null, scene: null, camera: null,
-  group: null, frame: 0, resize: null, request: 0, drag: null, errors: [],
-  loaded: 0, displayed: 0 };
+  group: null, frame: 0, resize: null, request: 0, pointers: new Map(), pinchDistance: 0,
+  errors: [], loaded: 0, displayed: 0 };
 let started = false;
 function fail(message) {
   const el = $("#g010-3d-status");
@@ -183,8 +188,39 @@ function dispose() {
   const canvas=state.renderer?.domElement;
   if (canvas) canvas.remove();
   state.renderer?.dispose();state.renderer?.forceContextLoss?.();
-  state.renderer=null;state.camera=null;state.scene=null;state.drag=null;
+  state.renderer=null;state.camera=null;state.scene=null;
+  state.pointers.clear();state.pinchDistance=0;
   if (ROOT) ROOT.dataset.rendering="off";
+}
+function zoomBy(factor) {
+  if (!state.camera || !Number.isFinite(factor) || factor <= 0) return;
+  const distance = state.camera.position.length();
+  const target = THREE.MathUtils.clamp(distance * factor,
+    MIN_CAMERA_DISTANCE, MAX_CAMERA_DISTANCE);
+  state.camera.position.multiplyScalar(target / distance);
+  state.camera.lookAt(0, 0, 0);
+}
+function resetView() {
+  state.group?.quaternion.identity();
+  state.camera?.position.copy(DEFAULT_CAMERA_POSITION);
+  state.camera?.lookAt(0, 0, 0);
+  state.pointers.clear();state.pinchDistance = 0;
+}
+function rotateFreely(dx, dy) {
+  if (!state.group || !state.camera) return;
+  // Camera-space axes keep mouse/touch gestures intuitive even upside-down.
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(state.camera.quaternion);
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(state.camera.quaternion);
+  const turn = new THREE.Quaternion();
+  if (dx) state.group.quaternion.premultiply(
+    turn.setFromAxisAngle(up, dx * ROTATE_RAD_PER_PX));
+  if (dy) state.group.quaternion.premultiply(
+    turn.setFromAxisAngle(right, dy * ROTATE_RAD_PER_PX));
+  state.group.quaternion.normalize();
+}
+function pinchSpan() {
+  const [a,b] = [...state.pointers.values()];
+  return a && b ? Math.hypot(a.x-b.x, a.y-b.y) : 0;
 }
 function resize() {
   const host=$("#g010-3d-canvas");if (!host || !state.renderer) return;
@@ -199,7 +235,7 @@ function mount() {
   const host=$("#g010-3d-canvas");
   if (!host)return;
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x142439);
-  const camera=new THREE.PerspectiveCamera(38,1,0.02,400);camera.position.set(4.1,2.3,6.5);
+  const camera=new THREE.PerspectiveCamera(38,1,0.02,400);camera.position.copy(DEFAULT_CAMERA_POSITION);
   camera.lookAt(0,0,0);
   scene.add(new THREE.HemisphereLight(0xffffff,0x41516f,2.2));
   const direct=new THREE.DirectionalLight(0xffe8c9,2.8);direct.position.set(3,7,6);scene.add(direct);
@@ -207,20 +243,40 @@ function mount() {
   renderer.outputColorSpace=THREE.SRGBColorSpace;
   host.appendChild(renderer.domElement);
   const canvas=renderer.domElement;
-  canvas.setAttribute("aria-label","可滑動旋轉的真實 3D 模型");
+  canvas.setAttribute("aria-label","上下左右皆可 360 度自由旋轉、雙指縮放的 3D 模型");
   canvas.style.touchAction="none";
   canvas.addEventListener("pointerdown",e=>{
-    state.drag={id:e.pointerId,x:e.clientX,y:e.clientY};
+    if (e.pointerType==="mouse" && e.button!==0) return;
+    state.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    state.pinchDistance = state.pointers.size>=2 ? pinchSpan() : 0;
     try{canvas.setPointerCapture(e.pointerId)}catch{}
   });
   canvas.addEventListener("pointermove",e=>{
-    if (!state.drag||state.drag.id!==e.pointerId||!state.group)return;
-    state.group.rotation.y+=(e.clientX-state.drag.x)*0.009;
-    state.group.rotation.x=THREE.MathUtils.clamp(
-      state.group.rotation.x+(e.clientY-state.drag.y)*0.002,-0.35,0.35);
-    state.drag.x=e.clientX;state.drag.y=e.clientY;
+    const last=state.pointers.get(e.pointerId);
+    if (!last)return;
+    state.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if (state.pointers.size>=2) {
+      const current=pinchSpan();
+      if (current>0 && state.pinchDistance>0) zoomBy(state.pinchDistance/current);
+      state.pinchDistance=current;
+    } else {
+      rotateFreely(e.clientX-last.x,e.clientY-last.y);
+    }
   });
-  for (const type of ["pointerup","pointercancel"])canvas.addEventListener(type,()=>state.drag=null);
+  const releasePointer=e=>{
+    state.pointers.delete(e.pointerId);
+    state.pinchDistance=state.pointers.size>=2 ? pinchSpan() : 0;
+    if (canvas.hasPointerCapture?.(e.pointerId)) {
+      try{canvas.releasePointerCapture(e.pointerId)}catch{}
+    }
+  };
+  for (const type of ["pointerup","pointercancel","lostpointercapture"]) {
+    canvas.addEventListener(type,releasePointer);
+  }
+  canvas.addEventListener("wheel",e=>{
+    e.preventDefault();
+    zoomBy(Math.exp(e.deltaY*0.0015));
+  },{passive:false});
   state.scene=scene;state.camera=camera;state.renderer=renderer;
   state.resize=new ResizeObserver(resize);state.resize.observe(host);resize();
   const animate=()=>{if (!state.renderer)return;state.renderer.render(scene,camera);state.frame=requestAnimationFrame(animate)};
@@ -253,6 +309,9 @@ async function showItem(model) {
     const holder=new THREE.Group();holder.add(node);
     node.position.sub(center);node.scale.setScalar(3.3/max);
     holder.rotation.set(0,0,0);
+    state.camera.position.copy(DEFAULT_CAMERA_POSITION);
+    state.camera.lookAt(0,0,0);
+    state.pointers.clear();state.pinchDistance=0;
     state.scene.add(holder);state.group=holder;state.loaded+=1;state.displayed+=1;
     status("已載入 " + model.name + " · 真實 3D 可旋轉（僅展示，不代表已取得）");
     ROOT.dataset.state="ready";ROOT.dataset.assetId=model.id;ROOT.dataset.integrity="verified";
@@ -285,7 +344,9 @@ async function init() {
     });
     category.addEventListener("change",choices);
     select.addEventListener("change",()=>{if(state.renderer)void showItem(state.data.find(x=>x.id===select.value))});
-    $("#g010-3d-reset").addEventListener("click",()=>{if(state.group)state.group.rotation.set(0,0,0)});
+    $("#g010-3d-reset").addEventListener("click",resetView);
+    $("#g010-3d-zoom-in").addEventListener("click",()=>zoomBy(0.78));
+    $("#g010-3d-zoom-out").addEventListener("click",()=>zoomBy(1.28));
     choices();
     status("已驗證資產清單：" + state.data.length + " 款；開啟裝備頁籤後載入");
     sync();
@@ -316,5 +377,10 @@ export const G010_3D_GALLERY_CATEGORY_COUNTS=Object.freeze({character:33,spirit:
 export function g010GalleryDiagnostics(){
   return Object.freeze({qa_only_p038_12:G011_QA_MODE,catalog_size:state.data.length,current:state.selected,
   loaded:state.loaded,rendered:state.displayed,live_canvas:!!state.renderer,
-  integrity:ROOT?.dataset.integrity||"pending",errors:[...state.errors]});
+  integrity:ROOT?.dataset.integrity||"pending",
+  rotation_quaternion:state.group?.quaternion.toArray()||null,
+  camera_distance:state.camera?.position.length()||null,
+  pointer_contacts:state.pointers.size,
+  controls:"unrestricted_360_two_axes_with_pinch_wheel_zoom_and_reset",
+  errors:[...state.errors]});
 }
