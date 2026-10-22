@@ -6,6 +6,7 @@ on:
       - g027-owner-approved-product-intake-20261022
       - g028-owner-approved-production-baseline-20261022
       - g030-3d-public-assets-20261022
+      - g036-coordinator-owner-simplified-gate-20261022
   pull_request:
     branches:
       - master
@@ -29,6 +30,7 @@ jobs:
           PINNED_PRODUCT_SHA: "477598897c8d36ecf14ce4b79f16862e01cb7c4a"
           G028_PAIR_SHA: "5465b3d9f109d22e31ef1f7dfd971cb91dae6422cd687f6f0a1def2bfaa876d4"
           G028_ADOPTED_MASTER_SHA: "283dc22b8e1685732443d781074b6f4216ca3dea"
+          G030_APPROVED_MASTER_SHA: "2ae01985ab716eb0175b292888ffdea570c80ca6"
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "beatleswu/beatleswu.github.io"
@@ -37,25 +39,20 @@ jobs:
           git merge-base --is-ancestor "$PINNED_PRODUCT_SHA" HEAD
           git cat-file -e "$G028_ADOPTED_MASTER_SHA^{commit}"
           git merge-base --is-ancestor "$G028_ADOPTED_MASTER_SHA" HEAD
-          git diff --name-only "$G028_ADOPTED_MASTER_SHA" HEAD > /tmp/g030-changed.txt
+          git cat-file -e "$G030_APPROVED_MASTER_SHA^{commit}"
+          git merge-base --is-ancestor "$G030_APPROVED_MASTER_SHA" HEAD
+          git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD > /tmp/g036-changed.txt
           printf '%s\n' \
             '.github/workflows/g009-source-snapshot.yml' \
-            'deploy/g009-formal9-replacement-static-pack-manifest.json' \
-            'docs/handoffs/G030_69_PUBLIC_3D_VISUAL_ACTIVATION_20261022.md' \
-            'hero.html' \
-            'js/g009_formal9_rights_cleared_replacement_catalog.js' \
-            'js/g010_hero_3d_gallery.mjs' \
-            'schemas/g009_formal9_rights_cleared_replacement_v1.json' \
-            'tests/deployment/test_g009_formal9_replacement_packaging.py' \
-            'tests/e2e/g030_3d_all_69_public_models_browser.cjs' \
-            'tests/e2e/g030_full_360_orbit_pinch_real_browser.cjs' \
-            'tests/test_g010_3d_gallery_activation_contract.py' \
-            'tests/test_g030_public_69_3d_assets_activation.py' \
-            'tests/e2e/g010_3d_activation_fixture.html' > /tmp/g030-expected.txt
-          diff -u <(sort /tmp/g030-expected.txt) <(sort /tmp/g030-changed.txt)
+            'scripts/release/deploy-coordinated-release.ps1' \
+            'tests/deployment/test_g036_coordinator_simplified_policy.py' \
+            'scripts/release/ReleaseTooling.psm1' \
+            'scripts/release/verify_release_candidate_binding.py' \
+            'docs/deployment/G036_owner_simplified_coordinator_gate_20261022.md' > /tmp/g036-expected.txt
+          diff -u <(sort /tmp/g036-expected.txt) <(sort /tmp/g036-changed.txt)
           test "$(sha256sum deploy/known-production-rollback-pairs.json | cut -d' ' -f1)" = "$G028_PAIR_SHA"
-          test -z "$(git diff --name-only "$G028_ADOPTED_MASTER_SHA" HEAD -- assets/3d_shop/)"
-          git diff --check "$G028_ADOPTED_MASTER_SHA" HEAD
+          test -z "$(git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD -- assets/3d_shop/)"
+          git diff --check "$G030_APPROVED_MASTER_SHA" HEAD
           # Preserve the sole historical pair byte-for-byte as a parsed value;
           # only one exact new Oracle observed baseline record is admitted.
           python - <<'PY'
@@ -83,7 +80,7 @@ jobs:
           done
           test ! -e secret_key.txt
           test ! -e .env
-          echo "G030 scoped 3D visual activation: frozen original Product runtime verified; entitlement gates preserved"
+          echo "G036 scoped official simplified source-policy handoff: Product 2ae01985 immutable; old gates preserved"
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -101,4 +98,5 @@ jobs:
             tests/test_g010_3d_gallery_activation_contract.py \
             tests/deployment/test_g009_formal9_replacement_packaging.py \
             tests/test_g022_release_admission_and_image_rollback_contract.py \
-            tests/test_g024_arm64_quest_d015_migration_prod_backup_gate.py
+            tests/test_g024_arm64_quest_d015_migration_prod_backup_gate.py \
+            tests/deployment/test_g036_coordinator_simplified_policy.py

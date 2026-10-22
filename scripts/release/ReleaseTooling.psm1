@@ -408,6 +408,8 @@ function Assert-GovernedWorktreeIdentity {
 function Get-ReleaseControlPlaneAllowlist {
     return @(
         'scripts/release/**',
+        # Only this required source-integrity GitHub CI path, not .github/**.
+        '.github/workflows/g009-source-snapshot.yml',
         'scripts/build-production-image.ps1',
         'tests/deployment/**',
         'tests/release/**',
@@ -433,7 +435,8 @@ function Test-ReleaseControlPlanePath {
     foreach ($exact in @(
         'scripts/build-production-image.ps1',
         'tools/questions_corpus_validation.py',
-        'tests/test_questions_corpus_validation.py'
+        'tests/test_questions_corpus_validation.py',
+        'github/workflows/g009-source-snapshot.yml'
     )) {
         if ($normalized -eq $exact) {
             return $true

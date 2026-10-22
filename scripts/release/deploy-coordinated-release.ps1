@@ -43,6 +43,11 @@
 .PARAMETER OwnerGate
   Must equal 'GO_DEPLOY_WITH_BOUNDED_RECOVERY' when -Execute is set.
 
+.PARAMETER OwnerSimplifiedPolicy
+  Opt in to the existing Owner-approved simplified source identity policy.
+  Requires a clean Gate checkout and verifies only control-plane changes from
+  the explicit Product SHA; does NOT skip BUILD_APP's official QA gate.
+
 .PARAMETER MaxAttemptsPerRootCause
   Passed through to Invoke-CoordinatedReleaseStateMachine. Defaults to 2,
   matching this workflow's documented retry budget.
@@ -53,6 +58,9 @@ param(
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [switch]$Execute,
     [string]$OwnerGate,
+    # Explicit existing Owner policy: no extra trusted signing host required,
+    # but Gate and Product still need real, independently checked Git SHAs.
+    [switch]$OwnerSimplifiedPolicy,
     [int]$MaxAttemptsPerRootCause = 2,
 
     # QuestionsCorpus release identity. package-release-image.ps1 declares all
@@ -186,6 +194,15 @@ function Assert-QuestionsCorpusParameters {
 
 $repoRoot = Get-RepoRoot
 $ExpectedGitSha = (Invoke-Git -Arguments @('rev-parse', "$ExpectedGitSha^{commit}") -WorkingDirectory $repoRoot).Trim()
+$script:ownerSimplifiedGateSha = $null
+if ($OwnerSimplifiedPolicy) {
+    $script:ownerSimplifiedGateSha = Get-CurrentGitSha
+    # Source separation is meaningful only for a reviewed control-plane Gate
+    # on top of an immutable Product commit. No unapproved Product paths.
+    Assert-TrackedTreeClean -WorkingDirectory $repoRoot
+    Assert-CompleteWorktreeClean -WorkingDirectory $repoRoot
+    Assert-ReleaseSourceSeparation -GateSourceSha $script:ownerSimplifiedGateSha -ProductSourceSha $ExpectedGitSha -GateWorkingDirectory $repoRoot | Out-Null
+}
 $layout = Get-ReleaseLayout -Path (Resolve-RepoPath $LayoutFile)
 $requiredOwnerGate = 'GO_DEPLOY_WITH_BOUNDED_RECOVERY'
 
@@ -209,6 +226,9 @@ if (-not $Execute) {
         max_attempts_per_root_cause = $MaxAttemptsPerRootCause
         plan = $plan
         questions_corpus_parameters_supplied = ($null -ne $dryRunCorpusArgs)
+        owner_simplified_policy = [bool]$OwnerSimplifiedPolicy
+        gate_source_sha = $script:ownerSimplifiedGateSha
+        product_source_sha = $ExpectedGitSha
         questions_corpus_parameter_count = 8
         result = 'DRY_RUN_COMPLETE'
     } | ConvertTo-Json -Depth 10 | Write-Output
@@ -588,8 +608,16 @@ $BuildApp = {
     # canonical image-build envelope is 3900s. Keep the outer coordinator
     # bound aligned with that existing inner bound so a legitimate slow
     # arm64 build is not killed by a shorter wrapper timeout.
+    $buildArgs = if ($OwnerSimplifiedPolicy) {
+        @('-OwnerSimplifiedPolicy',
+          '-GateSourceSha', $script:ownerSimplifiedGateSha,
+          '-ProductSourceSha', $ExpectedGitSha,
+          '-LayoutFile', $LayoutFile)
+    } else {
+        @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile)
+    }
     $r = Invoke-GovernedScript -ScriptPath $buildScript `
-        -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile) `
+        -Arguments $buildArgs `
         -TimeoutSeconds 3900 -OperationLabel 'coordinated-release: build app image'
     if (-not $r.success) {
         return [ordered]@{ success = $false; detail = $r.output }
@@ -618,8 +646,14 @@ $PackageApp = {
 }
 
 $PackageStatic = {
+    $staticArgs = if ($OwnerSimplifiedPolicy) {
+        @('-GateSourceSha', $script:ownerSimplifiedGateSha,
+          '-ProductSourceSha', $ExpectedGitSha)
+    } else {
+        @('-ExpectedGitSha', $ExpectedGitSha)
+    }
     $r = Invoke-GovernedScript -ScriptPath $packageStaticScript `
-        -Arguments @('-ExpectedGitSha', $ExpectedGitSha) `
+        -Arguments $staticArgs `
         -TimeoutSeconds 600 -OperationLabel 'coordinated-release: package static'
     if (-not $r.success) {
         return [ordered]@{ success = $false; detail = $r.output }
