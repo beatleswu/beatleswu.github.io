@@ -31,6 +31,8 @@ jobs:
           G028_PAIR_SHA: "5465b3d9f109d22e31ef1f7dfd971cb91dae6422cd687f6f0a1def2bfaa876d4"
           G028_ADOPTED_MASTER_SHA: "283dc22b8e1685732443d781074b6f4216ca3dea"
           G030_APPROVED_MASTER_SHA: "2ae01985ab716eb0175b292888ffdea570c80ca6"
+          G062_APPROVED_PRODUCT_SHA: "fb07cea2d9fe20ebfc46b1093a9f86ecf680c985"
+          G062_APPROVED_APP_COMMIT: "ecd3744b8b242d9a3dc0d0a6c1f46da0841079ca"
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "beatleswu/beatleswu.github.io"
@@ -41,6 +43,13 @@ jobs:
           git merge-base --is-ancestor "$G028_ADOPTED_MASTER_SHA" HEAD
           git cat-file -e "$G030_APPROVED_MASTER_SHA^{commit}"
           git merge-base --is-ancestor "$G030_APPROVED_MASTER_SHA" HEAD
+          git cat-file -e "$G062_APPROVED_PRODUCT_SHA^{commit}"
+          git merge-base --is-ancestor "$G062_APPROVED_PRODUCT_SHA" HEAD
+          # G062 was approved at exact Product SHA. This follow-up is only a CI policy admission patch.
+          # Reject any new Product changes not independently approved after fb07cea2.
+          git diff --name-only "$G062_APPROVED_PRODUCT_SHA" HEAD > /tmp/g062-post-approved.txt
+          test "$(cat /tmp/g062-post-approved.txt)" = ".github/workflows/g009-source-snapshot.yml"
+          git cat-file -e "$G062_APPROVED_APP_COMMIT^{commit}"
           git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD > /tmp/g036-changed.txt
           printf '%s\n' \
             '.github/workflows/g009-source-snapshot.yml' \
@@ -67,7 +76,11 @@ jobs:
             'tests/deployment/test_g043_bonus_supplemental_static_pack.py' \
             'docs/deployment/G043_owner_approved_supplemental_bunny_corgi_static_20261022.md' \
             'tests/deployment/test_g046_owner_cli_array_handoff.py' \
-            'docs/deployment/G046_owner_cli_atomic_array_fix_20261022.md' > /tmp/g036-expected.txt
+            'docs/deployment/G046_owner_cli_atomic_array_fix_20261022.md' \
+            'app.py' \
+            'scripts/release/CoordinatedReleaseStateMachine.psm1' \
+            'tests/deployment/test_g062_public_leaderboard_assets.py' \
+            'tests/deployment/test_g062_rollback_diagnostics.py' > /tmp/g036-expected.txt
           diff -u <(sort /tmp/g036-expected.txt) <(sort /tmp/g036-changed.txt)
           test "$(sha256sum deploy/known-production-rollback-pairs.json | cut -d' ' -f1)" = "$G028_PAIR_SHA"
           test -z "$(git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD -- assets/3d_shop/)"
@@ -95,7 +108,7 @@ jobs:
           python - <<'PY'
           import hashlib,json,subprocess,pathlib
           records=json.loads(pathlib.Path('deploy/runtime-source-provenance.json').read_text(encoding='utf8'))
-          known={'app.py':'15cbcdbe9c28b8f16107387e45cddb7c087f9627',
+          known={'app.py':'ecd3744b8b242d9a3dc0d0a6c1f46da0841079ca',
                  'shop.html':'15cbcdbe9c28b8f16107387e45cddb7c087f9627',
                  'inventory.html':'15cbcdbe9c28b8f16107387e45cddb7c087f9627',
                  'hero.html':'c52fb0efd2b8e5562be2aaac09c5c1eb1d86ac1a'}
@@ -107,7 +120,7 @@ jobs:
             blob=subprocess.check_output(['git','show',commit+':'+path])
             assert blob==data
             assert row['source_commit']==commit
-            assert row['source_branch_or_local_ref']=='origin/master'
+            assert row['source_branch_or_local_ref']==('g062-static-rollback-fix-20261022' if path=='app.py' else 'origin/master')
             assert row['content_sha256']==hashlib.sha256(data).hexdigest()
             assert row['content_size_bytes']==len(data)
             assert row['source_commit_subject']==subprocess.check_output(
@@ -115,7 +128,8 @@ jobs:
             assert row['source_date']==subprocess.check_output(
               ['git','show','-s','--format=%cs',commit],text=True).strip()
           PY
-          for path in app.py shop.html inventory.html Dockerfile \
+          test "$(git hash-object app.py)" = "$(git rev-parse "$G062_APPROVED_APP_COMMIT:app.py")"
+          for path in shop.html inventory.html Dockerfile \
                       migrations/quest_claim_v1.py \
                       index.html sw.js; do
             test -f "$path"
@@ -181,6 +195,8 @@ jobs:
             tests/deployment/test_g038_owner_simplified_pinned_zone4.py \
             tests/deployment/test_g041_junit_identity_policy.py \
             tests/deployment/test_g046_owner_cli_array_handoff.py \
+            tests/deployment/test_g062_public_leaderboard_assets.py \
+            tests/deployment/test_g062_rollback_diagnostics.py \
             tests/deployment/test_g009_zone4_owner_b_contract_conflict_policy.py \
             tests/deployment/test_build_app_known_failure_baseline.py \
             tests/deployment/test_release_source_separation.py::test_control_plane_authority_declarations_agree \
