@@ -48,7 +48,14 @@ jobs:
             'tests/deployment/test_g036_coordinator_simplified_policy.py' \
             'scripts/release/ReleaseTooling.psm1' \
             'scripts/release/verify_release_candidate_binding.py' \
-            'docs/deployment/G036_owner_simplified_coordinator_gate_20261022.md' > /tmp/g036-expected.txt
+            'docs/deployment/G036_owner_simplified_coordinator_gate_20261022.md' \
+            'scripts/release/build-release-image.ps1' \
+            'scripts/release/evaluate_build_app_test_baseline.py' \
+            'scripts/release/zone4_owner_b_policy.py' \
+            'tests/deployment/test_g038_owner_simplified_pinned_zone4.py' \
+            'docs/deployment/G038_owner_simplified_pinned_zone4_release_contract_20261022.md' \
+            'scripts/release/e10_development_workflow_v2.py' \
+            'tests/deployment/test_release_source_separation.py' > /tmp/g036-expected.txt
           diff -u <(sort /tmp/g036-expected.txt) <(sort /tmp/g036-changed.txt)
           test "$(sha256sum deploy/known-production-rollback-pairs.json | cut -d' ' -f1)" = "$G028_PAIR_SHA"
           test -z "$(git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD -- assets/3d_shop/)"
@@ -80,7 +87,7 @@ jobs:
           done
           test ! -e secret_key.txt
           test ! -e .env
-          echo "G036 scoped official simplified source-policy handoff: Product 2ae01985 immutable; old gates preserved"
+          echo "G038 exact pinned Owner-approved Frozen conflicts in existing simplified policy: Product 2ae01985 immutable"
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -99,4 +106,9 @@ jobs:
             tests/deployment/test_g009_formal9_replacement_packaging.py \
             tests/test_g022_release_admission_and_image_rollback_contract.py \
             tests/test_g024_arm64_quest_d015_migration_prod_backup_gate.py \
-            tests/deployment/test_g036_coordinator_simplified_policy.py
+            tests/deployment/test_g036_coordinator_simplified_policy.py \
+            tests/deployment/test_g038_owner_simplified_pinned_zone4.py \
+            tests/deployment/test_g009_zone4_owner_b_contract_conflict_policy.py \
+            tests/deployment/test_build_app_known_failure_baseline.py \
+            tests/deployment/test_release_source_separation.py \
+            tests/deployment/test_e10_development_workflow_v2.py

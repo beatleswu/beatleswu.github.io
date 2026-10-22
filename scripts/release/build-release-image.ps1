@@ -223,13 +223,14 @@ try {
             }
 
             # 5. Evaluator: three-node baseline unchanged + independently reviewed Owner conflict policy.
+            $ownerConflictArgs = if ($OwnerSimplifiedPolicy) { @('--owner-simplified-policy') } else { @() }
             $baselineEvaluation = @(& python $buildAppEvaluatorPath `
                 --junitxml $pytestReportPath `
                 --baseline $buildAppBaselinePath `
                 --repo-root $gateWorktree `
                 --gate-source-sha $gateSha `
                 --pytest-exit-code $pytestExitCode `
-                --owner-conflict-policy $ownerConflictPolicyPath 2>&1)
+                --owner-conflict-policy $ownerConflictPolicyPath @ownerConflictArgs 2>&1)
             $baselineEvaluationExitCode = $LASTEXITCODE
             $baselineEvaluation | Out-Host
             if ($baselineEvaluationExitCode -ne 0) {
