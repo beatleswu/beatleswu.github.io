@@ -164,6 +164,25 @@ def cmd_check(args) -> dict:
             "control_plane_sha256": control, "problems": problems}
 
 
+def junit_case_nodeid(case, gate: Path) -> str:
+    """Map pytest's JUnit classname to an actual tracked test module plus classes.
+
+    E.g. tests.deployment.test_mod.TestClass -> tests/deployment/test_mod.py::TestClass.
+    Never interpret TestClass as a directory or invent an untracked module.
+    """
+    classname, name = case.get("classname", ""), case.get("name", "")
+    tokens = classname.split(".")
+    if not name or not tokens or any(
+        not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", token) for token in tokens
+    ):
+        raise ValueError("JUnit testcase has malformed module/class/name")
+    for cut in range(len(tokens), 0, -1):
+        path = Path(*tokens[:cut]).with_suffix(".py")
+        if path.as_posix().startswith("tests/deployment/") and (gate / path).is_file():
+            return path.as_posix() + "::" + "::".join(tokens[cut:] + [name])
+    raise ValueError("JUnit classname cannot resolve to a test module in Gate")
+
+
 def cmd_identity(args) -> dict:
     problems: list[str] = []
     gate, product = args.gate_root.resolve(), args.product_root.resolve()
@@ -176,7 +195,12 @@ def cmd_identity(args) -> dict:
     # plugin record and JUnit. Cross-checks below detect drift but authenticate
     # none of those. Until a trusted runner outside that interpreter attests the
     # execution/collection and frozen JUnit bytes, this mode must reject.
-    problems.append("EXTERNAL_RUNNER_ATTESTATION_REQUIRED: candidate plugin and nonce are diagnostic only")
+    # The default external-attestation mode remains fail-closed. An explicit
+    # Owner-approved simplified release checks source bytes, collection, JUnit
+    # and module imports locally; it is NOT a cryptographic external attestation.
+    simplified = bool(getattr(args, "owner_simplified_policy", False))
+    if not simplified:
+        problems.append("EXTERNAL_RUNNER_ATTESTATION_REQUIRED: candidate plugin and nonce are diagnostic only")
     try:
         rec = json.loads(args.record.read_text(encoding="utf-8"))
     except Exception as exc:
@@ -198,8 +222,7 @@ def cmd_identity(args) -> dict:
             problems.append("plugin JUnit digest differs from parent snapshot")
         xml_nodes = []
         for case in junit_root.iter("testcase"):
-            classname = case.get("classname", "").replace(".", "/")
-            xml_nodes.append(classname + ".py::" + case.get("name", ""))
+            xml_nodes.append(junit_case_nodeid(case, gate))
         collected = rec.get("collection", [])
         collected_nodes = [item["nodeid"] for item in collected]
         if len(xml_nodes) != len(set(xml_nodes)) or set(xml_nodes) != set(collected_nodes):
@@ -247,6 +270,7 @@ def cmd_identity(args) -> dict:
         if pp == gate or gate in pp.parents or pp == product or product in pp.parents:
             problems.append("pycache prefix lies inside a candidate checkout")
     return {"mode": "identity", "record": str(args.record), "record_sha256": sha_file(args.record), "problems": problems,
+            "assurance": "OWNER_SIMPLIFIED_LOCAL_SOURCE_CHECK_NOT_EXTERNAL_ATTESTATION" if simplified else "EXTERNAL_RUNNER_REQUIRED",
             "observed": {"app": app_entries, "frozen": frozen, "python": py, "rootdir": rec.get("rootdir")}}
 
 
@@ -269,6 +293,8 @@ def main(argv=None) -> int:
     i.add_argument("--product-sha")
     i.add_argument("--expected-common-dir", type=Path)
     i.add_argument("--junitxml", type=Path)
+    i.add_argument("--owner-simplified-policy", action="store_true",
+                   help="Local source-verified diagnostic release identity; no independent signer is claimed")
     i.add_argument("--out", required=True, type=Path)
     args = ap.parse_args(argv)
     try:

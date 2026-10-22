@@ -56,6 +56,9 @@ jobs:
             'docs/deployment/G038_owner_simplified_pinned_zone4_release_contract_20261022.md' \
             'scripts/release/e10_development_workflow_v2.py' \
             'tests/deployment/test_release_source_separation.py' \
+            'tests/deployment/test_deploy_coordinated_release_real_wiring.py' \
+            'tests/deployment/test_g041_junit_identity_policy.py' \
+            'docs/deployment/G041_strict_junit_identity_and_two_rollback_pairs_20261022.md' \
             'deploy/runtime-source-provenance.json' > /tmp/g036-expected.txt
           diff -u <(sort /tmp/g036-expected.txt) <(sort /tmp/g036-changed.txt)
           test "$(sha256sum deploy/known-production-rollback-pairs.json | cut -d' ' -f1)" = "$G028_PAIR_SHA"
@@ -133,6 +136,7 @@ jobs:
             tests/test_g024_arm64_quest_d015_migration_prod_backup_gate.py \
             tests/deployment/test_g036_coordinator_simplified_policy.py \
             tests/deployment/test_g038_owner_simplified_pinned_zone4.py \
+            tests/deployment/test_g041_junit_identity_policy.py \
             tests/deployment/test_g009_zone4_owner_b_contract_conflict_policy.py \
             tests/deployment/test_build_app_known_failure_baseline.py \
             tests/deployment/test_release_source_separation.py::test_control_plane_authority_declarations_agree \

@@ -203,9 +203,9 @@ try {
                 Pop-Location
             }
 
-            # 4. Recheck parent-bound sources and diagnostic collection/JUnit.
-            # Candidate-controlled plugin/nonce data cannot authenticate execution;
-            # identity remains blocked pending a separately trusted runner host.
+            # 4. Source-checks and actual collection/JUnit identity. Owner simplified
+            # mode is explicit local verification, not a forged external attestation.
+            $identityModeArgs = if ($OwnerSimplifiedPolicy) { @("--owner-simplified-policy") } else { @() }
             $identityOutput = @(& python $candidateBindingToolPath identity `
                 --record $identityRecordPath `
                 --nonce $runToken `
@@ -215,7 +215,7 @@ try {
                 --product-sha $productSha `
                 --expected-common-dir $expectedGitCommonDirectory `
                 --junitxml $pytestReportPath `
-                --out $identityReportPath 2>&1)
+                --out $identityReportPath @identityModeArgs 2>&1)
             $identityExitCode = $LASTEXITCODE
             $identityOutput | Out-Host
             if ($identityExitCode -ne 0) {
