@@ -59,7 +59,13 @@ jobs:
             'tests/deployment/test_deploy_coordinated_release_real_wiring.py' \
             'tests/deployment/test_g041_junit_identity_policy.py' \
             'docs/deployment/G041_strict_junit_identity_and_two_rollback_pairs_20261022.md' \
-            'deploy/runtime-source-provenance.json' > /tmp/g036-expected.txt
+            'deploy/runtime-source-provenance.json' \
+            'deploy/live-static-asset-inventory.json' \
+            'deploy/g043-bonus-companion-supplemental-static-pack-manifest.json' \
+            'tests/deployment/test_g009_dual_delivery_closure.py' \
+            'tests/deployment/test_image_content_boundary.py' \
+            'tests/deployment/test_g043_bonus_supplemental_static_pack.py' \
+            'docs/deployment/G043_owner_approved_supplemental_bunny_corgi_static_20261022.md' > /tmp/g036-expected.txt
           diff -u <(sort /tmp/g036-expected.txt) <(sort /tmp/g036-changed.txt)
           test "$(sha256sum deploy/known-production-rollback-pairs.json | cut -d' ' -f1)" = "$G028_PAIR_SHA"
           test -z "$(git diff --name-only "$G030_APPROVED_MASTER_SHA" HEAD -- assets/3d_shop/)"
@@ -109,13 +115,48 @@ jobs:
           PY
           for path in app.py shop.html inventory.html Dockerfile \
                       migrations/quest_claim_v1.py \
-                      deploy/live-static-asset-inventory.json index.html sw.js; do
+                      index.html sw.js; do
             test -f "$path"
             test "$(git hash-object "$path")" = "$(git rev-parse "$PINNED_PRODUCT_SHA:$path")"
           done
+          # Independently enforce exactly one Owner-G043 supplemental subtree,
+          # preserving the entire prior Static inventory and original 69 assets.
+          python - <<'PY'
+          import json,hashlib,pathlib,subprocess,copy
+          root=pathlib.Path('.')
+          original=json.loads(subprocess.check_output([
+            'git','show','dcf56dcc58e3a2bd15565998bb31c622f66b6eeb:deploy/live-static-asset-inventory.json']))
+          current=json.loads((root/'deploy/live-static-asset-inventory.json').read_text(encoding='utf8'))
+          prior=copy.deepcopy(current)
+          entries=prior['required_subtrees']['entries']
+          exact='deploy/g043-bonus-companion-supplemental-static-pack-manifest.json'
+          bonus=[x for x in entries if x['manifest']==exact]
+          assert len(bonus)==1
+          assert bonus[0]['prefix']=='assets/3d_shop/p048/companion/'
+          entries.remove(bonus[0])
+          assert prior==original
+          m=json.loads((root/exact).read_text(encoding='utf8'))
+          old=json.loads((root/'docs/handoffs/G010_P048_C01_C04_IMAGE_CLOSURE_20261021.json').read_text(encoding='utf8'))
+          assert old['release_admission'] is False
+          assert old['ownership_authority_changes'] is False
+          assert m['release_admission'] is True
+          assert m['canonical_formal_69_glb_unchanged'] is True
+          assert m['new_pet_entitlement'] is False
+          assert len(m['files'])==3
+          assert m['source_evidence_sha256']==hashlib.sha256(
+            (root/'docs/handoffs/G010_P048_C01_C04_IMAGE_CLOSURE_20261021.json').read_bytes()).hexdigest()
+          evidence={e['path']:e for e in old['files']}
+          assert set(x['path'] for x in m['files'])==set(evidence)
+          for x in m['files']:
+            e=evidence[x['path']]
+            data=(root/x['path']).read_bytes()
+            assert len(data)==x['size']==e['bytes']
+            assert hashlib.sha256(data).hexdigest()==x['sha256']==e['sha256']
+          assert sum(x['path'].endswith('.glb') for x in m['files'])==2
+          PY
           test ! -e secret_key.txt
           test ! -e .env
-          echo "G038 exact pinned Owner-approved Frozen conflicts in existing simplified policy: Product 2ae01985 immutable"
+          echo "G043 Owner-approved exact 3-file supplemental static closure; prior formal69 model bytes and runtime App unchanged"
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -141,4 +182,7 @@ jobs:
             tests/deployment/test_build_app_known_failure_baseline.py \
             tests/deployment/test_release_source_separation.py::test_control_plane_authority_declarations_agree \
             tests/deployment/test_e10_development_workflow_v2.py \
-            tests/deployment/test_runtime_dependency_provenance.py
+            tests/deployment/test_runtime_dependency_provenance.py \
+            tests/deployment/test_g043_bonus_supplemental_static_pack.py \
+            tests/deployment/test_g009_dual_delivery_closure.py \
+            tests/deployment/test_image_content_boundary.py

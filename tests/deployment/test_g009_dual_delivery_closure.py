@@ -38,6 +38,7 @@ PREVIEW_PACK = "deploy/g009-world-map-zone-preview-static-pack-manifest.json"
 MODEL_PACK = "deploy/g009-hero-model-static-pack-manifest.json"
 COMPANION_PACK = "deploy/g009-companion-formal18-static-pack-manifest.json"
 FORMAL9_PACK = "deploy/g009-formal9-replacement-static-pack-manifest.json"
+BONUS_PACK = "deploy/g043-bonus-companion-supplemental-static-pack-manifest.json"
 
 DIAGNOSTIC_HEADERS = ("X-Served-From", "X-Static-Source", "X-Asset-Source")
 
@@ -215,7 +216,7 @@ def test_every_baked_g009_model_has_exactly_one_static_generation_copy():
         if path.startswith("assets/3d_shop/") and path.endswith(".glb")
     )
     packs = {name: {row["path"]: row for row in _assert_pack_matches_tracked_bytes(name)}
-             for name in (MODEL_PACK, COMPANION_PACK, FORMAL9_PACK)}
+             for name in (MODEL_PACK, COMPANION_PACK, FORMAL9_PACK, BONUS_PACK)}
     hero_models = packs[MODEL_PACK]
     assert len(hero_models) == 47
     assert all(path.endswith(".glb") for path in hero_models)
@@ -226,7 +227,17 @@ def test_every_baked_g009_model_has_exactly_one_static_generation_copy():
     assert all(len(owners) == 1 for owners in membership.values()), {
         path: owners for path, owners in membership.items() if len(owners) != 1
     }
-    assert len(baked_models) == 47 + 18 + 4
+    assert len(baked_models) == 47 + 18 + 4 + 2
+    # Bonus assets are a separately approved G043 supplemental visual pack;
+    # they never increase the canonical formal_69 GLB count or grant ownership.
+    assert len(packs[BONUS_PACK]) == 3
+    assert sum(path.endswith(".glb") for path in packs[BONUS_PACK]) == 2
+    assert sum(path.endswith(".png") for path in packs[BONUS_PACK]) == 1
+    assert sum(path.endswith(".glb") for pack in (MODEL_PACK, COMPANION_PACK, FORMAL9_PACK)
+               for path in packs[pack]) == 69
+    assert set(packs[BONUS_PACK]).isdisjoint(
+        set(packs[MODEL_PACK]) | set(packs[COMPANION_PACK]) | set(packs[FORMAL9_PACK])
+    )
 
     future30 = {
         model["runtime_glb"]: model["runtime_sha256"]
