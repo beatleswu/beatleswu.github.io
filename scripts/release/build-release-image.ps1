@@ -205,7 +205,8 @@ try {
 
             # 4. Source-checks and actual collection/JUnit identity. Owner simplified
             # mode is explicit local verification, not a forged external attestation.
-            $identityModeArgs = if ($OwnerSimplifiedPolicy) { @("--owner-simplified-policy") } else { @() }
+            [string[]]$identityModeArgs = @()
+            if ($OwnerSimplifiedPolicy) { $identityModeArgs = @("--owner-simplified-policy") }
             $identityOutput = @(& python $candidateBindingToolPath identity `
                 --record $identityRecordPath `
                 --nonce $runToken `
@@ -223,7 +224,8 @@ try {
             }
 
             # 5. Evaluator: three-node baseline unchanged + independently reviewed Owner conflict policy.
-            $ownerConflictArgs = if ($OwnerSimplifiedPolicy) { @('--owner-simplified-policy') } else { @() }
+            [string[]]$ownerConflictArgs = @()
+            if ($OwnerSimplifiedPolicy) { $ownerConflictArgs = @('--owner-simplified-policy') }
             $baselineEvaluation = @(& python $buildAppEvaluatorPath `
                 --junitxml $pytestReportPath `
                 --baseline $buildAppBaselinePath `
