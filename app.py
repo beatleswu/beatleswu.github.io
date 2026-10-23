@@ -14899,7 +14899,9 @@ def get_questions():
             'monster_name':      q.get('monster_name', ''),
             'grimoire_difficulty': q.get('grimoire_difficulty'),
             'rating':              q.get('rating'),
-            'katago_best_move':    q.get('katago_best_move', '') if not locked else '',
+            # Catalogue never needs a KataGo answer hint. Keep it out of
+            # all slim/full catalogue responses, regardless of rollout flag.
+            'katago_best_move':    '',
             'score_gap':           q.get('score_gap'),
             # Revision evidence is deliberately separate from the legacy
             # question locator and future source_record_uuid identity.
@@ -15069,7 +15071,25 @@ def get_question(qid):
     accepted_moves = _question_accepted_moves(q) if (premium or not locked) else []
     katago_best_move = q.get('katago_best_move', '') if (premium or not locked) else ''
     score_gap = q.get('score_gap') if (premium or not locked) else None
-    return jsonify({
+    # G076 migration path. Read-only board view is safe to request now; the
+    # global enforcement flag remains OFF until every client settles answers
+    # server-side. This endpoint alone does not close other legacy API leaks.
+    from g076_question_privacy import board_only_sgf, privacy_enforced
+    board_only = request.args.get('view') == 'board' or privacy_enforced(os.environ)
+    if board_only:
+        if not locked:
+            try:
+                content = board_only_sgf(q.get('content', ''))
+            except ValueError:
+                return jsonify({
+                    'error': 'question_preview_unavailable',
+                    'code': 'question_preview_unavailable',
+                }), 422
+        comment = ''
+        accepted_moves = []
+        katago_best_move = ''
+        score_gap = None
+    response = jsonify({
         'id':           q['id'],
         # A duplicate legacy id is deliberately not attachable to inline
         # correction.  The admin context endpoint will fail closed until an
@@ -15120,7 +15140,10 @@ def get_question(qid):
         'question_revision': _client_question_revision(q),
         'session_question_fingerprint': _session_question_fingerprint(q),
         'locked':           locked,
+        'board_only':       board_only,
     })
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @app.route('/api/save-question', methods=['POST'])
