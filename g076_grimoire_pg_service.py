@@ -61,8 +61,7 @@ class PgGrimoireSteps(GrimoireSteps):
 
     @contextmanager
     def _transaction(self, uid):
-        if not (privacy_enforced(self.environ) and str(self.environ.get(
-                'G076_GRIMOIRE_STEPS_ENABLED', '')).lower() in ('1', 'true', 'on')):
+        if not self._steps_enabled():
             raise GrimoireRejected('grimoire_steps_disabled', 503)
         if type(uid) is not int or uid < 1:
             raise GrimoireRejected('authentication_required', 401)
@@ -91,6 +90,10 @@ class PgGrimoireSteps(GrimoireSteps):
         finally:
             if isinstance(conn, extensions.connection):
                 conn.close()
+
+    def _steps_enabled(self):
+        return (privacy_enforced(self.environ) and str(self.environ.get(
+            'G076_GRIMOIRE_STEPS_ENABLED', '')).lower() in ('1', 'true', 'on'))
 
     def catalog_revision(self, conn):
         catalogs = [[r['id'], r['node_count']] for r in self._execute(

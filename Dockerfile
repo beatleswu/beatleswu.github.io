@@ -213,8 +213,9 @@ COPY g076_practice_product.py ./
 COPY g076_daily_step_integration.py ./
 COPY g076_daily_capability.py ./
 COPY g076_othermode_authority.py ./
-# G077-F: isolated G076 B1/B2/R5 runtime closure. Candidate only, gated OFF.
-# Explicit files prevent deployment of unfinished tests or source fixtures.
+# G077-F: only approved B1/B2/R5 runtime modules; flags default OFF.
+# Grimoire registration imports these even while its mode is OFF.
+# No official corpus, fixture credentials or schema installation is packaged.
 COPY g076_mode_gate.py ./
 COPY g076_mistakes_product.py ./
 COPY g076_rating_steps.py ./
@@ -222,6 +223,7 @@ COPY g076_grimoire_adapter.py ./
 COPY g076_grimoire_catalog.py ./
 COPY g076_grimoire_pg_service.py ./
 COPY g076_grimoire_product.py ./
+
 # G066 gated curriculum integration is imported at module scope even when
 # the course feature flag is OFF. Package exactly the runtime closure and
 # approved catalogue/media/UI files; exclude offline tooling and fixtures.

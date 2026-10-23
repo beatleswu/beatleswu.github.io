@@ -12,7 +12,7 @@ grimoire_api.py — 黑白星火：法典知識系統 API
   GET  /api/player/weakness-report       # 弱項分析報告
 """
 
-import json, datetime, random
+import json, datetime, random, os
 from flask import Blueprint, jsonify, request, session
 from functools import wraps
 
@@ -52,7 +52,77 @@ def _identity_tables_present(conn) -> bool:
 # ── Blueprint 宣告 ──────────────────────────────────────────────
 grimoire_bp = Blueprint('grimoire', __name__)
 
-DATA_FILE   = 'questions.json'
+DATA_FILE = os.environ.get('QUESTIONS_JSON_PATH', 'questions.json')
+
+
+def official_grimoire_lookup(qid):
+    """Classification only, never identity/admission. Unknown fails closed.
+
+    Use the same configured raw corpus path as app.py. No permissive cache,
+    replacement decode, numeric-ID identity fallback or sample corpus.
+    """
+    from g076_grimoire_adapter import GrimoireRejected
+    try:
+        if type(qid) is not int or qid < 1:
+            raise ValueError('invalid_question_id')
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError('duplicate_key')
+                result[key] = value
+            return result
+        with open(DATA_FILE, 'r', encoding='utf-8-sig') as source:
+            def invalid_constant(value):
+                raise ValueError('invalid_json_constant')
+            rows = json.load(source, object_pairs_hook=unique, parse_constant=invalid_constant)
+        if not isinstance(rows, list):
+            raise ValueError('invalid_corpus')
+        ids = set()
+        for record in rows:
+            if (not isinstance(record, dict) or type(record.get('id')) is not int
+                    or record['id'] < 1 or record['id'] in ids):
+                raise ValueError('invalid_or_duplicate_identity')
+            ids.add(record['id'])
+        matches = [q for q in rows if isinstance(q, dict) and type(q.get('id')) is int and q['id'] == qid]
+        if len(matches) != 1:
+            raise ValueError('ambiguous_or_missing_question')
+        q = matches[0]
+        if q.get('grimoire_id') is not None and (type(q['grimoire_id']) is not int or q['grimoire_id'] < 1):
+            raise ValueError('unknown_membership')
+        return q
+    except (OSError, UnicodeError, ValueError, TypeError):
+        raise GrimoireRejected('official_corpus_classification_unavailable', 503) from None
+
+
+def configure_official_grimoire(app, *, expected_sha256, canonical, entitlements,
+                                lesson, connect, schema, secret):
+    """Trusted WSGI composition API, before first request. No default providers.
+
+    canonical/entitlements/lesson must use the supplied native PG transaction.
+    They are reviewed server code, never HTTP/config strings. This function
+    creates no source identity, catalog, schema, rights or lesson assignment.
+    """
+    from pathlib import Path
+    import hashlib
+    from g076_grimoire_product import CanonicalCorpus, ProductGrimoire
+    if app._got_first_request:
+        raise RuntimeError('grimoire_configuration_must_precede_requests')
+    path = Path(DATA_FILE).resolve()
+    class OfficialCorpus(CanonicalCorpus):
+        def lookup(self, qid):
+            from g076_grimoire_adapter import GrimoireRejected
+            try:
+                if hashlib.sha256(path.read_bytes()).hexdigest() != self.sha256:
+                    raise ValueError('source_changed')
+            except (OSError, ValueError):
+                raise GrimoireRejected('official_corpus_changed_or_unavailable', 503) from None
+            return super().lookup(qid)
+    service = ProductGrimoire(corpus=OfficialCorpus(path.read_bytes(), expected_sha256, canonical),
+        entitlements=entitlements, lesson=lesson, connect=connect, schema=schema,
+        secret=secret, environ=os.environ)
+    app.config['G077_GRIMOIRE_SERVICE'] = service
+    return service
 
 # 學科 → 屬性對照（8 大學科精化版）
 # 4 個 DB 屬性欄位不變；8 學科分流至最近似的屬性

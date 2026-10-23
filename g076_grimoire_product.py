@@ -1,4 +1,4 @@
-"""Grimoire-only Product proposal. No app import, DDL, catalog or rights fallback.
+"""Grimoire Product installation. No DDL, catalog or rights fallback.
 
 MASTER supplies canonical providers on the service transaction's PG connection.
 The corpus is a SHA-pinned server snapshot, never an HTTP upload. Providers must
@@ -9,11 +9,12 @@ explicit and must precede all hooks except the existing containment guard.
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 from uuid import UUID
 
-from flask import Blueprint, jsonify, request, session, send_file
+from flask import Blueprint, jsonify, request, session, send_file, redirect
 
 from g076_grimoire_adapter import GrimoireRejected
 from g076_grimoire_pg_service import PgGrimoireSteps
@@ -104,6 +105,11 @@ class Lesson:
 
 
 class ProductGrimoire(PgGrimoireSteps):
+    def _steps_enabled(self):
+        # Product always projects board-only SGF and judges on the server.
+        # Do not enable global legacy routes as a side effect of this gate.
+        return enabled(self.environ)
+
     def __init__(self, *, corpus, entitlements, lesson, **kwargs):
         if not isinstance(corpus, CanonicalCorpus) or not callable(entitlements) or not callable(lesson):
             raise ValueError('trusted_product_providers_required')
@@ -129,17 +135,40 @@ LEGACY_RULES = frozenset(('/api/grimoire/training/daily', '/api/training/contami
                           '/api/training/answer'))
 LEGACY_ENDPOINTS = frozenset(('grimoire.api_training_daily', 'grimoire.api_training_contaminated',
                               'grimoire.api_training_answer'))
+UNSAFE_SHARED_ENDPOINTS = frozenset(('training_daily', 'dc_today', 'dc_submit', 'dc_history',
+    'dc_history_detail', 'get_mistakes', 'friend_challenge_detail',
+    'friend_challenge_answer', 'rt_start', 'rt_resume', 'rt_answer',
+    'map_battle_v1_prepare_attempt', 'map_battle_v1_resume_validation',
+    'map_battle_v1_battle_state', 'map_battle_v1_submission_nonce',
+    'map_battle_v1_answers', 'g076_map_battle_step_start',
+    'g076_map_battle_step_submit'))
 
 
-def install_product_grimoire(app, service):
+def install_product_grimoire(app, service=None, *, environ=None, lookup=None):
     """Explicit MASTER seam; does nothing until called, OFF legacy is untouched.
 
     Install before any writer hook. Endpoint identity also contains aliases.
     The separate Grimoire gate contains legacy paths even with global privacy
-    OFF; the PG service still requires both gates for secure play.
+    OFF. Missing official providers close admission, never restore old writers.
     """
-    if not isinstance(service, ProductGrimoire):
+    if service is not None and not isinstance(service, ProductGrimoire):
         raise ValueError('product_grimoire_service_required')
+    gate = service.environ if service is not None else (os.environ if environ is None else environ)
+
+    def dependency():
+        candidate = service if service is not None else app.config.get('G077_GRIMOIRE_SERVICE')
+        if not isinstance(candidate, ProductGrimoire) or candidate.environ is not gate:
+            raise GrimoireRejected('grimoire_official_providers_unavailable', 503)
+        return candidate
+
+    def classify(qid):
+        # Once bound, classification shares the pinned service snapshot. A
+        # changed raw file cannot relabel an issued Grimoire token as Practice.
+        if service is not None or app.config.get('G077_GRIMOIRE_SERVICE') is not None:
+            return dependency().corpus.lookup(qid)
+        if lookup is not None:
+            return lookup(qid)
+        return dependency().corpus.lookup(qid)
     if 'g076_grimoire_product' in app.extensions:
         raise RuntimeError('product_grimoire_already_installed')
     hooks = app.before_request_funcs.get(None, [])
@@ -149,9 +178,30 @@ def install_product_grimoire(app, service):
         raise RuntimeError('grimoire_guard_must_precede_writers')
 
     def containment():
-        if not enabled(service.environ) or request.url_rule is None:
+        if not enabled(gate) or request.url_rule is None:
             return None
+        if request.path in ('/', '/index.html') and 'grimoire' in request.args:
+            return redirect('/grimoire/player', code=302)
         deny = request.url_rule.rule in LEGACY_RULES or request.endpoint in LEGACY_ENDPOINTS
+        # Legacy aggregate transports can reveal solutions or settle a selected
+        # Grimoire question without a question locator in the request. Until
+        # each has a trusted per-question adapter, contain them before handlers.
+        deny = deny or request.endpoint in UNSAFE_SHARED_ENDPOINTS
+        deny = deny or (request.endpoint or '').startswith('g076_daily_steps.')
+        # Rules also cover transports whose endpoint names change in app.py.
+        deny = deny or request.url_rule.rule in (
+            '/api/adventure/map-battles/v1/attempts',
+            '/api/adventure/map-battles/v1/attempts/<attempt_id>/resume-validation',
+            '/api/adventure/map-battles/v1/battles/<battle_id>',
+            '/api/adventure/map-battles/v1/answers',
+            '/api/adventure/map-battles/v2/steps/start',
+            '/api/adventure/map-battles/v2/steps',
+            '/api/daily-challenge/history/<date_str>')
+        if request.endpoint == 'get_question':
+            try:
+                deny = bool(classify(request.view_args.get('qid')).get('grimoire_id'))
+            except GrimoireRejected:
+                deny = True
         # The existing ?grimoire= player submits qid to the common SRS writer.
         # Ignore claimed mode/source/grade: classify by the pinned full corpus.
         by_question = (request.path in ('/api/srs/review', '/api/srs/practice/attempt')
@@ -165,10 +215,10 @@ def install_product_grimoire(app, service):
                 return jsonify(error='grimoire_legacy_request_too_large'), 413
             data = request.get_json(silent=True)
             qid = data.get('question_id') if isinstance(data, dict) else None
-            # Shared daily transport is outside this writer's authority. A
-            # practice token relabelled daily is rejected by its existing resolver.
+            # Aggregate daily selection has no trustworthy browser qid; contain
+            # it even if a pre-rollout practice token is relabelled daily.
             if nonmap and isinstance(data, dict) and data.get('flow') == 'daily':
-                return None
+                return jsonify(error='grimoire_secure_player_required'), 409
             try:
                 if by_token or nonmap:
                     uid = session.get('user_id')
@@ -181,7 +231,7 @@ def install_product_grimoire(app, service):
                     qid = attempt['question_id']
                 if isinstance(qid, str) and len(qid) <= 20 and qid.isascii() and qid.isdigit():
                     qid = int(qid)
-                q = service.corpus.lookup(qid)
+                q = classify(qid)
                 deny = bool(q.get('grimoire_id'))
             except (GrimoireRejected, PracticeAttemptError, KeyError):
                 deny = True
@@ -190,6 +240,12 @@ def install_product_grimoire(app, service):
         return None
 
     app.before_request(containment)
+
+    @app.after_request
+    def containment_cache(response):
+        if enabled(gate):
+            response.headers['Cache-Control'] = 'private, no-store'
+        return response
     bp = Blueprint('g076_grimoire_product', __name__)
     root = Path(__file__).resolve().parent
 
@@ -202,7 +258,7 @@ def install_product_grimoire(app, service):
 
     @bp.before_request
     def boundary():
-        if not enabled(service.environ):
+        if not enabled(gate):
             return jsonify(error='grimoire_steps_disabled'), 503
         if type(session.get('user_id')) is not int or session['user_id'] < 1:
             return jsonify(error='authentication_required'), 401
@@ -229,6 +285,24 @@ def install_product_grimoire(app, service):
             app.logger.exception('Grimoire Product dependency failed')
             return jsonify(error='grimoire_backend_unavailable'), 503
 
+    @bp.get('/api/g076/grimoire/product/manifest')
+    def manifest():
+        # Installation is independently observable; configuration is not proof
+        # that an official importer or entitlement policy has been validated.
+        try:
+            dependency()
+            configured = True
+        except GrimoireRejected:
+            configured = False
+        return jsonify(player_url='/grimoire/player',
+            admission_url='/api/g076/grimoire/product/admission',
+            steps_url='/api/g076/grimoire/product/steps',
+            flag='G076_GRIMOIRE_STEPS_ENABLED', global_privacy_required=False,
+            providers_configured=configured, corpus_verified=False,
+            entitlements_verified=False, product_readiness='HOLD',
+            contained_aggregate_endpoints=sorted(UNSAFE_SHARED_ENDPOINTS),
+            additional_containment='legacy Grimoire; signed practice; nonmap daily; direct question; daily step blueprint')
+
     @bp.get('/grimoire/player')
     def player():
         return send_file(root / 'grimoire_player.html')
@@ -241,7 +315,7 @@ def install_product_grimoire(app, service):
     def admission():
         if request.get_json(silent=True) != {}:
             raise GrimoireRejected('server_lesson_only', 400)
-        return call(lambda: service.admission(session['user_id']))
+        return call(lambda: dependency().admission(session['user_id']))
 
     @bp.post('/api/g076/grimoire/product/steps')
     def steps():
@@ -249,7 +323,7 @@ def install_product_grimoire(app, service):
         if not isinstance(data, dict) or set(data) not in (
                 {'attempt_token'}, {'attempt_token', 'step_index', 'step_nonce', 'move'}):
             raise GrimoireRejected('invalid_step_fields', 400)
-        return call(lambda: service.run(session['user_id'], data['attempt_token'],
+        return call(lambda: dependency().run(session['user_id'], data['attempt_token'],
                     {k: v for k, v in data.items() if k != 'attempt_token'} or None))
 
     app.register_blueprint(bp)

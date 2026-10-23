@@ -577,6 +577,9 @@ app = Flask(__name__)
 # result. OFF by default; no product gate is silently enabled here.
 from g076_othermode_authority import install_othermode_guard
 install_othermode_guard(app)
+from g076_grimoire_product import install_product_grimoire
+from grimoire_api import official_grimoire_lookup
+install_product_grimoire(app, environ=os.environ, lookup=official_grimoire_lookup)
 _site_url_for_cookie = os.environ.get('SITE_URL', 'https://godokoro.com').lower()
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,

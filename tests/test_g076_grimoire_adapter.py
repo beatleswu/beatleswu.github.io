@@ -95,7 +95,11 @@ def test_play_resume_and_exactly_once_mastery(fx):
     first = send(fx, token, cursor).json
     assert first['status'] == 'CONTINUE' and first['opponent_reply'] == [1, 1]
     assert rows(fx, 'node_mastery') == []
-    assert 'cc' not in json.dumps(first)
+    # Never scan HMAC/nonce hex for arbitrary coordinate substrings: random
+    # entropy can legitimately contain 'cc'. Inspect only answer-bearing fields.
+    assert not any(k in first for k in ('answer_tree', 'accepted_moves', 'solution', 'next_move'))
+    assert ';B[cc]' not in str(first.get('content', ''))
+    assert [2, 2] not in first.get('played', [])
     assert send(fx, token).json['step_nonce'] == first['step_nonce']
     final = send(fx, token, first, (2, 2))
     assert final.status_code == 200 and final.json['status'] == 'CORRECT'
