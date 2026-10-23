@@ -1,0 +1,38 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>G076 isolated nonmap fixture</title>
+<p id="result">RUNNING</p><script src="/client.js"></script><script>
+(async function () {
+  'use strict';
+  let count = 0;
+  function check(ok, message) { if (!ok) throw new Error(message); count++; }
+  await fetch('/fixture/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({uid:101})});
+  for (const flow of ['practice', 'daily']) {
+    const token = (await (await fetch('/fixture/token/' + flow)).json()).attempt_token;
+    let loseResponse = false;
+    const client = GoOdysseyG076NonMapSteps.createClient({fetchImpl: async (url, options) => {
+      const response = await fetch(url, options);
+      if (loseResponse) { loseResponse = false; throw new Error('synthetic_response_loss_after_commit'); }
+      return response;
+    }});
+    const ready = await client.open(flow, token);
+    check(ready.board_only && ready.content === '(;SZ[5]PL[B]AB[ee])', 'private initial board');
+    check(!ready.content.includes('B[aa]'), 'no future moves');
+    const first = await client.play(0, 0);
+    check(first.status === 'CONTINUE' && first.opponent_reply.join() === '1,1', 'server reply');
+    check(Object.keys(first).sort().join() === 'duplicate,opponent_reply,status,step_index,step_nonce', 'no future player answer');
+    loseResponse = true;
+    try { await client.play(2, 2); throw new Error('expected response loss'); }
+    catch (error) { check(error.message === 'synthetic_response_loss_after_commit', 'loss observed'); }
+    try { await client.play(3, 3); throw new Error('expected retry guard'); }
+    catch (error) { check(error.message === 'step_retry_required', 'frozen uncertain request'); }
+    const final = await client.retry();
+    check(final.status === 'CORRECT' && final.duplicate, 'committed terminal retry');
+    check(flow === 'practice' ? final.settlement.srs.repetitions === 1 : final.settlement.xp_awarded === 75, 'settlement receipt');
+    try { await client.play(3, 3); throw new Error('expected terminal guard'); }
+    catch (error) { check(error.message === 'step_not_active', 'terminal cannot play again'); }
+    const resumed = await GoOdysseyG076NonMapSteps.createClient().open(flow, token);
+    check(resumed.status === 'CORRECT' && resumed.duplicate, 'refresh terminal recovery');
+  }
+  document.body.dataset.g076Nonmap = 'PASS';
+  document.getElementById('result').textContent = 'PASS ' + count;
+})().catch(error => { document.body.dataset.g076Nonmap = 'FAIL'; document.getElementById('result').textContent = 'FAIL ' + error.message; });
+</script></html>
