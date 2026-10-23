@@ -18275,10 +18275,13 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         new_appearance_items = learning['new_appearance_items']
         review_shadow_input = learning['review_shadow_input']
 
-        # Persist the core answer record before optional RPG systems run. This
-        # keeps srs_cards/review_log/user_stats safe if a loot, quest, or
-        # grimoire side-effect hits a PostgreSQL compatibility issue.
-        conn.commit()
+        # G080 A: internal Map Battle progression is ONE reward transaction.
+        # Never commit its review identity before the quest/coin/pet tail:
+        # a failure after this point must roll back the core as well, so
+        # retries cannot mistake a half-settled reward for a duplicate.
+        # Public review keeps its established separate optional-tail policy.
+        if not internal:
+            conn.commit()
 
         # The just-committed Guild answer already has a server-owned quest
         # projection.  Return it with the review response so the browser does
@@ -18304,9 +18307,8 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         quest_shadow_events = [] if xp_shadow_enabled() else None
         battlefield_shadow_events = []
         try:
-            # Core review intentionally commits before this optional tail.
-            # Reacquire the same users-row lock for this second transaction,
-            # or concurrent Mistakes can interleave quest/coin/rank writes.
+            # Map Battle retains the same users-row lock across its core and
+            # quest/coin/item tail. No commit divides these writes.
             if internal:
                 _lock_user_for_daily_quota(conn, uid)
             legacy_daily_token = _QUEST_LEGACY_DAILY_ENABLED.set(
@@ -18453,7 +18455,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             quest_shadow_inputs = []
             _publish_battlefield_shadow_records(battlefield_shadow_events)
             app.logger.exception('optional monster/quest update failed after answer %s for user %s', qid, uid)
-            if quest_v2_runtime_enabled():
+            # G080 A: a Map Battle reward-tail failure MUST be retryable, even
+            # when Quest V2 is OFF. The rolled-back review identity permits an
+            # exactly-once retry; never report success after this rollback.
+            if internal or quest_v2_runtime_enabled():
                 return jsonify({
                     'error': 'quest_runtime_pending',
                     'code': 'quest_runtime_pending',

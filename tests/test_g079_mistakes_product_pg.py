@@ -631,3 +631,219 @@ def test_g080_internal_map_progression_waits_for_same_user_reward_lock(rt, on):
             assert not future.done(), 'internal Map path bypassed the users row lock'
             held.commit()
             assert future.result(timeout=15) == 409
+
+
+def _g080_map_settlement(rt, uid, qid=7902):
+    """Create a genuine committed Map Battle settlement on disposable PG."""
+    from map_battle_persistence import create_map_battle, ensure_map_battle_tables
+    from map_battle_runtime import (ensure_submission_lifecycle_schema,
+        issue_attempt_for_context, issue_submission_nonce_for_attempt, settle_answer)
+    import uuid
+    now = datetime.datetime.now(datetime.timezone.utc)
+    at = now.isoformat()
+    later = (now + datetime.timedelta(hours=1)).isoformat()
+    battle_id, attempt_id = 'g080-battle-' + uuid.uuid4().hex, 'g080-attempt-' + uuid.uuid4().hex
+    q = next(q for q in json.loads(QUESTIONS.read_text(encoding='utf-8')) if q['id'] == qid)
+    with rt.app.get_db() as conn:
+        ensure_map_battle_tables(conn)
+        ensure_submission_lifecycle_schema(conn)
+        create_map_battle(conn, battle_id=battle_id, user_id=uid,
+            zone_key='legacy::g080-test', player_hp=100, player_hp_max=100,
+            monster_hp=100, monster_hp_max=100, now=at)
+        issue_attempt_for_context(conn, user_id=uid, battle_id=battle_id,
+            question=q, initial_position_identity='g080-position',
+            board_size=5, player_color='B', transform_version='transform-v1',
+            transform_id='identity', attempt_id=attempt_id, issued_at=at, expires_at=later)
+        issued = issue_submission_nonce_for_attempt(conn,user_id=uid,attempt_id=attempt_id,
+            now=at,mode_environ={'E10_MAP_BATTLE_V1_MODE':'global'})
+        attempt = conn.execute('SELECT * FROM map_battle_attempts WHERE id=?',(attempt_id,)).fetchone()
+        submitted = settle_answer(conn,user_id=uid,payload={
+            'battle_id':battle_id,'attempt_id':attempt_id,
+            'submission_nonce':issued['submission_nonce'],'battle_revision':0,
+            'question_revision':attempt['question_revision'],'player_color':'black',
+            'transform_id':'identity','transform_version':'transform-v1',
+            'moves':[{'x':0,'y':0}]},
+            question_loader=lambda x:q if x==qid else None,
+            mode_environ={'E10_MAP_BATTLE_V1_MODE':'global'},now=at)
+        conn.commit()
+    assert submitted['result']=='CORRECT', submitted
+    return submitted
+
+def _g080_apply_map(rt, uid, settlement):
+    with rt.app.app.test_request_context('/api/adventure/map-battles/v1/answers',method='POST'):
+        from flask import session
+        session.update(user_id=uid,plan='premium')
+        return rt.app._run_map_battle_progression(uid,settlement)
+
+def test_g080_real_map_reward_solo_postgresql(rt,on):
+    uid=user(rt,plan='premium',mistakes=(7903,))
+    s=_g080_map_settlement(rt,uid)
+    body,status=_g080_apply_map(rt,uid,s)
+    assert status==200,(body,status)
+    assert body['status']=='applied',body
+    again,again_status=_g080_apply_map(rt,uid,s)
+    assert again_status==200 and again['status']=='duplicate',(again,again_status)
+    logs=rows(rt,'SELECT id FROM review_log WHERE user_id=? AND source_context LIKE ?',uid,'mbv1:%')
+    assert len(logs)==1
+
+
+def _g080_seed_reward_player(rt,uid):
+    with rt.app.get_db() as conn:
+        conn.execute("INSERT INTO user_pets(user_id,pet_key,selected_at) VALUES(?,?,?)",
+                     (uid,'go_spirit','2026-10-24T00:00:00'))
+        conn.commit()
+    seed_quest(rt,uid,'streak_correct',2)
+    seed_coins_earned(rt,uid,490)
+
+
+def test_g080_map_tail_failure_rolls_back_core_then_retries_once(rt,on,monkeypatch):
+    uid=user(rt,plan='premium',mistakes=(7903,))
+    _g080_seed_reward_player(rt,uid)
+    settlement=_g080_map_settlement(rt,uid)
+    before=snapshot(rt,uid)
+    original=rt.app._map_battle_noncombat_progression
+    def injected(*args,**kw):
+        raise RuntimeError('G080_SYNTHETIC_TAIL_DB_FAILURE')
+    monkeypatch.setattr(rt.app,'_map_battle_noncombat_progression',injected)
+    body,status=_g080_apply_map(rt,uid,settlement)
+    assert status==503 and body.get('retryable'),(body,status)
+    assert snapshot(rt,uid)==before, 'core or item was committed before failing tail'
+    monkeypatch.setattr(rt.app,'_map_battle_noncombat_progression',original)
+    done,status=_g080_apply_map(rt,uid,settlement)
+    assert status==200 and done['status']=='applied',(done,status)
+    saved=snapshot(rt,uid)
+    duplicate,code=_g080_apply_map(rt,uid,settlement)
+    assert code==200 and duplicate['status']=='duplicate'
+    assert snapshot(rt,uid)==saved
+    assert len(rows(rt,'SELECT id FROM review_log WHERE user_id=? AND source_context LIKE ?',uid,'mbv1:%'))==1
+    assert earned_today(rt,uid)==500
+    quest=one(rt,"SELECT completed,xp_awarded FROM daily_quests WHERE user_id=? AND quest_key='streak_correct'",uid)
+    assert quest=={'completed':1,'xp_awarded':20},quest
+    assert one(rt,"SELECT qty FROM pet_inventory WHERE user_id=? AND item_key='go_spirit_candy'",uid)['qty']==1
+
+
+@pytest.mark.parametrize('round_index',range(8))
+def test_g080_real_pg_b1_vs_map_concurrent_reward_integrity(rt,on,round_index):
+    uid=user(rt,plan='premium',mistakes=(7903,))
+    _g080_seed_reward_player(rt,uid)
+    settlement=_g080_map_settlement(rt,uid)
+    c=client(rt,uid)
+    token,cursor=open_attempt(c,7903)
+    request=step_body(token,cursor,(0,0))
+    gate=threading.Barrier(2)
+    def run_map():
+        gate.wait(timeout=10)
+        return _g080_apply_map(rt,uid,settlement)
+    def run_mistakes():
+        gate.wait(timeout=10)
+        c2=client(rt,uid)
+        r=c2.post('/api/g076/mistakes/steps',json=request)
+        return (r.get_json(),r.status_code)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fa=pool.submit(run_map)
+        fb=pool.submit(run_mistakes)
+        map_body,map_status=fa.result(timeout=30)
+        b1_body,b1_status=fb.result(timeout=30)
+    assert map_status==200 and map_body['status']=='applied',(map_status,map_body)
+    assert b1_status==200 and b1_body['status']=='CORRECT',(b1_status,b1_body)
+    logs=rows(rt,'SELECT source_context FROM review_log WHERE user_id=?',uid)
+    assert len(logs)==2 and {v['source_context'].startswith('mbv1:') for v in logs}=={False,True},logs
+    stat=one(rt,'SELECT xp,coins,total_correct,combo_streak FROM user_stats WHERE user_id=?',uid)
+    map_awarded_quest = any(q.get('key')=='streak_correct' and q.get('pet_reward')
+                            for q in map_body.get('quest_updates',[]))
+    expected_xp = (int(map_body['xp_gain']) + int(b1_body['settlement']['xp_awarded'])
+                   + (20 if map_awarded_quest else 0))
+    assert stat['total_correct']==2 and stat['xp']==expected_xp,(stat,expected_xp)
+    assert stat['coins']==500,stat
+    quest=one(rt,"SELECT completed,xp_awarded FROM daily_quests WHERE user_id=? AND quest_key='streak_correct'",uid)
+    assert quest=={'completed':1,'xp_awarded':20},quest
+    assert earned_today(rt,uid)==500
+    assert len(rows(rt,"SELECT id FROM currency_log WHERE user_id=? AND reason='daily_quest:streak_correct'",uid))==1
+    assert one(rt,"SELECT qty FROM pet_inventory WHERE user_id=? AND item_key='go_spirit_candy'",uid)['qty']==1
+    assert one(rt,'SELECT xp FROM user_pets WHERE user_id=?',uid)['xp']>=1
+    prior=snapshot(rt,uid)
+    replay1,replay_status=_g080_apply_map(rt,uid,settlement)
+    replay2=c.post('/api/g076/mistakes/steps',json=request)
+    assert replay_status==200 and replay1['status']=='duplicate'
+    assert replay2.status_code==200 and replay2.get_json()['duplicate'] is True
+    assert snapshot(rt,uid)==prior
+
+
+@pytest.mark.parametrize('failure',['crash','pg-disconnect'])
+def test_g080_pg_map_core_tail_process_restart_after_failure(rt,on,failure):
+    """Actual external process & PG sockets: crash/terminate backend then fresh app."""
+    uid=user(rt,plan='premium',mistakes=(7903,))
+    _g080_seed_reward_player(rt,uid)
+    settlement=_g080_map_settlement(rt,uid)
+    before=snapshot(rt,uid)
+    worker=ROOT/'tests'/'e2e'/'g080_map_restart_worker.py'
+    def execute(mode):
+        env=os.environ.copy()
+        env['DATABASE_URL']=rt.dsn
+        env['QUESTIONS_JSON_PATH']=str(QUESTIONS)
+        env['SECRET_KEY']='g080-pg-disposable-worker'
+        env['G076_MISTAKES_STEPS_ENABLED']='on'
+        return subprocess.run([sys.executable,'-B',str(worker),str(uid),json.dumps(settlement),mode],
+            cwd=str(ROOT),env=env,capture_output=True,text=True,timeout=60)
+    killed=execute(failure)
+    assert killed.returncode!=0,(killed.stdout,killed.stderr)
+    assert snapshot(rt,uid)==before,('partial commit after '+failure,killed.stderr[-800:])
+    fresh=execute('normal')
+    assert fresh.returncode==0,(fresh.stdout,fresh.stderr[-1200:])
+    applied=json.loads(fresh.stdout.splitlines()[-1])
+    assert applied['status']==200 and applied['payload']['status']=='applied',applied
+    committed=snapshot(rt,uid)
+    duplicate=execute('normal')
+    assert duplicate.returncode==0,(duplicate.stdout,duplicate.stderr[-800:])
+    assert json.loads(duplicate.stdout.splitlines()[-1])['payload']['status']=='duplicate'
+    assert snapshot(rt,uid)==committed
+    assert len(rows(rt,'SELECT id FROM review_log WHERE user_id=? AND source_context LIKE ?',uid,'mbv1:%'))==1
+    assert earned_today(rt,uid)==500
+
+
+def test_g080_pg_lock_inversion_deadlock_detected_and_recoverable(rt,on):
+    """Deliberately invert two users-row locks; show PG abort and recovery.
+
+    This is a DB failure-injection (not a claim that Product locks invert).
+    Production Map/Mistakes use the same users-row-first ordering.
+    """
+    import psycopg2
+    a=user(rt,plan='premium',mistakes=())
+    b=user(rt,plan='premium',mistakes=())
+    gate=threading.Barrier(2)
+    def inverted(first,second):
+        conn=psycopg2.connect(rt.dsn,connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute('SET lock_timeout=\'5s\'')
+                cur.execute('SELECT id FROM users WHERE id=%s FOR UPDATE',(first,))
+                gate.wait(timeout=10)
+                try:
+                    cur.execute('SELECT id FROM users WHERE id=%s FOR UPDATE',(second,))
+                    conn.commit()
+                    return 'committed'
+                except psycopg2.Error as e:
+                    code=e.pgcode
+                    conn.rollback()
+                    return code
+        finally:
+            conn.close()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        left=pool.submit(inverted,a,b)
+        right=pool.submit(inverted,b,a)
+        results={left.result(timeout=20),right.result(timeout=20)}
+    assert results=={'committed','40P01'},results
+    def canonical():
+        conn=psycopg2.connect(rt.dsn,connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute('SET lock_timeout=\'5s\'')
+                for uid in sorted([a,b]):
+                    cur.execute('SELECT id FROM users WHERE id=%s FOR UPDATE',(uid,))
+                conn.commit()
+                return 'recovered'
+        finally:
+            conn.close()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        both=list(pool.map(lambda _:canonical(),range(2)))
+    assert both==['recovered','recovered']
