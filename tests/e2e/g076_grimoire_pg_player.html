@@ -1,0 +1,69 @@
+<!doctype html><html lang="zh-TW"><meta charset="utf-8"/>
+<title>G076 R5 Grimoire PG isolated player prototype — NOT PRODUCTION</title>
+<style>body{font:16px system-ui;background:#f6f3ed;margin:2rem;color:#222}
+#board{width:380px;height:380px;border:1px solid #bbb;background:#deb887}
+#status{font-size:20px;font-weight:700;min-height:2em}#message{color:#633}
+button{padding:8px;margin:10px}</style>
+<h2>Grimoire｜隔離 PG 玩家棋盤／NOT RELEASE</h2>
+<div id="status">連線中</div><div id="board"></div>
+<button id="retry" disabled>重送相同一手</button>
+<div id="message"></div><div id="receipt"></div>
+<script src="/wgo/wgo.min.js"></script>
+<script>
+'use strict';
+window.goPlayer={ready:false, responses:[], errors:[], submitted:0, pending:null};
+const g=window.goPlayer;
+const area=document.getElementById('board');
+const status=document.getElementById('status');
+const retry=document.getElementById('retry');
+let board,token,step,locked=false;
+const jpath='/api/g076/grimoire/steps';
+async function post(payload) {
+ const r=await fetch(jpath,{method:'POST',credentials:'same-origin',cache:'no-store',
+ headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+ const v=await r.json();
+ if(!r.ok) throw new Error(v.error||'HTTP '+r.status);
+ return v;
+}
+function drawBoard(row) {
+ if(!row.board_only||row.content.includes('B[aa]')||row.content.includes('W[bb]')) throw new Error('answer_exposed');
+ board=new WGo.Board(area,{size:5,width:380});
+ // Known test-only root AB[ee]; actual consumer must use a server-owned SGF root parser.
+ if(row.content.includes('AB[ee]')) board.addObject({x:4,y:4,c:WGo.B});
+ if(!row.content.includes('AB[ee]')) throw new Error('unrecognized_board');
+ board.addEventListener('click',async(x,y)=>{await g.click(x,y)});
+}
+g.click=async(x,y,replay=false)=>{
+ if(locked||(!replay&&g.pending))return;
+ locked=true;
+ const payload=(replay?g.pending:{attempt_token:token,step_index:step.step_index,step_nonce:step.step_nonce,move:{x,y}});
+ if(!replay)g.pending=payload;
+ try {
+   let val=await post(payload);
+   g.responses.push(val);g.submitted++;
+   if(g.loseResponse){g.loseResponse=false;throw new Error('response_lost_after_commit');}
+   if(!replay || val.duplicate)board.addObject({x,y,c:WGo.B});
+   if(val.opponent_reply)board.addObject({x:val.opponent_reply[0],y:val.opponent_reply[1],c:WGo.W});
+   step=val;g.pending=null;retry.disabled=true;
+   status.textContent=val.status;
+   document.getElementById('receipt').textContent=val.settlement?.submission_id||'';
+ }catch(e){
+   g.errors.push(e.message);status.textContent='UNCERTAIN';
+   retry.disabled=false;document.getElementById('message').textContent=e.message;
+ }finally{locked=false;}
+};
+retry.addEventListener('click',()=>g.click(g.pending.move.x,g.pending.move.y,true));
+async function main(){
+ const r=await fetch('/fixture/token',{credentials:'same-origin',cache:'no-store'});
+ if(!r.ok)throw new Error('issue_failed');
+ token=(await r.json()).attempt_token;g.token=token;
+ step=await post({attempt_token:token});g.initial=step;
+ drawBoard(step);
+ for(const past of step.previous_steps){
+   board.addObject({x:past.player_move[0],y:past.player_move[1],c:WGo.B});
+   if(past.opponent_reply)board.addObject({x:past.opponent_reply[0],y:past.opponent_reply[1],c:WGo.W});
+ }
+ g.ready=true;status.textContent=step.status;
+}
+main().catch(e=>{g.errors.push(e.message);status.textContent='HOLD';});
+</script></html>
