@@ -103,7 +103,7 @@ def _binding(ctx):
 
 
 def _validate(ctx):
-    if ctx.flow not in ('practice', 'daily') or type(ctx.uid) is not int or ctx.uid < 1:
+    if ctx.flow not in ('practice', 'daily', 'mistakes') or type(ctx.uid) is not int or ctx.uid < 1:
         raise NonMapRejected('unsupported_step_context', 400)
     a = ctx.attempt
     if (a.get('transform_id') != 'identity' or
@@ -251,7 +251,7 @@ def submit_step(conn, ctx, data, *, secret, settle):
     if terminal:
         moves = {'moves': [{'x': x, 'y': y} for x, y in history]}
         canonicalize, judge = ((canonicalize_practice_answer, judge_practice_answer)
-                              if ctx.flow == 'practice' else
+                              if ctx.flow in ('practice', 'mistakes') else
                               (canonicalize_daily_answer, judge_daily_answer))
         canonical = canonicalize(moves, ctx.attempt)
         outcome = judge(ctx.question, ctx.attempt, canonical)

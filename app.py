@@ -20244,8 +20244,9 @@ def _g076_exposure_content(content):
 def get_mistakes():
     uid = session['user_id']
     premium = is_premium(uid)
+    from g076_mistakes_product import mode as mistakes_mode
     from g076_question_privacy import privacy_enforced
-    private = privacy_enforced(os.environ)
+    private = privacy_enforced(os.environ) or mistakes_mode(os.environ) != 'legacy'
     with get_db() as conn:
         rows = conn.execute(
             'SELECT * FROM mistake_log WHERE user_id=? ORDER BY wrong_count DESC, last_wrong_at DESC',
@@ -33517,6 +33518,11 @@ def _g076_practice_enabled():
     return _g076_practice_selected(os.environ)
 
 _g076_practice_issue = _install_g076_practice(app, globals(), os.environ)
+
+# No production adapter is admitted: the current ReviewService owns multiple
+# commits. Never substitute Practice's zero-XP writer for Mistakes rewards.
+from g076_mistakes_product import create_blueprint as _g076_mistakes_blueprint
+app.register_blueprint(_g076_mistakes_blueprint(secret=app.secret_key, environ=os.environ))
 
 @app.route('/js/game/g076_nonmap_step_client.js')
 def serve_g076_nonmap_step_client_js():

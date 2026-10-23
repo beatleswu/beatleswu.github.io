@@ -1,7 +1,7 @@
 /* Server-step client. Product index.html activates only ordinary Practice. */
 (function (global) {
   'use strict';
-  function createClient({fetchImpl = global.fetch.bind(global)} = {}) {
+  function createClient({fetchImpl = global.fetch.bind(global), basePath = '/api/g076/nonmap'} = {}) {
     let binding = null, cursor = null, inflight = false, uncertain = null, settled = false;
     async function request(path, body) {
       const response = await fetchImpl(path, {
@@ -34,13 +34,13 @@
       // Clear old identity before fetching: a failed mode switch cannot keep
       // an earlier cursor alive. Resume must use server history, never a tree.
       binding = null; cursor = null; uncertain = null; settled = false;
-      if (!['practice', 'daily'].includes(flow) || typeof attemptToken !== 'string') {
+      if (!['practice', 'daily', 'mistakes'].includes(flow) || typeof attemptToken !== 'string') {
         throw new Error('unsupported_step_flow');
       }
       inflight = true;
       try {
         const candidate = {flow, attempt_token: attemptToken};
-        const value = accept(await request('/api/g076/nonmap/steps/start', candidate), true);
+        const value = accept(await request(basePath + '/steps/start', candidate), true);
         binding = candidate;
         return value;
       } finally { inflight = false; }
@@ -49,7 +49,7 @@
       inflight = true;
       uncertain = body;
       try {
-        const value = await request('/api/g076/nonmap/steps', body);
+        const value = await request(basePath + '/steps', body);
         if (value.step_index !== body.step_index + 1) throw new Error('unexpected_step_index');
         return accept(value, false);
       } finally { inflight = false; }

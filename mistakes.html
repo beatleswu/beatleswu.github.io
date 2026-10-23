@@ -733,6 +733,7 @@ aside {
     }
 </style>
 <script src="/pwa.js"></script>
+<script src="/js/game/g076_nonmap_step_client.js"></script>
 </head>
 <body data-sgf-report-surface="main_practice" data-g009-surface="learning-mistakes" data-g009-secondary-surface="learning-hub" data-g009-visual-authority="locked-12-surfaces">
 
@@ -879,6 +880,7 @@ aside {
         <div class="btn-row">
             <button id="btn-prev"   onclick="prevQ()"          class="btn-nav" style="display:none;" data-i18n="mk.btnPrev">◀ 上一場</button>
             <button id="btn-reset"  onclick="resetBoard()"      class="btn-nav" style="display:none;" data-i18n="mk.btnReset">⚔️ 再次挑戰</button>
+            <button id="btn-step-retry" onclick="playSecureMistake(0,0,true)" class="btn-nav" style="display:none;">重送同一步 / Retry same step</button>
             <button id="btn-answer" onclick="showAnswer()"      class="btn-nav amber" style="display:none;" data-i18n="mk.btnAnswer">📜 查看秘笈</button>
             <button id="btn-alt-report" onclick="toggleAlternativeAnswerReportMode()" class="btn-nav" style="display:none;" data-i18n="mk.btnAltReport">回報另解</button>
             <button id="btn-problem-report" onclick="toggleProblemReportPanel()" class="btn-nav" style="display:none;" data-i18n="mk.problemReport.trigger">回報此題有問題</button>
@@ -902,7 +904,7 @@ aside {
 // ═══════════════════════════════════════════════════════════════
 // SGF 解析
 // ═══════════════════════════════════════════════════════════════
-function parseSGF(sgf) {
+function parseSGF(sgf, boardOnly=false) {
     sgf = sgf.replace(/\r?\n|\r/g,' ').trim();
     const result={size:19,pl:'B',black:[],white:[],tree:null};
     function findClosing(str,start){let d=0;for(let i=start;i<str.length;i++){if(str[i]==='(')d++;else if(str[i]===')'){ d--;if(d===0)return i;}}return str.length-1;}
@@ -913,6 +915,7 @@ function parseSGF(sgf) {
     const pl=rp.match(/PL\[([BW])\]/);if(pl)result.pl=pl[1];
     (rp.match(/AB((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.black.push(...parseCoordList(s)));
     (rp.match(/AW((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.white.push(...parseCoordList(s)));
+    if(boardOnly) return result; // board-only responses never become a local judge
     function parseSeq(str){
         str=str.trim();const ns=[];let i=0;
         while(i<str.length){
@@ -1107,7 +1110,109 @@ function turnPrompt(){
         ? I18n.t('mk.turnBlack')
         : I18n.t('mk.turnWhite');
 }
+// The server capability is resolved before loading any question. Failure blocks
+// this page; no old tree/grade fallback is permitted after secure selection.
+let mistakesProtocol=null, mistakesEpoch=0, mistakesClient=null;
+let mistakesToken=null, mistakesCursor=null, mistakesPending=null;
+async function mistakesRequest(path, body){
+    const response=await fetch('/api/g076/mistakes'+path, {
+        method:body?'POST':'GET', credentials:'same-origin', cache:'no-store',
+        headers:body?{'Content-Type':'application/json'}:{},
+        ...(body?{body:JSON.stringify(body)}:{})
+    });
+    const value=await response.json();
+    if(!response.ok) throw new Error(value.error||'mistakes_capability_unavailable');
+    return value;
+}
+function mistakesBlocked(error){
+    solved=true; answering=false;
+    hideBtn('btn-answer');
+    setMsg(String(error.message||error),'err');
+}
+function mistakesDraw(value){
+    if(value.board_only!==true || typeof value.content!=='string') throw new Error('missing_private_board');
+    currentProblem=parseSGF(value.content,true);
+    if(!currentProblem || currentProblem.size!==value.board_size || currentProblem.pl!==value.player_color)
+        throw new Error('invalid_private_board');
+    playerColor=value.player_color;
+    initBoard(currentProblem.size,calcCropSection(currentProblem));
+    initLogicBoard(currentProblem.size);
+    currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
+    currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+    if(!Array.isArray(value.previous_steps)) throw new Error('missing_server_history');
+    value.previous_steps.forEach(step=>{
+        playStone(...step.player_move,playerColor);
+        if(step.opponent_reply) playStone(...step.opponent_reply,playerColor==='B'?'W':'B');
+    });
+}
+function mistakesAccept(value){
+    mistakesCursor=value;
+    solved=['CORRECT','INCORRECT'].includes(value.status); answering=false;
+    if(solved){
+        showBtn('btn-answer');
+        setMsg(value.status==='CORRECT'?'伺服器已確認完成 / Server settled':'伺服器已確認失敗 / Server settled incorrect',
+               value.status==='CORRECT'?'ok':'err');
+    } else { hideBtn('btn-answer'); setMsg(turnPrompt(),'info'); }
+}
+async function loadSecureMistake(m, epoch){
+    mistakesClient=GoOdysseyG076NonMapSteps.createClient({basePath:'/api/g076/mistakes'});
+    const client=mistakesClient;
+    mistakesToken=null; mistakesCursor=null; mistakesPending=null;
+    solved=true; answering=true; currentProblem=null; currentNode=null;
+    hideBtn('btn-answer'); hideBtn('btn-alt-report');
+    try{
+        const issue=await mistakesRequest('/attempt',{question_id:m.question_id});
+        if(epoch!==mistakesEpoch)return;
+        mistakesToken=issue.attempt_token;
+        const value=await client.open('mistakes',mistakesToken);
+        if(epoch!==mistakesEpoch)return;
+        mistakesDraw(value); mistakesAccept(value);
+    }catch(error){if(epoch===mistakesEpoch)mistakesBlocked(error);}
+}
+async function playSecureMistake(x,y,retry=false){
+    if(answering || !mistakesClient || (!retry && (solved||mistakesPending)))return;
+    const epoch=mistakesEpoch, client=mistakesClient;
+    answering=true;
+    if(!retry) mistakesPending={x,y};
+    try{
+        const point=mistakesPending;
+        const value=await (retry?client.retry():client.play(x,y));
+        if(epoch!==mistakesEpoch)return;
+        playStone(point.x,point.y,playerColor);
+        if(value.opponent_reply) playStone(...value.opponent_reply,playerColor==='B'?'W':'B');
+        mistakesPending=null; hideBtn('btn-step-retry'); mistakesAccept(value);
+        if(solved){
+            // Read actual durable counters; never purify locally from a verdict.
+            const response=await fetch('/api/mistakes',{credentials:'same-origin',cache:'no-store'});
+            if(!response.ok)throw new Error('mistakes_counter_refresh_required');
+            const list=await response.json();
+            if(epoch!==mistakesEpoch)return;
+            const actual=list.find(item=>item.question_id===currentMistake.question_id);
+            if(actual){currentMistake.correct_after=actual.correct_after;
+                document.getElementById('q-correct-after').textContent=I18n.t('mk.purifyCount').replace('{n}',actual.correct_after||0);}
+        }
+    }catch(error){
+        if(epoch!==mistakesEpoch)return;
+        mistakesBlocked(error);
+        if(mistakesPending)showBtn('btn-step-retry');
+    }
+}
+async function showSecureAnswer(){
+    if(!solved || !mistakesCursor?.settlement)return;
+    const epoch=mistakesEpoch;
+    try{
+        const value=await mistakesRequest('/answer',{flow:'mistakes',attempt_token:mistakesToken});
+        if(epoch!==mistakesEpoch)return;
+        if(value.settled!==true)throw new Error('missing_settlement');
+        currentProblem=parseSGF(value.content);
+        showLegacyAnswer();
+    }catch(error){if(epoch===mistakesEpoch)mistakesBlocked(error);}
+}
 function resetBoard(){
+    if(mistakesProtocol!=='legacy'){
+        if(currentMistake)loadMistake(currentMistake); // resume server cursor, never restart
+        return;
+    }
     if(!currentProblem)return;
     solved=false;answering=false;
     _altAnswerReportMode=false;
@@ -1126,6 +1231,8 @@ function resetBoard(){
 // 載入題目
 // ═══════════════════════════════════════════════════════════════
 function loadMistake(m){
+    const epoch=++mistakesEpoch;
+    hideBtn('btn-step-retry');
     currentMistake=m;
     window.SGFReportWidget?.setContext({
         question_id: Number(m.question_id),
@@ -1164,6 +1271,8 @@ function loadMistake(m){
     closeProblemReportPanel();
     updateNavBtns();
 
+    if(mistakesProtocol==='steps'){loadSecureMistake(m,epoch);return;}
+    if(mistakesProtocol!=='legacy' || m.board_only){mistakesBlocked(new Error('mistakes_configuration_hold'));return;}
     currentProblem=parseSGF(m.content);
     if(!currentProblem){setMsg(I18n.t('mk.brokenScroll'),'warn');return;}
     playerColor=currentProblem.pl;
@@ -1183,6 +1292,10 @@ function loadMistake(m){
 // ═══════════════════════════════════════════════════════════════
 function onBoardClick(bx,by){
     const x=_ox(bx), y=_oy(by);
+    if(mistakesProtocol!=='legacy'){
+        if(mistakesProtocol==='steps')playSecureMistake(x,y);
+        return;
+    }
     if (window.SGFReportWidget?.consumeBoardMove?.({x, y})) return;
     if(_altAnswerReportMode){
         if(x>=0 && y>=0 && x<boardSize && y<boardSize) submitAlternativeAnswerReport({x,y});
@@ -1318,6 +1431,7 @@ function petReact(event) {
 }
 
 async function submitSRS(grade){
+    if(mistakesProtocol!=='legacy')throw new Error('mistakes_server_steps_required');
     if(!currentMistake)return;
     const res = await fetch('/api/srs/review',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({question_id:currentMistake.question_id,grade})});
@@ -1418,6 +1532,10 @@ function nextQ(){
 // 看答案
 // ═══════════════════════════════════════════════════════════════
 function showAnswer(){
+    if(mistakesProtocol!=='legacy'){showSecureAnswer();return;}
+    showLegacyAnswer();
+}
+function showLegacyAnswer(){
     if(!currentProblem||!currentProblem.tree)return;
     answering=true;solved=true;
 
@@ -2001,7 +2119,12 @@ window.onload = async () => {
 
     // ── 核心：載入錯題列表（失敗才顯示紅色錯誤）──
     try{
-        const raw=await fetch('/api/mistakes',{credentials:'include'}).then(r=>r.json());
+        const capability=await mistakesRequest('/capability');
+        if(!['legacy','steps'].includes(capability.mode))throw new Error('mistakes_configuration_hold');
+        mistakesProtocol=capability.mode;
+        const response=await fetch('/api/mistakes',{credentials:'include',cache:'no-store'});
+        if(!response.ok)throw new Error('mistakes_list_unavailable');
+        const raw=await response.json();
         allMistakes=Array.isArray(raw)?raw:[];
         applyFilter();
         setNpc(allMistakes.some(m=>m.correct_after===0) ? 'greet' : 'allClear');

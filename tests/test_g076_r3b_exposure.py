@@ -155,6 +155,13 @@ def test_off_preserves_legacy_content_and_shape(api, monkeypatch, path, flag):
         return
     assert response.status_code == 200
     data = question_data(response)
+    if path == '/api/mistakes' and flag == 'unknown':
+        # B3: undefined all-site gate cannot be assumed disabled; the
+        # standalone Mistakes gate responds HOLD and never leaks full SGF.
+        assert data['content'] == board_only_sgf(SGF)
+        assert data['board_only'] is True
+        assert 'SECRET' not in response.get_data(as_text=True)
+        return
     assert data['content'] == SGF
     assert 'board_only' not in data
     if path == '/serialize-trial':
