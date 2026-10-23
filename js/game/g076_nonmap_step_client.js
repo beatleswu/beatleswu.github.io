@@ -1,4 +1,4 @@
-/* Independent dormant Practice/Daily client. No index.html registration yet. */
+/* Server-step client. Product index.html activates only ordinary Practice. */
 (function (global) {
   'use strict';
   function createClient({fetchImpl = global.fetch.bind(global)} = {}) {

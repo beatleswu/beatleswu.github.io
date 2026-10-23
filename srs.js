@@ -326,6 +326,11 @@ const SRS = (() => {
         return data;
     }
 
+    function acceptPracticeSettlement(qid, srs, correct) {
+        _allCards[qid] = {...(_allCards[qid] || {}), ...srs, question_id:qid, last_grade:correct?5:0};
+        if (correct && _dueSet) _dueSet.delete(qid);
+    }
+
     function dispatchReviewPresentation(data, { onError } = {}) {
         if (!_presentationDispatcher || typeof _presentationDispatcher.dispatch !== 'function') {
             throw new Error('presentation_dispatcher_unavailable');
@@ -456,7 +461,7 @@ const SRS = (() => {
     return {
         GRADE, DIFFICULTY_ORDER, MONSTER_AVATARS, QUEST_COLORS,
         init, isDue, isSeen, markSeen, getCard, getBadgeDef, isEarned, allDefs, allEarned,
-        review, practiceAnswer, dispatchReviewPresentation, loadQuests, reportUnitProgress,
+        review, practiceAnswer, acceptPracticeSettlement, dispatchReviewPresentation, loadQuests, reportUnitProgress,
         questionRevision, quarantineQuestion, isQuestionQuarantined,
         clearSessionQuarantine, findNextAvailableQuestion, recordRejectedAnswer,
         diffBadge, intervalLabel, badgeHtml, monsterHtml, questListHtml

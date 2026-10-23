@@ -22,6 +22,34 @@ class StepDecision:
     reason: str = ""
 
 
+def validate_step_question(question, *, player_color, board_size):
+    """Reject unsupported branches before disclosing even a committed reply."""
+    try:
+        root = _question_answer_tree(question['content'])
+        pending = [(root, 0)]
+        count = 0
+        while pending:
+            node, depth = pending.pop()
+            count += 1
+            if count > 5000 or depth >= 100 or not node.children:
+                raise StepAuthorityUnavailable('unsupported_step_tree')
+            seen = set()
+            for child in node.children:
+                if child.move is None or child.move.color != player_color:
+                    raise StepAuthorityUnavailable('unsupported_step_tree')
+                pair = _reply_coord(child.move, board_size)
+                if pair in seen:
+                    raise StepAuthorityUnavailable('duplicate_player_branch')
+                seen.add(pair)
+                decision, following = _advance(question, root, node, player_color, pair, board_size)
+                if decision.status == 'CONTINUE':
+                    pending.append((following, depth + 1))
+    except StepAuthorityUnavailable:
+        raise
+    except Exception as error:
+        raise StepAuthorityUnavailable('unsupported_step_tree') from error
+
+
 def _coordinate(pair, size):
     if (
         not isinstance(pair, (tuple, list))

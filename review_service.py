@@ -52,6 +52,20 @@ from review_contracts import (
 )
 
 
+class PracticeReviewService:
+    """Dispatch to the existing Practice writer on the caller's transaction.
+
+    Practice evidence does not grant progression. Keep it out of the legacy
+    Map Battle review command, whose operation owns an independent connection.
+    """
+
+    def __init__(self, operation):
+        self._operation = operation
+
+    def review(self, conn, **kwargs):
+        return self._operation(conn, **kwargs)
+
+
 class ReviewServiceStatus(str, Enum):
     """Service-facing result classification (backend packet, section 3)."""
 

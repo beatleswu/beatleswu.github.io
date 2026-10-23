@@ -16918,6 +16918,8 @@ def _practice_question_by_id(question_id):
 
 
 def _practice_error_response(error):
+    if hasattr(error, 'response_payload'):
+        return jsonify(error.response_payload), int(error.status)
     return jsonify({
         'error': getattr(error, 'code', 'practice_answer_unavailable'),
         'code': getattr(error, 'code', 'practice_answer_unavailable'),
@@ -16948,6 +16950,8 @@ def srs_practice_attempt():
     to bind the later moves to the authenticated player, exact canonical
     question identity, immutable revision, and one answer-event nonce.
     """
+    if _g076_practice_enabled():
+        return _g076_practice_issue()
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({'error': 'practice_question_required', 'code': 'practice_question_required'}), 400
@@ -17000,6 +17004,8 @@ def srs_practice_answer():
     the browser.  Correctness, canonical identity, trust marker, submission
     identity and all SRS values are reconstructed server-side.
     """
+    if _g076_practice_enabled():
+        return jsonify(error='practice_steps_required'), 409
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({'error': 'practice_answer_required', 'code': 'practice_answer_required'}), 400
@@ -17085,79 +17091,113 @@ def srs_practice_answer():
                 'upgrade_url': '/upgrade',
             }), 403
 
+    try:
+        with get_db() as conn:
+            payload = _persist_practice_review(conn, uid=uid, question=question,
+                attempt=attempt, canonical=canonical, judge=judge, response_ms=response_ms)
+            conn.commit()
+        return jsonify(payload)
+    except PracticeAttemptError as error:
+        return _practice_error_response(error)
+
+
+def _practice_premium_in_transaction(conn, uid):
+    """Existing entitlement policy on the borrowed Practice connection."""
+    row = conn.execute('SELECT plan,premium_until FROM users WHERE id=?', (uid,)).fetchone()
+    if row is None:
+        raise PracticeAttemptError('authentication_required', status=401)
+    return _premium_live_from_fields(row['plan'], row['premium_until'],
+                                     admin_override=bool(session.get('is_admin')))
+
+
+def _persist_practice_review(conn, *, uid, question, attempt, canonical, judge, response_ms=None):
+    """Existing Practice writer with borrowed transaction, no connection/commit.
+
+    Shared by legacy answer and G076 steps. Practice grants zero XP, as before.
+    """
+    question_id = int(attempt['question_id'])
+    source_record_uuid = attempt['source_record_uuid']
+    submission_id = practice_submission_id(attempt)
+    source_context = practice_source_context(attempt)
+    submission_payload_hash = canonical_payload_digest(practice_submission_payload(
+        attempt=attempt, canonical=canonical,
+        authoritative_grade=int(judge.authoritative_grade)))
+    premium_entitled = _practice_premium_in_transaction(conn, uid)
+    if not premium_entitled and not question_is_free(question):
+        raise PracticeAttemptError('premium_required', status=403)
     now = datetime.datetime.now().isoformat()
     ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
-    with get_db() as conn:
-        if not premium_entitled:
-            _lock_user_for_daily_quota(conn, uid)
-            snapshot = _daily_quota_snapshot_in_transaction(conn, uid)
-            rejection = _daily_quota_rejection(snapshot)
-            if rejection:
-                return jsonify(rejection), 429
-        # Re-check identity inside the write transaction.  This is a read-only
-        # identity gate; no alias or UUID row is created here.
-        if _practice_identity_for_write(conn, question_id) != source_record_uuid:
-            return _practice_error_response(PracticeAttemptError(
-                'practice_identity_mismatch', status=409,
-                reason_code='identity_changed_before_persist',
-            ))
-        player_row = conn.execute(
-            'SELECT elo_rating FROM users WHERE id=?', (uid,)
-        ).fetchone()
-        player_rating_snapshot = float(player_row['elo_rating'] or 1400) if player_row else 1400.0
-        question_rating_snapshot = rank_to_rating(
-            question.get('rank') or question.get('difficulty')
+    if not premium_entitled:
+        _lock_user_for_daily_quota(conn, uid)
+        snapshot = _daily_quota_snapshot_in_transaction(conn, uid)
+        rejection = _daily_quota_rejection(snapshot)
+        if rejection:
+            error = PracticeAttemptError('daily_limit', status=429)
+            error.response_payload = rejection
+            raise error
+    # Re-check identity inside the write transaction.  This is a read-only
+    # identity gate; no alias or UUID row is created here.
+    if _practice_identity_for_write(conn, question_id) != source_record_uuid:
+        raise PracticeAttemptError(
+            'practice_identity_mismatch', status=409,
+            reason_code='identity_changed_before_persist',
         )
-        review_insert = insert_review_log_with_identity(
-            conn,
-            user_id=uid,
-            question_id=question_id,
-            grade=int(judge.authoritative_grade),
-            topic=question.get('topic', ''),
-            level=question.get('level', ''),
-            difficulty=question.get('difficulty', ''),
-            reviewed_at=now,
-            response_ms=response_ms,
-            discipline=question.get('discipline') or 'whole_board',
-            player_rating_snapshot=player_rating_snapshot,
-            question_rating_snapshot=question_rating_snapshot,
-            item_rating_version=ITEM_RATING_VERSION,
-            question_version=str(question.get('source') or question_id),
-            source_context=source_context,
-            is_scaffolding=0,
-            training_set_id=None,
-            submission_id=submission_id,
-            submission_payload_hash=submission_payload_hash,
-        )
-        if not review_insert['inserted']:
-            existing_submission = review_insert['existing']
-            if existing_submission['submission_payload_hash'] != submission_payload_hash:
-                return _review_submission_conflict_response(submission_id)
-            return jsonify(_practice_duplicate_payload(existing_submission))
+    player_row = conn.execute(
+        'SELECT elo_rating FROM users WHERE id=?', (uid,)
+    ).fetchone()
+    player_rating_snapshot = float(player_row['elo_rating'] or 1400) if player_row else 1400.0
+    question_rating_snapshot = rank_to_rating(
+        question.get('rank') or question.get('difficulty')
+    )
+    review_insert = insert_review_log_with_identity(
+        conn,
+        user_id=uid,
+        question_id=question_id,
+        grade=int(judge.authoritative_grade),
+        topic=question.get('topic', ''),
+        level=question.get('level', ''),
+        difficulty=question.get('difficulty', ''),
+        reviewed_at=now,
+        response_ms=response_ms,
+        discipline=question.get('discipline') or 'whole_board',
+        player_rating_snapshot=player_rating_snapshot,
+        question_rating_snapshot=question_rating_snapshot,
+        item_rating_version=ITEM_RATING_VERSION,
+        question_version=str(question.get('source') or question_id),
+        source_context=source_context,
+        is_scaffolding=0,
+        training_set_id=None,
+        submission_id=submission_id,
+        submission_payload_hash=submission_payload_hash,
+    )
+    if not review_insert['inserted']:
+        existing_submission = review_insert['existing']
+        if existing_submission['submission_payload_hash'] != submission_payload_hash:
+            raise PracticeAttemptError('submission_conflict', status=409)
+        return _practice_duplicate_payload(existing_submission)
 
-        # SRS is scheduling state and is updated for both outcomes.  Practice
-        # owns its own judging, identity and idempotency above, then delegates
-        # the scheduling write to the one canonical srs_cards writer inside
-        # this same transaction (Incident 003G).  NEVER: the sticky
-        # progress_credited flag is preserved but never set by the practice
-        # path; trusted Adventure/leaderboard readers consume the
-        # server-written review evidence above.  Practice enters no Map Battle
-        # ledger and triggers no reward or progression side effect.
-        _practice_srs_outcome = apply_srs_scheduling(
-            conn,
-            user_id=uid,
-            question_id=question_id,
-            grade=int(judge.authoritative_grade),
-            now=now,
-            progress_credit_policy=ProgressCreditPolicy.NEVER,
-        )
-        ef = _practice_srs_outcome.ease_factor
-        interval = _practice_srs_outcome.interval
-        repetitions = _practice_srs_outcome.repetitions
-        due = _practice_srs_outcome.due_date
-        conn.commit()
+    # SRS is scheduling state and is updated for both outcomes.  Practice
+    # owns its own judging, identity and idempotency above, then delegates
+    # the scheduling write to the one canonical srs_cards writer inside
+    # this same transaction (Incident 003G).  NEVER: the sticky
+    # progress_credited flag is preserved but never set by the practice
+    # path; trusted Adventure/leaderboard readers consume the
+    # server-written review evidence above.  Practice enters no Map Battle
+    # ledger and triggers no reward or progression side effect.
+    _practice_srs_outcome = apply_srs_scheduling(
+        conn,
+        user_id=uid,
+        question_id=question_id,
+        grade=int(judge.authoritative_grade),
+        now=now,
+        progress_credit_policy=ProgressCreditPolicy.NEVER,
+    )
+    ef = _practice_srs_outcome.ease_factor
+    interval = _practice_srs_outcome.interval
+    repetitions = _practice_srs_outcome.repetitions
+    due = _practice_srs_outcome.due_date
 
-    return jsonify({
+    return {
         'ok': True,
         'duplicate': False,
         'submission_id': submission_id,
@@ -17172,7 +17212,8 @@ def srs_practice_answer():
             'repetitions': repetitions,
             'due_date': due,
         },
-    })
+    }
+
 
 
 def _review_submission_duplicate_response(row):
@@ -33437,6 +33478,19 @@ def _start_community_leaderboard_weekly_scheduler():
 
 _startup_diagnostics.mark('app_module_import', 'success')
 
+
+# G076 Practice has its own explicit activation; no runtime schema mutation.
+from g076_practice_product import install as _install_g076_practice, selected as _g076_practice_selected
+
+def _g076_practice_enabled():
+    return _g076_practice_selected(os.environ)
+
+_g076_practice_issue = _install_g076_practice(app, globals(), os.environ)
+
+@app.route('/js/game/g076_nonmap_step_client.js')
+def serve_g076_nonmap_step_client_js():
+    return send_from_directory(os.path.join(app.root_path, 'js', 'game'),
+                               'g076_nonmap_step_client.js', mimetype='application/javascript')
 
 if __name__ == '__main__':
     init_db()

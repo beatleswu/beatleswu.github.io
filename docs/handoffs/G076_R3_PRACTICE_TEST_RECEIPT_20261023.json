@@ -1,0 +1,121 @@
+{
+  "schema": "g076-practice-product-evidence-v1",
+  "status": "BOUNDED_PRACTICE_STAGE_PASS",
+  "overall_r3": "HOLD",
+  "base_commit": "b5f4fed440aca85c451a9ccc22c8ef816b9cce74",
+  "branch": "g076-r3b-codex-security",
+  "tests": {
+    "pytest": {
+      "passed": 268,
+      "failed": 0,
+      "skipped": 1,
+      "junit": "artifacts/g076-practice/acceptance-04.xml",
+      "junit_sha256": "c27c6547f2a9ac9466aade6fee7d200298ff3d3fea2d63d722d55280ee6cc147",
+      "argv": [
+        "C:/Users/beatl/AppData/Local/Programs/Python/Python312/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_g076_practice_product.py",
+        "tests/test_g076_nonmap_steps.py",
+        "tests/test_g076_nonmap_live_http.py",
+        "tests/test_incident_002_practice_answer_authority.py",
+        "tests/test_g076_server_step_authority.py",
+        "tests/test_g076_r3b_exposure.py",
+        "tests/test_g076_answer_privacy_contract.py",
+        "-q",
+        "--basetemp=artifacts/g076-practice/acceptance-04",
+        "--junitxml=artifacts/g076-practice/acceptance-04.xml"
+      ],
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "G076_LOCAL_PG_TEST": "1"
+      },
+      "product_postgres_cases": 16
+    },
+    "map_index_node_checks": 13,
+    "map_client_node_checks": 7,
+    "static_syntax": "PASS",
+    "diff_check": "PASS"
+  },
+  "tested_source_sha256": {
+    "app.py": "5fe6619555a151241ce3b8b734a047adca737223257c7244dc3a202d5fd097d0",
+    "g076_practice_product.py": "084d7813845115cae6183c9a77d20a3d1b7c0828b360b6f1029fd11521bebd40",
+    "g076_nonmap_steps.py": "a3ea745bace448e97c8b09a64956e4b439f2f22a8d4340f2f228fe098ee5f065",
+    "g076_server_step_authority.py": "e19e2d08971d4064babdb7cfc108b6f7954907ab782b5774c0f8045c841cb167",
+    "index.html": "552bc26d3abc7c6762818a9518d5c33102dad13fe178b11b4358e6502665e05a",
+    "js/game/g076_nonmap_step_client.js": "09b15d68921db6a92f293cc6cac08a760d51804479627e94cdf1f6ca7b2b39d5",
+    "review_service.py": "7dc8d7bf0dae4b8a7a2f8d5764cdb2fe633ad33ac8e2c60dd9a06a6683df8860",
+    "srs.js": "8ce11bdee16917aff2c1478db36faa8fa83a71d45dbdc495af06e331d59321ce",
+    "migrations/g076_practice_steps_v1.py": "44bc30e8f98e659b7edd045b6ba8a5148aa6c5b7af1b19d2e2630b14e57595b1",
+    "tests/test_g076_practice_product.py": "e396286c12262efe6f31a8a227f9105acc0271be224f47158654deb44ba8fe80",
+    "tests/test_g076_nonmap_steps.py": "b8d2b9eed849ee1fda3138ceb7ab17cb5de28dcba34f4756a8aa6ae9a72ebe6b",
+    "tests/e2e/g076_practice_real_index.mjs": "f544b3cff9fe990c614e86e64b6fb0751c6ba6804cf40675817dc3785b7420cf",
+    "tests/e2e/g076_r3_real_index_adapter.mjs": "f2a25881b2ca2dc2c0386abce652be26c077ef656355cf6d22db86dfa1e937d9"
+  },
+  "browser": {
+    "status": "PASS",
+    "checks": [
+      "actual index loadQuestion activates Practice",
+      "actual WGo canvas",
+      "initial board has no answer tree",
+      "physical canvas click -> server CONTINUE and opponent reply",
+      "reload restores committed prefix",
+      "lost response does not paint or grade locally",
+      "committed daily score recovered after response loss",
+      "same request retry displays server correct, result mark and SRS interval",
+      "Practice awards zero XP",
+      "existing school progress read model",
+      "terminal reload recovers recorded result",
+      "wrong terminal displays real cross mark and no XP",
+      "partial activation explicitly HOLDs without local grading fallback"
+    ],
+    "errors": [
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_FAILED"
+    ],
+    "scope": "unmodified index.html; unrelated account onboarding onload suppressed; actual Practice loadQuestion and WGo mouse clicks"
+  },
+  "artifact_sha256": {
+    "artifacts/g076-practice/browser-result.json": "87826a46196b16a04f45bc91fd732d201c515d1e53e2c3ef87afe991962f53a0",
+    "artifacts/g076-practice/correct-index.png": "63ee3dfd613a2734011949e960b434e987fa4f95a7d4b604d00693ed7629c854",
+    "artifacts/g076-practice/wrong-index.png": "d269ea8a16d85e18b8161ecc35b016cad3a0d817ac7b619c1e01bc386c33a3f8",
+    "artifacts/g076-practice/map-index-regression.txt": "30a4e0277c1b8239c20fb604e166012f3b8d6ad4f563ba88706a31f9df1af3ca",
+    "artifacts/g076-practice/map-client-regression.txt": "521a5525155442f2cc35488c814349bc5463abf173cbcb49ae0de19abc2ce095"
+  },
+  "postgres": {
+    "image": "postgres:16-alpine",
+    "container_id": "0109b1fbd187006891d39f7995416d8512dda3e58df5d19f3b353eea11e8ccac",
+    "name": "g076-practice-codex-local-20261023",
+    "endpoint": "127.0.0.1:55493",
+    "mounts": [],
+    "product_database_url_used": false,
+    "container_stopped_and_removed": true
+  },
+  "no_push_pr_merge_deploy_production_writes": true,
+  "protected_packaging_files_unchanged": true,
+  "remaining_blockers_report": "docs/handoffs/G076_R3_PRACTICE_PRODUCT_20261023.md",
+  "tested_source_git_blob": {
+    "app.py": "8e49bf82eb169c7682925370edf11eb489d3af4a",
+    "g076_practice_product.py": "702ee12bf119229e15392fe15546aa03d5c96ebd",
+    "g076_nonmap_steps.py": "3b55688d27bbd77573ccedc3c50ba47b7a40163e",
+    "g076_server_step_authority.py": "0e2d6cb884e0c91e4acaee4185f87e39bbc8924a",
+    "index.html": "f87dce80fff4df84db95fcf776f5ce89885c256f",
+    "js/game/g076_nonmap_step_client.js": "3213ed3de2e6c2cbcc0337c50d07f934e1e6b795",
+    "review_service.py": "2515201a73e403bdb02cf227439bda17e0a6e115",
+    "srs.js": "5eb7f9abbb52249a5df7c7d89231e449fdbb2766",
+    "migrations/g076_practice_steps_v1.py": "f9ab96f82b7a15580478d3d563aba0af423a479c",
+    "tests/test_g076_practice_product.py": "4d56a09d4e3f4bbf50ac932e4441d8d95a9002ee",
+    "tests/test_g076_nonmap_steps.py": "06f040a62c706ec389fa78c108e613122df6e680",
+    "tests/e2e/g076_practice_real_index.mjs": "74da89061064c7ddc05cb4935c1fbb5d96f0a8b5",
+    "tests/e2e/g076_r3_real_index_adapter.mjs": "b013f6e69e4e806c79cd287f8ba1e47d2de75457"
+  },
+  "staged_source_matches_tested_windows_bytes_after_git_newline_normalization": true
+}

@@ -134,9 +134,9 @@ check('secure flow never calls legacy submit without settlement',()=>{
   assert.match(index,/await _submitMapBattleV1IfActive\(\[\], verdict\.battle_settlement\)/);
 });
 check('hints, answer reveal, reset fail closed for server steps',()=>{
-  assert.match(index,/function resetProblem\(\)\{\s*if \(_g076StepUseServer/);
-  assert.match(index,/function showAnswer\(\)\{\s*if \(_g076StepUseServer/);
-  assert.match(index,/async function useHintTicket\(\)\{\s*if \(_g076StepUseServer/);
+  assert.match(index,/function resetProblem\(\)\{[\s\S]*?if \(_g076StepUseServer/);
+  assert.match(index,/function showAnswer\(\)\{[\s\S]*?if \(_g076StepUseServer/);
+  assert.match(index,/async function useHintTicket\(\)\{[\s\S]*?if \(_g076StepUseServer/);
 });
 check('true gameplay onBoardClick dispatches to server before SGF matching',async()=>{
   const start=index.indexOf('function onBoardClick(bx,by)');
@@ -145,7 +145,7 @@ check('true gameplay onBoardClick dispatches to server before SGF matching',asyn
   const seen=[];
   const ctx=vm.createContext({
     _ox:x=>x,_oy:y=>y,window:{SGFReportWidget:null},
-    _questionBoardFailedClosed:false,answering:false,
+    _questionBoardFailedClosed:false,answering:false,_g076Practice:null,_g076PracticeHold:false,
     currentNode:{children:[{move:{x:0,y:0}}]},
     logicBoard:[],_koPoint:null,playerColor:'B',
     _wouldBeSuicide:()=>false,_g076StepUseServer:true,

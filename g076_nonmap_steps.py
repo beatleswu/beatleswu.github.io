@@ -1,12 +1,13 @@
-"""Independent G076 Practice/Daily step bridge. PRODUCT INTEGRATION HOLD.
+"""G076 transactional Practice/Daily step bridge.
 
-No application registration, schema creation, environment changes or autonomous
-reward writer. An integrator MUST supply owner/entitlement resolution and the
+Practice product registration lives in g076_practice_product; Daily remains
+unintegrated. No schema creation or autonomous reward writer. Callers supply
+owner/entitlement resolution and the
 existing mode's settlement adapter on the SAME connection/transaction. A callback
 must not commit, open another connection, or perform external side effects.
 SQLite callers use BEGIN IMMEDIATE; PostgreSQL callers use a transaction and
 the repository's qmark connection adapter. Failures must roll back the whole
-transaction, including settlement. Fixtures are the only schema consumers now.
+transaction, including settlement. Migration is separately explicitly gated.
 """
 from dataclasses import dataclass
 import hashlib
@@ -14,7 +15,7 @@ import hmac
 import json
 
 from g076_question_privacy import board_only_sgf, privacy_enforced
-from g076_server_step_authority import adjudicate_next_step, StepAuthorityUnavailable
+from g076_server_step_authority import adjudicate_next_step, validate_step_question, StepAuthorityUnavailable
 from map_battle_runtime import question_revision_for, MapBattleRuntimeError
 from practice_answer_authority import (
     verify_practice_attempt, canonicalize_practice_answer, judge_practice_answer,
@@ -116,7 +117,11 @@ def _validate(ctx):
             ctx.question.get('katago_best_move')):
         raise NonMapRejected('alternative_answer_step_policy_unavailable', 422)
     try:
-        return board_only_sgf(ctx.question['content'])
+        preview = board_only_sgf(ctx.question['content'])
+        validate_step_question(ctx.question, player_color=a['player_color'], board_size=a['board_size'])
+        return preview
+    except StepAuthorityUnavailable as error:
+        raise NonMapRejected('unsupported_step_question', 422) from error
     except (ValueError, KeyError) as error:
         raise NonMapRejected('question_preview_unavailable', 422) from error
 
@@ -165,11 +170,6 @@ def open_steps(conn, ctx, *, secret, settle):
     if not callable(settle):
         raise NonMapRejected('mode_settlement_unavailable', 503)
     row, preview = _session(conn, ctx, secret, create=True)
-    if row['state'] == 'SETTLED':
-        event = _event(conn, row['id'], row['step_index'] - 1)
-        if not event:
-            raise NonMapRejected('step_event_missing', 503)
-        return _response(event, secret, row, True)
     history = json.loads(row['history_json'])
     if len(history) != row['step_index']:
         raise NonMapRejected('invalid_server_history', 503)
@@ -180,6 +180,11 @@ def open_steps(conn, ctx, *, secret, settle):
             raise NonMapRejected('step_event_missing', 503)
         value = json.loads(event['response_json'])
         previous.append({'player_move': move, 'opponent_reply': value['opponent_reply']})
+    if row['state'] == 'SETTLED':
+        value = _response(_event(conn, row['id'], row['step_index'] - 1), secret, row, True)
+        value.update(content=preview, board_only=True, board_size=ctx.attempt['board_size'],
+                     player_color=ctx.attempt['player_color'], previous_steps=previous)
+        return value
     return {'status': 'READY', 'step_index': row['step_index'],
             'step_nonce': _nonce(secret, row, row['step_index']),
             'content': preview, 'board_only': True,
@@ -269,7 +274,7 @@ def submit_step(conn, ctx, data, *, secret, settle):
 
 
 def create_blueprint(*, transaction, resolve, settle, secret, environ):
-    """Dormant HTTP adapter. No registration in app.py until integration gates.
+    """HTTP adapter; product registration only admits explicitly enabled Practice.
 
     transaction() must COMMIT before the HTTP response is returned and roll back
     on ANY exception. resolve(conn, uid, flow, token) rechecks identity and rights

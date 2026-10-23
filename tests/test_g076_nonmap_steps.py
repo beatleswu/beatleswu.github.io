@@ -59,7 +59,9 @@ def test_play_resume_terminal_and_exact_retry(fixture, flow):
     assert 'step_nonce' not in final
     retry = play(fixture, first, (2, 2), flow, token).get_json()
     assert retry == {**final, 'duplicate': True}
-    assert start(fixture, flow, token).get_json() == retry
+    recovered = start(fixture, flow, token).get_json()
+    assert all(recovered[k] == v for k, v in retry.items())
+    assert recovered['board_only'] and len(recovered['previous_steps']) == 2
     assert len(rows(fixture, 'fixture_receipts')) == 1
     if flow == 'practice':
         assert final['settlement']['submission_id'].startswith('practice-v1:')
@@ -214,8 +216,7 @@ def test_concurrent_terminal_retries_settle_once(fixture, flow):
 def test_ambiguous_tree_and_explicit_failure_policy(fixture):
     fixture[1]['question']['content'] = '(;SZ[5]PL[B](;B[aa])(;B[cc]))'
     token = fixture[2]('practice')
-    cursor = start(fixture, token=token).get_json()
-    assert play(fixture, cursor, token=token).status_code == 422
+    assert start(fixture, token=token).status_code == 422
     assert rows(fixture, 'fixture_receipts') == []
     fixture[1]['question'].update(answer_policy='g065-explicit-v1',
         content='(;SZ[5]PL[B](;B[aa]C[G065:INCORRECT])(;B[cc]C[G065:CORRECT]))')
@@ -303,11 +304,12 @@ def test_cross_origin_rejected(fixture):
     assert rows(fixture, 'g076_nonmap_sessions') == []
 
 
-def test_bridge_is_not_registered_in_product():
+def test_product_bridge_is_registered_with_explicit_practice_activation():
     from g076_nonmap_fixture import ROOT
     source = (ROOT/'app.py').read_text(encoding='utf-8')
-    assert 'g076_nonmap_steps' not in source
-    assert 'g076_nonmap_step_client.js' not in (ROOT/'index.html').read_text(encoding='utf-8')
+    assert '_install_g076_practice(app, globals(), os.environ)' in source
+    assert 'g076_nonmap_step_client.js' in (ROOT/'index.html').read_text(encoding='utf-8')
+    assert 'G076_PRACTICE_STEPS_ENABLED' in (ROOT/'g076_practice_product.py').read_text()
 
 
 def test_two_different_concurrent_answers_cannot_both_win(fixture):
