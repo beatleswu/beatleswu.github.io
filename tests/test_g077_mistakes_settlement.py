@@ -50,7 +50,18 @@ def fx(tmp_path):
     xp_formula = legacy_xp()
 
     def connect():
-        c = sqlite3.connect(path, timeout=15)
+        # sqlite's context manager commits/rolls back but does not close.
+        # Close explicitly on exit so Windows can remove disposable DB files.
+        class ClosingConnection(sqlite3.Connection):
+            # The existing adapter identifies SQLite by the driver's module.
+            __module__ = 'sqlite3'
+
+            def __exit__(self, *args):
+                try:
+                    return super().__exit__(*args)
+                finally:
+                    self.close()
+        c = sqlite3.connect(path, timeout=15, factory=ClosingConnection)
         c.row_factory = sqlite3.Row
         c.create_function('GREATEST', 2, max)
         c.execute('PRAGMA foreign_keys=ON')
@@ -295,11 +306,11 @@ def test_correction_and_srs_parity_with_actual_legacy_source(fx, correct, credit
         now=now, progress_credit_policy=ProgressCreditPolicy.FIRST_PASS_ONLY,
         advance_policy=SrsAdvancePolicy.ALWAYS)
     operation = next(n for n in legacy_source().body if isinstance(n, ast.FunctionDef)
-                     and n.name == '_srs_review_operation')
+                     and n.name == '_review_learning_in_transaction')
     block = next(n for n in ast.walk(operation) if isinstance(n, ast.If) and
-                 ast.unparse(n.test) == 'internal and grade < 3')
+                 ast.unparse(n.test) == 'update_mistakes and internal and (grade < 3)')
     env = {'conn': reference, 'uid': 101, 'qid': 701, 'now': now, 'grade': grade,
-           'internal': True, 'mc': 0, 'should_grant_progress': outcome.progress_credit_granted,
+           'internal': True, 'update_mistakes': True, 'mc': 0, 'should_grant_progress': outcome.progress_credit_granted,
            'mrow': reference.execute('SELECT * FROM mistake_log').fetchone()}
     exec(compile(ast.Module(body=[block], type_ignores=[]), 'app.py:correction', 'exec'), env)
     assert rows['mistake_log'] == [dict(r) for r in reference.execute('SELECT * FROM mistake_log')]

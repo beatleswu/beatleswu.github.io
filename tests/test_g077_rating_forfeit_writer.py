@@ -253,12 +253,13 @@ class ForfeitWriterTests(unittest.TestCase):
             self.assertEqual(mode({'G076_RATING_STEPS_ENABLED':'on',key:'unknown'}),'hold')
 
     def test_off_original_functions_exactly_unchanged(self):
-        # Local B1/B3/B4 was adopted before Rating; compare every pre-existing
-        # Product function against that exact approved B1 snapshot, including
-        # its mandatory Mistakes privacy projection. B2 adds only new helpers.
+        # G079 includes approved B1 learning/Quest changes; freeze strictly
+        # the existing Rating functions, not unrelated progression functions.
+        # Original _rt and rt functions must remain byte-AST-identical.
         baseline=subprocess.check_output(['git','show','8a5101fae1ac685ce2c05b76fa330155b9631052:app.py'],cwd=ROOT).decode('utf-8-sig')
         def functions(source):
-            return {n.name:ast.dump(n) for n in ast.parse(source).body if isinstance(n,ast.FunctionDef)}
+            return {n.name:ast.dump(n) for n in ast.parse(source).body
+                    if isinstance(n,ast.FunctionDef) and n.name.startswith(('_rt_','rt_'))}
         old,new=functions(baseline),functions((ROOT/'app.py').read_text(encoding='utf-8-sig'))
         for name,node in old.items():
             self.assertEqual(new[name],node,name)
