@@ -1,5 +1,5 @@
-"""Mistakes step adapter. Product settlement remains HOLD until ReviewService
-accepts the caller's transaction without nested commits or external effects.
+"""Mistakes step adapter. Product settlement remains HOLD until the canonical
+progression writer accepts the caller's transaction and server Mistakes verdict.
 
 No runtime DDL. Injected providers MUST use the supplied connection; settle
 must preserve the existing review/reward policy, never commit or call the
@@ -55,11 +55,15 @@ def create_blueprint(*, secret, environ, services=None):
     def ready():
         if mode(environ) == 'legacy':
             raise NonMapRejected('mistakes_steps_disabled', 503)
-        if mode(environ) != 'steps' or services is None:
+        if mode(environ) != 'steps' or not services_available():
             raise NonMapRejected('mistakes_review_transaction_hold', 503)
-        if any(not callable(getattr(services, name)) for name in
-               ('transaction', 'question', 'identity', 'context', 'admit', 'settle')):
-            raise NonMapRejected('mistakes_review_transaction_hold', 503)
+
+    def services_available():
+        # A structural check only; it does not certify Product policy parity.
+        # Keep discovery and execution consistent, including partially wired ports.
+        return services is not None and all(
+            callable(getattr(services, name, None)) for name in
+            ('transaction', 'question', 'identity', 'context', 'admit', 'settle'))
 
     def rights(conn, user, question):
         # Membership is server state, not the browser's source_context.
@@ -161,7 +165,7 @@ def create_blueprint(*, secret, environ, services=None):
         except NonMapRejected as error:
             return jsonify(error=error.code), error.status
         selected = mode(environ)
-        if selected == 'hold' or (selected == 'steps' and services is None):
+        if selected == 'hold' or (selected == 'steps' and not services_available()):
             return jsonify(mode='hold', error='mistakes_review_transaction_hold'), 503
         return jsonify(mode=selected, protocol='g076-mistakes-steps-v1')
 
