@@ -37,3 +37,11 @@
 ## 目前 Gate
 
 **G076 P1 = HOLD；尚未正式發布。** 上述實測、靜態題面、安全資料縮減成果不是整個遊戲防作弊漏洞已消除的證據。C、D 持續收斂權威契約；E/F 的課程/影片和 B 題庫人工審核可以在隔離環境平行準備；V4 真正自主派工仍須端到端證據才能宣稱完成。
+
+
+## G076 第二步增量｜伺服器分步判題純核心（未接線）
+
+- 新增 `g076_server_step_authority.py`，使用既有 authoritative SGF parser 與 G065 terminal_verdict，區分「正確中途手＝CONTINUE」「真正終局＝CORRECT」「錯誤/失敗分支＝INCORRECT」「對手多分支或權威不足＝fail closed」。
+- 每手回應只含 `status`、可在已驗證作答後顯示的**唯一對手回手**及 reason，不回傳下一手正確候選集合。歷史序列只允許由**伺服器持久化狀態**提供；純引擎本身**沒有 HTTP route，也沒有資料庫寫入與一次性提交功能**。
+- 測試 `tests/test_g076_server_step_authority.py`：**15 PASS、0 FAIL**。覆蓋正確中途手與對手回手、第二手真正終局、錯誤與顯式失敗分支、偽造歷史拒絕、權威不足拒絕、非法座標與邊界。
+- 尚不得啟用或將其當成正式 Multi-step judge。下一步必須接持久化一次性 token / server-owned history / transaction version CAS / duplicate submission idempotency / 正式權益 / 第一手錯誤立即結算及成功後可授權揭示正解；否則每步 judge 可能變成新的可重試答案 oracle。
