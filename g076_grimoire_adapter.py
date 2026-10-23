@@ -52,6 +52,13 @@ def settle_node_only(conn, *, uid, question, correct, event_id, now):
     if conn.execute('SELECT 1 FROM daily_training_cache WHERE user_id=? AND date=?',
                     (uid, now[:10])).fetchone():
         raise GrimoireRejected('daily_cache_settlement_hold', 503)
+    return _settle_node_mastery(conn, uid=uid, question=question, correct=correct,
+                                event_id=event_id, now=now)
+
+
+def _settle_node_mastery(conn, *, uid, question, correct, event_id, now):
+    """Unchanged R4 mastery writer; caller owns settlement guards/transaction."""
+    from grimoire_api import calc_node_purity
     old = conn.execute('SELECT * FROM node_mastery WHERE user_id=? AND question_id=?',
                        (uid, question['id'])).fetchone()
     history = json.loads(old['last_5_history']) if old else []
