@@ -16605,6 +16605,109 @@ def map_battle_v1_answers():
     return jsonify(result)
 
 
+
+def _g076_step_enabled():
+    """Dormant G076 route; both server-authorized rollout gates required."""
+    from g076_question_privacy import privacy_enforced
+    return (
+        os.environ.get('G076_STEP_RUNTIME_ENABLED', '').strip().lower()
+        in ('1', 'true', 'on')
+        and privacy_enforced(os.environ)
+    )
+
+
+@app.route('/api/adventure/map-battles/v2/steps/start', methods=['POST'])
+@login_required
+def g076_map_battle_step_start():
+    """Start a server-owned SGF step cursor; default-disabled."""
+    if not _g076_step_enabled():
+        return jsonify({'error': 'g076_step_runtime_disabled'}), 503
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {'attempt_id', 'submission_nonce'}:
+        return jsonify({'error': 'invalid_step_request'}), 400
+    from g076_step_ledger import open_steps, StepLedgerRejected
+    try:
+        uid = int(session['user_id'])
+        with _activation_transaction() as conn:
+            _map_battle_require_enabled(uid, conn)
+            result = open_steps(
+                conn, uid=uid, attempt_id=data['attempt_id'],
+                submission_nonce=data['submission_nonce'],
+                question_loader=_map_battle_question_by_id,
+                secret=app.secret_key,
+                entitlement_admitter=_admit_map_battle_answer_entitlement)
+    except StepLedgerRejected as error:
+        return jsonify({'error': error.reason}), error.status
+    except MapBattleRuntimeError as error:
+        return _map_battle_error_response(error)
+    except Exception:
+        app.logger.exception('G076 step start backend unavailable')
+        return jsonify({'error': 'g076_step_backend_unavailable'}), 503
+    return jsonify(result)
+
+
+@app.route('/api/adventure/map-battles/v2/steps', methods=['POST'])
+@login_required
+def g076_map_battle_step_submit():
+    """Persist a step or settle once via the existing Map Battle writer.
+
+    The production schema/migration and client rollout are separate Owner
+    gates; this endpoint must never create its own tables at runtime.
+    """
+    if not _g076_step_enabled():
+        return jsonify({'error': 'g076_step_runtime_disabled'}), 503
+    data = request.get_json(silent=True)
+    fields = {
+        'attempt_id', 'submission_nonce', 'step_index', 'step_nonce', 'move',
+    }
+    if not isinstance(data, dict) or set(data) != fields:
+        return jsonify({'error': 'forbidden_step_field'}), 400
+    from g076_step_ledger import submit_step, StepLedgerRejected
+    try:
+        uid = int(session['user_id'])
+        with _activation_transaction() as conn:
+            eligibility = _map_battle_require_enabled(uid, conn)
+            result = submit_step(
+                conn, uid=uid, attempt_id=data['attempt_id'],
+                submission_nonce=data['submission_nonce'],
+                step_index=data['step_index'], step_nonce=data['step_nonce'],
+                move=data['move'],
+                question_loader=_map_battle_question_by_id,
+                secret=app.secret_key,
+                entitlement_admitter=_admit_map_battle_answer_entitlement,
+                settlement_kwargs={
+                    'mode_environ': os.environ,
+                    'eligibility': eligibility,
+                    'combat_stats_resolver': _get_authoritative_combat_stats,
+                    'monster_profile_resolver': _map_battle_monster_profile_resolver,
+                    'runtime_provider': MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
+                    'spirit_projection_resolver': build_b022_active_spirit_projection,
+                },
+            )
+    except StepLedgerRejected as error:
+        return jsonify({'error': error.reason}), error.status
+    except MapBattleRuntimeError as error:
+        return _map_battle_error_response(error)
+    except Exception:
+        app.logger.exception('G076 step settlement backend unavailable')
+        return jsonify({'error': 'g076_step_backend_unavailable'}), 503
+    if result.get('battle_settlement'):
+        # The existing progression path is idempotent by settlement identity;
+        # it runs only AFTER the authoritative battle transaction commits.
+        settled = result['battle_settlement']
+        try:
+            progress, status = _run_map_battle_progression(uid, settled)
+            result['progression'] = progress
+            if status != 200:
+                result['progression_retryable'] = True
+                return jsonify(result), status
+        except Exception:
+            app.logger.exception('G076 settled battle progression pending')
+            result['progression_retryable'] = True
+            return jsonify(result), 503
+    return jsonify(result)
+
+
 _MAP_BATTLE_PROGRESS_MARKER_PREFIX = 'mbv1:'
 
 

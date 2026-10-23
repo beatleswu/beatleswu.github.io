@@ -1,0 +1,111 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"/>
+<title>G076-R2 localhost-only Chrome WGo+HTTP acceptance</title>
+<style>body{font:16px Arial,sans-serif;background:#f3f6f9;margin:24px;color:#123}
+#board{width:340px;height:340px;background:white}#state{white-space:pre-wrap}
+main{max-width:720px;margin:auto;background:white;padding:20px;border-radius:14px}
+#result{font-size:18px;font-weight:bold}
+</style></head><body><main><h1>G076-R2｜真 HTTP＋Chrome Canvas 隔離驗收</h1>
+<div id="board"></div><h2>實際題庫 #69853</h2><div id="choice-board"></div><pre id="state">STARTING</pre><p id="result">RUNNING</p></main>
+<script src="/wgo/wgo.min.js"></script><script src="/js/game/board_renderer.js"></script>
+<script src="/js/game/g076_authoritative_step_client.js"></script>
+<script>
+(async()=>{
+  const assertions=[];
+  const ok=(name,check)=>{if(!check)throw new Error(name);assertions.push(name)};
+  try{
+    const boot=await (await fetch('/test/boot',{credentials:'same-origin'})).json();
+    const preview=await (await fetch('/api/question/7001',{credentials:'same-origin'})).json();
+    ok('preview redacted',preview.board_only===true &&
+       preview.content.indexOf(';B[')<0 && preview.content.indexOf(';W[')<0 &&
+       preview.accepted_moves.length===0 && preview.katago_best_move==='');
+    const root=GoOdysseyBoardRenderer.readSgfRoot(preview.content);
+    ok('root SGF read',root&&root.size===9&&root.annotations.length===1);
+    const board=new WGo.Board(document.getElementById('board'),{width:320,size:9});
+    for(const s of root.black)board.addObject({x:s.x,y:s.y,c:WGo.B});
+    for(const s of root.white)board.addObject({x:s.x,y:s.y,c:WGo.W});
+    GoOdysseyBoardRenderer.renderAnnotations(board,root,{startX:0,startY:0,displayLines:9});
+    ok('actual WGo Canvas drawn',Boolean(document.querySelector('#board canvas')));
+    const log=[];
+    const client=GoOdysseyG076Steps.createClient({
+      fetcher:window.fetch.bind(window),
+      onPlayerMove:m=>{board.addObject({x:m.x,y:m.y,c:WGo.B});log.push('PLAYER');},
+      onOpponentMove:m=>{board.addObject({x:m.x,y:m.y,c:WGo.W});log.push('OPPONENT');},
+      onSettlement:()=>log.push('SETTLED'),
+      onState:s=>document.getElementById('state').textContent=JSON.stringify(s)
+    });
+    await client.open({attemptId:boot.attempt_id,submissionNonce:boot.submission_nonce});
+    const hp0=await (await fetch('/test/hp')).json();
+    const prefix=await client.play(0,0);
+    const hp1=await (await fetch('/test/hp')).json();
+    ok('first correct step CONTINUE',prefix.status==='CONTINUE');
+    ok('no HP changes on correct prefix',hp0.monster_hp===hp1.monster_hp &&
+      hp0.player_hp===hp1.player_hp);
+    ok('opponent move displayed',log.join(',')==='PLAYER,OPPONENT');
+    const final=await client.play(2,2);
+    const hp2=await (await fetch('/test/hp')).json();
+    ok('second correct step settles',final.status==='CORRECT' &&
+       final.battle_settlement.accepted===true && hp2.monster_hp<hp1.monster_hp);
+    ok('one final reward callback',log.filter(x=>x==='SETTLED').length===1);
+    const replay=await fetch('/api/adventure/map-battles/v2/steps',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        attempt_id:boot.attempt_id,submission_nonce:boot.submission_nonce,
+        step_index:1,step_nonce:prefix.next_step_nonce,move:{x:2,y:2}})
+    });
+    const dup=await replay.json();
+    const hp3=await (await fetch('/test/hp')).json();
+    ok('exact replay does not duplicate HP/reward',dup.duplicate===true &&
+       hp3.monster_hp===hp2.monster_hp);
+    ok('canvas survives multistep',Boolean(document.querySelector('#board canvas')));
+    // The exact Q69853 corpus record that Claude found unplayable:
+    // 19-line board, three SGF labels, F10 correct and B10 wrong.
+    const choice=await (await fetch('/api/question/69853')).json();
+    ok('real 69853 board hides answer variations',choice.board_only===true &&
+       choice.content.indexOf(';B[')<0 && choice.content.indexOf(';W[')<0 &&
+       choice.accepted_moves.length===0);
+    const actual=GoOdysseyBoardRenderer.readSgfRoot(choice.content);
+    ok('real 69853 all 1/Y/N labels retained',
+      actual&&actual.size===19&&actual.annotations.length===3 &&
+      actual.annotations.map(a=>a.text).sort().join(',')==='1,N,Y');
+    const choiceBoard=new WGo.Board(document.getElementById('choice-board'),
+      {width:380,size:19});
+    for(const s of actual.black)choiceBoard.addObject({x:s.x,y:s.y,c:WGo.B});
+    for(const s of actual.white)choiceBoard.addObject({x:s.x,y:s.y,c:WGo.W});
+    GoOdysseyBoardRenderer.renderAnnotations(choiceBoard,actual,
+      {startX:0,startY:0,displayLines:19});
+    const choiceMarks=choiceBoard.obj_arr.flat(2);
+    ok('F10 N label visible in WGo Canvas',Boolean(
+      document.querySelector('#choice-board canvas')) &&
+      choiceMarks.some(a=>a.x===5&&a.y===9&&a.text==='N'));
+    const realGood=GoOdysseyG076Steps.createClient({
+      fetcher:window.fetch.bind(window),
+      onPlayerMove:m=>choiceBoard.addObject({x:m.x,y:m.y,c:WGo.B})});
+    await realGood.open({attemptId:boot.real_good.attempt_id,
+      submissionNonce:boot.real_good.submission_nonce});
+    const hrg0=await (await fetch('/test/hp?battle=b69853good')).json();
+    const answer69853=await realGood.play(5,9);
+    const hrg1=await (await fetch('/test/hp?battle=b69853good')).json();
+    ok('real 69853 F10 CORRECT settles monster damage',
+      answer69853.status==='CORRECT' &&
+      answer69853.battle_settlement.accepted===true &&
+      hrg1.monster_hp<hrg0.monster_hp);
+    const realBad=GoOdysseyG076Steps.createClient({
+      fetcher:window.fetch.bind(window)});
+    await realBad.open({attemptId:boot.real_bad.attempt_id,
+      submissionNonce:boot.real_bad.submission_nonce});
+    const hrb0=await (await fetch('/test/hp?battle=b69853bad')).json();
+    const bad69853=await realBad.play(1,9);
+    const hrb1=await (await fetch('/test/hp?battle=b69853bad')).json();
+    ok('real 69853 B10 INCORRECT settles player damage',
+      bad69853.status==='INCORRECT' &&
+      bad69853.battle_settlement.result==='INCORRECT' &&
+      hrb1.player_hp<hrb0.player_hp);
+    document.documentElement.dataset.g076='PASS';
+    document.getElementById('result').textContent='PASS '+assertions.length+' browser+HTTP cases';
+  }catch(e){
+    document.documentElement.dataset.g076='FAIL';
+    document.getElementById('result').textContent='FAIL '+e.message;
+    console.error(e);
+  }
+})();
+</script></body></html>
