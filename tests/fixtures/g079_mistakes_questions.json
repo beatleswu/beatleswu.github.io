@@ -1,0 +1,134 @@
+[
+ {
+  "id": 7901,
+  "source": "g079-fixture/7901.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ee];B[aa];W[bb];B[cc])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7902,
+  "source": "g079-fixture/7902.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ea]AW[ca];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7903,
+  "source": "g079-fixture/7903.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[eb]AW[cb];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7904,
+  "source": "g079-fixture/7904.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ec]AW[cc];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7905,
+  "source": "g079-fixture/7905.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ed]AW[cd];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7906,
+  "source": "g079-fixture/7906.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ee]AW[ce];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7907,
+  "source": "g079-fixture/7907.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ea]AW[da];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7908,
+  "source": "g079-fixture/7908.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[eb]AW[db];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7909,
+  "source": "g079-fixture/7909.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ec]AW[dc];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7910,
+  "source": "g079-fixture/7910.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ed]AW[dd];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7911,
+  "source": "g079-fixture/7911.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ee]AW[de];B[aa])",
+  "rank": "10k",
+  "difficulty": "10k",
+  "topic": "G079 fixture",
+  "level": "10k",
+  "discipline": "whole_board",
+  "enabled": true
+ },
+ {
+  "id": 7950,
+  "source": "g079-fixture/7950.sgf",
+  "content": "(;GM[1]FF[4]SZ[5]PL[B]AB[ee];B[aa])",
+  "rank": "5d",
+  "difficulty": "5d",
+  "topic": "G079 fixture premium",
+  "level": "5d",
+  "discipline": "whole_board",
+  "enabled": true
+ }
+]

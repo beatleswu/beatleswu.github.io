@@ -1,4 +1,8 @@
-"""Borrowed-transaction Mistakes terminal writer; deliberately NOT registered.
+"""Borrowed-transaction Mistakes terminal writer.
+
+G079: registered from app.py through g079_mistakes_services.py, which supplies
+the Product admission (ReviewFacts) and the complete remaining policy. The
+historical G077/G078 notes below describe this module's own contract.
 
 Implemented atomic subset: canonical review identity, lifetime SRS credit and
 per-attempt mistake analytics. The existing nonmap cursor/event is the durable
@@ -10,7 +14,7 @@ Review effects (including wrong-answer shields, XP/rank, quests, pet, coins and
 badges) on this connection without committing or swallowing failures. Missing
 policy is HOLD, even for an already credited card. Fixture policies are not
 Product admission. SQLite requires BEGIN IMMEDIATE; PostgreSQL requires the
-normal adapter and user/session row locks. app.py must remain services=None.
+normal adapter and user/session row locks.
 """
 from dataclasses import dataclass
 import datetime
@@ -31,6 +35,39 @@ class ReviewFacts:
     question_rating_snapshot: float | None
     item_rating_version: str
     question_version: str
+
+
+def build_learning_progression(*, learning, remaining_policy=None):
+    """Bridge the extracted real review core, held until ALL policy is supplied.
+
+    learning is app._review_learning_in_transaction, never ReviewService.
+    remaining_policy must implement quest modes, coin/food ledgers and any
+    applicable noncombat progression on this connection, with no transaction
+    lifecycle calls or swallowed failures. It returns additional XP actually
+    written, including quest XP. A callable is a dependency, not certification;
+    the Product policy is g079_mistakes_services.remaining_policy.
+    """
+    def progression(conn, ctx, verdict, event_id, srs, prior, now):
+        if not callable(learning) or not callable(remaining_policy):
+            raise NonMapRejected('mistakes_remaining_reward_policy_hold', 503)
+        if ctx.flow != 'mistakes':
+            raise NonMapRejected('mistakes_context_required', 403)
+        result = learning(
+            conn, uid=ctx.uid, qid=ctx.question['id'], q_info=ctx.question,
+            grade=verdict.authoritative_grade, now=now, internal=True,
+            submission_id=event_id,
+            should_grant_progress=srs.progress_credit_granted,
+            srs_row_existed=srs.existed, strict=True, update_mistakes=False,
+        )
+        xp = result['xp_gain']
+        if type(xp) is not int or xp < 0:
+            raise NonMapRejected('mistakes_progression_receipt_invalid', 503)
+        extra = remaining_policy(conn, ctx, verdict, event_id, srs, prior, now, result)
+        if type(extra) is not int or extra < 0:
+            raise NonMapRejected('mistakes_progression_receipt_invalid', 503)
+        return xp + extra
+
+    return progression
 
 
 def build_settlement(*, secret, admit, progression=None, advance_policy):

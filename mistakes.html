@@ -1181,6 +1181,11 @@ async function playSecureMistake(x,y,retry=false){
         playStone(point.x,point.y,playerColor);
         if(value.opponent_reply) playStone(...value.opponent_reply,playerColor==='B'?'W':'B');
         mistakesPending=null; hideBtn('btn-step-retry'); mistakesAccept(value);
+        // Display only the server receipt's written XP; never a local reward.
+        if(solved && value.settlement && value.settlement.xp_awarded>0){
+            if(!value.duplicate) spawnXpFloat(value.settlement.xp_awarded, 1);
+            setMsg('伺服器已確認完成 / Server settled  +'+value.settlement.xp_awarded+' XP','ok');
+        }
         if(solved){
             // Read actual durable counters; never purify locally from a verdict.
             const response=await fetch('/api/mistakes',{credentials:'same-origin',cache:'no-store'});

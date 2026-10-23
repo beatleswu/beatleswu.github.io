@@ -3855,6 +3855,11 @@ QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE = EXTERNAL_AUTHORITATIVE_MAP_B
 QUEST_CORRECTNESS_SOURCE_LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE = (
     'LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE'
 )
+# G079: the server step judge of the Mistakes mode (never a request field).
+# It carries answer correctness only: no monster, defeat or battlefield scope.
+QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MISTAKES = (
+    'AUTHORITATIVE_MISTAKES_STEP_SETTLEMENT'
+)
 
 
 def _apply_quest_v2_review_events(
@@ -3881,7 +3886,11 @@ def _apply_quest_v2_review_events(
 
     if not quest_v2_runtime_enabled():
         return ()
-    if correctness_source != QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE:
+    mistakes_source = (
+        correctness_source == QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MISTAKES
+    )
+    if (correctness_source != QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE
+            and not mistakes_source):
         return ()
     if not isinstance(authoritative_answer_correct, bool):
         return ()
@@ -3891,6 +3900,23 @@ def _apply_quest_v2_review_events(
         return ()
     if not isinstance(occurred_at, datetime.datetime) or occurred_at.tzinfo is None:
         raise QuestRuntimeError('quest_event_timestamp_must_be_server_aware')
+    if mistakes_source:
+        # Mistakes has no encounter: only the judged answer event, outside the
+        # daily-battlefield scope, so kill/dragon quests can never advance.
+        return (
+            apply_quest_runtime_event(
+                conn,
+                event=build_review_settlement_event(
+                    user_id=int(uid),
+                    submission_id=submission_id,
+                    occurred_at=occurred_at.isoformat(),
+                    correct=authoritative_answer_correct,
+                    monster_family=None,
+                    source_scope='mistakes',
+                ),
+                server_now=occurred_at,
+            ),
+        )
     monster = (monster_data or {}).get('monster') or {}
     settlement = (monster_data or {}).get('monster_settlement') or {}
     monster_family = str(
@@ -33740,10 +33766,16 @@ def _g076_practice_enabled():
 
 _g076_practice_issue = _install_g076_practice(app, globals(), os.environ)
 
-# No production adapter is admitted: the current ReviewService owns multiple
-# commits. Never substitute Practice's zero-XP writer for Mistakes rewards.
+# G079: complete Mistakes services. One borrowed transaction covers rights/
+# quota admission, review_log, SRS, the learning core, daily quests, quest XP,
+# capped coins, Quest V2 and the step receipt. OFF (flag unset) keeps the
+# legacy /api/mistakes and /api/srs/review behavior; these routes then 503.
+# Schema: migrations/g079_mistakes_steps_v1.py (explicit operator gate).
 from g076_mistakes_product import create_blueprint as _g076_mistakes_blueprint
-app.register_blueprint(_g076_mistakes_blueprint(secret=app.secret_key, environ=os.environ))
+from g079_mistakes_services import build_mistakes_services as _g079_mistakes_services
+app.register_blueprint(_g076_mistakes_blueprint(
+    secret=app.secret_key, environ=os.environ,
+    services=_g079_mistakes_services(globals(), secret=app.secret_key)))
 
 @app.route('/js/game/g076_nonmap_step_client.js')
 def serve_g076_nonmap_step_client_js():

@@ -1,5 +1,5 @@
-"""Mistakes step adapter. Product settlement remains HOLD until the canonical
-progression writer accepts the caller's transaction and server Mistakes verdict.
+"""Mistakes step adapter. app.py supplies the Product services from
+g079_mistakes_services.py; services=None (or a partial provider) stays HOLD.
 
 No runtime DDL. Injected providers MUST use the supplied connection; settle
 must preserve the existing review/reward policy, never commit or call the
