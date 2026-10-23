@@ -245,10 +245,23 @@ def test_actual_rating_judge_does_not_need_client_grade():
                   'owned-session', [{'x': 3, 'y': 3}]) is None
 
 
-@pytest.mark.parametrize('setting', ['', 'off', 'false', 'unknown'])
+@pytest.mark.parametrize('setting', ['', 'off', 'false'])
 def test_non_enforced_values_preserve_legacy_behavior(harness, monkeypatch, setting):
     _, client, conn, _ = harness
     monkeypatch.setenv(FLAG, setting)
     assert client.post('/api/training/answer', json={
         'questionId': 7, 'correct': True}).status_code == 200
     assert conn.execute('SELECT attempt_count FROM node_mastery').fetchone()[0] == 1
+
+
+# G079 (G078 XFAIL 1): a malformed privacy or mode value parses to HOLD in
+# g076_mode_gate and must fail closed before the legacy writer runs.
+@pytest.mark.parametrize('flag,setting', [(FLAG, 'unknown'), (FLAG, '2'),
+    ('G076_GRIMOIRE_STEPS_ENABLED', 'typo'), ('G076_GRIMOIRE_STEPS_ENABLED', 'yes')])
+def test_malformed_values_fail_closed_without_writes(harness, monkeypatch, flag, setting):
+    _, client, conn, _ = harness
+    monkeypatch.setenv(flag, setting)
+    before = conn.execute('SELECT COALESCE(SUM(attempt_count),0) FROM node_mastery').fetchone()[0]
+    assert client.post('/api/training/answer', json={
+        'questionId': 7, 'correct': True}).status_code == 409
+    assert conn.execute('SELECT COALESCE(SUM(attempt_count),0) FROM node_mastery').fetchone()[0] == before

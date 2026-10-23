@@ -149,13 +149,16 @@ def test_legacy_containment_independent_of_global_gate(seam, path, method):
     assert touched == []
 
 
-@pytest.mark.parametrize('qid', [701, '701', None, True, 999])
-@pytest.mark.parametrize('path', ['/api/srs/review', '/alias/review'])
-def test_common_writer_cannot_bypass_with_mode_or_grade(seam, qid, path):
+# G079: shared Practice/SRS/nonmap writers are governed by their own mode
+# gates. Grimoire ON must neither contain nor classify them (the production
+# corpus tags 41,473/41,591 questions with grimoire_id; G078 XFAIL B4).
+@pytest.mark.parametrize('path', ['/api/srs/review', '/alias/review',
+    '/api/srs/practice/attempt', '/api/srs/practice/answer', '/api/g076/nonmap/steps'])
+def test_shared_writers_not_contained_by_grimoire(seam, path):
     _, _, client, touched, _ = seam
-    assert client.post(path, json={'question_id':qid,'source_context':'practice',
-        'grade':5,'correct':True}).status_code == 409
-    assert touched == []
+    assert client.post(path, json={'question_id':701,'attempt_token':'t',
+        'flow':'practice'}).status_code == 200
+    assert touched == [True]
 
 
 def test_non_grimoire_common_writer_untouched(seam):
@@ -233,21 +236,6 @@ def test_registration_with_existing_guard(seam):
     assert 'g076_grimoire_product' in app.extensions
 
 
-def test_cannot_acquire_legacy_practice_token_for_grimoire(seam):
-    _,_,client,touched,_ = seam
-    assert client.post('/api/srs/practice/attempt',json={'question_id':701}).status_code == 409
-    assert touched == []
-
-
-@pytest.mark.parametrize('path', ['/api/srs/practice/answer','/api/g076/nonmap/steps'])
-def test_preexisting_signed_grimoire_token_cannot_bypass(seam, monkeypatch, path):
-    _,_,client,touched,_ = seam
-    verifier = Mock(return_value={'question_id':701})
-    monkeypatch.setattr('g076_grimoire_product.verify_practice_attempt',verifier)
-    assert client.post(path,json={'attempt_token':'signed-old-token','flow':'practice',
-        'question_id':702}).status_code == 409
-    verifier.assert_called_once_with('test-only','signed-old-token',user_id=101)
-    assert touched == []
 
 
 def test_signed_non_grimoire_practice_keeps_existing_handler(seam,monkeypatch):

@@ -42,8 +42,13 @@ Q = {'id': 701, 'content': SGF, 'enabled': True, 'grimoire_id': 5}
 @pytest.fixture(scope='session', autouse=True)
 def pinned_head():
     assert Path.cwd().resolve() == ROOT.resolve(), 'Run only from the authorized worktree'
+    # G079: the matrix must run on a committed descendant of the G078 audited
+    # baseline (fe696e87). An exact-SHA pin made every later commit, including
+    # the one that added this suite, error before any request was issued.
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    assert head == 'fe696e87806a177d74e3ebfd4e3bd37cd2571a64', head
+    assert subprocess.call(['git', 'merge-base', '--is-ancestor',
+                            'fe696e87806a177d74e3ebfd4e3bd37cd2571a64', head],
+                           cwd=ROOT) == 0, head
     tracked = subprocess.check_output(['git', 'diff', 'HEAD', '--name-only'], cwd=ROOT, text=True)
     assert not tracked.strip(), 'Tracked baseline changed: ' + tracked
 
@@ -264,7 +269,6 @@ def test_malformed_question_fails_closed_in_current_route(isolated, bad_sgf):
     assert conn.total_changes == before
 
 
-@pytest.mark.xfail(strict=True, reason='G078: malformed Grimoire flag parses disabled; legacy training guard not engaged')
 def test_malformed_grimoire_flag_must_hold_legacy_transport(isolated):
     app, _, patch = isolated
     patch.setenv(FLAGS['grimoire'], 'typo')
@@ -274,7 +278,6 @@ def test_malformed_grimoire_flag_must_hold_legacy_transport(isolated):
     assert c.post('/api/training/answer', json={}).status_code in (409, 503)
 
 
-@pytest.mark.xfail(strict=True, reason='G078 B4: single Grimoire ON contains unrelated Mistakes aggregate (409)')
 def test_single_grimoire_on_other_normal_mode_serviceability(isolated):
     app, _, patch = isolated
     patch.setenv(FLAGS['grimoire'], 'on')

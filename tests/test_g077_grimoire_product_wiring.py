@@ -44,17 +44,18 @@ def test_missing_official_providers_are_installed_but_not_ready():
     'map_battle_v1_battle_state', 'map_battle_v1_submission_nonce',
     'map_battle_v1_answers', 'g076_map_battle_step_start',
     'g076_map_battle_step_submit', 'g076_daily_steps.start'])
-def test_aggregate_alias_cannot_bypass_independent_flag(endpoint):
+def test_shared_aggregates_stay_serviceable_with_grimoire_on(endpoint):
+    # G079 (G078 XFAIL B4): Grimoire ON must not take other modes offline.
     app = Flask('g077-alias'); app.secret_key = 'test-only'
     touched = []
-    app.add_url_rule('/alias', endpoint, lambda: touched.append(True) or 'unsafe', methods=['GET','POST'])
+    app.add_url_rule('/alias', endpoint, lambda: touched.append(True) or 'shared', methods=['GET','POST'])
     gate = {'G076_GRIMOIRE_STEPS_ENABLED':'on', 'G076_ANSWER_PRIVACY_ENFORCED':'off'}
     install_product_grimoire(app, environ=gate)
     client = app.test_client()
-    assert client.post('/alias').status_code == 409
-    assert touched == []
+    assert client.post('/alias').status_code == 200
     gate['G076_GRIMOIRE_STEPS_ENABLED'] = 'off'
     assert client.post('/alias').status_code == 200
+    assert touched == [True, True]
 
 
 @pytest.mark.parametrize('path', ['/', '/index.html'])
@@ -71,8 +72,8 @@ def test_existing_player_navigation_is_gated(path):
     assert client.get(path+'?grimoire=5').text == 'old player'
 
 
-@pytest.mark.parametrize('qid,status', [(701,409), (702,200), (999,409)])
-def test_direct_question_alias_cannot_reveal_grimoire_solution(seam, qid, status):
+@pytest.mark.parametrize('qid,status', [(701,200), (702,200), (999,200)])
+def test_direct_question_governed_by_question_privacy_not_grimoire(seam, qid, status):
     service = seam[0]
     app = Flask('g077-read'); app.secret_key = 'test-only'
     app.add_url_rule('/q/<int:qid>', 'get_question', lambda qid: 'legacy SGF')
@@ -80,14 +81,14 @@ def test_direct_question_alias_cannot_reveal_grimoire_solution(seam, qid, status
     assert app.test_client().get('/q/'+str(qid)).status_code == status
 
 
-def test_daily_relabel_is_contained(seam):
+def test_daily_nonmap_flow_not_grimoire_contained(seam):
     _, _, client, touched, _ = seam
     assert client.post('/api/g076/nonmap/steps', json={
-        'flow':'daily','attempt_token':'old-practice-token'}).status_code == 409
-    assert touched == []
+        'flow':'daily','attempt_token':'old-practice-token'}).status_code == 200
+    assert touched == [True]
 
 
-def test_bound_snapshot_cannot_be_overridden_by_raw_classifier(seam):
+def test_shared_review_is_not_classified_by_grimoire(seam):
     from unittest.mock import Mock
     service = seam[0]
     app = Flask('g077-pinned'); app.secret_key = 'test-only'
@@ -95,9 +96,9 @@ def test_bound_snapshot_cannot_be_overridden_by_raw_classifier(seam):
     app.add_url_rule('/review', 'srs_review', lambda: touched.append(True) or 'unsafe', methods=['POST'])
     raw_classifier = Mock(return_value={'id':701})
     install_product_grimoire(app, service, lookup=raw_classifier)
-    assert app.test_client().post('/review', json={'question_id':701}).status_code == 409
+    assert app.test_client().post('/review', json={'question_id':701}).status_code == 200
     raw_classifier.assert_not_called()
-    assert touched == []
+    assert touched == [True]
 
 
 def test_official_app_installs_before_other_hooks():

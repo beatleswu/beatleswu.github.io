@@ -135,13 +135,6 @@ LEGACY_RULES = frozenset(('/api/grimoire/training/daily', '/api/training/contami
                           '/api/training/answer'))
 LEGACY_ENDPOINTS = frozenset(('grimoire.api_training_daily', 'grimoire.api_training_contaminated',
                               'grimoire.api_training_answer'))
-UNSAFE_SHARED_ENDPOINTS = frozenset(('training_daily', 'dc_today', 'dc_submit', 'dc_history',
-    'dc_history_detail', 'get_mistakes', 'friend_challenge_detail',
-    'friend_challenge_answer', 'rt_start', 'rt_resume', 'rt_answer',
-    'map_battle_v1_prepare_attempt', 'map_battle_v1_resume_validation',
-    'map_battle_v1_battle_state', 'map_battle_v1_submission_nonce',
-    'map_battle_v1_answers', 'g076_map_battle_step_start',
-    'g076_map_battle_step_submit'))
 
 
 def install_product_grimoire(app, service=None, *, environ=None, lookup=None):
@@ -161,14 +154,10 @@ def install_product_grimoire(app, service=None, *, environ=None, lookup=None):
             raise GrimoireRejected('grimoire_official_providers_unavailable', 503)
         return candidate
 
-    def classify(qid):
-        # Once bound, classification shares the pinned service snapshot. A
-        # changed raw file cannot relabel an issued Grimoire token as Practice.
-        if service is not None or app.config.get('G077_GRIMOIRE_SERVICE') is not None:
-            return dependency().corpus.lookup(qid)
-        if lookup is not None:
-            return lookup(qid)
-        return dependency().corpus.lookup(qid)
+    # `lookup` is retained for the installation signature; G079 no longer
+    # classifies shared-corpus requests (see containment below).
+    del lookup
+
     if 'g076_grimoire_product' in app.extensions:
         raise RuntimeError('product_grimoire_already_installed')
     hooks = app.before_request_funcs.get(None, [])
@@ -182,60 +171,16 @@ def install_product_grimoire(app, service=None, *, environ=None, lookup=None):
             return None
         if request.path in ('/', '/index.html') and 'grimoire' in request.args:
             return redirect('/grimoire/player', code=302)
-        deny = request.url_rule.rule in LEGACY_RULES or request.endpoint in LEGACY_ENDPOINTS
-        # Legacy aggregate transports can reveal solutions or settle a selected
-        # Grimoire question without a question locator in the request. Until
-        # each has a trusted per-question adapter, contain them before handlers.
-        deny = deny or request.endpoint in UNSAFE_SHARED_ENDPOINTS
-        deny = deny or (request.endpoint or '').startswith('g076_daily_steps.')
-        # Rules also cover transports whose endpoint names change in app.py.
-        deny = deny or request.url_rule.rule in (
-            '/api/adventure/map-battles/v1/attempts',
-            '/api/adventure/map-battles/v1/attempts/<attempt_id>/resume-validation',
-            '/api/adventure/map-battles/v1/battles/<battle_id>',
-            '/api/adventure/map-battles/v1/answers',
-            '/api/adventure/map-battles/v2/steps/start',
-            '/api/adventure/map-battles/v2/steps',
-            '/api/daily-challenge/history/<date_str>')
-        if request.endpoint == 'get_question':
-            try:
-                deny = bool(classify(request.view_args.get('qid')).get('grimoire_id'))
-            except GrimoireRejected:
-                deny = True
-        # The existing ?grimoire= player submits qid to the common SRS writer.
-        # Ignore claimed mode/source/grade: classify by the pinned full corpus.
-        by_question = (request.path in ('/api/srs/review', '/api/srs/practice/attempt')
-                       or request.endpoint in ('srs_review', 'srs_practice_attempt'))
-        by_token = (request.path == '/api/srs/practice/answer'
-                    or request.endpoint == 'srs_practice_answer')
-        nonmap = (request.path in ('/api/g076/nonmap/steps', '/api/g076/nonmap/steps/start')
-                  or request.endpoint in ('g076_nonmap_steps.start', 'g076_nonmap_steps.submit'))
-        if by_question or by_token or nonmap:
-            if request.content_length and request.content_length > 32768:
-                return jsonify(error='grimoire_legacy_request_too_large'), 413
-            data = request.get_json(silent=True)
-            qid = data.get('question_id') if isinstance(data, dict) else None
-            # Aggregate daily selection has no trustworthy browser qid; contain
-            # it even if a pre-rollout practice token is relabelled daily.
-            if nonmap and isinstance(data, dict) and data.get('flow') == 'daily':
-                return jsonify(error='grimoire_secure_player_required'), 409
-            try:
-                if by_token or nonmap:
-                    uid = session.get('user_id')
-                    if type(uid) is not int or uid < 1:
-                        raise GrimoireRejected('authentication_required', 401)
-                    # Resolve server-signed ownership; NEVER trust a browser qid
-                    # alongside a token, including tokens issued before rollout.
-                    attempt = verify_practice_attempt(app.secret_key,
-                        data.get('attempt_token') if isinstance(data, dict) else None, user_id=uid)
-                    qid = attempt['question_id']
-                if isinstance(qid, str) and len(qid) <= 20 and qid.isascii() and qid.isdigit():
-                    qid = int(qid)
-                q = classify(qid)
-                deny = bool(q.get('grimoire_id'))
-            except (GrimoireRejected, PracticeAttemptError, KeyError):
-                deny = True
-        if deny:
+        # G079: contain ONLY Grimoire-owned legacy transports (its own mastery/
+        # cache writers and catalogue reads). The earlier G077 design also
+        # denied shared aggregates (Mistakes, Daily, Rating, Map Battle,
+        # Friend, /api/question, /api/srs/*) for any question carrying a
+        # grimoire_id. In the production corpus 41,473 of 41,591 questions carry
+        # one, so Grimoire ON took every other mode offline (G078 XFAIL B4)
+        # while adding no protection: those endpoints serve the same questions
+        # with Grimoire OFF. Their answer privacy and settlement authority are
+        # governed by each mode's own gate and the global privacy gate.
+        if request.url_rule.rule in LEGACY_RULES or request.endpoint in LEGACY_ENDPOINTS:
             return jsonify(error='grimoire_secure_player_required'), 409
         return None
 
@@ -300,8 +245,8 @@ def install_product_grimoire(app, service=None, *, environ=None, lookup=None):
             flag='G076_GRIMOIRE_STEPS_ENABLED', global_privacy_required=False,
             providers_configured=configured, corpus_verified=False,
             entitlements_verified=False, product_readiness='HOLD',
-            contained_aggregate_endpoints=sorted(UNSAFE_SHARED_ENDPOINTS),
-            additional_containment='legacy Grimoire; signed practice; nonmap daily; direct question; daily step blueprint')
+            contained_aggregate_endpoints=[],
+            additional_containment='legacy Grimoire transports and ?grimoire= player entry only')
 
     @bp.get('/grimoire/player')
     def player():

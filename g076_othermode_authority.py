@@ -2,8 +2,9 @@
 
 Integration HOLD: install immediately after Flask construction, before other
 request hooks. This module registers no routes, issues no pretend attempts,
-and writes no identity, SRS, XP, mastery or reward state. The existing global
-privacy gate alone controls enforcement; OFF preserves legacy behaviour.
+and writes no identity, SRS, XP, mastery or reward state. Legacy behaviour is
+preserved only while both the global privacy gate and the mode's own gate
+(g076_mode_gate.select_mode) validly select legacy; anything else fails closed.
 
 Grimoire cannot safely reuse the SRS settlement: its writer commits its own
 mastery/cache/progress changes. Friend Challenge likewise owns reward writes.
@@ -16,6 +17,7 @@ from types import MappingProxyType
 
 from flask import jsonify, request
 
+from g076_mode_gate import select_mode
 from g076_question_privacy import privacy_enforced
 
 
@@ -53,11 +55,19 @@ def install_othermode_guard(app):
 
     @app.before_request
     def g076_othermode_before_request():
-        if not privacy_enforced(os.environ) or request.url_rule is None:
+        if request.url_rule is None:
             return None
         mode = (_RULE_MODES.get(request.url_rule.rule)
                 or _ENDPOINT_MODES.get(request.endpoint))
         if mode is None:
+            return None
+        # G079: legacy transport is allowed ONLY when this mode's own gate
+        # selects 'legacy' (its flag validly OFF and global privacy validly
+        # OFF). A malformed mode or privacy value parses to HOLD and must not
+        # fall through to the unprotected legacy writer; a validly ON mode
+        # serves its own server-owned route instead of this legacy entry.
+        if (not privacy_enforced(os.environ)
+                and select_mode(os.environ, mode).selected == 'legacy'):
             return None
         # Also deny HEAD and OPTIONS: no endpoint executes and no response
         # suggests this mode is ready. Never read or echo the request body.
