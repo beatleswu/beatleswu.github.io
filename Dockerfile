@@ -213,6 +213,15 @@ COPY g076_practice_product.py ./
 COPY g076_daily_step_integration.py ./
 COPY g076_daily_capability.py ./
 COPY g076_othermode_authority.py ./
+# G077-F: isolated G076 B1/B2/R5 runtime closure. Candidate only, gated OFF.
+# Explicit files prevent deployment of unfinished tests or source fixtures.
+COPY g076_mode_gate.py ./
+COPY g076_mistakes_product.py ./
+COPY g076_rating_steps.py ./
+COPY g076_grimoire_adapter.py ./
+COPY g076_grimoire_catalog.py ./
+COPY g076_grimoire_pg_service.py ./
+COPY g076_grimoire_product.py ./
 # G066 gated curriculum integration is imported at module scope even when
 # the course feature flag is OFF. Package exactly the runtime closure and
 # approved catalogue/media/UI files; exclude offline tooling and fixtures.
@@ -315,7 +324,7 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
      shadow_dashboard.html sgf_answer_review.html admin_questions.html \
      bot.html daily_challenge.html daily_challenge_legacy.html community.html messages.html \
      share_view.html mistakes.html curriculum.html hero.html \
-     rating_test.html shop.html profile.html premium_weekly.html \
+     rating_test.html grimoire_player.html shop.html profile.html premium_weekly.html \
      stats.html upgrade.html play.html inventory.html badges.html \
      item_journal.html games.html zone4_owner_story_runtime.html \
      ZONE4_004_LORD_STATE_BINDING_MATRIX.json ZONE4_004_RUNTIME_MANIFEST.json \
@@ -359,6 +368,8 @@ COPY js/game/board_renderer.js ./js/game/board_renderer.js
 COPY js/game/g076_authoritative_step_client.js ./js/game/g076_authoritative_step_client.js
 COPY js/game/g076_nonmap_step_client.js ./js/game/g076_nonmap_step_client.js
 COPY js/game/g076_daily_step_client.js ./js/game/g076_daily_step_client.js
+COPY js/game/g076_rating_step_client.js ./js/game/g076_rating_step_client.js
+COPY js/game/g076_grimoire_product_client.js ./js/game/g076_grimoire_product_client.js
 # B6 ModeContext and B7 GameBootstrap are narrow browser runtime modules;
 # keep both explicit so the image cannot absorb unrelated game JavaScript.
 COPY js/game/mode_context.js ./js/game/mode_context.js
