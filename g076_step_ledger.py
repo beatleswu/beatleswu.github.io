@@ -171,6 +171,14 @@ def submit_step(conn, *, uid, attempt_id, submission_nonce, step_index,
         raise StepLedgerRejected("step_nonce_invalid", 403)
     request_hash = _raw_hmac(secret, "G076-request", uid, attempt_id,
                              step_index, move["x"], move["y"])
+    # Lock the session row BEFORE reading prior events. PostgreSQL READ
+    # COMMITTED otherwise allows two simultaneous requests to both read no
+    # replay; the second then observes SETTLED after the first commits and
+    # incorrectly reports step_session_missing_or_settled. Holding this
+    # row lock first makes an identical retry return the committed evidence.
+    state = _state(conn, uid, attempt)
+    if state is None:
+        raise StepLedgerRejected("step_session_missing_or_settled")
     replay = _one(conn,
         "SELECT * FROM g076_step_events WHERE attempt_id=? AND step_index=?",
         (attempt_id, step_index))
@@ -186,8 +194,7 @@ def submit_step(conn, *, uid, attempt_id, submission_nonce, step_index,
         response["duplicate"] = True
         return response
 
-    state = _state(conn, uid, attempt)
-    if not state or state["state"] != "OPEN":
+    if state["state"] != "OPEN":
         raise StepLedgerRejected("step_session_missing_or_settled")
     if int(state["step_index"]) != step_index:
         raise StepLedgerRejected("stale_step_index")
