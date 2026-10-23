@@ -17352,6 +17352,281 @@ def _answer_failure_response(
     return jsonify(payload), int(response_status)
 
 
+def _review_learning_in_transaction(conn, *, uid, qid, q_info, grade, now,
+                                    internal, submission_id, should_grant_progress,
+                                    srs_row_existed, unit='', unit_done=False,
+                                    strict=False, update_mistakes=True):
+    """Borrow the review transaction for the canonical learning reward core.
+
+    This is persistence, not answer authority or a complete settlement. The
+    trusted caller must supply server judgement, serialize the user and own
+    review/SRS identity, quota, remaining quest/coin policy and terminal receipt.
+    No commit, rollback, close, battle handoff or connection acquisition here.
+    Legacy callers retain optional-effect behavior; strict callers propagate
+    missing equipment schema and potion/shield failures to their transaction.
+    update_mistakes=False lets the G077 terminal writer own attempt analytics.
+    """
+    if strict:
+        raw = getattr(conn, '_conn', conn)
+        if raw.__class__.__module__.startswith('sqlite3') and not raw.in_transaction:
+            raise RuntimeError('review_learning_transaction_required')
+        if not internal or not submission_id:
+            raise ValueError('trusted_review_identity_required')
+    equipment_effect = (_get_active_equip_effect if strict
+                        else _safe_active_equipment_effect)
+    review_shadow_input = None
+    conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)',(uid,))
+    s = conn.execute('SELECT * FROM user_stats WHERE user_id=?',(uid,)).fetchone()
+    existing_player_max_hp = int(s['player_max_hp'] or 0)
+    total        = s['total_correct']
+    streak       = s['current_streak']
+    mx           = s['max_streak']
+    mc           = s['mistake_corrected']
+    xp           = s['xp']          or 0
+    combo_streak = s['combo_streak'] or 0
+    max_combo    = s['max_combo']    or 0
+    rank_level   = s['rank_level']   or 'LV1'
+    rank_xp      = s['rank_xp']      or 0
+
+    xp_gain    = 0
+    combo_mult = 1.0
+    ranked_up  = False
+    shield_used = False       # 連勝護盾（商城道具）本次是否觸發
+    xp_potion_active = False  # XP 藥水（商城道具）本次是否生效
+    pet_xp_added = 0          # 本次由棋靈夥伴帶來的額外 XP
+    pet_xp_ratio = 0.0
+    pet_xp_gained = 0         # 本次寵物實際獲得的 XP
+    review_shadow_base_xp = 0
+    review_shadow_additive_bonuses = ()
+    review_shadow_support_values = []
+    new_rank_level = rank_level
+    new_lv = xp_to_lv(xp)
+    # A038: legacy appearance metadata remains a compatibility read model;
+    # only server-owned functional equipment can affect review XP.
+    pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+
+    mrow = conn.execute(
+        'SELECT * FROM mistake_log WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
+
+    if internal and grade >= 3:
+        total, streak, mx, combo_streak, max_combo = _apply_credited_review_counters(
+            total, streak, mx, combo_streak, max_combo, should_grant_progress)
+
+        is_new  = not srs_row_existed   # 首次作答此題
+        is_mc   = bool(mrow and mrow['wrong_count'] > 0)
+
+        if should_grant_progress:
+            diff = q_info.get('difficulty', '')
+            review_shadow_base_xp = XP_BY_DIFF.get(diff, 10)
+            review_shadow_additive_bonuses = tuple(
+                bonus for bonus, enabled in (
+                    (XP_FIRST_CORRECT, is_new),
+                    (XP_MISTAKE_CORRECT, is_mc),
+                ) if enabled
+            )
+            combo_multiplier_double = (
+                equipment_effect(conn, uid, 'combo_multiplier_double') > 0
+            )
+            xp_gain, combo_mult = calc_xp_gain(
+                diff,
+                combo_streak,
+                is_new,
+                is_mc,
+                combo_multiplier_double=combo_multiplier_double,
+            )
+            # Apply only the canonical functional equipment XP effect.
+            equipment_xp_bonus = equipment_effect(conn, uid, 'xp_bonus')
+            total_xp_bonus = equipment_xp_bonus
+            if total_xp_bonus > 0:
+                xp_gain = int(xp_gain * (1 + total_xp_bonus))
+                review_shadow_support_values.append(
+                    Decimal('1') + Decimal(str(total_xp_bonus))
+                )
+            # 棋靈夥伴 XP 加成（陪練）
+            _pet_xp_b = _pet_player_xp_bonus(conn, uid, {'combo': combo_streak, 'is_mc': is_mc})
+            if _pet_xp_b > 0:
+                _xp_before_pet = xp_gain
+                xp_gain = int(xp_gain * (1 + _pet_xp_b))
+                pet_xp_added = xp_gain - _xp_before_pet
+                pet_xp_ratio = _pet_xp_b
+                review_shadow_support_values.append(
+                    Decimal('1') + Decimal(str(_pet_xp_b))
+                )
+            # XP 藥水（商城道具）：30 分鐘內 ×1.5
+            try:
+                _potion = _effect_get(conn, uid, 'xp_potion')
+                if _potion:
+                    _potion_factor = _potion['value'] or 1.5
+                    xp_gain = int(xp_gain * float(_potion_factor))
+                    xp_potion_active = True
+                    review_shadow_support_values.append(Decimal(str(_potion_factor)))
+            except Exception:
+                if strict:
+                    raise
+                pass
+            try:
+                if strict:
+                    review_source_id = f'mistakes:{submission_id}'
+                    review_event_identity = f'review_log:mistakes:submission:{submission_id}:user:{uid}'
+                    review_idempotency_key = f'xp-shadow:review:mistakes:{uid}:{submission_id}'
+                    review_source_marker = 'review_log(user_id,source_context)'
+                elif internal:
+                    review_source_id = f'map-battle:{submission_id}'
+                    review_event_identity = (
+                        f'review_log:map_battle:submission:{submission_id}:user:{uid}'
+                    )
+                    review_idempotency_key = (
+                        f'xp-shadow:review:map-battle:{uid}:{submission_id}'
+                    )
+                    review_source_marker = 'review_log(user_id,source_context)'
+                else:
+                    review_source_id = f'question:{int(qid)}'
+                    review_event_identity = (
+                        f'srs_cards.progress_credited:user:{uid}:question:{int(qid)}'
+                    )
+                    review_idempotency_key = (
+                        f'xp-shadow:review:credited:{uid}:{int(qid)}'
+                    )
+                    review_source_marker = (
+                        'srs_cards(user_id,question_id).progress_credited'
+                    )
+                review_shadow_input = {
+                    'source_type': 'REVIEW_SUBMISSION',
+                    'source_id': review_source_id,
+                    'source_marker': review_source_marker,
+                    'event_identity': review_event_identity,
+                    'idempotency_key': review_idempotency_key,
+                    'legacy_xp': int(xp_gain),
+                    'base_xp': int(review_shadow_base_xp),
+                    'additive_learning_bonuses': review_shadow_additive_bonuses,
+                    'combo_factor_ppm': factor_value_to_ppm(
+                        Decimal(str(combo_mult)), 'combo_factor'
+                    ),
+                    'support_factors_ppm': tuple(
+                        factor_value_to_ppm(value, 'support_factor')
+                        for value in review_shadow_support_values
+                    ),
+                    'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                    'legacy_premium_already_applied': False,
+                }
+            except Exception as exc:
+                review_shadow_input = None
+                app.logger.warning(
+                    'xp_shadow_comparison %s',
+                    json.dumps({
+                        'source_type': 'REVIEW_SUBMISSION',
+                        'source_id': str(qid)[:255],
+                        'mismatch_category': 'ERROR_FAIL_CLOSED',
+                        'error_class': type(exc).__name__,
+                        'side_effect_free': True,
+                        'legacy_reward_preserved': True,
+                    }, sort_keys=True),
+                )
+            xp      += xp_gain
+            rank_xp += xp_gain
+            if pet_row and _decayed_fullness(pet_row) > 0:
+                _pet_growth = _add_pet_xp_with_evolution(
+                    conn, uid, 1, f'review:{submission_id}',
+                    pet_row['pet_key'], 'REVIEW_SUBMISSION'
+                )
+                if _pet_growth:
+                    pet_xp_gained = 1
+
+        # LV 進度：以累計 xp 重新計算
+        new_lv = xp_to_lv(xp)
+        cur_lv = xp_to_lv(xp - xp_gain)
+        new_rank_level = f'LV{new_lv}'
+        _, rank_xp, _ = lv_progress(xp)
+        if new_lv > cur_lv:
+            ranked_up = True
+    elif internal:
+        streak = 0
+        # 連勝護盾：消耗一面護盾保住 combo（連擊加成不中斷）
+        try:
+            _sh = _effect_get(conn, uid, 'streak_shield')
+            if _sh:
+                remaining = int(_sh['value'] or 1)
+                if remaining > 1:
+                    conn.execute('UPDATE active_effects SET value=? WHERE id=? AND user_id=?',
+                                 (remaining - 1, _sh['id'], uid))
+                else:
+                    _effect_remove(conn, uid, _sh['id'])
+                shield_used = True
+        except Exception:
+            if strict:
+                raise
+            pass
+        if not shield_used:
+            combo_streak = 0
+
+    if update_mistakes and internal and grade < 3:
+        if mrow:
+            conn.execute('UPDATE mistake_log SET wrong_count=wrong_count+1, last_wrong_at=? WHERE user_id=? AND question_id=?',
+                         (now,uid,qid))
+        else:
+            conn.execute('INSERT INTO mistake_log(user_id,question_id,wrong_count,correct_after,first_wrong_at,last_wrong_at) VALUES(?,?,1,0,?,?)',
+                         (uid,qid,now,now))
+    elif update_mistakes and internal:
+        if mrow:
+            conn.execute('UPDATE mistake_log SET correct_after=correct_after+1, last_correct_at=? WHERE user_id=? AND question_id=?',
+                         (now,uid,qid))
+            # mistake_corrected feeds a badge threshold (check_and_award),
+            # so -- like total_correct/streak/combo above -- only count
+            # it once per question via should_grant_progress. The
+            # mistake_log row's own correct_after counter above is left
+            # as pure per-question analytics.
+            if should_grant_progress:
+                mc += 1
+
+    if not update_mistakes and internal and grade >= 3 and mrow and should_grant_progress:
+        mc += 1
+
+    conn.execute(
+        '''UPDATE user_stats SET
+           total_correct=?, current_streak=?, max_streak=?, mistake_corrected=?,
+           xp=?, combo_streak=?, max_combo=?, rank_level=?, rank_xp=?,
+           player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),
+           updated_at=?
+           WHERE user_id=?''',
+        (total, streak, mx, mc,
+         xp, combo_streak, max_combo, new_rank_level, rank_xp,
+         _lv_max_hp(new_lv), now, uid))
+
+    stats = {
+        'total_correct': total, 'current_streak': streak,
+        'max_streak': mx, 'mistake_corrected': mc,
+        'xp': xp, 'combo_streak': combo_streak,
+        'max_combo': max_combo, 'rank_level': new_rank_level, 'rank_xp': rank_xp,
+        'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),
+    }
+    new_badges = (
+        check_and_award(conn, uid, stats, unit if unit_done else None)
+        if internal else []
+    )
+
+    # 升段外觀獎勵
+    new_appearance_items = []
+    if ranked_up:
+        new_appearance_items = give_rank_appearance(conn, uid, new_rank_level)
+
+    return {
+        'stats': stats,
+        'new_badges': new_badges,
+        'xp_gain': xp_gain,
+        'combo_mult': combo_mult,
+        'pet_xp_added': pet_xp_added,
+        'pet_xp_ratio': pet_xp_ratio,
+        'pet_xp_gained': pet_xp_gained,
+        'combo_streak': combo_streak,
+        'shield_used': shield_used,
+        'xp_potion_active': xp_potion_active,
+        'ranked_up': ranked_up,
+        'new_rank_level': new_rank_level,
+        'new_appearance_items': new_appearance_items,
+        'review_shadow_input': review_shadow_input,
+    }
+
+
 def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     """Apply the canonical Adventure/SRS progression operation.
 
@@ -17972,227 +18247,26 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     "WHERE id=? AND status='active'", (now, training_set_id)
                 )
 
-        conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)',(uid,))
-        s = conn.execute('SELECT * FROM user_stats WHERE user_id=?',(uid,)).fetchone()
-        existing_player_max_hp = int(s['player_max_hp'] or 0)
-        total        = s['total_correct']
-        streak       = s['current_streak']
-        mx           = s['max_streak']
-        mc           = s['mistake_corrected']
-        xp           = s['xp']          or 0
-        combo_streak = s['combo_streak'] or 0
-        max_combo    = s['max_combo']    or 0
-        rank_level   = s['rank_level']   or 'LV1'
-        rank_xp      = s['rank_xp']      or 0
-
-        xp_gain    = 0
-        combo_mult = 1.0
-        ranked_up  = False
-        shield_used = False       # 連勝護盾（商城道具）本次是否觸發
-        xp_potion_active = False  # XP 藥水（商城道具）本次是否生效
-        pet_xp_added = 0          # 本次由棋靈夥伴帶來的額外 XP
-        pet_xp_ratio = 0.0
-        pet_xp_gained = 0         # 本次寵物實際獲得的 XP
-        review_shadow_base_xp = 0
-        review_shadow_additive_bonuses = ()
-        review_shadow_support_values = []
-        new_rank_level = rank_level
-        new_lv = xp_to_lv(xp)
-        # A038: legacy appearance metadata remains a compatibility read model;
-        # only server-owned functional equipment can affect review XP.
-        pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-
-        mrow = conn.execute(
-            'SELECT * FROM mistake_log WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
-
-        if internal and grade >= 3:
-            total, streak, mx, combo_streak, max_combo = _apply_credited_review_counters(
-                total, streak, mx, combo_streak, max_combo, should_grant_progress)
-
-            is_new  = not srs_row_existed   # 首次作答此題
-            is_mc   = bool(mrow and mrow['wrong_count'] > 0)
-
-            if should_grant_progress:
-                diff = q_info.get('difficulty', '')
-                review_shadow_base_xp = XP_BY_DIFF.get(diff, 10)
-                review_shadow_additive_bonuses = tuple(
-                    bonus for bonus, enabled in (
-                        (XP_FIRST_CORRECT, is_new),
-                        (XP_MISTAKE_CORRECT, is_mc),
-                    ) if enabled
-                )
-                combo_multiplier_double = (
-                    _safe_active_equipment_effect(conn, uid, 'combo_multiplier_double') > 0
-                )
-                xp_gain, combo_mult = calc_xp_gain(
-                    diff,
-                    combo_streak,
-                    is_new,
-                    is_mc,
-                    combo_multiplier_double=combo_multiplier_double,
-                )
-                # Apply only the canonical functional equipment XP effect.
-                equipment_xp_bonus = _safe_active_equipment_effect(conn, uid, 'xp_bonus')
-                total_xp_bonus = equipment_xp_bonus
-                if total_xp_bonus > 0:
-                    xp_gain = int(xp_gain * (1 + total_xp_bonus))
-                    review_shadow_support_values.append(
-                        Decimal('1') + Decimal(str(total_xp_bonus))
-                    )
-                # 棋靈夥伴 XP 加成（陪練）
-                _pet_xp_b = _pet_player_xp_bonus(conn, uid, {'combo': combo_streak, 'is_mc': is_mc})
-                if _pet_xp_b > 0:
-                    _xp_before_pet = xp_gain
-                    xp_gain = int(xp_gain * (1 + _pet_xp_b))
-                    pet_xp_added = xp_gain - _xp_before_pet
-                    pet_xp_ratio = _pet_xp_b
-                    review_shadow_support_values.append(
-                        Decimal('1') + Decimal(str(_pet_xp_b))
-                    )
-                # XP 藥水（商城道具）：30 分鐘內 ×1.5
-                try:
-                    _potion = _effect_get(conn, uid, 'xp_potion')
-                    if _potion:
-                        _potion_factor = _potion['value'] or 1.5
-                        xp_gain = int(xp_gain * float(_potion_factor))
-                        xp_potion_active = True
-                        review_shadow_support_values.append(Decimal(str(_potion_factor)))
-                except Exception:
-                    pass
-                try:
-                    if internal:
-                        review_source_id = f'map-battle:{submission_id}'
-                        review_event_identity = (
-                            f'review_log:map_battle:submission:{submission_id}:user:{uid}'
-                        )
-                        review_idempotency_key = (
-                            f'xp-shadow:review:map-battle:{uid}:{submission_id}'
-                        )
-                        review_source_marker = 'review_log(user_id,source_context)'
-                    else:
-                        review_source_id = f'question:{int(qid)}'
-                        review_event_identity = (
-                            f'srs_cards.progress_credited:user:{uid}:question:{int(qid)}'
-                        )
-                        review_idempotency_key = (
-                            f'xp-shadow:review:credited:{uid}:{int(qid)}'
-                        )
-                        review_source_marker = (
-                            'srs_cards(user_id,question_id).progress_credited'
-                        )
-                    review_shadow_input = {
-                        'source_type': 'REVIEW_SUBMISSION',
-                        'source_id': review_source_id,
-                        'source_marker': review_source_marker,
-                        'event_identity': review_event_identity,
-                        'idempotency_key': review_idempotency_key,
-                        'legacy_xp': int(xp_gain),
-                        'base_xp': int(review_shadow_base_xp),
-                        'additive_learning_bonuses': review_shadow_additive_bonuses,
-                        'combo_factor_ppm': factor_value_to_ppm(
-                            Decimal(str(combo_mult)), 'combo_factor'
-                        ),
-                        'support_factors_ppm': tuple(
-                            factor_value_to_ppm(value, 'support_factor')
-                            for value in review_shadow_support_values
-                        ),
-                        'premium_eligibility': 'PREMIUM_INELIGIBLE',
-                        'legacy_premium_already_applied': False,
-                    }
-                except Exception as exc:
-                    review_shadow_input = None
-                    app.logger.warning(
-                        'xp_shadow_comparison %s',
-                        json.dumps({
-                            'source_type': 'REVIEW_SUBMISSION',
-                            'source_id': str(qid)[:255],
-                            'mismatch_category': 'ERROR_FAIL_CLOSED',
-                            'error_class': type(exc).__name__,
-                            'side_effect_free': True,
-                            'legacy_reward_preserved': True,
-                        }, sort_keys=True),
-                    )
-                xp      += xp_gain
-                rank_xp += xp_gain
-                if pet_row and _decayed_fullness(pet_row) > 0:
-                    _pet_growth = _add_pet_xp_with_evolution(
-                        conn, uid, 1, f'review:{submission_id}',
-                        pet_row['pet_key'], 'REVIEW_SUBMISSION'
-                    )
-                    if _pet_growth:
-                        pet_xp_gained = 1
-
-            # LV 進度：以累計 xp 重新計算
-            new_lv = xp_to_lv(xp)
-            cur_lv = xp_to_lv(xp - xp_gain)
-            new_rank_level = f'LV{new_lv}'
-            _, rank_xp, _ = lv_progress(xp)
-            if new_lv > cur_lv:
-                ranked_up = True
-        elif internal:
-            streak = 0
-            # 連勝護盾：消耗一面護盾保住 combo（連擊加成不中斷）
-            try:
-                _sh = _effect_get(conn, uid, 'streak_shield')
-                if _sh:
-                    remaining = int(_sh['value'] or 1)
-                    if remaining > 1:
-                        conn.execute('UPDATE active_effects SET value=? WHERE id=? AND user_id=?',
-                                     (remaining - 1, _sh['id'], uid))
-                    else:
-                        _effect_remove(conn, uid, _sh['id'])
-                    shield_used = True
-            except Exception:
-                pass
-            if not shield_used:
-                combo_streak = 0
-
-        if internal and grade < 3:
-            if mrow:
-                conn.execute('UPDATE mistake_log SET wrong_count=wrong_count+1, last_wrong_at=? WHERE user_id=? AND question_id=?',
-                             (now,uid,qid))
-            else:
-                conn.execute('INSERT INTO mistake_log(user_id,question_id,wrong_count,correct_after,first_wrong_at,last_wrong_at) VALUES(?,?,1,0,?,?)',
-                             (uid,qid,now,now))
-        elif internal:
-            if mrow:
-                conn.execute('UPDATE mistake_log SET correct_after=correct_after+1, last_correct_at=? WHERE user_id=? AND question_id=?',
-                             (now,uid,qid))
-                # mistake_corrected feeds a badge threshold (check_and_award),
-                # so -- like total_correct/streak/combo above -- only count
-                # it once per question via should_grant_progress. The
-                # mistake_log row's own correct_after counter above is left
-                # as pure per-question analytics.
-                if should_grant_progress:
-                    mc += 1
-
-        conn.execute(
-            '''UPDATE user_stats SET
-               total_correct=?, current_streak=?, max_streak=?, mistake_corrected=?,
-               xp=?, combo_streak=?, max_combo=?, rank_level=?, rank_xp=?,
-               player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),
-               updated_at=?
-               WHERE user_id=?''',
-            (total, streak, mx, mc,
-             xp, combo_streak, max_combo, new_rank_level, rank_xp,
-             _lv_max_hp(new_lv), now, uid))
-
-        stats = {
-            'total_correct': total, 'current_streak': streak,
-            'max_streak': mx, 'mistake_corrected': mc,
-            'xp': xp, 'combo_streak': combo_streak,
-            'max_combo': max_combo, 'rank_level': new_rank_level, 'rank_xp': rank_xp,
-            'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),
-        }
-        new_badges = (
-            check_and_award(conn, uid, stats, unit if unit_done else None)
-            if internal else []
+        learning = _review_learning_in_transaction(
+            conn, uid=uid, qid=qid, q_info=q_info, grade=grade, now=now,
+            internal=internal, submission_id=submission_id,
+            should_grant_progress=should_grant_progress,
+            srs_row_existed=srs_row_existed, unit=unit, unit_done=unit_done,
         )
-
-        # 升段外觀獎勵
-        new_appearance_items = []
-        if ranked_up:
-            new_appearance_items = give_rank_appearance(conn, uid, new_rank_level)
+        stats = learning['stats']
+        new_badges = learning['new_badges']
+        xp_gain = learning['xp_gain']
+        combo_mult = learning['combo_mult']
+        pet_xp_added = learning['pet_xp_added']
+        pet_xp_ratio = learning['pet_xp_ratio']
+        pet_xp_gained = learning['pet_xp_gained']
+        combo_streak = learning['combo_streak']
+        shield_used = learning['shield_used']
+        xp_potion_active = learning['xp_potion_active']
+        ranked_up = learning['ranked_up']
+        new_rank_level = learning['new_rank_level']
+        new_appearance_items = learning['new_appearance_items']
+        review_shadow_input = learning['review_shadow_input']
 
         # Persist the core answer record before optional RPG systems run. This
         # keeps srs_cards/review_log/user_stats safe if a loot, quest, or

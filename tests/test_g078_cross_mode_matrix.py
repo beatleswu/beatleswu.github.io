@@ -250,7 +250,11 @@ def test_current_official_installation_source_receipt():
     guard = SOURCE.index('install_othermode_guard(app)')
     product_install = SOURCE.index('install_product_grimoire(app,')
     assert guard < product_install < SOURCE.index('CORS(app,')
-    assert 'app.register_blueprint(_g076_mistakes_blueprint(secret=app.secret_key, environ=os.environ))' in SOURCE
+    # G079 replaces the old services=None HOLD seam with one atomic writer.
+    # Pin actual server-owned injection; do not accept arbitrary synthetic services.
+    assert 'from g079_mistakes_services import build_mistakes_services as _g079_mistakes_services' in SOURCE
+    assert 'services=_g079_mistakes_services(globals(), secret=app.secret_key)))' in SOURCE
+    assert 'from g078_rating_integration import install as _install_g078_rating' in SOURCE
     assert 'from grimoire_api import official_grimoire_lookup' in SOURCE
     assert 'create_rating_blueprint' not in SOURCE
     assert "if __name__ == '__main__':\n    init_db()" in SOURCE

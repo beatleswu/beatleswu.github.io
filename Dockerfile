@@ -220,6 +220,9 @@ COPY g076_mode_gate.py ./
 COPY g076_mistakes_product.py ./
 # G077-B1 borrowed-transaction terminal writer; never auto-enables XP.
 COPY g077_mistakes_settlement.py ./
+# G079 Product runtime integrations, gated OFF until verified.
+COPY g079_mistakes_services.py ./
+COPY g078_rating_integration.py ./
 COPY g076_rating_steps.py ./
 COPY g076_grimoire_adapter.py ./
 COPY g076_grimoire_catalog.py ./
@@ -283,6 +286,8 @@ COPY migrations/review_log_submission_idempotency_v1.py ./migrations/review_log_
 # migration review only. Import/copy never executes DDL.
 COPY migrations/g076_practice_steps_v1.py ./migrations/g076_practice_steps_v1.py
 COPY migrations/g076_nonmap_steps_PROPOSED.sql ./migrations/g076_nonmap_steps_PROPOSED.sql
+# G079 DDL is approval-gated, never executed merely by image build.
+COPY migrations/g079_mistakes_steps_v1.py ./migrations/g079_mistakes_steps_v1.py
 # P0 Lane C: app.py imports this additive recovery-ledger schema helper at
 # startup. Keep the migration explicit; the startup call admits schema only
 # and never writes recovery rows.
