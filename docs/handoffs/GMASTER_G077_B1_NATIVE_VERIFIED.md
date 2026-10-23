@@ -1,0 +1,8 @@
+# G077 B1 native SQLite transaction subset acceptance (NOT PRODUCT PLAYABLE)
+2026-10-23 | base 8a5101fae1ac685ce2c05b76fa330155b9631052
+
+- Added g077_mistakes_settlement.py: trusted borrowed-connection terminal writer to persist one review identity, SRS schedule and mistake counters atomically with nonmap terminal event. It requires explicit admit and progression policies, rejudges canonical server evidence, rejects conflicts/replay gaps, and never grants fabricated XP. Missing progression policy fails HOLD.
+- No app.py Product provider registered. Existing B1 g076_mistakes_product remains services=None. Existing ReviewService multi-commit full XP, pets, quests and coins still requires real connection-scoped extraction and parity, as documented in G077_B1_PRODUCT_SETTLEMENT.md.
+- G MASTER independently ran real beatles Windows Python3.12 and pytest (NOT the Codex sandbox): initial targeted suite 162 PASS/0 FAIL, then 6-suite combined G077 B1 / R3 / Daily / gate check 468 PASS/0 FAIL, exit0, 40.32s. JUnit D:\gmaster-handoffs\GMASTER_INCREMENTAL_20261023_R1\G077_A_B1_COMBINED.xml; log G077_A_B1_COMBINED.log.
+- Covers concurrent replay, transaction fault rollback, SRS and correction parity for implemented subset, invalid or forged provenance and persistence of old Daily/Mistakes R3 default behavior. Test fixture's explicit progression policy is not actual Product XP policy; no production PG data or schema touched.
+- Migration g077_mistakes_flow_PROPOSED.sql is unapplied proposed owner-gated DDL. No merge/push/Oracle deploy/player/corpus changes. Product B1 remains HOLD.
