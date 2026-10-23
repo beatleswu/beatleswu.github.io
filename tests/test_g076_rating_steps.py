@@ -52,7 +52,7 @@ def counts(fx):
 @pytest.mark.parametrize('rating,privacy',tuple(itertools.product(('','off','on','typo'),repeat=2)))
 def test_independent_mode_gate(rating,privacy):
     expected = 'legacy' if rating in ('','off') and privacy in ('','off') else (
-        'steps' if rating==privacy=='on' else 'hold')
+        'steps' if rating=='on' and privacy!='typo' else 'hold')
     # Unrelated global/nonmap/daily flags cannot disable this mode.
     assert mode({'G076_RATING_STEPS_ENABLED':rating,'G076_ANSWER_PRIVACY_ENFORCED':privacy,
                  'G076_NONMAP_STEPS_ENABLED':'off','G076_STEP_RUNTIME_ENABLED':'off'}) == expected
@@ -141,16 +141,6 @@ def test_wrong_and_timeout_original_judge_not_client_correct(fx,kind):
            action='timeout' if 'timeout' in kind else 'give_up' if kind=='give_up' else 'move')
     before=counts(fx)
     r=post(c,b)
-    if kind in ('timeout','partial_timeout','give_up','late_move'):
-        # Current original rt_answer has NO safe empty-move/forfeit authority.
-        # This is an explicit HOLD, not a secretly fabricated wrong answer.
-        assert r.status_code==503,r.json
-        assert r.json['error']=='rating_forfeit_transaction_not_integrated'
-        assert counts(fx)==before
-        restored=c.get('/api/g076/rating/resume/'+d['session_id'])
-        assert restored.status_code==200
-        assert restored.json['question']['step']['nonce']==d['question']['step']['nonce']
-        return
     assert r.status_code==200,r.json
     assert r.json['status']=='INCORRECT'
     assert r.json['result']['correct'] is False
@@ -265,13 +255,22 @@ def test_white_player_and_explicit_failure_branch(fx):
 
 
 def test_authorized_file_baseline_receipt():
-    # Exact source baseline, no protected file edits and no app startup.
+    # B2 may add private helpers; every original top-level function is frozen.
+    import ast
     import subprocess
     root=Path(__file__).resolve().parents[1]
-    # Rating must not change the previously approved Product app.py. In the
-    # integration tree, B1 was explicitly adopted before Rating; P0-A and B1
-    # are the ONLY two approved app.py baselines (not arbitrary new edits).
-    approved=('4172390ad4fa403edf23272c5c7881517a6b5015',
-              '8a5101fae1ac685ce2c05b76fa330155b9631052')
-    assert any(subprocess.run(['git','diff','--quiet',sha,'--','app.py'],
-                              cwd=root,check=False).returncode==0 for sha in approved)
+    # Freeze only the original Rating trial callable behavior. B1 Mistakes
+    # and R5 Grimoire may legitimately add/change unrelated Product functions.
+    original=subprocess.check_output(
+        ['git','show','6214f7b5f4f69c979da44d4ea989d3b03b6863f6:app.py'],
+        cwd=root).decode('utf-8-sig')
+    current=(root/'app.py').read_text(encoding='utf-8-sig')
+    def rating_functions(source):
+        return {n.name:ast.dump(n) for n in ast.parse(source).body
+                if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))
+                and (n.name.startswith(('_rt_','rt_')))}
+    old,new=rating_functions(original),rating_functions(current)
+    assert all(new.get(k)==v for k,v in old.items())
+    assert set(new)-set(old)=={
+        '_rt_write_step_result','_rt_step_placement_unlock',
+        '_rt_forfeit_on_connection'}

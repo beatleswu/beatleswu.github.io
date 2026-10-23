@@ -33124,6 +33124,224 @@ def rt_answer():
     return jsonify(payload)
 
 
+def _rt_write_step_result(conn, *, sid, request_uid, pool_q, question_token,
+                          response_ms, correct):
+    """Private B2 writer: caller owns the transaction and original session lock.
+
+    Original rt_answer effects/math/selection, without its commit, shadow I/O
+    or post-commit unlock. No HTTP route may accept this verdict from a client.
+    OFF continues to execute the unchanged rt_answer body.
+    """
+    from g076_rating_steps import RatingRejected
+    q_id = pool_q['id']
+    now_iso = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+    start_zone_key = None
+    row = conn.execute(
+        'SELECT * FROM rating_test_sessions WHERE id=? FOR UPDATE', (sid,)
+    ).fetchone()
+    if not row or row['status'] != 'in_progress':
+        raise RatingRejected('invalid_session', 409)
+    if row['user_id'] is not None and row['user_id'] != request_uid:
+        raise RatingRejected('session_owner_mismatch', 403)
+    if row['current_question_id'] != q_id or row['current_question_token'] != question_token:
+        raise RatingRejected('stale_or_wrong_question', 409)
+    cur_rating = float(row['cur_rating'])
+    prior_mean = float(row['init_rating'] or 1500.0)
+    prior_sd = float(row['prior_sd'] or 300.0)
+    round_idx = int(row['round'])
+    try:
+        answers = json.loads(row['answers'] or '[]')
+    except Exception:
+        answers = []
+    if len(answers) != round_idx:
+        raise RatingRejected('session_state_mismatch', 409)
+
+    question_role = str(row['current_question_role'] or 'regular')
+    session_bank_version = row['bank_version']
+    algorithm_version = str(row['algorithm_version'] or _RT_BASE_ALGORITHM_VERSION)
+    session_anchor_enabled = bool(
+        session_bank_version and session_bank_version == _RT_ANCHOR_VERSION
+        and _rt_anchor_available()
+    )
+    streak = _compute_streak(answers, correct)
+    answer = {
+        'q_id': q_id,
+        'correct': correct,
+        'discipline': pool_q['discipline'],
+        'source': pool_q.get('source_group', ''),
+        'q_rating': pool_q['rating'],
+        'rating_before': cur_rating,
+        'response_ms': response_ms,
+        'streak': streak,
+        'question_role': question_role,
+        'bank_version': session_bank_version,
+        'algorithm_version': algorithm_version,
+    }
+    estimate_input = answers + [answer]
+    new_rating, rating_se = _rt_estimate(estimate_input, prior_mean, prior_sd)
+    answer['rating_after'] = new_rating
+    answers.append(answer)
+    round_idx += 1
+
+    is_placement = str(row['trigger'] or '').strip() == 'placement'
+    total_rounds = _placement_rounds(prior_mean) if is_placement else _RT_MAX_ROUNDS
+    converged = False if is_placement else _rt_converged(answers, prior_mean, prior_sd)
+    finished = (round_idx >= total_rounds if is_placement else
+                round_idx >= _RT_MAX_ROUNDS or converged)
+
+    recent_ids = _rt_recent_seen_ids(conn, row['user_id'], exclude_sid=sid)
+
+    next_q = None
+    next_token = None
+    next_role = None
+    if not finished:
+        session_ids = {a['q_id'] for a in answers}
+        disc_counts = {}
+        source_counts = {}
+        for a in answers:
+            disc_counts[a.get('discipline', '')] = disc_counts.get(a.get('discipline', ''), 0) + 1
+            source_counts[a.get('source', '')] = source_counts.get(a.get('source', ''), 0) + 1
+        next_role = _rt_desired_question_role(
+            row['trigger'], round_idx, session_anchor_enabled
+        )
+        next_q = _pick_question(
+            new_rating, round_idx, session_ids | recent_ids,
+            discipline_counts=disc_counts, source_counts=source_counts,
+            question_role=next_role,
+            anchor_enabled=session_anchor_enabled,
+        )
+        if not next_q and next_role == 'anchor':
+            next_role = 'regular'
+            next_q = _pick_question(
+                new_rating, round_idx, session_ids | recent_ids,
+                discipline_counts=disc_counts, source_counts=source_counts,
+                question_role=next_role,
+                anchor_enabled=session_anchor_enabled,
+            )
+        if next_q:
+            next_token = secrets.token_urlsafe(18)
+        else:
+            finished = True
+
+    status = 'completed' if finished else 'in_progress'
+    conn.execute(
+        'UPDATE rating_test_sessions SET status=?,cur_rating=?,rating_se=?,round=?,answers=?,'
+        ' current_question_id=?,current_question_token=?,current_question_role=?,'
+        ' finished_at=?,last_activity_at=? WHERE id=?',
+        (status, new_rating, rating_se, round_idx, json.dumps(answers),
+         None if finished else next_q['id'], None if finished else next_token,
+         None if finished else next_role,
+         now_iso if finished else None, now_iso, sid)
+    )
+    conn.execute(
+        'INSERT INTO rating_test_responses '
+        '(session_id,user_id,question_id,round,correct,response_ms,question_rating,'
+        ' ability_before,ability_after,question_role,bank_version,algorithm_version,created_at) '
+        'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        (sid, row['user_id'], q_id, round_idx - 1, 1 if correct else 0,
+         response_ms, pool_q['rating'], cur_rating, new_rating, question_role,
+         session_bank_version, algorithm_version, now_iso)
+    )
+
+    if row['user_id']:
+        mrow = conn.execute(
+            'SELECT wrong_count FROM mistake_log WHERE user_id=? AND question_id=?',
+            (row['user_id'], q_id)
+        ).fetchone()
+        if not correct:
+            if mrow:
+                conn.execute(
+                    'UPDATE mistake_log SET wrong_count=wrong_count+1, last_wrong_at=? '
+                    'WHERE user_id=? AND question_id=?',
+                    (now_iso, row['user_id'], q_id)
+                )
+            else:
+                conn.execute(
+                    'INSERT INTO mistake_log'
+                    '(user_id,question_id,wrong_count,correct_after,first_wrong_at,last_wrong_at) '
+                    'VALUES(?,?,1,0,?,?)',
+                    (row['user_id'], q_id, now_iso, now_iso)
+                )
+        elif mrow:
+            conn.execute(
+                'UPDATE mistake_log SET correct_after=correct_after+1,last_correct_at=? '
+                'WHERE user_id=? AND question_id=?',
+                (now_iso, row['user_id'], q_id)
+            )
+
+    if finished and row['user_id']:
+        provisional = 1 if is_placement or not converged else 0
+        _finalize_placement(conn, row['user_id'], new_rating, provisional=provisional)
+
+    owner_uid = row['user_id']
+    if finished and owner_uid and is_placement:
+        start_zone_key = _rt_step_placement_unlock(conn, owner_uid, min(new_rating, 1570.0))
+
+    rating_change = round(new_rating - cur_rating, 1)
+    payload = {
+        'correct':       correct,
+        'best_move':     pool_q['katago_best_move'],
+        'finished':      finished,
+        'session_id':    sid,
+        'cur_rating':    new_rating,
+        'rating_se':     rating_se,
+        'rating_change': rating_change,
+        'streak':        streak,
+        'rank_label':    _rating_to_rank(new_rating),
+        'rank_range':    [_rating_to_rank(new_rating - rating_se),
+                          _rating_to_rank(new_rating + rating_se)],
+        'converged':     converged,
+        'provisional':   is_placement or not converged,
+        'rounds_used':   round_idx,
+        'total_rounds':  total_rounds,
+        'start_zone_key': start_zone_key,
+    }
+    if not finished:
+        payload.update({
+            'round': round_idx + 1,
+            'question': _strip_question(next_q, sid, next_token),
+        })
+    return payload
+
+
+def _rt_step_placement_unlock(conn, uid, elo):
+    """Same placement travel unlock, on the ledger's rollbackable connection."""
+    start_zone_key = _adventure_start_zone_for_elo(elo)
+    idx = _adventure_zone_index(start_zone_key)
+    now = datetime.datetime.now().isoformat(timespec='seconds')
+    for z in ADVENTURE_ZONES[:idx + 1]:
+        conn.execute('''
+            INSERT INTO adventure_zone_unlocks
+                (user_id, zone_key, source, start_zone_key, unlocked_at)
+            VALUES (?,?,?,?,?)
+            ON CONFLICT(user_id, zone_key) DO UPDATE SET
+                source=excluded.source,
+                start_zone_key=excluded.start_zone_key,
+                unlocked_at=COALESCE(adventure_zone_unlocks.unlocked_at, excluded.unlocked_at)
+        ''', (uid, z['key'], 'placement_test', start_zone_key, now))
+    return start_zone_key
+
+
+def _rt_forfeit_on_connection(conn, ctx, moves, response_ms, reason):
+    """Trusted server call ONLY, after advance validates binding/nonce/deadline.
+
+    A forfeit is a server-owned incorrect round, not an empty-move replay.
+    Do not expose this function as a route or accept a client correctness flag.
+    """
+    from g076_rating_steps import RatingRejected
+    if reason not in ('timeout', 'give_up'):
+        raise RatingRejected('rating_invalid_forfeit', 422)
+    if not isinstance(moves, list) or type(response_ms) is not int or not 0 <= response_ms <= 600000:
+        raise RatingRejected('rating_invalid_forfeit', 422)
+    # resolve already loaded the current private pool before taking this path;
+    # do not start pool/file I/O inside the rollbackable settlement callback.
+    pool_q = next((q for q in _RT_POOL if q['id'] == ctx.question['id']), None)
+    if pool_q is None or dict(pool_q) != dict(ctx.question):
+        raise RatingRejected('rating_question_revision_changed')
+    return _rt_write_step_result(conn, sid=ctx.session_id, request_uid=ctx.user_id,
+        pool_q=pool_q, question_token=ctx.question_token, response_ms=response_ms, correct=False)
+
+
 @app.route('/api/rating_test/result/<sid>')
 def rt_result(sid):
     """回傳完整測驗結果（雷達圖資料、學科分析、SP 統計）。"""

@@ -134,6 +134,9 @@ try {
     await until('Boolean(_board) && Boolean(_curQ?.step) && document.querySelector("canvas")');
     check(await evaluate('_currentNode===null && parseSGF(_curQ.content).tree===null'),'board-only actual page, no answer tree');
     check(await evaluate('_board instanceof WGo.Board'),'real WGo board');
+    // Existing loopback fixture may have prior independent browser receipts.
+    // Assert that THIS new answer inserts exactly ONE response for this user.
+    const baselineResponses=await evaluate('fetch("/fixture/effects").then(r=>r.json()).then(x=>x.responses.filter(r=>r.user_id==='+uid+').length)');
     let t=await evaluate('_curQ.transform_index');
     await click(...point(0,0,t));
     await until('_curQ.step.index===1 && !_testAnswering');
@@ -150,10 +153,41 @@ try {
     check(await evaluate('__ratingReceipts.length===2 && JSON.stringify(__ratingReceipts[0].body)===JSON.stringify(__ratingReceipts[1].body)'),'lost terminal response repeats identical nonce/body');
     check(await evaluate('__ratingReceipts[0].data.status==="CORRECT"'),'server terminal receipt');
     const effects=await evaluate('fetch("/fixture/effects").then(r=>r.json())');
-    check(effects.responses.filter(r=>r.user_id===uid).length===1,'one original settlement per user (synthetic counter in UI-only)');
+    check(effects.responses.filter(r=>r.user_id===uid).length===baselineResponses+1,
+          'this round commits exactly one original settlement (fixture may retain prior runs)');
     check(await evaluate('!__ratingReceipts.some(r=>"correct" in r.body || "moves" in r.body)'),'no browser verdict/history');
     await fs.writeFile(path.join(runDir,`rating-${uid}-${width}.png`),Buffer.from((await send('Page.captureScreenshot')).data,'base64'));
     if(width<500)check(await evaluate('_board.element.getBoundingClientRect().width<=innerWidth'),'mobile board fits viewport');
+    if(!uiOnly) {
+      for(const kind of ['timeout','partial_timeout','give_up','late_move']) {
+        await evaluate('stopTimer();sessionStorage.clear();_sid=null;startTest()');
+        await until('_round===0 && _curQ?.step?.index===0 && Boolean(_board) && !_testAnswering');
+        const sid=await evaluate('_sid');
+        if(kind==='partial_timeout') {
+          t=await evaluate('_curQ.transform_index');
+          await click(...point(0,0,t));
+          await until('_curQ.step.index===1 && !_testAnswering');
+        }
+        if(kind!=='give_up')await evaluate('fetch("/fixture/clock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({seconds:100})})');
+        const receiptIndex=await evaluate('__ratingReceipts.length');
+        await evaluate('window.__loseRatingResponse=true');
+        if(kind==='late_move') {
+          t=await evaluate('_curQ.transform_index');
+          await click(...point(0,0,t));
+        } else {
+          await evaluate(`${kind==='give_up'?'':'_timerLeft=0;'}submitMove('wrong')`);
+        }
+        await until('_round===1 && _curQ?.step?.index===0 && !_testAnswering');
+        const receipts=await evaluate(`__ratingReceipts.slice(${receiptIndex})`);
+        check(receipts.length===2 && JSON.stringify(receipts[0].body)===JSON.stringify(receipts[1].body),kind+' lost response exact replay');
+        check(receipts[0].data.status==='INCORRECT' && receipts[0].data.result.correct===false,kind+' server failure');
+        check(receipts[0].data.played.length===(kind==='partial_timeout'?2:0),kind+' no fake/late move');
+        const settled=await evaluate('fetch("/fixture/effects").then(r=>r.json())');
+        const rows=settled.responses.filter(r=>r.session_id===sid);
+        check(rows.length===1 && rows[0].correct===0 && rows[0].ability_after<rows[0].ability_before,kind+' original Elo once');
+        check(await evaluate('_currentNode===null && parseSGF(_curQ.content).tree===null'),kind+' following question board-only');
+      }
+    }
   }
   await evaluate("fetch('/fixture/gate/hold',{method:'POST'})");
   check(await evaluate('G076Rating.mode().then(()=>false,()=>true)'),'gate HOLD has no legacy fallback');

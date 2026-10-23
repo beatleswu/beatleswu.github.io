@@ -23,7 +23,7 @@ if __name__ == '__main__':
         @app.post('/fixture/gate/<value>')
         def gate(value):
             if value=='hold':
-                state['environ']['G076_RATING_STEPS_ENABLED']='off'
+                state['environ']['G076_RATING_STEPS_ENABLED']='unknown'
             elif value=='on':
                 state['environ']['G076_RATING_STEPS_ENABLED']='on'
             else:

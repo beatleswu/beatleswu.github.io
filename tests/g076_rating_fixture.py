@@ -17,7 +17,6 @@ import sqlite3
 from types import SimpleNamespace
 import uuid
 
-from flask import Flask, request, session, send_from_directory
 from g076_rating_steps import RatingContext, RatingRejected, SCHEMA, create_rating_blueprint
 from g076_question_privacy import board_only_sgf
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -56,7 +55,9 @@ class RemoveCommit(ast.NodeTransformer):
 def original_functions():
     tree = ast.parse((ROOT/'app.py').read_text(encoding='utf-8-sig'))
     names = {'rt_start', 'rt_resume', 'rt_answer', '_rt_server_verify', '_rt_transform_idx',
-             '_rt_probability', '_rt_estimate', '_rt_converged', '_compute_streak', '_placement_rounds'}
+             '_rt_probability', '_rt_estimate', '_rt_converged', '_compute_streak', '_placement_rounds',
+             '_rt_write_step_result', '_rt_step_placement_unlock', '_rt_forfeit_on_connection',
+             '_finalize_placement'}
     nodes = []
     for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name in names:
@@ -66,23 +67,32 @@ def original_functions():
     return compile(ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[])), 'app.py:rating-seam-fixture', 'exec')
 
 
-def make_rating_fixture(path):
+def make_rating_fixture(path, *, core_only=False):
     state = {'now': 1000., 'fail_settle': False, 'fail_commit': False,
-             'deny': False, 'environ': {'G076_RATING_STEPS_ENABLED': 'on',
-                                      'G076_ANSWER_PRIVACY_ENFORCED': 'on'}}
+             'deny': False, 'environ': {'G076_RATING_STEPS_ENABLED': 'on'}}
     pool = [dict(id=i, rating=1500, difficulty='5k', discipline='life_death',
                  content='(;SZ[5]PL[B]AB[ee];B[aa];W[bb];B[cc])', katago_best_move='') for i in (301,302)]
     state['pool'] = pool
+    class ClosingConnection(sqlite3.Connection):
+        def __exit__(self, *args):
+            try:
+                return super().__exit__(*args)
+            finally:
+                self.close()
     def connect():
-        conn = sqlite3.connect(path, timeout=15)
+        conn = sqlite3.connect(path, timeout=15, factory=ClosingConnection)
         conn.row_factory = sqlite3.Row
         return conn
     with connect() as conn:
         for sql in SCHEMA:
             conn.execute(sql)
         conn.executescript('''
-        CREATE TABLE users(id INTEGER PRIMARY KEY,elo_rating REAL);
-        INSERT INTO users VALUES(7,1500),(8,1500);
+        CREATE TABLE users(id INTEGER PRIMARY KEY,elo_rating REAL,elo_updated_at TEXT,elo_provisional INTEGER);
+        INSERT INTO users(id,elo_rating) VALUES(7,1500),(8,1500);
+        CREATE TABLE user_stats(user_id INTEGER PRIMARY KEY,go_rank TEXT,go_rank_initialized INTEGER);
+        CREATE TABLE daily_training_queue(user_id INTEGER,date TEXT);
+        CREATE TABLE adventure_zone_unlocks(user_id INTEGER,zone_key TEXT,source TEXT,
+          start_zone_key TEXT,unlocked_at TEXT,PRIMARY KEY(user_id,zone_key));
         CREATE TABLE rating_test_sessions(id TEXT PRIMARY KEY,user_id INTEGER,status TEXT,
           init_rating REAL,cur_rating REAL,prior_sd REAL,rating_se REAL,round INTEGER,
           current_question_id INTEGER,current_question_token TEXT,current_question_role TEXT,
@@ -128,14 +138,18 @@ def make_rating_fixture(path):
                 _pick_question=lambda rating,round_idx,excluded,**kw:next((q for q in pool if q['id'] not in excluded),None),
                 _rating_to_rank=lambda r:'fixture-rank', _strip_question=lambda q,sid,token:q | {'token':token},
                 _transform_sgf=transform_sgf, _question_accepted_moves=lambda q:[],
-                _finalize_placement=lambda conn,uid,rating,**kw:conn.execute('UPDATE users SET elo_rating=? WHERE id=?',(rating,uid)),
-                _apply_placement_adventure_unlock=lambda *a:None,
+                ADVENTURE_ZONES=[{'key':'z1'},{'key':'z2'}],
+                _adventure_start_zone_for_elo=lambda elo:'z1' if elo<1500 else 'z2',
+                _adventure_zone_index=lambda key:('z1','z2').index(key),
                 app=SimpleNamespace(logger=SimpleNamespace(exception=lambda *a:None)))
             exec(code, ns)
+            # Legacy path's after-commit callback is redirected only in this
+            # disposable fixture; the candidate uses the original SQL helper.
+            ns['_apply_placement_adventure_unlock'] = lambda uid,elo,source: ns['_rt_step_placement_unlock'](SharedConnection(conn),uid,elo)
             return ns
 
         def resolve(self, conn, sid, uid):
-            row = conn.execute('SELECT * FROM rating_test_sessions WHERE id=?', (sid,)).fetchone()
+            row = SharedConnection(conn).execute('SELECT * FROM rating_test_sessions WHERE id=? FOR UPDATE', (sid,)).fetchone()
             if row is None:
                 raise RatingRejected('not_found',404)
             if state['deny'] or row['user_id'] is not None and row['user_id'] != uid:
@@ -163,7 +177,17 @@ def make_rating_fixture(path):
             if state['fail_settle']:
                 raise RuntimeError('fixture after original effects before receipt')
             return result
+
+        def settle_forfeit(self, conn, ctx, moves, response_ms, reason):
+            ns = self.namespace(conn,ctx.user_id)
+            result = ns['_rt_forfeit_on_connection'](SharedConnection(conn), ctx, moves, response_ms, reason)
+            if state['fail_settle']:
+                raise RuntimeError('fixture after original forfeit effects before receipt')
+            return result
     services = Services()
+    if core_only:
+        return None,state,connect,services
+    from flask import Flask, request, session, send_from_directory
     app = Flask(__name__,static_folder=None)
     app.secret_key = 'g076-rating-disposable-only'
     app.config['TESTING'] = True

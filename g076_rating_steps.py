@@ -12,7 +12,6 @@ import json
 import secrets
 import time
 
-from flask import Blueprint, jsonify, request, session
 from g076_question_privacy import board_only_sgf
 from g076_server_step_authority import adjudicate_next_step, validate_step_question
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -45,14 +44,23 @@ class RatingServices(Protocol):
     settle: extracted original rt_answer effects, including _rt_server_verify,
       token/current-round checks and finalize; NO commit, new connection or I/O.
       Return original result. No client or step verdict enters the Elo authority.
-    Deferred placement unlock needs transactional outbox/after-commit handling;
-      it must not run inside a rollbackable callback or be silently omitted.
+    Placement unlock must use the same connection or a transactional outbox;
+      the original callback that opens/commits another connection must not run
+      inside this rollbackable transaction or be silently omitted.
     """
     def transaction(self) -> ContextManager[Any]: ...
     def resolve(self, conn: Any, sid: str, uid: int | None) -> RatingContext: ...
     def start(self, conn: Any, uid: int | None, trigger: str) -> RatingContext: ...
     def settle(self, conn: Any, ctx: RatingContext, moves: list[dict],
                response_ms: int) -> Mapping[str, Any]: ...
+    def settle_forfeit(self, conn: Any, ctx: RatingContext, moves: list[dict],
+                       response_ms: int, reason: str) -> Mapping[str, Any]:
+        """Server-authorized failure; original writer, no move fabrication.
+
+        Called only after owner/session lock, binding, live nonce and deadline
+        checks. Preserve original placement and unlock on this connection.
+        """
+        ...
 
 
 # Explicit PROPOSED schema: run only in disposable fixtures until reviewed.
@@ -72,9 +80,13 @@ def mode(environ: Mapping[str, str]) -> str:
         return False if value in ('', '0', 'false', 'off') else (
             True if value in ('1', 'true', 'on') else None)
     rating, privacy = flag('G076_RATING_STEPS_ENABLED'), flag('G076_ANSWER_PRIVACY_ENFORCED')
+    if rating is None or privacy is None:
+        return 'hold'
     if rating is False and privacy is False:
         return 'legacy'
-    return 'steps' if rating is True and privacy is True else 'hold'
+    # This mode projects its own board-only payloads. Global privacy must not
+    # be enabled merely to exercise Rating (it contains unrelated modes).
+    return 'steps' if rating is True else 'hold'
 
 
 def _json(value):
@@ -176,9 +188,7 @@ def advance(conn, services: RatingServices, ctx: RatingContext, body: dict, now:
         raise RatingRejected('rating_invalid_step', 400)
     if action == 'timeout' and now < state['deadline']:
         raise RatingRejected('rating_timeout_not_due')
-    # Legacy rt_answer rejects an empty move list with question_unverifiable.
-    # Until its original Elo/placement writer has a connection-scoped,
-    # server-authorized failure path, NEVER mutate or fake a player move.
+    # Fail closed for adapters lacking the trusted original failure writer.
     needs_forfeit = action != 'move' or now >= state['deadline']
     if needs_forfeit and not callable(getattr(services, 'settle_forfeit', None)):
         raise RatingRejected('rating_forfeit_transaction_not_integrated', 503)
@@ -207,9 +217,9 @@ def advance(conn, services: RatingServices, ctx: RatingContext, body: dict, now:
         # Only trusted stored moves enter the ORIGINAL judge/Elo transaction.
         elapsed_ms = min(600000, max(0, int((now-state['started'])*1000)))
         if needs_forfeit:
-            # A future trusted provider must preserve the original Elo writer,
-            # question/owner locks and exact-one-transaction receipt.
+            # Pass only committed history; a late client move is never added.
             reason = 'timeout' if now >= state['deadline'] else 'give_up'
+            state['forfeit_reason'] = reason
             canonical = services.settle_forfeit(conn, ctx, list(state['moves']),
                                                 elapsed_ms, reason)
         else:
@@ -229,6 +239,7 @@ def create_rating_blueprint(services: RatingServices | None, environ, *, clock=t
     G MASTER must also guard legacy start/answer/resume and every exposure path
     under this per-mode gate. Merely registering this blueprint is NOT admission.
     """
+    from flask import Blueprint, jsonify, request, session
     bp = Blueprint('g076_rating_steps', __name__)
 
     @bp.after_request
