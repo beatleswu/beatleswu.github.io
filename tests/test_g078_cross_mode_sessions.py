@@ -72,7 +72,12 @@ def test_four_account_resume_replay_negative_paths(rating, negative):
         r = client(fx, 8).get('/api/g076/rating/resume/' + d['session_id'])
         expected = 403
     elif negative == 'replay_conflict':
-        r = c.post('/api/g076/rating/step', json={**b, 'move': {'x': 4, 'y': 4}})
+        # The original valid answer has a transform-dependent position.
+        # A hardcoded (4,4) can equal that position after rotation, making
+        # this a legitimate idempotent 200 rather than a conflicting replay.
+        # Change a guaranteed-valid coordinate of the actual submitted move.
+        conflict = {'x': (b['move']['x'] + 1) % 5, 'y': b['move']['y']}
+        r = c.post('/api/g076/rating/step', json={**b, 'move': conflict})
         expected = 409
     else:
         fx[1]['deny'] = True
