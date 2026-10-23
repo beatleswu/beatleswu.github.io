@@ -7,7 +7,7 @@ import pytest
 ROOT=Path(__file__).resolve().parents[2]
 DOCKER=(ROOT/"Dockerfile").read_text(encoding="utf-8")
 MODULES=(
- "g076_mode_gate.py","g076_mistakes_product.py","g076_rating_steps.py",
+ "g076_mode_gate.py","g076_mistakes_product.py","g077_mistakes_settlement.py","g076_rating_steps.py",
  "g076_grimoire_adapter.py","g076_grimoire_catalog.py",
  "g076_grimoire_pg_service.py","g076_grimoire_product.py")
 STATIC=("grimoire_player.html","js/game/g076_rating_step_client.js",
@@ -41,3 +41,10 @@ def test_build_does_not_enable_new_modes():
 def test_python_modules_parse_without_app_import(mod):
     import ast
     ast.parse((ROOT/mod).read_text(encoding="utf-8"),filename=mod)
+
+
+def test_docker_build_context_excludes_disposable_evidence_and_pg_creds():
+    ignored=(ROOT/'.dockerignore').read_text(encoding='utf-8')
+    lines={line.strip() for line in ignored.splitlines() if not line.startswith('#')}
+    assert {'artifacts/','**/artifacts/','.g076-*','.g077-*',
+            '**/.g076-*','**/.g077-*'}.issubset(lines)

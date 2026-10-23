@@ -218,6 +218,8 @@ COPY g076_othermode_authority.py ./
 # No official corpus, fixture credentials or schema installation is packaged.
 COPY g076_mode_gate.py ./
 COPY g076_mistakes_product.py ./
+# G077-B1 borrowed-transaction terminal writer; never auto-enables XP.
+COPY g077_mistakes_settlement.py ./
 COPY g076_rating_steps.py ./
 COPY g076_grimoire_adapter.py ./
 COPY g076_grimoire_catalog.py ./
