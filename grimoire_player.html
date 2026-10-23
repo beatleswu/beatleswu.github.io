@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>法典修煉｜黑白星火</title>
+<style>
+body{margin:0;background:#121d26;color:#f0eee5;font:17px system-ui;line-height:1.6}
+main{max-width:760px;margin:auto;padding:24px}a{color:#a6d4da}
+.panel{background:#20333e;border:1px solid #50636b;border-radius:16px;padding:24px}
+#board{width:100%;max-width:580px;margin:20px auto;aspect-ratio:1;background:#dcb77b}
+button{padding:12px 18px;border-radius:8px;border:1px solid #91afb5;background:#d6ecec;color:#10252e;font:inherit;margin:6px}
+button:disabled{opacity:.45}#status{font-size:1.3em}#message{min-height:2em;color:#ffdda5}
+#receipt{overflow-wrap:anywhere;font-size:.85em}h1{margin-bottom:0}
+</style></head><body><main>
+<a href="/">返回星火大廳</a><h1>法典修煉</h1><p>細讀棋形，落下你的一手。</p>
+<section class="panel" aria-labelledby="lesson"><h2 id="lesson">載入今日課題</h2>
+<div id="status" role="status" aria-live="polite">正在連線…</div>
+<div id="board" aria-label="圍棋棋盤，請點選交叉點落子"></div>
+<p id="message" role="alert"></p>
+<button id="retry" disabled>重送同一手</button><button id="resume">重新連線／繼續</button>
+<p id="receipt"></p></section>
+</main><script src="/wgo/wgo.min.js"></script><script src="/wgo/wgo.player.min.js"></script>
+<script src="/grimoire/player.js" defer></script></body></html>
