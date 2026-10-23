@@ -33848,6 +33848,17 @@ def serve_g076_daily_step_client_js():
     )
 
 
+from g078_rating_integration import install as _install_g078_rating
+_g078_rating_services = _install_g078_rating(app, globals(), os.environ)
+
+
+@app.route('/js/game/g076_rating_step_client.js')
+def serve_g076_rating_step_client_js():
+    return _serve_live_static_or_baked_subpath(
+        'g076_rating_step_client.js', 'js/game', 'js/game'
+    )
+
+
 if __name__ == '__main__':
     init_db()
     _start_premium_weekly_scheduler()

@@ -253,7 +253,7 @@ def create_rating_blueprint(services: RatingServices | None, environ, *, clock=t
         return jsonify(error=error.code, mode='hold'), error.status
 
     def require():
-        if mode(environ) != 'steps' or services is None:
+        if mode(environ) != 'steps' or services is None or not ready():
             raise RatingRejected('rating_steps_hold', 503)
         if request.method == 'POST' and (not request.is_json or (
                 request.headers.get('Origin') and request.headers['Origin'] != request.host_url.rstrip('/'))):
@@ -265,11 +265,15 @@ def create_rating_blueprint(services: RatingServices | None, environ, *, clock=t
             raise RatingRejected('rating_invalid_identity', 401)
         return value
 
+    def ready():
+        check = getattr(services, 'ready', None)
+        return check() if callable(check) else services is not None
+
     @bp.get('/api/g076/rating/capability')
     def capability():
         current = mode(environ)
-        ready = current == 'steps' and services is not None
-        return jsonify(mode='steps' if ready else 'legacy' if current == 'legacy' else 'hold'), (200 if ready or current == 'legacy' else 503)
+        available = current == 'steps' and services is not None and ready()
+        return jsonify(mode='steps' if available else 'legacy' if current == 'legacy' else 'hold'), (200 if available or current == 'legacy' else 503)
 
     @bp.post('/api/g076/rating/start')
     def start():
