@@ -199,6 +199,13 @@ COPY docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json ./docs/p
 COPY adventure_monster_runtime_contract.py ./
 COPY map_battle_runtime.py ./
 COPY map_battle_persistence.py ./
+# G076-R3: separately gated, server-authoritative step ledger and SGF
+# board-only projection. Explicit dependencies; no wildcard release copy.
+COPY sgf_point_transform.py ./
+COPY sgf_answer_authority.py ./
+COPY g076_question_privacy.py ./
+COPY g076_server_step_authority.py ./
+COPY g076_step_ledger.py ./
 # SGF Owner Review Queue is authenticated, server-persisted repair staging.
 # Its detector-derived source is read-only evidence, never canonical content.
 COPY sgf_answer_review_queue.py ./
@@ -323,6 +330,8 @@ COPY js/game/game_session.js ./js/game/game_session.js
 # keep the copies narrow so the image cannot silently absorb unrelated JS.
 COPY js/game/question_loader.js ./js/game/question_loader.js
 COPY js/game/board_renderer.js ./js/game/board_renderer.js
+# G076-R3: only the approved browser step transport adapter.
+COPY js/game/g076_authoritative_step_client.js ./js/game/g076_authoritative_step_client.js
 # B6 ModeContext and B7 GameBootstrap are narrow browser runtime modules;
 # keep both explicit so the image cannot absorb unrelated game JavaScript.
 COPY js/game/mode_context.js ./js/game/mode_context.js
