@@ -40,22 +40,19 @@ REAL_ZONE1_FINAL_DIR = TOOL_DIR / "_local_review" / "zone1_final_voices"
 
 @pytest.fixture
 def casting_backup(monkeypatch, tmp_path):
+    # Make a byte-identical per-test copy of the real approved cast. Never
+    # write/restore the repository casting JSON: concurrent shards otherwise
+    # race and may corrupt its Owner-approved voice IDs.
     original = mod.CASTING_PATH.read_bytes()
-    # Redirect all generated output to an isolated per-test tmp directory.
-    # pytest owns tmp_path's lifecycle, so no manual rmtree of anything is
-    # needed (or permitted) here -- that manual rmtree of mod.ZONE1_FINAL_DIR
-    # is exactly what destroyed the real Owner-approved output on
-    # 2026-08-09 when it still pointed at the real repo path.
+    isolated_casting = tmp_path / "casting_candidates.json"
+    isolated_casting.write_bytes(original)
+    monkeypatch.setattr(mod, "CASTING_PATH", isolated_casting)
+    # Keep the destructive generation directory in the same isolated tmp
+    # hierarchy; never remove Owner-approved local audio assets.
     monkeypatch.setattr(mod, "ZONE1_FINAL_DIR", tmp_path / "zone1_final_voices_test_output")
-    # Point the owner-approval lock check at a path that does not exist by
-    # default, so tests of cmd_generate_tts()'s generation mechanics are
-    # not entangled with the separate owner-approval-lock feature (which
-    # has its own dedicated tests below using a synthetic lock file).
+    # Owner approval lock is separately covered with synthetic lock fixtures.
     monkeypatch.setattr(mod, "FINAL_TTS_LOCK_PATH", tmp_path / "zone1_final_tts_lock_test.json")
-    try:
-        yield
-    finally:
-        mod.CASTING_PATH.write_bytes(original)
+    yield
 
 
 def test_generation_never_touches_the_real_production_output_dir(monkeypatch, casting_backup, capsys):
