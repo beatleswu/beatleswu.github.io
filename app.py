@@ -16616,6 +16616,22 @@ def _g076_step_enabled():
     )
 
 
+@app.route('/api/adventure/map-battles/v2/steps/capability')
+@login_required
+def g076_map_battle_step_capability():
+    """Auth-scoped, no-store, authoritative rollout signal for the UI.
+
+    Both answer privacy and the durable step ledger must be enabled before
+    the browser is allowed to switch away from legacy SGF handling.
+    """
+    response = jsonify({
+        'enabled': bool(_g076_step_enabled()),
+        'protocol': 'g076-server-steps-v1',
+    })
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 @app.route('/api/adventure/map-battles/v2/steps/start', methods=['POST'])
 @login_required
 def g076_map_battle_step_start():
@@ -29869,6 +29885,13 @@ def serve_board_renderer_js():
     return _serve_live_static_or_baked_subpath(
         'board_renderer.js', 'js/game', 'js/game'
     )
+
+@app.route('/js/game/g076_authoritative_step_client.js')
+def serve_g076_authoritative_step_client_js():
+    return _serve_live_static_or_baked_subpath(
+        'g076_authoritative_step_client.js', 'js/game', 'js/game'
+    )
+
 
 @app.route('/js/game/mode_context.js')
 def serve_mode_context_js():

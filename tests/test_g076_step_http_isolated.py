@@ -69,8 +69,11 @@ def api(live_fixture, monkeypatch):
     }
     gate=app_body("_g076_step_enabled",names)
     names["_g076_step_enabled"]=gate
+    capability=app_body("g076_map_battle_step_capability",names)
     start=app_body("g076_map_battle_step_start",names)
     submit=app_body("g076_map_battle_step_submit",names)
+    app.add_url_rule("/api/adventure/map-battles/v2/steps/capability",
+                     "capability",capability,methods=["GET"])
     app.add_url_rule("/api/adventure/map-battles/v2/steps/start","start",start,methods=["POST"])
     app.add_url_rule("/api/adventure/map-battles/v2/steps","answer",submit,methods=["POST"])
 
@@ -174,3 +177,26 @@ def test_no_runtime_schema_migration_or_prod_write_in_route():
     assert "G076_ANSWER_PRIVACY_ENFORCED" not in snippet
     assert "_activation_transaction()" in snippet
     assert "entitlement_admitter=_admit_map_battle_answer_entitlement" in snippet
+
+
+def test_capability_is_authoritative_no_store_and_requires_both_gates(api):
+    client,nonce,conn,counts,monkeypatch=api
+    url="/api/adventure/map-battles/v2/steps/capability"
+    first=client.get(url)
+    assert first.status_code==200
+    assert first.get_json()=={
+        "enabled":False,"protocol":"g076-server-steps-v1"}
+    assert first.headers["Cache-Control"]=="no-store"
+    monkeypatch.setenv("G076_STEP_RUNTIME_ENABLED","true")
+    assert client.get(url).get_json()["enabled"] is False
+    monkeypatch.setenv("G076_ANSWER_PRIVACY_ENFORCED","true")
+    assert client.get(url).get_json()["enabled"] is True
+    assert conn.execute("SELECT COUNT(*) FROM g076_step_sessions").fetchone()[0]==0
+
+
+def test_capability_anonymous_denied(api):
+    client,nonce,conn,counts,monkeypatch=api
+    with client.session_transaction() as s:
+        s.pop("user_id",None)
+    r=client.get("/api/adventure/map-battles/v2/steps/capability")
+    assert r.status_code==401

@@ -141,9 +141,31 @@ def open_steps(conn, *, uid, attempt_id, submission_nonce,
         return {"status": "SETTLED", "step_index": state["step_index"],
                 "retryable": False}
     _battle_open(conn, uid, attempt)
+    history = json.loads(state["history_json"])
+    if not isinstance(history, list) or len(history) != int(state["step_index"]):
+        raise StepLedgerRejected("bad_server_step_history")
+    # Already committed moves are safe to replay on refresh: never return
+    # unplayed solution branches or any future candidate coordinates.
+    previous_steps = []
+    for i, player_move in enumerate(history):
+        committed = _one(
+            conn,
+            "SELECT response_json FROM g076_step_events WHERE attempt_id=? AND step_index=?",
+            (attempt["id"], i),
+        )
+        if not committed:
+            raise StepLedgerRejected("missing_committed_step")
+        evidence = json.loads(committed["response_json"])
+        if evidence.get("status") != "CONTINUE":
+            raise StepLedgerRejected("inconsistent_committed_history")
+        previous_steps.append({
+            "player_move": player_move,
+            "opponent_reply": evidence.get("opponent_reply"),
+        })
     return {"status": "READY", "step_index": state["step_index"],
             "step_nonce": _nonce(secret, attempt, uid, state["step_index"]),
-            "question_id": state["question_id"], "board_size": attempt["board_size"]}
+            "question_id": state["question_id"], "board_size": attempt["board_size"],
+            "previous_steps": previous_steps}
 
 
 def submit_step(conn, *, uid, attempt_id, submission_nonce, step_index,

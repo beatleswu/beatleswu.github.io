@@ -100,6 +100,9 @@ def test_entire_multistep_sqlite_battle_progresses_and_settles_once(live_fixture
     resumed=open_steps(**params(conn,nonce))
     assert resumed["step_index"]==1
     assert resumed["step_nonce"]==first["next_step_nonce"]
+    assert resumed["previous_steps"] == [{
+        "player_move":[0,0],"opponent_reply":[1,1]
+    }]
     second=answer(conn,nonce,1,resumed["step_nonce"],2,2)
     assert second["status"]=="CORRECT"
     assert second["battle_settlement"]["result"]=="CORRECT"
