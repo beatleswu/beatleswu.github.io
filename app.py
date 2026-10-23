@@ -12314,6 +12314,8 @@ def training_daily():
                     and qid not in done_today
                 ]
                 rng.shuffle(fallback2)
+                ordered = _prefer_player_questions([{'id': qid} for qid in fallback2], uid)
+                fallback2 = [q['id'] for q in ordered]
                 for qid in fallback2[:TOTAL - len(selected)]:
                     add(qid, 'review')
 
@@ -14780,6 +14782,22 @@ def adventure_boss_finish():
 # 題庫 API（index.html / mistakes.html 左側列表用）
 # ══════════════════════════════════════════════════════════════
 
+def _prefer_player_questions(candidates, uid):
+    from question_selection_policy import recent_correct_ids, prefer_not_recent
+    if not uid:
+        return candidates
+    with get_db() as conn:
+        recent = recent_correct_ids(conn, uid)
+        today = datetime.date.today().isoformat()
+        due = {r['question_id'] for r in conn.execute(
+            'SELECT question_id FROM srs_cards WHERE user_id=? AND due_date<=?',
+            (uid, today)).fetchall()}
+        keys = _identity_group_key_map(conn, recent | due | {q['id'] for q in candidates})
+    group = lambda qid: _identity_group_key(keys, qid)
+    return prefer_not_recent(candidates, {group(qid) for qid in recent},
+                             due={group(qid) for qid in due}, key=lambda q: group(q['id']))
+
+
 @app.route('/api/questions')
 @login_required
 def get_questions():
@@ -14884,13 +14902,14 @@ def get_questions():
             'monster_name':      q.get('monster_name', ''),
             'grimoire_difficulty': q.get('grimoire_difficulty'),
             'rating':              q.get('rating'),
-            'katago_best_move':    q.get('katago_best_move', ''),
+            'katago_best_move':    q.get('katago_best_move', '') if not locked else '',
             'score_gap':           q.get('score_gap'),
             # Revision evidence is deliberately separate from the legacy
             # question locator and future source_record_uuid identity.
             'question_revision': _client_question_revision(q),
             'session_question_fingerprint': _session_question_fingerprint(q),
         })
+    result = _prefer_player_questions(result, session.get('user_id'))
     resp = jsonify(result)
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     return resp
@@ -28711,6 +28730,10 @@ def share_page(token): return _serve_live_static_or_baked('share_view.html')
 @login_required
 def mistakes_page(): return _serve_live_static_or_baked('mistakes.html')
 
+# G066 proposal: default OFF; adapters/Owner gate must be provided by G/D.
+from g066_course.integration import install_course_v1
+install_course_v1(app)
+
 @app.route('/curriculum')
 @login_required
 def curriculum_page(): return _serve_live_static_or_baked('curriculum.html')
@@ -31479,52 +31502,9 @@ _RANK_TO_RATING: dict = {
 import re as _re_mod
 
 def _transform_sgf(content: str, t: int) -> str:
-    """將 SGF 內所有落子座標套用第 t 種幾何變換（t=0 直接回傳原文）。"""
-    if t == 0:
-        return content
-    # 從 SZ[] 取棋盤大小
-    m = _re_mod.search(r'SZ\[(\d+)\]', content)
-    N = int(m.group(1)) if m else 19
-    n = N - 1
-
-    TRANSFORMS = (
-        lambda c, r: (c,   r),       # 0 identity（不會走到這裡）
-        lambda c, r: (n-r, c),       # 1 rotate 90° CW
-        lambda c, r: (n-c, n-r),     # 2 rotate 180°
-        lambda c, r: (r,   n-c),     # 3 rotate 270° CW
-        lambda c, r: (n-c, r),       # 4 flip horizontal（左右）
-        lambda c, r: (c,   n-r),     # 5 flip vertical（上下）
-        lambda c, r: (r,   c),       # 6 主對角線轉置
-        lambda c, r: (n-r, n-c),     # 7 反對角線轉置
-    )
-    fn = TRANSFORMS[t]
-
-    def xf_pair(pair: str) -> str:
-        if len(pair) != 2 or pair == 'tt':
-            return pair
-        c = ord(pair[0]) - 97
-        r = ord(pair[1]) - 97
-        if not (0 <= c < N and 0 <= r < N):
-            return pair
-        nc, nr = fn(c, r)
-        return chr(nc + 97) + chr(nr + 97)
-
-    # 只替換跟在 B / W / AB / AW 後面的座標括號
-    def replace_prop(m2):
-        prop = m2.group(1)
-        coords_block = m2.group(2)
-        new_block = _re_mod.sub(
-            r'\[([a-s]{2}|tt)\]',
-            lambda cm: '[' + xf_pair(cm.group(1)) + ']',
-            coords_block
-        )
-        return prop + new_block
-
-    return _re_mod.sub(
-        r'(;?\s*(?:AB|AW|B|W))((?:\s*\[[a-s]{2}\]|\[tt\])+)',
-        replace_prop,
-        content
-    )
+    """Transform declared SGF points/markers; preserve raw text and t0 bytes."""
+    from sgf_point_transform import transform_sgf
+    return transform_sgf(content, t)
 
 # ── 題目難度實證校準 ──────────────────────────────────────────────────────────
 # 用全站日常答題記錄（review_log）反推題目實際難度：
@@ -31746,35 +31726,25 @@ def _transform_point(x: int, y: int, size: int, t: int):
     return fns[t](x, y)
 
 def _rt_server_verify(pool_q: dict, sid: str, moves: list):
-    """後端權威判定。SGF 樹重放 → 失敗再試 KataGo 最佳手容錯（多正解）。
-    回傳 True/False；SGF 樹解析失敗（後端無從判定）回 None，呼叫端沿用前端布林，
-    避免解析器邊緣情況冤枉答對的玩家。"""
-    t = _rt_transform_idx(sid, pool_q['id'])
-    sgf_t = _transform_sgf(pool_q['content'], t)
-    accepted_moves = {
-        (m['x'], m['y'])
-        for m in _question_accepted_moves(pool_q)
-        if isinstance(m.get('x'), int) and isinstance(m.get('y'), int)
-    }
-    if len(moves) == 1 and accepted_moves:
-        first = moves[0] or {}
-        if (first.get('x'), first.get('y')) in accepted_moves:
-            return True
-    tree = _rt_parse_answer_tree(sgf_t)
-    if tree is not None and _rt_replay(tree, moves):
-        return True
-    # 多正解容錯：玩家第一手 = KataGo 最佳手（SGF 沒收錄的另一個正解）
-    if len(moves) == 1 and pool_q.get('katago_best_move'):
-        m_sz = _re_mod.search(r'SZ\[(\d+)\]', pool_q['content'])
-        size = int(m_sz.group(1)) if m_sz else 19
-        bm = _gtp_to_xy(pool_q['katago_best_move'], size)
-        if bm:
-            bx, by = _transform_point(bm[0], bm[1], size, t)
-            if (moves[0].get('x'), moves[0].get('y')) == (bx, by):
-                return True
-    if tree is None:
-        return None    # 無法解析 → 不判定
-    return False
+    """Same server judge as Practice/Guild/Map/Lord Trial; no KataGo fallback."""
+    from map_battle_runtime import canonicalize_answer, judge_map_battle_answer_v1, JudgeUnavailable
+    try:
+        root = parse_sgf(pool_q['content'])
+        size = root.metadata.get('size', 19)
+        first = next((n.move for n in root.children if n.move is not None), None)
+        color = root.metadata.get('player_to_move') or (first.color if first else 'B')
+        t = _rt_transform_idx(sid, pool_q['id'])
+        attempt = {'board_size': size, 'player_color': color, 'transform_id': f't{t}'}
+        payload = dict(battle_id=sid, attempt_id=sid, submission_nonce=sid,
+                       battle_revision=0, question_revision='rating-test',
+                       player_color=color, transform_id=f't{t}',
+                       transform_version='map-battle-v1', moves=moves)
+        canonical = canonicalize_answer(payload, attempt)
+        outcome = judge_map_battle_answer_v1(pool_q, attempt, canonical)
+        return outcome.result == 'CORRECT' if outcome.result in ('CORRECT', 'INCORRECT') else None
+    except (JudgeUnavailable, ValueError, KeyError):
+        return None
+
 
 def _build_rt_pool():
     global _RT_POOL, _RT_POOL_READY, _RT_POOL_BUILT_AT
@@ -31878,6 +31848,8 @@ def _build_rt_pool():
             'source':           source,
             'source_group':     source_group,
             'quality':          'verified' if verified else 'fallback',
+            'accepted_moves':   _question_accepted_moves(q),
+            'answer_policy':    q.get('answer_policy'),
             'content_hash':     content_hash,
             'katago_best_move': (
                 (verified_entry or {}).get('move') or q.get('katago_best_move') or ''

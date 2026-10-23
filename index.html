@@ -237,7 +237,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     <script src="/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"></script>
     <script src="/js/game/review_transport.js?v=20260817e10v1bb3"></script>
     <script src="/js/game/question_loader.js?v=20260817e10v1bb5"></script>
-    <script src="/js/game/board_renderer.js?v=20260817e10v1bb5"></script>
+    <script src="/js/game/board_renderer.js?v=20261023g064"></script>
     <script src="/js/game/game_session.js"></script>
     <script src="/js/game/mode_context.js?v=20260817e10v1bb6"></script>
     <script src="/js/game/game_bootstrap.js?v=20260817e10v1bb6"></script>
@@ -9234,16 +9234,11 @@ window.showPetRewardToast = showPetRewardToast;
 
 // ─── SGF 解析器 ────────────────────────────────────────────────
 function parseSGF(sgf) {
-    sgf = sgf.replace(/\r?\n|\r/g, ' ').trim();
-    const result = { size:19, pl:'B', black:[], white:[], tree:null };
+    const root = GoOdysseyBoardRenderer.readSgfRoot(sgf);
+    if (!root) return null;
+    const result = { size:root.size, pl:root.pl || 'B', black:root.black, white:root.white, annotations:root.annotations, tree:null };
+    const pl = root.pl;
     function findClosing(str,start){let d=0;for(let i=start;i<str.length;i++){if(str[i]==='(')d++;else if(str[i]===')'){ d--;if(d===0)return i;}}return str.length-1;}
-    function parseCoordList(s){return(s.match(/\[([a-zA-Z]{2})\]/g)||[]).map(m=>({x:m.charCodeAt(1)-97,y:m.charCodeAt(2)-97}));}
-    const rm=sgf.match(/^\(;([\s\S]*?)(?=;|\(|\))/);if(!rm)return null;
-    const rp=rm[1];
-    const sz=rp.match(/SZ\[(\d+)\]/);if(sz)result.size=parseInt(sz[1]);
-    const pl=rp.match(/PL\[([BW])\]/);if(pl)result.pl=pl[1];
-    (rp.match(/AB((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.black.push(...parseCoordList(s)));
-    (rp.match(/AW((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.white.push(...parseCoordList(s)));
     function parseSeq(str){
         str=str.trim();const ns=[];let i=0;
         while(i<str.length){
@@ -9258,7 +9253,7 @@ function parseSGF(sgf) {
         while(bi<str.length){if(str[bi]==='('){const e=findClosing(str,bi);const c=parseSeq(str.slice(bi+1,e));if(c)last.children.push(c);bi=e+1;}else bi++;}
         return nodes[0];
     }
-    const after=sgf.slice(rm[0].length).trim();
+    const after=sgf.slice(root.end).trim();
     if(after.startsWith(';')){result.tree=parseSeq(after);}
     else if(after.startsWith('(')){
         const root={move:null,color:null,children:[]};let i=0;
@@ -9267,8 +9262,7 @@ function parseSGF(sgf) {
     }
     // 若 SGF 根節點無 PL 標記，從答案樹第一手顏色推斷先手方
     if(!pl&&result.tree){const fn=result.tree.move?result.tree:(result.tree.children&&result.tree.children[0]);if(fn&&fn.color)result.pl=fn.color;}
-    // 最後備援：直接搜尋整個 SGF 是否含 PL[W]（處理 GN 屬性干擾的邊緣情況）
-    if(result.pl==='B'&&/PL\[W\]/.test(sgf))result.pl='W';
+
     return result;
 }
 
@@ -9282,7 +9276,7 @@ function parseSGF(sgf) {
  */
 function calcCropSection(problem) {
     const size   = problem.size;
-    const stones = [...problem.black, ...problem.white];
+    const stones = [...problem.black, ...problem.white, ...(problem.annotations || [])];
     const full   = { section:{top:-.5,left:-.5,right:-.5,bottom:-.5}, displayLines:size, startX:0, startY:0 };
     if (!stones.length || size <= 9) return full;
 
@@ -13043,6 +13037,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
             initBoard(currentProblem.size,_ci,attemptNumber);initLogicBoard(currentProblem.size);
             currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
             currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+            GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
             _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
             return true;
         };
@@ -13169,6 +13164,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         initBoard(currentProblem.size,_ci,attemptNumber);initLogicBoard(currentProblem.size);
         currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
         currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+        GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
         playerColor=currentProblem.pl;
         currentProblem.tree=makeAnswerRoot(currentProblem.tree);
         _injectAcceptedAnswerNodes(currentProblem.tree,q);
@@ -13392,6 +13388,7 @@ function resetProblem(){
     _boardRenderer.clear();initLogicBoard(currentProblem.size);
     currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
     currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+    GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
     currentNode=makeAnswerRoot(currentProblem.tree);
     setMsg((playerColor==='B'?I18n.t('index.black_first'):I18n.t('index.white_first'))+I18n.t('index.place_stone'),'info');
     if (_mapBattleV1Mode === 'active' && currentQ) _prepareMapBattleV1ForQuestion(currentQ);
@@ -13415,6 +13412,7 @@ function showAnswer(){
     _boardRenderer.clear();initLogicBoard(currentProblem.size);
     currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
     currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+    GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
     const moves=[];let node=currentProblem.tree;
     if(node&&!node.move&&node.children&&node.children.length) node=node.children[0];
     while(node&&node.move){moves.push(node);node=node.children[0]||null;}
@@ -21611,6 +21609,7 @@ async function _rebuildCurrentBossQuestionBoard(q, { attemptNumber } = {}) {
         initLogicBoard(currentProblem.size);
         currentProblem.black.forEach(s => { placeStone(s.x, s.y, 'B'); _boardRenderer.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.B }); });
         currentProblem.white.forEach(s => { placeStone(s.x, s.y, 'W'); _boardRenderer.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.W }); });
+        GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
         playerColor = currentProblem.pl;
         // currentProblem.tree already carries the accepted-answer nodes
         // injected during the primary attempt; re-assigning currentNode is

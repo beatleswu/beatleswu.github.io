@@ -950,6 +950,13 @@ def normalize_player_color(value: Any) -> str:
 def question_revision_for(question: Mapping[str, Any]) -> str:
     """Return the immutable revision used when an attempt is issued."""
 
+    if question.get("answer_policy"):
+        # Bind opt-in semantics and reviewed alternatives as well as SGF bytes.
+        material = {key: question.get(key) for key in (
+            "content", "answer_policy", "accepted_moves", "accepted_answers",
+            "question_revision", "content_revision", "content_sha256",
+        )}
+        return hashlib.sha256(json.dumps(material, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
     for key in ("question_revision", "content_revision", "content_sha256"):
         value = question.get(key)
         if isinstance(value, str) and value.strip():
@@ -1186,9 +1193,10 @@ def judge_map_battle_answer_v1(
 ) -> JudgeOutcome:
     """Versioned server-only judge over the existing SGF judging primitives.
 
-    Under the Owner-approved W1-D1 policy, authoritative alternatives and both
-    existing bare-leaf paths remain CORRECT; off-tree, resign, and partial
-    sequences remain INCORRECT.  Invalid input remains INVALID and unavailable
+    G065 candidate preserves reviewed alternatives and unannotated linear
+    legacy compatibility. Ambiguous terminals require explicit authority.
+    Off-tree, resign, and partial sequences remain INCORRECT. Invalid input
+    remains INVALID and unavailable
     authoritative content remains retryable via ``JudgeUnavailable``.
     """
 
@@ -1213,19 +1221,34 @@ def judge_map_battle_answer_v1(
     if len(move_pairs) == 1 and move_pairs[0] in accepted:
         return JudgeOutcome("CORRECT", 5, MAP_BATTLE_JUDGE_VERSION, "accepted_authoritative_alternative")
 
+    from sgf_answer_authority import terminal_verdict, AnswerAuthorityUnavailable
+
+    def finish(node, reason):
+        try:
+            correct = terminal_verdict(question, tree_root, node)
+        except AnswerAuthorityUnavailable as error:
+            raise JudgeUnavailable(str(error)) from error
+        return JudgeOutcome("CORRECT" if correct else "INCORRECT",
+                            5 if correct else 0, MAP_BATTLE_JUDGE_VERSION,
+                            reason if correct else "explicit_failure_branch")
+
     current = tree_root
     player_color = canonical.payload["player_color"]
-    for x, y in move_pairs:
+    for move_index, (x, y) in enumerate(move_pairs):
         coord = _coordinate_to_sgf(x, y)
         child = _find_child(current, player_color, coord)
         if child is None:
             return JudgeOutcome("INCORRECT", 0, MAP_BATTLE_JUDGE_VERSION, "off_answer_tree")
         current = child
         if not getattr(current, "children", None):
-            return JudgeOutcome("CORRECT", 5, MAP_BATTLE_JUDGE_VERSION, "answer_tree_leaf")
+            if move_index != len(move_pairs) - 1:
+                return JudgeOutcome("INCORRECT", 0, MAP_BATTLE_JUDGE_VERSION, "moves_after_terminal")
+            return finish(current, "answer_tree_leaf")
         current = _auto_reply(current, player_color)
         if not getattr(current, "children", None):
-            return JudgeOutcome("CORRECT", 5, MAP_BATTLE_JUDGE_VERSION, "answer_tree_reply_leaf")
+            if move_index != len(move_pairs) - 1:
+                return JudgeOutcome("INCORRECT", 0, MAP_BATTLE_JUDGE_VERSION, "moves_after_terminal")
+            return finish(current, "answer_tree_reply_leaf")
     return JudgeOutcome("INCORRECT", 0, MAP_BATTLE_JUDGE_VERSION, "partial_answer_sequence")
 
 

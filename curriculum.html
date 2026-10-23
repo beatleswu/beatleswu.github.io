@@ -3036,5 +3036,12 @@ function _currNpcText(i){ const o=CURR_NPC_LINES[i]; if(!o) return ''; return (t
   }
 })();
 </script>
+<!-- G066 proposal: read-only probe; no DOM changes while course is OFF. -->
+<script>
+fetch('/api/course-v1/summary', {credentials:'same-origin',cache:'no-store'})
+.then(r => { if (!r.ok) return; const s=document.createElement('script');
+s.src='/course-v1/curriculum-embed.js'; document.body.appendChild(s); })
+.catch(() => {});
+</script>
 </body>
 </html>
