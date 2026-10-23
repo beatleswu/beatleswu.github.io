@@ -17971,6 +17971,13 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
 
     with get_db() as conn:
+        if internal:
+            # G080 A: Map Battle's post-settlement reward writer must enter
+            # the same per-user PostgreSQL lock order as Mistakes.  Lock
+            # before reading SRS/XP, quest, pet or inventory state: otherwise
+            # concurrent modes can overwrite the other's calculated XP.
+            # This lock belongs to this connection and releases on commit.
+            _lock_user_for_daily_quota(conn, uid)
         if boss_source_context is not None:
             try:
                 source_context = _validate_adventure_boss_review_context(
@@ -18297,6 +18304,11 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         quest_shadow_events = [] if xp_shadow_enabled() else None
         battlefield_shadow_events = []
         try:
+            # Core review intentionally commits before this optional tail.
+            # Reacquire the same users-row lock for this second transaction,
+            # or concurrent Mistakes can interleave quest/coin/rank writes.
+            if internal:
+                _lock_user_for_daily_quota(conn, uid)
             legacy_daily_token = _QUEST_LEGACY_DAILY_ENABLED.set(
                 not quest_v2_runtime_enabled()
             )

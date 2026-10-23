@@ -599,3 +599,35 @@ def test_off_keeps_legacy_routes(rt, monkeypatch):
     assert review.status_code == 200 and review.get_json()['ok'] is True
     assert review.get_json()['xp_gain'] == 0       # public grade remains scheduling-only
     assert rows(rt, 'SELECT * FROM g076_mistakes_attempts WHERE user_id=?', uid) == []
+
+
+def test_g080_internal_map_progression_waits_for_same_user_reward_lock(rt, on):
+    """Real PG: internal Map handoff must serialize with Mistakes' user row.
+
+    A deliberately unknown settlement is sufficient to prove lock ORDER:
+    without the early user lock this request returns 409 immediately, while
+    a true user lock waits until the conflicting transaction commits.  No
+    reward or player data is written by this synthetic rejected request.
+    """
+    import concurrent.futures
+    import time
+    import uuid
+    uid = user(rt, plan='premium', mistakes=())
+    app = rt.app
+    with app.get_db() as held:
+        held.execute('SELECT id FROM users WHERE id=? FOR UPDATE', (uid,)).fetchone()
+        def call_progression():
+            with app.app.test_request_context('/api/srs/review'):
+                result = app._srs_review_operation_legacy(
+                    uid, {'question_id': None}, internal=True,
+                    submission_id=str(uuid.uuid4()),
+                )
+                if isinstance(result, tuple):
+                    return result[1]
+                return result.status_code
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(call_progression)
+            time.sleep(.35)
+            assert not future.done(), 'internal Map path bypassed the users row lock'
+            held.commit()
+            assert future.result(timeout=15) == 409
