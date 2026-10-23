@@ -20144,11 +20144,63 @@ def stats_dashboard():
 # 錯題本 API
 # ══════════════════════════════════════════════════════════════
 
+@app.after_request
+def _g076_grimoire_exposure(response):
+    """Bounded projection of the two legacy Blueprint question envelopes.
+
+    Run after existing authorization; never change errors or grading state.
+    """
+    from g076_question_privacy import board_only_sgf, privacy_enforced
+    field = {
+        '/api/grimoire/training/daily': 'questions',
+        '/api/training/contaminated': 'contaminated',
+    }.get(request.path)
+    if (not field or request.method != 'GET' or response.status_code != 200
+            or not privacy_enforced(os.environ)):
+        return response
+    payload = response.get_json(silent=True)
+    try:
+        for question in payload[field]:
+            question['content'] = board_only_sgf(question.get('content'))
+            question['board_only'] = True
+    except (ValueError, KeyError, TypeError, AttributeError):
+        response = jsonify({'error': 'question_preview_unavailable',
+                            'code': 'question_preview_unavailable'})
+        response.status_code = 422
+    else:
+        response = jsonify(payload)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+def _g076_exposure_content(content):
+    """Read-only projection for legacy surfaces, only called under the gate.
+
+    Rollout HOLD: their browser answer-tree consumers must migrate before
+    G076_ANSWER_PRIVACY_ENFORCED is enabled. Never replace grading inputs.
+    """
+    from flask import abort, after_this_request, make_response
+    from g076_question_privacy import board_only_sgf
+
+    @after_this_request
+    def no_store(response):
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    try:
+        return board_only_sgf(content)
+    except ValueError:
+        abort(make_response(jsonify({'error': 'question_preview_unavailable',
+                                    'code': 'question_preview_unavailable'}), 422))
+
+
 @app.route('/api/mistakes')
 @login_required
 def get_mistakes():
     uid = session['user_id']
     premium = is_premium(uid)
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
     with get_db() as conn:
         rows = conn.execute(
             'SELECT * FROM mistake_log WHERE user_id=? ORDER BY wrong_count DESC, last_wrong_at DESC',
@@ -20165,6 +20217,9 @@ def get_mistakes():
         if matches:
             record_index, q = matches[0]
             locked = (not premium) and (not question_is_free(q))
+            content = '' if locked else q.get('content', '')
+            if private and not locked:
+                content = _g076_exposure_content(content)
             result.append({**m, 'record_index': record_index if len(matches) == 1 else None,
                            'content_sha256': _question_content_sha256(q),
                            'topic':q.get('topic',''), 'level':q.get('level',''),
@@ -20175,7 +20230,8 @@ def get_mistakes():
                            'display_name':_question_display_name(q),
                            'display_name_en':_question_display_name_en(q),
                            'source':q.get('source',''),
-                           'content': '' if locked else q.get('content','')})
+                           'content': content,
+                           **({'board_only': True} if private else {})})
     return jsonify(result)
 
 @app.route('/api/mistakes/stats')
@@ -20270,6 +20326,8 @@ def badges_unseen():
 @login_required
 def dc_today():
     uid   = session['user_id']
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
     today = datetime.date.today().isoformat()
     dc    = get_or_create_daily_challenge(today)
     if not dc:
@@ -20282,6 +20340,10 @@ def dc_today():
     record_index, q = question_matches[-1] if question_matches else (None, None)
     if not q:
         return jsonify({'error': '題目不存在'}), 404
+
+    content = q.get('content', '')
+    if private:
+        content = _g076_exposure_content(content)
 
     with get_db() as conn:
         log = conn.execute(
@@ -20317,7 +20379,8 @@ def dc_today():
         'date':           today,
         'question_id':    q['id'],
         'record_index':   record_index if len(question_matches) == 1 else None,
-        'content':        q.get('content', ''),
+        'content':        content,
+        **({'board_only': True} if private else {}),
         'content_sha256': _question_content_sha256(q),
         'topic':          q.get('topic', ''),
         'topic_en':       _english_only(_i18n_topic_en(q.get('topic', '')) or q.get('topic_en')),
@@ -20325,7 +20388,7 @@ def dc_today():
         'level_en':       _english_only(_i18n_level_en(q.get('level', '')) or q.get('level_en')),
         'difficulty':     q.get('difficulty', ''),
         'rank':           q.get('rank', ''),
-        'note':           dc.get('note'),
+        'note':           None if private else dc.get('note'),
         'xp_reward':      DAILY_CHALLENGE_XP_REWARD,
         'attempt_token':  attempt_token,
         'user_submitted': log is not None,
@@ -20583,6 +20646,9 @@ def dc_history():
     if not is_premium(uid):
         return jsonify({'error': 'premium_required'}), 403
 
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
+
     today  = datetime.date.today().isoformat()
     qs_map = {q['id']: q for q in _load_questions()}
 
@@ -20616,7 +20682,7 @@ def dc_history():
             'difficulty':  q.get('difficulty', ''),
             'rank':        q.get('rank', ''),
             'topic':       q.get('topic', ''),
-            'note':        r['note'],
+            'note':        None if private else r['note'],
             'total':       r['total'] or 0,
             'correct':     r['cnt']   or 0,
             'accuracy':    round((r['cnt'] or 0) / (r['total'] or 1) * 100),
@@ -20647,14 +20713,23 @@ def dc_history_detail(date_str):
     if not q:
         return jsonify({'error': 'question_not_found'}), 404
 
+    # A past date is not proof this user answered. The same question can be
+    # reused in today's challenge, mistakes or trials: no history bypass.
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
+    content = q.get('content', '')
+    if private:
+        content = _g076_exposure_content(content)
+
     return jsonify({
         'date':       date_str,
-        'content':    q.get('content', ''),
+        'content':    content,
+        **({'board_only': True} if private else {}),
         'topic':      q.get('topic', ''),
         'level':      q.get('level', ''),
         'difficulty': q.get('difficulty', ''),
         'rank':       q.get('rank', ''),
-        'note':       dc['note'],
+        'note':       None if private else dc['note'],
     })
 
 
@@ -32193,7 +32268,18 @@ def _rt_transform_idx(sid: str, q_id) -> int:
 def _strip_question(q: dict, sid: str, token: str | None = None) -> dict:
     """只回傳前端需要的欄位，並套用確定性幾何旋轉讓同一題產生 8 種視覺版本。"""
     t = _rt_transform_idx(sid, q['id'])
-    content = _transform_sgf(q['content'], t)
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
+    # Project before transforming; the authoritative pool remains untouched.
+    source = _g076_exposure_content(q.get('content')) if private else q['content']
+    try:
+        content = _transform_sgf(source, t)
+    except ValueError:
+        if not private:
+            raise
+        from flask import abort, make_response
+        abort(make_response(jsonify({'error': 'question_preview_unavailable',
+                                    'code': 'question_preview_unavailable'}), 422))
     size_m = _re_mod.search(r'SZ\[(\d+)\]', q.get('content') or '')
     size = int(size_m.group(1)) if size_m else 19
     result = {
@@ -32206,7 +32292,9 @@ def _strip_question(q: dict, sid: str, token: str | None = None) -> dict:
         'difficulty': q['difficulty'],
         'discipline': q['discipline'],
     }
-    accepted_moves = _question_accepted_moves(q)
+    if private:
+        result['board_only'] = True
+    accepted_moves = [] if private else _question_accepted_moves(q)
     if accepted_moves:
         result['accepted_moves'] = [
             {'x': px, 'y': py}
