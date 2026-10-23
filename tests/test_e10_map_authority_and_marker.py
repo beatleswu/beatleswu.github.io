@@ -32,7 +32,7 @@ def _load_app_module():
             "skill_node_en": lambda *args, **kwargs: "",
             "title_en": lambda *args, **kwargs: "",
         },
-        "grimoire_api": {"grimoire_bp": Blueprint("e10_map_authority_stub", __name__)},
+        "grimoire_api": {"grimoire_bp": Blueprint("e10_map_authority_stub", __name__), "official_grimoire_lookup": lambda _qid: None},
     }
     for name, attrs in modules.items():
         module = types.ModuleType(name)

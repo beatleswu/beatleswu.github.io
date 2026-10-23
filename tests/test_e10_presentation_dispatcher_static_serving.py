@@ -59,6 +59,7 @@ def _build_app_import_stubs():
 
     grimoire_api = types.ModuleType("grimoire_api")
     grimoire_api.grimoire_bp = Blueprint("static_bridge_grimoire_stub", __name__)
+    grimoire_api.official_grimoire_lookup = lambda _qid: None
 
     question_taxonomy = types.ModuleType("question_taxonomy")
     question_taxonomy.get_taxonomy = lambda *args, **kwargs: {}
@@ -291,6 +292,7 @@ def _protected_runtime_probe_source():
         explain_overrides.get_override = lambda *args, **kwargs: None
         grimoire_api = types.ModuleType("grimoire_api")
         grimoire_api.grimoire_bp = Blueprint("static_bridge_probe_grimoire", __name__)
+        grimoire_api.official_grimoire_lookup = lambda _qid: None
         question_taxonomy = types.ModuleType("question_taxonomy")
         question_taxonomy.get_taxonomy = lambda *args, **kwargs: {{}}
         monster_taxonomy = types.ModuleType("monster_taxonomy")

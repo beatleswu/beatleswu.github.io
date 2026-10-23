@@ -26,7 +26,7 @@ def _load_rollout_module():
         "monster_taxonomy": {"get_monster_taxonomy": lambda *a, **k: {}, "mark_encounters": lambda *a, **k: None},
         "chapter_i18n": {"localize_topic": lambda *a, **k: "", "localize_level": lambda *a, **k: ""},
         "backend_i18n": {"badge_en": lambda *a, **k: "", "skill_node_en": lambda *a, **k: "", "title_en": lambda *a, **k: ""},
-        "grimoire_api": {"grimoire_bp": Blueprint("e9_c1_1_grimoire_stub", __name__)},
+        "grimoire_api": {"grimoire_bp": Blueprint("e9_c1_1_grimoire_stub", __name__), "official_grimoire_lookup": lambda _qid: None},
     }
     for name, attrs in modules.items():
         module = types.ModuleType(name)

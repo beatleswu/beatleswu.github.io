@@ -58,6 +58,7 @@ def _install_app_import_stubs():
 
         module = types.ModuleType("grimoire_api")
         module.grimoire_bp = Blueprint("runtime_serving_grimoire_stub", __name__)
+        module.official_grimoire_lookup = lambda _qid: None
         sys.modules["grimoire_api"] = module
     if "question_taxonomy" not in sys.modules:
         module = types.ModuleType("question_taxonomy")
@@ -179,6 +180,7 @@ def _protected_runtime_probe_source():
         explain_overrides.get_override = lambda *args, **kwargs: None
         grimoire_api = types.ModuleType("grimoire_api")
         grimoire_api.grimoire_bp = Blueprint("runtime_serving_probe_grimoire", __name__)
+        grimoire_api.official_grimoire_lookup = lambda _qid: None
         question_taxonomy = types.ModuleType("question_taxonomy")
         question_taxonomy.get_taxonomy = lambda *args, **kwargs: {{}}
         monster_taxonomy = types.ModuleType("monster_taxonomy")
