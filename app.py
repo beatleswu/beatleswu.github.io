@@ -13724,7 +13724,8 @@ def _adventure_recommended_zone_key(zones, placement_start_zone=None):
     start_idx = _adventure_zone_index(placement_start_zone) if placement_start_zone else 0
 
     def _is_unlocked(zone):
-        return bool(zone.get('unlocked')) or _adventure_zone_index(zone['key']) <= start_idx
+        # Rank placement is advisory; do not recommend an unplayable zone.
+        return _adventure_zone_is_authoritative_playable(zone)
 
     for zone in zones[start_idx:]:
         if _is_unlocked(zone) and not zone.get('cleared'):
@@ -13738,7 +13739,7 @@ def _adventure_recommended_zone_key(zones, placement_start_zone=None):
     for zone in zones:
         if _is_unlocked(zone):
             return zone['key']
-    return zones[0]['key']
+    return None
 
 
 def _adventure_effective_start_zone_key(zones):
@@ -13972,11 +13973,7 @@ def _adventure_map_state_from_zones(zones, selected_stage_key=None):
     placement_idx = _adventure_zone_index(effective_start_zone_key) if effective_start_zone_key else None
     recommended_zone_key = _adventure_recommended_zone_key(zones, effective_start_zone_key)
     valid_zone_keys = {
-        z['key'] for z in zones
-        if z.get('unlocked') or (
-            effective_start_zone_key is not None
-            and _adventure_zone_index(z['key']) <= _adventure_zone_index(effective_start_zone_key)
-        )
+        z['key'] for z in zones if _adventure_zone_is_authoritative_playable(z)
     }
     selected_zone_key = selected_stage_key if selected_stage_key in valid_zone_keys else recommended_zone_key
     current_zone_key = _adventure_current_zone_key(zones)

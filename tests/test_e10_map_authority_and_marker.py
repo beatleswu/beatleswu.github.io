@@ -205,3 +205,21 @@ def test_marker_hosts_remain_non_clickable_and_current_key_is_not_selection_deri
     assert "state.currentPlayerZoneKey = current ? current.key : null;" in WORLD_STAGE
     assert "selectedZoneKey, currentZoneKey" not in WORLD_STAGE
     assert "zones.filter(function (zone) {\n      return !zone.locked && zone.status === 'unlocked';" not in WORLD_STAGE
+
+
+def test_rank_recommendation_cannot_select_locked_zone(app_module):
+    zones = [
+        _zone("k26_30", unlocked=True, cleared=True),
+        _zone("k21_25", unlocked=True, seen=4),
+        _zone("k16_20", unlocked=False, effective_start_zone_key="k16_20"),
+    ]
+    result = app_module._adventure_map_state_from_zones(zones)
+    assert result["recommended"]["zone_key"] == "k21_25"
+    assert result["selected"]["zone_key"] == "k21_25"
+    explicit_locked = app_module._adventure_map_state_from_zones(zones, selected_stage_key="k16_20")
+    assert explicit_locked["selected"]["zone_key"] == "k21_25"
+
+
+def test_recommendation_fails_closed_when_every_zone_locked(app_module):
+    zones = [_zone("k26_30", unlocked=False, effective_start_zone_key="k26_30")]
+    assert app_module._adventure_recommended_zone_key(zones, "k26_30") is None

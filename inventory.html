@@ -697,7 +697,7 @@ function applyFunctionalEquipmentLoadoutCapability(me) {
   if (selectedFunctionalInventoryId == null) return;
   const selected = functionalEquipmentItems.find(
     item => String(item.inv_id) === String(selectedFunctionalInventoryId));
-  if (selected) renderFunctionalEquipmentDetail(selected);
+  if (selected) renderFunctionalEquipmentGrid();
 }
 // Equippability comes from the server's canonical projection, not a client
 // copy of the non-equippable ids. Strict === true so a missing/legacy payload
@@ -790,13 +790,15 @@ function functionalEquipmentFilterMatch(item) {
   return item.slot === activeFunctionalEquipmentFilter;
 }
 function functionalEffectDetails(item) {
-  if (!functionalItemEquippable(item)) return [];
+  // Do not advertise inactive combat bonuses while server loadout is OFF.
+  if (!functionalEquipmentLoadoutEnabled() || !functionalItemEquippable(item)) return [];
   return Array.isArray(item?.active_effect_details)
     ? item.active_effect_details.filter(effect => effect && typeof effect === 'object' && !Array.isArray(effect))
     : [];
 }
 function functionalUnsupportedEffects(item) {
-  if (!functionalItemEquippable(item)) return [];
+  // Unsupported preview values are not player combat bonuses.
+  if (!functionalEquipmentLoadoutEnabled() || !functionalItemEquippable(item)) return [];
   return Array.isArray(item?.unsupported_effects)
     ? item.unsupported_effects.filter(effect => effect && typeof effect === 'object' && !Array.isArray(effect))
     : [];

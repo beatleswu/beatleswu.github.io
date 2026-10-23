@@ -42,6 +42,17 @@ for (const fixture of fixtures) {
       assert.deepEqual(plain(p.annotations.filter(m => m.type === 'LB').map(m => m.text)), ['A]B', '1:2']);
     }
     if (fixture.name === 'range-13') assert.equal(p.black.length, 4);
+    if (fixture.name === 'map-battle-69853-root') {
+      const labels = p.annotations.filter(m => m.type === 'LB');
+      assert.deepEqual(plain(labels.map(m => m.text)).sort(), ['1','N','Y']);
+      const answerPoint = labels.find(m => m.text === 'N');
+      assert.deepEqual(plain({x:answerPoint.x,y:answerPoint.y}), {x:5,y:9});
+      const crop = context.calcCropSection(p);
+      assert.ok(crop.displayLines >= 13);
+      assert.ok(answerPoint.x >= crop.startX && answerPoint.x < crop.startX + crop.displayLines);
+      assert.ok(answerPoint.y >= crop.startY && answerPoint.y < crop.startY + crop.displayLines);
+    }
+
   });
   for (let t = 0; t < 8; t++) {
     check(`${fixture.name}: transformed geometry ${t}`, () => {
