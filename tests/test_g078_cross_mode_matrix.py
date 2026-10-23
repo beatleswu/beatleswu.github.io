@@ -184,29 +184,31 @@ def test_128_scenarios_real_flask_routes(isolated, bits, privacy):
             r = client.post('/api/g076/mistakes/' + suffix, json={'grade': 5, 'correct': True})
             assert r.status_code == (503 if uid else 401)
             assert_private(r)
+        # G079: Grimoire ON no longer contains unrelated shared modes (B4).
         r = client.get('/api/mistakes?include_answers=1&view=full')
-        assert r.status_code == (409 if grimoire else 200 if uid else 401)
-        if grimoire or not uid or privacy == 'on' or enabled['mistakes'] == 'on':
+        assert r.status_code == (200 if uid else 401)
+        if not uid or privacy == 'on' or enabled['mistakes'] == 'on':
             assert_private(r)
         else:
             assert r.json[0]['content'] == SGF  # explicit legacy OFF compatibility
-        for path, endpoint in (('/api/training/answer', 'training'),
-                               ('/api/challenges/friend/1/answer', 'friend')):
+        for path, mode in (('/api/training/answer', 'grimoire'),
+                           ('/api/challenges/friend/1/answer', 'friend_challenge')):
             r = client.post(path, json={})
-            blocked = privacy == 'on' or grimoire
+            # Legacy entry only while privacy AND this mode's own gate are OFF.
+            blocked = privacy == 'on' or enabled[mode] == 'on'
             assert r.status_code == (409 if blocked else 400 if uid else 401)
             assert_private(r)
         r = client.post('/api/adventure/boss/finish', json={'correct': 20, 'total': 20, 'grade': 5})
         assert r.status_code == (400 if uid else 401)
         assert_private(r)
         r = client.post('/api/rating_test/answer', json={'grade': 5, 'correct': True})
-        assert r.status_code == (409 if grimoire else 400)
+        assert r.status_code == 400
         assert_private(r)
         for envelope in ({'source_context': 'mbv1:spoof'},
                          {'source_context': 'practice', 'guild_answer': {'correct': True}},
                          {'source_context': 'practice', 'boss_answer': {'correct': True}}):
             r = client.post('/api/srs/review', json={'question_id': 701, 'grade': 5, **envelope})
-            assert r.status_code == (409 if grimoire else 400 if uid else 401)
+            assert r.status_code == (400 if uid else 401)
             assert_private(r)
         # Installed Grimoire Product is explicit HOLD without providers.
         headers = {'X-Grimoire-Request': '1'}
