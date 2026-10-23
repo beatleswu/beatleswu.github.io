@@ -268,4 +268,10 @@ def test_authorized_file_baseline_receipt():
     # Exact source baseline, no protected file edits and no app startup.
     import subprocess
     root=Path(__file__).resolve().parents[1]
-    subprocess.run(['git','diff','--exit-code','4172390ad4fa403edf23272c5c7881517a6b5015','--','app.py'],cwd=root,check=True)
+    # Rating must not change the previously approved Product app.py. In the
+    # integration tree, B1 was explicitly adopted before Rating; P0-A and B1
+    # are the ONLY two approved app.py baselines (not arbitrary new edits).
+    approved=('4172390ad4fa403edf23272c5c7881517a6b5015',
+              '8a5101fae1ac685ce2c05b76fa330155b9631052')
+    assert any(subprocess.run(['git','diff','--quiet',sha,'--','app.py'],
+                              cwd=root,check=False).returncode==0 for sha in approved)

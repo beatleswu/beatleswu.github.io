@@ -35,8 +35,9 @@ async function until(expression){
   throw new Error('Timeout: '+expression+' State: '+await evaluate("document.body.innerText.slice(-2500)"));
 }
 async function navigate(uid){
+  const previous=await evaluate('window.__g076DailyDocId || null');
   await send('Page.navigate',{url:'http://127.0.0.1:5079/fixture/entry/'+uid});
-  await until("typeof todayData !== 'undefined' && todayData && board && !answering && document.querySelector('canvas')");
+  await until("window.__g076DailyDocId && window.__g076DailyDocId !== "+JSON.stringify(previous)+" && typeof todayData !== 'undefined' && todayData && typeof board !== 'undefined' && board && !answering && document.querySelector('canvas')");
 }
 async function click(x,y){
   await evaluate("board.element.scrollIntoView({block:'center'})");
@@ -65,6 +66,7 @@ try {
   await send('Runtime.enable');await send('Page.enable');
   await send('Emulation.setDeviceMetricsOverride',{width:1400,height:1100,deviceScaleFactor:1,mobile:false});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`
+    window.__g076DailyDocId=Math.random().toString(36).slice(2);
     const nativeFetch=window.fetch.bind(window);
     window.dailyResponses=[];
     window.fetch=async (...args)=>{
@@ -89,15 +91,17 @@ try {
   await until("!answering && logicBoard[1][1]==='W'");
   check(await evaluate("logicBoard[0][0]==='B' && !submitted"),'real click + forced server opponent + nonterminal');
   check(await evaluate("dailyResponses.filter(x=>x.path==='/api/g076/daily/steps').some(x=>x.data.status==='CONTINUE' && x.data.opponent_reply.join()==='1,1' && !JSON.stringify(x.data).includes('cc'))"),'real HTTP server verdict without next answer');
+  const beforeStepReload=await evaluate('window.__g076DailyDocId');
   await send('Page.reload');
-  await until("typeof todayData !== 'undefined' && Boolean(todayData) && typeof answering!=='undefined' && !answering && typeof logicBoard!=='undefined' && logicBoard?.[1]?.[1]==='W'");
+  await until("window.__g076DailyDocId && window.__g076DailyDocId !== "+JSON.stringify(beforeStepReload)+" && typeof todayData !== 'undefined' && Boolean(todayData) && typeof answering!=='undefined' && !answering && typeof logicBoard!=='undefined' && logicBoard?.[1]?.[1]==='W'");
   check(await evaluate("logicBoard[0][0]==='B'"),'reload reconstructs committed history');
   await click(2,2);
   await until('submitted');
   check(await evaluate("solved && logicBoard[2][2]==='B' && document.getElementById('result-panel').classList.contains('show')"),'terminal verdict displays actual page result');
   check((await evaluate("fetch('/fixture/counts').then(r=>r.json())")).review_log===1,'one real D5B review settlement');
+  const beforeTerminalReload=await evaluate('window.__g076DailyDocId');
   await send('Page.reload');
-  await until("typeof todayData !== 'undefined' && todayData?.user_submitted && submitted");
+  await until("window.__g076DailyDocId && window.__g076DailyDocId !== "+JSON.stringify(beforeTerminalReload)+" && typeof todayData !== 'undefined' && todayData?.user_submitted && submitted");
   check(await evaluate("document.querySelectorAll('.xp-float').length===0"),'reload does not animate second award');
 
   await navigate(8);
