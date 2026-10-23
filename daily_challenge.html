@@ -7,6 +7,7 @@
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/wgo/wgo.min.js?v=20260513"></script>
 <script src="/wgo/stone_skin.js?v=3"></script>
+<script src="/wgo/wgo.player.min.js"></script>
 <link rel="stylesheet" href="/wgo/wgo.player.css">
 <script src="/i18n.js?v=20260710a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -804,6 +805,8 @@ header:not(.cg-nav) {
 }
 </style>
 <script src="/pwa.js"></script>
+<script src="/js/game/g076_nonmap_step_client.js"></script>
+<script src="/js/game/g076_daily_step_client.js"></script>
 </head>
 <body data-sgf-report-surface="daily_challenge_client" data-g009-surface="learning-daily" data-g009-secondary-surface="learning-hub" data-g009-visual-authority="locked-12-surfaces">
 
@@ -1015,8 +1018,9 @@ window.addEventListener('sgf:inline-review-marker', (event) => {
 let logicBoard   = null;
 let boardSize    = 19;
 let koPoint      = null;
-let currentProblem = null;   // parsed SGF tree
-let currentNode  = null;     // 當前走到的 tree node（含 root wrapper）
+let currentProblem = null;   // initial board only
+const dailySteps = GoOdysseyG076DailySteps.createClient();
+let stepUncertain = false;
 let playerColor  = 'B';
 let answering    = false;
 let solved       = false;
@@ -1116,27 +1120,14 @@ window.onload = async () => {
 // ════════════════════════════════════════════════════════════
 async function loadToday() {
   try {
-    const res  = await fetch('/api/daily-challenge/today', {credentials:'include'});
-    const data = await res.json();
+    const data = await dailySteps.load();
 
     // API 回傳錯誤時顯示實際原因
-    if (!res.ok || data.error) {
-      throw new Error(`API ${res.status}: ${data.error || JSON.stringify(data)}`);
+    if (data.error) {
+      throw new Error(data.error);
     }
 
     todayData = data;
-    if (!data.user_submitted) {
-      const storageKey = `go-odyssey:daily-d5b:${data.date}:${data.question_id}`;
-      try {
-        submissionId = sessionStorage.getItem(storageKey);
-        if (!submissionId) {
-          submissionId = `daily-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
-          sessionStorage.setItem(storageKey, submissionId);
-        }
-      } catch (_storageError) {
-        submissionId = `daily-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      }
-    }
     dailyXpReward = data.xp_reward || dailyXpReward;
     const rewardEl = document.getElementById('bounty-reward-xp');
     if (rewardEl) rewardEl.textContent = dailyXpReward;
@@ -1182,35 +1173,24 @@ async function loadToday() {
     const mc = document.getElementById('main-content');
     mc.style.display       = 'flex';
 
+    initBoard(data.content);
+    hideBtn('btn-answer'); hideBtn('btn-giveup'); hideBtn('btn-submit');
     if (data.user_submitted) {
-      // Already submitted today
       submitted = true;
-      solved    = data.user_correct;
-      gaveUp    = !data.user_correct;
-      initBoard(data.content);
-      if (data.user_correct) {
-        setMsg(I18n.t('daily.msg.already_correct'), 'ok');
-      } else {
-        setMsg(I18n.t('daily.msg.already_wrong'), 'err');
-        showBtn('btn-answer');
-      }
-      showBtn('btn-retry');
-      showGlobalStats(data.stats);
       showStatusArea(data.user_correct);
+      setMsg(I18n.t(data.user_correct ? 'daily.msg.already_correct' : 'daily.msg.already_wrong'), data.user_correct ? 'ok' : 'err');
+      hideBtn('btn-retry');
     } else {
-      // Fresh start
-      initBoard(data.content);
-      setMsg('', '');
-      showBtn('btn-giveup');
-      showTeaser();
+      await resumeDailySteps();
     }
-
   } catch(e) {
-    console.error('[loadToday] error:', e);
-    document.getElementById('loading-state').innerHTML =
-      `<div style="font-size:24px;">⚠️</div>
-       <div style="color:var(--red);font-size:13px;">${I18n.t('daily.msg.load_fail')}</div>
-       <div style="color:var(--ink3);font-size:11px;font-family:monospace;margin-top:8px;max-width:340px;word-break:break-all;">${e?.message || e}</div>`;
+    answering = true;
+    currentProblem = null;
+    document.getElementById('main-content').style.display = 'none';
+    const errorBox = document.getElementById('loading-state');
+    errorBox.style.display = '';
+    errorBox.dataset.reason = e?.message || 'daily_authority_unavailable';
+    errorBox.textContent = I18n.t('daily.msg.load_fail');
   }
 }
 
@@ -1264,71 +1244,17 @@ async function loadStreak() {
 // Board init & SGF parsing（與 index.html 同一套解析器）
 // ════════════════════════════════════════════════════════════
 
-// ── 與 index.html 完全相同的 parseSGF ────────────────────────
+// Initial-board SGF parser; server owns every answer and verdict.
 function parseSGF(sgf) {
-  sgf = sgf.replace(/\r?\n|\r/g, ' ').trim();
-  const result = { size:19, pl:'B', black:[], white:[], tree:null };
-  function findClosing(str,start){let d=0;for(let i=start;i<str.length;i++){if(str[i]==='(')d++;else if(str[i]===')'){ d--;if(d===0)return i;}}return str.length-1;}
-  function parseCoordList(s){return(s.match(/\[([a-zA-Z]{2})\]/g)||[]).map(m=>({x:m.charCodeAt(1)-97,y:m.charCodeAt(2)-97}));}
-  const rm=sgf.match(/^\(;([\s\S]*?)(?=;|\(|\))/);if(!rm)return null;
-  const rp=rm[1];
-  const sz=rp.match(/SZ\[(\d+)\]/);if(sz)result.size=parseInt(sz[1]);
-  const pl=rp.match(/PL\[([BW])\]/);if(pl)result.pl=pl[1];
-  (rp.match(/AB((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.black.push(...parseCoordList(s)));
-  (rp.match(/AW((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.white.push(...parseCoordList(s)));
-    function parseSeq(str){
-        str=str.trim();const ns=[];let i=0;
-        while(i<str.length){
-            if(str[i]===';'){let j=i+1,d=0;while(j<str.length){if(str[j]==='('){if(d===0)break;d++;}else if(str[j]===')'){ if(d===0)break;d--;}else if(str[j]===';'&&d===0)break;j++;}ns.push(str.slice(i,j));i=j;}
-            else if(str[i]==='(')break;else i++;
-        }
-        const bs=i;if(!ns.length)return null;
-        function scanNodeMove(node){
-            node=node.trim();
-            let i=0;
-            while(i<node.length){
-                const ch=node[i];
-                if(ch===';'||ch<=' '){i++;continue;}
-                if(ch<'A'||ch>'Z'){i++;continue;}
-                const propStart=i;
-                while(i<node.length&&node[i]>='A'&&node[i]<='Z')i++;
-                const prop=node.slice(propStart,i);
-                while(i<node.length&&node[i]==='['){
-                    let value='';i++;
-                    while(i<node.length){
-                        const c=node[i];
-                        if(c==='\\'&&i+1<node.length){value+=node[i+1];i+=2;continue;}
-                        if(c===']'){i++;break;}
-                        value+=c;i++;
-                    }
-                    if(prop==='B'||prop==='W'){
-                        return{color:prop,move:value.length===2?{x:value.charCodeAt(0)-97,y:value.charCodeAt(1)-97}:null};
-                    }
-                }
-            }
-            return null;
-        }
-        function pn(s){const m=scanNodeMove(s);if(!m)return null;return{color:m.color,move:m.move,children:[]};}
-        const nodes=ns.map(pn).filter(Boolean);if(!nodes.length)return null;
-        for(let k=0;k<nodes.length-1;k++)nodes[k].children.push(nodes[k+1]);
-        const last=nodes[nodes.length-1];let bi=bs;
-    while(bi<str.length){if(str[bi]==='('){const e=findClosing(str,bi);const c=parseSeq(str.slice(bi+1,e));if(c)last.children.push(c);bi=e+1;}else bi++;}
-    return nodes[0];
-  }
-  const after=sgf.slice(rm[0].length).trim();
-  if(after.startsWith(';')){result.tree=parseSeq(after);}
-  else if(after.startsWith('(')){
-    const root={move:null,color:null,children:[]};let i=0;
-    while(i<after.length){if(after[i]==='('){const e=findClosing(after,i);const c=parseSeq(after.slice(i+1,e));if(c)root.children.push(c);i=e+1;}else i++;}
-    result.tree=root;
-  }
-  // 若 SGF 根節點無 PL 標記，從答案樹第一手顏色推斷先手方
-  if(!pl&&result.tree){const fn=result.tree.move?result.tree:(result.tree.children&&result.tree.children[0]);if(fn&&fn.color)result.pl=fn.color;}
-  // 最後備援：直接搜尋整個 SGF 是否含 PL[W]
-  if(result.pl==='B'&&/PL\[W\]/.test(sgf))result.pl='W';
-  return result;
+  // Only board setup from a server-projected SGF. Never parse solution nodes.
+  if (typeof sgf !== 'string' || /;\s*[BW]\[/.test(sgf) || /\)\s*\(/.test(sgf)) throw new Error('unsafe_daily_board');
+  const game = WGo.Kifu.fromSgf(sgf);
+  if (game.root.children.length) throw new Error('unsafe_daily_board');
+  const root = game.root;
+  return {size: game.size, pl: root.turn === WGo.W ? 'W' : 'B',
+    black: (root.setup || []).filter(s => s.c === WGo.B),
+    white: (root.setup || []).filter(s => s.c === WGo.W)};
 }
-
 function initBoard(sgfContent) {
   const container = document.getElementById('board-container');
   container.innerHTML = '';
@@ -1356,20 +1282,16 @@ function initBoard(sgfContent) {
     renderInitialStones();
 
     playerColor = currentProblem.pl;
-    currentNode = makeAnswerRoot(currentProblem.tree);
+
     const msgKey = playerColor === 'B' ? 'index.black_first' : 'index.white_first';
     if (!submitted) setMsg(I18n.t(msgKey) + I18n.t('index.place_stone'), 'info');
 
     board.addEventListener('click', onBoardClick);
   } catch(e) {
-    console.error('[initBoard] parse error:', e);
-    setMsg(I18n.t('index.parse_err'), 'warn');
+    currentProblem = null;
+    board = null;
+    throw e;
   }
-}
-
-function makeAnswerRoot(tree) {
-  if (!tree) return { move: null, color: null, children: [] };
-  return tree.move ? { move: null, color: null, children: [tree] } : tree;
 }
 
 function initLogicBoard() {
@@ -1501,191 +1423,77 @@ function playStone(x, y, color, skipRules = false) {
   return true;
 }
 
-function onBoardClick(x, y) {
-  if (window.SGFReportWidget?.consumeBoardMove?.({x, y})) return;
-  if (!currentProblem || !currentNode || submitted || answering || solved || gaveUp) return;
-  if (!isOnBoard(x, y) || logicBoard[x][y]) return;
-
-  const played = playStone(x, y, playerColor);
-  if (played === 'suicide') { setMsg(I18n.t('dc.msg.suicide'), 'warn'); return; }
-  if (played === 'ko') { setMsg(I18n.t('dc.msg.ko'), 'warn'); return; }
-  if (!played) return;
-
-  // The server judges this actual player move sequence.  The legacy
-  // `correct` flag remains a display/diagnostic hint only.
-  submittedMoves.push({x, y});
-
-  // Find matching child in currentNode
-  const match = (currentNode.children || []).find(c => c.move && c.move.x === x && c.move.y === y);
-
-  if (!match) {
-    // Wrong
-    window.SGFReportWidget?.setContext({
-      question_id: Number(todayData?.question_id || todayData?.id), record_index: todayData?.record_index,
-      surface: 'daily_challenge_client', move: {x, y}, system_verdict: 'WRONG'
-    });
-    setMsg(I18n.t('index.wrong'), 'err');
-    answering = true;
-    board.removeAllObjects();
-    initLogicBoard();
-    renderInitialStones();
-    setTimeout(() => {
-      answering = false;
-      showBtn('btn-answer');
-      showBtn('btn-retry');
-      setMsg(I18n.t('index.wrong2'), 'err');
-    }, 800);
-    return;
+function applyDailyVerdict(value, move) {
+  if (move && !playStone(move.x, move.y, playerColor, true)) throw new Error('daily_board_desync');
+  if (value.opponent_reply) {
+    const [x, y] = value.opponent_reply;
+    if (!playStone(x, y, playerColor === 'B' ? 'W' : 'B', true)) throw new Error('daily_board_desync');
   }
-
-  // Correct move
-  currentNode = match;
-  const opp = playerColor === 'B' ? 'W' : 'B';
-
-  if (match.children.length === 0) {
-    // Solved!
-    solved = true;
-    setMsg(I18n.t('index.correct'), 'ok');
-    showSubmitPanel(true);
-    return;
+  if (value.status === 'CORRECT' || value.status === 'INCORRECT') {
+    submitted = true;
+    solved = value.status === 'CORRECT';
+    hideBtn('btn-retry');
+    showStatusArea(solved);
+    setMsg(I18n.t(solved ? 'daily.msg.submit_ok_correct' : 'daily.msg.submit_ok_wrong'), solved ? 'ok' : 'err');
+    const xp = value.settlement?.xp_awarded || 0;
+    // A replay confirms the receipt, but must not animate a second award.
+    if (xp && !value.duplicate) spawnXpFloat(xp);
+    showResultPanel(solved, null, [], xp);
+    loadStreak();
+  } else {
+    setMsg(I18n.t(value.status === 'READY' ? (playerColor === 'B' ? 'index.black_first' : 'index.white_first') : 'index.continue'), 'info');
   }
-
-  // Play opponent reply
+}
+async function resumeDailySteps() {
   answering = true;
-  setTimeout(() => {
-    const reply = match.children[0];
-    if (reply && reply.move) {
-      playStone(reply.move.x, reply.move.y, opp, true);
-      currentNode = reply;
-      if (reply.children.length === 0) {
-        solved = true;
-        answering = false;
-        setMsg(I18n.t('index.correct'), 'ok');
-        showSubmitPanel(true);
-        return;
+  try {
+    const value = await dailySteps.open(todayData.attempt_token);
+    initBoard(todayData.content);
+    if (value.status === 'READY') {
+      for (const step of value.previous_steps) {
+        if (!playStone(...step.player_move, playerColor, true)) throw new Error('daily_board_desync');
+        if (step.opponent_reply && !playStone(...step.opponent_reply, playerColor === 'B' ? 'W' : 'B', true)) throw new Error('daily_board_desync');
       }
     }
-    answering = false;
-    setMsg(I18n.t('index.continue'), 'info');
-  }, 400);
+    applyDailyVerdict(value);
+    stepUncertain = false;
+    hideBtn('btn-retry');
+  } finally { answering = false; }
 }
-
-function resetProblem() {
-  if (!currentProblem || !todayData) return;
-  // Rebuild tree from original SGF using parseSGF
-  currentProblem = parseSGF(todayData.content);
-  currentNode = makeAnswerRoot(currentProblem.tree);
-  submittedMoves = [];
-  initLogicBoard();
-  renderInitialStones();
-  answering = false; solved = false; gaveUp = false;
-  if (!submitted) {
-    document.getElementById('submit-panel').classList.remove('show');
-    showBtn('btn-giveup'); hideBtn('btn-answer'); hideBtn('btn-retry');
-  }
-  setMsg(I18n.t(currentProblem.pl === 'B' ? 'index.black_first' : 'index.white_first') + I18n.t('index.place_stone'), 'info');
-}
-
-function showAnswer() {
-  if (!currentProblem || !todayData) return;
-  answering = true; solved = true;
-  // 重新解析以取得完整 tree
-  const fresh = parseSGF(todayData.content);
-  board.removeAllObjects();
-  initLogicBoard();
-  renderInitialStones();
-  const moves = [];
-  let node = fresh.tree;
-  if (node && !node.move && node.children && node.children.length) node = node.children[0];
-  while (node && node.move) { moves.push(node); node = node.children[0] || null; }
-  let step = 0;
-  function pn() {
-    if (step >= moves.length) { setMsg(I18n.t('index.answer_done'), 'info'); return; }
-    const n = moves[step++];
-    playStone(n.move.x, n.move.y, n.color, true);
-    setMsg(`${I18n.t('index.answer_step')} ${step}/${moves.length}　${n.color==='B'?'⚫':'⚪'}`, 'info');
-    setTimeout(pn, 700);
-  }
-  setMsg(I18n.t('index.answer_play'), 'info');
-  setTimeout(pn, 300);
-  if (!submitted) showSubmitPanel(false);
-}
-
-function doGiveUp() {
-  if (submitted) return;
-  gaveUp = true;
-  hideBtn('btn-giveup');
-  setMsg(I18n.t('daily.msg.giveup'), 'warn');
-  showAnswer();
-  showSubmitPanel(false);
-}
-
-// ════════════════════════════════════════════════════════════
-// Submit
-// ════════════════════════════════════════════════════════════
-function showSubmitPanel(correct) {
-  if (submitted) return;
-  const panel = document.getElementById('submit-panel');
-  panel.classList.add('show');
-  panel.dataset.correct = correct ? '1' : '0';
-  // Store result for submission
-  panel._correct = correct;
-}
-
-async function submitResult() {
-  if (submitted) return;
-  const correct = document.getElementById('submit-panel')._correct;
-  document.getElementById('btn-submit').disabled = true;
-
+let pendingDailyMove = null;
+async function onBoardClick(x, y) {
+  if (window.SGFReportWidget?.consumeBoardMove?.({x, y})) return;
+  if (!currentProblem || submitted || answering || stepUncertain || !isOnBoard(x, y) || logicBoard[x][y]) return;
+  answering = true;
+  pendingDailyMove = {x, y};
   try {
-    const res  = await fetch('/api/daily-challenge/submit', {
-      method: 'POST', credentials: 'include',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        submission_id: submissionId,
-        attempt_token: todayData?.attempt_token,
-        moves: submittedMoves,
-        correct: !!correct
-      })
-    });
-    const data = await res.json();
-
-    if (res.status === 409) {
-      setMsg(I18n.t('daily.msg.already_submitted'), 'warn');
-      document.getElementById('submit-panel').classList.remove('show');
-      submitted = true;
-      return;
-    }
-    if (!data.ok) { setMsg(I18n.t('daily.msg.submit_fail'), 'err'); document.getElementById('btn-submit').disabled = false; return; }
-
-    submitted = true;
-    document.getElementById('submit-panel').classList.remove('show');
-
-    const serverCorrect = data.server_correct === true;
-
-    // Show result msg
-    if (serverCorrect) setMsg(I18n.t('daily.msg.submit_ok_correct'), 'ok');
-    else         setMsg(I18n.t('daily.msg.submit_ok_wrong'),   'err');
-
-    const xpAwarded = data.xp_awarded || 0;
-    if (xpAwarded) spawnXpFloat(xpAwarded);
-
-    // Show global stats
-    showGlobalStats(data.stats);
-    showStatusArea(serverCorrect, data.stats?.rank);
-
-    // Show result panel
-    showResultPanel(serverCorrect, data.stats, data.new_badges || [], xpAwarded);
-
-    // Reload streak
-    loadStreak();
-
-  } catch(e) {
+    const value = await dailySteps.play(x, y);
+    applyDailyVerdict(value, pendingDailyMove);
+    pendingDailyMove = null;
+  } catch (error) {
+    stepUncertain = true;
+    showBtn('btn-retry');
     setMsg(I18n.t('daily.msg.submit_fail'), 'err');
-    document.getElementById('btn-submit').disabled = false;
-  }
+  } finally { answering = false; }
 }
-
+async function resetProblem() {
+  if (answering || submitted) return;
+  answering = true;
+  try {
+    if (stepUncertain) {
+      const value = await dailySteps.retry();
+      applyDailyVerdict(value, pendingDailyMove);
+      pendingDailyMove = null; stepUncertain = false; hideBtn('btn-retry');
+    } else {
+      await resumeDailySteps();
+    }
+  } catch (error) {
+    setMsg(I18n.t('daily.msg.submit_fail'), 'err');
+  } finally { answering = false; }
+}
+function showAnswer() { /* No solution tree is sent to this page. */ }
+function doGiveUp() { /* Daily has no server-authorized abandon endpoint. */ }
+function submitResult() { /* Terminal server verdict already settles atomically. */ }
 function showResultPanel(correct, stats, newBadges, xpAwarded = 0) {
   const panel = document.getElementById('result-panel');
   document.getElementById('result-panel-title').textContent =
@@ -1762,7 +1570,7 @@ function showStatusArea(correct, rank) {
 
 function showTeaser() {
   // Show a teaser before submission (participant count without accuracy)
-  fetch('/api/daily-challenge/today', {credentials:'include'})
+  fetch('/api/g076/daily/today', {credentials:'include'})
     .then(r=>r.json()).then(d => {
       if (d.stats) {
         // Already submitted in another tab
@@ -1829,30 +1637,20 @@ async function loadHistory() {
 }
 
 async function loadHistoryDetail(dateStr) {
+  if (answering || stepUncertain) return;
   try {
-    const res  = await fetch(`/api/daily-challenge/history/${dateStr}`, {credentials:'include'});
-    if (!res.ok) return;
+    const res = await fetch(`/api/daily-challenge/history/${encodeURIComponent(dateStr)}`, {credentials:'same-origin', cache:'no-store'});
     const data = await res.json();
-    // Load into board for review
-    todayData = {...data, date: dateStr, user_submitted: true, user_correct: null};
+    if (!res.ok || data.board_only !== true) throw new Error('daily_history_board_unavailable');
+    submitted = true;
+    todayData = {...data, user_submitted:true};
     initBoard(data.content);
-    const [hy, hmo, hday] = dateStr.split('-').map(Number);
-    const d = new Date(hy, hmo - 1, hday);
-    document.getElementById('dc-date-title').textContent =
-      d.toLocaleDateString(I18n.getLang() === 'zh' ? 'zh-TW' : 'en-US', {month:'long',day:'numeric'})
-      + ' ' + I18n.t('daily.hist.label_suffix');
-    if (data.difficulty) {
-      const db = document.getElementById('dc-diff-badge');
-      const _ds2 = String(data.rank || data.difficulty);
-      db.textContent = _ds2; db.style.display = '';
-      db.className = 'diff-badge' + (_ds2.endsWith('k') ? ' kyu' : _ds2.endsWith('d') ? ' dan' : ' int-diff');
-    }
+    ['btn-answer','btn-giveup','btn-submit','btn-retry'].forEach(hideBtn);
+    document.getElementById('result-panel').classList.remove('show');
+    document.getElementById('dc-date-title').textContent = dateStr + ' ' + I18n.t('daily.hist.label_suffix');
     setMsg(I18n.t('daily.hist.label_suffix'), 'info');
-    showBtn('btn-answer'); showBtn('btn-retry');
-    document.getElementById('submit-panel').classList.remove('show');
-  } catch(e) {}
+  } catch (error) { setMsg(I18n.t('daily.hist.load_fail'), 'err'); }
 }
-
 // ════════════════════════════════════════════════════════════
 // Countdown
 // ════════════════════════════════════════════════════════════
