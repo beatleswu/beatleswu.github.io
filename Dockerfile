@@ -206,6 +206,12 @@ COPY sgf_answer_authority.py ./
 COPY g076_question_privacy.py ./
 COPY g076_server_step_authority.py ./
 COPY g076_step_ledger.py ./
+# G076-R3: gated Practice/Daily/legacy-mode safety runtime.
+# These are imports even with flags OFF; no migrations run here.
+COPY g076_nonmap_steps.py ./
+COPY g076_practice_product.py ./
+COPY g076_daily_step_integration.py ./
+COPY g076_othermode_authority.py ./
 # G066 gated curriculum integration is imported at module scope even when
 # the course feature flag is OFF. Package exactly the runtime closure and
 # approved catalogue/media/UI files; exclude offline tooling and fixtures.
@@ -259,6 +265,10 @@ COPY migrations/quest_claim_v1.py ./migrations/quest_claim_v1.py
 COPY migrations/quest_progress_v2.py ./migrations/quest_progress_v2.py
 COPY migrations/question_capacity_lineage_v1.py ./migrations/question_capacity_lineage_v1.py
 COPY migrations/review_log_submission_idempotency_v1.py ./migrations/review_log_submission_idempotency_v1.py
+# G076 proposed schema admission helpers included for explicit Owner
+# migration review only. Import/copy never executes DDL.
+COPY migrations/g076_practice_steps_v1.py ./migrations/g076_practice_steps_v1.py
+COPY migrations/g076_nonmap_steps_PROPOSED.sql ./migrations/g076_nonmap_steps_PROPOSED.sql
 # P0 Lane C: app.py imports this additive recovery-ledger schema helper at
 # startup. Keep the migration explicit; the startup call admits schema only
 # and never writes recovery rows.
@@ -346,6 +356,8 @@ COPY js/game/question_loader.js ./js/game/question_loader.js
 COPY js/game/board_renderer.js ./js/game/board_renderer.js
 # G076-R3: only the approved browser step transport adapter.
 COPY js/game/g076_authoritative_step_client.js ./js/game/g076_authoritative_step_client.js
+COPY js/game/g076_nonmap_step_client.js ./js/game/g076_nonmap_step_client.js
+COPY js/game/g076_daily_step_client.js ./js/game/g076_daily_step_client.js
 # B6 ModeContext and B7 GameBootstrap are narrow browser runtime modules;
 # keep both explicit so the image cannot absorb unrelated game JavaScript.
 COPY js/game/mode_context.js ./js/game/mode_context.js

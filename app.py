@@ -573,6 +573,10 @@ from admin_question_center import create_question_management_blueprint
 
 _startup_diagnostics.mark('application_creation', 'start')
 app = Flask(__name__)
+# Fail closed for legacy modes that still let the browser submit a claimed
+# result. OFF by default; no product gate is silently enabled here.
+from g076_othermode_authority import install_othermode_guard
+install_othermode_guard(app)
 _site_url_for_cookie = os.environ.get('SITE_URL', 'https://godokoro.com').lower()
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
@@ -20367,6 +20371,12 @@ def badges_unseen():
 @login_required
 def dc_today():
     uid   = session['user_id']
+    from g076_daily_step_integration import enabled as _g076_daily_selected
+    from os import environ as _g076_daily_environ
+    if _g076_daily_selected(_g076_daily_environ):
+        # The legacy Daily entry must share the exact safe board-only view,
+        # not race its own full-SGF question loader.
+        return app.view_functions['g076_daily_steps.today']()
     from g076_question_privacy import privacy_enforced
     private = privacy_enforced(os.environ)
     today = datetime.date.today().isoformat()
@@ -20486,6 +20496,13 @@ def dc_submit():
             }), 409
     if replay is not None:
         return jsonify(replay)
+
+    # Daily's owned step protocol must own NEW submissions while enabled.
+    # Preserve exact replay of already committed legacy D5B receipts above.
+    from g076_daily_step_integration import enabled as _g076_daily_selected
+    from os import environ as _g076_daily_environ
+    if _g076_daily_selected(_g076_daily_environ):
+        return jsonify({'ok': False, 'error': 'daily_steps_required'}), 409
 
     dc = get_or_create_daily_challenge(today)
     if not dc:
@@ -33491,6 +33508,70 @@ _g076_practice_issue = _install_g076_practice(app, globals(), os.environ)
 def serve_g076_nonmap_step_client_js():
     return send_from_directory(os.path.join(app.root_path, 'js', 'game'),
                                'g076_nonmap_step_client.js', mimetype='application/javascript')
+
+
+# G076 Daily: no production DDL, no legacy-D5B second submission writer,
+# and no enabled route without all three independently controlled flags.
+from g076_daily_step_integration import (
+    DailyServices as _G076DailyServices,
+    create_daily_blueprint as _g076_create_daily_blueprint,
+    select_daily_question as _g076_select_daily_question,
+)
+from g076_nonmap_steps import NonMapRejected as _G076NonMapRejected
+
+@contextmanager
+def _g076_daily_transaction():
+    conn = get_db()
+    try:
+        raw = getattr(conn, '_conn', conn)
+        sqlite = raw.__class__.__module__.startswith('sqlite3')
+        conn.execute('BEGIN IMMEDIATE' if sqlite else 'BEGIN')
+        yield conn
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def _g076_daily_question(conn, day):
+    # The existing admin-selected date winner must not be silently replaced.
+    return _g076_select_daily_question(conn, day, load_questions=_load_questions)
+
+
+def _g076_daily_admit(uid, question):
+    # Unlike Practice, original Daily admits authenticated players with no
+    # Premium quota debit. Preserve the original admission policy.
+    if type(uid) is not int or uid < 1:
+        raise _G076NonMapRejected('authentication_required', 401)
+
+
+_g076_daily_services = _G076DailyServices(
+    DAILY_CHALLENGE_XP_REWARD=DAILY_CHALLENGE_XP_REWARD,
+    xp_to_lv=xp_to_lv, lv_progress=lv_progress,
+    check_and_award_daily=check_and_award_daily,
+    get_daily_submit_streak=get_daily_submit_streak,
+    give_daily_appearance=give_daily_appearance,
+    BADGE_DEFS=BADGE_DEFS, _i18n_badge_en=_i18n_badge_en,
+    _APPEAR_MAP=_APPEAR_MAP,
+)
+app.register_blueprint(_g076_create_daily_blueprint(
+    transaction=_g076_daily_transaction,
+    today_question=_g076_daily_question,
+    admit=_g076_daily_admit,
+    services=_g076_daily_services,
+    secret=app.secret_key,
+    environ=os.environ,
+    question_context=_map_battle_question_context,
+))
+
+@app.route('/js/game/g076_daily_step_client.js')
+def serve_g076_daily_step_client_js():
+    return _serve_live_static_or_baked_subpath(
+        'g076_daily_step_client.js', 'js/game', 'js/game'
+    )
+
 
 if __name__ == '__main__':
     init_db()

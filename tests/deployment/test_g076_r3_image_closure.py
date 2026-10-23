@@ -9,10 +9,20 @@ PYTHON=(
     "g076_question_privacy.py",
     "g076_server_step_authority.py",
     "g076_step_ledger.py",
+    "g076_nonmap_steps.py",
+    "g076_practice_product.py",
+    "g076_daily_step_integration.py",
+    "g076_othermode_authority.py",
+    "migrations/g076_practice_steps_v1.py",
+    "migrations/g076_nonmap_steps_PROPOSED.sql",
     "sgf_point_transform.py",
     "sgf_answer_authority.py",
 )
-BROWSER=("js/game/g076_authoritative_step_client.js",)
+BROWSER=(
+    "js/game/g076_authoritative_step_client.js",
+    "js/game/g076_nonmap_step_client.js",
+    "js/game/g076_daily_step_client.js",
+)
 COURSE=(
     "g066_course/__init__.py",
     "g066_course/integration.py",
@@ -48,6 +58,9 @@ def test_referenced_browser_adapter_has_a_serving_route():
     app=ast.parse((ROOT/"app.py").read_text(encoding="utf-8"))
     functions={node.name:node for node in app.body if isinstance(node,ast.FunctionDef)}
     assert "serve_g076_authoritative_step_client_js" in functions
+    assert "serve_g076_nonmap_step_client_js" in functions
+    assert "serve_g076_daily_step_client_js" in functions
+    assert "g076_othermode_authority" in (ROOT/"app.py").read_text(encoding="utf-8")
     src=(ROOT/"index.html").read_text(encoding="utf-8")
     assert '<script src="/js/game/g076_authoritative_step_client.js' in src
 
