@@ -62,6 +62,7 @@ def _install_app_import_stubs() -> None:
 
         module = types.ModuleType("grimoire_api")
         module.grimoire_bp = Blueprint("w1_d5_grimoire_stub", __name__)
+        module.official_grimoire_lookup = lambda _qid: None
         sys.modules["grimoire_api"] = module
     if "question_taxonomy" not in sys.modules:
         module = types.ModuleType("question_taxonomy")
