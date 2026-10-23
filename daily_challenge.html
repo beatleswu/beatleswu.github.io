@@ -1096,7 +1096,36 @@ function rotateNoraLine() {
 // ════════════════════════════════════════════════════════════
 window.onLangChange = () => { I18n.apply(); rotateNoraLine(); };
 
+// Capability must finish before either protocol, history, or board interaction.
+// The only redirect target is this fixed same-origin path; it never redirects
+// back here. Errors and partial configurations never select legacy.
+async function selectDailyProtocol() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch('/api/g076/daily/capability', {
+      credentials:'same-origin', cache:'no-store', signal:controller.signal,
+      redirect:'error'
+    });
+    if (!response.ok) throw new Error('daily_capability_http_' + response.status);
+    const data = await response.json();
+    if (data?.mode === 'legacy') {
+      location.replace('/daily_challenge_legacy.html');
+      return false;
+    }
+    if (data?.mode !== 'steps') throw new Error('daily_capability_invalid');
+    return true;
+  } catch (error) {
+    const box = document.getElementById('loading-state');
+    box.dataset.reason = 'daily_capability_blocked';
+    box.textContent = 'Daily 暫停：無法確認伺服器模式，請稍後重新載入。 / Daily blocked: server mode unavailable. Reload to retry.';
+    document.getElementById('main-content').style.display = 'none';
+    return false;
+  } finally { clearTimeout(timer); }
+}
+
 window.onload = async () => {
+  if (!await selectDailyProtocol()) return;
   rotateNoraLine();
   I18n.renderSwitcher(document.getElementById('lang-switcher-daily'));
   I18n.apply();

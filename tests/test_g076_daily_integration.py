@@ -100,8 +100,11 @@ def test_legacy_and_steps_share_one_daily_winner(fx,legacy_first):
                'moves':[{'x':0,'y':0},{'x':2,'y':2}]}
     first = play(c,h,b,cur).json
     if legacy_first:
+        saved = dict(fx[1]['environ'])
+        fx[1]['environ'].clear()
         old = c.post('/api/daily-challenge/submit',json=payload)
         assert old.status_code == 200, old.json
+        fx[1]['environ'].update(saved)
         assert play(c,h,b,first,(2,2)).status_code == 409
         assert c.post('/api/daily-challenge/submit',json=payload).json == old.json
     else:
@@ -222,7 +225,7 @@ def test_date_selection_keeps_existing_admin_winner_and_rejects_ambiguous_id(fx)
     q=fx[1]['question']
     other={'id':302,'content':'(;SZ[5]PL[B];B[dd])'}
     with fx[3]() as conn:
-        conn.execute('INSERT INTO daily_challenge VALUES(?,?,?)',(fx[1]['day'],302,'admin'))
+        conn.execute('INSERT INTO daily_challenge(challenge_date,question_id,set_by) VALUES(?,?,?)',(fx[1]['day'],302,'admin'))
         assert select_daily_question(conn,fx[1]['day'],load_questions=lambda:[q,other])['id']==302
     with pytest.raises(NonMapRejected,match='identity_ambiguous'):
         with fx[3]() as conn:

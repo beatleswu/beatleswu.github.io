@@ -24,4 +24,4 @@ if __name__ == '__main__':
             session['user_id'] = 10
             state['environ'].clear()
             return redirect('/')
-        app.run(host='0.0.0.0',port=5079,threaded=True,use_reloader=False)
+        app.run(host='127.0.0.1',port=5079,threaded=True,use_reloader=False)

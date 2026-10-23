@@ -9,6 +9,7 @@ import datetime
 from pathlib import Path
 import sqlite3
 import re
+from types import SimpleNamespace
 from g076_question_privacy import board_only_sgf
 from flask import Flask, jsonify, request, session, send_from_directory
 import daily_challenge_authority as authority
@@ -47,7 +48,7 @@ def make_daily_fixture(path):
     source.close()
     dest.executescript((ROOT/'migrations/g076_nonmap_steps_PROPOSED.sql').read_text())
     dest.execute('CREATE TABLE users(id INTEGER PRIMARY KEY)')
-    dest.execute('CREATE TABLE daily_challenge(challenge_date TEXT PRIMARY KEY, question_id INTEGER NOT NULL, set_by TEXT)')
+    dest.execute('CREATE TABLE daily_challenge(challenge_date TEXT PRIMARY KEY, question_id INTEGER NOT NULL, set_by TEXT, note TEXT)')
     dest.executemany('INSERT INTO users VALUES (?)', [(7,), (8,), (9,), (10,)])
     dest.commit(); dest.close()
 
@@ -81,20 +82,26 @@ def make_daily_fixture(path):
     app.secret_key = SECRET
     app.config['TESTING'] = True
     ns = {'datetime': datetime, 'bisect': bisect, 'session': session,
+        'os': SimpleNamespace(environ=state['environ']),
         'request': request, 'jsonify': jsonify, 'app': app, 'get_db': transaction,
         'MapBattleRuntimeError': MapBattleRuntimeError,
         'IdempotencyIdentityError': IdempotencyIdentityError,
         '_map_battle_question_context': lambda q: {**question_context(q),
             'initial_position_identity': authority.question_content_sha256(q)},
         '_load_questions': lambda: [state['question']],
-        'get_or_create_daily_challenge': lambda today: {'question_id': 301},
+        'get_or_create_daily_challenge': lambda today: {'question_id': 301, 'note': None},
+        '_question_content_sha256': authority.question_content_sha256,
+        'issue_daily_attempt': authority.issue_daily_attempt,
+        '_g076_exposure_content': board_only_sgf,
+        '_english_only': lambda text: text, '_i18n_topic_en': lambda text: text,
+        '_i18n_level_en': lambda text: text, 'is_premium': lambda uid: True,
         '_observe_xp_shadow': lambda **kwargs: None,
         '_i18n_badge_en': lambda bid: None, '_APPEAR_MAP': {},
         'BADGE_DEFS': [{'id': bid, 'name': bid} for bid in ('daily_first', 'daily_ace', 'daily_7')]}
     ns.update({name: getattr(authority, name) for name in ('verify_daily_attempt',
         'canonicalize_daily_answer', 'judge_daily_answer', 'DailyAttemptError')})
     ns.update({name: getattr(d5b, name) for name in d5b.__all__})
-    load_functions(ROOT/'app.py', {'dc_submit', 'xp_to_lv', 'lv_progress',
+    load_functions(ROOT/'app.py', {'dc_submit', 'dc_today', 'dc_history', 'dc_history_detail', 'xp_to_lv', 'lv_progress',
         'LV_THRESHOLDS', 'MAX_LV', 'DAILY_CHALLENGE_XP_REWARD',
         'check_and_award_daily', 'get_daily_submit_streak', 'give_daily_appearance'}, ns)
     original_badges = ns['check_and_award_daily']
@@ -114,6 +121,8 @@ def make_daily_fixture(path):
         today_question=lambda conn, day: select_daily_question(conn, day, load_questions=lambda: [state['question']]), admit=admit,
         services=services, secret=SECRET, environ=state['environ'],
         today=lambda: state['day'], question_context=question_context))
+    from g076_daily_capability import create_capability_blueprint
+    app.register_blueprint(create_capability_blueprint(state['environ']))
 
     @app.before_request
     def fixture_auth():
@@ -121,6 +130,9 @@ def make_daily_fixture(path):
             return {'error': 'authentication_required'}, 401
 
     app.add_url_rule('/api/daily-challenge/submit', 'legacy_submit', ns['dc_submit'], methods=['POST'])
+    app.add_url_rule('/api/daily-challenge/today', 'legacy_today', ns['dc_today'])
+    app.add_url_rule('/api/daily-challenge/history', 'legacy_history', ns['dc_history'])
+    app.add_url_rule('/api/daily-challenge/history/<date_str>', 'legacy_history_detail', ns['dc_history_detail'])
     @app.post('/fixture/login')
     def login():
         session['user_id'] = request.get_json()['uid']
@@ -128,9 +140,6 @@ def make_daily_fixture(path):
     @app.get('/api/auth/me')
     def me():
         return {'logged_in': bool(session.get('user_id')), 'user_id': session.get('user_id'), 'username': 'Disposable', 'is_premium': True}
-    @app.get('/api/daily-challenge/history')
-    def history():
-        return {'history': []}
     @app.get('/api/player/appearance')
     def appearance():
         return {'equipped': {}, 'wardrobe': []}
@@ -144,6 +153,10 @@ def make_daily_fixture(path):
         return send_from_directory(ROOT, 'daily_challenge.html')
     @app.get('/<path:path>')
     def assets(path):
+        if path in ('daily_challenge.html', 'daily_challenge_legacy.html'):
+            if not session.get('user_id'):
+                return '', 401
+            return send_from_directory(ROOT, path)
         if path.startswith(('js/', 'wgo/', 'css/', 'fonts/', 'assets/')) or path in (
                 'i18n.js', 'sound.js', 'mobile-nav.js', 'site-nav.js', 'pwa.js', 'sgf_report_widget.js'):
             return send_from_directory(ROOT, path)

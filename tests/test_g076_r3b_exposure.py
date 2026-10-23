@@ -147,6 +147,12 @@ def test_off_preserves_legacy_content_and_shape(api, monkeypatch, path, flag):
     if flag is not None:
         monkeypatch.setenv('G076_ANSWER_PRIVACY_ENFORCED', flag)
     response = client.get(path)
+    if path == '/api/daily-challenge/today' and flag == 'unknown':
+        # Unknown Daily config must not silently expose raw SGF; other
+        # legacy modes still obey their established global OFF behavior.
+        assert response.status_code == 409
+        assert response.get_json()['error'] == 'daily_configuration_hold'
+        return
     assert response.status_code == 200
     data = question_data(response)
     assert data['content'] == SGF

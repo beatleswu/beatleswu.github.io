@@ -20371,14 +20371,20 @@ def badges_unseen():
 @login_required
 def dc_today():
     uid   = session['user_id']
-    from g076_daily_step_integration import enabled as _g076_daily_selected
-    from os import environ as _g076_daily_environ
-    if _g076_daily_selected(_g076_daily_environ):
-        # The legacy Daily entry must share the exact safe board-only view,
-        # not race its own full-SGF question loader.
+    from g076_daily_capability import daily_mode as _g076_daily_mode
+    mode = _g076_daily_mode(os.environ)
+    if mode == 'steps':
+        # The legacy Daily entry must share the exact safe board-only view.
         return app.view_functions['g076_daily_steps.today']()
     from g076_question_privacy import privacy_enforced
     private = privacy_enforced(os.environ)
+    if mode != 'legacy' and not private:
+        # Partial/unknown flags without privacy protection cannot return raw SGF.
+        return jsonify({'error': 'daily_configuration_hold'}), 409
+    # With privacy explicitly ON but step gates still partial, the historical
+    # read-only board preview remains safe and available. Capability is HOLD,
+    # and dc_submit still rejects any new legacy settlement.
+    # This preserves the accepted R3 board-projection/error contracts.
     today = datetime.date.today().isoformat()
     dc    = get_or_create_daily_challenge(today)
     if not dc:
@@ -20497,12 +20503,14 @@ def dc_submit():
     if replay is not None:
         return jsonify(replay)
 
-    # Daily's owned step protocol must own NEW submissions while enabled.
+    # Only all three flags OFF admits NEW legacy submissions. Partial rollout
+    # configurations HOLD; all ON belongs exclusively to the step protocol.
     # Preserve exact replay of already committed legacy D5B receipts above.
-    from g076_daily_step_integration import enabled as _g076_daily_selected
-    from os import environ as _g076_daily_environ
-    if _g076_daily_selected(_g076_daily_environ):
-        return jsonify({'ok': False, 'error': 'daily_steps_required'}), 409
+    from g076_daily_capability import daily_mode as _g076_daily_mode
+    mode = _g076_daily_mode(os.environ)
+    if mode != 'legacy':
+        return jsonify({'ok': False, 'error': 'daily_steps_required' if mode == 'steps'
+                        else 'daily_configuration_hold'}), 409
 
     dc = get_or_create_daily_challenge(today)
     if not dc:
@@ -28987,6 +28995,11 @@ def admin_payments():
 @login_required
 def daily_challenge_page(): return _serve_live_static_or_baked('daily_challenge.html')
 
+@app.route('/daily_challenge_legacy.html')
+@login_required
+def daily_challenge_legacy_page():
+    return _serve_live_static_or_baked('daily_challenge_legacy.html')
+
 @app.route('/community')
 @login_required
 def community_page(): return _serve_live_static_or_baked('community.html')
@@ -29626,6 +29639,7 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     # already served today exactly as send_from_directory('.', name))
     'login.html', 'landing.html', 'index.html', 'terms.html',
     'manage.html', 'admin.html', 'shadow_dashboard.html', 'bot.html', 'daily_challenge.html',
+    'daily_challenge_legacy.html',
     'community.html', 'messages.html', 'share_view.html',
     'mistakes.html', 'curriculum.html', 'hero.html', 'rating_test.html',
     'shop.html', 'profile.html', 'premium_weekly.html', 'stats.html',
@@ -33518,6 +33532,8 @@ from g076_daily_step_integration import (
     select_daily_question as _g076_select_daily_question,
 )
 from g076_nonmap_steps import NonMapRejected as _G076NonMapRejected
+from g076_daily_capability import create_capability_blueprint as _g076_daily_capability
+app.register_blueprint(_g076_daily_capability(os.environ))
 
 @contextmanager
 def _g076_daily_transaction():

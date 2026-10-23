@@ -23,7 +23,7 @@ function send(method,params={}) {
   return new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
 }
 async function evaluate(expression){
-  const value = await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
+  let value; try { value = await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true}); } catch(e) { throw new Error('CHROME_CDP_EXPR='+expression.slice(0,130)+' ERROR='+e.message); }
   if(value.exceptionDetails) throw new Error(value.exceptionDetails.text+': '+value.exceptionDetails.exception?.description);
   return value.result.value;
 }
@@ -90,7 +90,7 @@ try {
   check(await evaluate("logicBoard[0][0]==='B' && !submitted"),'real click + forced server opponent + nonterminal');
   check(await evaluate("dailyResponses.filter(x=>x.path==='/api/g076/daily/steps').some(x=>x.data.status==='CONTINUE' && x.data.opponent_reply.join()==='1,1' && !JSON.stringify(x.data).includes('cc'))"),'real HTTP server verdict without next answer');
   await send('Page.reload');
-  await until("typeof todayData !== 'undefined' && todayData && !answering && logicBoard?.[1]?.[1]==='W'");
+  await until("typeof todayData !== 'undefined' && Boolean(todayData) && typeof answering!=='undefined' && !answering && typeof logicBoard!=='undefined' && logicBoard?.[1]?.[1]==='W'");
   check(await evaluate("logicBoard[0][0]==='B'"),'reload reconstructs committed history');
   await click(2,2);
   await until('submitted');
@@ -127,9 +127,10 @@ try {
   await click(2,2);
   await until('submitted');
   check(await evaluate('solved'),'white multistep terminal result');
+  await fs.writeFile(path.join(tempRoot,'steps-completed-dom.html'),await evaluate('document.documentElement.outerHTML'));
   await send('Page.navigate',{url:'http://127.0.0.1:5079/fixture/disabled-entry'});
-  await until("document.getElementById('loading-state')?.dataset.reason==='daily_steps_disabled_or_unconfigured'");
-  check(await evaluate("currentProblem===null && document.getElementById('main-content').style.display==='none'"),'flag OFF fails closed on the actual page');
+  await until("location.pathname==='/daily_challenge_legacy.html' && typeof todayData!=='undefined' && Boolean(todayData) && Boolean(board)");
+  check(await evaluate("!todayData.board_only && currentProblem.tree"),'flag OFF reaches original playable legacy page');
   check(errors.length===0,'no uncaught browser exceptions: '+errors.join('\n'));
   result={status:'PASS',checks,real_chrome:true,real_http:true,real_daily_page:true,sqlite:true,production_writes:0};
 } catch(error){

@@ -211,6 +211,7 @@ COPY g076_step_ledger.py ./
 COPY g076_nonmap_steps.py ./
 COPY g076_practice_product.py ./
 COPY g076_daily_step_integration.py ./
+COPY g076_daily_capability.py ./
 COPY g076_othermode_authority.py ./
 # G066 gated curriculum integration is imported at module scope even when
 # the course feature flag is OFF. Package exactly the runtime closure and
@@ -312,7 +313,7 @@ COPY sgf_engine ./sgf_engine
 # root-level residue never referenced by app.py's routes.
 COPY login.html landing.html index.html terms.html manage.html admin.html \
      shadow_dashboard.html sgf_answer_review.html admin_questions.html \
-     bot.html daily_challenge.html community.html messages.html \
+     bot.html daily_challenge.html daily_challenge_legacy.html community.html messages.html \
      share_view.html mistakes.html curriculum.html hero.html \
      rating_test.html shop.html profile.html premium_weekly.html \
      stats.html upgrade.html play.html inventory.html badges.html \
