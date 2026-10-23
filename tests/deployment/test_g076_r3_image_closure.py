@@ -13,11 +13,24 @@ PYTHON=(
     "sgf_answer_authority.py",
 )
 BROWSER=("js/game/g076_authoritative_step_client.js",)
+COURSE=(
+    "g066_course/__init__.py",
+    "g066_course/integration.py",
+    "g066_course/http.py",
+    "g066_course/service.py",
+    "g066_course/adapters.py",
+    "g066_course/data/catalog.json",
+    "g066_course/data/media-manifest.json",
+    "g066_course/ui/index.html",
+    "g066_course/ui/course.css",
+    "g066_course/ui/course.js",
+    "g066_course/ui/curriculum-embed.js",
+)
 
 
 def test_all_g076_runtime_dependencies_are_in_explicit_docker_copy():
     docker=(ROOT/"Dockerfile").read_text(encoding="utf-8")
-    for name in (*PYTHON,*BROWSER):
+    for name in (*PYTHON,*BROWSER,*COURSE):
         assert f"COPY {name} " in docker
         assert (ROOT/name).is_file()
 
@@ -26,7 +39,7 @@ def test_build_manifest_has_matching_tracked_and_baked_paths():
     data=json.loads((ROOT/"deploy/build-manifest.json").read_text(encoding="utf-8"))
     tracked=data["build_inputs"]["tracked_in_canonical_branch_this_sprint"]
     verification=data["post_build_verification_files"]
-    for name in (*PYTHON,*BROWSER):
+    for name in (*PYTHON,*BROWSER,*COURSE):
         assert tracked.count(name)==1
         assert verification.count("/app/"+name)==1
 

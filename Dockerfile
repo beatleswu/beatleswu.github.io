@@ -206,6 +206,20 @@ COPY sgf_answer_authority.py ./
 COPY g076_question_privacy.py ./
 COPY g076_server_step_authority.py ./
 COPY g076_step_ledger.py ./
+# G066 gated curriculum integration is imported at module scope even when
+# the course feature flag is OFF. Package exactly the runtime closure and
+# approved catalogue/media/UI files; exclude offline tooling and fixtures.
+COPY g066_course/__init__.py ./g066_course/__init__.py
+COPY g066_course/integration.py ./g066_course/integration.py
+COPY g066_course/http.py ./g066_course/http.py
+COPY g066_course/service.py ./g066_course/service.py
+COPY g066_course/adapters.py ./g066_course/adapters.py
+COPY g066_course/data/catalog.json ./g066_course/data/catalog.json
+COPY g066_course/data/media-manifest.json ./g066_course/data/media-manifest.json
+COPY g066_course/ui/index.html ./g066_course/ui/index.html
+COPY g066_course/ui/course.css ./g066_course/ui/course.css
+COPY g066_course/ui/course.js ./g066_course/ui/course.js
+COPY g066_course/ui/curriculum-embed.js ./g066_course/ui/curriculum-embed.js
 # SGF Owner Review Queue is authenticated, server-persisted repair staging.
 # Its detector-derived source is read-only evidence, never canonical content.
 COPY sgf_answer_review_queue.py ./
