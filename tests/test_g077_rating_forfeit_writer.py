@@ -173,6 +173,20 @@ class ForfeitWriterTests(unittest.TestCase):
                      and any(isinstance(c,ast.Call) and isinstance(c.func,ast.Name)
                              and c.func.id=='_finalize_placement' for c in ast.walk(n)))
             return [ast.dump(n) for n in nodes[start:end+1]]
+        # G079: the ONLY permitted writer difference is the server-computed
+        # step-ineligible exclusion unioned into next-question selection.
+        class StripExclusion(ast.NodeTransformer):
+            stripped=0
+            def visit_BinOp(self,node):
+                self.generic_visit(node)
+                if (isinstance(node.op,ast.BitOr) and isinstance(node.right,ast.Name)
+                        and node.right.id=='exclude_ids'):
+                    self.stripped+=1
+                    return node.left
+                return node
+        strip=StripExclusion()
+        writer=[strip.visit(n) for n in ast.parse(ast.unparse(ast.Module(body=writer,type_ignores=[]))).body]
+        self.assertEqual(strip.stripped,2)
         self.assertEqual(effects(legacy),effects(writer))
         for name in ('_rt_write_step_result','_rt_step_placement_unlock','_rt_forfeit_on_connection'):
             for node in ast.walk(functions[name]):

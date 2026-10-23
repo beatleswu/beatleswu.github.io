@@ -75,18 +75,16 @@ SCHEMA = (
 
 
 def mode(environ: Mapping[str, str]) -> str:
-    def flag(key):
-        value = str(environ.get(key, '')).strip().lower()
-        return False if value in ('', '0', 'false', 'off') else (
-            True if value in ('1', 'true', 'on') else None)
-    rating, privacy = flag('G076_RATING_STEPS_ENABLED'), flag('G076_ANSWER_PRIVACY_ENFORCED')
-    if rating is None or privacy is None:
-        return 'hold'
-    if rating is False and privacy is False:
-        return 'legacy'
-    # This mode projects its own board-only payloads. Global privacy must not
-    # be enabled merely to exercise Rating (it contains unrelated modes).
-    return 'steps' if rating is True else 'hold'
+    """Flag-level decision, delegated to the shared per-mode gate.
+
+    The Rating flag is g076_mode_gate.FLAGS['rating']. Adapter readiness is a
+    separate server-side check (RatingAppServices.ready) applied by the
+    blueprint, so 'steps' here still means HOLD until the ledger is admitted.
+    This mode projects its own board-only payloads. Global privacy must not
+    be enabled merely to exercise Rating (it contains unrelated modes).
+    """
+    from g076_mode_gate import select_mode
+    return select_mode(environ, 'rating', adapter_ready=True).selected
 
 
 def _json(value):

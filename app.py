@@ -33154,12 +33154,14 @@ def rt_answer():
 
 
 def _rt_write_step_result(conn, *, sid, request_uid, pool_q, question_token,
-                          response_ms, correct):
+                          response_ms, correct, exclude_ids=frozenset()):
     """Private B2 writer: caller owns the transaction and original session lock.
 
     Original rt_answer effects/math/selection, without its commit, shadow I/O
     or post-commit unlock. No HTTP route may accept this verdict from a client.
     OFF continues to execute the unchanged rt_answer body.
+    exclude_ids (G079): server-computed ids the step authority cannot serve;
+    only narrows next-question selection, never the judge or Elo math.
     """
     from g076_rating_steps import RatingRejected
     q_id = pool_q['id']
@@ -33234,7 +33236,7 @@ def _rt_write_step_result(conn, *, sid, request_uid, pool_q, question_token,
             row['trigger'], round_idx, session_anchor_enabled
         )
         next_q = _pick_question(
-            new_rating, round_idx, session_ids | recent_ids,
+            new_rating, round_idx, session_ids | recent_ids | exclude_ids,
             discipline_counts=disc_counts, source_counts=source_counts,
             question_role=next_role,
             anchor_enabled=session_anchor_enabled,
@@ -33242,7 +33244,7 @@ def _rt_write_step_result(conn, *, sid, request_uid, pool_q, question_token,
         if not next_q and next_role == 'anchor':
             next_role = 'regular'
             next_q = _pick_question(
-                new_rating, round_idx, session_ids | recent_ids,
+                new_rating, round_idx, session_ids | recent_ids | exclude_ids,
                 discipline_counts=disc_counts, source_counts=source_counts,
                 question_role=next_role,
                 anchor_enabled=session_anchor_enabled,
@@ -33351,7 +33353,8 @@ def _rt_step_placement_unlock(conn, uid, elo):
     return start_zone_key
 
 
-def _rt_forfeit_on_connection(conn, ctx, moves, response_ms, reason):
+def _rt_forfeit_on_connection(conn, ctx, moves, response_ms, reason,
+                              exclude_ids=frozenset()):
     """Trusted server call ONLY, after advance validates binding/nonce/deadline.
 
     A forfeit is a server-owned incorrect round, not an empty-move replay.
@@ -33368,7 +33371,8 @@ def _rt_forfeit_on_connection(conn, ctx, moves, response_ms, reason):
     if pool_q is None or dict(pool_q) != dict(ctx.question):
         raise RatingRejected('rating_question_revision_changed')
     return _rt_write_step_result(conn, sid=ctx.session_id, request_uid=ctx.user_id,
-        pool_q=pool_q, question_token=ctx.question_token, response_ms=response_ms, correct=False)
+        pool_q=pool_q, question_token=ctx.question_token, response_ms=response_ms, correct=False,
+        exclude_ids=exclude_ids)
 
 
 @app.route('/api/rating_test/result/<sid>')
