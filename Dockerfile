@@ -199,6 +199,9 @@ COPY docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json ./docs/p
 COPY adventure_monster_runtime_contract.py ./
 COPY map_battle_runtime.py ./
 COPY map_battle_persistence.py ./
+# G080 C: runtime question selection is imported on-demand by app.py.
+# Keep it in the explicit image source closure, not a Python wildcard.
+COPY question_selection_policy.py ./
 # G076-R3: separately gated, server-authoritative step ledger and SGF
 # board-only projection. Explicit dependencies; no wildcard release copy.
 COPY sgf_point_transform.py ./
