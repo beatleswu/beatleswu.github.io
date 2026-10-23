@@ -33874,8 +33874,9 @@ app.register_blueprint(_g076_mistakes_blueprint(
 
 @app.route('/js/game/g076_nonmap_step_client.js')
 def serve_g076_nonmap_step_client_js():
-    return send_from_directory(os.path.join(app.root_path, 'js', 'game'),
-                               'g076_nonmap_step_client.js', mimetype='application/javascript')
+    return _serve_live_static_or_baked_subpath(
+        'g076_nonmap_step_client.js', 'js/game', 'js/game'
+    )
 
 
 # G076 Daily: no production DDL, no legacy-D5B second submission writer,
