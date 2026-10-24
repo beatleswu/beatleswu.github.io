@@ -201,6 +201,47 @@ try {
  assert.equal(postRace.canvas_count,1);
  assert.equal(postRace.status,'ready');
  shop={...shop,rapid_four_switch_last_wins:true,postRace};
+ // G086B: exercise the REAL Three.js canvas WebGL context lifecycle.
+ // A GPU reset must fail closed and rebuild the same server-projected
+ // weapon. A selection during context loss must be remembered but NOT
+ // be falsely marked ready or write equipment state.
+ const webglLossAvailable=await page.evaluate(()=>{
+   const canvas=document.querySelector("#g085-shop-character-3d canvas");
+   const gl=canvas?.getContext("webgl2");
+   const ext=gl?.getExtension("WEBGL_lose_context");
+   if(!ext)return false;
+   window.__g086bContextExtension=ext;
+   ext.loseContext();
+   return true;
+ });
+ assert.equal(webglLossAvailable,true,"Chrome native context loss extension must be available");
+ await page.waitForFunction(()=>{
+   const s=window.GoOdysseyUnified3D?.getSnapshot();
+   return s?.webgl_context_lost===true&&s.status==="unavailable";
+ },undefined,{timeout:15000});
+ const contextLostSnapshot=await viewSnapshot();
+ await page.evaluate(()=>window.GoOdysseyUnified3D.show("iron_sword",{tryOn:true}));
+ const pausedSelection=await viewSnapshot();
+ assert.equal(pausedSelection.status,"unavailable");
+ assert.equal(pausedSelection.webgl_context_lost,true);
+ assert.equal(pausedSelection.item_id,"iron_sword");
+ await page.evaluate(()=>window.__g086bContextExtension.restoreContext());
+ await page.waitForFunction(()=>{
+   const s=window.GoOdysseyUnified3D?.getSnapshot();
+   return s?.status==="ready" && s?.item_id==="iron_sword"
+     && s?.main_hand_id==="WEAPON_C43E15596CA6"
+     && s?.main_hand_child_count===1
+     && s?.canvas_count===1 && s?.webgl_context_lost===false;
+ },undefined,{timeout:60000});
+ const recovered=await viewSnapshot();
+ await page.screenshot({path:path.join(out,"G086B_SHOP_WEBGL_CONTEXT_RESTORED.png")});
+ shop={...shop,webgl_context_loss_recovery:{
+   original_weapon:postRace.main_hand_id,
+   paused_weapon:null,restored_weapon:recovered.main_hand_id,
+   status_during_loss:contextLostSnapshot.status,
+   lost_confirmed:contextLostSnapshot.webgl_context_lost,
+   selected_during_loss:pausedSelection.item_id,
+   recovered_one_canvas:recovered.canvas_count===1}};
  await page.evaluate(()=>window.GoOdysseyUnified3D.show('cloth_robe',{tryOn:true}));
  const missingShop=await waitFor('cloth_robe',null,'unsupported');
  assert.equal(missingShop.main_hand_child_count,0);

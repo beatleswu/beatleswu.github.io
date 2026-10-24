@@ -56,6 +56,8 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
   let disposed=false,root=null,renderer=null,scene=null,hostSlots=null,adapter=null;
   let currentDescriptor=null,ownedInventory=[],playerAppearance=null;
   let naturalPose=null;
+  let loadGeneration=0,loadController=null,refreshGeneration=0;
+  let contextCanvas=null,contextLost=false;
   let camera=null,turntable=null,zoom=1,angle=0,drag=null;
   let lastStatus="loading",lastPresentation=null,shownItemId=null,version=0;
   const controller=new AbortController(),signal=controller.signal;
@@ -93,10 +95,11 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
       orbit_yaw_radians:angle,zoom,
       natural_idle_pose_status:naturalPose?.status||null,
       natural_idle_pose_arms:naturalPose?.arms_applied||0,
-      natural_idle_pose_side_deltas:naturalPose?.side_deltas||[]});
+      natural_idle_pose_side_deltas:naturalPose?.side_deltas||[],
+      webgl_context_lost:contextLost});
   }
   function resize(){
-    if(!renderer||!camera||disposed)return;
+    if(!renderer||!camera||disposed||contextLost)return;
     const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
     renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   }
@@ -106,8 +109,8 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     if(disposed)return;
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     host.setPointerCapture?.(e.pointerId);
-    if(pointers.size===1)drag={x:e.clientX,y:e.clientY};
-    if(pointers.size===2){const [a,b]=[...pointers.values()];
+    if(pointers.size===1){drag={x:e.clientX,y:e.clientY};pinch=null;}
+    if(pointers.size===2){drag=null;const [a,b]=[...pointers.values()];
       pinch=Math.hypot(a.x-b.x,a.y-b.y);}
   }
   function move(e){
@@ -118,7 +121,16 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
       if(dist>0){zoom=THREE.MathUtils.clamp(zoom*pinch/dist,.5,2.3);pinch=dist;}
     }else if(drag){angle+=(e.clientX-drag.x)*.012;drag={x:e.clientX,y:e.clientY};}
   }
-  function up(e){pointers.delete(e.pointerId);if(!pointers.size){drag=null;pinch=null;}}
+  function up(e){
+    if(pointers.has(e.pointerId)){
+      pointers.delete(e.pointerId);
+      if(host.hasPointerCapture?.(e.pointerId))host.releasePointerCapture(e.pointerId);
+    }
+    if(pointers.size===1){
+      const remaining=[...pointers.values()][0];
+      drag={x:remaining.x,y:remaining.y};pinch=null;
+    }else if(!pointers.size){drag=null;pinch=null;}
+  }
   function wheel(e){if(disposed)return;e.preventDefault();
     zoom=THREE.MathUtils.clamp(zoom*(e.deltaY>0?1.09:.91),.5,2.3);}
   function keydown(e){if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
@@ -128,8 +140,37 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
   host.addEventListener("pointerup",up);host.addEventListener("pointercancel",up);
   host.addEventListener("wheel",wheel,{passive:false});
   host.addEventListener("keydown",keydown);host.tabIndex=0;host.style.touchAction="none";
-  const visibility=()=>{if(document.hidden)renderer?.setAnimationLoop(null);
-    else if(renderer)renderer.setAnimationLoop(frame);};
+  const visibility=()=>{
+    if(document.hidden||contextLost)renderer?.setAnimationLoop(null);
+    else if(renderer)renderer.setAnimationLoop(frame);
+  };
+  // A lost WebGL context must never leave a frozen canvas marked "ready".
+  // A restored context rebuilds ONLY this viewer; server equipment remains
+  // authoritative and previews never issue an equip or purchase request.
+  function onContextLost(e){
+    e.preventDefault();
+    if(disposed)return;
+    contextLost=true;
+    renderer?.setAnimationLoop(null);
+    message("unavailable","3D 圖形暫時中斷 · 等待恢復，不影響玩家裝備");
+  }
+  function onContextRestored(){
+    if(disposed||!contextLost)return;
+    contextLost=false;
+    queueMicrotask(()=>{
+      if(disposed)return;
+      refresh().catch(()=>{
+        if(!disposed)message("unavailable","3D 圖形恢復失敗 · 可重新整理頁面");
+      });
+    });
+  }
+  function releaseContextListeners(){
+    if(contextCanvas){
+      contextCanvas.removeEventListener("webglcontextlost",onContextLost);
+      contextCanvas.removeEventListener("webglcontextrestored",onContextRestored);
+      contextCanvas=null;
+    }
+  }
   document.addEventListener("visibilitychange",visibility);
   const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(resize):null;
   observer?.observe(host);
@@ -154,7 +195,7 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     camera.updateMatrixWorld(true);
   }
   function frame(){
-    if(disposed||!scene||!camera||!renderer||document.hidden||!host.isConnected)return;
+    if(disposed||contextLost||!scene||!camera||!renderer||document.hidden||!host.isConnected)return;
     turntable.rotation.y=angle;
     const target=camera.userData.g085target;
     // G008 Hero focuses the actual character-model bounds. Camera origin
@@ -165,16 +206,25 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     renderer.render(scene,camera);
   }
   async function load() {
+    const generation=++loadGeneration;
+    loadController?.abort();
+    const localController=new AbortController();
+    loadController=localController;
+    const current=()=>!disposed&&generation===loadGeneration&&!localController.signal.aborted;
     const [catalog,appearance,inventory]=await Promise.all([
-      readJson("/api/player/character-catalog",signal),
-      readJson("/api/player/appearance",signal),
-      readJson("/api/player/inventory",signal)]);
+      readJson("/api/player/character-catalog",localController.signal),
+      readJson("/api/player/appearance",localController.signal),
+      readJson("/api/player/inventory",localController.signal)]);
+    if(!current())return null;
     if(!Array.isArray(inventory))throw new Error("g085_inventory_authority_invalid");
     const {runtime}=verifyCurrentHeroProjection(catalog,appearance);
-    const verified=await loadVerified3DAsset(runtime.runtime_glb,runtime.runtime_sha256,signal);
+    const verified=await loadVerified3DAsset(runtime.runtime_glb,runtime.runtime_sha256,localController.signal);
     const gltf=await new GLTFLoader().parseAsync(verified.bytes,new URL(verified.url,location.href).href);
-    if(disposed)return;
     const model=gltf.scene||gltf.scenes?.[0];
+    if(!current()){
+      disposeScene(model);
+      return null;
+    }
     if(!model?.isObject3D)throw new Error("g085_character_3d_scene_missing");
     let meshes=0;model.traverse(n=>{if(n.isMesh)meshes++;});
     if(!meshes)throw new Error("g085_character_3d_mesh_missing");
@@ -189,6 +239,9 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     camera.userData.g085base=Math.max(3.4,size.y*2.8);
     camera.userData.g085target=center.clone();
     renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:"low-power"});
+    contextCanvas=renderer.domElement;
+    contextCanvas.addEventListener("webglcontextlost",onContextLost,false);
+    contextCanvas.addEventListener("webglcontextrestored",onContextRestored,false);
     renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     host.prepend(renderer.domElement);resize();
@@ -214,6 +267,10 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
       await ready;
     }
     if(disposed||request!==version)return;
+    if(contextLost){
+      message("unavailable","3D 圖形暫時中斷 · 等待恢復，不影響玩家裝備");
+      return getSnapshot();
+    }
     currentDescriptor=null;lastPresentation=null;
     adapter?.detach("MAIN_HAND");
     fitSharedSceneCamera();
@@ -259,21 +316,32 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     }else message("unsupported",note);
     return getSnapshot();
   }
-  async function refresh(){message("loading","正在確認角色與裝備…");destroyModel();
-    await load();return select(shownItemId,{tryOn:lastTryOn});}
+  async function refresh(){
+    const refreshId=++refreshGeneration;
+    message("loading","正在確認角色與裝備…");
+    destroyModel();
+    ready=load();
+    await ready;
+    if(disposed||refreshId!==refreshGeneration||!renderer)return null;
+    return select(shownItemId,{tryOn:lastTryOn});
+  }
   let lastTryOn=false,ready;
   function show(itemId=null,options={}){
     lastTryOn=options.tryOn===true;
     return select(itemId,{tryOn:lastTryOn});
   }
   function destroyModel(){
-    ++version;adapter?.dispose();hostSlots?.destroy();hostSlots=null;adapter=null;
+    ++version;++loadGeneration;
+    loadController?.abort();loadController=null;
+    adapter?.dispose();hostSlots?.destroy();hostSlots=null;adapter=null;
+    releaseContextListeners();
     renderer?.setAnimationLoop(null);renderer?.dispose();
+    renderer?.forceContextLoss?.();
     renderer?.domElement?.remove();renderer=null;disposeScene(root);
-    root=null;scene=null;camera=null;turntable=null;currentDescriptor=null;naturalPose=null;
+    root=null;scene=null;camera=null;turntable=null;currentDescriptor=null;naturalPose=null;contextLost=false;
   }
   function destroy(){
-    if(disposed)return;disposed=true;controller.abort();destroyModel();
+    if(disposed)return;disposed=true;controller.abort();++refreshGeneration;destroyModel();
     observer?.disconnect();document.removeEventListener("visibilitychange",visibility);
     host.removeEventListener("pointerdown",down);host.removeEventListener("pointermove",move);
     host.removeEventListener("pointerup",up);host.removeEventListener("pointercancel",up);
@@ -281,7 +349,8 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     host.dataset.g0853d="destroyed";pointers.clear();host.replaceChildren();
   }
   ready=load().catch(e=>{
-    message("unavailable","3D 暫時無法使用 · 不以錯誤圖片充當已穿戴裝備");
+    if(!disposed&&e?.name!=="AbortError")
+      message("unavailable","3D 暫時無法使用 · 不以錯誤圖片充當已穿戴裝備");
     throw e;
   });
   return Object.freeze({ready,show,refresh,destroy,getSnapshot});
