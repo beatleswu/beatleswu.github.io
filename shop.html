@@ -1,6 +1,9 @@
 ﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+<!-- Same pinned local Three.js runtime used by the G008 Hero (GLTFLoader uses
+     the bare "three" specifier). No CDN or alternate rendering engine. -->
+<script type="importmap">{"imports":{"three":"/assets/3d_shop/p048/vendor/three.module.js"}}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title data-i18n="shop.page.title">商城 | Go Odyssey</title>
@@ -592,6 +595,34 @@ button:focus-visible {
 .equipment-detail-art { width:100%; min-height:126px; aspect-ratio:1; display:grid; place-items:center; overflow:hidden; border:1px solid rgba(240,191,87,.3); border-radius:var(--radius); background:radial-gradient(circle, rgba(86,214,194,.18), rgba(0,0,0,.22)); }
 .equipment-detail-art img { width:112%; height:112%; object-fit:contain; }
 .equipment-detail-art .equipment-art-fallback { padding:8px; }
+.g085-shop-3d-options {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.g085-shop-3d-options button {
+  border:1px solid rgba(227,180,87,.5);border-radius:9px;
+  padding:9px 12px;min-height:44px;background:rgba(9,18,44,.94);
+  color:#f9e2b2;font:700 12px/1.4 system-ui,sans-serif;cursor:pointer;
+}
+.g085-shop-3d-options button[aria-pressed="true"]{
+  box-shadow:0 0 0 2px rgba(227,180,87,.65);
+}
+/* G085H: shared G008/G009 read-only 3D presentation; never an equip authority. */
+.g085-shop-3d-shell {
+  grid-column:1 / -1;border:1px solid rgba(227,180,87,.32);
+  padding:12px;border-radius:12px;background:rgba(7,13,34,.58);
+}
+.g085-shop-3d-title {font:800 12px/1.5 system-ui,sans-serif;color:#f1daa5}
+#g085-shop-character-3d {
+  position:relative;width:100%;height:310px;margin-top:8px;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 35%,rgba(64,93,161,.28),rgba(7,13,34,.98) 85%);
+  border-radius:12px;touch-action:none;
+}
+#g085-shop-character-3d canvas {display:block;width:100%;height:100%}
+.g085-shop-3d-help {margin-top:8px;color:#c7cce0;font:12px/1.4 system-ui,sans-serif}
+.g085-3d-view-status {
+  position:absolute;bottom:0;left:0;right:0;padding:9px 12px;
+  background:rgba(7,13,34,.87);color:#f1daa5;text-align:center;
+  font:12px/1.4 system-ui,sans-serif;pointer-events:none;
+}
+
 .equipment-detail-copy { min-width:0; }
 .equipment-detail-name { color:#fff7dd; font-size:20px; font-weight:900; line-height:1.2; overflow-wrap:anywhere; }
 .equipment-detail-class { margin-top:5px; color:var(--faint); font-size:11px; font-weight:800; overflow-wrap:anywhere; }
@@ -841,6 +872,34 @@ header:not(.cg-nav) { background: #0b1430; }
         <span id="merchant-line">瀏覽伺服器目錄；購買功能已停用。</span>
       </div>
       <img class="merchant" id="merchant-img" src="/assets/shop/npc_merchant_idle.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
+    </div>
+  </section>
+
+
+  <!-- G085H: the public rights-cleared 3D showroom remains visible while
+       all purchase/equip entitlement switches remain OFF. -->
+  <section class="section panel g085-shop-visible-showroom"
+           data-g085-3d-visual-only="true" aria-label="3D 主角及裝備試穿">
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">3D HERO · VISUAL PREVIEW ONLY</div>
+          <div class="section-title">角色 3D 試穿間</div>
+        </div>
+      </div>
+      <p class="section-sub">觀看已有公開預覽許可的 3D 裝備；不代表可購買或可裝備，試穿不會修改金幣、背包及持有權。</p>
+      <div class="g085-shop-3d-shell" data-g085-shop-preview-read-only="true">
+        <div class="g085-shop-3d-title">共用 3D 主角 · 商城試穿預覽 / 3D Try-On</div>
+        <div id="g085-shop-character-3d" data-g085-3d-surface="shop"
+             data-g0853d="loading" role="group"
+             aria-label="商城試穿 3D 主角；拖曳旋轉、雙指縮放">
+          <div class="g085-3d-view-status" role="status">正在載入 3D 角色…</div>
+        </div>
+        <p class="g085-shop-3d-help">僅供 3D 視覺試穿；不會購買、扣金幣或變更已裝備狀態。缺少核准模型時會明確標示。</p>
+      </div>
+
+      <div id="g085-shop-3d-options" class="g085-shop-3d-options"
+           aria-label="核准展示的 3D 武器"></div>
     </div>
   </section>
 
@@ -3028,11 +3087,21 @@ function c044RenderEquipmentDetail(offer) {
     buy.hidden = true;
     buy.removeAttribute('data-equipment-purchase');
     art.innerHTML = '';
+    const view=document.getElementById('g085-shop-character-3d');
+    if(view)view.dataset.g085SelectedItemId='';
+    document.dispatchEvent(new CustomEvent('g085:3d-selection',{detail:{itemId:null,tryOn:true}}));
     return;
   }
   const detailData = c044EquipmentDetailData(offer);
   const ownership = c044EquipmentOwnership(catalog, offer);
   art.innerHTML = c043EquipmentIconHTML(offer);
+  // Exactly the server equipment offer's canonical item_id; never a label,
+  // icon file name, item similarity or client-owned entitlement.
+  const view=document.getElementById('g085-shop-character-3d');
+  if(view)view.dataset.g085SelectedItemId=offer.item_id||'';
+  document.dispatchEvent(new CustomEvent('g085:3d-selection',{
+    detail:{itemId:offer.item_id||null,tryOn:true}
+  }));
   name.textContent = detailData.name;
   itemClass.textContent = offer.acquisition_class;
   const ownershipBadge = c044EquipmentOwnershipBadgeHTML(ownership);
@@ -3736,6 +3805,7 @@ window.onLangChange = () => {
 loadCatalog();
 loadCosmeticCommerce();
 </script>
+<script type="module" src="/js/g085_unified_3d_page_bindings.mjs"></script>
 <script src="/sound.js?v=2"></script>
 <script src="/mobile-nav.js?v=20260603mn"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>

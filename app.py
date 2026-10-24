@@ -29960,6 +29960,10 @@ _G009_FORMAL_RUNTIME_JS_FILES = frozenset({
     'g010_hero_3d_gallery.mjs',
     # G009 Hero Hub bundle: dual delivery (live-static first, baked fallback).
     'g009_hero_hub_batch_a.js',
+    # G085H exact shared Hero/Backpack/Shop 3D runtime, no dynamic directory exposure.
+    'g085_shared_authoritative_3d_core.mjs',
+    'g085_shared_hero3d_viewer.mjs',
+    'g085_unified_3d_page_bindings.mjs',
 })
 _G009_FORMAL_RUNTIME_SCHEMA_FILES = frozenset({
     'g009_d007_runtime_prerequisite_v1.json',

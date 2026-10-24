@@ -1,3 +1,4 @@
+import {verifyCurrentHeroProjection,sha256GlbBytes} from "./g085_shared_authoritative_3d_core.mjs";
 import * as THREE from "/assets/3d_shop/p048/vendor/three.module.js";
 import { GLTFLoader } from "/assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js";
 import {
@@ -5,15 +6,6 @@ import {
   G009_HERO_PRESENTATION_SLOTS,
 } from "./g009_shared_hero_attachment_host.js";
 
-const EXPECTED_C005_MANIFEST_SHA256 =
-  "35746c1168152cbd3fd166fd0ba5a319f3bf1ba8916fed3a8669f487a2a83c1d";
-const ACCEPTED_FUTURE30_ACQUISITION_SOURCES = new Set([
-  "STARTER",
-  "STAGE",
-  "PREMIUM",
-  "SHOP",
-  "ACCEPTANCE_TEST",
-]);
 export const HERO_PRESENTATION_SLOTS = G009_HERO_PRESENTATION_SLOTS;
 let stage = null;
 let avatar = null;
@@ -332,10 +324,6 @@ function fail(reason, identity = {}) {
   console.warn("Future30 Hero presentation is unavailable", reason);
 }
 
-async function sha256(buffer) {
-  const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
-}
 
 function fitModel(root) {
   root.updateMatrixWorld(true);
@@ -534,42 +522,17 @@ async function activate(token, signal) {
   ]);
   if (!isCurrent(token)) return;
 
-  if (catalog.c005_manifest_sha256 !== EXPECTED_C005_MANIFEST_SHA256
-    || catalog.logical_count !== 30 || catalog.visual_count !== 33
-    || !Array.isArray(catalog.entries) || catalog.entries.length !== 30) {
-    throw new Error("catalog_authority_mismatch");
-  }
-  const keys = catalog.entries.map((entry) => entry.character_key);
-  if (new Set(keys).size !== 30 || keys.some((key) => typeof key !== "string" || !key)) {
-    throw new Error("catalog_logical_identity_mismatch");
-  }
-
+  // Keep the original G008 authority boundary explicit for older integrated
+  // source-contract consumers. The complete C005/entitlement validation is
+  // shared with Backpack and Shop through verifyCurrentHeroProjection.
   const key = appearance.character_key;
-  const entry = catalog.entries.find((candidate) => candidate.character_key === key);
   const runtime = appearance.character_runtime;
-  if (!entry || appearance.character_key_source !== "player_appearance.character_key"
+  if (appearance.character_key_source !== "player_appearance.character_key"
     || appearance.character_key_authority !== "player_appearance.character_key"
-    || appearance.character_entitled !== true || entry.owned !== true || entry.is_applied !== true
-    || !ACCEPTED_FUTURE30_ACQUISITION_SOURCES.has(entry.acquisition_source)
-    || !runtime || runtime.character_key !== key
-    || runtime.default_variant !== "RED"
-    || runtime.visual_model_id !== entry.visual_model_id
-    || runtime.c005_manifest_sha256 !== EXPECTED_C005_MANIFEST_SHA256
-    || runtime.runtime_glb !== entry.runtime_glb
-    || runtime.runtime_sha256 !== entry.runtime_sha256) {
+    || !runtime || runtime.character_key !== key) {
     throw new Error("server_character_projection_mismatch");
   }
-  const redModel = (entry.visual_models || []).find((model) => model.variant === "RED");
-  if (!redModel || redModel.visual_model_id !== entry.visual_model_id
-    || redModel.runtime_glb !== runtime.runtime_glb
-    || redModel.runtime_sha256 !== runtime.runtime_sha256) {
-    throw new Error("canonical_red_asset_resolution_mismatch");
-  }
-  if (!runtime.runtime_glb.startsWith("assets/3d_shop/p048/")
-    || runtime.runtime_glb.split("/").includes("..")
-    || !/^[a-f0-9]{64}$/.test(runtime.runtime_sha256)) {
-    throw new Error("runtime_asset_path_rejected");
-  }
+  const {entry}=verifyCurrentHeroProjection(catalog,appearance);
   serverAppearance = appearance;
 
   stage.dataset.state = "loading";
@@ -577,7 +540,7 @@ async function activate(token, signal) {
   const response = await fetch(assetPath, { credentials: "same-origin", cache: "no-store", signal });
   if (!response.ok) throw new Error(`asset_http_${response.status}`);
   const bytes = await response.arrayBuffer();
-  const actualSha256 = await sha256(bytes);
+  const actualSha256 = await sha256GlbBytes(bytes);
   if (!isCurrent(token)) return;
   if (actualSha256 !== runtime.runtime_sha256) throw new Error("runtime_asset_sha256_mismatch");
 
