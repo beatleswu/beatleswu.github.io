@@ -242,6 +242,76 @@ try {
    lost_confirmed:contextLostSnapshot.webgl_context_lost,
    selected_during_loss:pausedSelection.item_id,
    recovered_one_canvas:recovered.canvas_count===1}};
+ // G086C: genuine slowed HTTP GLB loads; the LAST three rapid selections
+ // must determine the eventual single MAIN_HAND, not an earlier response.
+ const slowGlb=[];
+ await page.route('**/*.glb',async route=>{
+   if(new URL(route.request().url()).origin===origin){
+     slowGlb.push(new URL(route.request().url()).pathname);
+     await new Promise(res=>setTimeout(res,400));
+   }
+   await route.continue();
+ });
+ for(const id of ['fox_fang','riverstone_sabre','iron_sword']){
+   await page.evaluate(item=>{
+     // Fire without awaiting GLB completion: real user rapid selection.
+     window.GoOdysseyUnified3D.show(item,{tryOn:true});
+   },id);
+   await page.waitForTimeout(90);
+ }
+ await waitFor("iron_sword","WEAPON_C43E15596CA6");
+ await page.waitForTimeout(1200);
+ const slowFinal=await viewSnapshot();
+ assert.equal(slowFinal.main_hand_id,"WEAPON_C43E15596CA6");
+ assert.equal(slowFinal.main_hand_child_count,1);
+ assert.equal(slowFinal.canvas_count,1);
+ assert.equal(slowFinal.status,"ready");
+ assert(slowGlb.length>=3,"Adversarial GLB delay must exercise real HTTP requests: "+slowGlb.length);
+ await page.unrouteAll({behavior:"wait"});
+ // Repeated REAL WebGL context-loss/restoration on the newest canvas.
+ // This is NOT equivalent to a real iPad Safari GPU-driver failure.
+ const cycles=[];
+ for(const [nextItem,expected]of [
+   ["fox_fang","WEAPON_6F06505A7BED"],
+   ["riverstone_sabre","WEAPON_EC86CE30E759"],
+   ["bamboo_shadow_blade","WEAPON_C84A8635BED2"]
+ ]){
+   const supported=await page.evaluate(()=>{
+     const canvas=document.querySelector("#g085-shop-character-3d canvas");
+     const extension=canvas?.getContext("webgl2")?.getExtension("WEBGL_lose_context");
+     if(!extension)return false;
+     window.__g086cCurrentContext=extension;
+     extension.loseContext();
+     return true;
+   });
+   assert(supported,"Chrome WebGL lose_context extension unavailable in repeated test");
+   await page.waitForFunction(()=>{
+     const s=window.GoOdysseyUnified3D?.getSnapshot();
+     return s?.webgl_context_lost===true&&s?.status==="unavailable"
+        &&s?.main_hand_child_count===0;
+   },undefined,{timeout:15000});
+   await page.evaluate(item=>{
+     window.GoOdysseyUnified3D.show(item,{tryOn:true});
+   },nextItem);
+   const paused=await viewSnapshot();
+   assert.equal(paused.status,"unavailable");
+   assert.equal(paused.item_id,nextItem);
+   await page.evaluate(()=>window.__g086cCurrentContext.restoreContext());
+   const done=await waitFor(nextItem,expected);
+   assert.equal(done.webgl_context_lost,false);
+   assert.equal(done.gpu_contexts_created,done.gpu_contexts_released+1,
+     "GPU renderer lifecycle leak across repeated rebuild: "+JSON.stringify(done));
+   cycles.push({item:nextItem,loaded:done.main_hand_id,
+     contexts_created:done.gpu_contexts_created,
+     contexts_released:done.gpu_contexts_released,
+     single_canvas:done.canvas_count===1});
+ }
+ await page.screenshot({path:path.join(out,"G086C_SLOW_GLBS_TRIPLE_CONTEXT_RECOVERED.png")});
+ shop={...shop,g086c_adversarial:{
+   real_delayed_glb_requests:slowGlb.length,
+   last_selection_wins:slowFinal.main_hand_id,
+   cycles,zero_extra_gpu_renderer_instances:true
+ }};
  await page.evaluate(()=>window.GoOdysseyUnified3D.show('cloth_robe',{tryOn:true}));
  const missingShop=await waitFor('cloth_robe',null,'unsupported');
  assert.equal(missingShop.main_hand_child_count,0);

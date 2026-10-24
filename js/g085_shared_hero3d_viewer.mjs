@@ -58,6 +58,7 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
   let naturalPose=null;
   let loadGeneration=0,loadController=null,refreshGeneration=0;
   let contextCanvas=null,contextLost=false;
+  let gpuContextsCreated=0,gpuContextsReleased=0;
   let camera=null,turntable=null,zoom=1,angle=0,drag=null;
   let lastStatus="loading",lastPresentation=null,shownItemId=null,version=0;
   const controller=new AbortController(),signal=controller.signal;
@@ -96,7 +97,9 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
       natural_idle_pose_status:naturalPose?.status||null,
       natural_idle_pose_arms:naturalPose?.arms_applied||0,
       natural_idle_pose_side_deltas:naturalPose?.side_deltas||[],
-      webgl_context_lost:contextLost});
+      webgl_context_lost:contextLost,
+      gpu_contexts_created:gpuContextsCreated,
+      gpu_contexts_released:gpuContextsReleased});
   }
   function resize(){
     if(!renderer||!camera||disposed||contextLost)return;
@@ -151,6 +154,11 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     e.preventDefault();
     if(disposed)return;
     contextLost=true;
+    // Invalidate pending GLB callbacks. A response from BEFORE GPU loss
+    // must never attach or mark ready after a newer user selection.
+    ++version;
+    currentDescriptor=null;lastPresentation=null;
+    adapter?.detach("MAIN_HAND");
     renderer?.setAnimationLoop(null);
     message("unavailable","3D 圖形暫時中斷 · 等待恢復，不影響玩家裝備");
   }
@@ -239,6 +247,7 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     camera.userData.g085base=Math.max(3.4,size.y*2.8);
     camera.userData.g085target=center.clone();
     renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:"low-power"});
+    ++gpuContextsCreated;
     contextCanvas=renderer.domElement;
     contextCanvas.addEventListener("webglcontextlost",onContextLost,false);
     contextCanvas.addEventListener("webglcontextrestored",onContextRestored,false);
@@ -262,11 +271,18 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
   async function select(itemId=null,{tryOn=false}={}){
     const request=++version;
     shownItemId=itemId;
-    if(!playerAppearance){
+    if(!renderer||!adapter||!playerAppearance){
       if(!ready)throw new Error("g085_3d_viewer_not_initialized");
-      await ready;
+      try{await ready;}catch(error){
+        if(disposed||request!==version||error?.name==="AbortError")return null;
+        throw error;
+      }
     }
     if(disposed||request!==version)return;
+    if(!renderer||!adapter){
+      message("loading","正在重新建立 3D 主角與武器…");
+      return getSnapshot();
+    }
     if(contextLost){
       message("unavailable","3D 圖形暫時中斷 · 等待恢復，不影響玩家裝備");
       return getSnapshot();
@@ -300,9 +316,10 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     }
     if(descriptor){
       currentDescriptor=descriptor;
+      message("loading","正在載入經核准的 3D 武器預覽…");
       try{
         const result=await adapter.setHand("MAIN_HAND",descriptor,playerAppearance);
-        if(request!==version||disposed)return;
+        if(request!==version||disposed||contextLost)return;
         if(result.status==="attached"||result.status==="unchanged"||result.status==="reused"){
           lastPresentation=descriptor.presentation_id;
           fitSharedSceneCamera();
@@ -311,7 +328,8 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
           message("unavailable","裝備模型未能掛載；不以其他物品替代");
         }
       }catch(error){
-        if(request===version&&!disposed)message("unavailable","3D 裝備載入失敗 · 不影響持有權");
+        if(request===version&&!disposed&&!contextLost)
+          message("unavailable","3D 裝備載入失敗 · 不影響持有權");
       }
     }else message("unsupported",note);
     return getSnapshot();
@@ -321,7 +339,11 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     message("loading","正在確認角色與裝備…");
     destroyModel();
     ready=load();
-    await ready;
+    try{await ready;}catch(error){
+      if(disposed||refreshId!==refreshGeneration||error?.name==="AbortError")return null;
+      message("unavailable","3D 角色重新載入失敗 · 不影響玩家資料");
+      throw error;
+    }
     if(disposed||refreshId!==refreshGeneration||!renderer)return null;
     return select(shownItemId,{tryOn:lastTryOn});
   }
@@ -335,8 +357,12 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     loadController?.abort();loadController=null;
     adapter?.dispose();hostSlots?.destroy();hostSlots=null;adapter=null;
     releaseContextListeners();
-    renderer?.setAnimationLoop(null);renderer?.dispose();
-    renderer?.forceContextLoss?.();
+    if(renderer){
+      renderer.setAnimationLoop(null);
+      renderer.dispose();
+      renderer.forceContextLoss?.();
+      ++gpuContextsReleased;
+    }
     renderer?.domElement?.remove();renderer=null;disposeScene(root);
     root=null;scene=null;camera=null;turntable=null;currentDescriptor=null;naturalPose=null;contextLost=false;
   }
