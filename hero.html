@@ -742,6 +742,24 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .g008-future30-hero-stage[data-state="loading"],
 .g008-future30-hero-stage[data-state="ready"] { display: block; }
 .g008-future30-hero-stage canvas { width: 100%; height: 100%; display: block; }
+/* G085F: real Hero load-state feedback, never an equipment ownership source. */
+.g008-hero-load-notice {
+  position: absolute; z-index: 30; left: 50%; bottom: 5px;
+  transform: translateX(-50%); width: max-content; max-width: 152px;
+  padding: 5px 8px; border-radius: 9px; text-align: center;
+  background: rgba(15,23,42,.88); color: #f8fafc;
+  font: 600 10px/1.4 system-ui, sans-serif;
+  box-shadow: 0 3px 12px rgba(0,0,0,.2);
+}
+.g008-hero-load-notice[hidden],
+.g008-hero-retry[hidden] { display: none !important; }
+.g008-hero-retry {
+  display: block; margin: 4px auto 0; padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.65); border-radius: 6px;
+  background: rgba(255,255,255,.16); color: white;
+  font: inherit; cursor: pointer; pointer-events: auto;
+}
+.g008-hero-retry:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
 .char-avatar[data-g008-future30-render="ready"] #char-fullbody-avatar-img,
 .char-avatar[data-g008-future30-render="ready"] .combat-gear-layer,
 .char-avatar[data-g008-future30-render="ready"] .functional-wearable-stack,
@@ -1898,6 +1916,12 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
           <div class="char-avatar-ring" id="char-avatar-ring"></div>
           <div class="char-avatar" id="char-avatar" data-av-type="fullbody">
             <div class="g008-future30-hero-stage" id="g008-future30-hero-stage" data-state="inactive" aria-hidden="true"></div>
+            <div class="g008-hero-load-notice" id="g008-hero-load-notice"
+                 role="status" aria-live="polite" aria-atomic="true" hidden>
+              <span id="g008-hero-load-message"></span>
+              <button id="g008-hero-retry" class="g008-hero-retry"
+                      type="button" hidden>重新同步</button>
+            </div>
             <div class="functional-wearable-stack back" id="char-functional-wearable-back" aria-hidden="true"></div>
             <img class="combat-gear-layer aura" id="char-aura-layer" alt="">
             <img class="combat-gear-layer cape" id="char-cape-layer" alt="">

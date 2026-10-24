@@ -245,6 +245,19 @@ export function mountHeroAppearance() {
   if (stage && !isCurrent(generation)) pending = null;
   stage = document.getElementById("g008-future30-hero-stage");
   avatar = document.getElementById("char-avatar");
+  // An explicit user action restarts only the current Hero scene and
+  // re-fetches the same server-owned appearance and equipped inventory.
+  // Never invent a weapon or replay any equipment purchase.
+  const retry = document.getElementById("g008-hero-retry");
+  if (retry && retry.dataset.g008Bound !== "true") {
+    retry.dataset.g008Bound = "true";
+    retry.addEventListener("click", async () => {
+      if (retry.disabled) return;
+      retry.disabled = true;
+      try { await refreshHeroAppearance(); }
+      finally { retry.disabled = false; }
+    });
+  }
   if (pending) return pending;
   if (ownedRenderer) return Promise.resolve(window.__G008_HERO_RENDER_STATE__);
   const token = ++generation;
@@ -269,6 +282,20 @@ export function refreshHeroAppearance() {
 function publish(state) {
   window.__G008_HERO_RENDER_STATE__ = Object.freeze(state);
   if (stage) stage.dataset.state = state.state;
+  const notice = document.getElementById("g008-hero-load-notice");
+  const message = document.getElementById("g008-hero-load-message");
+  const retry = document.getElementById("g008-hero-retry");
+  if (notice && message && retry) {
+    const unavailable = state.state === "failed"
+      || (state.state === "ready" && state.equipment_status === "unavailable");
+    notice.hidden = state.state !== "loading" && !unavailable;
+    retry.hidden = !unavailable;
+    if (state.state === "loading") message.textContent = "正在同步 3D 角色與裝備…";
+    else if (state.state === "failed") message.textContent = "3D 角色暫時無法載入";
+    else if (unavailable) message.textContent = "裝備暫時無法同步";
+    else message.textContent = "";
+  }
+  avatar?.setAttribute?.("aria-busy", state.state === "loading" ? "true" : "false");
   if (avatar) {
     if (state.state === "ready") {
       avatar.dataset.g008Future30Render = "ready";
@@ -575,6 +602,12 @@ async function activate(token, signal) {
   if (!isCurrent(token)) return;
   cancelFrameWait = null;
   const childRehydration = await rehydrateHeroPresentations();
+  // The parent WebGL scene can be ready while the hand attachment request
+  // failed closed. Distinguish that from a genuinely empty equipped slot.
+  const handRehydration = childRehydration.results?.find(
+    (entry) => entry.key === "G009_D_R2_SERVER_EQUIPPED_HANDS");
+  const equipmentUnavailable = handRehydration?.status === "failed_closed"
+    || handRehydration?.result?.status === "failed_closed";
   if (!isCurrent(token)) return;
 
   publish({
@@ -601,6 +634,7 @@ async function activate(token, signal) {
     blue_optional_keys: catalog.blue_optional,
     c005_manifest_sha256: catalog.c005_manifest_sha256,
     child_rehydration: childRehydration.status,
+    equipment_status: equipmentUnavailable ? "unavailable" : "ready",
   });
 
 }
