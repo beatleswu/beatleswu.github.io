@@ -12,13 +12,20 @@ from migrations.equipment_canonical_slot_v1 import upgrade as upgrade_slot
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_outbox
 USER=983011
 BASE=Path(__file__).resolve().parents[1]
-OUTPUT=Path(r"D:\go-odyssey-g010-3d-activation-evidence-20261021")
+def _receipt_path(tmp_path, filename):
+ root=Path(os.environ.get("GO_E2E_EVIDENCE_ROOT") or tmp_path)
+ if "GO_E2E_EVIDENCE_ROOT" in os.environ:
+  assert root.is_absolute() and root.drive.upper()=="D:", "Evidence root must be isolated on D:"
+  assert "go-odyssey-g010-3d-activation-evidence-20261021" not in str(root).lower(), "Refuse historical receipt overwrite"
+ root.mkdir(parents=True,exist_ok=True)
+ return root/filename
+
 def client(app):
  c=app.app.test_client()
  with c.session_transaction() as s:
   s["user_id"]=USER;s["username"]="g011-synthetic-hero-e2e"
  return c
-def test_real_pg_player_ui_shop_to_3d_hero_persists_on_fresh_session(runtime,monkeypatch):
+def test_real_pg_player_ui_shop_to_3d_hero_persists_on_fresh_session(runtime,monkeypatch,tmp_path):
  app=runtime
  assert os.environ.get("PRODUCTION")!="1"
  assert app._canonical_coin_shop_purchase_enabled() is False
@@ -105,7 +112,7 @@ def test_real_pg_player_ui_shop_to_3d_hero_persists_on_fresh_session(runtime,mon
   "production_release_rights_admitted":False,
   "environment_restored_shop_off":True,"environment_restored_loadout_off":True,
   "formal_player_writes":False,"oracle_deploy":False,"github_merge":False}
- OUTPUT.mkdir(exist_ok=True)
- dest=OUTPUT/"G011_REAL_PG_SHOP_EQUIP_HERO_3D_20261021.json"
- dest.write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding="utf8")
+ dest=_receipt_path(tmp_path,"G011_REAL_PG_SHOP_EQUIP_HERO_3D_20261024.json")
+ with dest.open("x",encoding="utf8") as output:
+  output.write(json.dumps(record,ensure_ascii=False,indent=2))
  print("G011_REAL_PG_HERO_3D_STAGE_PASS",dest,flush=True)

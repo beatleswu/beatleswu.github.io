@@ -53,7 +53,7 @@ def _chrome(root,runner,source,target,env):
 
 @pytest.mark.parametrize("mode",["desktop_mouse","chrome_tablet_touch"])
 def test_g020_same_synthetic_player_full_original_product_vertical_slice(
-    m2_player,monkeypatch,mode
+    m2_player,monkeypatch,mode,tmp_path
 ):
     app,initial=m2_player
     monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE","global")
@@ -269,9 +269,14 @@ def test_g020_same_synthetic_player_full_original_product_vertical_slice(
       "github_master_merged":False,"oracle_deployed":False,
       "real_player_writes":False}
     assert wallet_debits==1
-    dest=Path(r"D:\go-odyssey-g010-3d-activation-evidence-20261021")/(
-      "G020_SINGLE_PLAYER_ALL6_REAL_PRODUCT_SURFACES_20261021.json"
-      if mode=="desktop_mouse" else
-      "G020_SINGLE_PLAYER_ALL6_REAL_PRODUCT_SURFACES_TOUCH_20261021.json")
-    dest.write_text(json.dumps(receipt,ensure_ascii=False,indent=2),encoding="utf8")
+    evidence_root=Path(os.environ.get("GO_E2E_EVIDENCE_ROOT") or tmp_path)
+    if "GO_E2E_EVIDENCE_ROOT" in os.environ:
+        assert evidence_root.is_absolute() and evidence_root.drive.upper()=="D:", "Evidence must use isolated D: root"
+        assert "go-odyssey-g010-3d-activation-evidence-20261021" not in str(evidence_root).lower(), "Refuse historical evidence overwrite"
+    evidence_root.mkdir(parents=True,exist_ok=True)
+    dest=evidence_root/("G020_ORIGINAL_PRODUCT_FULL_PLAYER_20261024.json"
+                      if mode=="desktop_mouse" else
+                      "G020_ORIGINAL_PRODUCT_FULL_PLAYER_TOUCH_20261024.json")
+    with dest.open("x",encoding="utf8") as output:
+        output.write(json.dumps(receipt,ensure_ascii=False,indent=2))
     print("G020_FULL_ONE_USER_ACTUAL_PRODUCT_PASS",dest,flush=True)
