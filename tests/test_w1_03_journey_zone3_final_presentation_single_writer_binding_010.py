@@ -299,7 +299,7 @@ def test_final_candidate_inventory_is_complete_and_hashes_current_bytes() -> Non
 
 def test_real_browser_runner_passes_all_viewports_and_cleanup_contracts() -> None:
     env = os.environ.copy()
-    env["PLAYWRIGHT_CORE_PATH"] = str(Path("D:/go-website/node_modules/playwright-core"))
+    env["PLAYWRIGHT_CORE_PATH"] = str(ROOT / "node_modules" / "playwright-core")
     result = subprocess.run(
         ["node", str(RUNNER)],
         cwd=ROOT,

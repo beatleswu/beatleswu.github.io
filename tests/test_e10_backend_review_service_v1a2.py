@@ -900,9 +900,9 @@ def practice_api_env(app_module, monkeypatch):
     conn.row_factory = sqlite3.Row
     conn.create_function("GREATEST", 2, max)
     conn.execute(
-        "CREATE TABLE users (id INTEGER PRIMARY KEY, elo_rating REAL NOT NULL DEFAULT 1400)"
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, elo_rating REAL NOT NULL DEFAULT 1400, plan TEXT NOT NULL DEFAULT 'free', premium_until TEXT)"
     )
-    conn.execute("INSERT INTO users(id) VALUES (9101)")
+    conn.execute("INSERT INTO users(id,plan,premium_until) VALUES (9101,'premium','2099-12-31T23:59:59')")
     conn.execute(
         """CREATE TABLE srs_cards (
              user_id INTEGER NOT NULL,

@@ -39,11 +39,12 @@ from map_battle_runtime import JudgeOutcome
 
 QUEST_KEY = "life_death::LV3"
 
-# A real judgeable question shape: explicit PL[B], one-move answer tree.
+# A judgeable question with explicit G065 authorized terminal; natural-language C[correct] is untrusted.
 QUESTION = {
     "id": 5101,
     "topic": "quest-book",
-    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dd]C[correct]))",
+    "answer_policy": "g065-explicit-v1",
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dd]C[G065:CORRECT]))",
 }
 
 PERIOD_START = "2026-08-24T00:00:00"
