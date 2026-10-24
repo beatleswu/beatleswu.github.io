@@ -152,6 +152,11 @@ export async function installProductionBootRoutes(page, { bootstrap } = {}) {
   const ok = (body) => (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   await page.route('**/api/**', ok({}));
   await page.route('**/api/auth/me', ok(authMeBody()));
+  // G085: mirror the real auth-scoped G076 capability contract. A malformed
+  // catch-all {} fails closed and must NOT be mistaken for a UI rendering bug.
+  // The default-off runtime legitimately permits the legacy local display path.
+  await page.route('**/api/adventure/map-battles/v2/steps/capability',
+    ok({ protocol: 'g076-server-steps-v1', enabled: false }));
   await page.route('**/api/adventure/bootstrap**', ok(bootstrap));
   await page.route('**/api/skills/profile', ok({ display_name: 'Review Player', rank_level: 'LV7' }));
   await page.route('**/api/user/coins', ok({ coins: 1250, challenge_wins: 3 }));
