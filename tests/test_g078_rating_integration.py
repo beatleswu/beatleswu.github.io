@@ -19,9 +19,10 @@ from g078_rating_integration import RatingAppServices
 
 class AdapterTests(unittest.TestCase):
     def setUp(self):
-        folder = ROOT / 'artifacts/g078-b2'
-        folder.mkdir(parents=True, exist_ok=True)
-        self.tmp = tempfile.TemporaryDirectory(dir=folder)
+        # Do not create untracked output under the product worktree.
+        # The A020 source-scope gate inspects git status while other test
+        # shards execute; disposable SQLite belongs in system temp.
+        self.tmp = tempfile.TemporaryDirectory(prefix="g080-g078-rating-")
         _, self.state, self.connect, seam = make_rating_fixture(Path(self.tmp.name)/'fixture.sqlite', core_only=True)
         self.runtime = seam.namespace(None, None)
         self.connections = []

@@ -182,6 +182,18 @@ def _install_reward_tail_schema(conn, *, postgres=False):
         user_id INTEGER NOT NULL, skill_id TEXT NOT NULL,
         equipped INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(user_id,skill_id))""")
+    # Monster settlement can award a cosmetic as well as coins/equipment.
+    # Preserve the Product's wardrobe uniqueness and inserted-row identity:
+    # failing to install this real reward target previously produced a
+    # spurious fail-closed 503 whenever the randomized drop was cosmetic.
+    wardrobe_pk = "SERIAL PRIMARY KEY" if postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    conn.execute(f"""CREATE TABLE player_wardrobe (
+        id {wardrobe_pk},
+        user_id INTEGER NOT NULL,
+        item_id TEXT NOT NULL,
+        obtained_at TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'drop',
+        UNIQUE(user_id,item_id))""")
     # Install the same candidate transactional event schema as the Product.
     # Previously this fixture couldn't reach the true Monster reward writer.
     from migrations.domain_event_outbox_v1 import upgrade as create_event_outbox
