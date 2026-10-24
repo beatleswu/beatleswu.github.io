@@ -402,7 +402,30 @@ def test_new_operation_after_effect_expiry_is_a_new_committed_use(shop_runtime):
         ).fetchone()[0] == 2
 
 
-def test_cosmetic_purchase_emits_scoped_acquisition_evidence_without_owning_from_event(shop_runtime):
+def test_cosmetic_purchase_is_fail_closed_while_shop_off(shop_runtime, monkeypatch):
+    # The shipped Coin Shop remains disabled by default. This test covers
+    # the negative state and proves it cannot reserve an operation, debit
+    # coins or manufacture wardrobe ownership.
+    monkeypatch.delenv("CANONICAL_COIN_SHOP_PURCHASE_ENABLED", raising=False)
+    response = _logged_client().post(
+        "/api/cosmetic-commerce/purchase",
+        json={"product_id": "cosmetic.outfit.robe_plain",
+              "purchase_operation_id": "d5c-cosmetic-off"},
+    )
+    assert response.status_code == 409
+    assert response.get_json() == {
+        "error": "shop_offer_unavailable", "code": "SHOP_PURCHASE_DISABLED"
+    }
+    with sqlite3.connect(shop_runtime) as conn:
+        assert conn.execute("SELECT coins FROM user_stats WHERE user_id=1").fetchone()[0] == 500
+        assert conn.execute("SELECT COUNT(*) FROM coin_purchase_operations").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM player_wardrobe").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM domain_event_outbox").fetchone()[0] == 0
+
+
+def test_cosmetic_purchase_emits_scoped_acquisition_evidence_without_owning_from_event(shop_runtime, monkeypatch):
+    # Opt in ONLY within the synthetic SQLite test. Production remains OFF.
+    monkeypatch.setenv("CANONICAL_COIN_SHOP_PURCHASE_ENABLED", "1")
     client = _logged_client()
     first = client.post(
         "/api/cosmetic-commerce/purchase",

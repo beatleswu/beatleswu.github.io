@@ -39,14 +39,14 @@
     },
     {
       "path": "grimoire_api.py",
-      "source_commit": "5254844f9d99b2eb4f9b9e5f1db2e010aa00ef33",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(lc019-w1): wire bootstrap-gated identity reader into grimoire_api daily training",
-      "source_date": "2026-08-29",
-      "content_sha256": "32962908423bf794d354f9f8b5af97cad1b856133ee55010d386a271c13ca73e",
+      "source_commit": "dc7a75952a7a1783d7bd778cffed75f95de94a2a",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "feat(g077-r5): independent Grimoire Product gate and strict corpus classification (HOLD)",
+      "source_date": "2026-10-23",
+      "content_sha256": "f3b6fe00c1c50c642682467304c797d023ff84d42f46c1fdef4ffbae2f1eb658",
       "line_ending_policy": "LF",
-      "runtime_role": "app.py top-level import (line 31, grimoire_bp Flask blueprint); runtime-critical -- app fails to start without it. Earliest identifiable organic development commit for this file is b4ebf529cf24ed3a39170591dcd022d473a33ef4 (2026-05-28, refactor: move tools/ scripts back to root directory), predating this recovery snapshot; content at that commit was superseded by feature work before the 2026-07-02 snapshot, which is the commit whose blob is byte-identical (LF-normalized) to the vendored content.",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "runtime_role": "Runtime-critical app.py Grimoire Blueprint import; the Grimoire feature remains disabled. Updated Product Grimoire gate code is tracked against its actual 2026-10-23 source blob.",
+      "source_status": "Local isolated Git ancestry and raw file blob verified; not an assertion of origin/master adoption, formal Merge, external canonical corpus rights, or Grimoire release approval."
     },
     {
       "path": "katago_explain.py",
@@ -208,15 +208,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "fce7c05acdc9deaf1f20ecb45909bce448be5eef",
-      "source_branch_or_local_ref": "fce7c05acdc9deaf1f20ecb45909bce448be5eef",
-      "source_commit_subject": "G010 RC3 local candidate staging (NOT independently admitted)",
-      "source_date": "2026-10-20",
-      "content_sha256": "a1106f1cd85797e13a9b718ddd414dd93b92e067df9f41c4e044ec289916b01f",
-      "content_size_bytes": 1197533,
+      "source_commit": "d4ad33454d6b6828d48c8cec246bd39e89ff9bd1",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "feat(g076-r3): integrate verified Practice SRS step settlement and player UI",
+      "source_date": "2026-10-23",
+      "content_sha256": "552bc26d3abc7c6762818a9518d5c33102dad13fe178b11b4358e6502665e05a",
+      "content_size_bytes": 1213169,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes); EQ-B/EQ-C answer-screen Equipment projection and handheld integration surface; inline admin question review board marker wiring; P0 Lane B Adventure fail-closed / Practice separation surface",
-      "source_status": "local G010 candidate Git provenance -- exact Git source commit and bytes verified in this checkout; not adopted on canonical origin/master and not independently attested"
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "terms.html",
@@ -269,14 +269,14 @@
     },
     {
       "path": "daily_challenge.html",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "f18b2024391dba99ddaf71412cd7971289b8876cc1d45cbdba256e8a95df26dd",
+      "source_commit": "4172390ad4fa403edf23272c5c7881517a6b5015",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "fix(g076-p0a): restore default-off Daily with server-selected protocol and Chrome regression",
+      "source_date": "2026-10-23",
+      "content_sha256": "43fc5b1d53a7470bdd9e7817e8fb3cd835a0481b4f461b57f3facbb62c263d16",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "community.html",
@@ -315,26 +315,26 @@
     },
     {
       "path": "mistakes.html",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "5db822ce97a8047b78f7b4a5337c1fdea08593b16305fdbe7d313d90842198d7",
+      "source_commit": "ec787243eefeb447e845789c633e989cd46ebb70",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "feat(g079-a): atomic Mistakes Product SRS XP quest rewards and real PG Chrome evidence",
+      "source_date": "2026-10-23",
+      "content_sha256": "ce2c897c7b416251d7a5b9640e336c932513653abd11a4b72dd5865dd8955d56",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "curriculum.html",
-      "source_commit": "7978ec1a4f3adb89fa51d660ad953628b476984b",
-      "source_branch_or_local_ref": "7978ec1a4f3adb89fa51d660ad953628b476984b",
-      "source_commit_subject": "fix(quest): fail closed on uncertain reward claims; clarify leaderboard rank",
-      "source_date": "2026-10-19",
-      "content_sha256": "dca23f7e06a4e8e4ba18da9450e0c4fb07c1a1e837531a57033b7ecd332b2544",
-      "content_size_bytes": 121048,
+      "source_commit": "061b428a96dc86e1ef0520e6d9c52636e987d279",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "feat(g075): integrate b39 SGF display, answer authority and gated curriculum",
+      "source_date": "2026-10-23",
+      "content_sha256": "e928a2b37d2d8215460f7c47de5524e4f5529681a2938ce8791ea9869cb0b60f",
+      "content_size_bytes": 121387,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "local G010 candidate Git provenance -- exact Git source commit and bytes verified in this checkout; not adopted on canonical origin/master and not independently attested"
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "hero.html",
@@ -350,14 +350,14 @@
     },
     {
       "path": "rating_test.html",
-      "source_commit": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_branch_or_local_ref": "aafe3cb1b4cc279af7b0691e355abb4c7dba7867",
-      "source_commit_subject": "G009 consume locked 12-surface visual authority",
-      "source_date": "2026-10-01",
-      "content_sha256": "2d3ae8dbc0daf58922fbbad30b3de645c115faf8bd7e5f555824854a07a71909",
+      "source_commit": "124b951a3d82d809f618234ebecde34618344fc3",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "feat(g076-b2): isolate Rating server steps and fail-closed forfeit gap",
+      "source_date": "2026-10-23",
+      "content_sha256": "2c370fb49d603e8fc92c0ca80eb1c9866e2e261fc9fff217ec21d24421a67aae",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "candidate integration provenance -- recorded source_commit introduced the current blob on the G009 candidate integration line and is byte-identical to it; it is not an ancestor of origin/master until Owner admission, and deployment remains separately gated."
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "shop.html",
@@ -431,15 +431,15 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "15cbcdbe9c28b8f16107387e45cddb7c087f9627",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(g019): unlock canonical equipment on original shop and backpack by three server gates",
-      "source_date": "2026-10-21",
-      "content_sha256": "29db4b17b01095b324b1d886c2f5c100ec1003145bb28f1ea0f9ce7ebb53bb45",
-      "content_size_bytes": 85387,
+      "source_commit": "7ff2fa6ba1621a411486a4ccbb709d4f92d1736a",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "fix(g075): incorporate Claude production acceptance SGF and player UI guards",
+      "source_date": "2026-10-23",
+      "content_sha256": "5fe2e203407530c3aba720967c751e82220019f4bf5898b6814d9401530afa75",
+      "content_size_bytes": 85595,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "source_status": "G019 Owner-merged canonical Git source and exact runtime blob verified locally; no independent external signature claimed."
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "badges.html",
@@ -540,16 +540,16 @@
     },
     {
       "path": "srs.js",
-      "source_commit": "12294e9ae5e1d1033c874db583b5784ad53a59aa",
-      "source_branch_or_local_ref": "12294e9ae5e1d1033c874db583b5784ad53a59aa",
-      "source_commit_subject": "feat(practice): route the server-judged practice path through the shared SRS core (Stage B)",
-      "source_date": "2026-09-16",
-      "content_sha256": "7be1f731a687294d8e2985f323905ac6294f50a0e6f2d2b9c54c013eec5a6457",
-      "content_size_bytes": 22390,
+      "source_commit": "d4ad33454d6b6828d48c8cec246bd39e89ff9bd1",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "feat(g076-r3): integrate verified Practice SRS step settlement and player UI",
+      "source_date": "2026-10-23",
+      "content_sha256": "8ce11bdee16917aff2c1478db36faa8fa83a71d45dbdc495af06e331d59321ce",
+      "content_size_bytes": 22638,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "canonical current-master content; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "Incident 003G Stage B -- this governed file was changed on this implementation branch to route the server-judged practice path through the one canonical SRS scheduling writer (srs_scheduling_core.apply_srs_scheduling). Recorded source_commit is the Stage B commit on this branch and is byte-identical to the current blob; it is not an ancestor of origin/master until Owner merge, and deployment remains separately gated."
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "js/game/presentation_dispatcher.js",
@@ -629,16 +629,16 @@
     },
     {
       "path": "js/game/board_renderer.js",
-      "source_commit": "2feaa77df6b585448dfc174868d18ec0fa0a7d91",
-      "source_branch_or_local_ref": "2feaa77df6b585448dfc174868d18ec0fa0a7d91",
-      "source_commit_subject": "feat(e10): extract B5 question loading and board rendering",
-      "source_date": "2026-08-17",
-      "content_sha256": "0a5408f84036999afc7444ae07156df699eb989018064b9a63a39267e57908ff",
-      "content_size_bytes": 6689,
+      "source_commit": "061b428a96dc86e1ef0520e6d9c52636e987d279",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "feat(g075): integrate b39 SGF display, answer authority and gated curriculum",
+      "source_date": "2026-10-23",
+      "content_sha256": "fa5a4098a2638f6202f76e7e7ad1eed404b2afa45c6c063972cd52640f2bac74",
+      "content_size_bytes": 10633,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (observer-only WGo board renderer lifecycle; governed static subpath asset)",
       "production_hash_status": "candidate on the V1B B5 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B5 Product implementation commit and raw-byte-verified against current content"
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "js/game/mode_context.js",
@@ -1181,15 +1181,15 @@
     },
     {
       "path": "app.py",
-      "source_commit": "ecd3744b8b242d9a3dc0d0a6c1f46da0841079ca",
-      "source_branch_or_local_ref": "g062-static-rollback-fix-20261022",
-      "source_commit_subject": "fix: serve leaderboard presentation assets without login redirect",
-      "source_date": "2026-10-22",
-      "content_sha256": "7e9dcb8e64c27aa2ec874a17d5c23c312fcc2e7edb6a69557bedcaa833bea4e7",
-      "content_size_bytes": 1437583,
+      "source_commit": "04321ddd0d263365e58f8a9821b54e7bf5981744",
+      "source_branch_or_local_ref": "g080-e-risk-gates",
+      "source_commit_subject": "fix(g080-release): close static generation for G076 clients and legacy Daily",
+      "source_date": "2026-10-24",
+      "content_sha256": "54f18d022e9cbb7896644e90fc76f5ec46fd1c3d8fbeb1e241bc5d896e06a4f0",
+      "content_size_bytes": 1469770,
       "line_ending_policy": "LF",
       "runtime_role": "application entrypoint (Dockerfile CMD python app.py); SHOP-F R1 HTTP integration surface and transaction coordinator plus EQ-F Equipment registry/loadout/first-clear and C045 Shop admission wiring; narrow Zone4 Owner-final presentation serving routes",
-      "source_status": "G062 isolated candidate source and exact runtime blob verified locally; not Owner-merged or deployed; no external signature claimed."
+      "source_status": "Candidate source provenance: this byte-exact Git blob exists in local history and is reachable from the stated ref. This records source identity only, not formal Owner merge, runtime approval, or rights validation."
     },
     {
       "path": "coin_purchase_authority.py",
