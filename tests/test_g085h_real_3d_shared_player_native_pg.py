@@ -4,7 +4,7 @@ Unmodified Flask game APIs, fresh disposable *native PostgreSQL* and real Chrome
 Bamboo has Owner-authorized preview GLB; Cloth Robe deliberately does not.
 This is a VISUAL preview contract, not production asset admission or enablement.
 """
-import json,os,subprocess,threading,hashlib
+import json,os,subprocess,threading,hashlib,tempfile
 from pathlib import Path
 from werkzeug.serving import make_server
 from test_20261019_monthly_postgres import runtime,local_postgres
@@ -42,6 +42,10 @@ def test_shared_g008_g009_backpack_shop_real3d_server_only(runtime,monkeypatch,t
    sess["user_id"]=USER;sess["username"]="g085h-3d-preview-only"
   return c
  c=client()
+ fresh=client()
+ with fresh.session_transaction() as sess:
+  sess["g085i_independent_fresh_session"]="distinct signed browser context"
+ assert c.get_cookie("session").value != fresh.get_cookie("session").value
  assert c.get("/api/player/appearance").get_json()["character_entitled"] is True
  outcome=c.post("/api/player/inventory/equip",json={"inv_id":blade.row_id,"action":"equip"})
  assert outcome.status_code==200,outcome.get_json()
@@ -60,9 +64,12 @@ def test_shared_g008_g009_backpack_shop_real3d_server_only(runtime,monkeypatch,t
   debit_count=int(conn.execute("SELECT COUNT(*) n FROM currency_log WHERE user_id=? AND delta<0",
       (USER,)).fetchone()["n"])
  assert initial_coins==777 and debit_count==0
- artifacts=Path(r"D:\g079-artifacts\g085h-unified-3d-synthetic-player-r8")
- assert not artifacts.exists(),"Refuse overwrite prior player QA evidence"
- artifacts.mkdir(parents=True)
+ # Independent original test must be repeatable without overwriting any
+ # existing evidence; mkdtemp atomically allocates a fresh isolated receipt.
+ artifact_parent=Path(r"D:\g079-artifacts")
+ assert artifact_parent.is_dir(),"Existing QA artifacts root required"
+ artifacts=Path(tempfile.mkdtemp(prefix="g085i-native-pg-3d-",dir=artifact_parent))
+ assert artifacts.parent.resolve()==artifact_parent.resolve()
  server=make_server("127.0.0.1",0,
    _activate_preview_only_in_memory(app.app.wsgi_app),threaded=True)
  thread=threading.Thread(target=server.serve_forever,daemon=True)
@@ -71,6 +78,7 @@ def test_shared_g008_g009_backpack_shop_real3d_server_only(runtime,monkeypatch,t
  try:
   payload={"origin":f"http://127.0.0.1:{server.server_port}",
    "sessionCookie":c.get_cookie("session").value,
+   "freshSessionCookie":fresh.get_cookie("session").value,
    "bambooInvId":blade.row_id,"clothInvId":robe.row_id,
    "bambooAssetId":bamboo["asset_id"]}
   cmd=["node",str(ROOT/"tests/e2e/g085h_shared_hero_backpack_shop_browser.mjs")]
@@ -89,6 +97,8 @@ def test_shared_g008_g009_backpack_shop_real3d_server_only(runtime,monkeypatch,t
   assert len(evidence["shop"]["allFourExactMappedPreview"]) == 4
   assert all(entry["child_count"] == 1
              for entry in evidence["shop"]["allFourExactMappedPreview"])
+  assert evidence["freshContextAfterRelogin"]["main_hand_id"]==bamboo["asset_id"]
+  assert evidence["freshContextAfterRelogin"]["main_hand_child_count"]==1
   assert evidence["apiWrites"]==[]
  finally:
   server.shutdown();thread.join(timeout=10);server.server_close()
@@ -104,7 +114,8 @@ def test_shared_g008_g009_backpack_shop_real3d_server_only(runtime,monkeypatch,t
  assert not app._canonical_coin_shop_purchase_enabled()
  assert not app._equipment_canonical_loadout_enabled()
  record={"schema":"G085H_REAL_CHROME_TRUE_PG_SHARED_HERO_BACKPACK_SHOP",
- "git_source":"3af2d80925e787fef095ae3dd64bfbbe9b268f9d + isolated G085H changes",
+ "git_source":subprocess.check_output(["git","rev-parse","HEAD"],
+    cwd=ROOT,text=True,encoding="utf8").strip(),
  "disposable_native_pg":True,"synthetic_grants":2,
  "bamboo_asset":bamboo["asset_id"],"bamboo_sha_authority":bamboo["runtime_sha256"],
  "cloth_robe_3d_status":"UNMAPPED_CLEARLY_DISCLOSED",

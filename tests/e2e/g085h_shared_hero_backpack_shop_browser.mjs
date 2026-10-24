@@ -6,7 +6,7 @@ import path from "node:path";
 import {chromium} from "playwright-core";
 let raw="";for await(const b of process.stdin)raw+=b;
 const data=JSON.parse(raw);
-const {origin,sessionCookie,bambooInvId,bambooAssetId,clothInvId}=data;
+const {origin,sessionCookie,freshSessionCookie,bambooInvId,bambooAssetId,clothInvId}=data;
 assert.match(origin,/^http:\/\/127\.0\.0\.1:\d+$/);
 const out=process.env.G085H_EVIDENCE_ROOT;
 if(!out||!path.isAbsolute(out))throw Error("isolated_artifact_path_required");
@@ -54,8 +54,51 @@ try {
   return document.getElementById("g008-future30-hero-stage")?.dataset.state==="ready"
     &&slot?.presentation_id===expected&&slot.child_count===1;
  },bambooAssetId,{timeout:65000});
- hero={model:"G008",hand:bambooAssetId,
-  state:await page.locator("#g008-future30-hero-stage").getAttribute("data-state")};
+ // G085I: A momentary ready frame is not stable Hero acceptance. Verify
+ // that the same WebGL hero+equipment remain ready after late rehydration,
+ // then force an authorized read-only refresh and verify again.
+ async function heroStability(label){
+   await page.waitForFunction(async expected=>{
+     const G=await import("/js/g008_future30_hero_renderer.js");
+     const slot=G.getHeroSharedAttachmentHost()?.diagnostics()?.slots
+       ?.find(x=>x.slot==="MAIN_HAND");
+     return window.__G008_HERO_RENDER_STATE__?.state==="ready"
+       &&document.getElementById("g008-future30-hero-stage")?.dataset.state==="ready"
+       &&slot?.presentation_id===expected&&slot?.child_count===1;
+   },bambooAssetId,{timeout:32000});
+   const snapshots=[];
+   for(let t=0;t<20;t++){
+     await page.waitForTimeout(250);
+     const snap=await page.evaluate(async()=>{
+       const G=await import("/js/g008_future30_hero_renderer.js");
+       const state=window.__G008_HERO_RENDER_STATE__||{};
+       const hand=G.getHeroSharedAttachmentHost()?.diagnostics()?.slots
+         ?.find(x=>x.slot==="MAIN_HAND");
+       return {state:state.state,equipment_status:state.equipment_status,
+         hand_id:hand?.presentation_id||null,
+         child_count:hand?.child_count??-1,
+         canvas_count:document.querySelectorAll("#g008-future30-hero-stage canvas").length};
+     });
+     snapshots.push(snap);
+   }
+   const lastTwoSeconds=snapshots.slice(-8);
+   const stable=s=>s.state==="ready"&&s.hand_id===bambooAssetId
+     &&s.child_count===1&&s.canvas_count===1
+     &&s.equipment_status==="ready";
+   assert(lastTwoSeconds.length===8&&lastTwoSeconds.every(stable),
+     "G085I_HERO_DID_NOT_SETTLE_"+label+" "+JSON.stringify(snapshots));
+   return {label,transitions:snapshots.map(s=>s.state),
+     settled_last_2s:true,final:lastTwoSeconds.at(-1),
+     loading_samples:snapshots.filter(s=>s.state==="loading").length};
+ }
+ const initialStable=await heroStability("initial");
+ await page.evaluate(async()=>{
+   const G=await import("/js/g008_future30_hero_renderer.js");
+   await G.refreshHeroAppearance();
+ });
+ const postRefreshStable=await heroStability("post_refresh");
+ hero={model:"G008",hand:bambooAssetId,state:"ready",
+   initialStable,postRefreshStable};
  await page.goto(origin+"/inventory?equipment="+bambooInvId,
   {waitUntil:"domcontentloaded",timeout:35000});
  await page.locator('[data-functional-inv-id="'+bambooInvId+'"]')
@@ -122,6 +165,23 @@ try {
  }
  const shopShop=page.locator('#g085-shop-character-3d');
  assert(await shopShop.isVisible());
+ // RACE: click all four options without awaiting GLB fetches. The LAST
+ // selection must win after all late older responses settle; stale
+ // attachments may not return and only one MAIN_HAND child may remain.
+ await page.evaluate(()=>{
+   for(const id of ['iron_sword','fox_fang','riverstone_sabre','bamboo_shadow_blade']){
+     document.querySelector('[data-g085-shop3d-item-id="'+id+'"]').click();
+   }
+ });
+ await waitFor('bamboo_shadow_blade',bambooAssetId);
+ await page.waitForTimeout(1750);
+ const postRace=await viewSnapshot();
+ assert.equal(postRace.item_id,'bamboo_shadow_blade');
+ assert.equal(postRace.main_hand_id,bambooAssetId);
+ assert.equal(postRace.main_hand_child_count,1);
+ assert.equal(postRace.canvas_count,1);
+ assert.equal(postRace.status,'ready');
+ shop={...shop,rapid_four_switch_last_wins:true,postRace};
  await page.evaluate(()=>window.GoOdysseyUnified3D.show('cloth_robe',{tryOn:true}));
  const missingShop=await waitFor('cloth_robe',null,'unsupported');
  assert.equal(missingShop.main_hand_child_count,0);
@@ -133,11 +193,37 @@ try {
   {waitUntil:"domcontentloaded",timeout:35000});
  afterReload=await waitFor("bamboo_shadow_blade",bambooAssetId);
  assert.equal(afterReload.main_hand_child_count,1);
+ // Genuine independent signed session + new Chrome context, not a local
+ // storage replay, verifies persistence is from the server-owned PG state.
+ const freshContext=await browser.newContext({viewport:{width:920,height:780},
+   serviceWorkers:"block"});
+ await freshContext.addCookies([{
+   name:"session",value:freshSessionCookie,url:origin
+ }]);
+ let freshContextAfterRelogin=null;
+ try {
+   const freshPage=await freshContext.newPage();
+   freshPage.on("pageerror",e=>errors.push("fresh_session:"+e.message.slice(0,230)));
+   freshPage.on("request",r=>{
+     const u=new URL(r.url());
+     if(u.origin===origin&&u.pathname.startsWith("/api/")&&r.method()!=="GET")
+       apiWrites.push("fresh_"+r.method()+" "+u.pathname);
+   });
+   await freshPage.goto(origin+"/inventory?equipment="+bambooInvId,
+     {waitUntil:"domcontentloaded",timeout:35000});
+   await freshPage.waitForFunction(expected=>{
+     const snap=window.GoOdysseyUnified3D?.getSnapshot();
+     return snap?.status==="ready"&&snap?.main_hand_id===expected
+       &&snap?.main_hand_child_count===1&&snap?.canvas_count===1;
+   },bambooAssetId,{timeout:60000});
+   freshContextAfterRelogin=await freshPage.evaluate(()=>
+     window.GoOdysseyUnified3D.getSnapshot());
+ }finally{await freshContext.close();}
  assert.deepEqual(apiWrites,[],"Preview must never buy, equip, claim or debit");
  assert.deepEqual(unexpectedHttp,[],"Authenticated model/API responses must not fail");
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({verdict:"G085H_SHARED_G008_G009_BACKPACK_SHOP_REAL_CHROME_PG_PASS",
-  hero,backpack,cloth,shop,afterReload,rotate,zoom,shopSurfaceVisible,
+  hero,backpack,cloth,shop,afterReload,freshContextAfterRelogin,rotate,zoom,shopSurfaceVisible,
   screenshots:fs.readdirSync(out).filter(x=>x.endsWith(".png")),
   apiWrites,badResponses:unexpectedHttp,pageErrors:errors}));
 }catch(e){
