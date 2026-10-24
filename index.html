@@ -13529,6 +13529,15 @@ function showSolutionNow() {
 }
 
 function onBoardClick(bx,by){
+    // G082: A Boss review may advance currentQ before the next WGo tree has
+    // finished rendering. Never submit a move against the previous board
+    // while the authoritative Lord transition is still in progress.
+    if (_bossMode && _bossTransitionInFlightKey !== null) {
+        _e10AcceptanceTrace('BOSS_TAP_IGNORED_DURING_TRANSITION', {
+            qid: Number(currentQ?.id) || null, index: _bossIndex,
+        });
+        return;
+    }
     const x=_ox(bx),y=_oy(by);  // 顯示座標 → 原始19路座標
     if (_g076PracticeHold) return;
     if (_g076Practice) { void _g076PracticeClick(x,y); return; }
