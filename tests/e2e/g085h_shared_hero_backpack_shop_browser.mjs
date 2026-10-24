@@ -97,7 +97,18 @@ try {
    await G.refreshHeroAppearance();
  });
  const postRefreshStable=await heroStability("post_refresh");
- hero={model:"G008",hand:bambooAssetId,state:"ready",
+ const sourcePose=await page.evaluate(()=>({
+   state:window.__G008_HERO_RENDER_STATE__?.state,
+   pose:window.__G008_HERO_RENDER_STATE__?.natural_idle_pose_status,
+   arms:window.__G008_HERO_RENDER_STATE__?.natural_idle_pose_arms,
+   deltas:window.__G008_HERO_RENDER_STATE__?.natural_idle_pose_side_deltas
+ }));
+ assert.equal(sourcePose.pose,"applied","Future30 Hero must have 3D natural idle pose");
+ assert.equal(sourcePose.arms,2);
+ assert.equal(sourcePose.deltas?.length,2);
+ assert(sourcePose.deltas.every(x=>x.vertical_delta<=-0.05),
+   "Both rig arms must lower, not just report changed: "+JSON.stringify(sourcePose));
+ hero={model:"G008",hand:bambooAssetId,state:"ready",sourcePose,
    initialStable,postRefreshStable};
  await page.goto(origin+"/inventory?equipment="+bambooInvId,
   {waitUntil:"domcontentloaded",timeout:35000});
@@ -105,6 +116,9 @@ try {
    .waitFor({state:"visible",timeout:28000});
  backpack=await waitFor("bamboo_shadow_blade",bambooAssetId);
  assert.equal(backpack.main_hand_child_count,1);
+ assert.equal(backpack.natural_idle_pose_status,"applied");
+ assert.equal(backpack.natural_idle_pose_arms,2);
+ assert(backpack.natural_idle_pose_side_deltas.every(x=>x.vertical_delta<=-0.05));
  assert(backpack.framing_ndc?.min_y>-0.96
    &&backpack.framing_ndc?.max_y<0.96,
    "3D model head/feet must be in camera frustum: "+JSON.stringify(backpack.framing_ndc));
@@ -138,6 +152,11 @@ try {
  await tryOnButton.waitFor({state:"visible",timeout:30000});
  await tryOnButton.click();
  shop=await waitFor("bamboo_shadow_blade",bambooAssetId);
+ assert.equal(shop.natural_idle_pose_status,"applied");
+ assert.equal(shop.natural_idle_pose_arms,2);
+ assert.deepEqual(shop.natural_idle_pose_side_deltas,
+   backpack.natural_idle_pose_side_deltas,
+   "Shared Hero, Backpack and Shop must use exactly the same rig pose");
  const shopBox=await page.locator("#g085-shop-character-3d").boundingBox();
  shopSurfaceVisible=Boolean(shopBox?.width>=100&&shopBox?.height>=140);
  assert.equal(shopSurfaceVisible,true,"Shop 3D try-on must be visibly available while purchases remain locked");

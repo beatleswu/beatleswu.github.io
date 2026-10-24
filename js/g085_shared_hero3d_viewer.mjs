@@ -5,6 +5,7 @@ import * as THREE from "/assets/3d_shop/p048/vendor/three.module.js";
 import {GLTFLoader} from "/assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js";
 import {verifyCurrentHeroProjection,loadVerified3DAsset}
   from "./g085_shared_authoritative_3d_core.mjs";
+import {relaxCurrentFuture30Pose} from "./g085j_shared_relaxed_idle_pose.mjs";
 import {createG009SharedHeroAttachmentHost}
   from "./g009_shared_hero_attachment_host.js";
 import {createHeroEquipmentAttachmentAdapter}
@@ -54,6 +55,7 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
   if(!host?.isConnected)throw new Error("g085_3d_container_missing");
   let disposed=false,root=null,renderer=null,scene=null,hostSlots=null,adapter=null;
   let currentDescriptor=null,ownedInventory=[],playerAppearance=null;
+  let naturalPose=null;
   let camera=null,turntable=null,zoom=1,angle=0,drag=null;
   let lastStatus="loading",lastPresentation=null,shownItemId=null,version=0;
   const controller=new AbortController(),signal=controller.signal;
@@ -88,7 +90,10 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
       presentation_id:lastPresentation,character_key:playerAppearance?.character_key||null,
       visual_only:true,canvas_count:host.querySelectorAll("canvas").length,
       main_hand_id:hand?.presentation_id||null,main_hand_child_count:hand?.child_count||0,
-      orbit_yaw_radians:angle,zoom});
+      orbit_yaw_radians:angle,zoom,
+      natural_idle_pose_status:naturalPose?.status||null,
+      natural_idle_pose_arms:naturalPose?.arms_applied||0,
+      natural_idle_pose_side_deltas:naturalPose?.side_deltas||[]});
   }
   function resize(){
     if(!renderer||!camera||disposed)return;
@@ -174,6 +179,7 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     let meshes=0;model.traverse(n=>{if(n.isMesh)meshes++;});
     if(!meshes)throw new Error("g085_character_3d_mesh_missing");
     root=model;playerAppearance=appearance;ownedInventory=inventory;
+    naturalPose=relaxCurrentFuture30Pose(root,THREE);
     const bounds=new THREE.Box3().setFromObject(root),size=bounds.getSize(new THREE.Vector3());
     const center=bounds.getCenter(new THREE.Vector3());
     scene=new THREE.Scene();scene.add(new THREE.HemisphereLight(0xffffff,0x334155,2));
@@ -264,7 +270,7 @@ export function createReadOnlyHero3DViewer(host,{label="3D 主角"}={}) {
     ++version;adapter?.dispose();hostSlots?.destroy();hostSlots=null;adapter=null;
     renderer?.setAnimationLoop(null);renderer?.dispose();
     renderer?.domElement?.remove();renderer=null;disposeScene(root);
-    root=null;scene=null;camera=null;turntable=null;currentDescriptor=null;
+    root=null;scene=null;camera=null;turntable=null;currentDescriptor=null;naturalPose=null;
   }
   function destroy(){
     if(disposed)return;disposed=true;controller.abort();destroyModel();

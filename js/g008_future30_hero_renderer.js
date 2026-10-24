@@ -1,4 +1,5 @@
 import {verifyCurrentHeroProjection,sha256GlbBytes} from "./g085_shared_authoritative_3d_core.mjs";
+import {relaxCurrentFuture30Pose} from "./g085j_shared_relaxed_idle_pose.mjs";
 import * as THREE from "/assets/3d_shop/p048/vendor/three.module.js";
 import { GLTFLoader } from "/assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js";
 import {
@@ -566,6 +567,9 @@ async function activate(token, signal) {
     });
   });
   if (meshCount < 1) throw new Error("gltf_mesh_missing");
+  // Owner-requested shared natural idle: character-owned rig only.
+  // The G009 hand slot keeps tracking the real hand bone each frame.
+  const naturalPose = relaxCurrentFuture30Pose(root, THREE);
   const bounds = fitModel(root);
   sharedAttachmentHost = createG009SharedHeroAttachmentHost(root, THREE);
   for (const [slot, entry] of slotResolvers) {
@@ -620,6 +624,9 @@ async function activate(token, signal) {
     rendered_triangles: viewport.renderer.info.render.triangles,
     webgl2: viewport.renderer.capabilities.isWebGL2,
     renderer: "three.js-webgl",
+    natural_idle_pose_status: naturalPose.status,
+    natural_idle_pose_arms: naturalPose.arms_applied,
+    natural_idle_pose_side_deltas: naturalPose.side_deltas||[],
     logical_count: catalog.logical_count,
     visual_count: catalog.visual_count,
     blue_optional_keys: catalog.blue_optional,

@@ -29964,6 +29964,7 @@ _G009_FORMAL_RUNTIME_JS_FILES = frozenset({
     'g085_shared_authoritative_3d_core.mjs',
     'g085_shared_hero3d_viewer.mjs',
     'g085_unified_3d_page_bindings.mjs',
+    'g085j_shared_relaxed_idle_pose.mjs',
 })
 _G009_FORMAL_RUNTIME_SCHEMA_FILES = frozenset({
     'g009_d007_runtime_prerequisite_v1.json',
