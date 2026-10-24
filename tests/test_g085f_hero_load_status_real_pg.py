@@ -71,7 +71,8 @@ def test_real_pg_player_ui_shop_to_3d_hero_persists_on_fresh_session(runtime,mon
    "price":300,"startingCoins":1000}
   proc=subprocess.run(["node",str(BASE/"tests/e2e/g085f_real_pg_hero_loading_failure_retry.mjs")],
    input=json.dumps(input_data),capture_output=True,text=True,encoding="utf8",
-   errors="replace",cwd=BASE,timeout=180,env={**os.environ,"GO_G010_M3_TOUCH":"0"})
+   errors="replace",cwd=BASE,timeout=180,env={**os.environ,"GO_G010_M3_TOUCH":
+       "1" if os.environ.get("GO_G085G_TOUCH")=="1" else "0"})
   assert proc.returncode==0,proc.stdout[-1800:]+proc.stderr[-4800:]
   proof=json.loads(proc.stdout)
 
@@ -82,6 +83,13 @@ def test_real_pg_player_ui_shop_to_3d_hero_persists_on_fresh_session(runtime,mon
   assert ux["failedClosed"]["retryVisible"]
   assert ux["retryRecovered"]["noticeHidden"]
   assert ux["isolatedTransient503InjectedOnce"] is True
+  assert ux["retryTouchTarget"]["height"] >= 44
+  assert ux["retryTouchTarget"]["width"] >= 44
+  assert ux["lateRegistrationPending"]["equipmentStatus"] == "pending"
+  assert ux["lateRegistrationRecovered"]["equipmentStatus"] == "ready"
+  assert ux["persistentOutage"]["equipmentStatus"] == "unavailable"
+  assert ux["persistentOutage"]["inventoryFailures"] >= 2
+  assert ux["persistentOutage"]["hand"] is None
   evidence=Path(os.environ.get("G085F_RECEIPT_ROOT") or tmp_path)
   evidence.mkdir(parents=True,exist_ok=True)
   with (evidence/"G085F_3D_HERO_LOADING_FAILCLOSED_RETRY_RECEIPT.json").open("x",encoding="utf8") as f:

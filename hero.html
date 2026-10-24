@@ -754,10 +754,13 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .g008-hero-load-notice[hidden],
 .g008-hero-retry[hidden] { display: none !important; }
 .g008-hero-retry {
-  display: block; margin: 4px auto 0; padding: 4px 7px;
-  border: 1px solid rgba(255,255,255,.65); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box; min-width: 108px; min-height: 44px;
+  margin: 4px auto 0; padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,.65); border-radius: 9px;
   background: rgba(255,255,255,.16); color: white;
-  font: inherit; cursor: pointer; pointer-events: auto;
+  font: 600 12px/1.4 system-ui, sans-serif;
+  cursor: pointer; pointer-events: auto;
 }
 .g008-hero-retry:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
 .char-avatar[data-g008-future30-render="ready"] #char-fullbody-avatar-img,

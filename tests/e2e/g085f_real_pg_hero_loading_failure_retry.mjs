@@ -2,7 +2,7 @@
 // The backend is unmocked native PostgreSQL and original Flask routes.
 // Production HTML files remain locked; no browser API interception.
 import assert from 'node:assert/strict';
-import {chromium} from 'file:///D:/go-odyssey-sixroute-20261019/g/tests/e2e/node_modules/playwright-core/index.mjs';
+import {chromium} from 'playwright-core';
 let input='';
 for await(const c of process.stdin) input+=c;
 const {origin,sessionCookie,reloginCookie,offerId,itemId,price,startingCoins}=JSON.parse(input);
@@ -235,6 +235,13 @@ try{
     retryVisible:!document.querySelector('#g008-hero-retry')?.hidden,
   }));
   assert.match(uxEvidence.failedClosed.label,/裝備暫時/);
+  uxEvidence.retryTouchTarget=await p.locator('#g008-hero-retry')
+    .evaluate(el=>({width:el.getBoundingClientRect().width,
+      height:el.getBoundingClientRect().height}));
+  assert(uxEvidence.retryTouchTarget.height>=44,
+    'visible Hero recovery touch target height must be at least 44 CSS px');
+  assert(uxEvidence.retryTouchTarget.width>=44,
+    'visible Hero recovery touch target width must be at least 44 CSS px');
   await p.locator('#g008-hero-retry').click({timeout:10000});
   await p.waitForFunction(async id=>{
     const m=await import('/js/g008_future30_hero_renderer.js');
@@ -280,6 +287,123 @@ try{
   freshHero=await inspect(p);
   uxEvidence.realInventoryGetCount=inventoryReadCount;
   uxEvidence.isolatedTransient503InjectedOnce=!failOnce;
+  // Reproduce registration arriving AFTER the WebGL parent becomes ready.
+  // Delay only the actual JavaScript module response: no fake inventory,
+  // weapon payload, judge, or equipment state is ever supplied.
+  const lateContext=await createContext(reloginCookie);
+  try {
+    const late=await lateContext.newPage();
+    let delayed=false;
+    await late.route('**/js/g009_d_r2_shared_host_bootstrap.js',async route=>{
+      if(!delayed){
+        delayed=true;
+        await new Promise(resolve=>setTimeout(resolve,4500));
+      }
+      await route.continue();
+    });
+    await late.goto(origin+'/hero?tab=equipment',
+      {waitUntil:'domcontentloaded',timeout:35000});
+    await late.waitForFunction(()=>{
+      const state=window.__G008_HERO_RENDER_STATE__;
+      const notice=document.querySelector('#g008-hero-load-notice');
+      const retry=document.querySelector('#g008-hero-retry');
+      return state?.state==='ready'&&state.equipment_status==='pending'
+        &&notice?.hidden===false&&retry?.hidden===false;
+    },undefined,{timeout:21000});
+    uxEvidence.lateRegistrationPending=await late.evaluate(()=>({
+      state:window.__G008_HERO_RENDER_STATE__?.state,
+      equipmentStatus:window.__G008_HERO_RENDER_STATE__?.equipment_status,
+      message:document.querySelector('#g008-hero-load-message')?.textContent,
+      retryVisible:!document.querySelector('#g008-hero-retry')?.hidden
+    }));
+    assert.equal(uxEvidence.lateRegistrationPending.equipmentStatus,'pending');
+    assert.match(uxEvidence.lateRegistrationPending.message,/等待/);
+    assert.equal(delayed,true);
+    await late.waitForFunction(async id=>{
+      const mod=await import('/js/g008_future30_hero_renderer.js');
+      const slot=mod.getHeroSharedAttachmentHost()?.diagnostics()?.slots
+        ?.find(s=>s.slot==='MAIN_HAND');
+      return window.__G008_HERO_RENDER_STATE__?.state==='ready'
+        &&window.__G008_HERO_RENDER_STATE__?.equipment_status==='ready'
+        &&slot?.presentation_id===id&&slot?.child_count===1
+        &&document.querySelector('#g008-hero-load-notice')?.hidden===true;
+    },expected,{timeout:42000});
+    // Initial ready may be followed by character bootstrap remount.
+    // Demand a stable loaded attachment and clean UX across 650 ms.
+    let lateStable=false;
+    for(let n=0;n<70;n++){
+      const state=await late.evaluate(async()=>{
+        const mod=await import('/js/g008_future30_hero_renderer.js');
+        const hand=mod.getHeroSharedAttachmentHost()?.diagnostics()?.slots
+          ?.find(s=>s.slot==='MAIN_HAND');
+        return {state:window.__G008_HERO_RENDER_STATE__?.state,
+          equipmentStatus:window.__G008_HERO_RENDER_STATE__?.equipment_status,
+          noticeHidden:document.querySelector('#g008-hero-load-notice')?.hidden,
+          hand:hand?.presentation_id,children:hand?.child_count};
+      });
+      if(state.state==='ready'&&state.equipmentStatus==='ready'
+        &&state.noticeHidden===true&&state.hand===expected&&state.children===1){
+        await late.waitForTimeout(650);
+        const still=await late.evaluate(async()=>{
+          const mod=await import('/js/g008_future30_hero_renderer.js');
+          const hand=mod.getHeroSharedAttachmentHost()?.diagnostics()?.slots
+            ?.find(s=>s.slot==='MAIN_HAND');
+          return {state:window.__G008_HERO_RENDER_STATE__?.state,
+            equipmentStatus:window.__G008_HERO_RENDER_STATE__?.equipment_status,
+            noticeHidden:document.querySelector('#g008-hero-load-notice')?.hidden,
+            hand:hand?.presentation_id,children:hand?.child_count};
+        });
+        if(still.state==='ready'&&still.equipmentStatus==='ready'
+          &&still.noticeHidden===true&&still.hand===expected&&still.children===1){
+          lateStable=true;
+          uxEvidence.lateRegistrationRecovered=still;
+          break;
+        }
+      }
+      await late.waitForTimeout(260);
+    }
+    assert.equal(lateStable,true,'Late equipment rehydrator did not settle to stable server-owned ready state');
+  } finally {await lateContext.close();}
+  // Persistent read outage: repeated explicit retry must never invent a
+  // weapon, claim settled, or turn the UI green with missing server data.
+  const outageContext=await createContext(reloginCookie);
+  try {
+    const outage=await outageContext.newPage();
+    let inventoryFailures=0;
+    await outage.route('**/api/player/inventory',async route=>{
+      inventoryFailures++;
+      await route.fulfill({status:503,contentType:'application/json',
+        body:JSON.stringify({error:'test_only_persistent_inventory_unavailable'})});
+    });
+    await outage.goto(origin+'/hero?tab=equipment',
+      {waitUntil:'domcontentloaded',timeout:35000});
+    await outage.waitForFunction(()=>window.__G008_HERO_RENDER_STATE__?.state==='ready'
+      &&window.__G008_HERO_RENDER_STATE__?.equipment_status==='unavailable'
+      &&document.querySelector('#g008-hero-retry')?.hidden===false,
+      undefined,{timeout:33000});
+    await outage.locator('#g008-hero-retry').click({timeout:10000});
+    await outage.waitForFunction(()=>{
+      const label=window.__G008_HERO_RENDER_STATE__;
+      return label?.state==='ready' && label?.equipment_status==='unavailable'
+        && document.querySelector('#g008-hero-retry')?.hidden===false;
+    },undefined,{timeout:40000});
+    await outage.waitForFunction(()=>document.querySelector('#g008-hero-retry')?.disabled===false,
+      undefined,{timeout:40000});
+    assert(inventoryFailures>=2,
+      'persistent outage test must observe a separate new inventory GET from retry');
+    uxEvidence.persistentOutage=await outage.evaluate(async()=>{
+      const mod=await import('/js/g008_future30_hero_renderer.js');
+      return {state:window.__G008_HERO_RENDER_STATE__?.state,
+        equipmentStatus:window.__G008_HERO_RENDER_STATE__?.equipment_status,
+        retryVisible:!document.querySelector('#g008-hero-retry')?.hidden,
+        hand:mod.getHeroSharedAttachmentHost()?.diagnostics()?.slots
+          ?.find(s=>s.slot==='MAIN_HAND')?.presentation_id??null};
+    });
+    uxEvidence.persistentOutage.inventoryFailures=inventoryFailures;
+    assert.equal(uxEvidence.persistentOutage.equipmentStatus,'unavailable');
+    assert.equal(uxEvidence.persistentOutage.retryVisible,true);
+    assert.equal(uxEvidence.persistentOutage.hand,null);
+  }finally{await outageContext.close();}
   await p.goto(origin+'/inventory?equipment='+wanted,{waitUntil:'domcontentloaded',timeout:30000});
   await p.waitForFunction(id=>document.querySelector('[data-functional-inv-id="'+id+'"]')?.dataset.equipped==='true',wanted,{timeout:22000});
   await p.goto(origin+'/shop',{waitUntil:'domcontentloaded',timeout:30000});

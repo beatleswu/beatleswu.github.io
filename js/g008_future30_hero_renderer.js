@@ -30,6 +30,7 @@ let sharedAttachmentFacade = null;
 let serverAppearance = null;
 const slotResolvers = new Map();
 const presentationRehydrators = new Map();
+const HAND_REHYDRATOR = "G009_D_R2_SERVER_EQUIPPED_HANDS";
 const presentationTeardowns = new Map();
 const rehydratedGenerationByKey = new Map();
 let cancelFrameWait = null;
@@ -161,7 +162,18 @@ export function registerHeroPresentationRehydrator(key, callback) {
   if (existing && existing !== callback) throw new Error("hero_presentation_rehydrator_already_registered:" + key);
   presentationRehydrators.set(key, callback);
   if (sharedAttachmentHost && serverAppearance) {
-    void runPresentationRehydrator(key, callback, generation, serverAppearance, true);
+    const token = generation;
+    void runPresentationRehydrator(key, callback, token, serverAppearance, true)
+      .then((result) => {
+        // A child registered after the parent rendered: never leave a
+        // formerly missing resolver reported as ready or permanently pending.
+        if (key !== HAND_REHYDRATOR || token !== generation
+            || presentationRehydrators.get(key) !== callback) return;
+        const current = window.__G008_HERO_RENDER_STATE__;
+        if (current?.state !== "ready") return;
+        const status = handRehydrationStatus(result);
+        publish({ ...current, equipment_status: status });
+      });
   }
   return () => {
     if (presentationRehydrators.get(key) !== callback) return false;
@@ -181,6 +193,14 @@ export async function rehydrateHeroPresentations() {
     character_key: serverAppearance?.character_key || null,
     results,
   };
+}
+
+function handRehydrationStatus(receipt) {
+  // Missing resolver, not-yet-rehydrated and failed attachment must NOT
+  // become a genuine ready status. A valid empty server inventory is ready.
+  if (!receipt || receipt.status === "not_ready") return "pending";
+  if (receipt.status !== "rehydrated") return "unavailable";
+  return receipt.result?.status === "failed_closed" ? "unavailable" : "ready";
 }
 
 function isCurrent(token) {
@@ -286,12 +306,14 @@ function publish(state) {
   const message = document.getElementById("g008-hero-load-message");
   const retry = document.getElementById("g008-hero-retry");
   if (notice && message && retry) {
+    const unresolved = state.state === "ready" && state.equipment_status === "pending";
     const unavailable = state.state === "failed"
       || (state.state === "ready" && state.equipment_status === "unavailable");
-    notice.hidden = state.state !== "loading" && !unavailable;
-    retry.hidden = !unavailable;
+    notice.hidden = state.state !== "loading" && !unavailable && !unresolved;
+    retry.hidden = !unavailable && !unresolved;
     if (state.state === "loading") message.textContent = "正在同步 3D 角色與裝備…";
     else if (state.state === "failed") message.textContent = "3D 角色暫時無法載入";
+    else if (unresolved) message.textContent = "正在等待裝備同步…";
     else if (unavailable) message.textContent = "裝備暫時無法同步";
     else message.textContent = "";
   }
@@ -604,10 +626,16 @@ async function activate(token, signal) {
   const childRehydration = await rehydrateHeroPresentations();
   // The parent WebGL scene can be ready while the hand attachment request
   // failed closed. Distinguish that from a genuinely empty equipped slot.
-  const handRehydration = childRehydration.results?.find(
-    (entry) => entry.key === "G009_D_R2_SERVER_EQUIPPED_HANDS");
-  const equipmentUnavailable = handRehydration?.status === "failed_closed"
-    || handRehydration?.result?.status === "failed_closed";
+  let handRehydration = childRehydration.results?.find(
+    (entry) => entry.key === HAND_REHYDRATOR);
+  if (!handRehydration && presentationRehydrators.has(HAND_REHYDRATOR)) {
+    // Resolver registered during the initial Promise.all snapshot. Await
+    // that real resolver instead of publishing false-ready on empty results.
+    handRehydration = await runPresentationRehydrator(
+      HAND_REHYDRATOR, presentationRehydrators.get(HAND_REHYDRATOR),
+      token, serverAppearance, true);
+  }
+  const equipmentStatus = handRehydrationStatus(handRehydration);
   if (!isCurrent(token)) return;
 
   publish({
@@ -634,7 +662,7 @@ async function activate(token, signal) {
     blue_optional_keys: catalog.blue_optional,
     c005_manifest_sha256: catalog.c005_manifest_sha256,
     child_rehydration: childRehydration.status,
-    equipment_status: equipmentUnavailable ? "unavailable" : "ready",
+    equipment_status: equipmentStatus,
   });
 
 }
