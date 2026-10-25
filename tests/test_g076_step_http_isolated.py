@@ -32,6 +32,20 @@ def api(live_fixture, monkeypatch):
     conn,nonce=live_fixture
     monkeypatch.delenv("G076_STEP_RUNTIME_ENABLED",raising=False)
     monkeypatch.delenv("G076_ANSWER_PRIVACY_ENFORCED",raising=False)
+    # G111: portable per-fixture historical test clock (no external pytest plugin).
+    # The test Attempt was issued 2026-10-23 and expires 2026-10-24.
+    # Restrict substitution to this isolated HTTP fixture; do not alter the
+    # product expiry predicate or unrelated real-clock boundary tests.
+    from datetime import datetime as _TestRealDateTime
+    import map_battle_runtime as _map_battle_runtime
+
+    class _G111HTTPFixtureDateTime(_TestRealDateTime):
+        @classmethod
+        def now(cls, tz=None):
+            anchor = _TestRealDateTime.fromisoformat("2026-10-23T11:00:00+00:00")
+            return anchor.astimezone(tz) if tz else anchor.replace(tzinfo=None)
+
+    monkeypatch.setattr(_map_battle_runtime, "datetime", _G111HTTPFixtureDateTime)
     monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE","global")
     app=Flask("g076_real_api_fixture")
     app.secret_key=SECRET
