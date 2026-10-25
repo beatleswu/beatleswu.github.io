@@ -214,3 +214,25 @@ def test_capability_anonymous_denied(api):
         s.pop("user_id",None)
     r=client.get("/api/adventure/map-battles/v2/steps/capability")
     assert r.status_code==401
+
+
+def test_G111_expired_historical_attempt_rejected_on_real_clock(api):
+    """No fixed clock for this negative HTTP test; verify real 409 refusal."""
+    from datetime import datetime as ActualDateTime
+    import map_battle_runtime
+
+    enable(api)
+    api[4].setattr(map_battle_runtime, "datetime", ActualDateTime)
+    response=start(api)
+    assert response.status_code==409
+    assert response.get_json()["error"] == "attempt_expired"
+    assert api[2].execute("SELECT COUNT(*) FROM g076_step_events").fetchone()[0]==0
+    assert api[2].execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0]==0
+
+
+def test_G111_portable_clock_restored_when_http_fixture_tears_down():
+    """The historical test clock must never remain on the Product module."""
+    from datetime import datetime as ActualDateTime
+    import map_battle_runtime
+
+    assert map_battle_runtime.datetime is ActualDateTime

@@ -117,29 +117,41 @@ def _catalog_signature(conn):
 
 
 def _verify_registry(conn):
+    # Exact live registry contract. A valid row alone is NOT proof that future
+    # source/schema hashes remain protected against newly inserted bad values.
     cols = _read(conn, """
-      SELECT column_name,data_type,is_nullable
+      SELECT column_name,data_type,is_nullable,column_default
         FROM information_schema.columns
        WHERE table_schema='public' AND table_name=?
        ORDER BY ordinal_position
     """, (REGISTRY,))
     expected = [
-        ("version","text","NO"),
-        ("source_sha256","text","NO"),
-        ("schema_sha256","text","NO"),
-        ("installed_at","timestamp with time zone","NO"),
+        ("version","text","NO",None),
+        ("source_sha256","text","NO",None),
+        ("schema_sha256","text","NO",None),
+        ("installed_at","timestamp with time zone","NO","CURRENT_TIMESTAMP"),
     ]
     if cols != expected:
-        raise G111MigrationRejected("G111 migration registry columns drift")
+        raise G111MigrationRejected("G111 migration registry columns/default drift")
     constraints = _read(conn, """
-      SELECT c.contype,pg_get_constraintdef(c.oid)
+      SELECT c.conname,c.contype,pg_get_constraintdef(c.oid)
         FROM pg_constraint c
         JOIN pg_class r ON r.oid=c.conrelid
         JOIN pg_namespace n ON n.oid=r.relnamespace
        WHERE n.nspname='public' AND r.relname=?
+       ORDER BY c.conname
     """, (REGISTRY,))
-    if ("p","PRIMARY KEY (version)") not in constraints:
-        raise G111MigrationRejected("G111 migration registry primary key drift")
+    expected_constraints = {
+        "g111_nonmap_schema_versions_pkey":
+            ("p", "PRIMARY KEY (version)"),
+        "g111_nonmap_schema_versions_source_sha256_check":
+            ("c", "CHECK ((length(source_sha256) = 64))"),
+        "g111_nonmap_schema_versions_schema_sha256_check":
+            ("c", "CHECK ((length(schema_sha256) = 64))"),
+    }
+    observed = {name:(kind,definition) for name,kind,definition in constraints}
+    if observed != expected_constraints or len(constraints) != len(expected_constraints):
+        raise G111MigrationRejected("G111 migration registry constraint drift")
 
 
 def upgrade(conn, *, environ):
