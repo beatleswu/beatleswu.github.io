@@ -55,6 +55,13 @@ def _exists(conn, name):
     return row is not None and row[0] is not None
 
 
+def _check_transaction(conn):
+    """Fail closed if the owner supplied autocommit or an unknown connection."""
+    raw = getattr(conn, "_conn", conn)
+    if getattr(raw, "autocommit", None) is not False:
+        raise G110MigrationRejected("requires non-autocommit managed PostgreSQL connection")
+
+
 def _check_server(conn):
     row = _fetchone(conn, "SELECT current_setting('server_version_num'), current_schema()")
     if not row or not (160000 <= int(row[0]) < 180000) or row[1] != "public":
@@ -173,6 +180,7 @@ def upgrade(conn, *, environ):
     """
     if environ.get(APPROVAL_FLAG) != "1":
         raise G110MigrationRejected("explicit owner-authorized migration flag required")
+    _check_transaction(conn)
     _check_server(conn)
     source = _source_sql()
     # Transaction-scoped admission lock; caller is responsible for commit/rollback.

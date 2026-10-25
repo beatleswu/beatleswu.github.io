@@ -134,3 +134,43 @@ def test_local_admission_exact_negative_reason(change,error):
     with pytest.raises(checker.AdmissionRejected) as exc:
         checker.validate_reviewed_payload(m,actual)
     assert exc.value.code==error
+
+
+def test_explicit_autocommit_connection_rejected_before_any_sql():
+    from migrations.g110_step_ledger_atomic_v1 import (
+        upgrade, G110MigrationRejected, APPROVAL_FLAG
+    )
+
+    class AutoCommitRaw:
+        autocommit = True
+
+    class AutoCommitWrapper:
+        _conn = AutoCommitRaw()
+        def execute(self, *args, **kwargs):
+            raise AssertionError("autocommit must reject before database access")
+
+    with pytest.raises(G110MigrationRejected, match="non-autocommit"):
+        upgrade(AutoCommitWrapper(), environ={APPROVAL_FLAG: "1"})
+
+
+def test_unverifiable_connection_rejected_before_any_sql():
+    from migrations.g110_step_ledger_atomic_v1 import (
+        upgrade, G110MigrationRejected, APPROVAL_FLAG
+    )
+    with pytest.raises(G110MigrationRejected, match="non-autocommit"):
+        upgrade(object(), environ={APPROVAL_FLAG: "1"})
+
+
+@pytest.mark.parametrize("now,expired", [
+    ("2026-10-23T11:00:00+00:00", False),
+    ("2026-10-24T09:59:59+00:00", False),
+    ("2026-10-24T10:00:00+00:00", True),
+    ("2026-10-25T13:00:00+00:00", True),
+])
+def test_actual_map_attempt_expiry_boundary_without_fake_clock(now, expired):
+    from map_battle_runtime import _attempt_expired
+    issued = {
+        "state": "ISSUED",
+        "expires_at": "2026-10-24T10:00:00+00:00",
+    }
+    assert _attempt_expired(issued, now=now) is expired
