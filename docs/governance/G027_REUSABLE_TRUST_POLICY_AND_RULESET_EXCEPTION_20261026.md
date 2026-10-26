@@ -32,3 +32,11 @@ Historical g009-source-snapshot still pins earlier source; not currently the Rul
 
 ## Reviewer security checklist
 Validate actual master-sourced workflow/ref SHA, admin variable permission and audit, PR cannot self-approve, no candidate execution/secret exposure, immutable Product/tree/merge identity, bad SHA/blob/control-plane rejection and no new single-user CODEOWNER deadlock. Distinguish local 11 PASS from governance hosted old-check FAIL; no claim of new hosted PASS until governance policy legitimately merged/restored and Owner approval set.
+
+
+## C1/C2 extension review 2026-10-27
+
+The initial direct exact_two_parent_merge Owner approval contract remains valid for new PRs, but does NOT support G114 #448 after normal no-force integration of future protected governance master. The subsequently added reviewed_product_merge_chain mode explicitly requires a deterministic source-only chain of up to twelve first-parent merge commits, each with an approved historical protected-master second parent, and rejects any intervening ordinary unreviewed commit. Latest second parent must equal the current Owner-approved master. All source SHA/tree invariants, protected control-plane comparisons and expiry/Owner variable requirements remain mandatory.
+
+A separate GitHub REST premerge provenance audit is required because native Ruleset required-check context is a name+Actions App ID and is not bound to the workflow ID. This audit is a procedural compensating Owner control, not a claim of an unspoofable native GitHub rule; real PR #450 proved same-name green checks can be emitted from unrelated push and pull_request workflow IDs while the official workflow failed. PR #450 was closed and remote branch removed.
+Documentation and raw proof: docs/governance/G027_C1_C2_HOSTED_CHECK_OWNER_AUTH_POLICY_20261027.md and D:\g079-artifacts\G027_C1_PR450_SAME_NAME_HOSTED_PROVENANCE_20261027.json. Owner Actions variable was not created; strict=true is a separate future optional change, never part of restoration of the original ruleset.

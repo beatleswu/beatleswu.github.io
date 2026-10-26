@@ -147,3 +147,46 @@ def test_unapproved_parent_reordering_denied(provenance):
     a=copy.deepcopy(a);e=copy.deepcopy(e)
     a["head_sha"]=e["head_sha"]=head
     fails(provenance,"HEAD_PARENTS_NOT_APPROVED",a=a,e=e)
+
+
+
+def _make_second_master_for_existing_product_pr(provenance,inject_unreviewed=False):
+    repo,trusted,candidate,old_approved,old_event=provenance
+    old_head=old_approved["head_sha"]
+    git(repo,"checkout","master")
+    write(repo,".github/workflows/g027-vnext-trusted-source.yml",
+          "protected governance reusable v2\n")
+    git(repo,"add",".github/workflows/g027-vnext-trusted-source.yml")
+    git(repo,"commit","-qm","new protected master governance")
+    newer_base=git(repo,"rev-parse","HEAD")
+    if inject_unreviewed:
+        write(repo,"unreviewed_extra.py","malicious unreviewed code\n")
+        git(repo,"add","unreviewed_extra.py")
+        fake_tree=git(repo,"write-tree")
+        # Single-parent injected step MUST never be a legitimate reviewed
+        # Product base; subsequent merge does not launder this new commit.
+        old_head=git(repo,"commit-tree",fake_tree,"-p",old_head,
+                     input="inject unreviewed commit\n")
+    new_tree=git(repo,"merge-tree","--write-tree",old_head,newer_base)
+    new_head=git(repo,"commit-tree",new_tree,"-p",old_head,"-p",newer_base,
+                 input="non-force normal integration of new master\n")
+    git(trusted,"reset","--hard",newer_base)
+    git(candidate,"reset","--hard",new_head)
+    a=copy.deepcopy(old_approved);e=copy.deepcopy(old_event)
+    a.update({"base_sha":newer_base,
+        "base_tree":git(repo,"rev-parse",newer_base+"^{tree}"),
+        "head_sha":new_head,"head_tree":new_tree,
+        "mode":"reviewed_product_merge_chain"})
+    e.update({"base_sha":newer_base,"workflow_sha":newer_base,"head_sha":new_head})
+    return a,e
+
+def test_normal_no_force_master_reintegration_is_safe_and_valid(provenance):
+    a,e=_make_second_master_for_existing_product_pr(provenance)
+    result=call(provenance,a,e)
+    assert result["verdict"]=="PASS_TRUSTED_OWNER_APPROVED_SOURCE"
+    assert result["merge_depth"]==2
+    assert result["product_sha"]==a["product_sha"]
+
+def test_intermediate_extra_code_cannot_be_laundered_by_master_merge(provenance):
+    a,e=_make_second_master_for_existing_product_pr(provenance,inject_unreviewed=True)
+    fails(provenance,"INTEGRATION_CHAIN_HAS_UNREVIEWED_COMMIT",a=a,e=e)

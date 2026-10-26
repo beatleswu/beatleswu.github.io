@@ -50,7 +50,8 @@ def approval_from_admin_variable(encoded):
     must(type(a["pr_number"]) is int and a["pr_number"]>0,"ADMIN_APPROVAL_BAD_PR")
     for name in ["base_sha","base_tree","head_sha","head_tree","product_sha","product_tree"]:
         must(oid(a[name]),"ADMIN_APPROVAL_BAD_"+name.upper())
-    must(a["mode"]=="exact_two_parent_merge","ADMIN_APPROVAL_WRONG_MODE")
+    must(a["mode"] in ("exact_two_parent_merge","reviewed_product_merge_chain"),
+         "ADMIN_APPROVAL_WRONG_MODE")
     must(a["approver"]=="beatleswu" and
          type(a["decision_id"]) is str and
          re.fullmatch(r"G027-[A-Za-z0-9_.-]{6,96}",a["decision_id"]) is not None,
@@ -72,6 +73,39 @@ def control_paths(repo,revision):
             must(kind=="blob","NON_BLOB_CONTROL_FILE")
             paths[name]=(mode,obj)
     return paths
+def _historical_protected_base(repo,old_base,new_base):
+    # A prior master may be any ancestor of current protected master.
+    p=subprocess.run(["git","-C",str(repo),"merge-base","--is-ancestor",
+                      old_base,new_base],capture_output=True,timeout=30)
+    return p.returncode==0
+
+def validate_reviewed_product_merge_chain(repo,head,product,current_base):
+    # Supporting normal (no-force) merging of a newer governance master into
+    # a pre-existing reviewed Product PR: each intermediate first-parent step
+    # MUST be a deterministic 2-parent merge of the last reviewable tree and
+    # a historical protected master commit. No ordinary PR edit commits.
+    node=head
+    count=0
+    while node!=product:
+        count+=1
+        must(count<=12,"INTEGRATION_MERGE_CHAIN_TOO_LONG")
+        parents=git(repo,"show","-s","--format=%P",node).split()
+        must(len(parents)==2,"INTEGRATION_CHAIN_HAS_UNREVIEWED_COMMIT")
+        first,old_base=parents
+        if count==1:must(old_base==current_base,"LATEST_BASE_NOT_SECOND_PARENT")
+        must(_historical_protected_base(repo,old_base,current_base),
+             "UNTRUSTED_INTERMEDIATE_BASE")
+        actual=git(repo,"rev-parse",node+"^{tree}")
+        must(git(repo,"merge-tree","--write-tree",first,old_base)==actual,
+             "UNREVIEWED_INTERMEDIATE_MERGE_TREE")
+        # Do not let an intermediate PR integration alter historical trusted
+        # workflows, even if its apparent merge is constructed from other Git
+        # commits. The final head is checked again against the latest base.
+        must(control_paths(repo,node)==control_paths(repo,old_base),
+             "INTERMEDIATE_PR_CHANGED_CONTROL_PLANE")
+        node=first
+    return count
+
 def validate(trusted,candidate,event,approval_b64):
     a,approval_sha=approval_from_admin_variable(approval_b64)
     must(event["repo"]==REPO and event["base_ref"]=="master" and
@@ -97,11 +131,16 @@ def validate(trusted,candidate,event,approval_b64):
                        (a["head_sha"],"head_tree")):
         must(git(candidate,"rev-parse",commit+"^{tree}")==a[key],
              "APPROVED_"+key.upper()+"_MISMATCH")
-    must(git(candidate,"show","-s","--format=%P",a["head_sha"]).split()==
-         [a["product_sha"],a["base_sha"]],"HEAD_PARENTS_NOT_APPROVED")
-    # Deterministic source-only merge: no hidden manual file injections.
-    must(git(candidate,"merge-tree","--write-tree",a["product_sha"],a["base_sha"])==
-         a["head_tree"],"UNREVIEWED_MERGE_TREE")
+    if a["mode"]=="exact_two_parent_merge":
+        must(git(candidate,"show","-s","--format=%P",a["head_sha"]).split()==
+             [a["product_sha"],a["base_sha"]],"HEAD_PARENTS_NOT_APPROVED")
+        must(git(candidate,"merge-tree","--write-tree",
+                 a["product_sha"],a["base_sha"])==a["head_tree"],
+             "UNREVIEWED_MERGE_TREE")
+        merge_depth=1
+    else:
+        merge_depth=validate_reviewed_product_merge_chain(
+            candidate,a["head_sha"],a["product_sha"],a["base_sha"])
     protected=control_paths(candidate,a["base_sha"])
     must(control_paths(candidate,a["head_sha"])==protected,
          "PR_CHANGED_CONTROL_PLANE")
@@ -112,7 +151,8 @@ def validate(trusted,candidate,event,approval_b64):
             "product_tree":a["product_tree"],"head_sha":a["head_sha"],
             "head_tree":a["head_tree"],"base_sha":a["base_sha"],
             "decision_id":a["decision_id"],"approval_sha256":approval_sha,
-            "control_paths":len(protected),"untrusted_code_executed":False}
+            "control_paths":len(protected),"merge_depth":merge_depth,
+            "untrusted_code_executed":False}
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--trusted",type=Path,required=True)
