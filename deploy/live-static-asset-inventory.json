@@ -144,7 +144,11 @@
       "zone4_owner_story_runtime.html",
       "ZONE4_004_LORD_STATE_BINDING_MATRIX.json",
       "ZONE4_004_RUNTIME_MANIFEST.json",
-      "ZONE4_RUNTIME_MANIFEST.json"
+      "ZONE4_RUNTIME_MANIFEST.json",
+      "js/g085_shared_authoritative_3d_core.mjs",
+      "js/g085_shared_hero3d_viewer.mjs",
+      "js/g085_unified_3d_page_bindings.mjs",
+      "js/g085j_shared_relaxed_idle_pose.mjs"
     ]
   },
   "required_in_generation": {
@@ -190,7 +194,26 @@
       "css/g009_hero_hub_batch_a.css",
       "js/g009_hero_hub_batch_a.js",
       "g010_m4_quest_leaderboard.js",
-      "g010_m4_quest_leaderboard.css"
+      "g010_m4_quest_leaderboard.css",
+      "hero.html",
+      "shop.html",
+      "daily_challenge.html",
+      "play.html",
+      "js/g085_shared_authoritative_3d_core.mjs",
+      "js/g085_shared_hero3d_viewer.mjs",
+      "js/g085_unified_3d_page_bindings.mjs",
+      "js/g085j_shared_relaxed_idle_pose.mjs",
+      "js/g008_future30_hero_renderer.js",
+      "js/g010_hero_3d_gallery.mjs",
+      "js/g009_d007_runtime_identity_resolver.mjs",
+      "js/g009_d007_shared_host_adapter.js",
+      "js/g009_d007_shared_host_bootstrap.js",
+      "js/g009_shared_hero_attachment_host.js",
+      "js/g009_equipment_inventory_projection.js",
+      "js/player_character_3d_runtime_bridge.js",
+      "js/player_appearance_3d_attachment_adapter.js",
+      "js/hero_equipment_attachment_adapter.js",
+      "js/formal_3d_character_equipment_runtime.js"
     ]
   },
   "runtime_dependency_closure": {

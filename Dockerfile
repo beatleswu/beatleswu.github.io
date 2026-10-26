@@ -85,6 +85,8 @@ COPY coin_purchase_authority.py ./
 COPY companion_operations.py ./
 COPY daily_challenge_authority.py ./
 COPY daily_challenge_d5b.py ./
+# G114: fail-closed, G065-compatible automatic Daily question eligibility.
+COPY daily_challenge_selection.py ./
 COPY equipment_first_clear_reward_service.py ./
 COPY equipment_portfolio_registry.py ./
 COPY equipment_loadout_service.py ./
@@ -450,6 +452,11 @@ COPY js/companion_formal_18_mapping.js \
      js/g009_companion_formal18_bootstrap.mjs ./js/
 # One additional lazy preview module; canonical GLB and mapping are unchanged.
 COPY js/g009_companion_360_viewer.mjs ./js/g009_companion_360_viewer.mjs
+# G114: explicitly package all four G085 shared Hero/Shop/Inventory 3D modules.
+COPY js/g085_shared_authoritative_3d_core.mjs \
+     js/g085_shared_hero3d_viewer.mjs \
+     js/g085_unified_3d_page_bindings.mjs \
+     js/g085j_shared_relaxed_idle_pose.mjs ./js/
 COPY js/g010_hero_3d_gallery.mjs ./js/g010_hero_3d_gallery.mjs
 # Exact bytes for P048 approved display-only C01/C04 companions (bunny also needs external texture).
 COPY assets/3d_shop/p048/companion/C01/animal-bunny.glb ./assets/3d_shop/p048/companion/C01/animal-bunny.glb

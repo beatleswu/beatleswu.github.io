@@ -7935,26 +7935,68 @@ def check_and_award(conn, user_id, stats, unit_name=None):
 # ── 每日挑戰工具函數 ───────────────────────────────────────────
 
 def get_or_create_daily_challenge(date_str):
-    """依日期取得（或自動選出）每日挑戰，回傳 dict。"""
-    import hashlib
+    """Select only server-judgeable SGF; never overwrite a submitted Daily."""
+    from daily_challenge_selection import (
+        choose_safe_daily_question, daily_question_judgeable,
+    )
+
     qs = _load_questions()
     if not qs:
         return None
+    by_id = {}
+    for candidate in qs:
+        if isinstance(candidate, dict):
+            by_id.setdefault(candidate.get('id'), []).append(candidate)
     with get_db() as conn:
         row = conn.execute(
             'SELECT * FROM daily_challenge WHERE challenge_date=?', (date_str,)
         ).fetchone()
         if row:
-            return dict(row)
-        h = int(hashlib.md5(date_str.encode()).hexdigest(), 16)
-        q = qs[h % len(qs)]
+            existing = dict(row)
+            matching = by_id.get(existing['question_id'], ())
+            # Never change Owner-curated assignments or a puzzle with ANY
+            # player submissions (including incorrect answers).
+            if existing.get('set_by') != 'auto' or (
+                len(matching) == 1 and daily_question_judgeable(matching[0])
+            ):
+                return existing
+            replacement = choose_safe_daily_question(
+                qs, date_str, excluding_id=existing['question_id'],
+            )
+            if replacement is None:
+                return existing
+            change = conn.execute(
+                'UPDATE daily_challenge SET question_id=? '
+                'WHERE challenge_date=? AND question_id=? AND set_by=? '
+                'AND NOT EXISTS (SELECT 1 FROM daily_challenge_log '
+                'WHERE challenge_date=?)',
+                (replacement['id'], date_str, existing['question_id'],
+                 'auto', date_str),
+            )
+            if getattr(change, 'rowcount', 0) == 1:
+                conn.commit()
+            # Read actual committed authority even if another request raced.
+            current = conn.execute(
+                'SELECT * FROM daily_challenge WHERE challenge_date=?',
+                (date_str,),
+            ).fetchone()
+            return dict(current) if current else None
+
+        q = choose_safe_daily_question(qs, date_str)
+        if q is None:
+            return None
         conn.execute(
             'INSERT OR IGNORE INTO daily_challenge(challenge_date,question_id,set_by) '
             'VALUES(?,?,?)',
-            (date_str, q['id'], 'auto')
+            (date_str, q['id'], 'auto'),
         )
         conn.commit()
-    return {'challenge_date': date_str, 'question_id': q['id'], 'set_by': 'auto', 'note': None}
+        # SELECT after INSERT OR IGNORE: never return a losing race's id.
+        current = conn.execute(
+            'SELECT * FROM daily_challenge WHERE challenge_date=?',
+            (date_str,),
+        ).fetchone()
+        return dict(current) if current else None
 
 
 def get_daily_submit_streak(uid, today_str, conn=None):
