@@ -286,6 +286,7 @@ def test_real_catalog_every_zone_builds_exactly_twenty_or_fails_closed():
         if status == "OK":
             assert count == app_module.BOSS_EXAM_SIZE
 
-    # d7_plus is the known content-blocked zone: 1 judgeable of 683 eligible.
-    assert outcomes["d7_plus"][0] == "FAIL_CLOSED"
-    assert outcomes["d7_plus"][1] == "insufficient_judgeable_questions"
+    # G114 R3: same-rank source-pinned high-dan alternatives now provide
+    # >=20 genuinely G065-judgeable distinct Lord questions without
+    # promoting ambiguous original SGF trees into correctness authorities.
+    assert outcomes["d7_plus"] == ("OK", None, BOSS_EXAM_SIZE)

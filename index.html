@@ -9996,7 +9996,8 @@ function _isPermanentMapBattleQuestionFailure(error) {
         : (error || {});
     return data.code === 'map_battle_question_incompatible'
         && data.failure_class === 'MAP_BATTLE_QUESTION_INCOMPATIBLE'
-        && data.reason_code === 'ambiguous_authoritative_sgf_player_color'
+        && (data.reason_code === 'ambiguous_authoritative_sgf_player_color'
+            || data.reason_code === 'legacy_unreviewed_sgf_terminal')
         && data.retryable === false
         && !!(data.question_revision || data.session_question_fingerprint);
 }
@@ -11730,7 +11731,20 @@ async function _submitMapBattleV1IfActive(moves, settledResponse = null) {
             || _mapBattleV1State?.attemptId !== submittedAttemptId) {
             return null;
         }
-        if (!freshCorrect) _persistMapBattleV1Resume(currentQ, submittedState);
+        if (response?.accepted === true && response?.result === 'INCORRECT') {
+            // The nonce has settled: disable both Adventure and local
+            // exploration after the wrong verdict. Next question is explicit.
+            submittedState.active = false;
+            submittedState.attemptState = 'settled';
+            _exploringAfterWrong = false;
+            solved = true;
+            answering = false;
+            _clearMapBattleV1Resume();
+            _syncE10BattleActions(false);
+            setMsg('本題已結算，請點「下一題」繼續冒險。', 'warn');
+        } else if (!freshCorrect) {
+            _persistMapBattleV1Resume(currentQ, submittedState);
+        }
         _publishMapBattleV1Lifecycle();
         if (response && response.duplicate !== true && response.result === 'CORRECT') {
             if (_quizPet) {
@@ -11749,6 +11763,25 @@ async function _submitMapBattleV1IfActive(moves, settledResponse = null) {
             return null;
         }
         _clearMapBattleV1Transition();
+        if (_isPermanentMapBattleQuestionFailure(error)) {
+            _recordPermanentMapBattleQuestionFailure(currentQ, error);
+            _markSessionQuestionUnplayable(currentQ);
+            _clearMapBattleV1Resume();
+            // The original attempt remains durable, with HP/rewards untouched;
+            // only this browser's next selection changes.
+            _mapBattleV1State.active = false;
+            _mapBattleV1Mode = 'disabled';
+            _syncE10BattleActions(false);
+            const next = _pickNextAdventureTarget(
+                _adventureActiveQuestions, submittedQuestionId);
+            if (next && Number(next.id) !== submittedQuestionId) {
+                setMsg('這題的棋譜答案尚未審核，已略過並載入下一題。', 'warn');
+                void loadQuestion(next);
+            } else {
+                _showSessionNoValidQuestion();
+            }
+            return null;
+        }
         if (error && error.code === 'map_battle_attempt_expired') {
             await _prepareMapBattleV1ForQuestion(currentQ, { generation: submissionGeneration });
             setMsg('Map Battle attempt expired; a fresh attempt is ready. Please answer again.', 'warn');
@@ -13543,6 +13576,11 @@ function onBoardClick(bx,by){
     if (_g076Practice) { void _g076PracticeClick(x,y); return; }
     if (window.SGFReportWidget?.consumeBoardMove?.({x, y})) return;
     if(_questionBoardFailedClosed||answering||!currentNode)return;
+    if (_isAdventureZonePractice() && _mapBattleV1State
+        && String(_mapBattleV1State.attemptState || '').toUpperCase() === 'SETTLED') {
+        setMsg('本題已結算，請點「下一題」繼續冒險。', 'warn');
+        return;
+    }
     if(logicBoard[x]&&logicBoard[x][y]!==null)return;
 
     // ── 圍棋規則前端攔截（打劫 / 禁著點）────────────────────────
@@ -15316,7 +15354,10 @@ async function enterAdventureZoneInPage(zone) {
     try {
         const _zone = ADVENTURE_ZONES.find(z => z.key === zone.key) || zone;
         const _books = new Set(_zone && _zone.books ? _zone.books : []);
-        const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
+        const zoneQs = _zone?.key === 'd7_plus'
+            ? allQuestions.filter(q => q.topic === '逆天改命：終焉戰場的修羅考驗'
+                && q.rank === '7d' && q.stage === 'LV10')
+            : (_books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions);
         const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
         if (!unitQs.length) {
             // Zone 1 (k26_30) maps to topics '1圍棋新手村' / '2新手村的考驗',
@@ -23756,7 +23797,10 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
         // 只練該關綁定的書（topic）
         const _zone = ADVENTURE_ZONES.find(z => z.key === zoneParam);
         const _books = new Set(_zone && _zone.books ? _zone.books : []);
-        const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
+        const zoneQs = _zone?.key === 'd7_plus'
+            ? allQuestions.filter(q => q.topic === '逆天改命：終焉戰場的修羅考驗'
+                && q.rank === '7d' && q.stage === 'LV10')
+            : (_books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions);
         const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
         _adventureActiveQuestions = unitQs;
         if (unitQs.length) {

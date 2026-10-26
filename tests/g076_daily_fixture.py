@@ -48,7 +48,9 @@ def make_daily_fixture(path):
     source.close()
     dest.executescript((ROOT/'migrations/g076_nonmap_steps_PROPOSED.sql').read_text())
     dest.execute('CREATE TABLE users(id INTEGER PRIMARY KEY)')
-    dest.execute('CREATE TABLE daily_challenge(challenge_date TEXT PRIMARY KEY, question_id INTEGER NOT NULL, set_by TEXT, note TEXT)')
+    # G114: the source fixture now includes the canonical Daily authority
+    # table. Its row is created on first actual date assignment (not seeded
+    # in advance), preserving tests for admin-selected questions.
     dest.executemany('INSERT INTO users VALUES (?)', [(7,), (8,), (9,), (10,)])
     dest.commit(); dest.close()
 
@@ -89,7 +91,6 @@ def make_daily_fixture(path):
         '_map_battle_question_context': lambda q: {**question_context(q),
             'initial_position_identity': authority.question_content_sha256(q)},
         '_load_questions': lambda: [state['question']],
-        'get_or_create_daily_challenge': lambda today: {'question_id': 301, 'note': None},
         '_question_content_sha256': authority.question_content_sha256,
         'issue_daily_attempt': authority.issue_daily_attempt,
         '_g076_exposure_content': board_only_sgf,
@@ -103,7 +104,8 @@ def make_daily_fixture(path):
     ns.update({name: getattr(d5b, name) for name in d5b.__all__})
     load_functions(ROOT/'app.py', {'dc_submit', 'dc_today', 'dc_history', 'dc_history_detail', 'xp_to_lv', 'lv_progress',
         'LV_THRESHOLDS', 'MAX_LV', 'DAILY_CHALLENGE_XP_REWARD',
-        'check_and_award_daily', 'get_daily_submit_streak', 'give_daily_appearance'}, ns)
+        'check_and_award_daily', 'get_daily_submit_streak', 'give_daily_appearance',
+        '_g114_daily_locked_authority', 'get_or_create_daily_challenge'}, ns)
     original_badges = ns['check_and_award_daily']
     def badges(*args):
         result = original_badges(*args)

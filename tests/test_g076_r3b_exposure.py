@@ -52,7 +52,7 @@ def api(monkeypatch):
         INSERT INTO mistake_log VALUES (99, 702, 2, '2026-01-01', 0);
         CREATE TABLE daily_challenge (challenge_date, question_id, note);
         INSERT INTO daily_challenge VALUES ('2000-01-01', 701, 'SECRET_NOTE');
-        CREATE TABLE daily_challenge_log (user_id, challenge_date, correct);
+        CREATE TABLE daily_challenge_log (user_id, challenge_date, correct, question_id INTEGER DEFAULT 701);
         CREATE TABLE daily_training_cache (user_id, date, question_ids, completed_ids);
         CREATE TABLE node_mastery (user_id, question_id, purity, attempt_count,
                                   last_correct_at, is_contaminated);
@@ -65,6 +65,13 @@ def api(monkeypatch):
          'comment': 'SECRET_COMMENT', 'rating': 1500,
          'difficulty': '10k', 'discipline': 'life_death', 'enabled': True}
     original = copy.deepcopy(q)
+    # This AST-only legacy G076 privacy fixture intentionally uses a puzzle
+    # without G065 terminal verdict metadata. The real Daily eligibility
+    # gate is separately tested by G114 / true PostgreSQL integration; this
+    # privacy fixture must reach the unchanged G076 projection/422 assertions.
+    import daily_challenge_selection
+    monkeypatch.setattr(daily_challenge_selection, 'daily_question_judgeable',
+                        lambda question: True)
     calls = []
     sql = []
     conn.set_trace_callback(sql.append)
@@ -240,7 +247,7 @@ def test_history_current_date_blocked_and_notes_private(api, monkeypatch):
 
 def test_submitted_today_is_still_private_for_reused_question(api, monkeypatch):
     _, client, _, _, conn, calls, _ = api
-    conn.execute('INSERT INTO daily_challenge_log VALUES (?, ?, ?)',
+    conn.execute('INSERT INTO daily_challenge_log(user_id,challenge_date,correct) VALUES (?, ?, ?)',
                  (47, datetime.date.today().isoformat(), 0))
     monkeypatch.setenv('G076_ANSWER_PRIVACY_ENFORCED', '1')
     response = client.get('/api/daily-challenge/today')

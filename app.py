@@ -174,6 +174,7 @@ from map_battle_runtime import (
     ensure_submission_lifecycle_schema,
     issue_attempt_with_submission_nonce,
     issue_submission_nonce_for_attempt,
+    lookup_attempt_for_owner,
     mode_eligible,
     question_revision_for,
     resolve_map_battle_provider_for_new,
@@ -7934,27 +7935,86 @@ def check_and_award(conn, user_id, stats, unit_name=None):
 
 # ── 每日挑戰工具函數 ───────────────────────────────────────────
 
+def _g114_daily_locked_authority(conn, date_str):
+    # PG row lock serializes rotation with daily settlement; no new schema.
+    # SQLite uses its existing single-writer transaction and tests separately.
+    raw = getattr(conn, '_conn', conn)
+    is_sqlite = raw.__class__.__module__.startswith('sqlite3')
+    sql = 'SELECT * FROM daily_challenge WHERE challenge_date=?'
+    if not is_sqlite:
+        sql += ' FOR UPDATE'
+    return conn.execute(sql, (date_str,)).fetchone()
+
+
 def get_or_create_daily_challenge(date_str):
-    """依日期取得（或自動選出）每日挑戰，回傳 dict。"""
-    import hashlib
+    """Rotate once only without a settled CORRECT; preserve old signed tokens."""
+    from daily_challenge_selection import (
+        choose_safe_daily_question, daily_question_judgeable,
+    )
+
     qs = _load_questions()
     if not qs:
         return None
+    by_id = {}
+    for candidate in qs:
+        if isinstance(candidate, dict):
+            by_id.setdefault(candidate.get('id'), []).append(candidate)
     with get_db() as conn:
-        row = conn.execute(
-            'SELECT * FROM daily_challenge WHERE challenge_date=?', (date_str,)
-        ).fetchone()
+        row = _g114_daily_locked_authority(conn, date_str)
         if row:
-            return dict(row)
-        h = int(hashlib.md5(date_str.encode()).hexdigest(), 16)
-        q = qs[h % len(qs)]
+            existing = dict(row)
+            matching = by_id.get(existing['question_id'], ())
+            # An admin assignment, prior rotation, or a valid puzzle is fixed.
+            if existing.get('set_by') != 'auto' or (
+                len(matching) == 1 and daily_question_judgeable(matching[0])
+            ):
+                return existing
+            # Incorrect-only historical records remain immutable; successful
+            # awards prohibit rotation. The row lock also protects against a
+            # new successful settlement racing this decision.
+            winning = conn.execute(
+                'SELECT 1 FROM daily_challenge_log '
+                'WHERE challenge_date=? AND correct=1 LIMIT 1', (date_str,),
+            ).fetchone()
+            if winning:
+                return existing
+            replacement = choose_safe_daily_question(
+                qs, date_str, excluding_id=existing['question_id'],
+            )
+            if replacement is None:
+                return existing
+            change = conn.execute(
+                'UPDATE daily_challenge SET question_id=?, set_by=? '
+                'WHERE challenge_date=? AND question_id=? AND set_by=? '
+                'AND NOT EXISTS (SELECT 1 FROM daily_challenge_log '
+                'WHERE challenge_date=? AND correct=1)',
+                (replacement['id'], 'auto_g114_rotated', date_str,
+                 existing['question_id'], 'auto', date_str),
+            )
+            if getattr(change, 'rowcount', 0) == 1:
+                conn.commit()
+            # Read actual committed authority even if another request raced.
+            current = conn.execute(
+                'SELECT * FROM daily_challenge WHERE challenge_date=?',
+                (date_str,),
+            ).fetchone()
+            return dict(current) if current else None
+
+        q = choose_safe_daily_question(qs, date_str)
+        if q is None:
+            return None
         conn.execute(
             'INSERT OR IGNORE INTO daily_challenge(challenge_date,question_id,set_by) '
             'VALUES(?,?,?)',
-            (date_str, q['id'], 'auto')
+            (date_str, q['id'], 'auto'),
         )
         conn.commit()
-    return {'challenge_date': date_str, 'question_id': q['id'], 'set_by': 'auto', 'note': None}
+        # SELECT after INSERT OR IGNORE: never return a losing race's id.
+        current = conn.execute(
+            'SELECT * FROM daily_challenge WHERE challenge_date=?',
+            (date_str,),
+        ).fetchone()
+        return dict(current) if current else None
 
 
 def get_daily_submit_streak(uid, today_str, conn=None):
@@ -12780,6 +12840,13 @@ def _questions_for_adventure_zone(qs, zone, premium=True):
         if books:
             if (q.get('topic') or '') in books:
                 out.append(q)
+            elif zone.get('key') == 'd7_plus':
+                # G114 same-level alternative: exact original 7d/LV10 SGF
+                # content hash in the signed-off source inventory, with
+                # G065 judgement already possible. Never downgrade rank.
+                from g114_zone10_alternative import zone10_admitted_alternative
+                if zone10_admitted_alternative(q):
+                    out.append(q)
         else:
             idx = _question_rank_index(q)
             if zone['min'] <= idx <= zone['max']:
@@ -13056,15 +13123,27 @@ def _adventure_state(uid):
 
     for z in ADVENTURE_ZONES:
         zone_qs = zone_question_sets[z['key']]
-        total = len(zone_qs)
-        # ``seen`` is the long-standing API field consumed by the E9/E10
-        # progress surfaces.  Its canonical numerator is now historical
-        # distinct correct answers, not merely displayed/attempted cards.
+        qualified = _g114_zone10_safe_questions(z, zone_qs)
+        total = len(qualified)
         seen = len([q for q in zone_qs if q['id'] in correct_ids])
         attempted = len([q for q in zone_qs if q['id'] in attempted_ids])
         defeated = len([q for q in zone_qs if q['id'] in defeated_ids])
-        pct = round(seen / total * 100) if total else 0
-        defeat_pct = round(defeated / total * 100) if total else 0
+        qualified_seen = len([q for q in qualified if q['id'] in correct_ids])
+        qualified_defeated = len([q for q in qualified if q['id'] in defeated_ids])
+        historical_seen = historical_total = 0
+        if z['key'] == 'd7_plus':
+            original_books = set(z.get('books') or ())
+            original = [q for q in zone_qs if q.get('topic') in original_books]
+            historical_total = len(original)
+            historical_seen = len([q for q in original if q['id'] in correct_ids])
+            historical_defeated = len([q for q in original if q['id'] in defeated_ids])
+            pct = max(round(qualified_seen / total * 100) if total else 0,
+                      round(historical_seen / historical_total * 100) if historical_total else 0)
+            defeat_pct = max(round(qualified_defeated / total * 100) if total else 0,
+                             round(historical_defeated / historical_total * 100) if historical_total else 0)
+        else:
+            pct = round(seen / total * 100) if total else 0
+            defeat_pct = round(defeated / total * 100) if total else 0
         row = progress.get(z['key']) or {}
         cleared = bool(row.get('cleared'))
         placement_unlocked = z['key'] in placement_unlocks
@@ -13108,9 +13187,14 @@ def _adventure_state(uid):
         # answers.  The old ``round()``-ed percentage admitted players just
         # below the stated share (576 of 1939 reads as 30% but is 29.7%).
         lord_required_correct = lord_eligibility_requirement(total)
+        historical_lord_eligible = bool(
+            z['key'] == 'd7_plus'
+            and is_lord_eligible(historical_seen, historical_total)
+        )
+        qualified_lord_eligible = is_lord_eligible(qualified_seen, total)
         boss_ready = (
             unlocked
-            and is_lord_eligible(seen, total)
+            and (qualified_lord_eligible or historical_lord_eligible)
             and not cleared
             and cooldown_left == 0
         )
@@ -13141,6 +13225,11 @@ def _adventure_state(uid):
             # Server-owned progression thresholds, so the client never has to
             # recompute a percentage that must agree with settlement.
             'lord_required_correct': lord_required_correct,
+            'g114_qualified_correct': qualified_seen,
+            'g114_historical_correct': historical_seen,
+            'g114_historical_total': historical_total,
+            'g114_historical_lord_eligible': historical_lord_eligible,
+            'g114_qualified_lord_eligible': qualified_lord_eligible,
             'second_star_required_correct': second_star_requirement(total),
             'third_star_required_correct': third_star_requirement(total),
             # Presentation only: the path onward from this Zone shines once
@@ -13729,6 +13818,21 @@ def _row_value(row, name):
         return None
 
 
+def _g114_zone10_safe_questions(zone, zone_questions):
+    # Never credit unsafe old SGF terminals toward NEW star rewards.
+    # Historical credit remains a separate read-only entitlement below.
+    if zone.get('key') != 'd7_plus':
+        return zone_questions
+    from daily_challenge_selection import daily_question_judgeable
+    return [q for q in zone_questions if daily_question_judgeable(q)]
+
+
+def _g114_adventure_zone_denominator(zone, zone_questions):
+    # Real qualified pool = 6 original + 1,197 verified LV10/7d alternatives.
+    # Never grant 100% merely after 683 newly introduced answers.
+    return len(_g114_zone10_safe_questions(zone, zone_questions))
+
+
 def _adventure_zone_question_ids(zone_key, uid=None):
     """Return the canonical question-id set and denominator for one Zone."""
 
@@ -13745,10 +13849,11 @@ def _adventure_zone_question_ids(zone_key, uid=None):
     except RuntimeError:
         premium = True
     zone_qs = _questions_for_adventure_zone(questions, zone, premium)
-    total = len(zone_qs)
+    qualified = _g114_zone10_safe_questions(zone, zone_qs)
+    total = len(qualified)
     if total <= 0:
         return None
-    return {int(q['id']) for q in zone_qs}, total
+    return {int(q['id']) for q in qualified}, total
 
 
 def _adventure_recommended_zone_key(zones, placement_start_zone=None):
@@ -14332,8 +14437,11 @@ def adventure_boss_start():
     # admitted a player up to nine questions early: 573-581 of Zone 1's 1939
     # all round to 30% while the requirement is 582.  There is deliberately no
     # second percentage authority here now.
-    if not is_replay and not is_lord_eligible(
-        state.get('seen', 0), state.get('total', 0)
+    if not is_replay and not (
+        (state.get('g114_qualified_lord_eligible', False)
+         or state.get('g114_historical_lord_eligible', False))
+        if zone_key == 'd7_plus'
+        else is_lord_eligible(state.get('seen', 0), state.get('total', 0))
     ):
         return jsonify({
             'ok': False,
@@ -14345,6 +14453,11 @@ def adventure_boss_start():
 
     premium = is_premium(uid)
     qs = _questions_for_adventure_zone(_load_questions(), zone, premium)
+    # A Zone-10 Lord exam must use the intersection of Map-G065 and Lord
+    # authority, never the one legacy question with a player color but an
+    # ambiguous SGF terminal.
+    if zone_key == 'd7_plus':
+        qs = _g114_zone10_safe_questions(zone, qs)
     if len(qs) < 1:
         return jsonify({'ok': False, 'error': 'no_questions'}), 400
     rng = random.Random(f"{uid}-{zone_key}-{datetime.datetime.now().isoformat()}")
@@ -15910,6 +16023,27 @@ class _MapBattleQuestionIncompatible(RequestRejected):
     retryable = False
 
 
+def _g114_require_judgeable_map_question(question):
+    # Same G065 terminal authority as Daily; no alternative browser grade.
+    from daily_challenge_selection import daily_question_judgeable
+    if not daily_question_judgeable(question):
+        failure = _MapBattleQuestionIncompatible(
+            '此題舊版棋譜尚未完成答案審核，請選擇下一題。',
+            status=409,
+        )
+        failure.reason_code = 'legacy_unreviewed_sgf_terminal'
+        failure.question_id = question.get('id')
+        raise failure
+
+
+def _g114_map_safe_judge(question, attempt, canonical):
+    # Existing attempts keep their original nonce/HP and settlement replay;
+    # a questionable SGF is rejected BEFORE new authoritative settlement.
+    from map_battle_runtime import judge_map_battle_answer_v1
+    _g114_require_judgeable_map_question(question)
+    return judge_map_battle_answer_v1(question, attempt, canonical)
+
+
 def _map_battle_question_context(question):
     """Derive attempt metadata from server-owned question content."""
     content = question.get('content')
@@ -16279,6 +16413,7 @@ def map_battle_v1_prepare_attempt():
         with _activation_transaction() as conn:
             eligibility = _map_battle_require_enabled(user_id, conn)
             _admit_map_battle_question_entitlement(user_id, question)
+            _g114_require_judgeable_map_question(question)
             battle = _map_battle_open_for_zone(conn, user_id, zone_key)
             if zone_key == ADVENTURE_ZONE3_KEY and legacy_zone3_battle_is_retirable(battle):
                 # A pre-E055 OPEN Zone 3 battle carries no Monster binding, and
@@ -16480,6 +16615,7 @@ def map_battle_v1_resume_validation(attempt_id):
                 zone_key=zone_key,
                 submission_nonce=payload.get('submission_nonce'),
             )
+            _g114_require_judgeable_map_question(question)
             if question_revision_for(question) != str(validated['attempt']['question_revision']):
                 raise RequestRejected('question revision is stale for this attempt', status=409)
             _map_battle_provider_for_restore(
@@ -16595,9 +16731,19 @@ def map_battle_v1_answers():
                 runtime_provider=MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
                 spirit_projection_resolver=build_b022_active_spirit_projection,
                 entitlement_admitter=_admit_map_battle_answer_entitlement,
+                judge=_g114_map_safe_judge,
             )
     except MapBattleRuntimeError as error:
-        return _map_battle_error_response(error)
+        question = None
+        if isinstance(payload, dict) and isinstance(payload.get('attempt_id'), str):
+            with get_db() as read_conn:
+                issued = lookup_attempt_for_owner(
+                    read_conn, user_id=int(session['user_id']),
+                    attempt_id=payload['attempt_id'],
+                )
+            if issued:
+                question = _map_battle_question_by_id(issued['question_id'])
+        return _map_battle_error_response(error, question=question)
     # The validated request already carries the owner-scoped battle identity;
     # use it only to attach the read-only presentation projection after the
     # authoritative answer settlement.  It never supplies combat identity.
@@ -20519,13 +20665,22 @@ def dc_today():
     if not q:
         return jsonify({'error': '題目不存在'}), 404
 
+    from daily_challenge_selection import daily_question_judgeable
+    if not daily_question_judgeable(q):
+        return jsonify({
+            'ok': False, 'error': 'daily_question_on_hold',
+            'code': 'daily_question_on_hold', 'retryable': False,
+            'message': '今日題目需要人工審核，暫停計分及獎勵；已完成的紀錄不會被更動。',
+            'refresh_url': '/daily-challenge',
+        }), 409
+
     content = q.get('content', '')
     if private:
         content = _g076_exposure_content(content)
 
     with get_db() as conn:
         log = conn.execute(
-            'SELECT correct FROM daily_challenge_log '
+            'SELECT correct, question_id FROM daily_challenge_log '
             'WHERE user_id=? AND challenge_date=?',
             (uid, today)
         ).fetchone()
@@ -20571,6 +20726,13 @@ def dc_today():
         'attempt_token':  attempt_token,
         'user_submitted': log is not None,
         'user_correct':   bool(log['correct']) if log else None,
+        'user_submitted_previous_question': (
+            bool(log and str(log['question_id']) != str(q['id']))
+        ),
+        'previous_question_message': (
+            '你已完成原本的每日題目；新題目不會重複計分或發獎。'
+            if log and str(log['question_id']) != str(q['id']) else None
+        ),
         'stats': {
             'total':    total_p,
             'correct':  correct_p,
@@ -20641,6 +20803,14 @@ def dc_submit():
     question = qs_map.get(dc['question_id'])
     if not question:
         return jsonify({'ok': False, 'error': '題目不存在'}), 404
+    from daily_challenge_selection import daily_question_judgeable
+    if not daily_question_judgeable(question):
+        return jsonify({
+            'ok': False, 'error': 'daily_question_on_hold',
+            'code': 'daily_question_on_hold', 'retryable': False,
+            'message': '今日題目尚未審核，暫停計分及發獎，請稍後重新載入。',
+            'refresh_url': '/daily-challenge',
+        }), 409
 
     try:
         question_context = _map_battle_question_context(question)
@@ -20657,12 +20827,18 @@ def dc_submit():
         judge = judge_daily_answer(question, attempt, answer)
     except (DailyAttemptError, MapBattleRuntimeError) as error:
         app.logger.info('[daily] authoritative submission rejected: %s', error)
-        status = int(getattr(error, 'status', 409) or 409)
+        code = getattr(error, 'code', 'daily_answer_rejected')
+        replaced = code in ('daily_attempt_question_mismatch',
+                            'daily_attempt_stale_question')
         return jsonify({
             'ok': False,
-            'error': getattr(error, 'code', 'daily_answer_rejected'),
+            'error': 'daily_question_updated' if replaced else code,
+            'code': 'daily_question_updated' if replaced else code,
+            'message': ('今日題目已更新，請重新載入取得新題目；舊答案不會計分。'
+                        if replaced else '目前無法安全判定答案，請稍後再試。'),
+            'refresh_url': '/daily-challenge',
             'submission_id': submission_id,
-        }), status
+        }), 409 if replaced else int(getattr(error, 'status', 409) or 409)
 
     # The legacy client boolean is diagnostic only.  Reward/progression uses
     # the canonical SGF result returned by the server judge below.
@@ -20673,6 +20849,18 @@ def dc_submit():
     result_payload = None
 
     with get_db() as conn:
+        # Lock SAME date authority as the rotation transaction BEFORE any
+        # reservation, award, log or progression write. Old stateless tokens
+        # may remain cryptographically valid but cannot settle after cutover.
+        locked = _g114_daily_locked_authority(conn, today)
+        if locked is None or int(locked['question_id']) != int(attempt['question_id']):
+            return jsonify({
+                'ok': False, 'error': 'daily_question_updated',
+                'code': 'daily_question_updated',
+                'message': '今日題目已更新，請重新載入；舊答案不會計分。',
+                'refresh_url': '/daily-challenge',
+                'submission_id': submission_id,
+            }), 409
         try:
             reservation = reserve_daily_submission(
                 conn,

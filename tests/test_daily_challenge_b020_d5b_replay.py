@@ -58,6 +58,12 @@ def _daily_db():
             is_scaffolding INTEGER NOT NULL DEFAULT 0,
             training_set_id INTEGER
         );
+        CREATE TABLE daily_challenge (
+            challenge_date TEXT PRIMARY KEY,
+            question_id INTEGER NOT NULL,
+            set_by TEXT NOT NULL DEFAULT 'auto',
+            note TEXT
+        );
         CREATE TABLE daily_challenge_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -113,6 +119,10 @@ def daily_route(monkeypatch):
     monkeypatch.setattr(app_module, "get_daily_submit_streak", lambda *args, **kwargs: 0)
     monkeypatch.setattr(app_module, "give_daily_appearance", lambda *args, **kwargs: [])
     app_module.app.config.update(TESTING=True)
+    today = __import__('datetime').date.today().isoformat()
+    conn.execute('INSERT INTO daily_challenge(challenge_date,question_id,set_by) VALUES(?,?,?)',
+                 (today,question['id'],'auto'))
+    conn.commit()
     with app_module.app.test_client() as client:
         with client.session_transaction() as session:
             session["user_id"] = 7

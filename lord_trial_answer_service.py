@@ -149,6 +149,12 @@ def _question_board_context(question: Mapping[str, Any]) -> tuple[int, str]:
             reason_code="invalid_board_size",
         ) from error
     player_color = player_match.group(1).upper() if player_match else None
+    if player_color is None:
+        # Only for provenance-pinned original LV10/7d linear SGF. This
+        # recovers turn identity from ALL same-colour opening alternatives;
+        # no SGF branch is relabeled or assumed correct.
+        from g114_zone10_alternative import zone10_verified_player_to_move
+        player_color = zone10_verified_player_to_move(question)
     if not (2 <= board_size <= 25) or player_color not in {"B", "W"}:
         raise LordTrialAnswerError(
             "judge_unavailable",

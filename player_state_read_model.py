@@ -267,13 +267,15 @@ def _canonical_equipment_catalog(
 ) -> tuple[dict[str, Mapping[str, Any]], frozenset[str], dict[str, set[str]]]:
     if equipment_definitions is None:
         try:
-            from app import EQUIPMENT_DEFS, INVENTORY_ONLY_EQUIPMENT_IDS, _FUNCTIONAL_EFFECT_ACTIVE_KEYS
+            from app import CANONICAL_EQUIPMENT_DEFS, INVENTORY_ONLY_EQUIPMENT_IDS, _FUNCTIONAL_EFFECT_ACTIVE_KEYS
         except Exception as exc:  # pragma: no cover - depends on deployment imports
             raise PlayerStateReadModelError(
                 "AUTHORITY_UNAVAILABLE",
                 "canonical equipment catalog is unavailable",
             ) from exc
-        definitions = EQUIPMENT_DEFS
+        # Include legally admitted EQ-F identities even while loadout effects
+        # and mutations are disabled. This remains a read-only projection.
+        definitions = CANONICAL_EQUIPMENT_DEFS
         inventory_only = frozenset(INVENTORY_ONLY_EQUIPMENT_IDS)
         active_keys = {
             str(item_id): set(effect_keys)
