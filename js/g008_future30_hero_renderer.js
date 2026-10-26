@@ -1,3 +1,5 @@
+import {verifyCurrentHeroProjection,sha256GlbBytes} from "./g085_shared_authoritative_3d_core.mjs";
+import {relaxCurrentFuture30Pose} from "./g085j_shared_relaxed_idle_pose.mjs";
 import * as THREE from "/assets/3d_shop/p048/vendor/three.module.js";
 import { GLTFLoader } from "/assets/3d_shop/p048/vendor/jsm/loaders/GLTFLoader.js";
 import {
@@ -5,15 +7,6 @@ import {
   G009_HERO_PRESENTATION_SLOTS,
 } from "./g009_shared_hero_attachment_host.js";
 
-const EXPECTED_C005_MANIFEST_SHA256 =
-  "35746c1168152cbd3fd166fd0ba5a319f3bf1ba8916fed3a8669f487a2a83c1d";
-const ACCEPTED_FUTURE30_ACQUISITION_SOURCES = new Set([
-  "STARTER",
-  "STAGE",
-  "PREMIUM",
-  "SHOP",
-  "ACCEPTANCE_TEST",
-]);
 export const HERO_PRESENTATION_SLOTS = G009_HERO_PRESENTATION_SLOTS;
 let stage = null;
 let avatar = null;
@@ -30,6 +23,7 @@ let sharedAttachmentFacade = null;
 let serverAppearance = null;
 const slotResolvers = new Map();
 const presentationRehydrators = new Map();
+const HAND_REHYDRATOR = "G009_D_R2_SERVER_EQUIPPED_HANDS";
 const presentationTeardowns = new Map();
 const rehydratedGenerationByKey = new Map();
 let cancelFrameWait = null;
@@ -161,7 +155,18 @@ export function registerHeroPresentationRehydrator(key, callback) {
   if (existing && existing !== callback) throw new Error("hero_presentation_rehydrator_already_registered:" + key);
   presentationRehydrators.set(key, callback);
   if (sharedAttachmentHost && serverAppearance) {
-    void runPresentationRehydrator(key, callback, generation, serverAppearance, true);
+    const token = generation;
+    void runPresentationRehydrator(key, callback, token, serverAppearance, true)
+      .then((result) => {
+        // A child registered after the parent rendered: never leave a
+        // formerly missing resolver reported as ready or permanently pending.
+        if (key !== HAND_REHYDRATOR || token !== generation
+            || presentationRehydrators.get(key) !== callback) return;
+        const current = window.__G008_HERO_RENDER_STATE__;
+        if (current?.state !== "ready") return;
+        const status = handRehydrationStatus(result);
+        publish({ ...current, equipment_status: status });
+      });
   }
   return () => {
     if (presentationRehydrators.get(key) !== callback) return false;
@@ -181,6 +186,14 @@ export async function rehydrateHeroPresentations() {
     character_key: serverAppearance?.character_key || null,
     results,
   };
+}
+
+function handRehydrationStatus(receipt) {
+  // Missing resolver, not-yet-rehydrated and failed attachment must NOT
+  // become a genuine ready status. A valid empty server inventory is ready.
+  if (!receipt || receipt.status === "not_ready") return "pending";
+  if (receipt.status !== "rehydrated") return "unavailable";
+  return receipt.result?.status === "failed_closed" ? "unavailable" : "ready";
 }
 
 function isCurrent(token) {
@@ -245,6 +258,19 @@ export function mountHeroAppearance() {
   if (stage && !isCurrent(generation)) pending = null;
   stage = document.getElementById("g008-future30-hero-stage");
   avatar = document.getElementById("char-avatar");
+  // An explicit user action restarts only the current Hero scene and
+  // re-fetches the same server-owned appearance and equipped inventory.
+  // Never invent a weapon or replay any equipment purchase.
+  const retry = document.getElementById("g008-hero-retry");
+  if (retry && retry.dataset.g008Bound !== "true") {
+    retry.dataset.g008Bound = "true";
+    retry.addEventListener("click", async () => {
+      if (retry.disabled) return;
+      retry.disabled = true;
+      try { await refreshHeroAppearance(); }
+      finally { retry.disabled = false; }
+    });
+  }
   if (pending) return pending;
   if (ownedRenderer) return Promise.resolve(window.__G008_HERO_RENDER_STATE__);
   const token = ++generation;
@@ -269,6 +295,22 @@ export function refreshHeroAppearance() {
 function publish(state) {
   window.__G008_HERO_RENDER_STATE__ = Object.freeze(state);
   if (stage) stage.dataset.state = state.state;
+  const notice = document.getElementById("g008-hero-load-notice");
+  const message = document.getElementById("g008-hero-load-message");
+  const retry = document.getElementById("g008-hero-retry");
+  if (notice && message && retry) {
+    const unresolved = state.state === "ready" && state.equipment_status === "pending";
+    const unavailable = state.state === "failed"
+      || (state.state === "ready" && state.equipment_status === "unavailable");
+    notice.hidden = state.state !== "loading" && !unavailable && !unresolved;
+    retry.hidden = !unavailable && !unresolved;
+    if (state.state === "loading") message.textContent = "正在同步 3D 角色與裝備…";
+    else if (state.state === "failed") message.textContent = "3D 角色暫時無法載入";
+    else if (unresolved) message.textContent = "正在等待裝備同步…";
+    else if (unavailable) message.textContent = "裝備暫時無法同步";
+    else message.textContent = "";
+  }
+  avatar?.setAttribute?.("aria-busy", state.state === "loading" ? "true" : "false");
   if (avatar) {
     if (state.state === "ready") {
       avatar.dataset.g008Future30Render = "ready";
@@ -283,10 +325,6 @@ function fail(reason, identity = {}) {
   console.warn("Future30 Hero presentation is unavailable", reason);
 }
 
-async function sha256(buffer) {
-  const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
-}
 
 function fitModel(root) {
   root.updateMatrixWorld(true);
@@ -485,42 +523,17 @@ async function activate(token, signal) {
   ]);
   if (!isCurrent(token)) return;
 
-  if (catalog.c005_manifest_sha256 !== EXPECTED_C005_MANIFEST_SHA256
-    || catalog.logical_count !== 30 || catalog.visual_count !== 33
-    || !Array.isArray(catalog.entries) || catalog.entries.length !== 30) {
-    throw new Error("catalog_authority_mismatch");
-  }
-  const keys = catalog.entries.map((entry) => entry.character_key);
-  if (new Set(keys).size !== 30 || keys.some((key) => typeof key !== "string" || !key)) {
-    throw new Error("catalog_logical_identity_mismatch");
-  }
-
+  // Keep the original G008 authority boundary explicit for older integrated
+  // source-contract consumers. The complete C005/entitlement validation is
+  // shared with Backpack and Shop through verifyCurrentHeroProjection.
   const key = appearance.character_key;
-  const entry = catalog.entries.find((candidate) => candidate.character_key === key);
   const runtime = appearance.character_runtime;
-  if (!entry || appearance.character_key_source !== "player_appearance.character_key"
+  if (appearance.character_key_source !== "player_appearance.character_key"
     || appearance.character_key_authority !== "player_appearance.character_key"
-    || appearance.character_entitled !== true || entry.owned !== true || entry.is_applied !== true
-    || !ACCEPTED_FUTURE30_ACQUISITION_SOURCES.has(entry.acquisition_source)
-    || !runtime || runtime.character_key !== key
-    || runtime.default_variant !== "RED"
-    || runtime.visual_model_id !== entry.visual_model_id
-    || runtime.c005_manifest_sha256 !== EXPECTED_C005_MANIFEST_SHA256
-    || runtime.runtime_glb !== entry.runtime_glb
-    || runtime.runtime_sha256 !== entry.runtime_sha256) {
+    || !runtime || runtime.character_key !== key) {
     throw new Error("server_character_projection_mismatch");
   }
-  const redModel = (entry.visual_models || []).find((model) => model.variant === "RED");
-  if (!redModel || redModel.visual_model_id !== entry.visual_model_id
-    || redModel.runtime_glb !== runtime.runtime_glb
-    || redModel.runtime_sha256 !== runtime.runtime_sha256) {
-    throw new Error("canonical_red_asset_resolution_mismatch");
-  }
-  if (!runtime.runtime_glb.startsWith("assets/3d_shop/p048/")
-    || runtime.runtime_glb.split("/").includes("..")
-    || !/^[a-f0-9]{64}$/.test(runtime.runtime_sha256)) {
-    throw new Error("runtime_asset_path_rejected");
-  }
+  const {entry}=verifyCurrentHeroProjection(catalog,appearance);
   serverAppearance = appearance;
 
   stage.dataset.state = "loading";
@@ -528,7 +541,7 @@ async function activate(token, signal) {
   const response = await fetch(assetPath, { credentials: "same-origin", cache: "no-store", signal });
   if (!response.ok) throw new Error(`asset_http_${response.status}`);
   const bytes = await response.arrayBuffer();
-  const actualSha256 = await sha256(bytes);
+  const actualSha256 = await sha256GlbBytes(bytes);
   if (!isCurrent(token)) return;
   if (actualSha256 !== runtime.runtime_sha256) throw new Error("runtime_asset_sha256_mismatch");
 
@@ -554,6 +567,9 @@ async function activate(token, signal) {
     });
   });
   if (meshCount < 1) throw new Error("gltf_mesh_missing");
+  // Owner-requested shared natural idle: character-owned rig only.
+  // The G009 hand slot keeps tracking the real hand bone each frame.
+  const naturalPose = relaxCurrentFuture30Pose(root, THREE);
   const bounds = fitModel(root);
   sharedAttachmentHost = createG009SharedHeroAttachmentHost(root, THREE);
   for (const [slot, entry] of slotResolvers) {
@@ -575,6 +591,18 @@ async function activate(token, signal) {
   if (!isCurrent(token)) return;
   cancelFrameWait = null;
   const childRehydration = await rehydrateHeroPresentations();
+  // The parent WebGL scene can be ready while the hand attachment request
+  // failed closed. Distinguish that from a genuinely empty equipped slot.
+  let handRehydration = childRehydration.results?.find(
+    (entry) => entry.key === HAND_REHYDRATOR);
+  if (!handRehydration && presentationRehydrators.has(HAND_REHYDRATOR)) {
+    // Resolver registered during the initial Promise.all snapshot. Await
+    // that real resolver instead of publishing false-ready on empty results.
+    handRehydration = await runPresentationRehydrator(
+      HAND_REHYDRATOR, presentationRehydrators.get(HAND_REHYDRATOR),
+      token, serverAppearance, true);
+  }
+  const equipmentStatus = handRehydrationStatus(handRehydration);
   if (!isCurrent(token)) return;
 
   publish({
@@ -596,11 +624,15 @@ async function activate(token, signal) {
     rendered_triangles: viewport.renderer.info.render.triangles,
     webgl2: viewport.renderer.capabilities.isWebGL2,
     renderer: "three.js-webgl",
+    natural_idle_pose_status: naturalPose.status,
+    natural_idle_pose_arms: naturalPose.arms_applied,
+    natural_idle_pose_side_deltas: naturalPose.side_deltas||[],
     logical_count: catalog.logical_count,
     visual_count: catalog.visual_count,
     blue_optional_keys: catalog.blue_optional,
     c005_manifest_sha256: catalog.c005_manifest_sha256,
     child_rehydration: childRehydration.status,
+    equipment_status: equipmentStatus,
   });
 
 }

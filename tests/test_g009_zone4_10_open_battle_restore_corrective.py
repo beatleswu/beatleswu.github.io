@@ -90,12 +90,13 @@ def _qid_selecting(monster_id: str, *, exclude=()) -> int:
 
 
 def _question(question_id: int) -> dict:
-    content = f"(;SZ[19];B[dd];W[ee]C[q{question_id}])"
-    return {"id": question_id, "source": f"g009/z4_10/{question_id}.sgf", "content": content}
+    content = f"(;SZ[19];B[dd];W[ee]N[q{question_id}]C[G065:CORRECT])"
+    return {"id": question_id, "source": f"g009/z4_10/{question_id}.sgf",
+            "answer_policy": "g065-explicit-v1", "content": content}
 
 
 def _revision(question: dict) -> str:
-    return hashlib.sha256(question["content"].encode("utf-8")).hexdigest()
+    return map_battle_runtime.question_revision_for(question)
 
 
 def _binding(question_id: int) -> AdventureQuestionBinding:

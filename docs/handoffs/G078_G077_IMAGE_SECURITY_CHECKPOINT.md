@@ -1,0 +1,5 @@
+# G MASTER G078 | G077 final image/security source checkpoint | 2026-10-23
+Baseline a936cd19 -> G077 multi-lane integrated dc7a75952a7a1783d7bd778cffed75f95de94a2a.
+The curated Dockerfile now includes G077 B1 borrowed transaction writer (g077_mistakes_settlement.py), Python and JS modules for Rating and Grimoire, Grimoire HTML, avoids double copies. .dockerignore explicitly excludes artifacts, nested artifacts, .g076-* and .g077-* credential files (testing containers/Chrome profiles excluded). No flag is turned ON by Dockerfile.
+Actual native beatles Python check: 115 PASS/0 FAIL, exit0, tests/deployment/test_g077_candidate_image_closure.py + original build manifest/context/isolation + G077 Grimoire route check. JUnit D:\gmaster-handoffs\GMASTER_INCREMENTAL_20261023_R1\G078_F_DOCKER_FINAL_JUNIT.xml; log G078_F_DOCKER_FINAL.log.
+Still HOLD: ARM64 Build, manifest digest, runtime services configuration, rollback and official Owner Gate. Other modes are not proven playable merely by module packaging. No Push/Merge/Oracle/production data operations.

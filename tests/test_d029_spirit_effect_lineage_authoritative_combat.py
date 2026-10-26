@@ -316,7 +316,7 @@ def test_rejected_settlement_cannot_emit_lineage_event():
             encounter_class,
             moves=[{"x": 3, "y": 3}],
             judge=lambda *_args: JudgeOutcome(
-                "INVALID", None, "map-battle-judge-v1", "d029_rejected_fixture"
+                "INVALID", None, map_battle_runtime.MAP_BATTLE_JUDGE_VERSION, "d029_rejected_fixture"
             ),
         )
         assert result["submission_state"] == "REJECTED"

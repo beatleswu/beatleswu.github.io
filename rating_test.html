@@ -576,6 +576,7 @@ body::before {
       </div>
 
       <button class="btn-start" id="btn-start"><img class="btn-icon" src="/assets/rating_test/icons/brass_astrolabe.png" alt=""><span data-i18n="rt.btnStart">開始棋力鑑定 →</span></button>
+      <p id="rating-mode-status" role="status" hidden></p>
       <p class="intro-hint" id="intro-hint-text" data-i18n-html="rt.introHint">
         測驗中不顯示對錯提示，點擊即送出，計時結束未落子視為答錯。<br>
         結束後可領取本次答對題目的技能點獎勵。
@@ -758,6 +759,7 @@ body::before {
 <!-- SP Toast -->
 <div class="sp-toast" id="sp-toast"></div>
 
+<script src="/js/game/g076_rating_step_client.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════════════
 // 棋力測驗 前端主控制器
@@ -1153,14 +1155,30 @@ let _curProblem   = null;
 let _testSolved   = false;
 let _testAnswering = false;   // lock while computer is replying
 let _playerMoves  = [];       // 本題玩家落子序列（送後端重放驗證）
+let _ratingHeld = false;
+function showRatingHold() {
+  _ratingHeld = true;
+  const status = document.getElementById('rating-mode-status');
+  status.hidden = false;
+  status.textContent = 'Rating Trial HOLD — 伺服器尚未就緒，請稍後重新整理。' + (_sid ? '測驗進度已保留。' : '');
+  const flash = document.getElementById('feedback-flash');
+  if (flash) { flash.className = 'feedback-flash show'; flash.textContent = status.textContent; }
+}
 
 async function resumeRatingTest() {
   if (!_sid) return false;
+  let secureMode;
   try {
-    const r = await fetch(`/api/rating_test/resume/${encodeURIComponent(_sid)}`, {
+    secureMode = await G076Rating.mode();
+    const r = await fetch(`${secureMode === 'steps' ? '/api/g076/rating' : '/api/rating_test'}/resume/${encodeURIComponent(_sid)}`, {
       credentials:'include'
     }).then(x => x.json());
-    if (r.error) return false;
+    if (r.error) {
+      if (secureMode === 'steps') throw new Error('Rating Trial HOLD');
+      return false;
+    }
+    if ((!r.finished && secureMode === 'steps' && !r.question?.step) ||
+        (secureMode === 'legacy' && r.question?.board_only)) throw new Error('Rating Trial HOLD');
     _round = r.round || 0;
     _answers = Array.isArray(r.answers) ? r.answers : [];
     _curRating = r.cur_rating;
@@ -1178,6 +1196,7 @@ async function resumeRatingTest() {
     }
     return true;
   } catch(e) {
+    if (secureMode === 'steps' || String(e.message).includes('HOLD')) showRatingHold();
     console.error(e);
     return false;
   }
@@ -1383,6 +1402,10 @@ function makeAnswerRoot(tree) {
 
 // ── 點擊棋盤（測驗版：答錯直接結算，無探索模式）────────────────
 function onBoardClick(bx, by) {
+  if (_curQ?.step) {
+    if (!_answered && !_testSolved && !_testAnswering) ratingSecureStep('move', {x:_ox(bx), y:_oy(by)});
+    return;
+  }
   const reviewX = _ox(bx), reviewY = _oy(by);
   if (window.SGFReportWidget?.consumeBoardMove?.({x: reviewX, y: reviewY, displayCoordinates: true})) return;
   if (_answered || _testSolved || _testAnswering) return;
@@ -1450,6 +1473,19 @@ function onBoardClick(bx, by) {
 const RING_CIRC = 2 * Math.PI * 33;  // r=33 → ~207.3
 
 function startTimer() {
+  if (_curQ?.step) {
+    clearInterval(_timerInt);
+    const step = _curQ.step;
+    const remaining = Math.max(0, step.deadline - step.server_now);
+    _ratingDeadline = performance.now() + remaining * 1000;
+    _timerLeft = Math.ceil(remaining);
+    updateTimerUI();
+    _answered = false;
+    const skip = document.getElementById('btn-skip');
+    if (skip) skip.disabled = false;
+    armTimerInterval();
+    return;
+  }
   _timerLeft = _timerSecs;
   _answered  = false;
   _questionStartedAt = Date.now();
@@ -1465,7 +1501,8 @@ function startTimer() {
 function armTimerInterval() {
   clearInterval(_timerInt);
   _timerInt = setInterval(() => {
-    _timerLeft--;
+    if (_curQ?.step) _timerLeft = Math.max(0, Math.ceil((_ratingDeadline-performance.now())/1000));
+    else _timerLeft--;
     updateTimerUI();
     if (_timerLeft <= 0) {
       clearInterval(_timerInt);
@@ -1562,24 +1599,33 @@ function showScreen(id) {
 
 async function startTest() {
   document.getElementById('btn-start').disabled = true;
+  let secureMode;
   try {
+    secureMode = await G076Rating.mode();
     // init_elo 優先順序：placement URL param > 試玩/placement 自報段位 > 一般測驗自報段位 > undefined
     const _initElo = _isPlacement && _placementInitElo ? _placementInitElo
                    : (_isPlacement && _selfFillElo) ? _selfFillElo
                    : (!_isPlacement && _knownInitElo) ? _knownInitElo
                    : undefined;
-    const res = await fetch('/api/rating_test/start', {
+    const res = await fetch(secureMode === 'steps' ? '/api/g076/rating/start' : '/api/rating_test/start', {
       method: 'POST', credentials: 'include',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
+      body: JSON.stringify(secureMode === 'steps' ? {trigger: _isPlacement ? 'placement' : 'manual'} : {
         trigger: _isPlacement ? 'placement' : 'manual',
         init_elo: _initElo,
         exclude_question_ids: _recentQuestionIds()
       })
     }).then(r => r.json());
 
-    if (res.error) { alert(I18n.t('rt.errInit')); document.getElementById('btn-start').disabled=false; return; }
+    if (res.error) {
+      if (secureMode === 'steps') showRatingHold(); else alert(I18n.t('rt.errInit'));
+      document.getElementById('btn-start').disabled=false; return;
+    }
+    if ((secureMode === 'steps' && !res.question?.step) ||
+        (secureMode === 'legacy' && res.question?.board_only)) { showRatingHold(); document.getElementById('btn-start').disabled=false; return; }
 
+    _ratingHeld = false;
+    document.getElementById('rating-mode-status').hidden = true;
     _sid       = res.session_id;
     sessionStorage.setItem(_ratingStorageKey, _sid);
     _round     = 0;
@@ -1602,6 +1648,7 @@ async function startTest() {
   } catch(e) {
     console.error(e);
     document.getElementById('btn-start').disabled = false;
+    if (secureMode === 'steps' || String(e.message).includes('HOLD')) { showRatingHold(); return; }
     alert(I18n.t('rt.errConn'));
   }
 }
@@ -1639,6 +1686,10 @@ function loadTestQuestion(q) {
   // Parse SGF & render board
   const problem = parseSGF((q.content || '').trim());
   if (problem) renderBoard(problem);
+  if (q.step) {
+    for (const move of q.step.played) playStone(move.x, move.y, move.color, true);
+    _currentNode = null;
+  }
 
   // 動態計時：依難度決定秒數
   _timerSecs = _ratingToSecs(q.rating);
@@ -1653,6 +1704,7 @@ function loadTestQuestion(q) {
 }
 
 async function submitMove(result) {
+  if (_curQ?.step) return ratingSecureStep(_timerLeft <= 0 ? 'timeout' : 'give_up');
   // result = 'correct' | 'wrong' | '' (timeout)
   if (_answered) return;
   const reportedMove = _playerMoves.length ? _playerMoves[_playerMoves.length - 1] : null;
@@ -1754,6 +1806,41 @@ async function submitMove(result) {
       alert(I18n.t('rt.errConn'));
     }
   }
+}
+
+// Secure mode never reads answer-tree children or calls the legacy answer URL.
+let _ratingDeadline = 0;
+async function ratingSecureStep(action, move) {
+  if (_answered || _testAnswering) return;
+  if (action === 'move' && (_logicBoard[move.x]?.[move.y] !== null ||
+      _wouldBeSuicide(move.x, move.y, _playerColor) ||
+      (_koPoint?.x === move.x && _koPoint?.y === move.y && _countCapturesIfPlay(move.x,move.y,_playerColor)===1))) return;
+  _testAnswering = true;
+  stopTimer();
+  const q = _curQ;
+  const body = {session_id:_sid, attempt_id:q.step.attempt_id, nonce:q.step.nonce, action};
+  if (move) body.move = move;
+  try {
+    const receipt = await G076Rating.post('/api/g076/rating/step', body, 1);
+    if (receipt.status === 'CONTINUE') {
+      for (const played of receipt.played.slice(q.step.played.length)) playStone(played.x,played.y,played.color,true);
+      Object.assign(q.step, receipt);
+      startTimer();
+    } else {
+      _answered = true;
+      _testSolved = true;
+      // Resume uses canonical server round/results, including placement and anon.
+      if (!await resumeRatingTest()) throw new Error('Rating Trial HOLD');
+    }
+  } catch (error) {
+    // Lost response recovery must retain the server deadline and current nonce.
+    if (!await resumeRatingTest()) {
+      _answered = true;
+      showRatingHold();
+      document.getElementById('feedback-flash').textContent = 'Rating Trial HOLD — 請重新整理恢復測驗';
+      console.error(error);
+    }
+  } finally { _testAnswering = false; }
 }
 
 // ── Result rendering ────────────────────────────────────────────────
@@ -2074,7 +2161,7 @@ const _savedRatingSid = sessionStorage.getItem(_ratingStorageKey);
 if (_savedRatingSid) {
   _sid = _savedRatingSid;
   resumeRatingTest().then(ok => {
-    if (!ok) sessionStorage.removeItem(_ratingStorageKey);
+    if (!ok && !_ratingHeld) sessionStorage.removeItem(_ratingStorageKey);
   });
 }
 document.getElementById('btn-claim-sp').addEventListener('click', claimSP);

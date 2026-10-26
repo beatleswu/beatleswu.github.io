@@ -1,0 +1,3 @@
+# Installed only in the isolated worktree .g066-test-deps for this run.
+Flask==3.1.3
+pytest==9.1.1

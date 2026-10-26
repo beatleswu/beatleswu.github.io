@@ -39,6 +39,15 @@ backups/
 *.bak
 *.bak.*
 
+# G077: never send temporary PG fixture credentials or Chrome profiles to
+# BuildKit, even though the Dockerfile has strictly curated COPY statements.
+artifacts/
+**/artifacts/
+.g076-*
+.g077-*
+**/.g076-*
+**/.g077-*
+
 # Large local engines, generated artifacts, and operator-only residue
 2023-06-15-windows64+katago/
 katago/

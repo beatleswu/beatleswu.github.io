@@ -1,0 +1,77 @@
+{
+  "task": "G077 Lane A B1",
+  "status": "HOLD_NOT_COMPLETED",
+  "recorded_at": "2026-10-23T19:25:09.8837634+08:00",
+  "workspace": "D:\\go-odyssey-g076-p0b-gates-20261023",
+  "head": "8a5101fae1ac685ce2c05b76fa330155b9631052",
+  "tree": "2d83ade29e07a99d42d3eed37c410c9f127049c8",
+  "branch": "g076-p0b-gates-20261023",
+  "actor": "beatles\\codexsandboxoffline",
+  "native_tests": "NOT_EXECUTED",
+  "product_settlement": "NOT_IMPLEMENTED",
+  "production_database": "NOT_CONNECTED",
+  "migration": "PROPOSED_NOT_EXECUTED",
+  "commit": "NOT_EXECUTED_PENDING_NATIVE_GREENS",
+  "sources": [
+    {
+      "path": "app.py",
+      "sha256": "5bf565b1288cde0994da8abdbed55e2c376336fdde1c90a61b48241d51734c4a"
+    },
+    {
+      "path": "review_service.py",
+      "sha256": "7dc8d7bf0dae4b8a7a2f8d5764cdb2fe633ad33ac8e2c60dd9a06a6683df8860"
+    },
+    {
+      "path": "srs_review_authority.py",
+      "sha256": "43fd5f9dc2b4f6857968e34748f24c7b5e383182461ee8f33af7fea6ebcf8abd"
+    },
+    {
+      "path": "srs_scheduling_core.py",
+      "sha256": "49796b7e54b8dfde58feaa954b0275f257f2f8070a1ff8b75d7118d54dfb56b4"
+    },
+    {
+      "path": "coin_reward_authority.py",
+      "sha256": "e88b5515c4fa1a736f8ac9e64fa96205a94ddd996e9536a85c7e548f665579c9"
+    },
+    {
+      "path": "question_idempotency.py",
+      "sha256": "3a3b0019725380621bf36af07adb1c2bf23d756a73ffb6708bb8eec3882d53b7"
+    },
+    {
+      "path": "g076_mistakes_product.py",
+      "sha256": "c896ef0b624bd5b4be3c3c27499aedf444876e889c6c1384510d542ec1fe8d70"
+    },
+    {
+      "path": "g076_nonmap_steps.py",
+      "sha256": "55b4853e20042eda7bb82190745960513b5ba8c85d43b3d8356e17f787bde435"
+    },
+    {
+      "path": "g076_practice_product.py",
+      "sha256": "084d7813845115cae6183c9a77d20a3d1b7c0828b360b6f1029fd11521bebd40"
+    },
+    {
+      "path": "migrations/g076_nonmap_steps_PROPOSED.sql",
+      "sha256": "9ec041413fbfca17eeb709e3861ea7bbfebaf32320f8cfc2ed93b4deb349c702"
+    },
+    {
+      "path": "migrations/g076_mistakes_steps_PROPOSED.sql",
+      "sha256": "397fde858e113caac66772e9f2067203021431a3bab840fbc03b9f17b1d0e997"
+    },
+    {
+      "path": "migrations/review_log_submission_idempotency_v1.py",
+      "sha256": "12a2b29bf325a34e587cf6e21d2c7f9af4c13f11114b482e47efa6cc6f386cc8"
+    },
+    {
+      "path": "tests/test_g076_mistakes_steps_isolated.py",
+      "sha256": "19c81915e7e4d2da689a4f060f29fed11fb44666dd13b45a36e32ebefb8d847f"
+    },
+    {
+      "path": "tests/test_g076_mistakes_product_readiness.py",
+      "sha256": "ba3bc76712b7124e407433a9534dfccc2cc01a0b68feede1fb881f7b73ac8983"
+    },
+    {
+      "path": "tests/test_g076_r3b_exposure.py",
+      "sha256": "2096b3907c011e28fc2dfa2b194eeb4e68b0fe04c8e34c0581c9fc9a61263c12"
+    }
+  ]
+}

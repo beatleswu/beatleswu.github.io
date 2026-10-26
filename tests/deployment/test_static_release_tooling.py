@@ -92,6 +92,11 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         "js/game/game_session.js",
         "js/game/question_loader.js",
         "js/game/board_renderer.js",
+        # G080: index.html loads both G076 answer clients directly. Their
+        # live-static route and baked-image fallback must ship atomically
+        # with the shell, not silently use stale bytes from another release.
+        "js/game/g076_authoritative_step_client.js",
+        "js/game/g076_nonmap_step_client.js",
         "js/game/mode_context.js",
         "js/game/game_bootstrap.js",
         # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 adds the zone-agnostic

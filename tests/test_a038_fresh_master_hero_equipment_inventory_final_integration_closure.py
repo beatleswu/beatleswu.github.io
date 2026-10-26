@@ -22,9 +22,17 @@ def _function_source(source: str, name: str) -> str:
 
 def test_review_gameplay_no_longer_consumes_legacy_appearance_effects():
     review = _function_source(APP, "_srs_review_operation")
+    learning = _function_source(APP, "_review_learning_in_transaction")
+    assert "_review_learning_in_transaction(" in review
+    assert "learning['xp_gain']" in review
     assert "_get_appearance_effects" not in review
-    assert "equipment_xp_bonus = _safe_active_equipment_effect" in review
-    assert "total_xp_bonus = equipment_xp_bonus" in review
+    assert "_get_appearance_effects" not in learning
+    # The transaction helper owns the real equipment-XP calculation. Assert
+    # both strict and legacy server-authority paths, not an obsolete location.
+    assert "equipment_effect = (_get_active_equip_effect if strict" in learning
+    assert "else _safe_active_equipment_effect)" in learning
+    assert "equipment_xp_bonus = equipment_effect(conn, uid, 'xp_bonus')" in learning
+    assert "total_xp_bonus = equipment_xp_bonus" in learning
     compatibility = _function_source(APP, "_get_appearance_effects")
     assert "compatibility projection" in compatibility
     assert "player_inventory" in compatibility

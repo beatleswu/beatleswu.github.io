@@ -50,6 +50,8 @@ def _install_app_import_stubs():
 
         module = types.ModuleType("grimoire_api")
         module.grimoire_bp = Blueprint("b050_grimoire_stub", __name__)
+        # app.py installs Product Grimoire with this lookup at import time.
+        module.official_grimoire_lookup = lambda qid: None
         sys.modules["grimoire_api"] = module
     if "question_taxonomy" not in sys.modules:
         module = types.ModuleType("question_taxonomy")

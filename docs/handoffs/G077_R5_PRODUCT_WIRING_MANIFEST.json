@@ -1,0 +1,71 @@
+{
+  "task": "G077 Lane C R5 Product wiring",
+  "base_head": "3c27bc6fad2998b722c38247dfdc8c1db9b3c0c0",
+  "working_tree": "UNCOMMITTED; exact bytes below",
+  "product_readiness": "HOLD",
+  "independent_flag": "IMPLEMENTED; Flask/PG validation BLOCKED",
+  "official_corpus": "NOT_PRESENT_OR_VERIFIED",
+  "canonical_uuid_provider": "UNBOUND",
+  "real_entitlements": "UNBOUND",
+  "lesson_policy": "UNBOUND",
+  "python": "3.12.14",
+  "python_dependencies": {
+    "pytest": false,
+    "flask": false,
+    "psycopg2": false
+  },
+  "validation": {
+    "python_ast": "PASS",
+    "python_pytest": "BLOCKED before collection: No module named pytest",
+    "javascript_client_unit": "5 PASS; explicit doubles; unchanged client",
+    "native_pg": "NOT_EXECUTED: Docker exact labels unavailable",
+    "chrome_flask_pg": "NOT_EXECUTED",
+    "docker_build": "NOT_EXECUTED"
+  },
+  "files": [
+    {
+      "path": "Dockerfile",
+      "sha256": "03977097e522a743a55ef7376406d5833d3b42d344636dd741626159c9419165"
+    },
+    {
+      "path": "app.py",
+      "sha256": "8ee63631cafce265937c498ea236b7cceaaf6a9a08a8a84a33a47c7c19247a0e"
+    },
+    {
+      "path": "grimoire_api.py",
+      "sha256": "f3b6fe00c1c50c642682467304c797d023ff84d42f46c1fdef4ffbae2f1eb658"
+    },
+    {
+      "path": "g076_grimoire_product.py",
+      "sha256": "171c1440d09edf003c1007c9c1d3e1a027898efbe8132dc2fd59a0c8baefa2f5"
+    },
+    {
+      "path": "g076_grimoire_pg_service.py",
+      "sha256": "06603a692d870ab31a8ab79242679d59bbc5abc3a15d60a56bf59e036fce1cc3"
+    },
+    {
+      "path": "g076_grimoire_adapter.py",
+      "sha256": "9f04909de26ddaa14bbafc014f9eaa1bf8c6fcb695b3191959fce0b9bd2ece9b"
+    },
+    {
+      "path": "g076_grimoire_catalog.py",
+      "sha256": "092530cb8fbf1a65d15955ffd893bf3c45dea37d8a2db00b80530b516bb5d352"
+    },
+    {
+      "path": "grimoire_player.html",
+      "sha256": "cb435dcd854118acf7cd5e5de0c3716dc722ff545c5f9909db7f7690e0ee115b"
+    },
+    {
+      "path": "js/game/g076_grimoire_product_client.js",
+      "sha256": "7b9f2bc12be8c11f753db2552fc6db17750679f4c6aeb284ab766dab3bfd19e7"
+    },
+    {
+      "path": "tests/test_g077_grimoire_product_wiring.py",
+      "sha256": "135faa1c6f0827a7be86286e1d12fd75e6bcc5be2d14f6aa3d23859f7f068c44"
+    },
+    {
+      "path": "tests/test_g077_grimoire_product_pg_live.py",
+      "sha256": "836b039048956acd9ec2ef74237a13d60899b9d37259f2392d0f7ab7e36de72a"
+    }
+  ]
+}

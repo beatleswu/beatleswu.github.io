@@ -130,9 +130,15 @@ def test_duplicate_reviews_and_skill_unlocks_stay_non_mutating_at_lane_boundary(
 
 def test_appearance_milestone_remains_in_canonical_review_flow():
     review = _function_source("_srs_review_operation")
-    assert "if ranked_up:" in review
-    assert "give_rank_appearance(conn, uid, new_rank_level)" in review
-    assert "new_appearance_items" in review
+    learning = _function_source("_review_learning_in_transaction")
+    # Rank grants remain in the canonical transaction, then travel back
+    # through the original review response. The code was extracted from the
+    # review wrapper; removing either leg must still fail this contract.
+    assert "_review_learning_in_transaction(" in review
+    assert "if ranked_up:" in learning
+    assert "give_rank_appearance(conn, uid, new_rank_level)" in learning
+    assert "new_appearance_items" in learning
+    assert "learning['new_appearance_items']" in review
 
 
 def test_retaliation_uses_authoritative_roster_and_ignores_claimed_attack():

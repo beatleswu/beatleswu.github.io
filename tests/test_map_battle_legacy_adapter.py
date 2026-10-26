@@ -94,6 +94,7 @@ def _install_app_import_stubs():
 
         module = types.ModuleType("grimoire_api")
         module.grimoire_bp = Blueprint("grimoire_stub_map_battle", __name__)
+        module.official_grimoire_lookup = lambda _qid: None
         sys.modules["grimoire_api"] = module
     if "question_taxonomy" not in sys.modules:
         module = types.ModuleType("question_taxonomy")
@@ -156,6 +157,54 @@ class _DbContext:
         return False
 
 
+def _install_reward_tail_schema(conn, *, postgres=False):
+    """Synthetic fixture parity with Product's atomic Map reward tail.
+
+    These tables are normally supplied by app.init_db(); the narrow battle
+    fixtures previously omitted them, causing 503 on fail-closed reward
+    settlement. Add the real contract instead of stubbing or weakening tests.
+    """
+    conn.execute("""CREATE TABLE daily_quests (
+        user_id INTEGER NOT NULL, quest_key TEXT NOT NULL,
+        target INTEGER NOT NULL, progress INTEGER NOT NULL DEFAULT 0,
+        completed INTEGER NOT NULL DEFAULT 0,
+        xp_awarded INTEGER NOT NULL DEFAULT 0,
+        quest_date TEXT NOT NULL,
+        PRIMARY KEY(user_id,quest_key,quest_date))""")
+    conn.execute("""CREATE TABLE pet_inventory (
+        user_id INTEGER NOT NULL, item_key TEXT NOT NULL,
+        qty INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(user_id,item_key))""")
+    conn.execute("""CREATE TABLE player_inventory (
+        user_id INTEGER NOT NULL, equip_id TEXT NOT NULL,
+        equipped INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(user_id,equip_id))""")
+    conn.execute("""CREATE TABLE player_skills (
+        user_id INTEGER NOT NULL, skill_id TEXT NOT NULL,
+        equipped INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(user_id,skill_id))""")
+    # Monster settlement can award a cosmetic as well as coins/equipment.
+    # Preserve the Product's wardrobe uniqueness and inserted-row identity:
+    # failing to install this real reward target previously produced a
+    # spurious fail-closed 503 whenever the randomized drop was cosmetic.
+    wardrobe_pk = "SERIAL PRIMARY KEY" if postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    conn.execute(f"""CREATE TABLE player_wardrobe (
+        id {wardrobe_pk},
+        user_id INTEGER NOT NULL,
+        item_id TEXT NOT NULL,
+        obtained_at TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'drop',
+        UNIQUE(user_id,item_id))""")
+    # Install the same candidate transactional event schema as the Product.
+    # Previously this fixture couldn't reach the true Monster reward writer.
+    from migrations.domain_event_outbox_v1 import upgrade as create_event_outbox
+    create_event_outbox(conn)
+    pk = 'SERIAL PRIMARY KEY' if postgres else 'INTEGER PRIMARY KEY AUTOINCREMENT'
+    conn.execute(f"""CREATE TABLE currency_log (
+        id {pk}, user_id INTEGER NOT NULL,
+        delta INTEGER NOT NULL, balance_after INTEGER NOT NULL,
+        reason TEXT, created_at TEXT NOT NULL)""")
+
+
 @pytest.fixture()
 def api_env(app_module, monkeypatch):
     conn = sqlite3.connect(":memory:")
@@ -185,6 +234,7 @@ def api_env(app_module, monkeypatch):
              max_combo INTEGER NOT NULL DEFAULT 0,
              rank_level TEXT NOT NULL DEFAULT 'LV1',
              rank_xp INTEGER NOT NULL DEFAULT 0,
+             coins INTEGER NOT NULL DEFAULT 0,
              elo_rating REAL NOT NULL DEFAULT 1400,
              go_rank TEXT,
              player_hp INTEGER NOT NULL DEFAULT 30,
@@ -297,6 +347,7 @@ def api_env(app_module, monkeypatch):
              updated_at TEXT
         )"""
     )
+    _install_reward_tail_schema(conn)
     ensure_map_battle_tables(conn)
     ensure_submission_lifecycle_schema(conn)
     monkeypatch.setattr(app_module, "get_db", lambda: _DbContext(conn))
@@ -430,7 +481,14 @@ def test_browser_and_server_player_color_parity_for_explicit_and_inferred_turn(a
         ("(;SZ[19];B[dd];W[ee])", "B"),
         ("(;SZ[19];W[dd];B[ee])", "W"),
     ]
+    # index.html loads the dedicated renderer before parseSGF. Node's
+    # standalone test must load the same production JS, not an undefined
+    # browser global or an in-test fake.
     node_script = f"""
+global.window = global;
+require('node:vm').runInThisContext(
+    require('node:fs').readFileSync('js/game/board_renderer.js', 'utf8')
+);
 {_index_function('parseSGF')}
 const cases = {json.dumps([content for content, _ in cases])};
 process.stdout.write(JSON.stringify(cases.map((content) => parseSGF(content).pl)));
@@ -824,6 +882,12 @@ def test_b025_incorrect_map_battle_suppresses_legacy_retaliation(api_env, app_mo
 
 def test_b025_near_death_map_battle_has_one_kill_and_no_legacy_drop_path(api_env, app_module, monkeypatch):
     client, conn = api_env
+    # Atomic Map defeat needs server-resolvable Monster authority.
+    # The original narrow fixture omitted any canonical Monster identity.
+    monkeypatch.setattr(
+        app_module, "_load_questions",
+        lambda: [dict(QUESTION, monster_idx=0, monster_type="caterpillar")],
+    )
     legacy_calls = []
 
     def forbidden_legacy_settlement(*args, **kwargs):
@@ -1220,9 +1284,9 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
 ):
     """Two PostgreSQL sessions must credit one settled submission once.
 
-    The second session is deliberately entered while the first session holds
-    the settled-submission FOR UPDATE lock.  This is not a sequential retry
-    approximation and does not use SQLite as a concurrency substitute.
+    The second session is deliberately submitted while the first holds the
+    canonical users-row FOR UPDATE lock, ahead of the settled-submission lock.
+    This remains truly concurrent PostgreSQL, not a sequential retry.
     """
 
     import importlib.util
@@ -1258,6 +1322,7 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
                  max_combo INTEGER NOT NULL DEFAULT 0,
                  rank_level TEXT NOT NULL DEFAULT 'LV1',
                  rank_xp INTEGER NOT NULL DEFAULT 0,
+             coins INTEGER NOT NULL DEFAULT 0,
                  elo_rating DOUBLE PRECISION NOT NULL DEFAULT 1400,
                  player_hp INTEGER NOT NULL DEFAULT 30,
                  player_max_hp INTEGER NOT NULL DEFAULT 30
@@ -1322,6 +1387,7 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
             last_interacted_at TEXT, last_pet_at TEXT, last_train_at TEXT, daily_key TEXT,
             daily_bond INTEGER DEFAULT 0, daily_train_xp INTEGER DEFAULT 0,
             PRIMARY KEY(user_id,pet_key))""")
+        _install_reward_tail_schema(seed, postgres=True)
         ensure_map_battle_tables(seed)
         ensure_submission_lifecycle_schema(seed)
         create_map_battle(
@@ -1436,28 +1502,34 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
 
         monkeypatch.setattr(app_module, "get_db", thread_db)
 
-        real_submission_loader = app_module._map_battle_progression_submission
+        # G080 A canonical lock order is users-row FIRST, then settled
+        # submission FOR UPDATE.  Old instrumentation waited for two callers
+        # inside submission_loader; the second can no longer reach it before
+        # the first commits. Observe the true first lock instead.
+        real_user_lock = app_module._lock_user_for_daily_quota
         entry_lock = threading.Lock()
-        second_entered = threading.Event()
-        loader_entries = 0
+        first_locked = threading.Event()
+        second_attempted = threading.Event()
+        lock_entries = 0
 
-        def locked_submission_loader(conn, user_id, submission_id):
-            nonlocal loader_entries
+        def observed_player_lock(conn, user_id):
+            nonlocal lock_entries
+            if getattr(thread_state, 'entry_marked', False):
+                return real_user_lock(conn, user_id)
+            thread_state.entry_marked = True
             with entry_lock:
-                loader_entries += 1
-                ordinal = loader_entries
+                lock_entries += 1
+                ordinal = lock_entries
             if ordinal == 1:
-                row = real_submission_loader(conn, user_id, submission_id)
-                assert second_entered.wait(timeout=15)
-                return row
-            second_entered.set()
-            return real_submission_loader(conn, user_id, submission_id)
+                result = real_user_lock(conn, user_id)
+                first_locked.set()
+                assert second_attempted.wait(timeout=15)
+                return result
+            assert first_locked.wait(timeout=15)
+            second_attempted.set()
+            return real_user_lock(conn, user_id)
 
-        monkeypatch.setattr(
-            app_module,
-            "_map_battle_progression_submission",
-            locked_submission_loader,
-        )
+        monkeypatch.setattr(app_module, "_lock_user_for_daily_quota", observed_player_lock)
 
         start = threading.Barrier(2)
         outcomes = []

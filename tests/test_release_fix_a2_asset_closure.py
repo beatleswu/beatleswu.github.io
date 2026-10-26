@@ -23,6 +23,7 @@ E9_PACKAGING_TEST_IMAGE elsewhere in this suite) so normal CI runs stay
 hermetic. Items 1-5, 9, 11, 12 are fully deterministic, no network.
 """
 import json
+import hashlib
 import os
 import re
 import shutil
@@ -190,12 +191,22 @@ def test_every_runtime_image_reference_resolves_to_governed_closure():
     # Runtime packaging is governed by the active inventory subtree manifest.
     # The older 243-file A2 audit manifest remains a historical regression
     # fixture, but must not become a second source of truth for new assets.
-    manifest = _load_active_image_manifest()
-    governed = {"/" + f["path"] for f in manifest["files"]}
-    zone3_manifest = json.loads(_read(ACTIVE_E10_ZONE3_STATIC_SUBTREE_MANIFEST))
-    governed |= {"/" + f["path"] for f in zone3_manifest["files"]}
-    lord_trial_manifest = json.loads(_read(ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST))
-    governed |= {"/" + f["path"] for f in lord_trial_manifest["files"]}
+    # Inventory REQUIRED_SUBTREES is the live release authority. The 2026-07
+    # historical image manifest is only one of its disjoint namespaces:
+    # Equipment and Zone 4 were added later. Scanning only that old pack
+    # incorrectly calls 49 already-governed runtime PNGs "missing".
+    governed = set()
+    manifests = [entry["manifest"] for entry in
+                 _load_inventory()["required_subtrees"]["entries"]]
+    assert len(manifests) == len(set(manifests)), "duplicate manifest admission"
+    for manifest_path in manifests:
+        manifest = json.loads(_read(REPO_ROOT / manifest_path))
+        for entry in manifest["files"]:
+            path = entry["path"]
+            if path.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico")):
+                public_path = "/" + path
+                assert public_path not in governed, f"duplicate static image: {path}"
+                governed.add(public_path)
     governed |= _load_build_input_image_paths()
     referenced = scan_runtime_image_references()
 
@@ -244,40 +255,25 @@ def _run_pwsh(script):
 
 
 def _copy_required_flat_generation_sources(source):
-    """Build the smallest source fixture accepted by the live inventory."""
-    for filename in (
-        "index.html",
-        "inventory.html",
-        "item_journal.html",
-        "i18n.js",
-        "sw.js",
-        "site-nav.js",
-    ):
-        shutil.copy(REPO_ROOT / filename, source / filename)
-    adapter_target = source / "js"
-    adapter_target.mkdir(parents=True, exist_ok=True)
-    shutil.copy(
-        REPO_ROOT / "js" / "map_battle_v1_adapter.js",
-        adapter_target / "map_battle_v1_adapter.js",
-    )
-    # A041's legacy-cache guard is a required generated runtime asset, not an
-    # image-pack file, so include it in the minimal source fixture too.
-    shutil.copy(
-        REPO_ROOT / "js" / "hero_legacy_cache_guard.js",
-        adapter_target / "hero_legacy_cache_guard.js",
-    )
-    # deploy/live-static-asset-inventory.json's required_in_generation.entries
-    # governs the whole js/game/ family (lord_trial_controller.js through the
-    # B6/B7 mode_context.js and game_bootstrap.js additions) -- the fixture
-    # must carry all of it or staging correctly (and confusingly) fails
-    # closed on files this test never gave it in the first place.
-    shutil.copytree(REPO_ROOT / "js" / "game", source / "js" / "game")
-    # The E10 static-coherence contract derives the live runtime closure from
-    # index.html and shell component references, so the fixture must carry
-    # the same routed JS/CSS/component subtrees as a real release checkout.
-    shutil.copytree(REPO_ROOT / "js" / "e9", source / "js" / "e9")
-    shutil.copytree(REPO_ROOT / "css" / "e9", source / "css" / "e9")
-    shutil.copytree(REPO_ROOT / "components" / "adventure", source / "components" / "adventure")
+    """Mirror the actual current inventory, never a stale partial A2 fixture."""
+    inventory = _load_inventory()
+    for filename in inventory["required_in_generation"]["entries"]:
+        origin = REPO_ROOT / filename
+        target = source / filename
+        assert origin.is_file(), f"release-required source missing: {filename}"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(origin, target)
+    for entrypoint in inventory["runtime_dependency_closure"]["entrypoints"]:
+        origin = REPO_ROOT / entrypoint
+        target = source / entrypoint
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(origin, target)
+    for subtree in inventory["runtime_dependency_closure"]["subtrees"]:
+        root = REPO_ROOT / subtree["prefix"]
+        if root.is_dir():
+            shutil.copytree(root, source / subtree["prefix"],
+                            dirs_exist_ok=True)
+
 
 
 def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
@@ -285,13 +281,18 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
     # required_subtrees entry currently points at -- RELEASE-FIX-A3 switched
     # that from the 180-file closure to the full image pack, so this test's
     # expected set must track the same manifest, not the superseded one.
-    manifest = json.loads(_read(ACTIVE_SUBTREE_MANIFEST))
-    audio_manifest = json.loads(_read(ACTIVE_AUDIO_SUBTREE_MANIFEST))
-    e10_audio_manifest = json.loads(_read(ACTIVE_E10_AUDIO_SUBTREE_MANIFEST))
-    e10_zone2_art_manifest = json.loads(_read(ACTIVE_E10_ZONE2_ART_SUBTREE_MANIFEST))
-    e10_zone2_audio_manifest = json.loads(_read(ACTIVE_E10_ZONE2_AUDIO_SUBTREE_MANIFEST))
-    e10_zone2_lord_trial_art_manifest = json.loads(_read(ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST))
-    e10_zone3_static_manifest = json.loads(_read(ACTIVE_E10_ZONE3_STATIC_SUBTREE_MANIFEST))
+    inventory = _load_inventory()
+    # The historical image pack is one of fifteen disjoint live-static packs.
+    # The current inventory is the only release membership authority.
+    subtree_manifests = [
+        json.loads(_read(REPO_ROOT / entry["manifest"]))
+        for entry in inventory["required_subtrees"]["entries"]
+    ]
+    declared = [f["path"] for manifest in subtree_manifests
+                for f in manifest["files"]]
+    assert len(declared) == len(set(declared)), "duplicate subtree path"
+
+
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
@@ -321,32 +322,29 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         # about -- cannot silently reintroduce this same drift.
         flat_governed_paths = set(_load_inventory()["required_in_generation"]["entries"])
         governed_paths = (
-            {f["path"] for f in manifest["files"]}
-            | {f["path"] for f in audio_manifest["files"]}
-            | {f["path"] for f in e10_audio_manifest["files"]}
-            | {f["path"] for f in e10_zone2_art_manifest["files"]}
-            | {f["path"] for f in e10_zone2_audio_manifest["files"]}
-            | {f["path"] for f in e10_zone2_lord_trial_art_manifest["files"]}
-            | {f["path"] for f in e10_zone3_static_manifest["files"]}
-            | flat_governed_paths
+            set(declared)
+            | set(inventory["required_in_generation"]["entries"])
             | closure_paths
         )
-        assert set(staged_by_path.keys()) == governed_paths, (
-            "staged file set must be exactly the governed closure -- no more, no less "
-            f"(missing: {governed_paths - set(staged_by_path)}, "
-            f"extra/unreferenced: {set(staged_by_path) - governed_paths})"
+        # The runtime closure is generated by the same PowerShell dependency
+        # graph, not by an independently stale Python allowlist. Newly found
+        # graph files must still be eligible and stay in declared subtrees.
+        graph_paths = set(staged_by_path) - governed_paths
+        allowed = set(inventory["eligible_files"]["entries"])
+        prefixes = tuple(x["prefix"] for x in
+                         inventory["runtime_dependency_closure"]["subtrees"])
+        assert graph_paths <= allowed
+        assert all(path.startswith(prefixes) for path in graph_paths)
+        assert governed_paths <= set(staged_by_path), (
+            "Missing governed files: " + str(governed_paths - set(staged_by_path))
         )
-        for entry in (
-            manifest["files"]
-            + audio_manifest["files"]
-            + e10_audio_manifest["files"]
-            + e10_zone2_art_manifest["files"]
-            + e10_zone2_audio_manifest["files"]
-            + e10_zone2_lord_trial_art_manifest["files"]
-        ):
+        assert set(staged_by_path) == governed_paths | graph_paths
+        for entry in (f for manifest in subtree_manifests
+                      for f in manifest["files"]):
             staged_entry = staged_by_path[entry["path"]]
             assert staged_entry["sha256"] == entry["sha256"], f"SHA mismatch for {entry['path']}"
             assert staged_entry["size"] == entry["size"], f"size mismatch for {entry['path']}"
+
 
 
 def test_partial_generation_fails_closed_missing_file():
@@ -433,11 +431,20 @@ def test_no_unreferenced_historical_files_in_closure_manifest():
         "retired legacy newbie-quest assets must not regain runtime references: "
         f"{sorted(INTENTIONALLY_RETIRED_HISTORICAL_CLOSURE_PATHS & referenced)}"
     )
-    over_broad = governed - referenced - INTENTIONALLY_RETIRED_HISTORICAL_CLOSURE_PATHS
-    assert not over_broad, (
-        f"closure manifest contains files not referenced by any runtime scan "
-        f"(scope creep beyond the confirmed incident): {sorted(over_broad)}"
+    # This is the immutable historical 2026-07 scope. The *current* runtime
+    # references cannot prove which images an earlier generation legitimately
+    # used (new Zone3/Zone4 and later renderer changes alter the grep scan).
+    # Pin all 243 historical member names byte-exactly; any future wholesale
+    # import or deletion now fails without mistaking retired UI references for
+    # scope creep. Current new references are guarded by the all-manifest
+    # closure test above.
+    frozen_membership_sha256 = (
+        "ef18f4275321b3ff089e6d7a4e8c5d56"
+        "c96fd69a50562a48dbf754c9e5836bd7"
     )
+    assert hashlib.sha256(
+        "\n".join(sorted(governed)).encode("utf-8")
+    ).hexdigest() == frozen_membership_sha256
 
 
 # ---------------------------------------------------------------------------

@@ -74,11 +74,17 @@ def test_every_legacy_cache_consumer_is_bounded_or_removed():
 
 def test_server_effect_and_appearance_authority_remain_separate():
     review = _function_source(APP, "_srs_review_operation")
+    learning = _function_source(APP, "_review_learning_in_transaction")
     effects = _function_source(APP, "_get_appearance_effects")
     combat = _function_source(APP, "_get_authoritative_combat_stats")
 
+    assert "_review_learning_in_transaction(" in review
+    assert "learning['xp_gain']" in review
     assert "_get_appearance_effects" not in review
-    assert "_safe_active_equipment_effect" in review
+    assert "_get_appearance_effects" not in learning
+    assert "equipment_effect = (_get_active_equip_effect if strict" in learning
+    assert "else _safe_active_equipment_effect)" in learning
+    assert "equipment_xp_bonus = equipment_effect(conn, uid, 'xp_bonus')" in learning
     assert "player_inventory" in combat
     assert "APPEARANCE_EFFECTS" in effects
     assert "compatibility projection" in effects

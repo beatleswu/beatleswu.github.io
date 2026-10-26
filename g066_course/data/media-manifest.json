@@ -1,0 +1,205 @@
+{
+  "schema": "g066-external-media-v1",
+  "assets": [
+    {
+      "lesson_id": "v1-init-01",
+      "source_file": "啟蒙班_第1課_氣與提子.mp4",
+      "sha256": "4dc8a37f22743402d353bf98ea8713f65179604142f5054d8fc0107ec2a5f1f0",
+      "bytes": 7062938,
+      "script_sha256": "0c40b4f480d306e059c0f19b77c1b1d13467c3c66a4b90ee1b152d4596c67857",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-02",
+      "source_file": "啟蒙班_第2課_逃走.mp4",
+      "sha256": "dcd37dfd278e7a3cdd9618f8250ad08bd4913aada4e726643fffc0f47770be61",
+      "bytes": 5043499,
+      "script_sha256": "46ddc864389c4ef6466ae6291b378e5d8e6a44ce9ad77704ab650320beb757dd",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-03",
+      "source_file": "啟蒙班_第3課_連接.mp4",
+      "sha256": "b88b99bc0a6b348c03ccea9cb2f7422bc7181ceb660888d460f248a51a12785c",
+      "bytes": 4259593,
+      "script_sha256": "1e8e819b80ceafa799e8afc16429006ca299e179922f6d3cbfa4ff08174578cd",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-04",
+      "source_file": "啟蒙班_第4課_切斷.mp4",
+      "sha256": "64a8b39a91744e5afdffc98dab1b35fa8d0f95498e319a2d7f31cb8236b8be55",
+      "bytes": 3706397,
+      "script_sha256": "3c30a59b853dc6cc93db18d40503762ca2e365531d501e86788faacaf94fb0cf",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-05",
+      "source_file": "啟蒙班_第5課_雙叫吃.mp4",
+      "sha256": "b28dc943188bfbcd74ccf7310d0311f1d90e16488e1385dc9d9de5011a904e34",
+      "bytes": 3105019,
+      "script_sha256": "1a78be1befec1dda5a1091c959172ce1cd82abc2e8fbb87f417b9e52d8aa888a",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-06",
+      "source_file": "啟蒙班_第6課_叫吃的方向.mp4",
+      "sha256": "59a91466be514ad4e452195869963cece820bc3402e36627108d36254e4bbaa3",
+      "bytes": 4664163,
+      "script_sha256": "5b4523c894a99c5bbc35f9881d6f26688e9bca1cf7a3996ce142033434a9b5ed",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-07",
+      "source_file": "啟蒙班_第7課_征子.mp4",
+      "sha256": "220ba46b57da7e03fc52f0dd0f6dde8984604f65978d2c9a50288f62c6795d21",
+      "bytes": 5087326,
+      "script_sha256": "55eacb03a4a7d2afeaaddcec940a54bd1ce754d564d13eef8c451e6b5b10a8a6",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-08",
+      "source_file": "啟蒙班_第8課_門吃.mp4",
+      "sha256": "9fc844bb05dfff76fbd18f7d42707216314a34b9b697c958fb7db91fb554f526",
+      "bytes": 3332816,
+      "script_sha256": "06cadbae8320b28aa21ff7e892c4fa4115dc478a6dc9e6a150a9af7448c60530",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-09",
+      "source_file": "啟蒙班_第9課_撲與反提.mp4",
+      "sha256": "6dba8472fd8bc72ae6fd9da052c670a269a82aa8666c7935d6bda85029e9db41",
+      "bytes": 3601062,
+      "script_sha256": "84c2808f4e93127ffca9ad144a6ecaf34801db85b50569b256a072c0f4e559e6",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-10",
+      "source_file": "啟蒙班_第10課_接不歸.mp4",
+      "sha256": "2bccfb12c02e30684fa10520271eb6ec20d67f3ba4a2e8ba5183250738fc2b69",
+      "bytes": 3508513,
+      "script_sha256": "3fa1ff597860092dbb7dd8bc9586df283e7c4f5819f113320a43d664ca60db5f",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-11",
+      "source_file": "啟蒙班_第11課_比氣.mp4",
+      "sha256": "12183f9b5a1d7fec060ee8f17f053fda5c7d0252d59d4d8d2fa010325bac5da9",
+      "bytes": 3474135,
+      "script_sha256": "473edf3c24136ebddfafeded7f25404f8de96b6dc0bfdaae11b0ea858d094937",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-12",
+      "source_file": "啟蒙班_第12課_不吃死棋.mp4",
+      "sha256": "7da49230a5a82f6e93a66a2c4c4e3bc1b7c70586e41008194291f5240971b499",
+      "bytes": 3807755,
+      "script_sha256": "e5d8e96316e8cd375a3ac32b33f3672ad9bf1d7b31fceacd7f1672ec61c55121",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-13",
+      "source_file": "啟蒙班_第13課_救能救的子.mp4",
+      "sha256": "4923ac0cefb16f43c7dd99ac3014c8a9068c3aeed85858d57ef5660769483932",
+      "bytes": 3418894,
+      "script_sha256": "87e42f58a67ef768530a5e8b66d4f0989930ecdc931b9f0699378ea931dd01a0",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-14",
+      "source_file": "啟蒙班_第14課_叫吃後吃棋.mp4",
+      "sha256": "80a7223f2ffd1e96031e45b4cfb8adce6b5cabeec632891858f45459e2abce5b",
+      "bytes": 3781050,
+      "script_sha256": "00c6987cbc999650705f7473ecd867f8cde88c3fc028ecbffd78dda3af77e209",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-15",
+      "source_file": "啟蒙班_第15課_衝出包圍.mp4",
+      "sha256": "23cd5c0114087f5bbd9154fab96a5c63abdb5f7f513c54b7cbc3f98b81fe2d5f",
+      "bytes": 2723967,
+      "script_sha256": "f50a6526c5117ee896e9144ddac9a34259ebf3389546a42481c5ccb0ccdf3e8c",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-16",
+      "source_file": "啟蒙班_第16課_真眼與假眼.mp4",
+      "sha256": "745023167b0fc01b42a66aa4a07846f6e923e225fe9221751eecab5e56c06510",
+      "bytes": 3562391,
+      "script_sha256": "ec3e183266eab26a753c8bd7e2fb0534dd52063fc84f0035326245536f7c15f6",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-17",
+      "source_file": "啟蒙班_第17課_兩眼才活.mp4",
+      "sha256": "33301a029410162672a1baa0614c1b169906c33be64c2d8b6694121d68815784",
+      "bytes": 3303271,
+      "script_sha256": "b7ef3c08218e2f824e0cbdacd929bc8f9d8d0afbd24b5a49386b6299c40f3665",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-18",
+      "source_file": "啟蒙班_第18課_破眼殺棋.mp4",
+      "sha256": "dc3889c8a0c0504081d8448b4de23e6e6e5eaac533359c77837fdb2dbec44093",
+      "bytes": 3193881,
+      "script_sha256": "28a8c7fbf8b709c9e2c34db4eeafcbd63a07e7ca9cb1a9bcae2700d68f74a25c",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-19",
+      "source_file": "啟蒙班_第19課_劫的規則.mp4",
+      "sha256": "69107ff2080b0168b3afbff727d49b0083fd0e15af3400af56e2895266d7a453",
+      "bytes": 2522509,
+      "script_sha256": "b9a6cb92f389a912d5a448b5cced41acb1a763d0e31554707ae294f7aeb814df",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    },
+    {
+      "lesson_id": "v1-init-20",
+      "source_file": "啟蒙班_第20課_總複習與終局.mp4",
+      "sha256": "53915a2ff1399e4da0923393fc580e0929b60a61b37dd62bfeec832037fddd9b",
+      "bytes": 3545908,
+      "script_sha256": "f6bc1714a5c2afdd77e45b8d561bd17b56ede7a17ff255741c086dcea8eda68e",
+      "external_url": null,
+      "owner_review": "PENDING",
+      "packaged": false
+    }
+  ]
+}

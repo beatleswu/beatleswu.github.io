@@ -43,7 +43,13 @@ def test_daily_training_and_mistake_payloads_use_the_same_free_content_authority
     assert "(premium or question_is_free(q))" in training
     assert "premium = is_premium(uid)" in mistakes
     assert "locked = (not premium) and (not question_is_free(q))" in mistakes
-    assert "'content': '' if locked else q.get('content','')" in mistakes
+    # The private Mistakes path computes and sanitizes content before the
+    # response dict. A locked premium question must stay empty even when the
+    # board-only projection is enabled.
+    assert "content = '' if locked else q.get('content', '')" in mistakes
+    assert "if private and not locked:" in mistakes
+    assert "content = _g076_exposure_content(content)" in mistakes
+    assert "'content': content" in mistakes
 
 
 def test_practice_attempt_issue_rejects_premium_question_for_free_user():
@@ -75,11 +81,22 @@ def test_map_battle_internal_review_is_a_single_server_handoff_after_admission()
 def test_public_quota_is_atomic_and_shared_with_practice():
     review = _block(APP, "def _srs_review_operation(", "def _dispatch_to_srs_review_operation")
     practice = _block(APP, "def srs_practice_answer():", "def _srs_review_operation")
-    for block in (review, practice):
+    persist = _block(APP, "def _persist_practice_review(", "def _review_submission_duplicate_response")
+    error_response = _block(APP, "def _practice_error_response(", "def _practice_duplicate_payload(")
+    for block in (review, persist):
         assert "_lock_user_for_daily_quota" in block
         assert "_daily_quota_snapshot_in_transaction" in block
         assert "_daily_quota_rejection" in block
-        assert "return jsonify(rejection), 429" in block
+    assert "return jsonify(rejection), 429" in review
+    # Practice now delegates to the borrowed-connection transaction helper:
+    # quota rejection must occur BEFORE any review_log/SRS write, and it
+    # bubbles out as an exact HTTP 429 with the original upgrade payload.
+    assert "error = PracticeAttemptError('daily_limit', status=429)" in persist
+    assert "error.response_payload = rejection" in persist
+    assert "raise error" in persist
+    assert persist.index("_daily_quota_rejection(snapshot)") < persist.index("insert_review_log_with_identity(")
+    assert "return _practice_error_response(error)" in practice
+    assert "return jsonify(error.response_payload), int(error.status)" in error_response
     assert "FOR UPDATE" in APP
     assert "today_count = get_today_free_count(uid)" not in review
     assert "premium_entitled = is_premium(uid)" in review

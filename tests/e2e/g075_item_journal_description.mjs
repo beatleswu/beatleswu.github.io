@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const page = fs.readFileSync(path.join(root, 'item_journal.html'), 'utf8');
+const match = page.match(/function itemDescription\(item\) \{[\s\S]*?\n    \}/);
+assert.ok(match, 'itemDescription helper exists');
+const describe = vm.runInNewContext('('+ match[0] +')');
+assert.equal(describe({description:'', current_effect:{}, effect_use:'用途'}), '用途');
+assert.equal(describe({description:'說明',current_effect:{},effect_use:'備用'}),'說明');
+assert.equal(describe({description:{},current_effect:{},effect_use:{}}),'尚無物品說明');
+assert.ok(page.includes('esc(itemDescription(item))'));
+assert.ok(!page.includes("esc(item.description || item.current_effect"));
+console.log('G075_ITEM_JOURNAL_DESCRIPTION 5 PASS / 0 FAIL');

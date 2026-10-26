@@ -573,6 +573,13 @@ from admin_question_center import create_question_management_blueprint
 
 _startup_diagnostics.mark('application_creation', 'start')
 app = Flask(__name__)
+# Fail closed for legacy modes that still let the browser submit a claimed
+# result. OFF by default; no product gate is silently enabled here.
+from g076_othermode_authority import install_othermode_guard
+install_othermode_guard(app)
+from g076_grimoire_product import install_product_grimoire
+from grimoire_api import official_grimoire_lookup
+install_product_grimoire(app, environ=os.environ, lookup=official_grimoire_lookup)
 _site_url_for_cookie = os.environ.get('SITE_URL', 'https://godokoro.com').lower()
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
@@ -3848,6 +3855,11 @@ QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE = EXTERNAL_AUTHORITATIVE_MAP_B
 QUEST_CORRECTNESS_SOURCE_LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE = (
     'LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE'
 )
+# G079: the server step judge of the Mistakes mode (never a request field).
+# It carries answer correctness only: no monster, defeat or battlefield scope.
+QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MISTAKES = (
+    'AUTHORITATIVE_MISTAKES_STEP_SETTLEMENT'
+)
 
 
 def _apply_quest_v2_review_events(
@@ -3874,7 +3886,11 @@ def _apply_quest_v2_review_events(
 
     if not quest_v2_runtime_enabled():
         return ()
-    if correctness_source != QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE:
+    mistakes_source = (
+        correctness_source == QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MISTAKES
+    )
+    if (correctness_source != QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE
+            and not mistakes_source):
         return ()
     if not isinstance(authoritative_answer_correct, bool):
         return ()
@@ -3884,6 +3900,23 @@ def _apply_quest_v2_review_events(
         return ()
     if not isinstance(occurred_at, datetime.datetime) or occurred_at.tzinfo is None:
         raise QuestRuntimeError('quest_event_timestamp_must_be_server_aware')
+    if mistakes_source:
+        # Mistakes has no encounter: only the judged answer event, outside the
+        # daily-battlefield scope, so kill/dragon quests can never advance.
+        return (
+            apply_quest_runtime_event(
+                conn,
+                event=build_review_settlement_event(
+                    user_id=int(uid),
+                    submission_id=submission_id,
+                    occurred_at=occurred_at.isoformat(),
+                    correct=authoritative_answer_correct,
+                    monster_family=None,
+                    source_scope='mistakes',
+                ),
+                server_now=occurred_at,
+            ),
+        )
     monster = (monster_data or {}).get('monster') or {}
     settlement = (monster_data or {}).get('monster_settlement') or {}
     monster_family = str(
@@ -12314,6 +12347,8 @@ def training_daily():
                     and qid not in done_today
                 ]
                 rng.shuffle(fallback2)
+                ordered = _prefer_player_questions([{'id': qid} for qid in fallback2], uid)
+                fallback2 = [q['id'] for q in ordered]
                 for qid in fallback2[:TOTAL - len(selected)]:
                     add(qid, 'review')
 
@@ -13722,7 +13757,8 @@ def _adventure_recommended_zone_key(zones, placement_start_zone=None):
     start_idx = _adventure_zone_index(placement_start_zone) if placement_start_zone else 0
 
     def _is_unlocked(zone):
-        return bool(zone.get('unlocked')) or _adventure_zone_index(zone['key']) <= start_idx
+        # Rank placement is advisory; do not recommend an unplayable zone.
+        return _adventure_zone_is_authoritative_playable(zone)
 
     for zone in zones[start_idx:]:
         if _is_unlocked(zone) and not zone.get('cleared'):
@@ -13736,7 +13772,7 @@ def _adventure_recommended_zone_key(zones, placement_start_zone=None):
     for zone in zones:
         if _is_unlocked(zone):
             return zone['key']
-    return zones[0]['key']
+    return None
 
 
 def _adventure_effective_start_zone_key(zones):
@@ -13970,11 +14006,7 @@ def _adventure_map_state_from_zones(zones, selected_stage_key=None):
     placement_idx = _adventure_zone_index(effective_start_zone_key) if effective_start_zone_key else None
     recommended_zone_key = _adventure_recommended_zone_key(zones, effective_start_zone_key)
     valid_zone_keys = {
-        z['key'] for z in zones
-        if z.get('unlocked') or (
-            effective_start_zone_key is not None
-            and _adventure_zone_index(z['key']) <= _adventure_zone_index(effective_start_zone_key)
-        )
+        z['key'] for z in zones if _adventure_zone_is_authoritative_playable(z)
     }
     selected_zone_key = selected_stage_key if selected_stage_key in valid_zone_keys else recommended_zone_key
     current_zone_key = _adventure_current_zone_key(zones)
@@ -14780,6 +14812,22 @@ def adventure_boss_finish():
 # 題庫 API（index.html / mistakes.html 左側列表用）
 # ══════════════════════════════════════════════════════════════
 
+def _prefer_player_questions(candidates, uid):
+    from question_selection_policy import recent_correct_ids, prefer_not_recent
+    if not uid:
+        return candidates
+    with get_db() as conn:
+        recent = recent_correct_ids(conn, uid)
+        today = datetime.date.today().isoformat()
+        due = {r['question_id'] for r in conn.execute(
+            'SELECT question_id FROM srs_cards WHERE user_id=? AND due_date<=?',
+            (uid, today)).fetchall()}
+        keys = _identity_group_key_map(conn, recent | due | {q['id'] for q in candidates})
+    group = lambda qid: _identity_group_key(keys, qid)
+    return prefer_not_recent(candidates, {group(qid) for qid in recent},
+                             due={group(qid) for qid in due}, key=lambda q: group(q['id']))
+
+
 @app.route('/api/questions')
 @login_required
 def get_questions():
@@ -14884,13 +14932,16 @@ def get_questions():
             'monster_name':      q.get('monster_name', ''),
             'grimoire_difficulty': q.get('grimoire_difficulty'),
             'rating':              q.get('rating'),
-            'katago_best_move':    q.get('katago_best_move', ''),
+            # Catalogue never needs a KataGo answer hint. Keep it out of
+            # all slim/full catalogue responses, regardless of rollout flag.
+            'katago_best_move':    '',
             'score_gap':           q.get('score_gap'),
             # Revision evidence is deliberately separate from the legacy
             # question locator and future source_record_uuid identity.
             'question_revision': _client_question_revision(q),
             'session_question_fingerprint': _session_question_fingerprint(q),
         })
+    result = _prefer_player_questions(result, session.get('user_id'))
     resp = jsonify(result)
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     return resp
@@ -15053,7 +15104,25 @@ def get_question(qid):
     accepted_moves = _question_accepted_moves(q) if (premium or not locked) else []
     katago_best_move = q.get('katago_best_move', '') if (premium or not locked) else ''
     score_gap = q.get('score_gap') if (premium or not locked) else None
-    return jsonify({
+    # G076 migration path. Read-only board view is safe to request now; the
+    # global enforcement flag remains OFF until every client settles answers
+    # server-side. This endpoint alone does not close other legacy API leaks.
+    from g076_question_privacy import board_only_sgf, privacy_enforced
+    board_only = request.args.get('view') == 'board' or privacy_enforced(os.environ)
+    if board_only:
+        if not locked:
+            try:
+                content = board_only_sgf(q.get('content', ''))
+            except ValueError:
+                return jsonify({
+                    'error': 'question_preview_unavailable',
+                    'code': 'question_preview_unavailable',
+                }), 422
+        comment = ''
+        accepted_moves = []
+        katago_best_move = ''
+        score_gap = None
+    response = jsonify({
         'id':           q['id'],
         # A duplicate legacy id is deliberately not attachable to inline
         # correction.  The admin context endpoint will fail closed until an
@@ -15104,7 +15173,10 @@ def get_question(qid):
         'question_revision': _client_question_revision(q),
         'session_question_fingerprint': _session_question_fingerprint(q),
         'locked':           locked,
+        'board_only':       board_only,
     })
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @app.route('/api/save-question', methods=['POST'])
@@ -16566,6 +16638,125 @@ def map_battle_v1_answers():
     return jsonify(result)
 
 
+
+def _g076_step_enabled():
+    """Dormant G076 route; both server-authorized rollout gates required."""
+    from g076_question_privacy import privacy_enforced
+    return (
+        os.environ.get('G076_STEP_RUNTIME_ENABLED', '').strip().lower()
+        in ('1', 'true', 'on')
+        and privacy_enforced(os.environ)
+    )
+
+
+@app.route('/api/adventure/map-battles/v2/steps/capability')
+@login_required
+def g076_map_battle_step_capability():
+    """Auth-scoped, no-store, authoritative rollout signal for the UI.
+
+    Both answer privacy and the durable step ledger must be enabled before
+    the browser is allowed to switch away from legacy SGF handling.
+    """
+    response = jsonify({
+        'enabled': bool(_g076_step_enabled()),
+        'protocol': 'g076-server-steps-v1',
+    })
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@app.route('/api/adventure/map-battles/v2/steps/start', methods=['POST'])
+@login_required
+def g076_map_battle_step_start():
+    """Start a server-owned SGF step cursor; default-disabled."""
+    if not _g076_step_enabled():
+        return jsonify({'error': 'g076_step_runtime_disabled'}), 503
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {'attempt_id', 'submission_nonce'}:
+        return jsonify({'error': 'invalid_step_request'}), 400
+    from g076_step_ledger import open_steps, StepLedgerRejected
+    try:
+        uid = int(session['user_id'])
+        with _activation_transaction() as conn:
+            _map_battle_require_enabled(uid, conn)
+            result = open_steps(
+                conn, uid=uid, attempt_id=data['attempt_id'],
+                submission_nonce=data['submission_nonce'],
+                question_loader=_map_battle_question_by_id,
+                secret=app.secret_key,
+                entitlement_admitter=_admit_map_battle_answer_entitlement)
+    except StepLedgerRejected as error:
+        return jsonify({'error': error.reason}), error.status
+    except MapBattleRuntimeError as error:
+        return _map_battle_error_response(error)
+    except Exception:
+        app.logger.exception('G076 step start backend unavailable')
+        return jsonify({'error': 'g076_step_backend_unavailable'}), 503
+    return jsonify(result)
+
+
+@app.route('/api/adventure/map-battles/v2/steps', methods=['POST'])
+@login_required
+def g076_map_battle_step_submit():
+    """Persist a step or settle once via the existing Map Battle writer.
+
+    The production schema/migration and client rollout are separate Owner
+    gates; this endpoint must never create its own tables at runtime.
+    """
+    if not _g076_step_enabled():
+        return jsonify({'error': 'g076_step_runtime_disabled'}), 503
+    data = request.get_json(silent=True)
+    fields = {
+        'attempt_id', 'submission_nonce', 'step_index', 'step_nonce', 'move',
+    }
+    if not isinstance(data, dict) or set(data) != fields:
+        return jsonify({'error': 'forbidden_step_field'}), 400
+    from g076_step_ledger import submit_step, StepLedgerRejected
+    try:
+        uid = int(session['user_id'])
+        with _activation_transaction() as conn:
+            eligibility = _map_battle_require_enabled(uid, conn)
+            result = submit_step(
+                conn, uid=uid, attempt_id=data['attempt_id'],
+                submission_nonce=data['submission_nonce'],
+                step_index=data['step_index'], step_nonce=data['step_nonce'],
+                move=data['move'],
+                question_loader=_map_battle_question_by_id,
+                secret=app.secret_key,
+                entitlement_admitter=_admit_map_battle_answer_entitlement,
+                settlement_kwargs={
+                    'mode_environ': os.environ,
+                    'eligibility': eligibility,
+                    'combat_stats_resolver': _get_authoritative_combat_stats,
+                    'monster_profile_resolver': _map_battle_monster_profile_resolver,
+                    'runtime_provider': MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
+                    'spirit_projection_resolver': build_b022_active_spirit_projection,
+                },
+            )
+    except StepLedgerRejected as error:
+        return jsonify({'error': error.reason}), error.status
+    except MapBattleRuntimeError as error:
+        return _map_battle_error_response(error)
+    except Exception:
+        app.logger.exception('G076 step settlement backend unavailable')
+        return jsonify({'error': 'g076_step_backend_unavailable'}), 503
+    if result.get('battle_settlement'):
+        # The existing progression path is idempotent by settlement identity;
+        # it runs only AFTER the authoritative battle transaction commits.
+        settled = result['battle_settlement']
+        try:
+            progress, status = _run_map_battle_progression(uid, settled)
+            result['progression'] = progress
+            if status != 200:
+                result['progression_retryable'] = True
+                return jsonify(result), status
+        except Exception:
+            app.logger.exception('G076 settled battle progression pending')
+            result['progression_retryable'] = True
+            return jsonify(result), 503
+    return jsonify(result)
+
+
 _MAP_BATTLE_PROGRESS_MARKER_PREFIX = 'mbv1:'
 
 
@@ -16760,6 +16951,8 @@ def _practice_question_by_id(question_id):
 
 
 def _practice_error_response(error):
+    if hasattr(error, 'response_payload'):
+        return jsonify(error.response_payload), int(error.status)
     return jsonify({
         'error': getattr(error, 'code', 'practice_answer_unavailable'),
         'code': getattr(error, 'code', 'practice_answer_unavailable'),
@@ -16790,6 +16983,8 @@ def srs_practice_attempt():
     to bind the later moves to the authenticated player, exact canonical
     question identity, immutable revision, and one answer-event nonce.
     """
+    if _g076_practice_enabled():
+        return _g076_practice_issue()
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({'error': 'practice_question_required', 'code': 'practice_question_required'}), 400
@@ -16842,6 +17037,8 @@ def srs_practice_answer():
     the browser.  Correctness, canonical identity, trust marker, submission
     identity and all SRS values are reconstructed server-side.
     """
+    if _g076_practice_enabled():
+        return jsonify(error='practice_steps_required'), 409
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({'error': 'practice_answer_required', 'code': 'practice_answer_required'}), 400
@@ -16927,79 +17124,113 @@ def srs_practice_answer():
                 'upgrade_url': '/upgrade',
             }), 403
 
+    try:
+        with get_db() as conn:
+            payload = _persist_practice_review(conn, uid=uid, question=question,
+                attempt=attempt, canonical=canonical, judge=judge, response_ms=response_ms)
+            conn.commit()
+        return jsonify(payload)
+    except PracticeAttemptError as error:
+        return _practice_error_response(error)
+
+
+def _practice_premium_in_transaction(conn, uid):
+    """Existing entitlement policy on the borrowed Practice connection."""
+    row = conn.execute('SELECT plan,premium_until FROM users WHERE id=?', (uid,)).fetchone()
+    if row is None:
+        raise PracticeAttemptError('authentication_required', status=401)
+    return _premium_live_from_fields(row['plan'], row['premium_until'],
+                                     admin_override=bool(session.get('is_admin')))
+
+
+def _persist_practice_review(conn, *, uid, question, attempt, canonical, judge, response_ms=None):
+    """Existing Practice writer with borrowed transaction, no connection/commit.
+
+    Shared by legacy answer and G076 steps. Practice grants zero XP, as before.
+    """
+    question_id = int(attempt['question_id'])
+    source_record_uuid = attempt['source_record_uuid']
+    submission_id = practice_submission_id(attempt)
+    source_context = practice_source_context(attempt)
+    submission_payload_hash = canonical_payload_digest(practice_submission_payload(
+        attempt=attempt, canonical=canonical,
+        authoritative_grade=int(judge.authoritative_grade)))
+    premium_entitled = _practice_premium_in_transaction(conn, uid)
+    if not premium_entitled and not question_is_free(question):
+        raise PracticeAttemptError('premium_required', status=403)
     now = datetime.datetime.now().isoformat()
     ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
-    with get_db() as conn:
-        if not premium_entitled:
-            _lock_user_for_daily_quota(conn, uid)
-            snapshot = _daily_quota_snapshot_in_transaction(conn, uid)
-            rejection = _daily_quota_rejection(snapshot)
-            if rejection:
-                return jsonify(rejection), 429
-        # Re-check identity inside the write transaction.  This is a read-only
-        # identity gate; no alias or UUID row is created here.
-        if _practice_identity_for_write(conn, question_id) != source_record_uuid:
-            return _practice_error_response(PracticeAttemptError(
-                'practice_identity_mismatch', status=409,
-                reason_code='identity_changed_before_persist',
-            ))
-        player_row = conn.execute(
-            'SELECT elo_rating FROM users WHERE id=?', (uid,)
-        ).fetchone()
-        player_rating_snapshot = float(player_row['elo_rating'] or 1400) if player_row else 1400.0
-        question_rating_snapshot = rank_to_rating(
-            question.get('rank') or question.get('difficulty')
+    if not premium_entitled:
+        _lock_user_for_daily_quota(conn, uid)
+        snapshot = _daily_quota_snapshot_in_transaction(conn, uid)
+        rejection = _daily_quota_rejection(snapshot)
+        if rejection:
+            error = PracticeAttemptError('daily_limit', status=429)
+            error.response_payload = rejection
+            raise error
+    # Re-check identity inside the write transaction.  This is a read-only
+    # identity gate; no alias or UUID row is created here.
+    if _practice_identity_for_write(conn, question_id) != source_record_uuid:
+        raise PracticeAttemptError(
+            'practice_identity_mismatch', status=409,
+            reason_code='identity_changed_before_persist',
         )
-        review_insert = insert_review_log_with_identity(
-            conn,
-            user_id=uid,
-            question_id=question_id,
-            grade=int(judge.authoritative_grade),
-            topic=question.get('topic', ''),
-            level=question.get('level', ''),
-            difficulty=question.get('difficulty', ''),
-            reviewed_at=now,
-            response_ms=response_ms,
-            discipline=question.get('discipline') or 'whole_board',
-            player_rating_snapshot=player_rating_snapshot,
-            question_rating_snapshot=question_rating_snapshot,
-            item_rating_version=ITEM_RATING_VERSION,
-            question_version=str(question.get('source') or question_id),
-            source_context=source_context,
-            is_scaffolding=0,
-            training_set_id=None,
-            submission_id=submission_id,
-            submission_payload_hash=submission_payload_hash,
-        )
-        if not review_insert['inserted']:
-            existing_submission = review_insert['existing']
-            if existing_submission['submission_payload_hash'] != submission_payload_hash:
-                return _review_submission_conflict_response(submission_id)
-            return jsonify(_practice_duplicate_payload(existing_submission))
+    player_row = conn.execute(
+        'SELECT elo_rating FROM users WHERE id=?', (uid,)
+    ).fetchone()
+    player_rating_snapshot = float(player_row['elo_rating'] or 1400) if player_row else 1400.0
+    question_rating_snapshot = rank_to_rating(
+        question.get('rank') or question.get('difficulty')
+    )
+    review_insert = insert_review_log_with_identity(
+        conn,
+        user_id=uid,
+        question_id=question_id,
+        grade=int(judge.authoritative_grade),
+        topic=question.get('topic', ''),
+        level=question.get('level', ''),
+        difficulty=question.get('difficulty', ''),
+        reviewed_at=now,
+        response_ms=response_ms,
+        discipline=question.get('discipline') or 'whole_board',
+        player_rating_snapshot=player_rating_snapshot,
+        question_rating_snapshot=question_rating_snapshot,
+        item_rating_version=ITEM_RATING_VERSION,
+        question_version=str(question.get('source') or question_id),
+        source_context=source_context,
+        is_scaffolding=0,
+        training_set_id=None,
+        submission_id=submission_id,
+        submission_payload_hash=submission_payload_hash,
+    )
+    if not review_insert['inserted']:
+        existing_submission = review_insert['existing']
+        if existing_submission['submission_payload_hash'] != submission_payload_hash:
+            raise PracticeAttemptError('submission_conflict', status=409)
+        return _practice_duplicate_payload(existing_submission)
 
-        # SRS is scheduling state and is updated for both outcomes.  Practice
-        # owns its own judging, identity and idempotency above, then delegates
-        # the scheduling write to the one canonical srs_cards writer inside
-        # this same transaction (Incident 003G).  NEVER: the sticky
-        # progress_credited flag is preserved but never set by the practice
-        # path; trusted Adventure/leaderboard readers consume the
-        # server-written review evidence above.  Practice enters no Map Battle
-        # ledger and triggers no reward or progression side effect.
-        _practice_srs_outcome = apply_srs_scheduling(
-            conn,
-            user_id=uid,
-            question_id=question_id,
-            grade=int(judge.authoritative_grade),
-            now=now,
-            progress_credit_policy=ProgressCreditPolicy.NEVER,
-        )
-        ef = _practice_srs_outcome.ease_factor
-        interval = _practice_srs_outcome.interval
-        repetitions = _practice_srs_outcome.repetitions
-        due = _practice_srs_outcome.due_date
-        conn.commit()
+    # SRS is scheduling state and is updated for both outcomes.  Practice
+    # owns its own judging, identity and idempotency above, then delegates
+    # the scheduling write to the one canonical srs_cards writer inside
+    # this same transaction (Incident 003G).  NEVER: the sticky
+    # progress_credited flag is preserved but never set by the practice
+    # path; trusted Adventure/leaderboard readers consume the
+    # server-written review evidence above.  Practice enters no Map Battle
+    # ledger and triggers no reward or progression side effect.
+    _practice_srs_outcome = apply_srs_scheduling(
+        conn,
+        user_id=uid,
+        question_id=question_id,
+        grade=int(judge.authoritative_grade),
+        now=now,
+        progress_credit_policy=ProgressCreditPolicy.NEVER,
+    )
+    ef = _practice_srs_outcome.ease_factor
+    interval = _practice_srs_outcome.interval
+    repetitions = _practice_srs_outcome.repetitions
+    due = _practice_srs_outcome.due_date
 
-    return jsonify({
+    return {
         'ok': True,
         'duplicate': False,
         'submission_id': submission_id,
@@ -17014,7 +17245,8 @@ def srs_practice_answer():
             'repetitions': repetitions,
             'due_date': due,
         },
-    })
+    }
+
 
 
 def _review_submission_duplicate_response(row):
@@ -17118,6 +17350,281 @@ def _answer_failure_response(
         'session_question_fingerprint': session_fingerprint,
     }
     return jsonify(payload), int(response_status)
+
+
+def _review_learning_in_transaction(conn, *, uid, qid, q_info, grade, now,
+                                    internal, submission_id, should_grant_progress,
+                                    srs_row_existed, unit='', unit_done=False,
+                                    strict=False, update_mistakes=True):
+    """Borrow the review transaction for the canonical learning reward core.
+
+    This is persistence, not answer authority or a complete settlement. The
+    trusted caller must supply server judgement, serialize the user and own
+    review/SRS identity, quota, remaining quest/coin policy and terminal receipt.
+    No commit, rollback, close, battle handoff or connection acquisition here.
+    Legacy callers retain optional-effect behavior; strict callers propagate
+    missing equipment schema and potion/shield failures to their transaction.
+    update_mistakes=False lets the G077 terminal writer own attempt analytics.
+    """
+    if strict:
+        raw = getattr(conn, '_conn', conn)
+        if raw.__class__.__module__.startswith('sqlite3') and not raw.in_transaction:
+            raise RuntimeError('review_learning_transaction_required')
+        if not internal or not submission_id:
+            raise ValueError('trusted_review_identity_required')
+    equipment_effect = (_get_active_equip_effect if strict
+                        else _safe_active_equipment_effect)
+    review_shadow_input = None
+    conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)',(uid,))
+    s = conn.execute('SELECT * FROM user_stats WHERE user_id=?',(uid,)).fetchone()
+    existing_player_max_hp = int(s['player_max_hp'] or 0)
+    total        = s['total_correct']
+    streak       = s['current_streak']
+    mx           = s['max_streak']
+    mc           = s['mistake_corrected']
+    xp           = s['xp']          or 0
+    combo_streak = s['combo_streak'] or 0
+    max_combo    = s['max_combo']    or 0
+    rank_level   = s['rank_level']   or 'LV1'
+    rank_xp      = s['rank_xp']      or 0
+
+    xp_gain    = 0
+    combo_mult = 1.0
+    ranked_up  = False
+    shield_used = False       # 連勝護盾（商城道具）本次是否觸發
+    xp_potion_active = False  # XP 藥水（商城道具）本次是否生效
+    pet_xp_added = 0          # 本次由棋靈夥伴帶來的額外 XP
+    pet_xp_ratio = 0.0
+    pet_xp_gained = 0         # 本次寵物實際獲得的 XP
+    review_shadow_base_xp = 0
+    review_shadow_additive_bonuses = ()
+    review_shadow_support_values = []
+    new_rank_level = rank_level
+    new_lv = xp_to_lv(xp)
+    # A038: legacy appearance metadata remains a compatibility read model;
+    # only server-owned functional equipment can affect review XP.
+    pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+
+    mrow = conn.execute(
+        'SELECT * FROM mistake_log WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
+
+    if internal and grade >= 3:
+        total, streak, mx, combo_streak, max_combo = _apply_credited_review_counters(
+            total, streak, mx, combo_streak, max_combo, should_grant_progress)
+
+        is_new  = not srs_row_existed   # 首次作答此題
+        is_mc   = bool(mrow and mrow['wrong_count'] > 0)
+
+        if should_grant_progress:
+            diff = q_info.get('difficulty', '')
+            review_shadow_base_xp = XP_BY_DIFF.get(diff, 10)
+            review_shadow_additive_bonuses = tuple(
+                bonus for bonus, enabled in (
+                    (XP_FIRST_CORRECT, is_new),
+                    (XP_MISTAKE_CORRECT, is_mc),
+                ) if enabled
+            )
+            combo_multiplier_double = (
+                equipment_effect(conn, uid, 'combo_multiplier_double') > 0
+            )
+            xp_gain, combo_mult = calc_xp_gain(
+                diff,
+                combo_streak,
+                is_new,
+                is_mc,
+                combo_multiplier_double=combo_multiplier_double,
+            )
+            # Apply only the canonical functional equipment XP effect.
+            equipment_xp_bonus = equipment_effect(conn, uid, 'xp_bonus')
+            total_xp_bonus = equipment_xp_bonus
+            if total_xp_bonus > 0:
+                xp_gain = int(xp_gain * (1 + total_xp_bonus))
+                review_shadow_support_values.append(
+                    Decimal('1') + Decimal(str(total_xp_bonus))
+                )
+            # 棋靈夥伴 XP 加成（陪練）
+            _pet_xp_b = _pet_player_xp_bonus(conn, uid, {'combo': combo_streak, 'is_mc': is_mc})
+            if _pet_xp_b > 0:
+                _xp_before_pet = xp_gain
+                xp_gain = int(xp_gain * (1 + _pet_xp_b))
+                pet_xp_added = xp_gain - _xp_before_pet
+                pet_xp_ratio = _pet_xp_b
+                review_shadow_support_values.append(
+                    Decimal('1') + Decimal(str(_pet_xp_b))
+                )
+            # XP 藥水（商城道具）：30 分鐘內 ×1.5
+            try:
+                _potion = _effect_get(conn, uid, 'xp_potion')
+                if _potion:
+                    _potion_factor = _potion['value'] or 1.5
+                    xp_gain = int(xp_gain * float(_potion_factor))
+                    xp_potion_active = True
+                    review_shadow_support_values.append(Decimal(str(_potion_factor)))
+            except Exception:
+                if strict:
+                    raise
+                pass
+            try:
+                if strict:
+                    review_source_id = f'mistakes:{submission_id}'
+                    review_event_identity = f'review_log:mistakes:submission:{submission_id}:user:{uid}'
+                    review_idempotency_key = f'xp-shadow:review:mistakes:{uid}:{submission_id}'
+                    review_source_marker = 'review_log(user_id,source_context)'
+                elif internal:
+                    review_source_id = f'map-battle:{submission_id}'
+                    review_event_identity = (
+                        f'review_log:map_battle:submission:{submission_id}:user:{uid}'
+                    )
+                    review_idempotency_key = (
+                        f'xp-shadow:review:map-battle:{uid}:{submission_id}'
+                    )
+                    review_source_marker = 'review_log(user_id,source_context)'
+                else:
+                    review_source_id = f'question:{int(qid)}'
+                    review_event_identity = (
+                        f'srs_cards.progress_credited:user:{uid}:question:{int(qid)}'
+                    )
+                    review_idempotency_key = (
+                        f'xp-shadow:review:credited:{uid}:{int(qid)}'
+                    )
+                    review_source_marker = (
+                        'srs_cards(user_id,question_id).progress_credited'
+                    )
+                review_shadow_input = {
+                    'source_type': 'REVIEW_SUBMISSION',
+                    'source_id': review_source_id,
+                    'source_marker': review_source_marker,
+                    'event_identity': review_event_identity,
+                    'idempotency_key': review_idempotency_key,
+                    'legacy_xp': int(xp_gain),
+                    'base_xp': int(review_shadow_base_xp),
+                    'additive_learning_bonuses': review_shadow_additive_bonuses,
+                    'combo_factor_ppm': factor_value_to_ppm(
+                        Decimal(str(combo_mult)), 'combo_factor'
+                    ),
+                    'support_factors_ppm': tuple(
+                        factor_value_to_ppm(value, 'support_factor')
+                        for value in review_shadow_support_values
+                    ),
+                    'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                    'legacy_premium_already_applied': False,
+                }
+            except Exception as exc:
+                review_shadow_input = None
+                app.logger.warning(
+                    'xp_shadow_comparison %s',
+                    json.dumps({
+                        'source_type': 'REVIEW_SUBMISSION',
+                        'source_id': str(qid)[:255],
+                        'mismatch_category': 'ERROR_FAIL_CLOSED',
+                        'error_class': type(exc).__name__,
+                        'side_effect_free': True,
+                        'legacy_reward_preserved': True,
+                    }, sort_keys=True),
+                )
+            xp      += xp_gain
+            rank_xp += xp_gain
+            if pet_row and _decayed_fullness(pet_row) > 0:
+                _pet_growth = _add_pet_xp_with_evolution(
+                    conn, uid, 1, f'review:{submission_id}',
+                    pet_row['pet_key'], 'REVIEW_SUBMISSION'
+                )
+                if _pet_growth:
+                    pet_xp_gained = 1
+
+        # LV 進度：以累計 xp 重新計算
+        new_lv = xp_to_lv(xp)
+        cur_lv = xp_to_lv(xp - xp_gain)
+        new_rank_level = f'LV{new_lv}'
+        _, rank_xp, _ = lv_progress(xp)
+        if new_lv > cur_lv:
+            ranked_up = True
+    elif internal:
+        streak = 0
+        # 連勝護盾：消耗一面護盾保住 combo（連擊加成不中斷）
+        try:
+            _sh = _effect_get(conn, uid, 'streak_shield')
+            if _sh:
+                remaining = int(_sh['value'] or 1)
+                if remaining > 1:
+                    conn.execute('UPDATE active_effects SET value=? WHERE id=? AND user_id=?',
+                                 (remaining - 1, _sh['id'], uid))
+                else:
+                    _effect_remove(conn, uid, _sh['id'])
+                shield_used = True
+        except Exception:
+            if strict:
+                raise
+            pass
+        if not shield_used:
+            combo_streak = 0
+
+    if update_mistakes and internal and grade < 3:
+        if mrow:
+            conn.execute('UPDATE mistake_log SET wrong_count=wrong_count+1, last_wrong_at=? WHERE user_id=? AND question_id=?',
+                         (now,uid,qid))
+        else:
+            conn.execute('INSERT INTO mistake_log(user_id,question_id,wrong_count,correct_after,first_wrong_at,last_wrong_at) VALUES(?,?,1,0,?,?)',
+                         (uid,qid,now,now))
+    elif update_mistakes and internal:
+        if mrow:
+            conn.execute('UPDATE mistake_log SET correct_after=correct_after+1, last_correct_at=? WHERE user_id=? AND question_id=?',
+                         (now,uid,qid))
+            # mistake_corrected feeds a badge threshold (check_and_award),
+            # so -- like total_correct/streak/combo above -- only count
+            # it once per question via should_grant_progress. The
+            # mistake_log row's own correct_after counter above is left
+            # as pure per-question analytics.
+            if should_grant_progress:
+                mc += 1
+
+    if not update_mistakes and internal and grade >= 3 and mrow and should_grant_progress:
+        mc += 1
+
+    conn.execute(
+        '''UPDATE user_stats SET
+           total_correct=?, current_streak=?, max_streak=?, mistake_corrected=?,
+           xp=?, combo_streak=?, max_combo=?, rank_level=?, rank_xp=?,
+           player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),
+           updated_at=?
+           WHERE user_id=?''',
+        (total, streak, mx, mc,
+         xp, combo_streak, max_combo, new_rank_level, rank_xp,
+         _lv_max_hp(new_lv), now, uid))
+
+    stats = {
+        'total_correct': total, 'current_streak': streak,
+        'max_streak': mx, 'mistake_corrected': mc,
+        'xp': xp, 'combo_streak': combo_streak,
+        'max_combo': max_combo, 'rank_level': new_rank_level, 'rank_xp': rank_xp,
+        'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),
+    }
+    new_badges = (
+        check_and_award(conn, uid, stats, unit if unit_done else None)
+        if internal else []
+    )
+
+    # 升段外觀獎勵
+    new_appearance_items = []
+    if ranked_up:
+        new_appearance_items = give_rank_appearance(conn, uid, new_rank_level)
+
+    return {
+        'stats': stats,
+        'new_badges': new_badges,
+        'xp_gain': xp_gain,
+        'combo_mult': combo_mult,
+        'pet_xp_added': pet_xp_added,
+        'pet_xp_ratio': pet_xp_ratio,
+        'pet_xp_gained': pet_xp_gained,
+        'combo_streak': combo_streak,
+        'shield_used': shield_used,
+        'xp_potion_active': xp_potion_active,
+        'ranked_up': ranked_up,
+        'new_rank_level': new_rank_level,
+        'new_appearance_items': new_appearance_items,
+        'review_shadow_input': review_shadow_input,
+    }
 
 
 def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
@@ -17464,6 +17971,13 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
 
     with get_db() as conn:
+        if internal:
+            # G080 A: Map Battle's post-settlement reward writer must enter
+            # the same per-user PostgreSQL lock order as Mistakes.  Lock
+            # before reading SRS/XP, quest, pet or inventory state: otherwise
+            # concurrent modes can overwrite the other's calculated XP.
+            # This lock belongs to this connection and releases on commit.
+            _lock_user_for_daily_quota(conn, uid)
         if boss_source_context is not None:
             try:
                 source_context = _validate_adventure_boss_review_context(
@@ -17740,232 +18254,34 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     "WHERE id=? AND status='active'", (now, training_set_id)
                 )
 
-        conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)',(uid,))
-        s = conn.execute('SELECT * FROM user_stats WHERE user_id=?',(uid,)).fetchone()
-        existing_player_max_hp = int(s['player_max_hp'] or 0)
-        total        = s['total_correct']
-        streak       = s['current_streak']
-        mx           = s['max_streak']
-        mc           = s['mistake_corrected']
-        xp           = s['xp']          or 0
-        combo_streak = s['combo_streak'] or 0
-        max_combo    = s['max_combo']    or 0
-        rank_level   = s['rank_level']   or 'LV1'
-        rank_xp      = s['rank_xp']      or 0
-
-        xp_gain    = 0
-        combo_mult = 1.0
-        ranked_up  = False
-        shield_used = False       # 連勝護盾（商城道具）本次是否觸發
-        xp_potion_active = False  # XP 藥水（商城道具）本次是否生效
-        pet_xp_added = 0          # 本次由棋靈夥伴帶來的額外 XP
-        pet_xp_ratio = 0.0
-        pet_xp_gained = 0         # 本次寵物實際獲得的 XP
-        review_shadow_base_xp = 0
-        review_shadow_additive_bonuses = ()
-        review_shadow_support_values = []
-        new_rank_level = rank_level
-        new_lv = xp_to_lv(xp)
-        # A038: legacy appearance metadata remains a compatibility read model;
-        # only server-owned functional equipment can affect review XP.
-        pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-
-        mrow = conn.execute(
-            'SELECT * FROM mistake_log WHERE user_id=? AND question_id=?',(uid,qid)).fetchone()
-
-        if internal and grade >= 3:
-            total, streak, mx, combo_streak, max_combo = _apply_credited_review_counters(
-                total, streak, mx, combo_streak, max_combo, should_grant_progress)
-
-            is_new  = not srs_row_existed   # 首次作答此題
-            is_mc   = bool(mrow and mrow['wrong_count'] > 0)
-
-            if should_grant_progress:
-                diff = q_info.get('difficulty', '')
-                review_shadow_base_xp = XP_BY_DIFF.get(diff, 10)
-                review_shadow_additive_bonuses = tuple(
-                    bonus for bonus, enabled in (
-                        (XP_FIRST_CORRECT, is_new),
-                        (XP_MISTAKE_CORRECT, is_mc),
-                    ) if enabled
-                )
-                combo_multiplier_double = (
-                    _safe_active_equipment_effect(conn, uid, 'combo_multiplier_double') > 0
-                )
-                xp_gain, combo_mult = calc_xp_gain(
-                    diff,
-                    combo_streak,
-                    is_new,
-                    is_mc,
-                    combo_multiplier_double=combo_multiplier_double,
-                )
-                # Apply only the canonical functional equipment XP effect.
-                equipment_xp_bonus = _safe_active_equipment_effect(conn, uid, 'xp_bonus')
-                total_xp_bonus = equipment_xp_bonus
-                if total_xp_bonus > 0:
-                    xp_gain = int(xp_gain * (1 + total_xp_bonus))
-                    review_shadow_support_values.append(
-                        Decimal('1') + Decimal(str(total_xp_bonus))
-                    )
-                # 棋靈夥伴 XP 加成（陪練）
-                _pet_xp_b = _pet_player_xp_bonus(conn, uid, {'combo': combo_streak, 'is_mc': is_mc})
-                if _pet_xp_b > 0:
-                    _xp_before_pet = xp_gain
-                    xp_gain = int(xp_gain * (1 + _pet_xp_b))
-                    pet_xp_added = xp_gain - _xp_before_pet
-                    pet_xp_ratio = _pet_xp_b
-                    review_shadow_support_values.append(
-                        Decimal('1') + Decimal(str(_pet_xp_b))
-                    )
-                # XP 藥水（商城道具）：30 分鐘內 ×1.5
-                try:
-                    _potion = _effect_get(conn, uid, 'xp_potion')
-                    if _potion:
-                        _potion_factor = _potion['value'] or 1.5
-                        xp_gain = int(xp_gain * float(_potion_factor))
-                        xp_potion_active = True
-                        review_shadow_support_values.append(Decimal(str(_potion_factor)))
-                except Exception:
-                    pass
-                try:
-                    if internal:
-                        review_source_id = f'map-battle:{submission_id}'
-                        review_event_identity = (
-                            f'review_log:map_battle:submission:{submission_id}:user:{uid}'
-                        )
-                        review_idempotency_key = (
-                            f'xp-shadow:review:map-battle:{uid}:{submission_id}'
-                        )
-                        review_source_marker = 'review_log(user_id,source_context)'
-                    else:
-                        review_source_id = f'question:{int(qid)}'
-                        review_event_identity = (
-                            f'srs_cards.progress_credited:user:{uid}:question:{int(qid)}'
-                        )
-                        review_idempotency_key = (
-                            f'xp-shadow:review:credited:{uid}:{int(qid)}'
-                        )
-                        review_source_marker = (
-                            'srs_cards(user_id,question_id).progress_credited'
-                        )
-                    review_shadow_input = {
-                        'source_type': 'REVIEW_SUBMISSION',
-                        'source_id': review_source_id,
-                        'source_marker': review_source_marker,
-                        'event_identity': review_event_identity,
-                        'idempotency_key': review_idempotency_key,
-                        'legacy_xp': int(xp_gain),
-                        'base_xp': int(review_shadow_base_xp),
-                        'additive_learning_bonuses': review_shadow_additive_bonuses,
-                        'combo_factor_ppm': factor_value_to_ppm(
-                            Decimal(str(combo_mult)), 'combo_factor'
-                        ),
-                        'support_factors_ppm': tuple(
-                            factor_value_to_ppm(value, 'support_factor')
-                            for value in review_shadow_support_values
-                        ),
-                        'premium_eligibility': 'PREMIUM_INELIGIBLE',
-                        'legacy_premium_already_applied': False,
-                    }
-                except Exception as exc:
-                    review_shadow_input = None
-                    app.logger.warning(
-                        'xp_shadow_comparison %s',
-                        json.dumps({
-                            'source_type': 'REVIEW_SUBMISSION',
-                            'source_id': str(qid)[:255],
-                            'mismatch_category': 'ERROR_FAIL_CLOSED',
-                            'error_class': type(exc).__name__,
-                            'side_effect_free': True,
-                            'legacy_reward_preserved': True,
-                        }, sort_keys=True),
-                    )
-                xp      += xp_gain
-                rank_xp += xp_gain
-                if pet_row and _decayed_fullness(pet_row) > 0:
-                    _pet_growth = _add_pet_xp_with_evolution(
-                        conn, uid, 1, f'review:{submission_id}',
-                        pet_row['pet_key'], 'REVIEW_SUBMISSION'
-                    )
-                    if _pet_growth:
-                        pet_xp_gained = 1
-
-            # LV 進度：以累計 xp 重新計算
-            new_lv = xp_to_lv(xp)
-            cur_lv = xp_to_lv(xp - xp_gain)
-            new_rank_level = f'LV{new_lv}'
-            _, rank_xp, _ = lv_progress(xp)
-            if new_lv > cur_lv:
-                ranked_up = True
-        elif internal:
-            streak = 0
-            # 連勝護盾：消耗一面護盾保住 combo（連擊加成不中斷）
-            try:
-                _sh = _effect_get(conn, uid, 'streak_shield')
-                if _sh:
-                    remaining = int(_sh['value'] or 1)
-                    if remaining > 1:
-                        conn.execute('UPDATE active_effects SET value=? WHERE id=? AND user_id=?',
-                                     (remaining - 1, _sh['id'], uid))
-                    else:
-                        _effect_remove(conn, uid, _sh['id'])
-                    shield_used = True
-            except Exception:
-                pass
-            if not shield_used:
-                combo_streak = 0
-
-        if internal and grade < 3:
-            if mrow:
-                conn.execute('UPDATE mistake_log SET wrong_count=wrong_count+1, last_wrong_at=? WHERE user_id=? AND question_id=?',
-                             (now,uid,qid))
-            else:
-                conn.execute('INSERT INTO mistake_log(user_id,question_id,wrong_count,correct_after,first_wrong_at,last_wrong_at) VALUES(?,?,1,0,?,?)',
-                             (uid,qid,now,now))
-        elif internal:
-            if mrow:
-                conn.execute('UPDATE mistake_log SET correct_after=correct_after+1, last_correct_at=? WHERE user_id=? AND question_id=?',
-                             (now,uid,qid))
-                # mistake_corrected feeds a badge threshold (check_and_award),
-                # so -- like total_correct/streak/combo above -- only count
-                # it once per question via should_grant_progress. The
-                # mistake_log row's own correct_after counter above is left
-                # as pure per-question analytics.
-                if should_grant_progress:
-                    mc += 1
-
-        conn.execute(
-            '''UPDATE user_stats SET
-               total_correct=?, current_streak=?, max_streak=?, mistake_corrected=?,
-               xp=?, combo_streak=?, max_combo=?, rank_level=?, rank_xp=?,
-               player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),
-               updated_at=?
-               WHERE user_id=?''',
-            (total, streak, mx, mc,
-             xp, combo_streak, max_combo, new_rank_level, rank_xp,
-             _lv_max_hp(new_lv), now, uid))
-
-        stats = {
-            'total_correct': total, 'current_streak': streak,
-            'max_streak': mx, 'mistake_corrected': mc,
-            'xp': xp, 'combo_streak': combo_streak,
-            'max_combo': max_combo, 'rank_level': new_rank_level, 'rank_xp': rank_xp,
-            'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),
-        }
-        new_badges = (
-            check_and_award(conn, uid, stats, unit if unit_done else None)
-            if internal else []
+        learning = _review_learning_in_transaction(
+            conn, uid=uid, qid=qid, q_info=q_info, grade=grade, now=now,
+            internal=internal, submission_id=submission_id,
+            should_grant_progress=should_grant_progress,
+            srs_row_existed=srs_row_existed, unit=unit, unit_done=unit_done,
         )
+        stats = learning['stats']
+        new_badges = learning['new_badges']
+        xp_gain = learning['xp_gain']
+        combo_mult = learning['combo_mult']
+        pet_xp_added = learning['pet_xp_added']
+        pet_xp_ratio = learning['pet_xp_ratio']
+        pet_xp_gained = learning['pet_xp_gained']
+        combo_streak = learning['combo_streak']
+        shield_used = learning['shield_used']
+        xp_potion_active = learning['xp_potion_active']
+        ranked_up = learning['ranked_up']
+        new_rank_level = learning['new_rank_level']
+        new_appearance_items = learning['new_appearance_items']
+        review_shadow_input = learning['review_shadow_input']
 
-        # 升段外觀獎勵
-        new_appearance_items = []
-        if ranked_up:
-            new_appearance_items = give_rank_appearance(conn, uid, new_rank_level)
-
-        # Persist the core answer record before optional RPG systems run. This
-        # keeps srs_cards/review_log/user_stats safe if a loot, quest, or
-        # grimoire side-effect hits a PostgreSQL compatibility issue.
-        conn.commit()
+        # G080 A: internal Map Battle progression is ONE reward transaction.
+        # Never commit its review identity before the quest/coin/pet tail:
+        # a failure after this point must roll back the core as well, so
+        # retries cannot mistake a half-settled reward for a duplicate.
+        # Public review keeps its established separate optional-tail policy.
+        if not internal:
+            conn.commit()
 
         # The just-committed Guild answer already has a server-owned quest
         # projection.  Return it with the review response so the browser does
@@ -17991,6 +18307,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         quest_shadow_events = [] if xp_shadow_enabled() else None
         battlefield_shadow_events = []
         try:
+            # Map Battle retains the same users-row lock across its core and
+            # quest/coin/item tail. No commit divides these writes.
+            if internal:
+                _lock_user_for_daily_quota(conn, uid)
             legacy_daily_token = _QUEST_LEGACY_DAILY_ENABLED.set(
                 not quest_v2_runtime_enabled()
             )
@@ -18135,7 +18455,10 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             quest_shadow_inputs = []
             _publish_battlefield_shadow_records(battlefield_shadow_events)
             app.logger.exception('optional monster/quest update failed after answer %s for user %s', qid, uid)
-            if quest_v2_runtime_enabled():
+            # G080 A: a Map Battle reward-tail failure MUST be retryable, even
+            # when Quest V2 is OFF. The rolled-back review identity permits an
+            # exactly-once retry; never report success after this rollback.
+            if internal or quest_v2_runtime_enabled():
                 return jsonify({
                     'error': 'quest_runtime_pending',
                     'code': 'quest_runtime_pending',
@@ -19986,11 +20309,64 @@ def stats_dashboard():
 # 錯題本 API
 # ══════════════════════════════════════════════════════════════
 
+@app.after_request
+def _g076_grimoire_exposure(response):
+    """Bounded projection of the two legacy Blueprint question envelopes.
+
+    Run after existing authorization; never change errors or grading state.
+    """
+    from g076_question_privacy import board_only_sgf, privacy_enforced
+    field = {
+        '/api/grimoire/training/daily': 'questions',
+        '/api/training/contaminated': 'contaminated',
+    }.get(request.path)
+    if (not field or request.method != 'GET' or response.status_code != 200
+            or not privacy_enforced(os.environ)):
+        return response
+    payload = response.get_json(silent=True)
+    try:
+        for question in payload[field]:
+            question['content'] = board_only_sgf(question.get('content'))
+            question['board_only'] = True
+    except (ValueError, KeyError, TypeError, AttributeError):
+        response = jsonify({'error': 'question_preview_unavailable',
+                            'code': 'question_preview_unavailable'})
+        response.status_code = 422
+    else:
+        response = jsonify(payload)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+def _g076_exposure_content(content):
+    """Read-only projection for legacy surfaces, only called under the gate.
+
+    Rollout HOLD: their browser answer-tree consumers must migrate before
+    G076_ANSWER_PRIVACY_ENFORCED is enabled. Never replace grading inputs.
+    """
+    from flask import abort, after_this_request, make_response
+    from g076_question_privacy import board_only_sgf
+
+    @after_this_request
+    def no_store(response):
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    try:
+        return board_only_sgf(content)
+    except ValueError:
+        abort(make_response(jsonify({'error': 'question_preview_unavailable',
+                                    'code': 'question_preview_unavailable'}), 422))
+
+
 @app.route('/api/mistakes')
 @login_required
 def get_mistakes():
     uid = session['user_id']
     premium = is_premium(uid)
+    from g076_mistakes_product import mode as mistakes_mode
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ) or mistakes_mode(os.environ) != 'legacy'
     with get_db() as conn:
         rows = conn.execute(
             'SELECT * FROM mistake_log WHERE user_id=? ORDER BY wrong_count DESC, last_wrong_at DESC',
@@ -20007,6 +20383,9 @@ def get_mistakes():
         if matches:
             record_index, q = matches[0]
             locked = (not premium) and (not question_is_free(q))
+            content = '' if locked else q.get('content', '')
+            if private and not locked:
+                content = _g076_exposure_content(content)
             result.append({**m, 'record_index': record_index if len(matches) == 1 else None,
                            'content_sha256': _question_content_sha256(q),
                            'topic':q.get('topic',''), 'level':q.get('level',''),
@@ -20017,7 +20396,8 @@ def get_mistakes():
                            'display_name':_question_display_name(q),
                            'display_name_en':_question_display_name_en(q),
                            'source':q.get('source',''),
-                           'content': '' if locked else q.get('content','')})
+                           'content': content,
+                           **({'board_only': True} if private else {})})
     return jsonify(result)
 
 @app.route('/api/mistakes/stats')
@@ -20112,6 +20492,20 @@ def badges_unseen():
 @login_required
 def dc_today():
     uid   = session['user_id']
+    from g076_daily_capability import daily_mode as _g076_daily_mode
+    mode = _g076_daily_mode(os.environ)
+    if mode == 'steps':
+        # The legacy Daily entry must share the exact safe board-only view.
+        return app.view_functions['g076_daily_steps.today']()
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
+    if mode != 'legacy' and not private:
+        # Partial/unknown flags without privacy protection cannot return raw SGF.
+        return jsonify({'error': 'daily_configuration_hold'}), 409
+    # With privacy explicitly ON but step gates still partial, the historical
+    # read-only board preview remains safe and available. Capability is HOLD,
+    # and dc_submit still rejects any new legacy settlement.
+    # This preserves the accepted R3 board-projection/error contracts.
     today = datetime.date.today().isoformat()
     dc    = get_or_create_daily_challenge(today)
     if not dc:
@@ -20124,6 +20518,10 @@ def dc_today():
     record_index, q = question_matches[-1] if question_matches else (None, None)
     if not q:
         return jsonify({'error': '題目不存在'}), 404
+
+    content = q.get('content', '')
+    if private:
+        content = _g076_exposure_content(content)
 
     with get_db() as conn:
         log = conn.execute(
@@ -20159,7 +20557,8 @@ def dc_today():
         'date':           today,
         'question_id':    q['id'],
         'record_index':   record_index if len(question_matches) == 1 else None,
-        'content':        q.get('content', ''),
+        'content':        content,
+        **({'board_only': True} if private else {}),
         'content_sha256': _question_content_sha256(q),
         'topic':          q.get('topic', ''),
         'topic_en':       _english_only(_i18n_topic_en(q.get('topic', '')) or q.get('topic_en')),
@@ -20167,7 +20566,7 @@ def dc_today():
         'level_en':       _english_only(_i18n_level_en(q.get('level', '')) or q.get('level_en')),
         'difficulty':     q.get('difficulty', ''),
         'rank':           q.get('rank', ''),
-        'note':           dc.get('note'),
+        'note':           None if private else dc.get('note'),
         'xp_reward':      DAILY_CHALLENGE_XP_REWARD,
         'attempt_token':  attempt_token,
         'user_submitted': log is not None,
@@ -20224,6 +20623,15 @@ def dc_submit():
             }), 409
     if replay is not None:
         return jsonify(replay)
+
+    # Only all three flags OFF admits NEW legacy submissions. Partial rollout
+    # configurations HOLD; all ON belongs exclusively to the step protocol.
+    # Preserve exact replay of already committed legacy D5B receipts above.
+    from g076_daily_capability import daily_mode as _g076_daily_mode
+    mode = _g076_daily_mode(os.environ)
+    if mode != 'legacy':
+        return jsonify({'ok': False, 'error': 'daily_steps_required' if mode == 'steps'
+                        else 'daily_configuration_hold'}), 409
 
     dc = get_or_create_daily_challenge(today)
     if not dc:
@@ -20425,6 +20833,9 @@ def dc_history():
     if not is_premium(uid):
         return jsonify({'error': 'premium_required'}), 403
 
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
+
     today  = datetime.date.today().isoformat()
     qs_map = {q['id']: q for q in _load_questions()}
 
@@ -20458,7 +20869,7 @@ def dc_history():
             'difficulty':  q.get('difficulty', ''),
             'rank':        q.get('rank', ''),
             'topic':       q.get('topic', ''),
-            'note':        r['note'],
+            'note':        None if private else r['note'],
             'total':       r['total'] or 0,
             'correct':     r['cnt']   or 0,
             'accuracy':    round((r['cnt'] or 0) / (r['total'] or 1) * 100),
@@ -20489,14 +20900,23 @@ def dc_history_detail(date_str):
     if not q:
         return jsonify({'error': 'question_not_found'}), 404
 
+    # A past date is not proof this user answered. The same question can be
+    # reused in today's challenge, mistakes or trials: no history bypass.
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
+    content = q.get('content', '')
+    if private:
+        content = _g076_exposure_content(content)
+
     return jsonify({
         'date':       date_str,
-        'content':    q.get('content', ''),
+        'content':    content,
+        **({'board_only': True} if private else {}),
         'topic':      q.get('topic', ''),
         'level':      q.get('level', ''),
         'difficulty': q.get('difficulty', ''),
         'rank':       q.get('rank', ''),
-        'note':       dc['note'],
+        'note':       None if private else dc['note'],
     })
 
 
@@ -28696,6 +29116,11 @@ def admin_payments():
 @login_required
 def daily_challenge_page(): return _serve_live_static_or_baked('daily_challenge.html')
 
+@app.route('/daily_challenge_legacy.html')
+@login_required
+def daily_challenge_legacy_page():
+    return _serve_live_static_or_baked('daily_challenge_legacy.html')
+
 @app.route('/community')
 @login_required
 def community_page(): return _serve_live_static_or_baked('community.html')
@@ -28710,6 +29135,10 @@ def share_page(token): return _serve_live_static_or_baked('share_view.html')
 @app.route('/mistakes')
 @login_required
 def mistakes_page(): return _serve_live_static_or_baked('mistakes.html')
+
+# G066 proposal: default OFF; adapters/Owner gate must be provided by G/D.
+from g066_course.integration import install_course_v1
+install_course_v1(app)
 
 @app.route('/curriculum')
 @login_required
@@ -29331,6 +29760,7 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     # already served today exactly as send_from_directory('.', name))
     'login.html', 'landing.html', 'index.html', 'terms.html',
     'manage.html', 'admin.html', 'shadow_dashboard.html', 'bot.html', 'daily_challenge.html',
+    'daily_challenge_legacy.html',
     'community.html', 'messages.html', 'share_view.html',
     'mistakes.html', 'curriculum.html', 'hero.html', 'rating_test.html',
     'shop.html', 'profile.html', 'premium_weekly.html', 'stats.html',
@@ -29530,6 +29960,11 @@ _G009_FORMAL_RUNTIME_JS_FILES = frozenset({
     'g010_hero_3d_gallery.mjs',
     # G009 Hero Hub bundle: dual delivery (live-static first, baked fallback).
     'g009_hero_hub_batch_a.js',
+    # G085H exact shared Hero/Backpack/Shop 3D runtime, no dynamic directory exposure.
+    'g085_shared_authoritative_3d_core.mjs',
+    'g085_shared_hero3d_viewer.mjs',
+    'g085_unified_3d_page_bindings.mjs',
+    'g085j_shared_relaxed_idle_pose.mjs',
 })
 _G009_FORMAL_RUNTIME_SCHEMA_FILES = frozenset({
     'g009_d007_runtime_prerequisite_v1.json',
@@ -29723,6 +30158,13 @@ def serve_board_renderer_js():
     return _serve_live_static_or_baked_subpath(
         'board_renderer.js', 'js/game', 'js/game'
     )
+
+@app.route('/js/game/g076_authoritative_step_client.js')
+def serve_g076_authoritative_step_client_js():
+    return _serve_live_static_or_baked_subpath(
+        'g076_authoritative_step_client.js', 'js/game', 'js/game'
+    )
+
 
 @app.route('/js/game/mode_context.js')
 def serve_mode_context_js():
@@ -31479,52 +31921,9 @@ _RANK_TO_RATING: dict = {
 import re as _re_mod
 
 def _transform_sgf(content: str, t: int) -> str:
-    """將 SGF 內所有落子座標套用第 t 種幾何變換（t=0 直接回傳原文）。"""
-    if t == 0:
-        return content
-    # 從 SZ[] 取棋盤大小
-    m = _re_mod.search(r'SZ\[(\d+)\]', content)
-    N = int(m.group(1)) if m else 19
-    n = N - 1
-
-    TRANSFORMS = (
-        lambda c, r: (c,   r),       # 0 identity（不會走到這裡）
-        lambda c, r: (n-r, c),       # 1 rotate 90° CW
-        lambda c, r: (n-c, n-r),     # 2 rotate 180°
-        lambda c, r: (r,   n-c),     # 3 rotate 270° CW
-        lambda c, r: (n-c, r),       # 4 flip horizontal（左右）
-        lambda c, r: (c,   n-r),     # 5 flip vertical（上下）
-        lambda c, r: (r,   c),       # 6 主對角線轉置
-        lambda c, r: (n-r, n-c),     # 7 反對角線轉置
-    )
-    fn = TRANSFORMS[t]
-
-    def xf_pair(pair: str) -> str:
-        if len(pair) != 2 or pair == 'tt':
-            return pair
-        c = ord(pair[0]) - 97
-        r = ord(pair[1]) - 97
-        if not (0 <= c < N and 0 <= r < N):
-            return pair
-        nc, nr = fn(c, r)
-        return chr(nc + 97) + chr(nr + 97)
-
-    # 只替換跟在 B / W / AB / AW 後面的座標括號
-    def replace_prop(m2):
-        prop = m2.group(1)
-        coords_block = m2.group(2)
-        new_block = _re_mod.sub(
-            r'\[([a-s]{2}|tt)\]',
-            lambda cm: '[' + xf_pair(cm.group(1)) + ']',
-            coords_block
-        )
-        return prop + new_block
-
-    return _re_mod.sub(
-        r'(;?\s*(?:AB|AW|B|W))((?:\s*\[[a-s]{2}\]|\[tt\])+)',
-        replace_prop,
-        content
-    )
+    """Transform declared SGF points/markers; preserve raw text and t0 bytes."""
+    from sgf_point_transform import transform_sgf
+    return transform_sgf(content, t)
 
 # ── 題目難度實證校準 ──────────────────────────────────────────────────────────
 # 用全站日常答題記錄（review_log）反推題目實際難度：
@@ -31746,35 +32145,25 @@ def _transform_point(x: int, y: int, size: int, t: int):
     return fns[t](x, y)
 
 def _rt_server_verify(pool_q: dict, sid: str, moves: list):
-    """後端權威判定。SGF 樹重放 → 失敗再試 KataGo 最佳手容錯（多正解）。
-    回傳 True/False；SGF 樹解析失敗（後端無從判定）回 None，呼叫端沿用前端布林，
-    避免解析器邊緣情況冤枉答對的玩家。"""
-    t = _rt_transform_idx(sid, pool_q['id'])
-    sgf_t = _transform_sgf(pool_q['content'], t)
-    accepted_moves = {
-        (m['x'], m['y'])
-        for m in _question_accepted_moves(pool_q)
-        if isinstance(m.get('x'), int) and isinstance(m.get('y'), int)
-    }
-    if len(moves) == 1 and accepted_moves:
-        first = moves[0] or {}
-        if (first.get('x'), first.get('y')) in accepted_moves:
-            return True
-    tree = _rt_parse_answer_tree(sgf_t)
-    if tree is not None and _rt_replay(tree, moves):
-        return True
-    # 多正解容錯：玩家第一手 = KataGo 最佳手（SGF 沒收錄的另一個正解）
-    if len(moves) == 1 and pool_q.get('katago_best_move'):
-        m_sz = _re_mod.search(r'SZ\[(\d+)\]', pool_q['content'])
-        size = int(m_sz.group(1)) if m_sz else 19
-        bm = _gtp_to_xy(pool_q['katago_best_move'], size)
-        if bm:
-            bx, by = _transform_point(bm[0], bm[1], size, t)
-            if (moves[0].get('x'), moves[0].get('y')) == (bx, by):
-                return True
-    if tree is None:
-        return None    # 無法解析 → 不判定
-    return False
+    """Same server judge as Practice/Guild/Map/Lord Trial; no KataGo fallback."""
+    from map_battle_runtime import canonicalize_answer, judge_map_battle_answer_v1, JudgeUnavailable
+    try:
+        root = parse_sgf(pool_q['content'])
+        size = root.metadata.get('size', 19)
+        first = next((n.move for n in root.children if n.move is not None), None)
+        color = root.metadata.get('player_to_move') or (first.color if first else 'B')
+        t = _rt_transform_idx(sid, pool_q['id'])
+        attempt = {'board_size': size, 'player_color': color, 'transform_id': f't{t}'}
+        payload = dict(battle_id=sid, attempt_id=sid, submission_nonce=sid,
+                       battle_revision=0, question_revision='rating-test',
+                       player_color=color, transform_id=f't{t}',
+                       transform_version='map-battle-v1', moves=moves)
+        canonical = canonicalize_answer(payload, attempt)
+        outcome = judge_map_battle_answer_v1(pool_q, attempt, canonical)
+        return outcome.result == 'CORRECT' if outcome.result in ('CORRECT', 'INCORRECT') else None
+    except (JudgeUnavailable, ValueError, KeyError):
+        return None
+
 
 def _build_rt_pool():
     global _RT_POOL, _RT_POOL_READY, _RT_POOL_BUILT_AT
@@ -31878,6 +32267,8 @@ def _build_rt_pool():
             'source':           source,
             'source_group':     source_group,
             'quality':          'verified' if verified else 'fallback',
+            'accepted_moves':   _question_accepted_moves(q),
+            'answer_policy':    q.get('answer_policy'),
             'content_hash':     content_hash,
             'katago_best_move': (
                 (verified_entry or {}).get('move') or q.get('katago_best_move') or ''
@@ -32075,7 +32466,18 @@ def _rt_transform_idx(sid: str, q_id) -> int:
 def _strip_question(q: dict, sid: str, token: str | None = None) -> dict:
     """只回傳前端需要的欄位，並套用確定性幾何旋轉讓同一題產生 8 種視覺版本。"""
     t = _rt_transform_idx(sid, q['id'])
-    content = _transform_sgf(q['content'], t)
+    from g076_question_privacy import privacy_enforced
+    private = privacy_enforced(os.environ)
+    # Project before transforming; the authoritative pool remains untouched.
+    source = _g076_exposure_content(q.get('content')) if private else q['content']
+    try:
+        content = _transform_sgf(source, t)
+    except ValueError:
+        if not private:
+            raise
+        from flask import abort, make_response
+        abort(make_response(jsonify({'error': 'question_preview_unavailable',
+                                    'code': 'question_preview_unavailable'}), 422))
     size_m = _re_mod.search(r'SZ\[(\d+)\]', q.get('content') or '')
     size = int(size_m.group(1)) if size_m else 19
     result = {
@@ -32088,7 +32490,9 @@ def _strip_question(q: dict, sid: str, token: str | None = None) -> dict:
         'difficulty': q['difficulty'],
         'discipline': q['discipline'],
     }
-    accepted_moves = _question_accepted_moves(q)
+    if private:
+        result['board_only'] = True
+    accepted_moves = [] if private else _question_accepted_moves(q)
     if accepted_moves:
         result['accepted_moves'] = [
             {'x': px, 'y': py}
@@ -32845,6 +33249,228 @@ def rt_answer():
     return jsonify(payload)
 
 
+def _rt_write_step_result(conn, *, sid, request_uid, pool_q, question_token,
+                          response_ms, correct, exclude_ids=frozenset()):
+    """Private B2 writer: caller owns the transaction and original session lock.
+
+    Original rt_answer effects/math/selection, without its commit, shadow I/O
+    or post-commit unlock. No HTTP route may accept this verdict from a client.
+    OFF continues to execute the unchanged rt_answer body.
+    exclude_ids (G079): server-computed ids the step authority cannot serve;
+    only narrows next-question selection, never the judge or Elo math.
+    """
+    from g076_rating_steps import RatingRejected
+    q_id = pool_q['id']
+    now_iso = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+    start_zone_key = None
+    row = conn.execute(
+        'SELECT * FROM rating_test_sessions WHERE id=? FOR UPDATE', (sid,)
+    ).fetchone()
+    if not row or row['status'] != 'in_progress':
+        raise RatingRejected('invalid_session', 409)
+    if row['user_id'] is not None and row['user_id'] != request_uid:
+        raise RatingRejected('session_owner_mismatch', 403)
+    if row['current_question_id'] != q_id or row['current_question_token'] != question_token:
+        raise RatingRejected('stale_or_wrong_question', 409)
+    cur_rating = float(row['cur_rating'])
+    prior_mean = float(row['init_rating'] or 1500.0)
+    prior_sd = float(row['prior_sd'] or 300.0)
+    round_idx = int(row['round'])
+    try:
+        answers = json.loads(row['answers'] or '[]')
+    except Exception:
+        answers = []
+    if len(answers) != round_idx:
+        raise RatingRejected('session_state_mismatch', 409)
+
+    question_role = str(row['current_question_role'] or 'regular')
+    session_bank_version = row['bank_version']
+    algorithm_version = str(row['algorithm_version'] or _RT_BASE_ALGORITHM_VERSION)
+    session_anchor_enabled = bool(
+        session_bank_version and session_bank_version == _RT_ANCHOR_VERSION
+        and _rt_anchor_available()
+    )
+    streak = _compute_streak(answers, correct)
+    answer = {
+        'q_id': q_id,
+        'correct': correct,
+        'discipline': pool_q['discipline'],
+        'source': pool_q.get('source_group', ''),
+        'q_rating': pool_q['rating'],
+        'rating_before': cur_rating,
+        'response_ms': response_ms,
+        'streak': streak,
+        'question_role': question_role,
+        'bank_version': session_bank_version,
+        'algorithm_version': algorithm_version,
+    }
+    estimate_input = answers + [answer]
+    new_rating, rating_se = _rt_estimate(estimate_input, prior_mean, prior_sd)
+    answer['rating_after'] = new_rating
+    answers.append(answer)
+    round_idx += 1
+
+    is_placement = str(row['trigger'] or '').strip() == 'placement'
+    total_rounds = _placement_rounds(prior_mean) if is_placement else _RT_MAX_ROUNDS
+    converged = False if is_placement else _rt_converged(answers, prior_mean, prior_sd)
+    finished = (round_idx >= total_rounds if is_placement else
+                round_idx >= _RT_MAX_ROUNDS or converged)
+
+    recent_ids = _rt_recent_seen_ids(conn, row['user_id'], exclude_sid=sid)
+
+    next_q = None
+    next_token = None
+    next_role = None
+    if not finished:
+        session_ids = {a['q_id'] for a in answers}
+        disc_counts = {}
+        source_counts = {}
+        for a in answers:
+            disc_counts[a.get('discipline', '')] = disc_counts.get(a.get('discipline', ''), 0) + 1
+            source_counts[a.get('source', '')] = source_counts.get(a.get('source', ''), 0) + 1
+        next_role = _rt_desired_question_role(
+            row['trigger'], round_idx, session_anchor_enabled
+        )
+        next_q = _pick_question(
+            new_rating, round_idx, session_ids | recent_ids | exclude_ids,
+            discipline_counts=disc_counts, source_counts=source_counts,
+            question_role=next_role,
+            anchor_enabled=session_anchor_enabled,
+        )
+        if not next_q and next_role == 'anchor':
+            next_role = 'regular'
+            next_q = _pick_question(
+                new_rating, round_idx, session_ids | recent_ids | exclude_ids,
+                discipline_counts=disc_counts, source_counts=source_counts,
+                question_role=next_role,
+                anchor_enabled=session_anchor_enabled,
+            )
+        if next_q:
+            next_token = secrets.token_urlsafe(18)
+        else:
+            finished = True
+
+    status = 'completed' if finished else 'in_progress'
+    conn.execute(
+        'UPDATE rating_test_sessions SET status=?,cur_rating=?,rating_se=?,round=?,answers=?,'
+        ' current_question_id=?,current_question_token=?,current_question_role=?,'
+        ' finished_at=?,last_activity_at=? WHERE id=?',
+        (status, new_rating, rating_se, round_idx, json.dumps(answers),
+         None if finished else next_q['id'], None if finished else next_token,
+         None if finished else next_role,
+         now_iso if finished else None, now_iso, sid)
+    )
+    conn.execute(
+        'INSERT INTO rating_test_responses '
+        '(session_id,user_id,question_id,round,correct,response_ms,question_rating,'
+        ' ability_before,ability_after,question_role,bank_version,algorithm_version,created_at) '
+        'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        (sid, row['user_id'], q_id, round_idx - 1, 1 if correct else 0,
+         response_ms, pool_q['rating'], cur_rating, new_rating, question_role,
+         session_bank_version, algorithm_version, now_iso)
+    )
+
+    if row['user_id']:
+        mrow = conn.execute(
+            'SELECT wrong_count FROM mistake_log WHERE user_id=? AND question_id=?',
+            (row['user_id'], q_id)
+        ).fetchone()
+        if not correct:
+            if mrow:
+                conn.execute(
+                    'UPDATE mistake_log SET wrong_count=wrong_count+1, last_wrong_at=? '
+                    'WHERE user_id=? AND question_id=?',
+                    (now_iso, row['user_id'], q_id)
+                )
+            else:
+                conn.execute(
+                    'INSERT INTO mistake_log'
+                    '(user_id,question_id,wrong_count,correct_after,first_wrong_at,last_wrong_at) '
+                    'VALUES(?,?,1,0,?,?)',
+                    (row['user_id'], q_id, now_iso, now_iso)
+                )
+        elif mrow:
+            conn.execute(
+                'UPDATE mistake_log SET correct_after=correct_after+1,last_correct_at=? '
+                'WHERE user_id=? AND question_id=?',
+                (now_iso, row['user_id'], q_id)
+            )
+
+    if finished and row['user_id']:
+        provisional = 1 if is_placement or not converged else 0
+        _finalize_placement(conn, row['user_id'], new_rating, provisional=provisional)
+
+    owner_uid = row['user_id']
+    if finished and owner_uid and is_placement:
+        start_zone_key = _rt_step_placement_unlock(conn, owner_uid, min(new_rating, 1570.0))
+
+    rating_change = round(new_rating - cur_rating, 1)
+    payload = {
+        'correct':       correct,
+        'best_move':     pool_q['katago_best_move'],
+        'finished':      finished,
+        'session_id':    sid,
+        'cur_rating':    new_rating,
+        'rating_se':     rating_se,
+        'rating_change': rating_change,
+        'streak':        streak,
+        'rank_label':    _rating_to_rank(new_rating),
+        'rank_range':    [_rating_to_rank(new_rating - rating_se),
+                          _rating_to_rank(new_rating + rating_se)],
+        'converged':     converged,
+        'provisional':   is_placement or not converged,
+        'rounds_used':   round_idx,
+        'total_rounds':  total_rounds,
+        'start_zone_key': start_zone_key,
+    }
+    if not finished:
+        payload.update({
+            'round': round_idx + 1,
+            'question': _strip_question(next_q, sid, next_token),
+        })
+    return payload
+
+
+def _rt_step_placement_unlock(conn, uid, elo):
+    """Same placement travel unlock, on the ledger's rollbackable connection."""
+    start_zone_key = _adventure_start_zone_for_elo(elo)
+    idx = _adventure_zone_index(start_zone_key)
+    now = datetime.datetime.now().isoformat(timespec='seconds')
+    for z in ADVENTURE_ZONES[:idx + 1]:
+        conn.execute('''
+            INSERT INTO adventure_zone_unlocks
+                (user_id, zone_key, source, start_zone_key, unlocked_at)
+            VALUES (?,?,?,?,?)
+            ON CONFLICT(user_id, zone_key) DO UPDATE SET
+                source=excluded.source,
+                start_zone_key=excluded.start_zone_key,
+                unlocked_at=COALESCE(adventure_zone_unlocks.unlocked_at, excluded.unlocked_at)
+        ''', (uid, z['key'], 'placement_test', start_zone_key, now))
+    return start_zone_key
+
+
+def _rt_forfeit_on_connection(conn, ctx, moves, response_ms, reason,
+                              exclude_ids=frozenset()):
+    """Trusted server call ONLY, after advance validates binding/nonce/deadline.
+
+    A forfeit is a server-owned incorrect round, not an empty-move replay.
+    Do not expose this function as a route or accept a client correctness flag.
+    """
+    from g076_rating_steps import RatingRejected
+    if reason not in ('timeout', 'give_up'):
+        raise RatingRejected('rating_invalid_forfeit', 422)
+    if not isinstance(moves, list) or type(response_ms) is not int or not 0 <= response_ms <= 600000:
+        raise RatingRejected('rating_invalid_forfeit', 422)
+    # resolve already loaded the current private pool before taking this path;
+    # do not start pool/file I/O inside the rollbackable settlement callback.
+    pool_q = next((q for q in _RT_POOL if q['id'] == ctx.question['id']), None)
+    if pool_q is None or dict(pool_q) != dict(ctx.question):
+        raise RatingRejected('rating_question_revision_changed')
+    return _rt_write_step_result(conn, sid=ctx.session_id, request_uid=ctx.user_id,
+        pool_q=pool_q, question_token=ctx.question_token, response_ms=response_ms, correct=False,
+        exclude_ids=exclude_ids)
+
+
 @app.route('/api/rating_test/result/<sid>')
 def rt_result(sid):
     """回傳完整測驗結果（雷達圖資料、學科分析、SP 統計）。"""
@@ -33230,6 +33856,108 @@ def _start_community_leaderboard_weekly_scheduler():
 
 
 _startup_diagnostics.mark('app_module_import', 'success')
+
+
+# G076 Practice has its own explicit activation; no runtime schema mutation.
+from g076_practice_product import install as _install_g076_practice, selected as _g076_practice_selected
+
+def _g076_practice_enabled():
+    return _g076_practice_selected(os.environ)
+
+_g076_practice_issue = _install_g076_practice(app, globals(), os.environ)
+
+# G079: complete Mistakes services. One borrowed transaction covers rights/
+# quota admission, review_log, SRS, the learning core, daily quests, quest XP,
+# capped coins, Quest V2 and the step receipt. OFF (flag unset) keeps the
+# legacy /api/mistakes and /api/srs/review behavior; these routes then 503.
+# Schema: migrations/g079_mistakes_steps_v1.py (explicit operator gate).
+from g076_mistakes_product import create_blueprint as _g076_mistakes_blueprint
+from g079_mistakes_services import build_mistakes_services as _g079_mistakes_services
+app.register_blueprint(_g076_mistakes_blueprint(
+    secret=app.secret_key, environ=os.environ,
+    services=_g079_mistakes_services(globals(), secret=app.secret_key)))
+
+@app.route('/js/game/g076_nonmap_step_client.js')
+def serve_g076_nonmap_step_client_js():
+    return _serve_live_static_or_baked_subpath(
+        'g076_nonmap_step_client.js', 'js/game', 'js/game'
+    )
+
+
+# G076 Daily: no production DDL, no legacy-D5B second submission writer,
+# and no enabled route without all three independently controlled flags.
+from g076_daily_step_integration import (
+    DailyServices as _G076DailyServices,
+    create_daily_blueprint as _g076_create_daily_blueprint,
+    select_daily_question as _g076_select_daily_question,
+)
+from g076_nonmap_steps import NonMapRejected as _G076NonMapRejected
+from g076_daily_capability import create_capability_blueprint as _g076_daily_capability
+app.register_blueprint(_g076_daily_capability(os.environ))
+
+@contextmanager
+def _g076_daily_transaction():
+    conn = get_db()
+    try:
+        raw = getattr(conn, '_conn', conn)
+        sqlite = raw.__class__.__module__.startswith('sqlite3')
+        conn.execute('BEGIN IMMEDIATE' if sqlite else 'BEGIN')
+        yield conn
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def _g076_daily_question(conn, day):
+    # The existing admin-selected date winner must not be silently replaced.
+    return _g076_select_daily_question(conn, day, load_questions=_load_questions)
+
+
+def _g076_daily_admit(uid, question):
+    # Unlike Practice, original Daily admits authenticated players with no
+    # Premium quota debit. Preserve the original admission policy.
+    if type(uid) is not int or uid < 1:
+        raise _G076NonMapRejected('authentication_required', 401)
+
+
+_g076_daily_services = _G076DailyServices(
+    DAILY_CHALLENGE_XP_REWARD=DAILY_CHALLENGE_XP_REWARD,
+    xp_to_lv=xp_to_lv, lv_progress=lv_progress,
+    check_and_award_daily=check_and_award_daily,
+    get_daily_submit_streak=get_daily_submit_streak,
+    give_daily_appearance=give_daily_appearance,
+    BADGE_DEFS=BADGE_DEFS, _i18n_badge_en=_i18n_badge_en,
+    _APPEAR_MAP=_APPEAR_MAP,
+)
+app.register_blueprint(_g076_create_daily_blueprint(
+    transaction=_g076_daily_transaction,
+    today_question=_g076_daily_question,
+    admit=_g076_daily_admit,
+    services=_g076_daily_services,
+    secret=app.secret_key,
+    environ=os.environ,
+    question_context=_map_battle_question_context,
+))
+
+@app.route('/js/game/g076_daily_step_client.js')
+def serve_g076_daily_step_client_js():
+    return _serve_live_static_or_baked_subpath(
+        'g076_daily_step_client.js', 'js/game', 'js/game'
+    )
+
+
+from g078_rating_integration import install as _install_g078_rating
+_g078_rating_services = _install_g078_rating(app, globals(), os.environ)
+
+
+@app.route('/js/game/g076_rating_step_client.js')
+def serve_g076_rating_step_client_js():
+    return _serve_live_static_or_baked_subpath(
+        'g076_rating_step_client.js', 'js/game', 'js/game'
+    )
 
 
 if __name__ == '__main__':

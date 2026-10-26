@@ -77,6 +77,7 @@ def _install_app_import_stubs():
 
         module = types.ModuleType("grimoire_api")
         module.grimoire_bp = Blueprint("grimoire_stub_lord_gate", __name__)
+        module.official_grimoire_lookup = lambda _qid: None
         sys.modules["grimoire_api"] = module
 
 

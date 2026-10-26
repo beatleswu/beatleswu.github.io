@@ -103,6 +103,14 @@
     const state = { data:null, filter:'all' };
     const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     const list = value => Array.isArray(value) ? value : [];
+    function itemDescription(item) {
+      // Metadata can be an object; never coerce it into player-facing text.
+      for (const value of [item.description, item.current_effect, item.effect_use]) {
+        if (typeof value === 'string' && value.trim()) return value.trim();
+      }
+      return '尚無物品說明';
+    }
+
     const itemName = item => document.documentElement.lang === 'en' ? (item.name_en || item.name || item.item_id) : (item.name || item.name_en || item.item_id);
     const labels = {
       all:'全部 / All', ConsumableEffect:'消耗品 / Consumables', Material:'素材 / Materials',
@@ -147,11 +155,11 @@
           : item.owned ? `Owned: ${owned}` : 'Not owned';
         return `<article class="card">
           <div class="card-head"><div class="art">${artHtml(item)}</div><div><div class="name">${esc(itemName(item))}</div><div class="id">${esc(item.item_id)}</div><div class="meta"><span class="pill owned">${esc(ownershipNote)}</span><span class="pill">${esc(item.category)}</span>${recent}</div></div></div>
-          <p class="desc">${esc(item.description || item.current_effect || item.effect_use || 'Item definition')}</p>
+          <p class="desc">${esc(itemDescription(item))}</p>
           <div class="detail">
             <div><b>Catalog / Ownership</b><br><span>${esc(catalogStatus)} · ${esc(ownedStatus)}</span></div>
             ${containsHtml(item)}
-            <div><b>Effect / Use</b><br><span>${esc(item.effect_use || 'No direct use defined')}</span></div>
+            <div><b>Effect / Use</b><br><span>${esc(typeof item.effect_use === 'string' && item.effect_use.trim() ? item.effect_use : '尚未提供')}</span></div>
             <div><b>Source</b>${sourceHtml(item.source)}</div>
             <div><b>Where to get more</b>${sourceHtml(item.where_to_get_more)}</div>
           </div>

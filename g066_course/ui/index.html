@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>啟蒙班 20 課｜課程候選預覽</title>
+<link rel="stylesheet" href="course.css">
+<main id="g066-course">
+ <div class="eyebrow">GO ODYSSEY · 啟蒙班 V1</div>
+ <h1>從第一口氣，走向第一盤棋</h1>
+ <p>四週・20 課・每課 8 題練習</p>
+ <aside>候選預覽，尚未正式開放。課程、媒體與規則仍待 Owner 驗收。</aside>
+ <p id="course-status" role="status" aria-live="polite">正在讀取課程狀態…</p>
+ <div class="layout"><nav id="lessons" aria-label="四週課表"></nav>
+ <section id="lesson" aria-label="課程內容"><h2 id="lesson-title">選擇一堂課</h2>
+ <ol class="steps"><li>看影片</li><li>完成 8 題</li><li>首次答對至少 6 題，解鎖下一課</li></ol>
+ <video id="video" controls preload="none" hidden></video><p id="media-status">媒體待逐課驗收</p>
+ <button id="start" disabled>開始／繼續練習</button>
+ <section id="practice" hidden><label id="review-label" hidden>選擇錯題 <select id="review-slot" aria-label="選擇錯題"></select></label><h3 id="question-title"></h3><div id="board" role="group" aria-label="棋盤"></div>
+ <p id="moves" aria-live="polite"></p><button id="clear">重選落點</button><button id="submit">送出答案</button>
+ <button id="retry" hidden>重試錯題</button><button id="replace" hidden>換一道備用題</button><button id="next" hidden>下一題</button>
+ <p id="score" aria-live="polite"></p></section></section></div>
+</main><script src="course.js" defer></script></html>

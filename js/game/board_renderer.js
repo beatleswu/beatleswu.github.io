@@ -1,6 +1,92 @@
 (function (global) {
     'use strict';
 
+    // Read only the initial node. Values are tokenized so comments, escaped
+    // brackets and variation punctuation cannot masquerade as board properties.
+    function readSgfRoot(sgf) {
+        if (typeof sgf !== 'string') return null;
+        const start = /^\s*\(\s*;/.exec(sgf);
+        if (!start) return null;
+        let i = start[0].length;
+        const properties = Object.create(null);
+        while (i < sgf.length) {
+            while (/\s/.test(sgf[i] || '') && i < sgf.length) i++;
+            if (';()'.includes(sgf[i])) break;
+            const name = /^[A-Z]+/.exec(sgf.slice(i));
+            if (!name) return null;
+            i += name[0].length;
+            const values = properties[name[0]] || (properties[name[0]] = []);
+            let count = 0;
+            while (i < sgf.length) {
+                while (/\s/.test(sgf[i] || '') && i < sgf.length) i++;
+                if (sgf[i] !== '[') break;
+                i++;
+                let value = '', closed = false;
+                while (i < sgf.length) {
+                    const ch = sgf[i++];
+                    if (ch === ']') { closed = true; break; }
+                    if (ch === '\\') {
+                        const escaped = sgf[i++];
+                        if (escaped === undefined) return null;
+                        if (escaped === '\r' && sgf[i] === '\n') i++;
+                        if (escaped !== '\r' && escaped !== '\n') value += escaped;
+                    } else value += ch;
+                }
+                if (!closed) return null;
+                values.push(value);
+                count++;
+            }
+            if (!count) return null;
+        }
+        if (i >= sgf.length) return null;
+        const sizeText = (properties.SZ || ['19'])[0];
+        const size = /^\d+$/.test(sizeText) ? Number(sizeText) : NaN;
+        if (!Number.isInteger(size) || size < 2 || size > 25) return null;
+        const point = value => {
+            if (!/^[a-z]{2}$/.test(value)) return null;
+            const x = value.charCodeAt(0) - 97, y = value.charCodeAt(1) - 97;
+            return x < size && y < size ? { x, y } : null;
+        };
+        const points = value => {
+            const single = point(value);
+            if (single) return [single];
+            const range = value.split(':');
+            const a = point(range[0]), b = point(range[1]);
+            if (range.length !== 2 || !a || !b || a.x > b.x || a.y > b.y) return [];
+            const out = [];
+            for (let x = a.x; x <= b.x; x++) for (let y = a.y; y <= b.y; y++) out.push({ x, y });
+            return out;
+        };
+        const annotations = [];
+        for (const type of ['TR', 'SQ', 'CR', 'MA', 'LB']) {
+            for (const value of properties[type] || []) {
+                if (type === 'LB') {
+                    const colon = value.indexOf(':');
+                    const p = point(value.slice(0, colon));
+                    if (colon === 2 && p && value.length > 3) annotations.push({ ...p, type, text: value.slice(3) });
+                } else for (const p of points(value)) annotations.push({ ...p, type });
+            }
+        }
+        return {
+            size, pl: (properties.PL || [])[0], end: i, annotations,
+            black: (properties.AB || []).flatMap(points),
+            white: (properties.AW || []).flatMap(points),
+        };
+    }
+
+    function renderAnnotations(board, problem, crop = {}) {
+        if (!board || !problem || typeof board.addObject !== 'function') return 0;
+        let count = 0;
+        const size = crop.displayLines || problem.size;
+        for (const marker of problem.annotations || []) {
+            const x = marker.x - (crop.startX || 0), y = marker.y - (crop.startY || 0);
+            if (x < 0 || y < 0 || x >= size || y >= size) continue;
+            board.addObject({ ...marker, x, y });
+            count++;
+        }
+        return count;
+    }
+
     function create(dependencies = {}) {
         if (!dependencies || typeof dependencies !== 'object') {
             throw new TypeError('BoardRenderer dependencies must be an object');
@@ -165,7 +251,7 @@
         });
     }
 
-    const api = Object.freeze({ create });
+    const api = Object.freeze({ create, readSgfRoot, renderAnnotations });
     global.GoOdysseyBoardRenderer = api;
     global.BoardRenderer = api;
 })(window);

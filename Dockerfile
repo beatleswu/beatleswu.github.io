@@ -199,6 +199,53 @@ COPY docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json ./docs/p
 COPY adventure_monster_runtime_contract.py ./
 COPY map_battle_runtime.py ./
 COPY map_battle_persistence.py ./
+# G080 C: runtime question selection is imported on-demand by app.py.
+# Keep it in the explicit image source closure, not a Python wildcard.
+COPY question_selection_policy.py ./
+# G076-R3: separately gated, server-authoritative step ledger and SGF
+# board-only projection. Explicit dependencies; no wildcard release copy.
+COPY sgf_point_transform.py ./
+COPY sgf_answer_authority.py ./
+COPY g076_question_privacy.py ./
+COPY g076_server_step_authority.py ./
+COPY g076_step_ledger.py ./
+# G076-R3: gated Practice/Daily/legacy-mode safety runtime.
+# These are imports even with flags OFF; no migrations run here.
+COPY g076_nonmap_steps.py ./
+COPY g076_practice_product.py ./
+COPY g076_daily_step_integration.py ./
+COPY g076_daily_capability.py ./
+COPY g076_othermode_authority.py ./
+# G077-F: only approved B1/B2/R5 runtime modules; flags default OFF.
+# Grimoire registration imports these even while its mode is OFF.
+# No official corpus, fixture credentials or schema installation is packaged.
+COPY g076_mode_gate.py ./
+COPY g076_mistakes_product.py ./
+# G077-B1 borrowed-transaction terminal writer; never auto-enables XP.
+COPY g077_mistakes_settlement.py ./
+# G079 Product runtime integrations, gated OFF until verified.
+COPY g079_mistakes_services.py ./
+COPY g078_rating_integration.py ./
+COPY g076_rating_steps.py ./
+COPY g076_grimoire_adapter.py ./
+COPY g076_grimoire_catalog.py ./
+COPY g076_grimoire_pg_service.py ./
+COPY g076_grimoire_product.py ./
+
+# G066 gated curriculum integration is imported at module scope even when
+# the course feature flag is OFF. Package exactly the runtime closure and
+# approved catalogue/media/UI files; exclude offline tooling and fixtures.
+COPY g066_course/__init__.py ./g066_course/__init__.py
+COPY g066_course/integration.py ./g066_course/integration.py
+COPY g066_course/http.py ./g066_course/http.py
+COPY g066_course/service.py ./g066_course/service.py
+COPY g066_course/adapters.py ./g066_course/adapters.py
+COPY g066_course/data/catalog.json ./g066_course/data/catalog.json
+COPY g066_course/data/media-manifest.json ./g066_course/data/media-manifest.json
+COPY g066_course/ui/index.html ./g066_course/ui/index.html
+COPY g066_course/ui/course.css ./g066_course/ui/course.css
+COPY g066_course/ui/course.js ./g066_course/ui/course.js
+COPY g066_course/ui/curriculum-embed.js ./g066_course/ui/curriculum-embed.js
 # SGF Owner Review Queue is authenticated, server-persisted repair staging.
 # Its detector-derived source is read-only evidence, never canonical content.
 COPY sgf_answer_review_queue.py ./
@@ -238,6 +285,12 @@ COPY migrations/quest_claim_v1.py ./migrations/quest_claim_v1.py
 COPY migrations/quest_progress_v2.py ./migrations/quest_progress_v2.py
 COPY migrations/question_capacity_lineage_v1.py ./migrations/question_capacity_lineage_v1.py
 COPY migrations/review_log_submission_idempotency_v1.py ./migrations/review_log_submission_idempotency_v1.py
+# G076 proposed schema admission helpers included for explicit Owner
+# migration review only. Import/copy never executes DDL.
+COPY migrations/g076_practice_steps_v1.py ./migrations/g076_practice_steps_v1.py
+COPY migrations/g076_nonmap_steps_PROPOSED.sql ./migrations/g076_nonmap_steps_PROPOSED.sql
+# G079 DDL is approval-gated, never executed merely by image build.
+COPY migrations/g079_mistakes_steps_v1.py ./migrations/g079_mistakes_steps_v1.py
 # P0 Lane C: app.py imports this additive recovery-ledger schema helper at
 # startup. Keep the migration explicit; the startup call admits schema only
 # and never writes recovery rows.
@@ -281,9 +334,9 @@ COPY sgf_engine ./sgf_engine
 # root-level residue never referenced by app.py's routes.
 COPY login.html landing.html index.html terms.html manage.html admin.html \
      shadow_dashboard.html sgf_answer_review.html admin_questions.html \
-     bot.html daily_challenge.html community.html messages.html \
+     bot.html daily_challenge.html daily_challenge_legacy.html community.html messages.html \
      share_view.html mistakes.html curriculum.html hero.html \
-     rating_test.html shop.html profile.html premium_weekly.html \
+     rating_test.html grimoire_player.html shop.html profile.html premium_weekly.html \
      stats.html upgrade.html play.html inventory.html badges.html \
      item_journal.html games.html zone4_owner_story_runtime.html \
      ZONE4_004_LORD_STATE_BINDING_MATRIX.json ZONE4_004_RUNTIME_MANIFEST.json \
@@ -323,6 +376,12 @@ COPY js/game/game_session.js ./js/game/game_session.js
 # keep the copies narrow so the image cannot silently absorb unrelated JS.
 COPY js/game/question_loader.js ./js/game/question_loader.js
 COPY js/game/board_renderer.js ./js/game/board_renderer.js
+# G076-R3: only the approved browser step transport adapter.
+COPY js/game/g076_authoritative_step_client.js ./js/game/g076_authoritative_step_client.js
+COPY js/game/g076_nonmap_step_client.js ./js/game/g076_nonmap_step_client.js
+COPY js/game/g076_daily_step_client.js ./js/game/g076_daily_step_client.js
+COPY js/game/g076_rating_step_client.js ./js/game/g076_rating_step_client.js
+COPY js/game/g076_grimoire_product_client.js ./js/game/g076_grimoire_product_client.js
 # B6 ModeContext and B7 GameBootstrap are narrow browser runtime modules;
 # keep both explicit so the image cannot absorb unrelated game JavaScript.
 COPY js/game/mode_context.js ./js/game/mode_context.js

@@ -609,7 +609,7 @@ def test_judge_never_uses_client_grade_and_unavailable_judge_is_retryable(battle
     attempt = dict(battle_db.execute("SELECT * FROM map_battle_attempts WHERE id='attempt-s2'").fetchone())
     canonical = canonicalize_answer(_payload(battle_db, moves=[{"x": 3, "y": 3}]), attempt)
     outcome = judge_map_battle_answer_v1(QUESTION, attempt, canonical)
-    assert outcome == JudgeOutcome("CORRECT", 5, "map-battle-judge-v1", "answer_tree_reply_leaf")
+    assert outcome == JudgeOutcome("CORRECT", 5, "map-battle-judge-g065-v2", "answer_tree_reply_leaf")
     assert calculate_damage("INVALID", None, 20, QUESTION) == (0, 0)
 
 

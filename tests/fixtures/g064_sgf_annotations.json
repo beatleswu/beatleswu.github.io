@@ -1,0 +1,38 @@
+[
+  {
+    "name": "mixed-9",
+    "sgf": "(;FF[4]SZ[9]PL[B]AB[aa][cc]AW[bb]LB[aa:A][bb:B][dc:C][dd:1][ee:12]TR[aa][fa]SQ[gb]CR[hc]MA[id];B[de]LB[de:SECRET_CHILD](;W[ef]TR[ef])(;W[fg]LB[fg:SECRET_BRANCH]))"
+  },
+  {
+    "name": "corner-19",
+    "sgf": "(;SZ[19]AB[pp][qq]AW[pq]LB[rr:A][qs:2]TR[po]SQ[op]CR[oo]MA[or])"
+  },
+  {
+    "name": "distant-label-19",
+    "sgf": "(;SZ[19]AB[aa]LB[ss:C]TR[rr])"
+  },
+  {
+    "name": "range-13",
+    "sgf": "(;SZ[13]AB[aa:bb]LB[cc:3]TR[dd:ee]SQ[ff]CR[gg]MA[hh])"
+  },
+  {
+    "name": "escaped-root",
+    "sgf": "(;SZ[9]C[pretend ; LB[zz:SECRET_COMMENT\\] ( PL[W\\]]GN[title (;) ]LB[bc:A\\]B][cd:1:2]TR[de];B[ef]LB[ef:SECRET_CHILD])"
+  },
+  {
+    "name": "markers-only-19",
+    "sgf": "(;SZ[19]LB[rr:A]TR[ss]SQ[rq]CR[qr]MA[qq])"
+  },
+  {
+    "name": "small-5",
+    "sgf": "(;SZ[5]AB[aa]AW[ee]LB[bc:1]TR[cd]SQ[dc]CR[bb]MA[dd])"
+  },
+  {
+    "name": "crop-13-of-19",
+    "sgf": "(;SZ[19]AB[aa][kk]AW[bb]LB[jj:2]TR[ii]SQ[hh]CR[gg]MA[ff])"
+  },
+  {
+    "name": "map-battle-69853-root",
+    "sgf": "(;CA[gb2312]AB[cp][dp][ep][fq][fr][dr][br]AW[fp][gp][gq][gr][eq][dq][cq][cr]LB[dr:1]\n[fj:N][bj:Y]AP[MultiGo:4.4.4]SZ[19]AB[bq]MULTIGOGM[1]\n)"
+  }
+]

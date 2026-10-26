@@ -237,7 +237,7 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     <script src="/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"></script>
     <script src="/js/game/review_transport.js?v=20260817e10v1bb3"></script>
     <script src="/js/game/question_loader.js?v=20260817e10v1bb5"></script>
-    <script src="/js/game/board_renderer.js?v=20260817e10v1bb5"></script>
+    <script src="/js/game/board_renderer.js?v=20261023g064"></script>
     <script src="/js/game/game_session.js"></script>
     <script src="/js/game/mode_context.js?v=20260817e10v1bb6"></script>
     <script src="/js/game/game_bootstrap.js?v=20260817e10v1bb6"></script>
@@ -245,6 +245,8 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
+    <script src="/js/game/g076_nonmap_step_client.js?v=20261023practice"></script>
+    <script src="/js/game/g076_authoritative_step_client.js?v=20261023r3a"></script>
     <script src="/js/e10/zone4_cinematic_content.js?v=20260918z4storyfix001"></script>
     <script src="/js/rpg_wave2_wearable_renderer.js?v=20260828a0381"></script>
     <script src="/js/game/encounter_presentation_framework_v1.js?v=a023v1"></script>
@@ -9234,16 +9236,11 @@ window.showPetRewardToast = showPetRewardToast;
 
 // ─── SGF 解析器 ────────────────────────────────────────────────
 function parseSGF(sgf) {
-    sgf = sgf.replace(/\r?\n|\r/g, ' ').trim();
-    const result = { size:19, pl:'B', black:[], white:[], tree:null };
+    const root = GoOdysseyBoardRenderer.readSgfRoot(sgf);
+    if (!root) return null;
+    const result = { size:root.size, pl:root.pl || 'B', black:root.black, white:root.white, annotations:root.annotations, tree:null };
+    const pl = root.pl;
     function findClosing(str,start){let d=0;for(let i=start;i<str.length;i++){if(str[i]==='(')d++;else if(str[i]===')'){ d--;if(d===0)return i;}}return str.length-1;}
-    function parseCoordList(s){return(s.match(/\[([a-zA-Z]{2})\]/g)||[]).map(m=>({x:m.charCodeAt(1)-97,y:m.charCodeAt(2)-97}));}
-    const rm=sgf.match(/^\(;([\s\S]*?)(?=;|\(|\))/);if(!rm)return null;
-    const rp=rm[1];
-    const sz=rp.match(/SZ\[(\d+)\]/);if(sz)result.size=parseInt(sz[1]);
-    const pl=rp.match(/PL\[([BW])\]/);if(pl)result.pl=pl[1];
-    (rp.match(/AB((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.black.push(...parseCoordList(s)));
-    (rp.match(/AW((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.white.push(...parseCoordList(s)));
     function parseSeq(str){
         str=str.trim();const ns=[];let i=0;
         while(i<str.length){
@@ -9258,7 +9255,7 @@ function parseSGF(sgf) {
         while(bi<str.length){if(str[bi]==='('){const e=findClosing(str,bi);const c=parseSeq(str.slice(bi+1,e));if(c)last.children.push(c);bi=e+1;}else bi++;}
         return nodes[0];
     }
-    const after=sgf.slice(rm[0].length).trim();
+    const after=sgf.slice(root.end).trim();
     if(after.startsWith(';')){result.tree=parseSeq(after);}
     else if(after.startsWith('(')){
         const root={move:null,color:null,children:[]};let i=0;
@@ -9267,8 +9264,7 @@ function parseSGF(sgf) {
     }
     // 若 SGF 根節點無 PL 標記，從答案樹第一手顏色推斷先手方
     if(!pl&&result.tree){const fn=result.tree.move?result.tree:(result.tree.children&&result.tree.children[0]);if(fn&&fn.color)result.pl=fn.color;}
-    // 最後備援：直接搜尋整個 SGF 是否含 PL[W]（處理 GN 屬性干擾的邊緣情況）
-    if(result.pl==='B'&&/PL\[W\]/.test(sgf))result.pl='W';
+
     return result;
 }
 
@@ -9282,7 +9278,7 @@ function parseSGF(sgf) {
  */
 function calcCropSection(problem) {
     const size   = problem.size;
-    const stones = [...problem.black, ...problem.white];
+    const stones = [...problem.black, ...problem.white, ...(problem.annotations || [])];
     const full   = { section:{top:-.5,left:-.5,right:-.5,bottom:-.5}, displayLines:size, startX:0, startY:0 };
     if (!stones.length || size <= 9) return full;
 
@@ -9794,6 +9790,14 @@ let _adventureActiveQuestions = null;
 let _mapBattleV1State = null;
 let _mapBattleV1Mode = 'disabled';
 let _mapBattleV1Moves = [];
+// R3: the new Map Battle path is disabled unless the server explicitly
+// authorizes BOTH privacy and step runtime. Never trust a browser URL flag.
+let _g076StepUseServer = false;
+let _g076StepClient = null;
+let _g076UnconfirmedMove = null;
+let _g076Practice = null;
+let _g076PracticePending = null;
+let _g076PracticeHold = false;
 let _practiceAnswerMoves = [];
 let _lordTrialAnswerMoves = [];
 let _guildQuestAnswerMoves = [];
@@ -10401,6 +10405,10 @@ async function submitSRS(grade){
         ? { questionId: Number(currentQ.id), index: _bossIndex }
         : null;
     if (!_bossMode && _mapBattleV1Mode === 'active' && _mapBattleV1State) {
+        if (_g076StepUseServer) {
+            setMsg('此題須由伺服器逐手判定，請在棋盤落子。', 'info');
+            return;
+        }
         await _submitMapBattleV1IfActive(_mapBattleV1Moves);
         return;
     }
@@ -11532,6 +11540,28 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
             state = await adapter.prepare(context);
         }
         if (generation !== _mapBattleV1LifecycleGeneration || serial !== _mapBattleV1PrepareSerial) return null;
+        if (_g076StepUseServer) {
+            if (!window.GoOdysseyG076Steps?.createClient
+                || state?.transformId !== 'identity') {
+                throw new Error('g076_client_or_transform_unavailable');
+            }
+            const client = window.GoOdysseyG076Steps.createClient({
+                fetcher: window.fetch.bind(window),
+            });
+            const opened = await client.open({
+                attemptId: state.attemptId,
+                submissionNonce: state.submissionNonce,
+            });
+            if (opened?.status !== 'READY'
+                || !Array.isArray(opened.previous_steps)
+                || opened.previous_steps.length !== opened.step_index) {
+                throw new Error('g076_step_resume_not_ready');
+            }
+            if (generation !== _mapBattleV1LifecycleGeneration
+                || serial !== _mapBattleV1PrepareSerial) return null;
+            _g076StepClient = client;
+            state.g076PreviousSteps = opened.previous_steps;
+        }
         _mapBattleV1State = state;
         _mapBattleV1Context = context;
         _mapBattleV1Mode = 'active';
@@ -11584,8 +11614,11 @@ function _mapBattleV1IsStaleError(error) {
         && /stale|revision/i.test(String(error.message || ''));
 }
 
-async function _submitMapBattleV1IfActive(moves) {
+async function _submitMapBattleV1IfActive(moves, settledResponse = null) {
     if (!_mapBattleV1IsActive()) return null;
+    // When G076 is enabled, only the server's step-ledger terminal evidence
+    // can reach the existing authoritative battle presentation/progression.
+    if (_g076StepUseServer && !settledResponse) return null;
     const adapter = window.MapBattleV1 && window.MapBattleV1.legacy;
     if (!adapter || typeof adapter.submit !== 'function') return null;
     const submissionGeneration = _mapBattleV1LifecycleGeneration;
@@ -11597,7 +11630,8 @@ async function _submitMapBattleV1IfActive(moves) {
     _resetE10BattleRevealState();
     _syncE10BattleActions(true);
     try {
-        const response = await adapter.submit(submittedState, moves);
+        const response = settledResponse || await adapter.submit(submittedState, moves);
+        if (settledResponse) adapter.applyAuthoritativeState(submittedState, response);
         if (submissionGeneration !== _mapBattleV1LifecycleGeneration
             || Number(currentQ?.id) !== submittedQuestionId
             || _mapBattleV1State !== submittedState
@@ -12947,6 +12981,11 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     _clearMapBattleV1Resume();
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
+    _g076StepClient = null;
+    _g076UnconfirmedMove = null;
+    _g076Practice = null;
+    _g076PracticePending = null;
+    _g076PracticeHold = _incident002ServerPracticeFlow();
     _lordTrialAnswerMoves = [];
     _guildQuestAnswerMoves = [];
     _mapBattleV1Context = null;
@@ -13019,6 +13058,27 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     const card=SRS.getCard(q.id);
     document.getElementById('q-interval').textContent=card?SRS.intervalLabel(card):'';
 
+    // G076-R3: server-owned contract, never an URL or client feature flag.
+    // Missing capability aborts Adventure; do not silently use unprotected
+    // local solution-tree scoring if the server cannot be contacted.
+    _g076StepUseServer = false;
+    if (!_bossMode && _isAdventureZonePractice()) {
+        try {
+            const cap = await fetch(
+                '/api/adventure/map-battles/v2/steps/capability',
+                {credentials:'include',cache:'no-store'},
+            );
+            if (!cap.ok) throw new Error('g076_capability_unavailable');
+            const value = await cap.json();
+            if (value?.protocol !== 'g076-server-steps-v1'
+                || typeof value.enabled !== 'boolean') throw new Error('invalid_g076_capability');
+            _g076StepUseServer = value.enabled === true;
+        } catch (error) {
+            _blockAdventureProgression('g076_capability_unavailable');
+            return false;
+        }
+    }
+
     // ── 付費題目鎖定 ──────────────────────────────────────────
     if(q.locked){
         if(!q.content){
@@ -13043,6 +13103,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
             initBoard(currentProblem.size,_ci,attemptNumber);initLogicBoard(currentProblem.size);
             currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
             currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+            GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
             _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
             return true;
         };
@@ -13064,7 +13125,56 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: true, qid: questionId, generation });
         return true;
     }
-    if(!q.content || q.accepted_moves === undefined){
+    // Ordinary Practice asks the server whether private steps are required.
+    // Capability/network failure never falls through to local grading.
+    if (_incident002ServerPracticeFlow()) {
+        try {
+            const response = await fetch('/api/g076/practice/steps/capability', {credentials:'same-origin',cache:'no-store'});
+            if (!response.ok) throw Error('practice_capability_unavailable');
+            const cap = await response.json();
+            if (cap.protocol !== 'g076-practice-steps-v1' || typeof cap.enabled !== 'boolean') throw Error('invalid_practice_capability');
+            if (cap.privacy_enforced && !cap.enabled) throw Error('practice_activation_hold');
+            if (!cap.enabled) _g076PracticeHold=false;
+            if (cap.enabled) {
+                const issued = await window.ReviewTransport.practiceAttempt(Number(q.id));
+                const client = window.GoOdysseyG076NonMapSteps.createClient();
+                const opened = await client.open('practice', issued.attempt_token);
+                if (!isCurrent() || currentQ !== q) return false;
+                if (opened.board_only !== true || typeof opened.content !== 'string') throw Error('practice_private_board_missing');
+                q.content = opened.content;
+                delete q.solution; delete q.native_answer; delete q.accepted_answers;
+                delete q.katago_best_move; q.accepted_moves = [];
+                _g076Practice = {client, opened, question:q, generation};
+            }
+        } catch (error) {
+            if (!isCurrent() || currentQ !== q) return false;
+            solved = true; _g076PracticeHold = true;
+            setMsg('安全練習暫停：'+String(error.message || 'practice_hold'), 'err');
+            return false;
+        }
+    }
+    if (_g076StepUseServer) {
+        try {
+            // Always re-fetch the board-only view. An earlier in-page mode
+            // may have cached a legacy full SGF; never reuse it for G076.
+            const response = await fetch(
+                `/api/question/${encodeURIComponent(q.id)}?view=board`,
+                {credentials:'include',cache:'no-store'},
+            );
+            if (!response.ok) throw new Error('g076_board_fetch_failed');
+            const safe = await response.json();
+            if (safe?.board_only !== true || !safe.content
+                || (safe.accepted_moves || []).length) {
+                throw new Error('g076_board_not_redacted');
+            }
+            delete q.native_answer;
+            delete q.solution;
+            Object.assign(q, safe);
+        } catch (error) {
+            _blockAdventureProgression('g076_private_board_unavailable');
+            return false;
+        }
+    } else if(!_g076Practice && (!q.content || q.accepted_moves === undefined)){
         try{
             const _r=await fetch(`/api/question/${q.id}`,{credentials:'include'});
             if (_r?.ok === false) throw new Error(`question_fetch_${_r.status}`);
@@ -13169,6 +13279,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         initBoard(currentProblem.size,_ci,attemptNumber);initLogicBoard(currentProblem.size);
         currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
         currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+        GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
         playerColor=currentProblem.pl;
         currentProblem.tree=makeAnswerRoot(currentProblem.tree);
         _injectAcceptedAnswerNodes(currentProblem.tree,q);
@@ -13186,7 +13297,14 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         if (!_bossMode) {
             setMsg((playerColor==='B'?I18n.t('index.black_first'):I18n.t('index.white_first'))+I18n.t('index.place_stone'),'info');
         }
-        initMonsterForQuestion(q);
+        if (_g076Practice) {
+            // Practice has no combat settlement. Present the board/result and
+            // existing daily progress without suggesting monster HP authority.
+            document.getElementById('monster-panel').style.display='none';
+        } else {
+            document.getElementById('monster-panel').style.display='';
+            initMonsterForQuestion(q);
+        }
         _e10AcceptanceTrace('CURRENT_NODE_READY', { qid: questionId, generation, fingerprint: _e10BoardRenderFingerprint(q) });
         _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
         return true;
@@ -13198,6 +13316,40 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'board_setup' });
         setMsg(I18n.t('index.boss.question_load_fail'), 'err');
         return false;
+    }
+    if (_g076Practice) {
+        for (const step of _g076Practice.opened.previous_steps || []) {
+            const p = step.player_move;
+            if (playStone(p[0],p[1],playerColor)!==true) { solved=true; setMsg('棋盤同步失敗，請重新載入。','err'); return false; }
+            const r = step.opponent_reply;
+            if (r && playStone(r[0],r[1],playerColor==='B'?'W':'B',true)!==true) { solved=true; return false; }
+        }
+        if (['CORRECT','INCORRECT'].includes(_g076Practice.opened.status)) {
+            await _g076PracticePresent(_g076Practice.opened, true);
+        }
+        _g076PracticeHold = false;
+    }
+    // Reconstruct ONLY already-settled step prefixes from the server.
+    // Never use SGF solution children, which must remain private pre-answer.
+    if (_g076StepUseServer && _g076StepClient
+        && Array.isArray(_mapBattleV1State?.g076PreviousSteps)) {
+        for (const step of _mapBattleV1State.g076PreviousSteps) {
+            const p = step?.player_move;
+            if (!Array.isArray(p) || p.length !== 2
+                || !playStone(p[0], p[1], playerColor)) {
+                _blockAdventureProgression('g076_resume_board_conflict');
+                return false;
+            }
+            _mapBattleV1Moves.push({x:p[0],y:p[1]});
+            const reply = step.opponent_reply;
+            if (Array.isArray(reply) && reply.length === 2) {
+                if (!playStone(reply[0], reply[1],
+                    playerColor === 'B' ? 'W' : 'B', true)) {
+                    _blockAdventureProgression('g076_resume_reply_conflict');
+                    return false;
+                }
+            }
+        }
     }
     const mapZoneKey = _mapBattleV1State?.zoneKey || _mapBattleV1Context?.zoneKey;
     if (mapZoneKey === 'k16_20' && _mapBattleV1State?.attemptId) {
@@ -13229,6 +13381,139 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     return true;
 }
 
+// G076 Practice: render only committed server moves and receipts.
+async function _g076PracticePresent(value, recovered=false) {
+    const active = _g076Practice;
+    const qid = active.question.id;
+    const valid = () => _g076Practice === active && currentQ === active.question;
+    solved = true;
+    const correct = value.status === 'CORRECT';
+    const last = _g076Practice?.lastMove || value.previous_steps?.at(-1)?.player_move;
+    if (last) _boardRenderer.addObject({x:_bx(last[0]),y:_by(last[1]),type:correct?'CR':'MA'});
+    setMsg((correct ? I18n.t('index.correct') : I18n.t('index.wrong'))+' · 已記錄 · XP +0',correct?'ok':'err');
+    const receipt = value.settlement;
+    SRS.acceptPracticeSettlement(qid, receipt.srs, correct);
+    SRS.markSeen(qid);
+    document.getElementById('q-interval').textContent = SRS.intervalLabel(receipt.srs);
+    const progress = await fetch('/api/g076/practice/progress',{credentials:'same-origin',cache:'no-store'});
+    if (!progress.ok) throw Error('practice_progress_unavailable');
+    const today = await progress.json();
+    if (!valid()) return;
+    if (!Number.isInteger(today.total) || !Number.isInteger(today.correct)) throw Error('invalid_practice_progress');
+    _todayTotal=today.total; _todayCorrect=today.correct; updateTodayMini();
+    // Refresh existing read models; never POST another review/progression grant.
+    await _refreshMapBattleV1ServerProgress();
+    if (!valid()) return;
+    updateSRSProgress();
+    window.dispatchEvent(new CustomEvent('g076:practice-committed', {detail:{question_id:qid,result:value.status,submission_id:receipt.submission_id,xp_awarded:0}}));
+}
+async function _g076PracticeClick(x,y) {
+    if (!_g076Practice || solved || answering || _questionBoardFailedClosed) return;
+    if (_g076PracticePending && (_g076PracticePending.x!==x || _g076PracticePending.y!==y)) {
+        setMsg('連線未確認，請點選原本交叉點重試。','warn'); return;
+    }
+    const active = _g076Practice;
+    const valid = () => _g076Practice===active && currentQ===active.question && _mapBattleV1LifecycleGeneration===active.generation;
+    const retry = !!_g076PracticePending;
+    _g076PracticePending = {x,y}; answering=true;
+    let committed=false;
+    try {
+        const value = await (retry ? active.client.retry() : active.client.play(x,y));
+        if (!valid()) return;
+        committed=true; _g076PracticePending=null;
+        if (playStone(x,y,playerColor)!==true) throw Error('practice_board_conflict');
+        active.lastMove=[x,y];
+        const r=value.opponent_reply;
+        if (r && playStone(r[0],r[1],playerColor==='B'?'W':'B',true)!==true) throw Error('practice_reply_conflict');
+        if(value.status==='CONTINUE') setMsg(I18n.t('index.continue'),'info');
+        else await _g076PracticePresent(value);
+    } catch(error) {
+        if (!valid()) return;
+        if(committed || (error.status && error.status<500)) {
+            solved=true; setMsg('安全練習暫停，請重新載入確認已保存狀態。','err');
+        } else setMsg('連線未確認，請再次點選原本交叉點重試。','warn');
+    } finally { if(valid()) answering=false; }
+}
+
+// ─── G076-R3：權威逐手落子，不讀取 SGF 解答樹 ────────────────
+async function _g076StepOnBoardClick(x, y) {
+    if (!_g076StepUseServer || !_mapBattleV1IsActive()
+        || !_g076StepClient || !currentQ) return;
+    if (_g076UnconfirmedMove
+        && (_g076UnconfirmedMove.x !== x || _g076UnconfirmedMove.y !== y)) {
+        setMsg('上一手尚未確認，請點同一個交叉點重試，避免重複結算。', 'warn');
+        return;
+    }
+    const identity = currentQ;
+    const attempt = _mapBattleV1State;
+    const generation = _mapBattleV1LifecycleGeneration;
+    const valid = () => currentQ === identity
+        && _mapBattleV1State === attempt
+        && _mapBattleV1LifecycleGeneration === generation
+        && _mapBattleV1IsActive();
+    const retryUnconfirmed = _g076UnconfirmedMove?.retry === true;
+    let acceptedByServer = false;
+    answering = true;
+    _g076UnconfirmedMove = {x,y,retry:retryUnconfirmed};
+    try {
+        // After a network timeout retry EXACTLY the original nonce+move.
+        const verdict = retryUnconfirmed
+            ? await _g076StepClient.retrySameStep()
+            : await _g076StepClient.play(x,y);
+        if (!valid()) return;
+        acceptedByServer = true;
+        if (!playStone(x,y,playerColor)) {
+            _blockAdventureProgression('g076_local_board_divergence');
+            return;
+        }
+        _mapBattleV1Moves.push({x,y});
+        if (Array.isArray(verdict.opponent_reply)) {
+            const [rx,ry] = verdict.opponent_reply;
+            if (!playStone(rx,ry,playerColor==='B'?'W':'B',true)) {
+                _blockAdventureProgression('g076_opponent_reply_divergence');
+                return;
+            }
+        }
+        _g076UnconfirmedMove = null;
+        if (verdict.status === 'CONTINUE') {
+            setMsg(I18n.t('index.continue'),'info');
+        } else {
+            solved = true;
+            setMsg(verdict.status==='CORRECT'
+                ? I18n.t('index.correct') : I18n.t('index.wrong'),
+                verdict.status==='CORRECT'?'ok':'err');
+            // Reuse the existing UI/progression path with server-settled
+            // evidence. Never submit a second legacy Map Battle answer.
+            await _submitMapBattleV1IfActive([], verdict.battle_settlement);
+        }
+    } catch(error) {
+        if (!valid()) return;
+        // Once the server has returned a verdict, a UI/progression failure
+        // must NEVER be mistaken for a lost answer request. The step token
+        // is already consumed; report a recoverable presentation error.
+        if (acceptedByServer) {
+            _blockAdventureProgression('g076_settled_presentation_unavailable');
+            return;
+        }
+        // Never reinterpret a transport failure as an incorrect move or
+        // resubmit a different move using the same issued nonce.
+        _g076UnconfirmedMove = {x,y,retry:true};
+        const recoverable = !error?.status || Number(error.status)>=500;
+        if (!recoverable) {
+            _blockAdventureProgression('g076_step_authority_rejected');
+        } else {
+            setMsg('連線未確認，請再次點選原本交叉點重送同一步。','warn');
+        }
+        _e10AcceptanceTrace('G076_STEP_FAILURE',{
+            qid:Number(identity.id),code:String(error?.code||'network'),
+        });
+    } finally {
+        if (currentQ === identity && _mapBattleV1LifecycleGeneration === generation) {
+            answering = false;
+        }
+    }
+}
+
 // ─── 點棋盤 ────────────────────────────────────────────────────
 let _exploringAfterWrong = false;  // 答錯後自由探索模式
 
@@ -13244,7 +13529,18 @@ function showSolutionNow() {
 }
 
 function onBoardClick(bx,by){
+    // G082: A Boss review may advance currentQ before the next WGo tree has
+    // finished rendering. Never submit a move against the previous board
+    // while the authoritative Lord transition is still in progress.
+    if (_bossMode && _bossTransitionInFlightKey !== null) {
+        _e10AcceptanceTrace('BOSS_TAP_IGNORED_DURING_TRANSITION', {
+            qid: Number(currentQ?.id) || null, index: _bossIndex,
+        });
+        return;
+    }
     const x=_ox(bx),y=_oy(by);  // 顯示座標 → 原始19路座標
+    if (_g076PracticeHold) return;
+    if (_g076Practice) { void _g076PracticeClick(x,y); return; }
     if (window.SGFReportWidget?.consumeBoardMove?.({x, y})) return;
     if(_questionBoardFailedClosed||answering||!currentNode)return;
     if(logicBoard[x]&&logicBoard[x][y]!==null)return;
@@ -13258,6 +13554,10 @@ function onBoardClick(bx,by){
         setMsg(I18n.t('index.suicide_warn'),'warn'); return;
     }
 
+    if (_g076StepUseServer && _mapBattleV1IsActive()) {
+        void _g076StepOnBoardClick(x,y);
+        return;
+    }
     if (_altAnswerReportMode) {
         submitAlternativeAnswerReport({x, y});
         return;
@@ -13385,6 +13685,11 @@ function onBoardClick(bx,by){
 
 // ─── 重試 / 答案 / 上下題 ─────────────────────────────────────
 function resetProblem(){
+    if (_g076Practice || _g076PracticeHold) { setMsg('安全練習已保存，請接續本題或選下一題。','info'); return; }
+    if (_g076StepUseServer && _mapBattleV1IsActive()) {
+        setMsg('安全作答已由伺服器保存，請接續本題或使用下一題。', 'info');
+        return;
+    }
     if(!currentProblem)return;_exploringAfterWrong=false;_cancelAutoSolution();solved=false;answering=false;
     _gameBootstrap.invalidate('reset');
     _altAnswerReportMode = false;
@@ -13392,11 +13697,17 @@ function resetProblem(){
     _boardRenderer.clear();initLogicBoard(currentProblem.size);
     currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
     currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+    GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
     currentNode=makeAnswerRoot(currentProblem.tree);
     setMsg((playerColor==='B'?I18n.t('index.black_first'):I18n.t('index.white_first'))+I18n.t('index.place_stone'),'info');
     if (_mapBattleV1Mode === 'active' && currentQ) _prepareMapBattleV1ForQuestion(currentQ);
 }
 function showAnswer(){
+    if (_g076Practice || _g076PracticeHold) { setMsg('安全練習已保存，請接續本題或選下一題。','info'); return; }
+    if (_g076StepUseServer && _mapBattleV1IsActive()) {
+        setMsg('請完成伺服器判題後，從授權的解答功能查看答案。', 'info');
+        return;
+    }
     if(!currentProblem||!currentProblem.tree)return;answering=true;solved=true;
     _gameBootstrap.invalidate('show_answer');
     const replayGuard = _gameBootstrap.capture({
@@ -13415,6 +13726,7 @@ function showAnswer(){
     _boardRenderer.clear();initLogicBoard(currentProblem.size);
     currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
     currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+    GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
     const moves=[];let node=currentProblem.tree;
     if(node&&!node.move&&node.children&&node.children.length) node=node.children[0];
     while(node&&node.move){moves.push(node);node=node.children[0]||null;}
@@ -13466,6 +13778,11 @@ function _ensureShopStatus(){
     }
 }
 async function useHintTicket(){
+    if (_g076Practice || _g076PracticeHold) { setMsg('安全練習不提供解答提示。','info'); return; }
+    if (_g076StepUseServer && _mapBattleV1IsActive()) {
+        setMsg('安全判題模式尚未提供伺服器提示，沒有扣除提示券。', 'info');
+        return;
+    }
     if(!currentProblem || solved || answering) return;
     // 正解 = 目前節點的第一個子手（多分支任一皆可，取第一個提示）
     const node = currentNode && currentNode.children && currentNode.children.find(c=>c.move);
@@ -21611,6 +21928,7 @@ async function _rebuildCurrentBossQuestionBoard(q, { attemptNumber } = {}) {
         initLogicBoard(currentProblem.size);
         currentProblem.black.forEach(s => { placeStone(s.x, s.y, 'B'); _boardRenderer.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.B }); });
         currentProblem.white.forEach(s => { placeStone(s.x, s.y, 'W'); _boardRenderer.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.W }); });
+        GoOdysseyBoardRenderer.renderAnnotations(board, currentProblem, _cropInfo);
         playerColor = currentProblem.pl;
         // currentProblem.tree already carries the accepted-answer nodes
         // injected during the primary attempt; re-assigning currentNode is

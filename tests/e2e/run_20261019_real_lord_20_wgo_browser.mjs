@@ -42,6 +42,28 @@ function state(){
   bossResults:document.querySelector('#boss-result-modal')?.className,
  }));
 }
+// The Lord overlay and board shell can continue moving after the 20-question
+// JS-state check succeeds (observed 35.28 CSS px shift before first touch).
+// A real human taps the *visible* intersection; the automated touch must do
+// likewise. This does not bypass WGo, grade the answer, or advance Boss.
+async function waitForStableWGoBoard(){
+ await page.waitForFunction(() => {
+   if(typeof board==='undefined'||!board?.element||typeof currentQ==='undefined')return false;
+   if(typeof _bossTransitionInFlightKey!=='undefined'&&_bossTransitionInFlightKey)return false;
+   const r=board.element.getBoundingClientRect();
+   if(!(r.width>0&&r.height>0))return false;
+   const k=String(currentQ?.id)+'/'+String(typeof _bossIndex!=='undefined'?_bossIndex:'');
+   const now=performance.now(),old=window.__g082WGoStableRect;
+   if(!old||old.k!==k||Math.abs(old.top-r.top)>0.45||
+      Math.abs(old.left-r.left)>0.45||Math.abs(old.width-r.width)>0.45||
+      Math.abs(old.height-r.height)>0.45){
+     window.__g082WGoStableRect={k,top:r.top,left:r.left,width:r.width,height:r.height,since:now};
+     return false;
+   }
+   return now-old.since>=450;
+ },undefined,{polling:'raf',timeout:18000});
+}
+
 function point(){
  return page.evaluate(()=>{
   const node=(currentNode?.children||[]).find(v=>v?.move);
@@ -51,9 +73,10 @@ function point(){
   const dy=typeof _by==='function'?_by(y):y;
   const el=board.element;const r=el.getBoundingClientRect();
   const ratio=board.pixelRatio||1;
+  if(!(board.width>0&&board.height>0&&r.width>0&&r.height>0)) throw new Error('INVALID_WGO_BOARD_GEOMETRY');
   return {qid:currentQ.id,x,y,
-   px:Math.round(r.left+board.getX(dx)/ratio*r.width/el.offsetWidth),
-   py:Math.round(r.top+board.getY(dy)/ratio*r.height/el.offsetHeight)};
+   px:Math.round(r.left+board.getX(dx)/board.width*r.width),
+   py:Math.round(r.top+board.getY(dy)/board.height*r.height)};
  });
 }
 try{
@@ -94,9 +117,11 @@ try{
  for(let i=0;i<20;i++){
   await page.waitForFunction(index=>_bossMode===true&&_bossIndex===index
     &&currentQ?.id===_bossQueue[index]&&
+    !_bossTransitionInFlightKey && !answering &&
     (currentNode?.children||[]).some(child=>!!child?.move)
     &&!document.querySelector('#board-canvas-wrap')?.classList.contains('hidden'),
     i,{timeout:18000});
+  await waitForStableWGoBoard();
   const p=await point();
   const expectReview=page.waitForResponse(r=>
    new URL(r.url()).pathname==='/api/srs/review'&&r.request().method()==='POST',

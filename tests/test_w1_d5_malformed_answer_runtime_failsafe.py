@@ -62,6 +62,7 @@ def _install_app_import_stubs() -> None:
 
         module = types.ModuleType("grimoire_api")
         module.grimoire_bp = Blueprint("w1_d5_grimoire_stub", __name__)
+        module.official_grimoire_lookup = lambda _qid: None
         sys.modules["grimoire_api"] = module
     if "question_taxonomy" not in sys.modules:
         module = types.ModuleType("question_taxonomy")
@@ -358,7 +359,9 @@ def test_failed_answer_has_no_fake_progress_or_success_contract():
     assert review_position < rejection_position < commit_position
     rejection_region = index_source[review_position:rejection_position]
     assert "SRS.reportUnitProgress" not in rejection_region
-    assert "if (data.ok) SRS.markSeen(currentQ.id)" in rejection_region
+    # Public reviews use authoritative ReviewTransport state; only successful
+    # non-public reviews may write the legacy local seen marker.
+    assert "if (data.ok && !ordinaryPublicReview) SRS.markSeen(currentQ.id)" in rejection_region
     srs_review = srs_source[srs_source.index("async function review"):srs_source.index("function dispatchReviewPresentation")]
     assert "_quarantineRejectedAnswer(qid, data" in srs_review
     assert "_quarantineRejectedAnswer(qid, error && error.payload" in srs_review

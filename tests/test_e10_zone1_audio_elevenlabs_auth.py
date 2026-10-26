@@ -72,17 +72,20 @@ def _http_error(url: str, status: int, payload: dict) -> urllib.error.HTTPError:
 
 @pytest.fixture
 def casting_backup(monkeypatch, tmp_path):
+    # Tests must NEVER mutate the real Owner-approved casting sheet. Other
+    # pytest shards can run concurrently, and write-then-restore of a shared
+    # JSON file caused torn writes and lost approvals under Windows workers.
     original = mod.CASTING_PATH.read_bytes()
-    # Redirect cmd_audition_set_b() output to an isolated per-test tmp
-    # directory -- see test_e10_zone1_audio_final_tts.py's identical fix
-    # (2026-08-09 incident) for why a real repo path must never be the
-    # target of a test's shutil.rmtree, whether that rmtree lives in the
-    # tool code itself or in fixture cleanup.
+    isolated_casting = tmp_path / "casting_candidates.json"
+    isolated_casting.write_bytes(original)
+    monkeypatch.setattr(mod, "CASTING_PATH", isolated_casting)
+    # The audition CLI formats its synthetic output filename relative to
+    # REPO_ROOT. In this fixture that root is the per-test sandbox; ordinary
+    # production runs retain their original root and casting filename.
+    monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
+    # All audition output stays in this same per-test isolated directory.
     monkeypatch.setattr(mod, "AUDITION_SET_B_DIR", tmp_path / "audition_set_b_test_output")
-    try:
-        yield
-    finally:
-        mod.CASTING_PATH.write_bytes(original)
+    yield
 
 
 def test_audition_set_b_never_touches_the_real_production_output_dir(monkeypatch, casting_backup, capsys, tmp_path):

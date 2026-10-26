@@ -77,6 +77,7 @@ def _install_app_import_stubs():
         from flask import Blueprint
         m = types.ModuleType("grimoire_api")
         m.grimoire_bp = Blueprint("grimoire_stub_lc019w2", __name__)
+        m.official_grimoire_lookup = lambda _qid: None
         m._identity_tables_present = lambda conn: False
         sys.modules["grimoire_api"] = m
 

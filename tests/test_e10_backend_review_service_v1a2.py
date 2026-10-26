@@ -452,7 +452,14 @@ def test_srs_scheduling_core_is_the_only_srs_cards_writer():
             continue
         if "apply_srs_scheduling(" in path.read_text(encoding="utf-8", errors="ignore"):
             callers.append(path.relative_to(ROOT).as_posix())
-    assert callers == ["app.py"], (
+    # G077/G079: g077_mistakes_settlement.py is the reviewed Mistakes terminal
+    # writer (FIRST_PASS_ONLY, caller-owned transaction).  The tools/ entry is
+    # the G077 disposable-fixture verification harness, not a runtime caller.
+    assert callers == [
+        "app.py",
+        "g077_mistakes_settlement.py",
+        "tools/check_g077_mistakes_settlement_static.py",
+    ], (
         f"unenumerated caller of the SRS scheduling core: {callers}"
     )
 
@@ -654,6 +661,8 @@ def _install_app_import_stubs():
         from flask import Blueprint
         module = types.ModuleType('grimoire_api')
         module.grimoire_bp = Blueprint('grimoire_stub_backend_v1a2', __name__)
+        # app.py installs Product Grimoire with this lookup at import time.
+        module.official_grimoire_lookup = lambda qid: None
         sys.modules['grimoire_api'] = module
     if 'question_taxonomy' not in sys.modules:
         module = types.ModuleType('question_taxonomy')
@@ -891,9 +900,9 @@ def practice_api_env(app_module, monkeypatch):
     conn.row_factory = sqlite3.Row
     conn.create_function("GREATEST", 2, max)
     conn.execute(
-        "CREATE TABLE users (id INTEGER PRIMARY KEY, elo_rating REAL NOT NULL DEFAULT 1400)"
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, elo_rating REAL NOT NULL DEFAULT 1400, plan TEXT NOT NULL DEFAULT 'free', premium_until TEXT)"
     )
-    conn.execute("INSERT INTO users(id) VALUES (9101)")
+    conn.execute("INSERT INTO users(id,plan,premium_until) VALUES (9101,'premium','2099-12-31T23:59:59')")
     conn.execute(
         """CREATE TABLE srs_cards (
              user_id INTEGER NOT NULL,
