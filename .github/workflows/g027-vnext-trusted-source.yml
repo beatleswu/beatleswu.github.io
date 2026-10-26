@@ -1,0 +1,75 @@
+name: G027-vNext Protected Source Admission
+on:
+  pull_request_target:
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+jobs:
+  g027-vnext-trusted-source:
+    name: g027-vnext-trusted-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Restrict source to one Owner-approved PR and fixed G111 Git commit
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "beatleswu/beatleswu.github.io"
+          test "$PR_NUMBER" = "445"
+          test "$PR_HEAD" = "b01dfb0f285742a029e45924fcaef1e47aa210a5"
+          test "$HEAD_REPO" = "beatleswu/beatleswu.github.io"
+          test "$BASE_REF" = "master"
+          case "$WORKFLOW_REF" in
+            beatleswu/beatleswu.github.io/.github/workflows/g027-vnext-trusted-source.yml@refs/heads/master) ;;
+            *) echo 'UNTRUSTED_WORKFLOW_REF' >&2; exit 1 ;;
+          esac
+      - name: Checkout protected base source, not PR-provided verifier
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout untrusted fixed source only as static Git data
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify base commit is the workflow source and PR cannot control pins
+        shell: bash
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test "$EXPECTED_WORKFLOW_SHA" = "$EXPECTED_BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "b01dfb0f285742a029e45924fcaef1e47aa210a5"
+          test -z "$(git -C trusted status --porcelain)"
+          test -z "$(git -C candidate status --porcelain)"
+          test "$(sha256sum trusted/scripts/release/g112_protected_source_verifier.py | cut -d' ' -f1)" = "93f4459a1017715824c7d06ad82159b11254d484d3a80a8d6e3998ce510f3644"
+          base64 --decode trusted/deploy/G112_G027_VNEXT_OWNER_APPROVED_SOURCE_ANCHOR_20261026.json.b64 > "$RUNNER_TEMP/g112-owner-anchor.json"
+          test "$(sha256sum "$RUNNER_TEMP/g112-owner-anchor.json" | cut -d' ' -f1)" = "1df88ecce98034b660790cfe45a64722cb3f01434351f14af7ef74433a28d65f"
+      - name: Run trusted static-source verifier (NO PR code execution)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 trusted/scripts/release/g112_protected_source_verifier.py \
+            --repo candidate \
+            --verify-anchor "$RUNNER_TEMP/g112-owner-anchor.json" \
+            --externally-pinned-anchor-sha256 1df88ecce98034b660790cfe45a64722cb3f01434351f14af7ef74433a28d65f \
+            --receipt "$RUNNER_TEMP/g027-vnext-static-source.json"
+          python3 -m json.tool "$RUNNER_TEMP/g027-vnext-static-source.json"
+          printf 'TRUSTED_SOURCE_WORKFLOW_REF=%s\n' "$GITHUB_WORKFLOW_REF"
+          printf 'TRUSTED_SOURCE_WORKFLOW_SHA=%s\n' "$GITHUB_WORKFLOW_SHA"
+          printf 'TRUSTED_SOURCE_RUN_ID=%s\n' "$GITHUB_RUN_ID"
+          printf 'TRUSTED_SOURCE_CHECK_EXPECTED_HEAD=b01dfb0f285742a029e45924fcaef1e47aa210a5\n'
