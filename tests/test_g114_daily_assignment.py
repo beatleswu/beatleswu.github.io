@@ -37,7 +37,7 @@ def test_unsubmitted_auto_legacy_15483_replaced_atomically(ctx):
     assert ctx.execute("SELECT COUNT(*) FROM daily_challenge_log").fetchone()[0] == 0
 
 
-def test_submitted_legacy_15483_is_preserved(ctx):
+def test_incorrect_only_15483_rotates_without_rewriting_old_log(ctx):
     ctx.execute(
         "INSERT INTO daily_challenge VALUES(?,?,?,?)",
         ("2026-10-26", 15483, "auto", None),
@@ -47,8 +47,13 @@ def test_submitted_legacy_15483_is_preserved(ctx):
         (99, "2026-10-26", 0),
     )
     chosen = product.get_or_create_daily_challenge("2026-10-26")
-    assert chosen["question_id"] == 15483
-    assert ctx.execute("SELECT COUNT(*) FROM daily_challenge_log").fetchone()[0] == 1
+    assert chosen["question_id"] == 12345
+    assert chosen["set_by"] == "auto_g114_rotated"
+    assert ctx.execute(
+        "SELECT correct FROM daily_challenge_log WHERE user_id=99"
+    ).fetchone()[0] == 0
+    # Further calls are stable; the same date cannot rotate twice.
+    assert product.get_or_create_daily_challenge("2026-10-26") == chosen
 
 
 def test_admin_curated_assignment_is_never_overridden(ctx):

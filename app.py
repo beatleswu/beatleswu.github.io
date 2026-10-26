@@ -174,6 +174,7 @@ from map_battle_runtime import (
     ensure_submission_lifecycle_schema,
     issue_attempt_with_submission_nonce,
     issue_submission_nonce_for_attempt,
+    lookup_attempt_for_owner,
     mode_eligible,
     question_revision_for,
     resolve_map_battle_provider_for_new,
@@ -7934,8 +7935,19 @@ def check_and_award(conn, user_id, stats, unit_name=None):
 
 # ── 每日挑戰工具函數 ───────────────────────────────────────────
 
+def _g114_daily_locked_authority(conn, date_str):
+    # PG row lock serializes rotation with daily settlement; no new schema.
+    # SQLite uses its existing single-writer transaction and tests separately.
+    raw = getattr(conn, '_conn', conn)
+    is_sqlite = raw.__class__.__module__.startswith('sqlite3')
+    sql = 'SELECT * FROM daily_challenge WHERE challenge_date=?'
+    if not is_sqlite:
+        sql += ' FOR UPDATE'
+    return conn.execute(sql, (date_str,)).fetchone()
+
+
 def get_or_create_daily_challenge(date_str):
-    """Select only server-judgeable SGF; never overwrite a submitted Daily."""
+    """Rotate once only without a settled CORRECT; preserve old signed tokens."""
     from daily_challenge_selection import (
         choose_safe_daily_question, daily_question_judgeable,
     )
@@ -7948,17 +7960,23 @@ def get_or_create_daily_challenge(date_str):
         if isinstance(candidate, dict):
             by_id.setdefault(candidate.get('id'), []).append(candidate)
     with get_db() as conn:
-        row = conn.execute(
-            'SELECT * FROM daily_challenge WHERE challenge_date=?', (date_str,)
-        ).fetchone()
+        row = _g114_daily_locked_authority(conn, date_str)
         if row:
             existing = dict(row)
             matching = by_id.get(existing['question_id'], ())
-            # Never change Owner-curated assignments or a puzzle with ANY
-            # player submissions (including incorrect answers).
+            # An admin assignment, prior rotation, or a valid puzzle is fixed.
             if existing.get('set_by') != 'auto' or (
                 len(matching) == 1 and daily_question_judgeable(matching[0])
             ):
+                return existing
+            # Incorrect-only historical records remain immutable; successful
+            # awards prohibit rotation. The row lock also protects against a
+            # new successful settlement racing this decision.
+            winning = conn.execute(
+                'SELECT 1 FROM daily_challenge_log '
+                'WHERE challenge_date=? AND correct=1 LIMIT 1', (date_str,),
+            ).fetchone()
+            if winning:
                 return existing
             replacement = choose_safe_daily_question(
                 qs, date_str, excluding_id=existing['question_id'],
@@ -7966,12 +7984,12 @@ def get_or_create_daily_challenge(date_str):
             if replacement is None:
                 return existing
             change = conn.execute(
-                'UPDATE daily_challenge SET question_id=? '
+                'UPDATE daily_challenge SET question_id=?, set_by=? '
                 'WHERE challenge_date=? AND question_id=? AND set_by=? '
                 'AND NOT EXISTS (SELECT 1 FROM daily_challenge_log '
-                'WHERE challenge_date=?)',
-                (replacement['id'], date_str, existing['question_id'],
-                 'auto', date_str),
+                'WHERE challenge_date=? AND correct=1)',
+                (replacement['id'], 'auto_g114_rotated', date_str,
+                 existing['question_id'], 'auto', date_str),
             )
             if getattr(change, 'rowcount', 0) == 1:
                 conn.commit()
@@ -15952,6 +15970,27 @@ class _MapBattleQuestionIncompatible(RequestRejected):
     retryable = False
 
 
+def _g114_require_judgeable_map_question(question):
+    # Same G065 terminal authority as Daily; no alternative browser grade.
+    from daily_challenge_selection import daily_question_judgeable
+    if not daily_question_judgeable(question):
+        failure = _MapBattleQuestionIncompatible(
+            '此題舊版棋譜尚未完成答案審核，請選擇下一題。',
+            status=409,
+        )
+        failure.reason_code = 'legacy_unreviewed_sgf_terminal'
+        failure.question_id = question.get('id')
+        raise failure
+
+
+def _g114_map_safe_judge(question, attempt, canonical):
+    # Existing attempts keep their original nonce/HP and settlement replay;
+    # a questionable SGF is rejected BEFORE new authoritative settlement.
+    from map_battle_runtime import judge_map_battle_answer_v1
+    _g114_require_judgeable_map_question(question)
+    return judge_map_battle_answer_v1(question, attempt, canonical)
+
+
 def _map_battle_question_context(question):
     """Derive attempt metadata from server-owned question content."""
     content = question.get('content')
@@ -16321,6 +16360,7 @@ def map_battle_v1_prepare_attempt():
         with _activation_transaction() as conn:
             eligibility = _map_battle_require_enabled(user_id, conn)
             _admit_map_battle_question_entitlement(user_id, question)
+            _g114_require_judgeable_map_question(question)
             battle = _map_battle_open_for_zone(conn, user_id, zone_key)
             if zone_key == ADVENTURE_ZONE3_KEY and legacy_zone3_battle_is_retirable(battle):
                 # A pre-E055 OPEN Zone 3 battle carries no Monster binding, and
@@ -16522,6 +16562,7 @@ def map_battle_v1_resume_validation(attempt_id):
                 zone_key=zone_key,
                 submission_nonce=payload.get('submission_nonce'),
             )
+            _g114_require_judgeable_map_question(question)
             if question_revision_for(question) != str(validated['attempt']['question_revision']):
                 raise RequestRejected('question revision is stale for this attempt', status=409)
             _map_battle_provider_for_restore(
@@ -16637,9 +16678,19 @@ def map_battle_v1_answers():
                 runtime_provider=MAP_BATTLE_RUNTIME_PROVIDER_REGISTRY,
                 spirit_projection_resolver=build_b022_active_spirit_projection,
                 entitlement_admitter=_admit_map_battle_answer_entitlement,
+                judge=_g114_map_safe_judge,
             )
     except MapBattleRuntimeError as error:
-        return _map_battle_error_response(error)
+        question = None
+        if isinstance(payload, dict) and isinstance(payload.get('attempt_id'), str):
+            with get_db() as read_conn:
+                issued = lookup_attempt_for_owner(
+                    read_conn, user_id=int(session['user_id']),
+                    attempt_id=payload['attempt_id'],
+                )
+            if issued:
+                question = _map_battle_question_by_id(issued['question_id'])
+        return _map_battle_error_response(error, question=question)
     # The validated request already carries the owner-scoped battle identity;
     # use it only to attach the read-only presentation projection after the
     # authoritative answer settlement.  It never supplies combat identity.
@@ -20561,13 +20612,22 @@ def dc_today():
     if not q:
         return jsonify({'error': '題目不存在'}), 404
 
+    from daily_challenge_selection import daily_question_judgeable
+    if not daily_question_judgeable(q):
+        return jsonify({
+            'ok': False, 'error': 'daily_question_on_hold',
+            'code': 'daily_question_on_hold', 'retryable': False,
+            'message': '今日題目需要人工審核，暫停計分及獎勵；已完成的紀錄不會被更動。',
+            'refresh_url': '/daily-challenge',
+        }), 409
+
     content = q.get('content', '')
     if private:
         content = _g076_exposure_content(content)
 
     with get_db() as conn:
         log = conn.execute(
-            'SELECT correct FROM daily_challenge_log '
+            'SELECT correct, question_id FROM daily_challenge_log '
             'WHERE user_id=? AND challenge_date=?',
             (uid, today)
         ).fetchone()
@@ -20613,6 +20673,13 @@ def dc_today():
         'attempt_token':  attempt_token,
         'user_submitted': log is not None,
         'user_correct':   bool(log['correct']) if log else None,
+        'user_submitted_previous_question': (
+            bool(log and str(log['question_id']) != str(q['id']))
+        ),
+        'previous_question_message': (
+            '你已完成原本的每日題目；新題目不會重複計分或發獎。'
+            if log and str(log['question_id']) != str(q['id']) else None
+        ),
         'stats': {
             'total':    total_p,
             'correct':  correct_p,
@@ -20683,6 +20750,14 @@ def dc_submit():
     question = qs_map.get(dc['question_id'])
     if not question:
         return jsonify({'ok': False, 'error': '題目不存在'}), 404
+    from daily_challenge_selection import daily_question_judgeable
+    if not daily_question_judgeable(question):
+        return jsonify({
+            'ok': False, 'error': 'daily_question_on_hold',
+            'code': 'daily_question_on_hold', 'retryable': False,
+            'message': '今日題目尚未審核，暫停計分及發獎，請稍後重新載入。',
+            'refresh_url': '/daily-challenge',
+        }), 409
 
     try:
         question_context = _map_battle_question_context(question)
@@ -20699,12 +20774,18 @@ def dc_submit():
         judge = judge_daily_answer(question, attempt, answer)
     except (DailyAttemptError, MapBattleRuntimeError) as error:
         app.logger.info('[daily] authoritative submission rejected: %s', error)
-        status = int(getattr(error, 'status', 409) or 409)
+        code = getattr(error, 'code', 'daily_answer_rejected')
+        replaced = code in ('daily_attempt_question_mismatch',
+                            'daily_attempt_stale_question')
         return jsonify({
             'ok': False,
-            'error': getattr(error, 'code', 'daily_answer_rejected'),
+            'error': 'daily_question_updated' if replaced else code,
+            'code': 'daily_question_updated' if replaced else code,
+            'message': ('今日題目已更新，請重新載入取得新題目；舊答案不會計分。'
+                        if replaced else '目前無法安全判定答案，請稍後再試。'),
+            'refresh_url': '/daily-challenge',
             'submission_id': submission_id,
-        }), status
+        }), 409 if replaced else int(getattr(error, 'status', 409) or 409)
 
     # The legacy client boolean is diagnostic only.  Reward/progression uses
     # the canonical SGF result returned by the server judge below.
@@ -20715,6 +20796,18 @@ def dc_submit():
     result_payload = None
 
     with get_db() as conn:
+        # Lock SAME date authority as the rotation transaction BEFORE any
+        # reservation, award, log or progression write. Old stateless tokens
+        # may remain cryptographically valid but cannot settle after cutover.
+        locked = _g114_daily_locked_authority(conn, today)
+        if locked is None or int(locked['question_id']) != int(attempt['question_id']):
+            return jsonify({
+                'ok': False, 'error': 'daily_question_updated',
+                'code': 'daily_question_updated',
+                'message': '今日題目已更新，請重新載入；舊答案不會計分。',
+                'refresh_url': '/daily-challenge',
+                'submission_id': submission_id,
+            }), 409
         try:
             reservation = reserve_daily_submission(
                 conn,

@@ -42,6 +42,7 @@ def _connect(url=None):
 
 def _reset_schema(conn):
     conn.execute("DROP TABLE IF EXISTS daily_challenge_log CASCADE")
+    conn.execute("DROP TABLE IF EXISTS daily_challenge CASCADE")
     conn.execute("DROP TABLE IF EXISTS user_stats CASCADE")
     conn.execute("DROP TABLE IF EXISTS badges_earned CASCADE")
     conn.execute("DROP TABLE IF EXISTS player_wardrobe CASCADE")
@@ -58,6 +59,7 @@ def _reset_schema(conn):
                is_scaffolding INTEGER NOT NULL DEFAULT 0,
                training_set_id INTEGER)"""
     )
+    conn.execute("CREATE TABLE daily_challenge(challenge_date TEXT PRIMARY KEY, question_id INTEGER, set_by TEXT, note TEXT)")
     conn.execute(
         """CREATE TABLE daily_challenge_log(
                id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL,
@@ -104,7 +106,7 @@ def pg_database():
         yield url
     finally:
         conn.rollback()
-        for table in ("daily_challenge_log", "user_stats", "badges_earned", "player_wardrobe", "review_log"):
+        for table in ("daily_challenge", "daily_challenge_log", "user_stats", "badges_earned", "player_wardrobe", "review_log"):
             conn.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
         conn.commit()
         conn.close()
@@ -131,7 +133,8 @@ def daily_pg(monkeypatch, pg_database):
     monkeypatch.setitem(app_module.app.config, "TESTING", True)
     monkeypatch.setitem(app_module.app.config, "PROPAGATE_EXCEPTIONS", True)
     conn = _connect(pg_database)
-    conn.execute("TRUNCATE review_log, daily_challenge_log, user_stats, badges_earned, player_wardrobe")
+    conn.execute("TRUNCATE review_log, daily_challenge, daily_challenge_log, user_stats, badges_earned, player_wardrobe")
+    conn.execute("INSERT INTO daily_challenge(challenge_date,question_id,set_by) VALUES(?,?,?)",(date.today().isoformat(),question['id'],'auto'))
     conn.commit()
     conn.close()
     today = date.today().isoformat()

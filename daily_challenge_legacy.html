@@ -1121,6 +1121,21 @@ async function loadToday() {
 
     // API 回傳錯誤時顯示實際原因
     if (!res.ok || data.error) {
+      if (data.code === 'daily_question_updated' || data.code === 'daily_question_on_hold') {
+        const area = document.getElementById('dc-board-area') || document.getElementById('board-container');
+        if (area) {
+          area.replaceChildren();
+          const notice = document.createElement('div');
+          notice.textContent = data.message || '今日題目已更新或暫停計分。';
+          area.appendChild(notice);
+          const refresh = document.createElement('button');
+          refresh.textContent = '重新載入今日題目';
+          refresh.onclick = () => location.reload();
+          area.appendChild(refresh);
+        }
+        setMsg(data.message || '今日題目已更新或暫停計分。', 'warn');
+        return;
+      }
       throw new Error(`API ${res.status}: ${data.error || JSON.stringify(data)}`);
     }
 
@@ -1193,6 +1208,10 @@ async function loadToday() {
       } else {
         setMsg(I18n.t('daily.msg.already_wrong'), 'err');
         showBtn('btn-answer');
+      }
+      if (data.user_submitted_previous_question) {
+        setMsg(data.previous_question_message || '先前題目的紀錄已保留，不會重複計分。', 'warn');
+        hideBtn('btn-answer');
       }
       showBtn('btn-retry');
       showGlobalStats(data.stats);

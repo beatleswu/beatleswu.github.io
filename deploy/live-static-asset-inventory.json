@@ -213,7 +213,8 @@
       "js/player_character_3d_runtime_bridge.js",
       "js/player_appearance_3d_attachment_adapter.js",
       "js/hero_equipment_attachment_adapter.js",
-      "js/formal_3d_character_equipment_runtime.js"
+      "js/formal_3d_character_equipment_runtime.js",
+      "daily_challenge_legacy.html"
     ]
   },
   "runtime_dependency_closure": {
