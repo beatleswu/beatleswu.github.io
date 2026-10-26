@@ -1,0 +1,22 @@
+name: "C1 controlled same-name check provenance probe - NEVER MERGE"
+on:
+  push:
+    branches:
+      - experiment/g027-check-name-collision-20261027
+  pull_request:
+    branches:
+      - master
+permissions:
+  contents: read
+jobs:
+  c1-probe:
+    name: g027-vnext-trusted-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Prove ordinary PR workflow can emit same named GitHub Actions job
+        shell: bash
+        run: |
+          echo "C1_ONLY_NONPRODUCTION_PROBE=TRUE"
+          echo "NOT_A_TRUSTED_SOURCE_GATE=TRUE"
+          echo "DO_NOT_MERGE_THIS_PR=TRUE"
