@@ -87,6 +87,9 @@ COPY daily_challenge_authority.py ./
 COPY daily_challenge_d5b.py ./
 # G114: fail-closed, G065-compatible automatic Daily question eligibility.
 COPY daily_challenge_selection.py ./
+# G114 7d Zone 10: source-pinned, original G065-safe alternatives only.
+COPY g114_zone10_alternative.py ./
+COPY g114_zone10_safe_alternative_manifest.json ./
 COPY equipment_first_clear_reward_service.py ./
 COPY equipment_portfolio_registry.py ./
 COPY equipment_loadout_service.py ./

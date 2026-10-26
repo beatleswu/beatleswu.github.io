@@ -12840,6 +12840,13 @@ def _questions_for_adventure_zone(qs, zone, premium=True):
         if books:
             if (q.get('topic') or '') in books:
                 out.append(q)
+            elif zone.get('key') == 'd7_plus':
+                # G114 same-level alternative: exact original 7d/LV10 SGF
+                # content hash in the signed-off source inventory, with
+                # G065 judgement already possible. Never downgrade rank.
+                from g114_zone10_alternative import zone10_admitted_alternative
+                if zone10_admitted_alternative(q):
+                    out.append(q)
         else:
             idx = _question_rank_index(q)
             if zone['min'] <= idx <= zone['max']:
@@ -13116,15 +13123,27 @@ def _adventure_state(uid):
 
     for z in ADVENTURE_ZONES:
         zone_qs = zone_question_sets[z['key']]
-        total = len(zone_qs)
-        # ``seen`` is the long-standing API field consumed by the E9/E10
-        # progress surfaces.  Its canonical numerator is now historical
-        # distinct correct answers, not merely displayed/attempted cards.
+        qualified = _g114_zone10_safe_questions(z, zone_qs)
+        total = len(qualified)
         seen = len([q for q in zone_qs if q['id'] in correct_ids])
         attempted = len([q for q in zone_qs if q['id'] in attempted_ids])
         defeated = len([q for q in zone_qs if q['id'] in defeated_ids])
-        pct = round(seen / total * 100) if total else 0
-        defeat_pct = round(defeated / total * 100) if total else 0
+        qualified_seen = len([q for q in qualified if q['id'] in correct_ids])
+        qualified_defeated = len([q for q in qualified if q['id'] in defeated_ids])
+        historical_seen = historical_total = 0
+        if z['key'] == 'd7_plus':
+            original_books = set(z.get('books') or ())
+            original = [q for q in zone_qs if q.get('topic') in original_books]
+            historical_total = len(original)
+            historical_seen = len([q for q in original if q['id'] in correct_ids])
+            historical_defeated = len([q for q in original if q['id'] in defeated_ids])
+            pct = max(round(qualified_seen / total * 100) if total else 0,
+                      round(historical_seen / historical_total * 100) if historical_total else 0)
+            defeat_pct = max(round(qualified_defeated / total * 100) if total else 0,
+                             round(historical_defeated / historical_total * 100) if historical_total else 0)
+        else:
+            pct = round(seen / total * 100) if total else 0
+            defeat_pct = round(defeated / total * 100) if total else 0
         row = progress.get(z['key']) or {}
         cleared = bool(row.get('cleared'))
         placement_unlocked = z['key'] in placement_unlocks
@@ -13168,9 +13187,14 @@ def _adventure_state(uid):
         # answers.  The old ``round()``-ed percentage admitted players just
         # below the stated share (576 of 1939 reads as 30% but is 29.7%).
         lord_required_correct = lord_eligibility_requirement(total)
+        historical_lord_eligible = bool(
+            z['key'] == 'd7_plus'
+            and is_lord_eligible(historical_seen, historical_total)
+        )
+        qualified_lord_eligible = is_lord_eligible(qualified_seen, total)
         boss_ready = (
             unlocked
-            and is_lord_eligible(seen, total)
+            and (qualified_lord_eligible or historical_lord_eligible)
             and not cleared
             and cooldown_left == 0
         )
@@ -13201,6 +13225,11 @@ def _adventure_state(uid):
             # Server-owned progression thresholds, so the client never has to
             # recompute a percentage that must agree with settlement.
             'lord_required_correct': lord_required_correct,
+            'g114_qualified_correct': qualified_seen,
+            'g114_historical_correct': historical_seen,
+            'g114_historical_total': historical_total,
+            'g114_historical_lord_eligible': historical_lord_eligible,
+            'g114_qualified_lord_eligible': qualified_lord_eligible,
             'second_star_required_correct': second_star_requirement(total),
             'third_star_required_correct': third_star_requirement(total),
             # Presentation only: the path onward from this Zone shines once
@@ -13789,6 +13818,21 @@ def _row_value(row, name):
         return None
 
 
+def _g114_zone10_safe_questions(zone, zone_questions):
+    # Never credit unsafe old SGF terminals toward NEW star rewards.
+    # Historical credit remains a separate read-only entitlement below.
+    if zone.get('key') != 'd7_plus':
+        return zone_questions
+    from daily_challenge_selection import daily_question_judgeable
+    return [q for q in zone_questions if daily_question_judgeable(q)]
+
+
+def _g114_adventure_zone_denominator(zone, zone_questions):
+    # Real qualified pool = 6 original + 1,197 verified LV10/7d alternatives.
+    # Never grant 100% merely after 683 newly introduced answers.
+    return len(_g114_zone10_safe_questions(zone, zone_questions))
+
+
 def _adventure_zone_question_ids(zone_key, uid=None):
     """Return the canonical question-id set and denominator for one Zone."""
 
@@ -13805,10 +13849,11 @@ def _adventure_zone_question_ids(zone_key, uid=None):
     except RuntimeError:
         premium = True
     zone_qs = _questions_for_adventure_zone(questions, zone, premium)
-    total = len(zone_qs)
+    qualified = _g114_zone10_safe_questions(zone, zone_qs)
+    total = len(qualified)
     if total <= 0:
         return None
-    return {int(q['id']) for q in zone_qs}, total
+    return {int(q['id']) for q in qualified}, total
 
 
 def _adventure_recommended_zone_key(zones, placement_start_zone=None):
@@ -14392,8 +14437,11 @@ def adventure_boss_start():
     # admitted a player up to nine questions early: 573-581 of Zone 1's 1939
     # all round to 30% while the requirement is 582.  There is deliberately no
     # second percentage authority here now.
-    if not is_replay and not is_lord_eligible(
-        state.get('seen', 0), state.get('total', 0)
+    if not is_replay and not (
+        (state.get('g114_qualified_lord_eligible', False)
+         or state.get('g114_historical_lord_eligible', False))
+        if zone_key == 'd7_plus'
+        else is_lord_eligible(state.get('seen', 0), state.get('total', 0))
     ):
         return jsonify({
             'ok': False,
@@ -14405,6 +14453,11 @@ def adventure_boss_start():
 
     premium = is_premium(uid)
     qs = _questions_for_adventure_zone(_load_questions(), zone, premium)
+    # A Zone-10 Lord exam must use the intersection of Map-G065 and Lord
+    # authority, never the one legacy question with a player color but an
+    # ambiguous SGF terminal.
+    if zone_key == 'd7_plus':
+        qs = _g114_zone10_safe_questions(zone, qs)
     if len(qs) < 1:
         return jsonify({'ok': False, 'error': 'no_questions'}), 400
     rng = random.Random(f"{uid}-{zone_key}-{datetime.datetime.now().isoformat()}")

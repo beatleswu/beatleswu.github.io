@@ -15354,7 +15354,10 @@ async function enterAdventureZoneInPage(zone) {
     try {
         const _zone = ADVENTURE_ZONES.find(z => z.key === zone.key) || zone;
         const _books = new Set(_zone && _zone.books ? _zone.books : []);
-        const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
+        const zoneQs = _zone?.key === 'd7_plus'
+            ? allQuestions.filter(q => q.topic === '逆天改命：終焉戰場的修羅考驗'
+                && q.rank === '7d' && q.stage === 'LV10')
+            : (_books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions);
         const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
         if (!unitQs.length) {
             // Zone 1 (k26_30) maps to topics '1圍棋新手村' / '2新手村的考驗',
@@ -23794,7 +23797,10 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
         // 只練該關綁定的書（topic）
         const _zone = ADVENTURE_ZONES.find(z => z.key === zoneParam);
         const _books = new Set(_zone && _zone.books ? _zone.books : []);
-        const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
+        const zoneQs = _zone?.key === 'd7_plus'
+            ? allQuestions.filter(q => q.topic === '逆天改命：終焉戰場的修羅考驗'
+                && q.rank === '7d' && q.stage === 'LV10')
+            : (_books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions);
         const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
         _adventureActiveQuestions = unitQs;
         if (unitQs.length) {
