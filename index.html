@@ -11614,8 +11614,10 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
             _dailyLimitMax = Number(error?.payload?.limit || _dailyLimitMax);
             _applyDailyLimit();
         } else if (code === 'premium_required') {
+            // The typed, no-repurchase message from _blockAdventureProgression
+            // must remain visible; a generic upsell would mislead lifetime
+            // Premium players who hit an entitlement projection mismatch.
             _blockAdventureProgression('premium_required');
-            setMsg(I18n.t('index.premium_req'), 'err');
         } else if (code === 'map_battle_zone_not_unlocked') {
             _blockAdventureProgression(code);
             setMsg('伺服器尚未確認本關的解鎖狀態，請返回地圖後重新進入。已取得的星星與進度不會清除。', 'err');
@@ -11830,11 +11832,10 @@ async function _submitMapBattleV1IfActive(moves, settledResponse = null) {
             return null;
         }
         if (error && error.code === 'premium_required') {
-            // Premium content is rejected before settlement. Keep the same
-            // Adventure fail-closed boundary and surface the existing paywall
-            // copy without introducing a Practice fallback.
+            // Premium content is rejected before settlement. Keep Adventure
+            // fail-closed without replacing its typed, no-repurchase message
+            // with a generic upsell; never fall back to Practice.
             _blockAdventureProgression('premium_required');
-            setMsg(I18n.t('index.premium_req'), 'err');
             return null;
         }
         if (error && (error.code === 'upgrade_required' || error.code === 'client_authority_field_forbidden')) {
@@ -15239,7 +15240,7 @@ function _nextAdventureQuestionExcludingQuarantine(qs, currentId, direction = 1)
         const rawIndex = origin + step * offset;
         const index = ((rawIndex % list.length) + list.length) % list.length;
         const candidate = list[index];
-        if (candidate && !_isSessionQuestionQuarantined(candidate)) return candidate;
+        if (candidate && !candidate.locked && !_isSessionQuestionQuarantined(candidate)) return candidate;
     }
     return null;
 }
@@ -15261,7 +15262,7 @@ function _pickNextAdventureTarget(qs, currentId) {
             && !q.locked && !_isSessionQuestionQuarantined(q)
             && !_adventureQuestionSeen(q.id))
         || ordered.find(q => Number(q.id) !== Number(currentId)
-            && !_isSessionQuestionQuarantined(q)
+            && !q.locked && !_isSessionQuestionQuarantined(q)
             && _adventureQuestionSeen(q.id) && !_adventureQuestionDefeated(q.id))
         || null;
 }
