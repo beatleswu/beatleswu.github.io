@@ -15999,6 +15999,36 @@ def _map_battle_zone_unlocked(conn, user_id, zone_key):
     ).fetchall()
     if any(row['zone_key'] == zone_key for row in unlock_rows):
         return True
+
+    # G115 P1: the public Adventure state already honours the immediately
+    # previous zone's earned first star (including the legacy pre-projection
+    # Lord clear). Historical Lord clears often predate the dedicated unlock
+    # writer, so the row may be missing even though the map legitimately
+    # displays Zone 8 as unlocked. Read the SAME server-owned star authorities
+    # used by _adventure_state; do not synthesize an unlock row or award stars.
+    # A previous zone's first star opens only its immediate successor.
+    zone_index = _adventure_zone_index(zone_key)
+    if zone_index > 0:
+        previous_zone_key = ADVENTURE_ZONES[zone_index - 1]['key']
+        prior_boss_row = conn.execute(
+            'SELECT cleared, stars FROM adventure_boss_progress '
+            'WHERE user_id=? AND zone_key=?',
+            (int(user_id), previous_zone_key),
+        ).fetchone()
+        legacy_first_star = bool(
+            prior_boss_row
+            and prior_boss_row['cleared']
+            and legacy_visible_star_entitlement(prior_boss_row)
+            >= FIRST_MAP_MILESTONE_STAR
+        )
+        authoritative_first_star = (
+            zone_star_value(
+                load_zone_star_rows(conn, int(user_id)), previous_zone_key
+            ) >= FIRST_MAP_MILESTONE_STAR
+        )
+        if legacy_first_star or authoritative_first_star:
+            return True
+
     start_zone_key = _resolve_adventure_effective_start_zone(
         conn, int(user_id), unlock_rows=[dict(row) for row in unlock_rows]
     )

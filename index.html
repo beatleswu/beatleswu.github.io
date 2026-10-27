@@ -10031,6 +10031,13 @@ function _showSessionNoValidQuestion() {
     solved = true;
     answering = false;
     _syncE10BattleActions(false);
+    if (_isAdventureZonePractice() && !_bossMode) {
+        // An exhausted G065-safe pool must never leave an interactive blank
+        // board. The existing visible '返回地圖' control remains available.
+        document.getElementById('board-canvas-wrap')?.classList.add('hidden');
+        setMsg('本關目前沒有其他可安全作答的題目，請按「返回地圖」。您的進度與獎勵已保留。', 'err');
+        return;
+    }
     setMsg(_sessionNoValidQuestionMessage(), 'info');
 }
 
@@ -11435,10 +11442,19 @@ function _mapBattleV1IsActive() {
 }
 
 function _blockAdventureProgression(reason) {
+    // Preserve the typed reason from a failed attempt. The subsequent generic
+    // loadQuestion guard must not overwrite it with an unhelpful English toast.
+    if (_mapBattleV1Mode === 'blocked' && reason === 'map_battle_blocked') return;
     _mapBattleV1Mode = 'blocked';
     _mapBattleV1State = null;
     _syncE10BattleActions(false);
-    setMsg('Adventure is temporarily unavailable; no answer fallback was used.', 'err');
+    const message = reason === 'map_battle_zone_not_unlocked'
+        ? '關卡解鎖驗證暫時失敗，請按「返回地圖」。已取得的星星及答題進度不會清除。'
+        : reason === 'premium_required'
+            ? '題目會員權限驗證失敗。請勿重新購買會員，請返回地圖後再試。'
+            : '目前暫時無法載入可安全判定的冒險題目，請返回地圖後再試。';
+    setMsg(message, 'err');
+    document.getElementById('board-canvas-wrap')?.classList.add('hidden');
     if (typeof document !== 'undefined') {
         notifyAdventureQuestionRuntimeError(reason || 'map_battle_unavailable');
     }
@@ -11598,8 +11614,13 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
             _dailyLimitMax = Number(error?.payload?.limit || _dailyLimitMax);
             _applyDailyLimit();
         } else if (code === 'premium_required') {
+            // The typed, no-repurchase message from _blockAdventureProgression
+            // must remain visible; a generic upsell would mislead lifetime
+            // Premium players who hit an entitlement projection mismatch.
             _blockAdventureProgression('premium_required');
-            setMsg(I18n.t('index.premium_req'), 'err');
+        } else if (code === 'map_battle_zone_not_unlocked') {
+            _blockAdventureProgression(code);
+            setMsg('伺服器尚未確認本關的解鎖狀態，請返回地圖後重新進入。已取得的星星與進度不會清除。', 'err');
         } else if (code === 'map_battle_v1_disabled' || code === 'map_battle_mode_not_eligible') {
             _blockAdventureProgression(code);
         } else {
@@ -11811,11 +11832,10 @@ async function _submitMapBattleV1IfActive(moves, settledResponse = null) {
             return null;
         }
         if (error && error.code === 'premium_required') {
-            // Premium content is rejected before settlement. Keep the same
-            // Adventure fail-closed boundary and surface the existing paywall
-            // copy without introducing a Practice fallback.
+            // Premium content is rejected before settlement. Keep Adventure
+            // fail-closed without replacing its typed, no-repurchase message
+            // with a generic upsell; never fall back to Practice.
             _blockAdventureProgression('premium_required');
-            setMsg(I18n.t('index.premium_req'), 'err');
             return null;
         }
         if (error && (error.code === 'upgrade_required' || error.code === 'client_authority_field_forbidden')) {
@@ -13268,7 +13288,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         const nextAdventureQuestion = _pickNextAdventureTarget(
             _adventureActiveQuestions,
             questionId,
-        ) || (_isSessionQuestionQuarantined(sequentialFallback) ? null : sequentialFallback);
+        ) || (sequentialFallback?.locked || _isSessionQuestionQuarantined(sequentialFallback) ? null : sequentialFallback);
         if (nextAdventureQuestion && Number(nextAdventureQuestion.id) !== Number(questionId)) {
             _e10AcceptanceTrace('MAP_BATTLE_QUESTION_SKIPPED', {
                 qid: questionId,
@@ -15220,15 +15240,15 @@ function _nextAdventureQuestionExcludingQuarantine(qs, currentId, direction = 1)
         const rawIndex = origin + step * offset;
         const index = ((rawIndex % list.length) + list.length) % list.length;
         const candidate = list[index];
-        if (candidate && !_isSessionQuestionQuarantined(candidate)) return candidate;
+        if (candidate && !candidate.locked && !_isSessionQuestionQuarantined(candidate)) return candidate;
     }
     return null;
 }
 
 function _pickAdventureTarget(qs) {
     const list = Array.isArray(qs) ? qs : [];
-    return list.find(q => !_isSessionQuestionQuarantined(q) && !_adventureQuestionSeen(q.id))
-        || list.find(q => !_isSessionQuestionQuarantined(q)
+    return list.find(q => !q.locked && !_isSessionQuestionQuarantined(q) && !_adventureQuestionSeen(q.id))
+        || list.find(q => !q.locked && !_isSessionQuestionQuarantined(q)
             && _adventureQuestionSeen(q.id) && !_adventureQuestionDefeated(q.id))
         || null;
 }
@@ -15239,10 +15259,10 @@ function _pickNextAdventureTarget(qs, currentId) {
     const start = Math.max(0, list.findIndex(q => Number(q.id) === Number(currentId)));
     const ordered = list.slice(start + 1).concat(list.slice(0, start + 1));
     return ordered.find(q => Number(q.id) !== Number(currentId)
-            && !_isSessionQuestionQuarantined(q)
+            && !q.locked && !_isSessionQuestionQuarantined(q)
             && !_adventureQuestionSeen(q.id))
         || ordered.find(q => Number(q.id) !== Number(currentId)
-            && !_isSessionQuestionQuarantined(q)
+            && !q.locked && !_isSessionQuestionQuarantined(q)
             && _adventureQuestionSeen(q.id) && !_adventureQuestionDefeated(q.id))
         || null;
 }
@@ -15358,7 +15378,9 @@ async function enterAdventureZoneInPage(zone) {
             ? allQuestions.filter(q => q.topic === '逆天改命：終焉戰場的修羅考驗'
                 && q.rank === '7d' && q.stage === 'LV10')
             : (_books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions);
-        const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
+        // G115 P1: fail closed on locked questions; never fall back to
+        // the entire locked pool after an incompatible SGF 409.
+        const unitQs = zoneQs.filter(q => !q.locked);
         if (!unitQs.length) {
             // Zone 1 (k26_30) maps to topics '1圍棋新手村' / '2新手村的考驗',
             // which carry ~1.9k records, so an empty pool here means the
@@ -23801,7 +23823,9 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
             ? allQuestions.filter(q => q.topic === '逆天改命：終焉戰場的修羅考驗'
                 && q.rank === '7d' && q.stage === 'LV10')
             : (_books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions);
-        const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
+        // G115 P1: fail closed on locked questions; never fall back to
+        // the entire locked pool after an incompatible SGF 409.
+        const unitQs = zoneQs.filter(q => !q.locked);
         _adventureActiveQuestions = unitQs;
         if (unitQs.length) {
             renderList(unitQs);
@@ -23812,9 +23836,12 @@ document.querySelector('.home-player-card')?.classList.toggle('premium', _isPrem
                     await loadQuestion(target, { resumeState: resume?.resumeState || null });
                 } else {
                     _clearMapBattleV1Resume();
-                    setMsg('本區可用題目已完成。', 'ok');
+                    _showSessionNoValidQuestion();
                 }
             } catch(e) { console.warn('[adventure]', e); }
+        } else {
+            _clearMapBattleV1Resume();
+            _showSessionNoValidQuestion();
         }
         return;
     }

@@ -168,6 +168,18 @@ def api_env(app_module, monkeypatch):
              started_at TEXT
         )"""
     )
+    # G115: production always has the historical Lord authority relation.
+    # The minimal Zone4 activation fixture must include the same table when
+    # testing the now-shared first-star unlock projection.
+    conn.execute(
+        """CREATE TABLE adventure_boss_progress (
+             user_id INTEGER NOT NULL,
+             zone_key TEXT NOT NULL,
+             cleared INTEGER NOT NULL DEFAULT 0,
+             stars INTEGER NOT NULL DEFAULT 0,
+             PRIMARY KEY (user_id,zone_key)
+        )"""
+    )
     conn.execute(
         """CREATE TABLE adventure_zone_unlocks (
              user_id INTEGER NOT NULL,
