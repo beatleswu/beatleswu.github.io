@@ -25,7 +25,7 @@ def test_quiz_pet_stands_above_the_board_top_left_on_phones():
     pet, badge = media.group(1), media.group(2)
     assert "bottom: calc(100% - 12px)" in pet          # sits on top of the frame, outside the grid
     assert "bottom: -4px" not in pet and "top:" not in pet
-    assert "left: calc(100% - 14px)" in badge          # status badge beside the sprite, clear of the prompt pill
+    assert "left: calc(100% - 10px)" in badge          # status badge beside the sprite, clear of the prompt pill
 
 
 def test_phone_layout_reserves_no_extra_space_under_the_board():
