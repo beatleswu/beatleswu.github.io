@@ -469,6 +469,7 @@ aside {
 #quiz-pet {
     position: absolute; left: -26px; bottom: -6px; width: 124px; z-index: 8;
     cursor: pointer; user-select: none; animation: quizPetBob 3s ease-in-out infinite;
+    pointer-events: none; /* 透明區不可吞掉落子點擊 */
 }
 #quiz-pet img { width: 100%; height: auto; display: block; filter: drop-shadow(0 7px 13px rgba(0,0,0,.55)); -webkit-user-drag: none; }
 #quiz-pet.react { animation: quizPetJump .55s ease; }
