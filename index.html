@@ -6175,8 +6175,13 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     #quiz-pet-speech.cheer { background: #b4660f; }   /* 答對 / 連擊 */
     #quiz-pet-speech.cozy  { background: #0b6f69; }   /* 答錯加油 */
     #quiz-pet-speech.win   { background: #6d3bd0; }   /* 勝利 / 升級 */
-    /* 手機：棋靈掛在棋盤框左下角「外側」（框下緣之下），不再遮住 1-1 附近的交叉點與棋子 */
-    @media (max-width: 768px) { #quiz-pet { width: 84px; left: -22px; bottom: auto; top: calc(100% + 8px); } }
+    /* 手機：棋盤左右只剩約 20px，棋靈無處可躲，所以在棋盤框下方替它留一格專屬位置
+       （只在棋靈顯示時預留），不再蓋住 1-1 附近的交叉點與棋子，也不壓到下方按鈕。 */
+    @media (max-width: 768px) {
+        #quiz-pet { width: 84px; left: -6px; bottom: auto; top: calc(100% - 14px); }
+        #quiz-pet-status { top: 16px; }
+        .quiz-board-anchor:has(> #quiz-pet:not([style*="display:none"])) { margin-bottom: 50px; }
+    }
 
     /* 怪物欄（放大版） */
     /* 怪物頭像放大：縮放整個包裝層（頭像＋受擊閃光＋對話泡泡一起等比放大） */

@@ -19,10 +19,14 @@ def test_quiz_pet_never_intercepts_board_taps():
     assert "pointer-events: none" in _rule(MISTAKES, "#quiz-pet")
 
 
-def test_quiz_pet_hangs_outside_board_frame_on_phones():
-    media = re.search(r"@media \(max-width: 768px\) \{ (#quiz-pet \{[^}]*\}) \}", INDEX)
-    assert media, "phone rule for #quiz-pet is missing"
-    rule = media.group(1)
+def test_quiz_pet_has_its_own_slot_below_the_board_on_phones():
+    media = re.search(r"@media \(max-width: 768px\) \{\s*(#quiz-pet \{[^}]*\})(.*?)
+    \}", INDEX, re.S)
+    assert media, "phone block for #quiz-pet is missing"
+    rule, rest = media.group(1), media.group(2)
     assert "bottom: auto" in rule
-    assert "top: calc(100% + 8px)" in rule
+    assert "top: calc(100% - 14px)" in rule
     assert "bottom: -4px" not in rule
+    # the slot is only reserved while the companion is actually shown
+    assert ".quiz-board-anchor:has(> #quiz-pet:not([style*=\"display:none\"]))" in rest
+    assert "margin-bottom: 50px" in rest
