@@ -19,13 +19,16 @@ def test_quiz_pet_never_intercepts_board_taps():
     assert "pointer-events: none" in _rule(MISTAKES, "#quiz-pet")
 
 
-def test_quiz_pet_has_its_own_slot_below_the_board_on_phones():
-    media = re.search(r"@media \(max-width: 768px\) \{\s*(#quiz-pet \{[^}]*\})(.*?)\n    \}", INDEX, re.S)
+def test_quiz_pet_stands_above_the_board_top_left_on_phones():
+    media = re.search(r"@media \(max-width: 768px\) \{\s*(#quiz-pet \{[^}]*\})\s*(#quiz-pet-status \{[^}]*\})\s*\}", INDEX)
     assert media, "phone block for #quiz-pet is missing"
-    rule, rest = media.group(1), media.group(2)
-    assert "bottom: auto" in rule
-    assert "top: calc(100% - 14px)" in rule
-    assert "bottom: -4px" not in rule
-    # the slot is only reserved while the companion is actually shown
-    assert '.quiz-board-anchor:has(> #quiz-pet:not([style*="display:none"]))' in rest
-    assert "margin-bottom: 50px" in rest
+    pet, badge = media.group(1), media.group(2)
+    assert "bottom: calc(100% - 4px)" in pet          # sits on top of the frame, outside the grid
+    assert "bottom: -4px" not in pet and "top:" not in pet
+    assert "left: calc(100% - 14px)" in badge          # status badge beside the sprite, clear of the prompt pill
+
+
+def test_phone_layout_reserves_no_extra_space_under_the_board():
+    # An earlier attempt pushed the nav buttons down 50px; the owner rejected that.
+    assert "margin-bottom: 50px" not in INDEX
+    assert "#quiz-pet:not(" not in INDEX
