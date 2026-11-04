@@ -6122,6 +6122,8 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     #quiz-pet {
         position: absolute; left: -26px; bottom: -6px; width: 124px; z-index: 6;
         cursor: pointer; user-select: none;
+        /* 圖片矩形（含透明區）會蓋在棋盤左下角；不可攔截點擊，否則 1-1 附近落不了子 */
+        pointer-events: none;
         animation: quizPetBob 3s ease-in-out infinite;
     }
     #quiz-pet img {
@@ -6173,7 +6175,8 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     #quiz-pet-speech.cheer { background: #b4660f; }   /* 答對 / 連擊 */
     #quiz-pet-speech.cozy  { background: #0b6f69; }   /* 答錯加油 */
     #quiz-pet-speech.win   { background: #6d3bd0; }   /* 勝利 / 升級 */
-    @media (max-width: 768px) { #quiz-pet { width: 84px; left: -14px; bottom: -4px; } }
+    /* 手機：棋靈掛在棋盤框左下角「外側」（框下緣之下），不再遮住 1-1 附近的交叉點與棋子 */
+    @media (max-width: 768px) { #quiz-pet { width: 84px; left: -22px; bottom: auto; top: calc(100% + 8px); } }
 
     /* 怪物欄（放大版） */
     /* 怪物頭像放大：縮放整個包裝層（頭像＋受擊閃光＋對話泡泡一起等比放大） */
