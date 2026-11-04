@@ -23,7 +23,7 @@ def test_quiz_pet_stands_above_the_board_top_left_on_phones():
     media = re.search(r"@media \(max-width: 768px\) \{\s*(#quiz-pet \{[^}]*\})\s*(#quiz-pet-status \{[^}]*\})\s*\}", INDEX)
     assert media, "phone block for #quiz-pet is missing"
     pet, badge = media.group(1), media.group(2)
-    assert "bottom: calc(100% - 4px)" in pet          # sits on top of the frame, outside the grid
+    assert "bottom: calc(100% - 12px)" in pet          # sits on top of the frame, outside the grid
     assert "bottom: -4px" not in pet and "top:" not in pet
     assert "left: calc(100% - 14px)" in badge          # status badge beside the sprite, clear of the prompt pill
 
