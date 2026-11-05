@@ -19,13 +19,15 @@ def test_quiz_pet_never_intercepts_board_taps():
     assert "pointer-events: none" in _rule(MISTAKES, "#quiz-pet")
 
 
-def test_quiz_pet_stands_above_the_board_top_left_on_phones():
-    media = re.search(r"@media \(max-width: 1024px\), \(pointer: coarse\) \{\s*(#quiz-pet \{[^}]*\})\s*(#quiz-pet-status \{[^}]*\})\s*\}", INDEX)
-    assert media, "phone block for #quiz-pet is missing"
-    pet, badge = media.group(1), media.group(2)
-    assert "bottom: calc(100% - 68px)" in pet          # sits in the empty frame margin left of the prompt pill, clear of the fixed menu button
-    assert "bottom: -4px" not in pet and "top:" not in pet
-    assert "left: calc(100% - 12px)" in badge          # status badge beside the sprite, clear of the prompt pill
+def test_quiz_pet_stands_in_the_frame_margin_beside_the_prompt_pill():
+    tablet = re.search(r"@media \(max-width: 1024px\), \(pointer: coarse\) \{\s*(#quiz-pet \{[^}]*\})\s*(#quiz-pet-status \{[^}]*\})\s*\}", INDEX)
+    phone = re.search(r"@media \(max-width: 768px\) \{\s*(#quiz-pet \{[^}]*\})\s*(#quiz-pet-status \{[^}]*\})\s*\}", INDEX)
+    assert tablet and phone, "tablet/phone blocks for #quiz-pet are missing"
+    for pet, badge in (tablet.groups(), phone.groups()):
+        assert "top:" in pet   # anchored from the top of the frame, not the bottom corner
+        assert "bottom: calc(100%" not in pet
+        assert "left: calc(100% -" in badge                              # badge beside the sprite, clear of the prompt pill
+    assert "width: 84px" in tablet.group(1) and "width: 72px" in phone.group(1)
 
 
 def test_phone_layout_reserves_no_extra_space_under_the_board():

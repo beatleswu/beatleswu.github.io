@@ -6175,11 +6175,15 @@ html[data-world-presentation-error="1"] #world-presentation-pending {
     #quiz-pet-speech.cheer { background: #b4660f; }   /* 答對 / 連擊 */
     #quiz-pet-speech.cozy  { background: #0b6f69; }   /* 答錯加油 */
     #quiz-pet-speech.win   { background: #6d3bd0; }   /* 勝利 / 升級 */
-    /* 手機與平板（含 iPad 直式 834px）：棋盤左右只剩約 20px、下方緊接按鈕，棋靈改站在棋盤框「左上角外側」
-       （「黑先，請落子」標籤的左邊），不蓋住任何交叉點與棋子，也不推擠下方按鈕。 */
+    /* 手機與平板：棋靈站在棋盤框左上方、「黑先，請落子」標籤左邊的空白處（以外框內側為基準），
+       不蓋住任何交叉點與棋子，不被左上角固定的選單鈕遮住，也不推擠下方按鈕。 */
     @media (max-width: 1024px), (pointer: coarse) {
-        #quiz-pet { width: 60px; left: -2px; bottom: calc(100% - 68px); }
-        #quiz-pet-status { min-width: 0; padding: 2px 6px; font-size: 9px; top: 30px; left: calc(100% - 12px); transform: none; }
+        #quiz-pet { width: 84px; left: -4px; top: -4px; bottom: auto; }
+        #quiz-pet-status { min-width: 0; padding: 2px 6px; font-size: 10px; top: 34px; left: calc(100% - 14px); transform: none; }
+    }
+    @media (max-width: 768px) {
+        #quiz-pet { width: 72px; left: -10px; top: -8px; }
+        #quiz-pet-status { font-size: 9px; top: 42px; left: calc(100% - 26px); }
     }
 
     /* 怪物欄（放大版） */
