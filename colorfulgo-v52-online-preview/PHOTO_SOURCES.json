@@ -1,0 +1,40 @@
+{
+  "version": "V52 visual preview + first public photo integration",
+  "date": "2026-11-24",
+  "source_urls": [
+    "https://www.colorfulgo.com/",
+    "https://www.colorfulgo.com/關於我們",
+    "https://www.colorfulgo.com/課程介紹"
+  ],
+  "facebook_source": "https://www.facebook.com/profile.php?id=100054504398893",
+  "facebook_access": "The fan page currently returns unavailable to unauthenticated automated fetching. No Facebook photos were imported in this revision.",
+  "publish_scope": "isolated GitHub preview branch only; not colorfulgo.com, not original V51 CMS",
+  "image_policy": "Existing publicly displayed photos only, no transformations or face editing, no fetching of private D1/R2 photo storage. External Google Sites photo hosting may impose access restrictions.",
+  "pages": [
+    {
+      "page": "index.html",
+      "images": 6
+    },
+    {
+      "page": "about.html",
+      "images": 4
+    },
+    {
+      "page": "courses.html",
+      "images": 4
+    },
+    {
+      "page": "stories.html",
+      "images": 4
+    },
+    {
+      "page": "awards.html",
+      "images": 4
+    },
+    {
+      "page": "contact.html",
+      "images": 4
+    }
+  ],
+  "disclaimer": "This is a public preview; do not publish as official without Owner approval and photo permissions review."
+}
